@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -31,10 +31,9 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.util.Progressable;
 
 import io.warp10.WarpConfig;
@@ -54,11 +53,21 @@ import io.warp10.warp.sdk.WarpScriptRawJavaFunction;
 public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
 
   private static final Properties DEFAULT_PROPERTIES;
-  
+
   static {
     DEFAULT_PROPERTIES = WarpConfig.getProperties();
   }
+
+  /**
+   * Should we update per function metrics
+   */
+  private boolean functionMetrics = true;
+      
+  private Signal signal = null;
+  private boolean signaled = false;
   
+  private final boolean allowLooseBlockComments;
+
   private AtomicLong[] counters;
 
   private final Object[] registers;
@@ -98,7 +107,15 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
    */
   private boolean inSecureMacro = false;
   
+  /**
+   * Current number of visible (not hidden) elements
+   */
   private int size = 0;
+  
+  /**
+   * Offset, 0 means no part of the stack is hidden, > 0 means 'offset' elements are hidden
+   */
+  private int offset = 0;
   
   private Object[] elements = new Object[32];
 
@@ -113,8 +130,6 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   private StoreClient storeClient;
   
   private DirectoryClient directoryClient;
-  
-  private final AtomicInteger recursionLevel = new AtomicInteger(0);
   
   private final String uuid = UUID.randomUUID().toString();
   
@@ -147,6 +162,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   private Properties properties;
   
   private final boolean unshadow;
+  
+  private final long creationTime = System.currentTimeMillis();
   
   public static class StackContext extends WarpScriptStack.StackContext {
     public Map<String, Object> symbolTable;
@@ -197,6 +214,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       setAttribute(WarpScriptStack.ATTRIBUTE_MAX_BUCKETS, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_BUCKETS, Integer.toString(WarpScriptStack.DEFAULT_MAX_BUCKETS))));
       setAttribute(WarpScriptStack.ATTRIBUTE_MAX_PIXELS, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_PIXELS, Long.toString(WarpScriptStack.DEFAULT_MAX_PIXELS))));
       setAttribute(WarpScriptStack.ATTRIBUTE_MAX_GEOCELLS, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_GEOCELLS, Integer.toString(WarpScriptStack.DEFAULT_MAX_GEOCELLS))));
+      setAttribute(WarpScriptStack.ATTRIBUTE_JSON_MAXSIZE, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_JSON, Long.toString(WarpScriptStack.DEFAULT_MAX_JSON))));
 
       //
       // Set hard limits
@@ -207,11 +225,12 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       setAttribute(WarpScriptStack.ATTRIBUTE_MAX_DEPTH_HARD, Integer.parseInt(properties.getProperty(Configuration.WARPSCRIPT_MAX_DEPTH_HARD, Integer.toString(WarpScriptStack.DEFAULT_MAX_DEPTH))));
       setAttribute(WarpScriptStack.ATTRIBUTE_MAX_OPS_HARD, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_OPS_HARD, Long.toString(WarpScriptStack.DEFAULT_MAX_OPS))));
       setAttribute(WarpScriptStack.ATTRIBUTE_MAX_SYMBOLS_HARD, Integer.parseInt(properties.getProperty(Configuration.WARPSCRIPT_MAX_SYMBOLS_HARD, Integer.toString(WarpScriptStack.DEFAULT_MAX_SYMBOLS))));
-      setAttribute(WarpScriptStack.ATTRIBUTE_MAX_BUCKETS_HARD, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_BUCKETS_HARD, Integer.toString(WarpScriptStack.DEFAULT_MAX_BUCKETS))));
+      setAttribute(WarpScriptStack.ATTRIBUTE_MAX_BUCKETS_HARD, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_BUCKETS_HARD, Long.toString(WarpScriptStack.DEFAULT_MAX_BUCKETS))));
       setAttribute(WarpScriptStack.ATTRIBUTE_MAX_PIXELS_HARD, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_PIXELS_HARD, Long.toString(WarpScriptStack.DEFAULT_MAX_PIXELS))));
       setAttribute(WarpScriptStack.ATTRIBUTE_FETCH_LIMIT_HARD, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_FETCH_HARD, Long.toString(WarpScriptStack.DEFAULT_FETCH_LIMIT))));
       setAttribute(WarpScriptStack.ATTRIBUTE_GTS_LIMIT_HARD, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_GTS_HARD, Long.toString(WarpScriptStack.DEFAULT_GTS_LIMIT))));
-      setAttribute(WarpScriptStack.ATTRIBUTE_MAX_GEOCELLS_HARD, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_GEOCELLS_HARD, Integer.toString(WarpScriptStack.DEFAULT_MAX_GEOCELLS))));
+      setAttribute(WarpScriptStack.ATTRIBUTE_MAX_GEOCELLS_HARD, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_GEOCELLS_HARD, Long.toString(WarpScriptStack.DEFAULT_MAX_GEOCELLS))));
+      setAttribute(WarpScriptStack.ATTRIBUTE_JSON_MAXSIZE_HARD, Long.parseLong(properties.getProperty(Configuration.WARPSCRIPT_MAX_JSON_HARD, Long.toString(WarpScriptStack.DEFAULT_MAX_JSON))));
 
       //
       // Set top level section name
@@ -232,9 +251,14 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     
     this.properties = properties;
 
-    int nregs = Integer.parseInt(null == this.properties ? String.valueOf(WarpScriptStack.DEFAULT_REGISTERS) : this.properties.getProperty(Configuration.CONFIG_WARPSCRIPT_REGISTERS, String.valueOf(WarpScriptStack.DEFAULT_REGISTERS)));
-
-    this.registers = new Object[nregs];
+    int nregs = Integer.parseInt(this.properties.getProperty(Configuration.CONFIG_WARPSCRIPT_REGISTERS, String.valueOf(WarpScriptStack.DEFAULT_REGISTERS)));
+    allowLooseBlockComments = "true".equals(properties.getProperty(Configuration.WARPSCRIPT_ALLOW_LOOSE_BLOCK_COMMENTS, "false"));
+    this.registers = new Object[nregs];    
+  }
+  
+  @Override
+  protected void finalize() throws Throwable {
+    WarpScriptStackRegistry.unregister(this);
   }
   
   public void maxLimits() {
@@ -250,6 +274,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     setAttribute(WarpScriptStack.ATTRIBUTE_MAX_PIXELS, Long.MAX_VALUE - 1);
     // Set max of geocells to the largest INTEGER - 1, not Long.MAX_VALUE as it is used as an int
     setAttribute(WarpScriptStack.ATTRIBUTE_MAX_GEOCELLS, Integer.MAX_VALUE - 1);
+    setAttribute(WarpScriptStack.ATTRIBUTE_JSON_MAXSIZE, Long.MAX_VALUE);
   }
   
   @Override
@@ -259,13 +284,12 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   
   @Override
   public void reset(int depth) throws WarpScriptException {
-    //
-    // Remove the last element of the list until we reach 'depth'
-    // We remove the last element to prevent having to shift remaining elements
-    //
-    
-    while (size > depth) {
-      size--;
+    if (depth < 0) {
+      throw new IndexOutOfBoundsException("Index out of bound.");
+    }
+
+    if (size > depth) {
+      size = depth;
     }
   }
   
@@ -291,10 +315,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       throw new IndexOutOfBoundsException("Index out of bound.");
     }
 
-    while (n > 0) {
-      size--;
-      n--;
-    }
+    size -= n;
   }
   
   @Override
@@ -303,9 +324,9 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       throw new InformativeEmptyStackException();
     }
     
-    Object element = elements[size - 1];
+    Object element = elements[offset + size - 1];
     ensureCapacity(1);
-    elements[size++] = element;
+    elements[offset + size++] = element;
   }
 
   @Override
@@ -319,8 +340,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     int count = n;
     ensureCapacity(n);
     while (count > 0) {
-      Object o = elements[size - 1 - (n - 1)];
-      elements[size++] = o;
+      Object o = elements[offset + size - 1 - (n - 1)];
+      elements[offset + size++] = o;
       count--;
     }
   }
@@ -331,7 +352,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       throw new InformativeEmptyStackException();
     }
 
-    Object element = elements[size - 1];
+    Object element = elements[offset + size - 1];
     size--;
     
     return element;    
@@ -340,30 +361,29 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   @Override
   public Object[] popn() throws EmptyStackException, IndexOutOfBoundsException {
     int n = getn();
-    
+
+    return popn(n);
+  }
+
+  @Override
+  public Object[] popn(int n) throws EmptyStackException, IndexOutOfBoundsException {
     if (size < n || n < 0) {
       throw new IndexOutOfBoundsException("Index out of bound.");
     }
-    
+
     Object[] objects = new Object[n];
 
-    //
-    // Remove objects from the end of the stack so the call to remove is blazing
-    // fast.
-    //
-    
-    for (int i = n - 1; i >= 0; i--) {
-      objects[i] = elements[size - 1];
-      size--;
-    }
-    
+    System.arraycopy(elements, offset + size - n, objects, 0, n);
+
+    size -= n;
+
     return objects;
   }
   
   @Override
   public void push(Object o) throws WarpScriptException {
     ensureCapacity(1);
-    elements[size++] = o;
+    elements[offset + size++] = o;
   }
   
   @Override
@@ -376,10 +396,10 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       throw new IndexOutOfBoundsException("Index out of bound.");
     }
         
-    Object top = elements[size - 1];
-    Object top2 = elements[size - 2];
-    elements[size - 1] = top2;
-    elements[size - 2] = top;
+    Object top = elements[offset + size - 1];
+    Object top2 = elements[offset + size - 2];
+    elements[offset + size - 1] = top2;
+    elements[offset + size - 2] = top;
   }
   
   @Override
@@ -388,7 +408,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       throw new InformativeEmptyStackException();
     }
 
-    return elements[size - 1];
+    return elements[offset + size - 1];
   }
   
   @Override
@@ -402,13 +422,13 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       throw new IndexOutOfBoundsException("Index out of bound.");
     }
     
-    Object tmp = elements[size - 1 - 2];
+    Object tmp = elements[offset + size - 1 - 2];
     
     for (int i = 0; i < 2; i++) {
-      elements[size - 1 - 2 + i] = elements[size - 1 - 2 + i + 1];
+      elements[offset + size - 1 - 2 + i] = elements[offset + size - 1 - 2 + i + 1];
     }
     
-    elements[size - 1] = tmp;
+    elements[offset + size - 1] = tmp;
   }
   
   @Override
@@ -419,13 +439,13 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       throw new IndexOutOfBoundsException("Index out of bound.");
     }
     
-    Object tmp = elements[size - 1 - (n - 1)];
+    Object tmp = elements[offset + size - 1 - (n - 1)];
     
     for (int i = 0; i < n - 1; i++) {
-      elements[size - 1 - (n - 1) + i] = elements[size - 1 - (n - 1) + i + 1];
+      elements[offset + size - 1 - (n - 1) + i] = elements[offset + size - 1 - (n - 1) + i + 1];
     }
     
-    elements[size - 1] = tmp;
+    elements[offset + size - 1] = tmp;
   }
   
   @Override
@@ -441,7 +461,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       throw new WarpScriptException("Invalid level.");
     }
     
-    return elements[size - 1 - n];
+    return elements[offset + size - 1 - n];
   }
   
   /**
@@ -557,6 +577,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       //
 
       for (int st = 0; st < statements.length; st++) {
+        handleSignal();
+
         String stmt = statements[st];
 
         try {
@@ -616,15 +638,28 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             }
             multiline.append(stmt);
             continue;
-          } else if (WarpScriptStack.COMMENT_END.equals(stmt)) {
+          } else if (!allowLooseBlockComments && WarpScriptStack.COMMENT_END.equals(stmt)) {
+            // Legacy comments block: Comments block must start with <* and end with *> .
             if (!inComment.get()) {
               throw new WarpScriptException("Not inside a comment.");
             }
             inComment.set(false);
             continue;
+          } else if (allowLooseBlockComments && stmt.startsWith(WarpScriptStack.COMMENT_START) && stmt.endsWith(WarpScriptStack.COMMENT_END)) {
+            // Single statement case : /*****foo*****/
+            continue;
+          } else if (allowLooseBlockComments && inComment.get() && stmt.endsWith(WarpScriptStack.COMMENT_END)) {
+            // End of comment, statement may contain characters before : +-+***/
+            inComment.set(false);
+            continue;
           } else if (inComment.get()) {
             continue;
-          } else if (WarpScriptStack.COMMENT_START.equals(stmt)) {
+          } else if (!allowLooseBlockComments && WarpScriptStack.COMMENT_START.equals(stmt)) {
+            // Start of comment, statement may contain characters after : /**----
+            inComment.set(true);
+            continue;
+          } else if (allowLooseBlockComments && stmt.startsWith(WarpScriptStack.COMMENT_START)) {
+            // Legacy comments block: Comments block must start with /* and end with */ .
             inComment.set(true);
             continue;
           } else if (WarpScriptStack.MULTILINE_START.equals(stmt)) {
@@ -811,7 +846,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             // Check WarpScript functions
             //
 
-            func = null != func ? func : defined.get(stmt);
+            func = defined.get(stmt);
 
             if (null != func && Boolean.FALSE.equals(getAttribute(WarpScriptStack.ATTRIBUTE_ALLOW_REDEFINED))) {
               throw new WarpScriptException("Disallowed redefined function '" + stmt + "'.");
@@ -847,9 +882,11 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
                   macros.get(0).add(func);
                 }
               }
-            } finally {
-              Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_FUNCTION_COUNT, labels, 1);
-              Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_FUNCTION_TIME_US, labels, (System.nanoTime() - nano) / 1000L);
+            } finally { 
+              if (functionMetrics) {
+                Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_FUNCTION_COUNT, labels, 1);
+                Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_FUNCTION_TIME_US, labels, (System.nanoTime() - nano) / 1000L);
+              }
             }
           }
         } catch (WarpScriptATCException e) {
@@ -921,7 +958,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       progress();
 
       for (i = 0; i < n; i++) {        
-
+        handleSignal();
+        
         Object stmt = stmts.get(i);
         
         incOps();
@@ -1095,7 +1133,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       if (i < this.size) {
         sb.append(i + 1);
         sb.append(": ");
-        Object elt = this.elements[this.size - 1 - i];
+        Object elt = this.elements[offset + this.size - 1 - i];
         
         if (elt instanceof Object[]) {
           sb.append(Arrays.toString((Object[]) elt));
@@ -1119,8 +1157,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     }
       
     ensureCapacity(1);
-    Object o = elements[size - 1 - (n - 1)];
-    elements[size++] = o;
+    Object o = elements[offset + size - 1 - (n - 1)];
+    elements[offset + size++] = o;
   }
   
   @Override
@@ -1131,11 +1169,11 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       throw new IndexOutOfBoundsException("Index out of bound.");
     }
       
-    Object tmp = elements[size - 1];
+    Object tmp = elements[offset + size - 1];
     for (int i = 0; i < n - 1; i++) {
-      elements[size - 1 - i] = elements[size - 1 - (i + 1)];
+      elements[offset + size - 1 - i] = elements[offset + size - 1 - (i + 1)];
     }
-    elements[size - 1 - (n - 1)] = tmp;
+    elements[offset + size - 1 - (n - 1)] = tmp;
   }
   
   @Override
@@ -1202,6 +1240,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   
   @Override
   public Object setAttribute(String key, Object value) {
+    
     if (null == value) {
       return this.attributes.remove(key);
     }
@@ -1219,6 +1258,14 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     
     if (WarpScriptStack.ATTRIBUTE_MAX_DEPTH.equals(key)) {
       this.maxdepth = ((Number) value).intValue();
+      // Check if the underlying array is already bigger than the requested maximum depth
+      if (elements.length > this.maxdepth) {
+        if (size + offset > maxdepth) {
+          throw new IndexOutOfBoundsException("The stack depth is over the requested maximum depth.");
+        } else {
+          elements = Arrays.copyOf(elements, maxdepth);
+        }
+      }
     } else if (WarpScriptStack.ATTRIBUTE_MAX_OPS.equals(key)) {
       this.maxops = ((Number) value).longValue();
     } else if (WarpScriptStack.ATTRIBUTE_RECURSION_MAXDEPTH.equals(key)) {
@@ -1234,6 +1281,10 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     } else if (WarpScriptStack.ATTRIBUTE_HADOOP_PROGRESSABLE.equals(key)) {
       // value is not null because it was checked on first line
       this.progressable = (Progressable) value;
+    } else if (WarpScriptStack.ATTRIBUTE_NAME.equals(key)) {
+      // Register the stack if its name is set, this will avoid
+      // having lots of anonymous stacks being registered
+      WarpScriptStackRegistry.register(this);
     }
 
     return this.attributes.put(key, value);
@@ -1250,6 +1301,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       return this.sectionName;
     } else if (WarpScriptStack.ATTRIBUTE_MACRO_NAME.equals(key)) {
       return this.macroName;
+    } else if (WarpScriptStack.ATTRIBUTE_CREATION_TIME.equals(key)) {
+      return this.creationTime;
     } else {
       return this.attributes.get(key);
     }
@@ -1393,10 +1446,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     if (null != context.symbolTable) {
       this.symbolTable.putAll(context.symbolTable);
     }
-    
-    for (int i = 0; i < this.registers.length; i++) {
-      this.registers[i] = context.registers[i];
-    }
+
+    System.arraycopy(context.registers, 0, this.registers, 0, this.registers.length);
     
     //
     // Restore redefined functions
@@ -1533,11 +1584,11 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   }
   
   private void ensureCapacity(int n) throws WarpScriptException {
-    if (size + n < elements.length) {
+    if (offset + size + n < elements.length) {
       return;
     }
 
-    if (size + n > this.maxdepth) {
+    if (offset + size + n > this.maxdepth) {
       Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_STACKDEPTH_EXCEEDED, Sensision.EMPTY_LABELS, 1);
       throw new WarpScriptException("Stack depth would exceed set limit of " + this.maxdepth);
     }
@@ -1569,5 +1620,111 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     }
     
     return symbol;
+  }
+  
+  @Override
+  public void signal(Signal signal) {
+    //
+    // Only set the signal is 'signal' is of higher priority than the current
+    // signal
+    //
+    
+    // Only set the signal if the stack is not yet signaled or if 'signal' is
+    // of higher priority than the current signal
+
+    synchronized(this) {
+      if (!this.signaled || this.signal.ordinal() < signal.ordinal()) {
+        this.signal = signal;
+        this.signaled = true;
+      }
+    }
+  }
+  
+  @Override
+  public void handleSignal() throws WarpScriptATCException {
+    if (this.signaled) {
+      doSignal();
+    }
+  }
+  
+  private void doSignal() throws WarpScriptATCException {
+    synchronized(this) {
+      switch (this.signal) {
+        case STOP: 
+          // Clear the signal
+          this.signal = null;
+          this.signaled = false;
+          throw new WarpScriptStopException("Execution received STOP signal.");
+        case KILL:
+          // The signal is retained
+          throw new WarpScriptKillException("Execution received KILL signal.");
+        default:
+      }            
+    }
+  }
+  
+  public void setFunctionMetrics(boolean state) {
+    this.functionMetrics = state;
+  }
+  
+  @Override
+  public int hide() {
+    int count = size;
+    offset += count;
+    size -= count;
+    return count;
+  }
+  
+  @Override
+  public int hide(int count) {    
+    if (0 == count) {
+      return 0;
+    } else if (count > size) {
+      count = size;
+    } else if (count < 0) {
+      // If count is negative, it represents the number of levels
+      // that we want to keep visible, so we add the current size to determine
+      // the number of levels to hide. If size is less than -count, less than
+      // the requested number of levels will be visible.
+      count += size;
+      
+      if (count < 0) {
+        count = 0;
+      }
+    }
+    offset += count;
+    size -= count;
+    return count;
+  }
+  
+  @Override
+  public void show() {
+    int count = offset;
+    offset -= count;
+    size += count;
+  }
+  
+  @Override
+  public void show(int count) {
+    if (0 == count) {
+      return;
+    } else if (count > offset) {
+      count = offset;
+    } else if (count < 0) {
+      // Count is negative, so it represents the number of levels we want visible after
+      // the call to show. If this number is already reached, count is set to 0.
+      // No levels will be hidden by this call.      
+      count += size;
+      
+      if (count > 0) { // There are already more than -'count' levels visible, do not show any more 
+        count = 0;
+      } else if (-count > offset) { // We would need to show more levels than those hidden, so cap count to offset
+        count = offset;
+      } else { // We will need to show -'count' levels, so negate 'count'
+        count = -count;
+      }
+    }
+    offset -= count;
+    size += count;    
   }
 }

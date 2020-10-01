@@ -16,6 +16,7 @@
 
 package io.warp10.standalone;
 
+import com.google.common.base.Preconditions;
 import io.warp10.ThrowableUtils;
 import io.warp10.WarpConfig;
 import io.warp10.WarpManager;
@@ -57,6 +58,7 @@ import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.zip.GZIPInputStream;
@@ -241,6 +243,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
     String pskDir = WarpConfig.getProperty(Configuration.DATALOG_PSK);
     if (null != pskDir) {
       this.datalogPSK = this.keyStore.decodeKey(pskDir);
+      Preconditions.checkArgument((16 == this.datalogPSK.length) || (24 == this.datalogPSK.length) || (32 == this.datalogPSK.length), Configuration.DATALOG_PSK + " MUST be 128, 192 or 256 bits long.");
     } else {
       this.datalogPSK = null;
     }
@@ -295,6 +298,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
     long lastActivity = System.currentTimeMillis();
     
     try {
+      WarpConfig.setThreadProperty(WarpConfig.THREAD_PROPERTY_SESSION, UUID.randomUUID().toString());
+      
       //
       // CORS header
       //
@@ -314,11 +319,18 @@ public class StandaloneIngressHandler extends AbstractHandler {
       //
             
       String datalogHeader = request.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_DATALOG));
-      
+            
       DatalogRequest dr = null;
       
       boolean forwarded = false;
       
+      boolean nocache = AcceleratorConfig.getDefaultWriteNocache();
+      // boolean to indicate we were explicitely instructed a nocache value
+      boolean forcedNocache = false;
+      boolean nopersist = AcceleratorConfig.getDefaultWriteNopersist();
+      // boolean to indicate we were explicitely instructed a nopersist value
+      boolean forcedNopersist = false;
+         
       if (null != datalogHeader) {
         byte[] bytes = OrderPreservingBase64.decode(datalogHeader.getBytes(StandardCharsets.US_ASCII));
         
@@ -351,8 +363,54 @@ public class StandaloneIngressHandler extends AbstractHandler {
         forwarded = true;
         
         deltaAttributes = dr.isDeltaAttributes();
+        
+        if (dr.getAttributesSize() > 0) {
+          if (null != dr.getAttributes().get(AcceleratorConfig.ATTR_NOCACHE)) {
+            forcedNocache = true;
+            // The test below checks for "false" because initially the nocache attribute was set to the empty string
+            // to mean 'true', so we need to explicitely look for 'false' and invert it so the empty string is indeed
+            // synonymous for true.
+            nocache = !"false".equals(dr.getAttributes().get(AcceleratorConfig.ATTR_NOCACHE));
+          }
+          if (null != dr.getAttributes().get(AcceleratorConfig.ATTR_NOPERSIST)) {
+            forcedNopersist = true;
+            // The test below checks for "false" because initially the nocache attribute was set to the empty string
+            // to mean 'true', so we need to explicitely look for 'false' and invert it so the empty string is indeed
+            // synonymous for true.
+            nopersist = !"false".equals(dr.getAttributes().get(AcceleratorConfig.ATTR_NOPERSIST));
+          }
+        }
+      } else {        
+        if (null != request.getHeader(AcceleratorConfig.ACCELERATOR_HEADER)) {
+          if (request.getHeader(AcceleratorConfig.ACCELERATOR_HEADER).contains(AcceleratorConfig.NOCACHE)) {
+            nocache = true;
+            forcedNocache = true;
+          } else if (request.getHeader(AcceleratorConfig.ACCELERATOR_HEADER).contains(AcceleratorConfig.CACHE)) {
+            nocache = false;
+            forcedNocache = true;
+          }
+          if (request.getHeader(AcceleratorConfig.ACCELERATOR_HEADER).contains(AcceleratorConfig.NOPERSIST)) {
+            nopersist = true;
+            forcedNopersist = true;
+          } else if (request.getHeader(AcceleratorConfig.ACCELERATOR_HEADER).contains(AcceleratorConfig.PERSIST)) {
+            nopersist = false;
+            forcedNopersist = true;
+          }
+        }
       }
 
+      if (nocache) {
+        AcceleratorConfig.nocache();
+      } else {
+        AcceleratorConfig.cache();          
+      }
+
+      if (nopersist) {
+        AcceleratorConfig.nopersist();
+      } else {
+        AcceleratorConfig.persist();        
+      }
+      
       //
       // TODO(hbs): Extract producer/owner from token
       //
@@ -396,6 +454,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
       
       boolean hasDatapoints = false;
 
+      boolean expose = false;
+          
       try {      
         if (null == producer || null == owner) {
           response.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid token.");
@@ -477,6 +537,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
         Boolean ignoor = null;
         
         if (writeToken.getAttributesSize() > 0) {
+          
+          expose = writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_EXPOSE);
           
           if (writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_IGNOOR)) {
             String v = writeToken.getAttributes().get(Constants.TOKEN_ATTR_IGNOOR).toLowerCase();
@@ -618,6 +680,13 @@ public class StandaloneIngressHandler extends AbstractHandler {
               now = TimeSource.getTime();
             }
             dr.setNow(Long.toString(now));
+            
+            if (forcedNocache) {
+              dr.putToAttributes(AcceleratorConfig.ATTR_NOCACHE, Boolean.toString(nocache));
+            }
+            if (forcedNopersist) {
+              dr.putToAttributes(AcceleratorConfig.ATTR_NOPERSIST, Boolean.toString(nopersist));
+            }
           }
           
           if (null != dr && (!forwarded || (forwarded && this.logforwarded))) {
@@ -752,8 +821,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
               lastencoder.setClassId(GTSHelper.classId(ckl0, ckl1, lastencoder.getName()));
               lastencoder.setLabelsId(GTSHelper.labelsId(lkl0, lkl1, lastencoder.getMetadata().getLabels()));
 
-              ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId());
-              ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount());
+              ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId(), expose);
+              ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount(), expose);
             }
             
             //
@@ -831,8 +900,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
           lastencoder.setClassId(GTSHelper.classId(ckl0, ckl1, lastencoder.getName()));
           lastencoder.setLabelsId(GTSHelper.labelsId(lkl0, lkl1, lastencoder.getMetadata().getLabels()));
                   
-          ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId());
-          ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount());
+          ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId(), expose);
+          ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount(), expose);
           this.storeClient.store(lastencoder);
           
           if (parseAttributes && lastHadAttributes) {
@@ -911,6 +980,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
         response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msg);
         return;
       }
+    } finally {
+      WarpConfig.clearThreadProperties();
     }
   }
   
@@ -1068,7 +1139,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
           dr.setDeltaAttributes(deltaAttributes);
         }
         
-        if (null != dr && (!forwarded || (forwarded && this.logforwarded))) {        
+        if (!forwarded || this.logforwarded) {
           //
           // Serialize the request
           //

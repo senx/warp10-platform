@@ -57,7 +57,7 @@ public class RunAndGenerateDocumentationWithUnitTests {
   }
 
   private static String VERSION = "all";
-  private static List<String> TAGS = new ArrayList<>();
+  private static List<String> TAGS = new ArrayList<String>();
   static {
     //
     // Tags that are common to all functions for which the documentation is being written, for example:
@@ -67,11 +67,11 @@ public class RunAndGenerateDocumentationWithUnitTests {
     //TAGS.add("tensors");
   }
   private static boolean MAKE_FUNCTIONS_RELATED_WITHIN_SAME_PACKAGE = true;
-  private static List<String> RELATED = new ArrayList<>();
+  private static List<String> RELATED = new ArrayList<String>();
   private static String SINCE = "2.1";
   private static String DEPRECATED = "";
   private static String DELETED = "";
-  private static List<String> CONF = new ArrayList<>();
+  private static List<String> CONF = new ArrayList<String>();
 
   //
   // outputs, examples, tags and related are retrieved in each instance of FormattedWarpScriptFunction if they were set
@@ -127,15 +127,13 @@ public class RunAndGenerateDocumentationWithUnitTests {
         System.out.println("Generate and assert doc for " + function.getClass().getName());
 
         // outputs
-        List<ArgumentSpecification> output =  new ArrayList<>();
-        for (Method m: function.getClass().getDeclaredMethods()) {
-          if (m.getName().equals("getOutput")) {
-            m.setAccessible(true);
-            Object out = m.invoke(function);
-            if (out instanceof Arguments) {
-              output = ((Arguments) out).getArgsCopy();
-            }
-            break;
+        List<ArgumentSpecification> output =  new ArrayList<ArgumentSpecification>();
+        Method m = searchMethod(function, "getOutput");
+        if (null != m) {
+          m.setAccessible(true);
+          Object out = m.invoke(function);
+          if (out instanceof Arguments) {
+            output = ((Arguments) out).getArgsCopy();
           }
         }
         if (0 == output.size()) {
@@ -143,28 +141,24 @@ public class RunAndGenerateDocumentationWithUnitTests {
         }
 
         // examples
-        List<String> examples = new ArrayList<>();
-        for (Method m: function.getClass().getDeclaredMethods()) {
-          if (m.getName().equals("getExamples")) {
-            m.setAccessible(true);
-            Object exs = m.invoke(function);
-            if (exs instanceof List) {
-              examples.addAll((List) exs);
-            }
-            break;
+        List<String> examples = new ArrayList<String>();
+        m = searchMethod(function, "getExamples");
+        if (null != m) {
+          m.setAccessible(true);
+          Object exs = m.invoke(function);
+          if (exs instanceof List) {
+            examples.addAll((List) exs);
           }
         }
 
         // tags
-        List<String> tags = new ArrayList<>(TAGS());
-        for (Method m: function.getClass().getDeclaredMethods()) {
-          if (m.getName().equals("getTags")) {
-            m.setAccessible(true);
-            Object tag = m.invoke(function);
-            if (tag instanceof List) {
-              tags.addAll((List) tag);
-            }
-            break;
+        List<String> tags = new ArrayList<String>(TAGS());
+        m = searchMethod(function, "getTags");
+        if (null != m) {
+          m.setAccessible(true);
+          Object tag = m.invoke(function);
+          if (tag instanceof List) {
+            tags.addAll((List) tag);
           }
         }
 
@@ -176,18 +170,16 @@ public class RunAndGenerateDocumentationWithUnitTests {
           related = RELATED();
         }
         related.remove(name);
-        for (Method m: function.getClass().getDeclaredMethods()) {
-          if (m.getName().equals("getRelated")) {
-            m.setAccessible(true);
-            Object rel = m.invoke(function);
-            if (rel instanceof List) {
-              for (String r: (List<String>) rel) {
-                if (!related.contains(r)) {
-                  related.add(r);
-                }
+        m = searchMethod(function, "getRelated");
+        if (null != m) {
+          m.setAccessible(true);
+          Object rel = m.invoke(function);
+          if (rel instanceof List) {
+            for (String r: (List<String>) rel) {
+              if (!related.contains(r)) {
+                related.add(r);
               }
             }
-            break;
           }
         }
 
@@ -250,7 +242,7 @@ public class RunAndGenerateDocumentationWithUnitTests {
   public static List<String> getRelatedClasses(ClassLoader cl, String pack) throws Exception {
 
     String dottedPackage = pack.replaceAll("[/]", ".");
-    List<String> classNames = new ArrayList<>();
+    List<String> classNames = new ArrayList<String>();
     pack = pack.replaceAll("[.]", "/");
     URL upackage = cl.getResource(pack);
 
@@ -262,5 +254,29 @@ public class RunAndGenerateDocumentationWithUnitTests {
       }
     }
     return classNames;
+  }
+
+  /**
+   * Search a method in a class and in parent's hierarchy
+   *
+   * @param function
+   * @param simpleName
+   * @return method if found, or null
+   * @throws Exception
+   */
+  public static Method searchMethod(Object function, String simpleName) throws Exception {
+    Class<?> clazz = function.getClass();
+
+    while (clazz != null) {
+      for (Method m : clazz.getDeclaredMethods()) {
+        if (m.getName().equals(simpleName)) {
+          return m;
+        }
+      }
+
+      clazz = clazz.getSuperclass();
+    }
+
+    return null;
   }
 }

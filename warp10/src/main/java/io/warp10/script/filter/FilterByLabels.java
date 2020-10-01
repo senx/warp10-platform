@@ -136,12 +136,12 @@ public class FilterByLabels extends NamedWarpScriptFunction implements WarpScrip
           }
 
           // Now check the label or attribute value
-          if (hasLabel && checkLabels) {
+          if (hasLabel) { // Can only be true if checkLabels
             if (!matcher.reset(labels.get(label)).matches()) {
               matched = false;
               break;
             }            
-          } else if (checkAttributes) {
+          } else { // Here, matched && !hasLabel, which can only happen if checkAttributes
             if (!matcher.reset(attributes.get(label)).matches()) {
               matched = false;
               break;

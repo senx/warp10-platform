@@ -52,11 +52,31 @@
 #warpscript.extension.shm = io.warp10.script.ext.shm.SharedMemoryWarpScriptExtension
 // TOKENDUMP, TOKENGEN, TOKENSECRET
 #warpscript.extension.token = io.warp10.script.ext.token.TokenWarpScriptExtension
-#token.secret = ...
+// If you use OSS to handle this secret
+#warp.key.token.secret = wrapped:hex:......
+// If you use a plain string token. Used instead of the previous configuration key if set and not commented
+#token.secret = ....
 // URLFETCH, MAXURLFETCHCOUNT, MAXURLFETCHSIZE
 #warpscript.extension.urlfetch = io.warp10.script.ext.urlfetch.UrlFetchWarpScriptExtension
-
+// WSPS WSINFO WSKILL STACKPSSECRET
+#warpscript.extension.stackps = io.warp10.script.ext.stackps.StackPSWarpScriptExtension
+#stackps.secret = ....
 //
 // Specific namespace under which to load an extension. The specified namespace will be used as a prefix for all functions of the extension.
 //
-//warpscript.namespace.package.class = namespace.
+#warpscript.namespace.package.class = namespace.
+
+//
+// MacroValueEncoder
+//
+#warpscript.extension.macrovalueencoder = io.warp10.continuum.ingress.MacroValueEncoder$Extension
+//
+// Prefix to use for values which trigger a macro, defaults to ':m:', should not be changed
+// except for security by obscurity strategies...
+//
+#macro.value.encoder.prefix = :m:
+//
+// Prefix to add to macro names specified in values handled by MacroValueEncoder.
+// A value of ':m:foo/bar:xxx' with a macro prefix of 'pre' will trigger macro @pre/foo/bar.
+//
+#macro.value.encoder.macro.prefix =

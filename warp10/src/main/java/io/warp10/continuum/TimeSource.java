@@ -174,7 +174,7 @@ public class TimeSource {
     int idx = 1;
     
     while(idx < SAMPLES) {
-      if (bases[curidx] != lastval) {
+      if (bases[idx] != lastval) {
         if (curocc > mostocc) {
           mostocc = curocc;
           mostoccidx = curidx;
@@ -184,11 +184,11 @@ public class TimeSource {
       } else {
         curocc++;
       }
+      lastval = bases[idx];
       idx++;
     }
     
     if (curocc > mostocc) {
-      mostocc = curocc;
       mostoccidx = curidx;
     }
     

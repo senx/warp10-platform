@@ -57,25 +57,31 @@ public class UNTIL extends NamedWarpScriptFunction implements WarpScriptStackFun
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    
-    Object[] macros = new Object[2];
-    macros[0] = stack.pop(); // UNTIL-macro
-    macros[1] = stack.pop(); // RUN-macro
-    
+
+    Object top = stack.pop();
+
+    boolean pushCounter = false;
+    if (top instanceof Boolean) {
+      pushCounter = (Boolean) top;
+      top = stack.pop();
+    }
+
+    Object untilMacro = top;// until-macro
+    Object runMacro = stack.pop(); // RUN-macro
+
     //
     // Check that what we popped are macros
     //
-    
-    for (Object macro: macros) {
-      if (!(macro instanceof Macro)) {
-        throw new WarpScriptException(getName() + " expects two macros on top of the stack.");
-      }
+
+    if (!(runMacro instanceof Macro) || !(untilMacro instanceof Macro)) {
+      throw new WarpScriptException(getName() + " expects two macros on top of the stack.");
     }
   
     long now = System.currentTimeMillis();
     
     long maxtime = this.maxtime > 0 ? this.maxtime : (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_LOOP_MAXDURATION);
 
+    long counter = 0;
     while (true) {
       
       if (System.currentTimeMillis() - now > maxtime) {
@@ -85,9 +91,12 @@ public class UNTIL extends NamedWarpScriptFunction implements WarpScriptStackFun
       //
       // Execute RUN-macro
       //
-      
+
       try {
-        stack.exec((Macro) macros[1]);
+        if (pushCounter) {
+          stack.push(counter++);
+        }
+        stack.exec((Macro) runMacro);
       } catch (WarpScriptLoopBreakException elbe) {
         break;
       } catch (WarpScriptLoopContinueException elbe) {
@@ -98,13 +107,13 @@ public class UNTIL extends NamedWarpScriptFunction implements WarpScriptStackFun
       // Execute UNTIL-macro
       //
       
-      stack.exec((Macro) macros[0]);
+      stack.exec((Macro) untilMacro);
       
       //
       // Check that the top of the stack is a boolean
       //
       
-      Object top = stack.pop();
+      top = stack.pop();
       
       if (! (top instanceof Boolean)) {
         throw new WarpScriptException(getName() + " expects its 'UNTIL' macro to leave a boolean on top of the stack.");

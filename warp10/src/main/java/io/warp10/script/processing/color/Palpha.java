@@ -42,7 +42,7 @@ public class Palpha extends NamedWarpScriptFunction implements WarpScriptStackFu
         
     PGraphics pg = (PGraphics) params.get(0);
     
-    double alpha = pg.alpha(((Number) params.get(1)).intValue());
+    double alpha = pg.parent.alpha(((Number) params.get(1)).intValue());
     
     stack.push(pg);
         

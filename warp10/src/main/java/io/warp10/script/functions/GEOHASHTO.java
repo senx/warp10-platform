@@ -21,8 +21,13 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.geoxp.GeoXPLib;
 import com.geoxp.geo.GeoHashHelper;
+import com.geoxp.oss.jarjar.org.apache.commons.codec.binary.Hex;
+import com.google.common.primitives.Longs;
 
 /**
  * Convert a GeoHash to lat/lon
@@ -36,15 +41,56 @@ public class GEOHASHTO extends NamedWarpScriptFunction implements WarpScriptStac
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     
-    String geohash = stack.pop().toString();
+    Object top = stack.pop();
     
-    long geoxppoint = GeoHashHelper.toHHCode(geohash);
-    
-    double[] latlon = GeoXPLib.fromGeoXPPoint(geoxppoint);
-    
-    stack.push(latlon[0]);
-    stack.push(latlon[1]);
+    if (top instanceof List) {
+      List<Object> l = (List<Object>) top;
+      
+      List<String> geohashes = new ArrayList<String>(l.size());
+      
+      for (Object geohash: l) {
+        if (!(geohash instanceof String)) {
+          throw new WarpScriptException(getName() + " expects a GeoHash to be a string.");          
+        }
+        
+        geohashes.add(geohash.toString().toLowerCase());
+      }
 
+      // geocells is sorted and deduped because it internally uses a deduping Coverage and
+      // Coverage#toGeoCells sorts the array.
+      long[] geocells = GeoHashHelper.toGeoCells(geohashes);
+      
+      stack.push(GeoXPLib.fromCells(geocells, false));
+    } else {      
+      Boolean toHHCodeString = null;
+      
+      if (top instanceof Boolean) {
+        toHHCodeString = Boolean.TRUE.equals(top);
+        top = stack.pop();
+      }
+      
+      if (!(top instanceof String)) {
+        throw new WarpScriptException(getName() + " expects a GeoHash to be a string.");
+      }
+      
+      String geohash = top.toString().toLowerCase();
+      
+      long geoxppoint = GeoHashHelper.toHHCode(geohash);
+      
+      if (null != toHHCodeString) {
+        if (Boolean.TRUE.equals(toHHCodeString)) {
+          stack.push(Hex.encodeHexString(Longs.toByteArray(geoxppoint)));
+        } else {
+          stack.push(geoxppoint);
+        }
+      } else {
+        double[] latlon = GeoXPLib.fromGeoXPPoint(geoxppoint);
+      
+        stack.push(latlon[0]);
+        stack.push(latlon[1]);
+      }
+    }
+    
     return stack;
   }
 }

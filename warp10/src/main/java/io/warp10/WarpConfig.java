@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import io.warp10.script.WarpFleetMacroRepository;
 import io.warp10.script.WarpScriptJarRepository;
 import io.warp10.script.WarpScriptMacroRepository;
 
+import com.google.common.annotations.Beta;
 import com.google.common.io.Files;
 
 import java.io.BufferedReader;
@@ -32,11 +33,14 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.StringReader;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
@@ -50,6 +54,10 @@ public class WarpConfig {
    */
   public static final String WARP10_CONFIG = "warp10.config";
 
+  private static final String WARP10_NOENV = "warp10.noenv";
+  private static final String WARP10_NOSYS = "warp10.nosys";
+  private static final String WARP10_IGNOREFAILEDEXPANDS  = "warp10.ignorefailedexpands";
+  
   /**
    * Name of environment variable used in various submodules to locate the Warp 10 configuration file
    */
@@ -62,6 +70,58 @@ public class WarpConfig {
 
   private static Properties properties = null;
 
+  public static final String THREAD_PROPERTY_SESSION = ".session";
+  
+  /**
+   * The concept of thread properties is to allocate a per thread map which can contain
+   * arbitrary elements keyed by STRINGs and therefore accessible to all methods invoked within
+   * the same thread.
+   * One of the use cases is to be able to know that multiple calls to a given method are performed
+   * within the same thread. This is useful in ValueEncoder instances for example to keep some context
+   * when parsing multiple lines independently but within the same 'session'.
+   * The per thread property map should be cleared at the end of the main Warp 10 entry points (/update, /exec) and
+   * at the end of any additional entry points defined.
+   * Those endpoints should set the '.session' thread property at the beginning of a try block with a finally clause
+   * calling clearThreadProperties.
+   * Of course if the convention above is not respected, property maps might be created without clearing ensured.
+   * 
+   */
+  
+  @Beta
+  private static final ThreadLocal<Map<String,Object>> threadProperties = new ThreadLocal<Map<String,Object>>() {
+    protected java.util.Map<String,Object> initialValue() {
+      return new HashMap<String,Object>();
+    }
+  };
+  
+  @Beta
+  public static Object getThreadProperty(String key) {
+    return threadProperties.get().get(key);
+  }
+  
+  @Beta
+  public static Object setThreadProperty(String key, Object value) {
+    return threadProperties.get().put(key, value);
+  }
+  
+  @Beta
+  public static Object removeThreadProperty(String key) {
+    Map<String,Object> props = threadProperties.get();
+    Object previous;
+    previous = props.remove(key);
+
+    // If the property map is empty, clear it
+    if (0 == props.size()) {
+      threadProperties.remove();
+    }
+    return previous;    
+  }
+  
+  @Beta
+  public static void clearThreadProperties() {
+    threadProperties.remove();
+  }
+  
   public static void safeSetProperties(String file) throws IOException {
     if (null != properties) {
       return;
@@ -85,7 +145,7 @@ public class WarpConfig {
       // If a file starts with '@', treat it as a file containing lists of files
       //
 
-      List<String> filenames = new ArrayList<>(Arrays.asList(files));
+      List<String> filenames = new ArrayList<String>(Arrays.asList(files));
 
       StringBuilder sb = new StringBuilder();
 
@@ -261,11 +321,11 @@ public class WarpConfig {
       System.exit(-1);
     }
 
-    if (expandVars) {
-      //
-      // Now override properties with environment variables
-      //
+    //
+    // Now override properties with environment variables
+    //
 
+    if (null == properties.getOrDefault(WARP10_NOENV, System.getProperty(WARP10_NOENV))) {
       for (Entry<String, String> entry : System.getenv().entrySet()) {
         String name = entry.getKey();
         String value = entry.getValue();
@@ -278,15 +338,17 @@ public class WarpConfig {
           // Override property
           properties.setProperty(name, value);
         } catch (Exception e) {
-          System.err.println("Error decoding environment variable '" + entry.getKey() + "' = '" + entry.getValue() + "', using raw values.");
+          System.err.println("Warning: failed to decode environment variable '" + entry.getKey() + "' = '" + entry.getValue() + "', using raw value.");
           properties.setProperty(entry.getKey(), entry.getValue());
         }
-      }
+      }      
+    }
 
-      //
-      // Now override properties with system properties
-      //
+    //
+    // Now override properties with system properties
+    //
 
+    if (null == properties.getOrDefault(WARP10_NOSYS, System.getProperty(WARP10_NOSYS))) {
       Properties sysprops = System.getProperties();
 
       for (Entry<Object, Object> entry : sysprops.entrySet()) {
@@ -304,8 +366,10 @@ public class WarpConfig {
           System.err.println("Error decoding system property '" + entry.getKey().toString() + "' = '" + entry.getValue().toString() + "', using raw values.");
           properties.setProperty(entry.getKey().toString(), entry.getValue().toString());
         }
-      }
+      }      
+    }
 
+    if (expandVars) {
       //
       // Now expand ${xxx} constructs
       //
@@ -314,6 +378,8 @@ public class WarpConfig {
 
       Set<String> emptyProperties = new HashSet<String>();
 
+      boolean ignoreFailedExpands = null != properties.getOrDefault(WARP10_IGNOREFAILEDEXPANDS, System.getProperty(WARP10_IGNOREFAILEDEXPANDS));
+      
       for (Entry<Object, Object> entry : properties.entrySet()) {
         String name = entry.getKey().toString();
         String value = entry.getValue().toString();
@@ -328,6 +394,8 @@ public class WarpConfig {
 
         int loopcount = 0;
 
+        String origValue = value;
+        
         while (true) {
           Matcher m = VAR.matcher(value);
 
@@ -351,8 +419,15 @@ public class WarpConfig {
           loopcount++;
 
           if (loopcount > 100) {
-            System.err.println("Hmmm, that's embarrassing, but I've been dereferencing variables " + loopcount + " times trying to set a value for '" + name + "'.");
-            System.exit(-1);
+            System.err.println("Hmmm, that's embarrassing, but I've been dereferencing variables " + loopcount + " times trying to set a value for '" + name + "' from value '" + origValue + "'.");
+            if (ignoreFailedExpands) {
+              System.err.println("Removing property '" + name + "'.");
+              // Clearing the value
+              value = null;
+              break;
+            } else {
+              System.exit(-1);
+            }
           }
         }
 
@@ -424,15 +499,36 @@ public class WarpConfig {
       System.exit(-1);
     }
 
-    String[] files = Arrays.copyOf(args, args.length - 1);
-    String key = args[args.length - 1];
+    if (StandardCharsets.UTF_8 != Charset.defaultCharset()) {
+      throw new RuntimeException("Default encoding MUST be UTF-8 but it is " + Charset.defaultCharset() + ". Aborting.");
+    }
+
+    //
+    // Copy file arguments up to '.'
+    //
+    
+    List<String> lfiles = new ArrayList<String>();
+    
+    int keycount = 0;
+    
+    for (int i = 0; i < args.length; i++) {
+      if (".".equals(args[i])) {
+        keycount = args.length - i - 1;
+        break;
+      }
+      lfiles.add(args[i]);
+    }
+    
+    String[] files = lfiles.toArray(new String[lfiles.size()]);
+
     try {
       WarpConfig.setProperties(files);
-      properties = WarpConfig.getProperties();
-      System.out.println(key + "=" + WarpConfig.getProperty(key));
+      
+      for (int i = args.length - keycount; i < args.length; i++) {
+        System.out.println("@CONF@ " + args[i] + "=" + WarpConfig.getProperty(args[i]));        
+      }
     } catch (Exception e) {
       e.printStackTrace();
     }
-
   }
 }

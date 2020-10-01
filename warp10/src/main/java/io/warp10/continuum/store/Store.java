@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -43,7 +43,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
-import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
@@ -98,11 +97,6 @@ import com.google.common.primitives.Longs;
 public class Store extends Thread {
   
   private static final Logger LOG = LoggerFactory.getLogger(Store.class);
-  
-  /**
-   * Prefix for 'archived' data
-   */
-  public static final byte[] HBASE_ARCHIVE_DATA_KEY_PREFIX = "A".getBytes(StandardCharsets.UTF_8);
   
   /**
    * Set of required parameters, those MUST be set
@@ -692,10 +686,13 @@ public class Store extends Thread {
      * Lock for protecting the access to the 'puts' list.
      * This lock is also used to mutex the synchronization and the processing of
      * a message from Kafka so we do not commit and offset for an inflight message.
-     * This lock is not created fair so technically there is a non zero probability
-     * of starvation.
+     * On machines with a high number of cores, starvation has been observed when the
+     * lock is not created 'fair', leading to chaotic Store behavior since the wait limit for
+     * Kafka offset commit is reached thus triggering a reset.
+     * Creating the lock with fairness to true solves this issue to the expense of slightly
+     * lesser performance.
      */
-    private final ReentrantLock putslock = new ReentrantLock();
+    private final ReentrantLock putslock = new ReentrantLock(true);
     
     private final AtomicLong putsSize = new AtomicLong(0L);
     private final AtomicBoolean localabort = new AtomicBoolean(false);
@@ -963,7 +960,7 @@ public class Store extends Thread {
                       putsSize.set(0L);
                       // If an exception is thrown, abort
                       store.abort.set(true);
-                      LOG.error("Received InterrupedException", ie);
+                      LOG.error("Received InterruptedException", ie);
                       return;                    
                     } catch (Throwable t) {
                       // Some errors of HBase are reported as RuntimeException, so we
@@ -978,7 +975,7 @@ public class Store extends Thread {
                       // If an exception is thrown, abort
                       store.abort.set(true);                      
                       resetHBase = true;
-                      LOG.error("Received Throwable while forced writing to HBase - forcing HBase reset", t);
+                      LOG.error("Received Throwable while forced writing of " + puts.size() + " PUTs to HBase - forcing HBase reset");
                       return;
                     }
                   }                  
@@ -1134,9 +1131,6 @@ public class Store extends Thread {
               case DELETE:
                 handleDelete(ht, tmsg);              
                 break;
-              case ARCHIVE:
-                handleArchive(ht, tmsg);              
-                break;
               default:
                 throw new RuntimeException("Invalid message type.");
             }
@@ -1242,7 +1236,8 @@ public class Store extends Thread {
           //
           if (useDatapointTs) {
             // Use the timestamp of the datapoint as the timestamp of the HBase cell
-            put.addColumn(store.colfam, null, basets / Constants.TIME_UNITS_PER_MS, bytes);
+            // as Put instances cannot have negative timestamps, replace negative timestamps with 0 (issue#640)
+            put.addColumn(store.colfam, null, Math.max(0L, basets) / Constants.TIME_UNITS_PER_MS, bytes);
           } else {
             put.addColumn(store.colfam, null, bytes);
           }
@@ -1472,7 +1467,7 @@ public class Store extends Thread {
 
             Metadata meta = msg.getMetadata();
             if (null != meta) {
-              Map<String, String> labels = new HashMap<>();
+              Map<String, String> labels = new HashMap<String, String>();
               labels.put(SensisionConstants.SENSISION_LABEL_OWNER, meta.getLabels().get(Constants.OWNER_LABEL));
               labels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, meta.getLabels().get(Constants.APPLICATION_LABEL));
               Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_DATAPOINTS_PEROWNERAPP, labels, noOfDeletedVersions);
@@ -1544,16 +1539,6 @@ public class Store extends Thread {
         }
       }
     }
-    
-    private void handleArchive(Table ht, KafkaDataMessage msg) {
-      
-      if (KafkaDataMessageType.ARCHIVE != msg.getType()) {
-        return;
-      }
-      
-      
-      throw new RuntimeException("Archive not implemented yet.");
-    }
   }
   
   
@@ -1563,29 +1548,11 @@ public class Store extends Thread {
    * @param props Properties from which to extract the key specs
    */
   private void extractKeys(Properties props) {
-    String keyspec = props.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_MAC);
-    
-    if (null != keyspec) {
-      byte[] key = this.keystore.decodeKey(keyspec);
-      Preconditions.checkArgument(16 == key.length, "Key " + io.warp10.continuum.Configuration.STORE_KAFKA_DATA_MAC + " MUST be 128 bits long.");
-      this.keystore.setKey(KeyStore.SIPHASH_KAFKA_DATA, key);
-    }
+    KeyStore.checkAndSetKey(keystore, KeyStore.SIPHASH_KAFKA_DATA, props, io.warp10.continuum.Configuration.STORE_KAFKA_DATA_MAC, 128);
+    KeyStore.checkAndSetKey(keystore, KeyStore.AES_KAFKA_DATA, props, io.warp10.continuum.Configuration.STORE_KAFKA_DATA_AES, 128, 192, 256);
+    KeyStore.checkAndSetKey(keystore, KeyStore.AES_HBASE_DATA, props, io.warp10.continuum.Configuration.STORE_HBASE_DATA_AES, 128, 192, 256);
 
-    keyspec = props.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_AES);
-    
-    if (null != keyspec) {
-      byte[] key = this.keystore.decodeKey(keyspec);
-      Preconditions.checkArgument(16 == key.length || 24 == key.length || 32 == key.length, "Key " + io.warp10.continuum.Configuration.STORE_KAFKA_DATA_AES + " MUST be 128, 192 or 256 bits long.");
-      this.keystore.setKey(KeyStore.AES_KAFKA_DATA, key);
-    }
-    
-    keyspec = props.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_DATA_AES);
-    
-    if (null != keyspec) {
-      byte[] key = this.keystore.decodeKey(keyspec);
-      Preconditions.checkArgument(16 == key.length || 24 == key.length || 32 == key.length, "Key " + io.warp10.continuum.Configuration.STORE_HBASE_DATA_AES + " MUST be 128, 192 or 256 bits long.");
-      this.keystore.setKey(KeyStore.AES_HBASE_DATA, key);
-    }
+    this.keystore.forget();
   }
   
   private static synchronized Connection getHBaseConnection(Properties properties) throws IOException {

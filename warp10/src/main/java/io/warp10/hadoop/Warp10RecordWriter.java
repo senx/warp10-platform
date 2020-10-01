@@ -125,7 +125,8 @@ public class Warp10RecordWriter extends RecordWriter<Writable, Writable> {
     GTSDecoder decoder = GTSWrapperHelper.fromGTSWrapperToGTSDecoder(gtsWrapper);
 
     StringBuilder metasb = new StringBuilder();
-    GTSHelper.metadataToString(metasb, metadataChunk.getName(), metadataChunk.getLabels());
+    // We don't care about exposing labels since they are forced by the token
+    GTSHelper.metadataToString(metasb, metadataChunk.getName(), metadataChunk.getLabels(), false);
 
     boolean first = true;
 

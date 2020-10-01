@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -23,7 +23,6 @@ import java.util.Map;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.formatted.FormattedWarpScriptFunction;
-import io.warp10.script.functions.shape.CHECKSHAPE;
 
 public class SHAPE extends FormattedWarpScriptFunction {
 
@@ -68,11 +67,16 @@ public class SHAPE extends FormattedWarpScriptFunction {
 
   static List<Long> candidate_shape(List list) {
     List<Long> shape = new ArrayList<Long>();
-    Object l = list;
+    Object firstElement = list;
 
-    while(l instanceof List) {
-      shape.add((long) ((List) l).size());
-      l = ((List) l).get(0);
+    while (firstElement instanceof List) {
+      List l = (List) firstElement;
+      shape.add((long) (l.size()));
+      if (!l.isEmpty()) {
+        firstElement = l.get(0);
+      } else {
+        break;
+      }
     }
 
     return shape;

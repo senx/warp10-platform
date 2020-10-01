@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -50,21 +50,18 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.math3.fitting.PolynomialCurveFitter;
 import org.apache.commons.math3.fitting.WeightedObservedPoint;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
-import org.boon.json.JsonParser;
-import org.boon.json.JsonParserFactory;
 
 import com.geoxp.GeoXPLib;
 import com.geoxp.GeoXPLib.GeoXPShape;
-import com.google.common.collect.ImmutableMap;
 
 import io.warp10.CapacityExtractorOutputStream;
 import io.warp10.DoubleUtils;
+import io.warp10.WarpHexDecoder;
 import io.warp10.WarpURLDecoder;
 import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.MetadataUtils;
@@ -75,6 +72,7 @@ import io.warp10.continuum.store.thrift.data.GTSWrapper;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.crypto.SipHashInline;
+import io.warp10.json.JsonUtils;
 import io.warp10.script.SAXUtils;
 import io.warp10.script.WarpScriptAggregatorFunction;
 import io.warp10.script.WarpScriptBinaryOp;
@@ -2359,13 +2357,9 @@ public class GTSHelper {
     return encoder;
   }
 
-  private static JsonParserFactory jpf = new JsonParserFactory();
-
   public static GTSEncoder parseJSON(GTSEncoder encoder, String str, Map<String,String> extraLabels, Long now) throws IOException, ParseException {
     
-    JsonParser parser = jpf.createFastParser();
-
-    Map<String,Object> o = (Map<String,Object>) parser.parse(str);
+    Map<String,Object> o = (Map<String,Object>) JsonUtils.jsonToObject(str);
     
     String name = (String) o.get("c");
     Map<String,String> labels = (Map<String,String>) o.get("l");
@@ -2685,7 +2679,7 @@ public class GTSHelper {
     }
 
     if ((value instanceof String  && value.toString().length() > maxValueSize) || (value instanceof byte[] && ((byte[]) value).length > maxValueSize)) {
-      throw new ParseException("Value too large for GTS " + (null != encoder ? GTSHelper.buildSelector(encoder.getMetadata()) : ""), 0);
+      throw new ParseException("Value too large for GTS " + (null != encoder ? GTSHelper.buildSelector(encoder.getMetadata(), false) : ""), 0);
     }
     
     // Allocate a new Encoder if need be, with a base timestamp of 0L.
@@ -3018,7 +3012,13 @@ public class GTSHelper {
       } else if ('b' == firstChar && valuestr.startsWith("b64:")) {
         value = Base64.decodeBase64(valuestr.substring(4));
       } else if ('h' == firstChar && valuestr.startsWith("hex:")) {
-        value = Hex.decodeHex(valuestr.substring(4).toCharArray());
+        value = WarpHexDecoder.decode(valuestr.substring(4));
+      } else if (':' == firstChar) {
+        //
+        // Custom encoders support values prefixed with ':' + a custom prefix, i.e. ':xxx:VALUE'.
+        //
+        
+        value = ValueEncoder.parse(valuestr);
       } else {
         //boolean likelydouble = UnsafeString.isDouble(valuestr);
         boolean likelylong = UnsafeString.isLong(valuestr);
@@ -3535,17 +3535,15 @@ public class GTSHelper {
     }
   }
   
-  public static long[] stringToGTSId(String s) {    
-    char[] c = s.toCharArray();
-    
+  public static long[] stringToGTSId(String s) {        
     long x = 0L;
     long y = 0L;
     
     for (int i = 0; i < 4; i++) {
       x <<= 16;
-      x |= (c[i] & 0xffffL);
+      x |= (s.charAt(i) & 0xffffL);
       y <<= 16;
-      y |= (c[i + 4] & 0xffffL);
+      y |= (s.charAt(i + 4) & 0xffffL);
     }
     
     long[] clslbls = new long[2];
@@ -3593,7 +3591,7 @@ public class GTSHelper {
    * @param selectors Selectors following the syntax NAME&lt;TYPE&gt;VALUE,NAME&lt;TYPE&gt;VALUE,... to be parsed.
    * @return A map from label name to selector.
    */
-  public static final Map<String,String> parseLabelsSelectors(String selectors) throws ParseException {
+  public static final LinkedHashMap<String,String> parseLabelsSelectors(String selectors) throws ParseException {
     //
     // Split selectors on ',' boundaries
     //
@@ -3605,7 +3603,7 @@ public class GTSHelper {
     // Loop over the tokens
     //
     
-    Map<String,String> result = new HashMap<String,String>(tokens.length);
+    LinkedHashMap<String,String> result = new LinkedHashMap<String,String>(tokens.length);
     
     for (String token: tokens) {
       
@@ -5066,6 +5064,11 @@ public class GTSHelper {
 
   public static List<GeoTimeSerie> map(GeoTimeSerie gts, Object mapper, long prewindow, long postwindow, long occurrences, boolean reversed, int step, boolean overrideTick, WarpScriptStack stack,
                                        List<Long> outputTicks) throws WarpScriptException {
+    return map(gts, mapper, prewindow, postwindow, occurrences, reversed, step, overrideTick, stack, outputTicks, false);
+  }
+
+  public static List<GeoTimeSerie> map(GeoTimeSerie gts, Object mapper, long prewindow, long postwindow, long occurrences, boolean reversed, int step, boolean overrideTick, WarpScriptStack stack,
+                                       List<Long> outputTicks, boolean dedup) throws WarpScriptException {
 
     //
     // Make sure step is positive
@@ -5076,15 +5079,18 @@ public class GTSHelper {
     }
 
     //
-    // Limit pre/post windows to Integer.MAX_VALUE
+    // Limit pre/post windows and occurrences to Integer.MAX_VALUE
     // as this is as many indices we may have at most in a GTS
     //
     
-    if (prewindow > 0 && prewindow > Integer.MAX_VALUE) {
+    if (prewindow > Integer.MAX_VALUE) {
       prewindow = Integer.MAX_VALUE;
     }
-    if (postwindow > 0 && postwindow > Integer.MAX_VALUE) {
+    if (postwindow > Integer.MAX_VALUE) {
       postwindow = Integer.MAX_VALUE;
+    }
+    if (occurrences > Integer.MAX_VALUE) {
+      occurrences = Integer.MAX_VALUE;
     }
     List<GeoTimeSerie> results = new ArrayList<GeoTimeSerie>();
 
@@ -5151,6 +5157,8 @@ public class GTSHelper {
 
     boolean hasSingleResult = true;
 
+    long lastTick = 0;
+
     while (idx < nticks) {
 
       if (hasOccurrences && 0 == occurrences) {
@@ -5181,6 +5189,17 @@ public class GTSHelper {
           }
         }
       }
+
+      //
+      // Skip tick if same as last one and must deduplicate
+      // dedup will behave strangely with step>1, pre>0, post>0 or non-null outputTicks, avoid these configurations.
+      //
+      if (dedup && 0 != idx && tick == lastTick) {
+        idx += step;
+        // Do not decrease occurences as duplicate ticks are considered one occurence in dedup mode.
+        continue;
+      }
+      lastTick = tick;
 
       //
       // Determine start/stop timestamp for extracting subserie
@@ -6636,7 +6655,7 @@ public class GTSHelper {
       for (Entry<Map<String,String>, List<GeoTimeSerie>> entry: partition.entrySet()) {
         
         List<GeoTimeSerie> series = entry.getValue();
-        Map<String,String> commonlabels = ImmutableMap.copyOf(entry.getKey());
+        Map<String,String> commonlabels = Collections.unmodifiableMap(entry.getKey());
         
         //
         // Extract x and y
@@ -6652,7 +6671,7 @@ public class GTSHelper {
       for (Entry<Map<String,String>, List<GeoTimeSerie>> entry: partition.entrySet()) {
         
         List<GeoTimeSerie> series = entry.getValue();
-        Map<String,String> commonlabels = ImmutableMap.copyOf(entry.getKey());
+        Map<String,String> commonlabels = Collections.unmodifiableMap(entry.getKey());
         
         //
         // Extract x and y
@@ -6745,10 +6764,10 @@ public class GTSHelper {
     params[5] = new long[2];
     params[6] = new Object[2];
     
-    Map<String,String> xlabels = ImmutableMap.copyOf(x.getLabels());
-    Map<String,String> ylabels = ImmutableMap.copyOf(y.getLabels());
+    Map<String,String> xlabels = Collections.unmodifiableMap(x.getLabels());
+    Map<String,String> ylabels = Collections.unmodifiableMap(y.getLabels());
           
-    labels = ImmutableMap.copyOf(labels);
+    labels = Collections.unmodifiableMap(labels);
     
     
     // FIXME(hbs): should the type be determined by the first call with a non null value for X?
@@ -8073,13 +8092,20 @@ public class GTSHelper {
     gts.lastbucket = lastbucket;
   }
 
-  public static void metadataToString(StringBuilder sb, String name, Map<String,String> labels) {
+  //public static void metadataToString(StringBuilder sb, String name, Map<String,String> labels) {
+  //  metadataToString(sb, name, labels, false);
+  //}
+  
+  public static void metadataToString(StringBuilder sb, String name, Map<String,String> labels, boolean expose) {
     GTSHelper.encodeName(sb, name);
     
-    labelsToString(sb, labels);
+    labelsToString(sb, labels, expose);
   }
+  //public static void labelsToString(StringBuilder sb, Map<String,String> labels) {
+  //  labelsToString(sb, labels, false);
+  //}
   
-  public static void labelsToString(StringBuilder sb, Map<String,String> labels) {
+  public static void labelsToString(StringBuilder sb, Map<String,String> labels, boolean expose) {
     sb.append("{");
     boolean first = true;
     
@@ -8088,11 +8114,13 @@ public class GTSHelper {
         //
         // Skip owner/producer labels and any other 'private' labels
         //
-        if (Constants.PRODUCER_LABEL.equals(entry.getKey())) {
-          continue;
-        }
-        if (Constants.OWNER_LABEL.equals(entry.getKey())) {
-          continue;
+        if (!expose && !Constants.EXPOSE_OWNER_PRODUCER) {
+          if (Constants.PRODUCER_LABEL.equals(entry.getKey())) {
+            continue;
+          }
+          if (Constants.OWNER_LABEL.equals(entry.getKey())) {
+            continue;
+          }          
         }
         
         if (!first) {
@@ -8108,34 +8136,49 @@ public class GTSHelper {
     sb.append("}");
   }
   
-  public static String buildSelector(GeoTimeSerie gts) {
-    return buildSelector(gts.getMetadata());
+  public static String buildSelector(GeoTimeSerie gts, boolean forSearch) {
+    return buildSelector(gts.getMetadata(), forSearch);
   }
   
-  public static String buildSelector(Metadata metadata) {
+  /**
+   * Build a string representation of Metadata suitable for selection (via FIND/FETCH).
+   * 
+   * @param metadata Metadata to represent
+   * @param forSearch Set to true if the result is for searching, in that case for empty values of labels, '~$' will be produced, otherwise '='
+   * @return
+   */
+  public static String buildSelector(Metadata metadata, boolean forSearch) {
     StringBuilder sb = new StringBuilder();
 
     String name = metadata.getName();
-
-    if(name.length() > 0) {
-      char nameFirstChar = name.charAt(0);
-      if ('=' == nameFirstChar || '~' == nameFirstChar) {
-        sb.append("="); // Prepend '=' for the special character not to be interpreted
+    
+    if (null != name) {
+      if(name.length() > 0) {
+        char nameFirstChar = name.charAt(0);
+        if ('=' == nameFirstChar || '~' == nameFirstChar) {
+          sb.append("="); // Prepend '=' for the special character not to be interpreted
+        }
       }
+      encodeName(sb, name);      
     }
-    encodeName(sb, name);
 
     sb.append("{");
-    TreeMap<String,String> labels = new TreeMap<String,String>(metadata.getLabels());
-    boolean first = true;
-    for (Entry<String,String> entry: labels.entrySet()) {
-      if (!first) {
-        sb.append(",");
-      }
-      encodeName(sb, entry.getKey());
-      sb.append("=");
-      encodeName(sb, entry.getValue());
-      first = false;
+    if (metadata.getLabelsSize() > 0) {
+      TreeMap<String,String> labels = new TreeMap<String,String>(metadata.getLabels());
+      boolean first = true;
+      for (Entry<String,String> entry: labels.entrySet()) {
+        if (!first) {
+          sb.append(",");
+        }
+        encodeName(sb, entry.getKey());
+        if (forSearch && Constants.ABSENT_LABEL_SUPPORT && "".equals(entry.getValue())) {
+          sb.append("~$");
+        } else {
+          sb.append("=");
+          encodeName(sb, entry.getValue());
+        }
+        first = false;
+      }      
     }
     sb.append("}");
     
@@ -8378,6 +8421,25 @@ public class GTSHelper {
       }            
     }
 
+    //
+    // Perform some adjustments if we are not interested in empty chunks.
+    // Adjust lastchunk so it contains the last tick of the GTS
+    // or the overlap. If chunkcount is not 0, decrease the chunkcount accordingly.
+    //
+    
+    if (!keepempty) {
+      // We do not care about the empty chunks so update lastchunk so it contains the last tick
+      long lasttick = GTSHelper.lasttick(gts);
+      if (lastchunk > lasttick) {
+        // If chunkcount was not 0, update the chunkcount
+        if (!zeroChunkCount) {
+          chunkcount -= (lastchunk - lasttick) / chunkwidth;
+        }
+        lastchunk -= chunkwidth * ((lastchunk - lasttick) / chunkwidth);
+      }
+    }
+
+
     // If we have overlap add extra chunks at the beginning and end to compute overlap
     if (overlap > 0) {
       chunkcount += 2;
@@ -8412,17 +8474,16 @@ public class GTSHelper {
       long chunkstart = chunkend - chunkwidth + 1;
 
       GeoTimeSerie chunkgts = new GeoTimeSerie(lastbucket, bucketcount, bucketspan, hint);
-      
-      // Set metadata for the GTS
-      chunkgts.setMetadata(metadata);
-     // Add 'chunklabel'
-      chunkgts.getMetadata().putToLabels(chunklabel, Long.toString(chunkend));
-            
+                  
       if (bucketized) {
         // Chunk is outside the GTS, it will be empty 
         if (lastbucket < chunkstart || chunkend <= lastbucket - (bucketcount * bucketspan)) {
           // Add the (empty) chunk if keepempty is true
           if (keepempty || overlap > 0) {
+            // Set metadata for the GTS
+            chunkgts.setMetadata(metadata);
+           // Add 'chunklabel'
+            chunkgts.getMetadata().putToLabels(chunklabel, Long.toString(chunkend));
             chunks.put(chunkend,chunkgts);
           }
           continue;
@@ -8456,6 +8517,10 @@ public class GTSHelper {
       if (idx >= gts.values) {
         // only add chunk if it's not empty or empty with 'keepempty' set to true
         if (0 != chunkgts.values || (keepempty || overlap > 0)) {
+          // Set metadata for the GTS
+          chunkgts.setMetadata(metadata);
+         // Add 'chunklabel'
+          chunkgts.getMetadata().putToLabels(chunklabel, Long.toString(chunkend));
           chunks.put(chunkend, chunkgts);
         }
         continue;
@@ -8465,6 +8530,10 @@ public class GTSHelper {
       if (gts.ticks[idx] < chunkstart) {
         // only add chunk if it's not empty or empty with 'keepempty' set to true
         if (0 != chunkgts.values || (keepempty || overlap > 0)) {
+          // Set metadata for the GTS
+          chunkgts.setMetadata(metadata);
+         // Add 'chunklabel'
+          chunkgts.getMetadata().putToLabels(chunklabel, Long.toString(chunkend));
           chunks.put(chunkend, chunkgts);
         }
         continue;
@@ -8477,6 +8546,10 @@ public class GTSHelper {
       
       // only add chunk if it's not empty or empty with 'keepempty' set to true
       if (0 != chunkgts.values || (keepempty || overlap > 0)) {
+        // Set metadata for the GTS
+        chunkgts.setMetadata(metadata);
+       // Add 'chunklabel'
+        chunkgts.getMetadata().putToLabels(chunklabel, Long.toString(chunkend));
         chunks.put(chunkend,chunkgts);
       }
       
@@ -8486,11 +8559,7 @@ public class GTSHelper {
       // This will slow down the overlap computation but will save memory.
       //
       
-      if (0 == chunkgts.values) {
-        GTSHelper.shrink(chunkgts);
-      } else if (overlap <= 0 && gts.values > 0 && chunkgts.ticks.length - chunkgts.values > 0) {
-        GTSHelper.shrink(chunkgts);
-      } else if (overlap > 0 && chunkgts.values > 0 && chunkgts.ticks.length - chunkgts.values > 2 * overlaphint) {
+      if (0 == chunkgts.values || chunkgts.ticks.length - chunkgts.values > 2 * overlaphint) {
         GTSHelper.shrink(chunkgts);
       }
       
@@ -8581,7 +8650,6 @@ public class GTSHelper {
   }
 
   public static List<GTSEncoder> chunk(GTSEncoder encoder, long lastchunk, long chunkwidth, long chunkcount, String chunklabel, boolean keepempty, long overlap) throws WarpScriptException {
-
     if (overlap < 0 || overlap > chunkwidth) {
       throw new WarpScriptException("Overlap cannot exceed chunk width.");
     }
@@ -8632,6 +8700,8 @@ public class GTSHelper {
 
         long chunkid = 0L;
 
+        // FIXME(hbs): handle case lastchunk = 0 when we must ensure chunk is congruent to 0 modulo chunkwidth
+        
         // Compute delta from 'lastchunk'
 
         long delta = timestamp - lastchunk;
@@ -8676,6 +8746,7 @@ public class GTSHelper {
               chunkencoder.setMetadata(encoder.getMetadata());
               chunkencoder.getMetadata().putToLabels(chunklabel, Long.toString(chunkid + chunkwidth));
               chunks.put(chunkid + chunkwidth, chunkencoder);
+              newestChunk = Math.max(newestChunk, chunkid + chunkwidth);
             }
             chunkencoder.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), decoder.getValue());
           }
@@ -8688,6 +8759,7 @@ public class GTSHelper {
               chunkencoder.setMetadata(encoder.getMetadata());
               chunkencoder.getMetadata().putToLabels(chunklabel, Long.toString(chunkid - chunkwidth));
               chunks.put(chunkid - chunkwidth, chunkencoder);
+              oldestChunk = Math.min(oldestChunk, chunkid - chunkwidth);
             }
             chunkencoder.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), decoder.getValue());
           }
@@ -8712,10 +8784,27 @@ public class GTSHelper {
     }
 
     long lastchunkid = lastchunk;
+
     if (0 == lastchunk) {
       lastchunkid = newestChunk;
     }
-
+    
+    //
+    // If chunkcount is Integer.MAX_VALUE, we do not care about the number of chunks,
+    // so if keepempty is false we only need to iterate over the chunks from newestChunk to
+    // oldestChunk.
+    // If chunkcount is not 0, adjust the number of chunks
+    //
+    
+    if (!keepempty) {
+      if (lastchunkid > newestChunk) {
+        if (!zeroChunkCount) {
+          chunkcount -= (lastchunkid - newestChunk) / chunkwidth;
+        }
+        lastchunkid = newestChunk;
+      }
+    }
+    
     // Scan chunkIDs backward to early abort in case chunkcount is reached.
     for (long chunkid = lastchunkid; chunkid >= firstchunkid; chunkid -= chunkwidth) {
 
@@ -8752,7 +8841,7 @@ public class GTSHelper {
 
     // Reverse result list so chunk ids are in ascending order, consistent with chunk on GTSs.
     Collections.reverse(encoders);
-
+    
     return encoders;
   }
   

@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,16 +16,15 @@
 
 package io.warp10.script.processing.image;
 
-import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
-import io.warp10.script.WarpScriptException;
-import io.warp10.script.WarpScriptStack;
-import io.warp10.script.processing.ProcessingUtil;
-
-import java.util.ArrayList;
 import java.util.List;
 
+import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.processing.ProcessingUtil;
 import processing.core.PGraphics;
+import processing.core.PImage;
 
 /**
  * Call update the pixel array then call loadPixels
@@ -39,6 +38,29 @@ public class PupdatePixels extends NamedWarpScriptFunction implements WarpScript
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     
+    if (stack.depth() >= 2) {
+      stack.push(1);
+      Object level1 = stack.peekn();
+      if (!(level1 instanceof PGraphics) && (level1 instanceof PImage) && stack.peek() instanceof List) {
+        List<Object> pixels = (List<Object>) stack.pop();
+        PImage pimg = (PImage) stack.peek();
+        pimg.loadPixels();
+        if (pimg.pixels.length != pixels.size()) {
+          throw new WarpScriptException(getName() + " expected array of " + pimg.pixels.length + " pixels, found " + pixels.size());
+        }
+        for (int i = 0; i < pimg.pixels.length; i++) {
+          if (!(pixels.get(i) instanceof Long)) {
+            throw new WarpScriptException(getName() + " expected an array of LONG.");
+          }
+          
+          pimg.pixels[i] = ((Long) pixels.get(i)).intValue();          
+        }
+        
+        pimg.updatePixels();
+        return stack;
+      }
+    }
+    
     List<Object> params = ProcessingUtil.parseParams(stack, 1);
         
     PGraphics pg = (PGraphics) params.get(0);
@@ -49,7 +71,7 @@ public class PupdatePixels extends NamedWarpScriptFunction implements WarpScript
     
     List<Object> pixels = (List<Object>) params.get(1);
     
-    pg.loadPixels();
+    pg.parent.loadPixels();
 
     if (pixels.size() != pg.pixels.length) {
       throw new WarpScriptException(getName() + " expected an array of " + pg.pixels.length + " pixels, found " + pixels.size());
@@ -63,7 +85,7 @@ public class PupdatePixels extends NamedWarpScriptFunction implements WarpScript
       pg.pixels[i] = ((Long) pixels.get(i)).intValue();
     }
 
-    pg.updatePixels();
+    pg.parent.updatePixels();
     
     stack.push(pg);
     

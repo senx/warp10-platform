@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 package io.warp10.continuum.ingress;
 
 import io.warp10.ThrowableUtils;
+import io.warp10.WarpConfig;
 import io.warp10.WarpManager;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.ThrottlingManager;
@@ -37,6 +38,7 @@ import java.io.StringReader;
 import java.math.BigInteger;
 import java.text.ParseException;
 import java.util.HashMap;
+import java.util.UUID;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -82,6 +84,8 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
     
     private WriteToken wtoken;
     private Boolean ignoor = null;
+    private boolean expose = false;
+
     private Map<String,String> kafkaDataMessageAttributes = null;
     
     private Long maxpastdelta = null;
@@ -134,12 +138,12 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
             this.errormsg = false;
           }
           session.getRemote().sendString("OK " + (seqno++) + " ONERROR");
-        } else if ("DELTAON".equals(tokens[0])) {
+        } else if (null != tokens && "DELTAON".equals(tokens[0])) {
           if (!this.handler.ingress.allowDeltaAttributes) {
             throw new IOException("Delta update of attributes is disabled.");
           }
           this.deltaAttributes = true;
-        } else if ("DELTAOFF".equals(tokens[0])) {
+        } else if (null != tokens && "DELTAOFF".equals(tokens[0])) {
           this.deltaAttributes = false;
         } else {
           //
@@ -216,6 +220,8 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
           AtomicBoolean hadAttributes = this.handler.ingress.parseAttributes ? new AtomicBoolean(false) : null;
 
           try {
+            WarpConfig.setThreadProperty(WarpConfig.THREAD_PROPERTY_SESSION, UUID.randomUUID().toString());
+            
             GTSEncoder lastencoder = null;
             GTSEncoder encoder = null;
 
@@ -275,9 +281,6 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
               // Force PRODUCER/OWNER
               //
               
-              //encoder.setLabel(Constants.PRODUCER_LABEL, producer);
-              //encoder.setLabel(Constants.OWNER_LABEL, owner);
-              
               if (encoder != lastencoder || lastencoder.size() > StandaloneIngressHandler.ENCODER_SIZE_THRESHOLD) {
                 
                 //
@@ -288,8 +291,8 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
                   String producer = extraLabels.get(Constants.PRODUCER_LABEL);
                   String owner = extraLabels.get(Constants.OWNER_LABEL);
                   String application = extraLabels.get(Constants.APPLICATION_LABEL);
-                  ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId());
-                  ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount());                  
+                  ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId(), expose);
+                  ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount(), expose);                  
                 }
 
                 //
@@ -383,8 +386,8 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
               String producer = extraLabels.get(Constants.PRODUCER_LABEL);
               String owner = extraLabels.get(Constants.OWNER_LABEL);
               String application = extraLabels.get(Constants.APPLICATION_LABEL);
-              ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId());
-              ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount());
+              ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId(), expose);
+              ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount(), expose);
 
               lastencoder.setClassId(GTSHelper.classId(this.handler.ingress.classKey, lastencoder.getName()));
               lastencoder.setLabelsId(GTSHelper.labelsId(this.handler.ingress.labelsKey, lastencoder.getLabels()));
@@ -405,6 +408,8 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
               }
             }                  
           } finally {
+            WarpConfig.clearThreadProperties();
+            
             this.handler.ingress.pushMetadataMessage(null);
             this.handler.ingress.pushDataMessage(null, this.kafkaDataMessageAttributes);
             
@@ -477,6 +482,8 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
       Boolean ignoor = null;
       
       if (wtoken.getAttributesSize() > 0) {
+        
+        expose = wtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_EXPOSE);
         
         if (wtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_IGNOOR)) {
           String v = wtoken.getAttributes().get(Constants.TOKEN_ATTR_IGNOOR).toLowerCase();

@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-20  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,9 +16,6 @@
 
 package io.warp10.script;
 
-import io.warp10.script.WarpScriptStack.Macro;
-import io.warp10.script.functions.INCLUDE;
-
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -30,13 +27,22 @@ import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Enumeration;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.warp10.WarpConfig;
+import io.warp10.continuum.Configuration;
+import io.warp10.continuum.sensision.SensisionConstants;
+import io.warp10.script.WarpScriptStack.Macro;
+import io.warp10.script.functions.INCLUDE;
+import io.warp10.sensision.Sensision;
 import sun.net.www.protocol.file.FileURLConnection;
 
 /**
@@ -46,7 +52,49 @@ import sun.net.www.protocol.file.FileURLConnection;
  * TODO(hbs): add support for secure script (the keystore is not initialized)
  */
 public class WarpScriptMacroLibrary {
-  private static final Map<String,Macro> macros = new HashMap<String, Macro>();
+  
+  private static final Logger LOG = LoggerFactory.getLogger(WarpScriptMacroLibrary.class);
+  
+  private static final Map<String,Macro> macros;
+  
+  private static final int DEFAULT_CACHE_SIZE = 10000;
+  
+  /**
+   * Default TTL for macros loaded on demand
+   */
+  private static final long DEFAULT_MACRO_TTL = 600000L;
+  
+  /**
+   * Default TTL for loaded macros
+   */
+  private static long ttl = DEFAULT_MACRO_TTL;
+  
+  /**
+   * Maximum TTL for loaded macros
+   */
+  private static long hardTtl = Long.MAX_VALUE >> 2;
+  
+  private static final int maxcachesize;
+  
+  static {
+    //
+    // Create macro map
+    //
+    
+    maxcachesize = Integer.parseInt(WarpConfig.getProperty(Configuration.WARPSCRIPT_LIBRARY_CACHE_SIZE, Integer.toString(DEFAULT_CACHE_SIZE)));
+    
+    macros = new LinkedHashMap<String,Macro>() {
+      @Override
+      protected boolean removeEldestEntry(java.util.Map.Entry<String,Macro> eldest) {
+        int size = this.size();
+        Sensision.set(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_LIBRARY_CACHED, Sensision.EMPTY_LABELS, size);
+        return size > maxcachesize;
+      }
+    };
+
+    ttl = Long.parseLong(WarpConfig.getProperty(Configuration.WARPSCRIPT_LIBRARY_TTL, Long.toString(DEFAULT_MACRO_TTL)));
+    hardTtl = Long.parseLong(WarpConfig.getProperty(Configuration.WARPSCRIPT_LIBRARY_TTL_HARD, Long.toString(Long.MAX_VALUE >>> 2)));
+  }
   
   public static void addJar(String path) throws WarpScriptException {
     addJar(path, null);
@@ -105,6 +153,12 @@ public class WarpScriptMacroLibrary {
         macros.put(name, macro);
       }
       
+      if (maxcachesize == macros.size()) {
+        LOG.warn("Some cached library macros were evicted.");
+      }
+      
+      Sensision.set(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_LIBRARY_CACHED, Sensision.EMPTY_LABELS, macros.size());
+
     } catch (IOException ioe) {
       throw new WarpScriptException("Encountered error while loading " + f.getAbsolutePath(), ioe);
     } finally {
@@ -113,6 +167,9 @@ public class WarpScriptMacroLibrary {
   }
   
   public static Macro loadMacro(Object root, InputStream in, String name) throws WarpScriptException {
+    
+    MemoryWarpScriptStack stack = null;
+    
     try {
       byte[] buf = new byte[8192];
       StringBuilder sb = new StringBuilder();
@@ -140,7 +197,9 @@ public class WarpScriptMacroLibrary {
       
       sb.append("\n");
       
-      MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null, new Properties());
+      stack = new MemoryWarpScriptStack(null, null, new Properties());
+      stack.setAttribute(WarpScriptStack.ATTRIBUTE_NAME, "[WarpScriptMacroLibrary " + name + "]");
+
       stack.maxLimits();
       stack.setAttribute(WarpScriptStack.ATTRIBUTE_MACRO_NAME, name);
 
@@ -185,10 +244,30 @@ public class WarpScriptMacroLibrary {
       macro.setSecure(true);
       macro.setNameRecursive(name);
       
+      long macroTtl = ttl;
+      
+      if (null != stack.getAttribute(WarpScriptStack.ATTRIBUTE_MACRO_TTL)) {
+        macroTtl = (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_MACRO_TTL);
+      }
+      
+      if (macroTtl > hardTtl) {
+        macroTtl = hardTtl;
+      }
+
+      // Set expiry. Note using a ttl too long will wrap around the sum and will
+      // make the macro expire too early
+      
+      try {
+        macro.setExpiry(Math.addExact(System.currentTimeMillis(), ttl));
+      } catch (ArithmeticException ae) {
+        macro.setExpiry(Long.MAX_VALUE - 1);
+      }
+
       return macro;
     } catch (IOException ioe) {
       throw new WarpScriptException(ioe);
     } finally {
+      WarpScriptStackRegistry.unregister(stack);
       try { in.close(); } catch (IOException ioe) {}
     }
   }
@@ -207,7 +286,7 @@ public class WarpScriptMacroLibrary {
     // classpath
     //
     
-    if (null == macro) {
+    if (null == macro || macro.isExpired()) {
       String rsc = name + WarpScriptMacroRepository.WARPSCRIPT_FILE_EXTENSION;
       URL url = WarpScriptMacroLibrary.class.getClassLoader().getResource(rsc);
       

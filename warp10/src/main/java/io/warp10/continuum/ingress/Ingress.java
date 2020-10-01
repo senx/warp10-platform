@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -45,6 +45,8 @@ import java.util.NoSuchElementException;
 import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -57,8 +59,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.commons.lang3.JavaVersion;
-import org.apache.commons.lang3.SystemUtils;
 import org.apache.hadoop.util.ShutdownHookManager;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
@@ -351,7 +351,7 @@ public class Ingress extends AbstractHandler implements Runnable {
     this.maxValueSize = Long.parseLong(props.getProperty(Configuration.INGRESS_VALUE_MAXSIZE));
     
     if (this.maxValueSize > (this.DATA_MESSAGES_THRESHOLD / 2) - 64) {
-      throw new RuntimeException("Value of '" + Configuration.INGRESS_VALUE_MAXSIZE + "' cannot exceed that half of '" + Configuration.INGRESS_KAFKA_DATA_MAXSIZE + "' minus 64.");
+      throw new RuntimeException("Value of '" + Configuration.INGRESS_VALUE_MAXSIZE + "' cannot exceed half of '" + Configuration.INGRESS_KAFKA_DATA_MAXSIZE + "' minus 64.");
     }
     
     extractKeys(this.keystore, props);
@@ -681,7 +681,6 @@ public class Ingress extends AbstractHandler implements Runnable {
   
   @Override
   public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
-    
     String token = null;
     
     if (target.equals(Constants.API_ENDPOINT_UPDATE)) {
@@ -696,6 +695,7 @@ public class Ingress extends AbstractHandler implements Runnable {
       return;
     } else if (target.equals(Constants.API_ENDPOINT_DELETE)) {
       handleDelete(target, baseRequest, request, response);
+      return;
     } else if (Constants.API_ENDPOINT_CHECK.equals(target)) {
       baseRequest.setHandled(true);
       response.setStatus(HttpServletResponse.SC_OK);
@@ -711,7 +711,9 @@ public class Ingress extends AbstractHandler implements Runnable {
     
     long nowms = System.currentTimeMillis();
     
-    try {
+    try {      
+      WarpConfig.setThreadProperty(WarpConfig.THREAD_PROPERTY_SESSION, UUID.randomUUID().toString());
+      
       //
       // CORS header
       //
@@ -764,7 +766,12 @@ public class Ingress extends AbstractHandler implements Runnable {
         }
       }
       
+      boolean expose = false;
+      
       if (writeToken.getAttributesSize() > 0) {
+        
+        expose = writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_EXPOSE);
+        
         if (writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_TTL)
             || writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_DPTS)) {
           if (null == kafkaDataMessageAttributes) {
@@ -1046,8 +1053,8 @@ public class Ingress extends AbstractHandler implements Runnable {
             //
             
             if (null != lastencoder && lastencoder.size() > 0) {
-              ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId());
-              ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount());
+              ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId(), expose);
+              ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount(), expose);
             }
             
             boolean pushMeta = false;
@@ -1136,8 +1143,8 @@ public class Ingress extends AbstractHandler implements Runnable {
         } while (true); 
         
         if (null != lastencoder && lastencoder.size() > 0) {
-          ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId());
-          ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount());
+          ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId(), expose);
+          ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount(), expose);
 
           pushDataMessage(lastencoder, kafkaDataMessageAttributes);
           
@@ -1182,6 +1189,8 @@ public class Ingress extends AbstractHandler implements Runnable {
         response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msg);
         return;
       }
+    } finally {
+      WarpConfig.clearThreadProperties();
     }
     
     response.setStatus(HttpServletResponse.SC_OK);
@@ -1416,14 +1425,15 @@ public class Ingress extends AbstractHandler implements Runnable {
     String token = request.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_TOKENX));
             
     WriteToken writeToken;
-    
+
     try {
       writeToken = Tokens.extractWriteToken(token);
       if (writeToken.getAttributesSize() > 0 && writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_NODELETE)) {
         throw new WarpScriptException("Token cannot be used for deletions.");
       }
     } catch (WarpScriptException ee) {
-      throw new IOException(ee);
+      response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, ThrowableUtils.getErrorMessage(ee, Constants.MAX_HTTP_REASON_LENGTH));
+      return;
     }
     
     
@@ -1435,14 +1445,13 @@ public class Ingress extends AbstractHandler implements Runnable {
     // For delete operations, producer and owner MUST be equal
     //
     
-    if (!producer.equals(owner)) {
+    if (null == producer || !producer.equals(owner)) {
       throw new IOException("Invalid write token for deletion.");
     }
     
     Map<String,String> sensisionLabels = new HashMap<String,String>();
     sensisionLabels.put(SensisionConstants.SENSISION_LABEL_PRODUCER, producer);
 
-    long count = 0;
     long gts = 0;
     
     boolean completeDeletion = false;
@@ -1453,12 +1462,9 @@ public class Ingress extends AbstractHandler implements Runnable {
 
     PrintWriter pw = null;
     
+    boolean metaonly = null != request.getParameter(Constants.HTTP_PARAM_METAONLY);
+
     try {      
-      if (null == producer || null == owner) {
-        response.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid token.");
-        return;
-      }
-      
       //
       // Build extra labels
       //
@@ -1498,7 +1504,11 @@ public class Ingress extends AbstractHandler implements Runnable {
       
       long minage = 0L;
 
-      if (null != minagestr) {
+      if (null != minagestr) {        
+        if (metaonly) {
+          throw new IOException("Parameter '" + Constants.HTTP_PARAM_MINAGE + "' cannot be specified with '" + Constants.HTTP_PARAM_METAONLY + "'.");
+        }
+        
         minage = Long.parseLong(minagestr);
         
         if (minage < 0) {
@@ -1511,11 +1521,7 @@ public class Ingress extends AbstractHandler implements Runnable {
           throw new IOException("Both " + Constants.HTTP_PARAM_START + " and " + Constants.HTTP_PARAM_END + " should be defined.");
         }
         if (startstr.contains("T")) {
-          if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
-            start = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(startstr);
-          } else {
-            start = fmt.parseDateTime(startstr).getMillis() * Constants.TIME_UNITS_PER_MS;
-          }
+          start = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(startstr);
         } else {
           start = Long.valueOf(startstr);
         }
@@ -1526,20 +1532,30 @@ public class Ingress extends AbstractHandler implements Runnable {
           throw new IOException("Both " + Constants.HTTP_PARAM_START + " and " + Constants.HTTP_PARAM_END + " should be defined.");
         }
         if (endstr.contains("T")) {
-          if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
-            end = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(endstr);
-          } else {
-            end = fmt.parseDateTime(endstr).getMillis() * Constants.TIME_UNITS_PER_MS;
-          }
+          end = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(endstr);
         } else {
           end = Long.valueOf(endstr);
         }
       }
 
-      if (Long.MIN_VALUE == start && Long.MAX_VALUE == end && null == request.getParameter(Constants.HTTP_PARAM_DELETEALL)) {
-        throw new IOException("Parameter " + Constants.HTTP_PARAM_DELETEALL + " should be set when deleting a full range.");
+      if (Long.MIN_VALUE == start && Long.MAX_VALUE == end && (null == request.getParameter(Constants.HTTP_PARAM_DELETEALL) && !metaonly)) {
+        throw new IOException("Parameter " + Constants.HTTP_PARAM_DELETEALL + " or " + Constants.HTTP_PARAM_METAONLY + " should be set when no time range is specified.");
       }
       
+      if (Long.MIN_VALUE != start || Long.MAX_VALUE != end) {
+        hasRange = true;
+      }
+      
+      if (metaonly && !Constants.DELETE_METAONLY_SUPPORT) {
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Parameter " + Constants.HTTP_PARAM_METAONLY + " cannot be used as metaonly support is not enabled.");
+        return;        
+      }
+      
+      if (metaonly && hasRange) {
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Parameter " + Constants.HTTP_PARAM_METAONLY + " can only be set if no range is specified.");
+        return;
+      }
+
       if (start > end) {
         throw new IOException("Invalid time range specification.");
       }
@@ -1596,6 +1612,7 @@ public class Ingress extends AbstractHandler implements Runnable {
       pw = response.getWriter();
       StringBuilder sb = new StringBuilder();
 
+      boolean expose = writeToken.getAttributesSize() > 0 && writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_EXPOSE);
       //
       // Shuffle only if not in dryrun mode
       //
@@ -1607,7 +1624,7 @@ public class Ingress extends AbstractHandler implements Runnable {
         //
         
         final byte[] onetimepad = new byte[(int) Math.max(65537, System.currentTimeMillis() % 100000)];
-        new Random().nextBytes(onetimepad);
+        ThreadLocalRandom.current().nextBytes(onetimepad);
         
         final File cache = File.createTempFile(Long.toHexString(System.currentTimeMillis()) + "-" + Long.toHexString(System.nanoTime()), ".delete.dircache");
         cache.deleteOnExit();
@@ -1617,6 +1634,25 @@ public class Ingress extends AbstractHandler implements Runnable {
         TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
         
         DirectoryRequest drequest = new DirectoryRequest();
+        
+        Long activeAfter = null == request.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER) ? null : Long.parseLong(request.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER));
+        Long quietAfter = null == request.getParameter(Constants.HTTP_PARAM_QUIETAFTER) ? null : Long.parseLong(request.getParameter(Constants.HTTP_PARAM_QUIETAFTER));
+
+        if (!Constants.DELETE_ACTIVITY_SUPPORT) {
+          if (null != activeAfter || null != quietAfter) {
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Activity based selection is disabled by configuration.");
+            return;
+          }
+        }
+        
+        if (null != activeAfter) {
+          drequest.setActiveAfter(activeAfter);
+        }
+        
+        if (null != quietAfter) {
+          drequest.setQuietAfter(quietAfter);
+        }
+        
         drequest.setClassSelectors(clsSels);
         drequest.setLabelsSelectors(lblsSels);
         
@@ -1760,36 +1796,37 @@ public class Ingress extends AbstractHandler implements Runnable {
           while(shufflediterator.hasNext()) {
             Metadata metadata = shufflediterator.next();
             
-            if (!dryrun) {
-              if (null != this.plugin) {
-                if (!this.plugin.delete(this, writeToken, metadata)) {
-                  continue;
-                }
-              }
-              pushDeleteMessage(start, end, minage, metadata);
-              
-              if (Long.MAX_VALUE == end && Long.MIN_VALUE == start && 0 == minage) {
-                completeDeletion = true;
-                // We must also push the metadata deletion and remove the metadata from the cache
-                Metadata meta = new Metadata(metadata);
-                meta.setSource(Configuration.INGRESS_METADATA_DELETE_SOURCE);
-                pushMetadataMessage(meta);          
-                byte[] bytes = new byte[16];
-                // We know class/labels Id were computed in pushMetadataMessage
-                GTSHelper.fillGTSIds(bytes, 0, meta.getClassId(), meta.getLabelsId());
-                BigInteger key = new BigInteger(bytes);
-                synchronized(this.metadataCache) {
-                  this.metadataCache.remove(key);
-                }
+            if (null != this.plugin) {
+              if (!this.plugin.delete(this, writeToken, metadata)) {
+                continue;
               }
             }
-            
+
+            if (!metaonly) {
+              pushDeleteMessage(start, end, minage, metadata);
+            }
+
+            if (Long.MAX_VALUE == end && Long.MIN_VALUE == start && 0 == minage) {
+              completeDeletion = true;
+              // We must also push the metadata deletion and remove the metadata from the cache
+              Metadata meta = new Metadata(metadata);
+              meta.setSource(Configuration.INGRESS_METADATA_DELETE_SOURCE);
+              pushMetadataMessage(meta);
+              byte[] bytes = new byte[16];
+              // We know class/labels Id were computed in pushMetadataMessage
+              GTSHelper.fillGTSIds(bytes, 0, meta.getClassId(), meta.getLabelsId());
+              BigInteger key = new BigInteger(bytes);
+              synchronized(this.metadataCache) {
+                this.metadataCache.remove(key);
+              }
+            }
+
             sb.setLength(0);
             
-            GTSHelper.metadataToString(sb, metadata.getName(), metadata.getLabels());
+            GTSHelper.metadataToString(sb, metadata.getName(), metadata.getLabels(), expose);
             
             if (metadata.getAttributesSize() > 0) {
-              GTSHelper.labelsToString(sb, metadata.getAttributes());
+              GTSHelper.labelsToString(sb, metadata.getAttributes(), true);
             } else {
               sb.append("{}");
             }
@@ -1822,7 +1859,9 @@ public class Ingress extends AbstractHandler implements Runnable {
                 }
               }
 
-              pushDeleteMessage(start, end, minage, metadata);
+              if (!metaonly) {
+                pushDeleteMessage(start, end, minage, metadata);
+              }
               
               if (Long.MAX_VALUE == end && Long.MIN_VALUE == start && 0 == minage) {
                 completeDeletion = true;
@@ -1842,10 +1881,10 @@ public class Ingress extends AbstractHandler implements Runnable {
             
             sb.setLength(0);
             
-            GTSHelper.metadataToString(sb, metadata.getName(), metadata.getLabels());
+            GTSHelper.metadataToString(sb, metadata.getName(), metadata.getLabels(), expose);
             
             if (metadata.getAttributesSize() > 0) {
-              GTSHelper.labelsToString(sb, metadata.getAttributes());
+              GTSHelper.labelsToString(sb, metadata.getAttributes(), true);
             } else {
               sb.append("{}");
             }
@@ -1880,7 +1919,9 @@ public class Ingress extends AbstractHandler implements Runnable {
     } finally {
       // Flush delete messages
       if (!dryrun) {
-        pushDeleteMessage(0L,0L,0L,null);
+        if (!metaonly) {
+          pushDeleteMessage(0L,0L,0L,null);
+        }
         if (completeDeletion) {
           pushMetadataMessage(null, null);
         }
@@ -1901,46 +1942,12 @@ public class Ingress extends AbstractHandler implements Runnable {
    * @param props Properties from which to extract the key specs
    */
   private static void extractKeys(KeyStore keystore, Properties props) {
-    String keyspec = props.getProperty(Configuration.INGRESS_KAFKA_META_MAC);
-    
-    if (null != keyspec) {
-      byte[] key = keystore.decodeKey(keyspec);
-      Preconditions.checkArgument(16 == key.length, "Key " + Configuration.INGRESS_KAFKA_META_MAC + " MUST be 128 bits long.");
-      keystore.setKey(KeyStore.SIPHASH_KAFKA_METADATA, key);
-    }
-    
-    keyspec = props.getProperty(Configuration.INGRESS_KAFKA_DATA_MAC);
-    
-    if (null != keyspec) {
-      byte[] key = keystore.decodeKey(keyspec);
-      Preconditions.checkArgument(16 == key.length, "Key " + Configuration.INGRESS_KAFKA_DATA_MAC + " MUST be 128 bits long.");
-      keystore.setKey(KeyStore.SIPHASH_KAFKA_DATA, key);
-    }
+    KeyStore.checkAndSetKey(keystore, KeyStore.SIPHASH_KAFKA_METADATA, props, Configuration.INGRESS_KAFKA_META_MAC, 128);
+    KeyStore.checkAndSetKey(keystore, KeyStore.SIPHASH_KAFKA_DATA, props, Configuration.INGRESS_KAFKA_DATA_MAC, 128);
+    KeyStore.checkAndSetKey(keystore, KeyStore.AES_KAFKA_METADATA, props, Configuration.INGRESS_KAFKA_META_AES, 128, 192, 256);
+    KeyStore.checkAndSetKey(keystore, KeyStore.AES_KAFKA_DATA, props, Configuration.INGRESS_KAFKA_DATA_AES, 128, 192, 256);
+    KeyStore.checkAndSetKey(keystore, KeyStore.SIPHASH_DIRECTORY_PSK, props, Configuration.DIRECTORY_PSK, 128);
 
-    keyspec = props.getProperty(Configuration.INGRESS_KAFKA_META_AES);
-    
-    if (null != keyspec) {
-      byte[] key = keystore.decodeKey(keyspec);
-      Preconditions.checkArgument(16 == key.length || 24 == key.length || 32 == key.length, "Key " + Configuration.INGRESS_KAFKA_META_AES + " MUST be 128, 192 or 256 bits long.");
-      keystore.setKey(KeyStore.AES_KAFKA_METADATA, key);
-    }
-
-    keyspec = props.getProperty(Configuration.INGRESS_KAFKA_DATA_AES);
-    
-    if (null != keyspec) {
-      byte[] key = keystore.decodeKey(keyspec);
-      Preconditions.checkArgument(16 == key.length || 24 == key.length || 32 == key.length, "Key " + Configuration.INGRESS_KAFKA_DATA_AES + " MUST be 128, 192 or 256 bits long.");
-      keystore.setKey(KeyStore.AES_KAFKA_DATA, key);
-    }
-    
-    keyspec = props.getProperty(Configuration.DIRECTORY_PSK);
-    
-    if (null != keyspec) {
-      byte[] key = keystore.decodeKey(keyspec);
-      Preconditions.checkArgument(16 == key.length, "Key " + Configuration.DIRECTORY_PSK + " MUST be 128 bits long.");
-      keystore.setKey(KeyStore.SIPHASH_DIRECTORY_PSK, key);
-    }    
-    
     keystore.forget();
   }
   

@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -19,6 +19,12 @@
 // W A R P S C R I P T
 //
 /////////////////////////////////////////////////////////////////////////////////////////
+
+//
+// WarpScript code used to resolve font URLs, can be a macro call or any other valid WarpScript excerpt
+// The code is passed the URL to check and should return the updated URL. NOOP will accept all URLs.
+//
+#processing.font.resolver = NOOP
 
 // Maximum time that TIMEBOX can wait for an execution (in ms), defaults to 30s
 #warpscript.timebox.maxtime=30000
@@ -127,6 +133,12 @@ warpscript.maxpixels = 1000000
 warpscript.maxpixels.hard = 1000000
 
 //
+// Maximum size of a JSON pushed on the stack, in characters.
+//
+warpscript.maxjson = 20971520
+warpscript.maxjson.hard = 209715200
+
+//
 // WEBCALL limit per WarpScript
 //
 warpscript.maxwebcalls = 4
@@ -164,7 +176,7 @@ warpscript.delete.endpoint = http://${standalone.host}:${standalone.port}/api/v0
 //
 // Maximum number of subprogram instances which can be spawned by CALL
 //
-//warpscript.call.maxcapacity = 1
+#warpscript.call.maxcapacity = 1
 
 //
 // Path of the 'bootstrap' WarpScript code for Mobius
@@ -203,3 +215,15 @@ warpscript.runner.bootstrap.period = 120000
 #warpscript.urlfetch.maxsize.hard =
 // List of patterns to include/exclude for hosts, works the same way as webcall.host.patterns. Defaults to the value of webcall.host.patterns.
 #warpscript.urlfetch.host.patterns =
+
+//
+// allow C style block comments. /**** valid block comment ****/
+//
+warpscript.comments.loose = true
+
+//
+// Default priority order for matching labels when doing a FIND/FETCH.
+// Comma separated list of label names.
+// Defaults to .producer,.app,.owner
+//
+#warpscript.labels.priority =

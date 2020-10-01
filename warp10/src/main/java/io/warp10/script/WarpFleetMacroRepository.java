@@ -35,7 +35,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.warp10.Revision;
+import io.warp10.ThrowableUtils;
 import io.warp10.continuum.Configuration;
+import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.binary.ADD;
@@ -45,6 +47,7 @@ import io.warp10.script.functions.DROP;
 import io.warp10.script.functions.HUMANDURATION;
 import io.warp10.script.functions.MSGFAIL;
 import io.warp10.script.functions.NOW;
+import io.warp10.sensision.Sensision;
 
 public class WarpFleetMacroRepository {
 
@@ -206,6 +209,8 @@ public class WarpFleetMacroRepository {
         
         InputStream in = null;
         
+        MemoryWarpScriptStack stack = null;
+        
         try {
           URL url = new URL(macroURL + ".mc2");
 
@@ -238,7 +243,9 @@ public class WarpFleetMacroRepository {
           sb.append(new String(data, StandardCharsets.UTF_8));
           sb.append("\n");
           
-          MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null);
+          stack = new MemoryWarpScriptStack(null, null);
+          stack.setAttribute(WarpScriptStack.ATTRIBUTE_NAME, "[WarpFleetMacroRepository " + url.toString() + "]");
+
           stack.maxLimits();
           stack.setAttribute(WarpScriptStack.ATTRIBUTE_MACRO_NAME, name);
 
@@ -308,6 +315,7 @@ public class WarpFleetMacroRepository {
             macros.put(macroURL, macro);
           }
         } finally {
+          WarpScriptStackRegistry.unregister(stack);
           if (null != in) {
             try { in.close(); } catch (Exception e) {}
           }
@@ -316,7 +324,7 @@ public class WarpFleetMacroRepository {
     } catch (WarpScriptException wse) {
       // Replace macro with a FAIL indicating the error message
       macro = new Macro();
-      macro.add("[" + System.currentTimeMillis() + "] Error while loading macro '" + name + "': " + wse.getMessage() + ", result cached for ");
+      macro.add("[" + System.currentTimeMillis() + "] Error while loading macro '" + name + "': " + ThrowableUtils.getErrorMessage(wse, 1024) + ", result cached for ");
       long expiry_ts = System.currentTimeMillis() + failedTtl;
       macro.add(expiry_ts * Constants.TIME_UNITS_PER_MS);
       macro.add(NOW_FUNC);
@@ -386,7 +394,9 @@ public class WarpFleetMacroRepository {
     WarpFleetMacroRepository.macros = new LinkedHashMap<String,Macro>() {
       @Override
       protected boolean removeEldestEntry(java.util.Map.Entry<String,Macro> eldest) {
-        return this.size() > maxcachesize;
+        int size = this.size();
+        Sensision.set(SensisionConstants.SENSISION_CLASS_WARPFLEET_MACROS_CACHED, Sensision.EMPTY_LABELS, size);
+        return size > maxcachesize;
       }
     };
     

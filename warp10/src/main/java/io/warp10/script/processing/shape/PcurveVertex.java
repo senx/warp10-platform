@@ -43,13 +43,13 @@ public class PcurveVertex extends NamedWarpScriptFunction implements WarpScriptS
     PGraphics pg = (PGraphics) params.get(0);
     
     if (4 == params.size()) {
-      pg.curveVertex(
+      pg.parent.curveVertex(
           ((Number) params.get(1)).floatValue(),
           ((Number) params.get(2)).floatValue(),
           ((Number) params.get(3)).floatValue()
       );      
     } else if (3 == params.size()) {
-      pg.curveVertex(
+      pg.parent.curveVertex(
           ((Number) params.get(1)).floatValue(),
           ((Number) params.get(2)).floatValue()
       );      

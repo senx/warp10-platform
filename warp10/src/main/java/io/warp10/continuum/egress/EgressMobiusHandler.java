@@ -30,6 +30,7 @@ import io.warp10.script.MemoryWarpScriptStack;
 import io.warp10.script.StackUtils;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStack.StackContext;
+import io.warp10.script.WarpScriptStackRegistry;
 import io.warp10.script.functions.EVERY;
 import io.warp10.sensision.Sensision;
 
@@ -41,6 +42,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
@@ -390,7 +392,10 @@ public class EgressMobiusHandler extends WebSocketHandler.Simple implements Runn
           //
           
           WarpScriptStack stack = new MemoryWarpScriptStack(storeClient, directoryClient);
+          WarpConfig.setThreadProperty(WarpConfig.THREAD_PROPERTY_SESSION, UUID.randomUUID().toString());
           
+          stack.setAttribute(WarpScriptStack.ATTRIBUTE_NAME, "[EgressMobiusHandler " + Thread.currentThread().getName() + "]");
+
           boolean error = false;
           
           try {
@@ -413,6 +418,9 @@ public class EgressMobiusHandler extends WebSocketHandler.Simple implements Runn
           } catch (Exception e) {
             error = true;
             try { stack.push(e.getMessage()); } catch (WarpScriptException ee) {}
+          } finally {
+            WarpConfig.clearThreadProperties();
+            WarpScriptStackRegistry.unregister(stack);
           }
 
           //
@@ -450,7 +458,7 @@ public class EgressMobiusHandler extends WebSocketHandler.Simple implements Runn
           StringWriter sw = new StringWriter();
           PrintWriter pw = new PrintWriter(sw);
           
-          try { StackUtils.toJSON(pw, stack); } catch (WarpScriptException ee) {}
+          try { StackUtils.toJSON(pw, stack); } catch (WarpScriptException | IOException ee) {}
           
           pw.flush();
           

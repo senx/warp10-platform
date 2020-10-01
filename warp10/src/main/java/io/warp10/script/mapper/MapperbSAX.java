@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -146,9 +146,7 @@ public class MapperbSAX extends NamedWarpScriptFunction implements WarpScriptMap
         symbols[i] = ((Number) values[i]).intValue();
       } else {
         // Fill missing values with the last one encountered
-        if (i > 0) {
-          symbols[i] = symbols[i - 1];
-        }
+        symbols[i] = symbols[i - 1];
       }
     }
     

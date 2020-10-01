@@ -56,7 +56,7 @@ public class PtextAlign extends NamedWarpScriptFunction implements WarpScriptSta
     }
     
     if (2 == params.size()) {
-      pg.textAlign(alignX);
+      pg.parent.textAlign(alignX);
     } else if (3 == params.size()) {
       String alignYstr = params.get(2).toString();
       int alignY = 0;
@@ -73,7 +73,7 @@ public class PtextAlign extends NamedWarpScriptFunction implements WarpScriptSta
         throw new WarpScriptException(getName() + " invalid alignment for Y, should be 'TOP', 'BOTTOM', 'CENTER' or 'BASELINE'.");
       }
       
-      pg.textAlign(alignX, alignY);
+      pg.parent.textAlign(alignX, alignY);
     }
 
     stack.push(pg);

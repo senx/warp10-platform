@@ -46,7 +46,7 @@ public class QuasarTokenRevocationListLoader {
   private static long appIdSipHashKeyK0 = 0L;
   private static long appIdSipHashKeyK1 = 0L;
 
-  private List<QuasarTRLLoadedHandler> quasarTRLLoadedHandler = new ArrayList<>();
+  private List<QuasarTRLLoadedHandler> quasarTRLLoadedHandler = new ArrayList<QuasarTRLLoadedHandler>();
 
   private String trlPattern = "^([a-zA-Z0-9_-]*)\\.(read|write|full)\\.([0-9]*)-([a-f0-9]{32})\\.trl$";
 

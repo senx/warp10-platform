@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 package io.warp10;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -44,7 +44,7 @@ public class ThrowableUtils {
     String simpleClassName = t.getClass().getSimpleName();
 
     // Maintain a list of Throwable causes to avoid the unlikely case of a cycle in causes.
-    final ArrayList<Throwable> throwables = new ArrayList<>();
+    final ArrayList<Throwable> throwables = new ArrayList<Throwable>();
 
     List<String> messages = new ArrayList<String>();
 

@@ -93,6 +93,16 @@ standalone.host = 127.0.0.1
 standalone.port = 8080
 
 //
+// Number of threads in Jetty's Thread Pool - defaults to 200
+//
+#standalone.jetty.threadpool = 200
+  
+//
+// Maximum size of Jetty ThreadPool queue size (unbounded by default)
+//
+#standalone.jetty.maxqueuesize = 
+
+//
 // TCP Backlog applied to incoming connections listener.
 //
 #standalone.tcp.backlog =
@@ -150,7 +160,7 @@ plasma.frontend.websocket.maxmessagesize = 1048576
 //
 // Set to 'true' to only forward data to Plasma. Not data storage will take place.
 //
-//pureplasma = 
+#pureplasma =
 
 //
 // Number of threads to use for scheduling parallel scanners. Use 0 to disable parallel scanners
@@ -178,6 +188,11 @@ plasma.frontend.websocket.maxmessagesize = 1048576
 // Set to true to enable splits generation to allow access to the standalone instance using Warp10InputFormat
 //
 #standalone.splits.enable = true
+
+//
+// Comma separated list of banned token attributes. Token having one of those attributes will be rejected
+//
+#warp.token.banned.attributes =
 
 //
 // Token file
@@ -218,3 +233,13 @@ plasma.frontend.websocket.maxmessagesize = 1048576
 // Maximum length of attributes (names + values) - Defaults to 8192
 //
 #warp.attributes.maxsize = 8192
+
+//
+// Set to true to expose owner and producer labels in Geo Time Series retrieved from the Warp 10 Storage Engine 
+//
+#warp10.expose.owner.producer = true
+
+//
+// Set to true to allow Directory queries with missing label selectors (using empty exact match)
+//
+warp10.absent.label.support = true

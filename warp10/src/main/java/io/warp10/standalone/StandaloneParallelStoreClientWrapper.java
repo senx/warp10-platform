@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,14 +16,13 @@
 package io.warp10.standalone;
 
 import java.io.IOException;
-import java.util.List;
 
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.store.GTSDecoderIterator;
 import io.warp10.continuum.store.ParallelGTSDecoderIteratorWrapper;
 import io.warp10.continuum.store.StoreClient;
+import io.warp10.continuum.store.thrift.data.FetchRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
-import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 
 public class StandaloneParallelStoreClientWrapper implements StoreClient {
@@ -39,21 +38,16 @@ public class StandaloneParallelStoreClientWrapper implements StoreClient {
   }
   
   @Override
-  public void archive(int chunk, GTSEncoder encoder) throws IOException {
-    parent.archive(chunk, encoder);
-  }
-  
-  @Override
   public long delete(WriteToken token, Metadata metadata, long start, long end) throws IOException {
     return parent.delete(token, metadata, start, end);
   }
   
   @Override
-  public GTSDecoderIterator fetch(ReadToken token, List<Metadata> metadatas, long now, long then, long count, long skip, double sample, boolean writeTimestamp, final int preBoundary, final int postBoundary) throws IOException {
+  public GTSDecoderIterator fetch(FetchRequest req) throws IOException {
     if (ParallelGTSDecoderIteratorWrapper.useParallelScanners()) {
-      return new ParallelGTSDecoderIteratorWrapper(parent, token, now, then, count, skip, sample, metadatas, preBoundary, postBoundary);
+      return new ParallelGTSDecoderIteratorWrapper(parent, req);
     } else {
-      return parent.fetch(token, metadatas, now, then, count, skip, sample, writeTimestamp, preBoundary, postBoundary);
+      return parent.fetch(req);
     }
   }
   

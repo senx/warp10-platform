@@ -24,8 +24,6 @@ import io.warp10.script.WarpScriptLoopContinueException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 
-import java.util.List;
-
 /**
  * Implements a 'While' loop
  * 
@@ -57,25 +55,31 @@ public class WHILE extends NamedWarpScriptFunction implements WarpScriptStackFun
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    
-    Object[] macros = new Object[2];
-    macros[0] = stack.pop(); // RUN-macro
-    macros[1] = stack.pop(); // WHILE-macro
+
+    Object top = stack.pop();
+
+    boolean pushCounter = false;
+    if (top instanceof Boolean) {
+      pushCounter = (Boolean) top;
+      top = stack.pop();
+    }
+
+    Object runMacro = top;// RUN-macro
+    Object whileMacro = stack.pop(); // WHILE-macro
     
     //
     // Check that what we popped are macros
     //
-    
-    for (Object macro: macros) {
-      if (!(macro instanceof Macro)) {
-        throw new WarpScriptException(getName() + " expects two macros on top of the stack.");
-      }
+
+    if (!(runMacro instanceof Macro) || !(whileMacro instanceof Macro)) {
+      throw new WarpScriptException(getName() + " expects two macros on top of the stack.");
     }
-  
+
     long now = System.currentTimeMillis();
     
     long maxtime = this.maxtime > 0 ? this.maxtime : (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_LOOP_MAXDURATION);
 
+    long counter = 0;
     while (true) {
       
       if (maxtime > 0 && (System.currentTimeMillis() - now > maxtime)) {
@@ -83,36 +87,44 @@ public class WHILE extends NamedWarpScriptFunction implements WarpScriptStackFun
       }
       
       //
-      // Execute WHILE-macro
+      // Execute WHILE-macro if not check after
       //
-      
-      stack.exec((Macro) macros[1]);
-      
-      //
-      // Check that the top of the stack is a boolean
-      //
-      
-      Object top = stack.pop();
-      
-      if (! (top instanceof Boolean)) {
-        throw new WarpScriptException(getName() + " expects its 'WHILE' macro to leave a boolean on top of the stack.");
-      }
+
+        stack.exec((Macro) whileMacro);
+
+        //
+        // Check that the top of the stack is a boolean
+        //
+
+        top = stack.pop();
+
+        if (!(top instanceof Boolean)) {
+          throw new WarpScriptException(getName() + " expects its 'WHILE' macro to leave a boolean on top of the stack.");
+        }
+
+        //
+        // Stop the loop is condition is false
+        //
+
+        if(Boolean.FALSE.equals(top)) {
+          break;
+        }
 
       //
-      // If WHILE-macro left 'true' on top of the stack, execute the RUN-macro
+      // Execute the RUN-macro
       //
-      
-      if (Boolean.TRUE.equals(top)) {
-        try {
-          stack.exec((Macro) macros[0]);
-        } catch (WarpScriptLoopBreakException elbe) {
-          break;
-        } catch (WarpScriptLoopContinueException elbe) {
-          // Do nothing!
+
+      try {
+        if (pushCounter) {
+          stack.push(counter++);
         }
-      } else {
+        stack.exec((Macro) runMacro);
+      } catch (WarpScriptLoopBreakException elbe) {
         break;
+      } catch (WarpScriptLoopContinueException elbe) {
+        // Do nothing!
       }
+
     }
 
     return stack;

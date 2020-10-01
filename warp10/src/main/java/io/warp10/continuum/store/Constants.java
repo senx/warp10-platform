@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,17 +16,14 @@
 
 package io.warp10.continuum.store;
 
-import io.warp10.WarpConfig;
-import io.warp10.continuum.Configuration;
-
 import java.nio.charset.StandardCharsets;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
+
+import io.warp10.WarpConfig;
+import io.warp10.continuum.Configuration;
 
 public class Constants {
   
@@ -173,21 +170,6 @@ public class Constants {
   public static final String HTTP_HEADER_UPDATE_TOKEN_DEFAULT = "X-Warp10-Token";
 
   /**
-   * HTTP Header for setting the base timestamp for relative timestamps
-   */
-  public static final String HTTP_HEADER_NOW_HEADER_DEFAULT = "X-Warp10-Now";
-  
-  /**
-   * HTTP Header for specifying the timespan for /sfetch requests
-   */
-  public static final String HTTP_HEADER_TIMESPAN_HEADER_DEFAULT = "X-Warp10-Timespan";
-  
-  /**
-   * HTTP Header to specify if we should show errors in /sfetch responses
-   */
-  public static final String HTTP_HEADER_SHOW_ERRORS_HEADER_DEFAULT = "X-Warp10-ShowErrors";
-  
-  /**
    * Name of header containing the signature of the token used for the fetch
    */
   public static final String HTTP_HEADER_FETCH_SIGNATURE_DEFAULT = "X-Warp10-Fetch-Signature";
@@ -260,11 +242,6 @@ public class Constants {
    * Split fetch endpoint
    */
   public static final String API_ENDPOINT_SFETCH = "/api/v0/sfetch";
-  
-  /**
-   * Archive Fetch endpoint for the API
-   */
-  public static final String API_ENDPOINT_AFETCH = "/api/v0/afetch";
 
   /**
    * Delete endpoint for the API
@@ -373,9 +350,12 @@ public class Constants {
   public static final String HTTP_PARAM_LIMIT = "limit";
   public static final String HTTP_PARAM_COUNT = "count";
   public static final String HTTP_PARAM_SKIP = "skip";
+  public static final String HTTP_PARAM_STEP = "step";
+  public static final String HTTP_PARAM_TIMESTEP = "timestep";
   public static final String HTTP_PARAM_SAMPLE = "sample";
   public static final String HTTP_PARAM_PREBOUNDARY = "boundary.pre";
   public static final String HTTP_PARAM_POSTBOUNDARY = "boundary.post";
+  public static final String HTTP_PARAM_METAONLY = "metaonly";
 
   public static final String DEFAULT_PACKED_CLASS_SUFFIX = ":packed";
   public static final int DEFAULT_PACKED_MAXSIZE = 65536;
@@ -388,6 +368,9 @@ public class Constants {
   public static final String KEY_MODULUS = "modulus";
   public static final String KEY_ALGORITHM = "algorithm";
   public static final String KEY_EXPONENT = "exponent";
+  public static final String KEY_CURVE = "curve";
+  public static final String KEY_Q = "Q";
+  public static final String KEY_D = "d";
   
   private static final int DEFAULT_MAX_ENCODER_SIZE = 100000;
   
@@ -425,6 +408,11 @@ public class Constants {
    */
   public static final String TOKEN_ATTR_DPTS = ".dpts";
   
+  /**
+   * Attribute to specify that owner and producer should be exposed instead of hidden
+   */
+  public static final String TOKEN_ATTR_EXPOSE = ".expose";
+  
   //
   // KafkaMessage Store attributes
   //
@@ -446,8 +434,34 @@ public class Constants {
    */
   public static  final int MAX_HTTP_HEADER_LENGTH = 1024;
 
+  public static final boolean EXPOSE_OWNER_PRODUCER;
+  
+  /**
+   * Does Directory support missing label selectors (using an empty STRING as exact match)
+   */
+  public static final boolean ABSENT_LABEL_SUPPORT;
+  
+  /**
+   * Does the /delete endpoint allow the use of the 'nodata' parameter to only remove metadata
+   */
+  public static final boolean DELETE_METAONLY_SUPPORT;
+  
+  public static final boolean DELETE_ACTIVITY_SUPPORT;
+  
   static {
+    if (1 != Constants.DEFAULT_MODULUS) {
+      throw new RuntimeException("DEFAULT_MODULUS cannot be diffrent than 1.");
+    }
+    
     String tu = WarpConfig.getProperty(Configuration.WARP_TIME_UNITS);
+  
+    EXPOSE_OWNER_PRODUCER = "true".equals(WarpConfig.getProperty(Configuration.WARP10_EXPOSE_OWNER_PRODUCER));
+    
+    ABSENT_LABEL_SUPPORT = "true".equals(WarpConfig.getProperty(Configuration.WARP10_ABSENT_LABEL_SUPPORT));
+    
+    DELETE_METAONLY_SUPPORT = "true".equals(WarpConfig.getProperty(Configuration.INGRESS_DELETE_METAONLY_SUPPORT));
+    
+    DELETE_ACTIVITY_SUPPORT = "true".equals(WarpConfig.getProperty(Configuration.INGRESS_DELETE_ACTIVITY_SUPPORT));
     
     if (null == tu) {
       throw new RuntimeException("Missing time units.");
@@ -485,9 +499,6 @@ public class Constants {
     HEADERS.put(Configuration.HTTP_HEADER_META_TOKENX, WarpConfig.getProperty(Configuration.HTTP_HEADER_META_TOKENX, HTTP_HEADER_META_TOKEN_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_DELETE_TOKENX, WarpConfig.getProperty(Configuration.HTTP_HEADER_DELETE_TOKENX, HTTP_HEADER_DELETE_TOKEN_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_UPDATE_TOKENX, WarpConfig.getProperty(Configuration.HTTP_HEADER_UPDATE_TOKENX, HTTP_HEADER_UPDATE_TOKEN_DEFAULT));
-    HEADERS.put(Configuration.HTTP_HEADER_NOW_HEADERX, WarpConfig.getProperty(Configuration.HTTP_HEADER_NOW_HEADERX, HTTP_HEADER_NOW_HEADER_DEFAULT));
-    HEADERS.put(Configuration.HTTP_HEADER_TIMESPAN_HEADERX, WarpConfig.getProperty(Configuration.HTTP_HEADER_TIMESPAN_HEADERX, HTTP_HEADER_TIMESPAN_HEADER_DEFAULT));
-    HEADERS.put(Configuration.HTTP_HEADER_SHOW_ERRORS_HEADERX, WarpConfig.getProperty(Configuration.HTTP_HEADER_SHOW_ERRORS_HEADERX, HTTP_HEADER_SHOW_ERRORS_HEADER_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_FETCH_SIGNATURE, WarpConfig.getProperty(Configuration.HTTP_HEADER_FETCH_SIGNATURE, HTTP_HEADER_FETCH_SIGNATURE_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_UPDATE_SIGNATURE, WarpConfig.getProperty(Configuration.HTTP_HEADER_UPDATE_SIGNATURE, HTTP_HEADER_UPDATE_SIGNATURE_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_DIRECTORY_SIGNATURE, WarpConfig.getProperty(Configuration.HTTP_HEADER_DIRECTORY_SIGNATURE, HTTP_HEADER_DIRECTORY_SIGNATURE_DEFAULT));

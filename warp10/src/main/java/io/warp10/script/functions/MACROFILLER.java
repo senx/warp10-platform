@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ package io.warp10.script.functions;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptAggregatorFunction;
 import io.warp10.script.WarpScriptBucketizerFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptFillerFunction;
@@ -31,6 +30,7 @@ import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStackFunction;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -100,9 +100,20 @@ public class MACROFILLER extends NamedWarpScriptFunction implements WarpScriptSt
       stack.push(gts);
 
       long ts = 0L;
+                  
+      //
+      // The args array starting at index 1 contains one element per preWindow tick,
+      // the current tick of the other GTS and one element per postWindow tick
+      //
       
       List<Object> ticks = new ArrayList<Object>(this.preWindow);
+
       for (int i = 1; i < args.length; i++) {
+        //
+        // Build an array with the infos of the current args element.
+        // If the timestamp or value is null, create a special array
+        //
+        
         List<Object> tick = new ArrayList<Object>(5);
         Object[] atick = (Object[]) args[i];
         if (null == atick[0] || null == atick[3]) {
@@ -127,16 +138,25 @@ public class MACROFILLER extends NamedWarpScriptFunction implements WarpScriptSt
             tick.add(Double.NaN);
           }
           tick.add(atick[3]);
+        }        
+        
+        // If the tick should be added to a window, do so
+        if (i <= this.preWindow || i > this.preWindow + 1) {
+          ticks.add(tick);
         }
-        ticks.add(tick);
-        if (this.preWindow == i) {
+        
+        //
+        // If 'i' is at the end of the prewindow, emit the prewindow
+        // and the current tick, extract the timestamp of the current tick
+        // and re-allocate the ticks array
+        //
+        
+        if (this.preWindow + 1 == i) {
           stack.push(ticks);
-          ticks = new ArrayList<Object>();
-        } else if (this.preWindow + 1 == i) {
-          ts = ((Number) tick.get(0)).longValue();
           stack.push(tick);
           ticks = new ArrayList<Object>(this.postWindow);
-        }
+          ts = ((Number) tick.get(0)).longValue();
+        }        
       }
       
       stack.push(ticks);

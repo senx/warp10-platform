@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -21,9 +21,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
+import io.warp10.continuum.gts.GTSDecoder;
+import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
@@ -45,19 +46,32 @@ public class PIVOT extends NamedWarpScriptFunction implements WarpScriptStackFun
     Object top = stack.pop();
     
     if (!(top instanceof List) || (0 == ((List) top).size())) {
-      throw new WarpScriptException(getName() + " expects a non empty list of labeling Geo Time Series™.");
+      throw new WarpScriptException(getName() + " expects a non empty list of labeling Geo Time Series.");
     }
     
-    List<Object> labeling = (List<Object>) top;
+    List<Object> paramLabeling = (List<Object>) top;
+    List<Object> labeling = new ArrayList<Object>(paramLabeling.size());
     
     Set<String> classes = new HashSet<String>();
-    for (Object o: labeling) {
-      if (!(o instanceof GeoTimeSerie)) {
-        throw new WarpScriptException(getName() + " expects a list of labeling Geo Time Series™.");        
+    for (Object o: paramLabeling) {
+      if (o instanceof GTSEncoder) {
+        GTSEncoder encoder = (GTSEncoder) o;
+        GTSDecoder decoder = encoder.getDecoder(true);
+        try {
+          o = decoder.decode(null, true);
+        } catch (Throwable t) {
+          throw new WarpScriptException(getName() + " encountered an error while decoding encoder.", t);
+        }
       }
       
+      if (!(o instanceof GeoTimeSerie)) {
+        throw new WarpScriptException(getName() + " expects a list of labeling Geo Time Series.");        
+      }
+
+      labeling.add(o);
+      
       if (0 == GTSHelper.nvalues((GeoTimeSerie) o)) {
-        throw new WarpScriptException(getName() + " expects labeling Geo Time Series™ to be non empty.");
+        throw new WarpScriptException(getName() + " expects labeling Geo Time Series to be non empty.");
       }
       
       String cls = ((GeoTimeSerie) o).getName();
@@ -70,15 +84,28 @@ public class PIVOT extends NamedWarpScriptFunction implements WarpScriptStackFun
     top = stack.pop();
     
     if (!(top instanceof List) || 0 == ((List) top).size()) {
-      throw new WarpScriptException(getName() + " operates on a non empty list of labeling Geo Time Series™.");
+      throw new WarpScriptException(getName() + " operates on a non empty list of Geo Time Series or GTS Encoders.");
     }
 
-    List<Object> gts = (List<Object>) top;
+    List<Object> paramGts = (List<Object>) top;
+    List<Object> gts = new ArrayList<Object>(paramGts.size());
     
-    for (Object o: gts) {
-      if (!(o instanceof GeoTimeSerie)) {
-        throw new WarpScriptException(getName() + " operates on a list of labeling Geo Time Series™.");        
+    for (Object o: paramGts) {
+      if (o instanceof GTSEncoder) {
+        GTSEncoder encoder = (GTSEncoder) o;
+        GTSDecoder decoder = encoder.getDecoder(true);
+        try {
+          o = decoder.decode(null, true);
+        } catch (Throwable t) {
+          throw new WarpScriptException(getName() + " encountered an error while decoding encoder.", t);
+        }
       }
+      
+      if (!(o instanceof GeoTimeSerie)) {
+        throw new WarpScriptException(getName() + " operates on a list Geo Time Series or GTS Encoders.");        
+      }
+
+      gts.add(o);
       
       //
       // Check that none of the labeling GTS class names is already a label of one of the
@@ -88,12 +115,12 @@ public class PIVOT extends NamedWarpScriptFunction implements WarpScriptStackFun
       GeoTimeSerie g = (GeoTimeSerie) o;
 
       if (0 == GTSHelper.nvalues(g)) {
-        throw new WarpScriptException(getName() + " operates on non empty Geo Time Series™.");
+        throw new WarpScriptException(getName() + " operates on non empty Geo Time Series or GTS Encoders.");
       }
       
       for (String key: g.getLabels().keySet()) {
         if (classes.contains(key)) {
-          throw new WarpScriptException(getName() + " labeling class '" + key + "' is already a label of a Geo Time Series™ to label.");
+          throw new WarpScriptException(getName() + " labeling class '" + key + "' is already a label of a Geo Time Series or GTS Encoder to label.");
         }
       }
     }

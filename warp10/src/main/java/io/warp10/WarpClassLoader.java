@@ -144,7 +144,6 @@ public class WarpClassLoader extends ClassLoader {
       
       return c;
     } catch (Throwable t) {
-      LOG.error("Error calling defineClass(" + name + ")", t);
       throw new ClassNotFoundException("Error calling defineClass(" + name + ")", t);
     }
   }

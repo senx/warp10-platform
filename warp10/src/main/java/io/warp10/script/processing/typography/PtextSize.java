@@ -42,7 +42,7 @@ public class PtextSize extends NamedWarpScriptFunction implements WarpScriptStac
         
     PGraphics pg = (PGraphics) params.get(0);
 
-    pg.textSize(((Number) params.get(1)).floatValue());
+    pg.parent.textSize(((Number) params.get(1)).floatValue());
     
     stack.push(pg);
     

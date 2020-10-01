@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package io.warp10.standalone;
 
+import com.google.common.base.Preconditions;
 import io.warp10.ThrowableUtils;
 import io.warp10.WarpConfig;
 import io.warp10.WarpManager;
@@ -57,6 +58,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -139,6 +141,8 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
 
     private Boolean ignoor = null;
     
+    private boolean expose = false;
+    
     private Long maxpastdelta = null;
     private Long maxfuturedelta = null;
     
@@ -204,12 +208,12 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
             this.errormsg = false;
           }
           session.getRemote().sendString("OK " + (seqno++) + " ONERROR");
-        } else if ("DELTAON".equals(tokens[0])) {
+        } else if (null != tokens && "DELTAON".equals(tokens[0])) {
           if (!this.handler.allowDeltaAttributes) {
             throw new IOException("Delta update of attributes is disabled.");
           }
           this.deltaAttributes = true;
-        } else if ("DELTAOFF".equals(tokens[0])) {
+        } else if (null != tokens && "DELTAOFF".equals(tokens[0])) {
           this.deltaAttributes = false;
         } else {
           //
@@ -296,6 +300,8 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
           }
           
           try {
+            WarpConfig.setThreadProperty(WarpConfig.THREAD_PROPERTY_SESSION, UUID.randomUUID().toString());
+            
             GTSEncoder lastencoder = null;
             GTSEncoder encoder = null;
 
@@ -443,10 +449,7 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
               //
               // Force PRODUCER/OWNER
               //
-              
-              //encoder.setLabel(Constants.PRODUCER_LABEL, producer);
-              //encoder.setLabel(Constants.OWNER_LABEL, owner);
-              
+                            
               if (encoder != lastencoder || lastencoder.size() > StandaloneIngressHandler.ENCODER_SIZE_THRESHOLD) {
                 
                 //
@@ -457,8 +460,8 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
                   String producer = extraLabels.get(Constants.PRODUCER_LABEL);
                   String owner = extraLabels.get(Constants.OWNER_LABEL);
                   String application = extraLabels.get(Constants.APPLICATION_LABEL);
-                  ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId());
-                  ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount());
+                  ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId(), expose);
+                  ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount(), expose);
                 }
                 
                 //
@@ -542,8 +545,8 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
               String producer = extraLabels.get(Constants.PRODUCER_LABEL);
               String owner = extraLabels.get(Constants.OWNER_LABEL);
               String application = extraLabels.get(Constants.APPLICATION_LABEL);
-              ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId());
-              ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount());
+              ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId(), expose);
+              ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount(), expose);
 
               lastencoder.setClassId(GTSHelper.classId(this.handler.classKeyLongs, lastencoder.getName()));
               lastencoder.setLabelsId(GTSHelper.labelsId(this.handler.labelsKeyLongs, lastencoder.getLabels()));
@@ -564,6 +567,8 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
               }
             }              
           } finally {
+            WarpConfig.clearThreadProperties();
+            
             if (null != loggingWriter) {              
               Map<String,String> labels = new HashMap<String,String>();
               labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(StandardCharsets.US_ASCII)), StandardCharsets.UTF_8));
@@ -653,6 +658,8 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
       Boolean ignoor = null;
       
       if (wtoken.getAttributesSize() > 0) {
+        
+        this.expose = wtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_EXPOSE);
         
         if (wtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_IGNOOR)) {
           String v = wtoken.getAttributes().get(Constants.TOKEN_ATTR_IGNOOR).toLowerCase();
@@ -811,6 +818,7 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
     this.datalogSync = "true".equals(WarpConfig.getProperty(Configuration.DATALOG_SYNC));
     if (properties.containsKey(Configuration.DATALOG_PSK)) {
       this.datalogPSK = this.keyStore.decodeKey(properties.getProperty(Configuration.DATALOG_PSK));
+      Preconditions.checkArgument((16 == this.datalogPSK.length) || (24 == this.datalogPSK.length) || (32 == this.datalogPSK.length), Configuration.DATALOG_PSK + " MUST be 128, 192 or 256 bits long.");
     } else {
       this.datalogPSK = null;
     }    

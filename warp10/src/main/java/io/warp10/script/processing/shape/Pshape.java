@@ -45,14 +45,14 @@ public class Pshape extends NamedWarpScriptFunction implements WarpScriptStackFu
     PShape shape = (PShape) params.get(1);
     
     if (2 == params.size()) {
-      pg.shape(shape);
+      pg.parent.shape(shape);
     } else if (4 == params.size()) {
-      pg.shape(shape,
+      pg.parent.shape(shape,
           ((Number) params.get(2)).floatValue(),
           ((Number) params.get(3)).floatValue()
       );
     } else if (6 == params.size()) {
-      pg.shape(shape,
+      pg.parent.shape(shape,
           ((Number) params.get(2)).floatValue(),
           ((Number) params.get(3)).floatValue(),
           ((Number) params.get(4)).floatValue(),

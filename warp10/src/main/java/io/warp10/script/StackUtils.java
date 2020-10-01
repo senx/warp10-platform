@@ -17,9 +17,8 @@
 package io.warp10.script;
 
 import io.warp10.FloatUtils;
+import io.warp10.json.JsonUtils;
 import io.warp10.WarpURLEncoder;
-import io.warp10.continuum.gts.GTSDecoder;
-import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.continuum.gts.UnsafeString;
@@ -43,237 +42,40 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import org.boon.json.JsonSerializer;
-import org.boon.json.JsonSerializerFactory;
 
 import com.geoxp.GeoXPLib;
 
 public class StackUtils {
-  
-  //private static final GsonBuilder GSON_BUILDER = new GsonBuilder().serializeSpecialFloatingPointValues();
-  private static final JsonSerializerFactory BOON_FACTORY = new JsonSerializerFactory();
-  
-  public static void toJSON(PrintWriter out, WarpScriptStack stack, int maxdepth) throws WarpScriptException {
+
+  public static void toJSON(PrintWriter out, WarpScriptStack stack, int maxdepth, long maxJsonSize) throws WarpScriptException, IOException {
     
     boolean strictJSON = Boolean.TRUE.equals(stack.getAttribute(WarpScriptStack.ATTRIBUTE_JSON_STRICT));
-    
-    AtomicInteger recursionLevel = new AtomicInteger(0);
-    
+
     int depth = Math.min(stack.depth(), maxdepth);
-    
+
     out.print("[");
-    
+
     boolean first = true;
-    
-    JsonSerializer serializer = getSerializer();
-    
+
     for (int i = 0; i < depth; i++) {
-      
+
       if (!first) {
         out.print(",");
       }
       first = false;
-      
-      try {
-        Object o = stack.get(i);
-        
-        objectToJSON(serializer, out, o, recursionLevel, strictJSON);
-      } catch (WarpScriptException ee) {
-      }
+
+      Object o = stack.get(i);
+
+      JsonUtils.objectToJson(out, o, strictJSON, maxJsonSize);
     }
-    
+
     out.print("]");
   }
 
-  public static void toJSON(PrintWriter out, WarpScriptStack stack) throws WarpScriptException {
-    toJSON(out, stack, Integer.MAX_VALUE);
+  public static void toJSON(PrintWriter out, WarpScriptStack stack) throws WarpScriptException, IOException {
+    toJSON(out, stack, Integer.MAX_VALUE, Long.MAX_VALUE);
   }
-  
-  public static void objectToJSON(JsonSerializer serializer, PrintWriter out, Object o, AtomicInteger recursionLevel, boolean strictJSON) {
-    
-    if (recursionLevel.addAndGet(1) > WarpScriptStack.DEFAULT_MAX_RECURSION_LEVEL && ((o instanceof Map) || (o instanceof List) || (o instanceof Macro))) {
-      out.write(" ...NESTED_CONTENT_REMOVED... ");
-      recursionLevel.addAndGet(-1);
-      return;
-    }
-    
-    //Gson gson = GSON_BUILDER.create();
-    if (null == serializer) {
-      serializer = getSerializer();
-    }
 
-    if (strictJSON && (o instanceof Double && (Double.isNaN((double) o) || Double.isInfinite((double) o)))) {
-      out.print("null");
-    } else if (strictJSON && (o instanceof Float && (Float.isNaN((float) o) || Float.isInfinite((float) o)))) {
-      out.print("null");
-    } else if (o instanceof Number || o instanceof String || o instanceof Boolean) {
-      //out.print(gson.toJson(o));
-      out.print(serializer.serialize(o));
-    } else if (o instanceof Map) {
-      out.print("{");
-      boolean first = true;
-      for (Map.Entry keyAndValue: ((Map<?, ?>) o).entrySet()) {
-        Object key = keyAndValue.getKey();
-        if (!first) {
-          out.print(",");
-        }
-        if (null != key) {
-          //out.print(gson.toJson(key.toString()));
-          out.print(serializer.serialize(key.toString()));
-        } else {
-          out.print("null");
-        }
-        out.print(":");
-        objectToJSON(serializer, out, keyAndValue.getValue(), recursionLevel, strictJSON);
-        first = false;
-      }
-      out.print("}");
-    } else if (o instanceof List) {
-      out.print("[");
-      boolean first  = true;
-      for (Object elt: ((List) o)) {
-        if (!first) {
-          out.print(",");
-        }
-        objectToJSON(serializer, out, elt, recursionLevel, strictJSON);
-        first = false;
-      }
-      out.print("]");    
-    } else if (o instanceof GeoTimeSerie) {
-      out.print("{");
-      out.print("\"c\":");
-      //out.print(gson.toJson(((GeoTimeSerie) o).getMetadata().getName()));
-      String name = ((GeoTimeSerie) o).getMetadata().getName();
-      if (null == name) {
-        name = "";
-      }
-      out.print(serializer.serialize(name));
-      out.print(",\"l\":");
-      objectToJSON(serializer, out, ((GeoTimeSerie) o).getMetadata().getLabels(), recursionLevel, strictJSON);
-      out.print(",\"a\":");
-      objectToJSON(serializer, out, ((GeoTimeSerie) o).getMetadata().getAttributes(), recursionLevel, strictJSON);
-      out.print(",\"la\":");
-      objectToJSON(serializer, out, ((GeoTimeSerie) o).getMetadata().getLastActivity(), recursionLevel, strictJSON);
-      out.print(",\"v\":[");
-      boolean first = true;
-      for (int i = 0; i < ((GeoTimeSerie) o).size(); i++) {
-        if (!first) {
-          out.print(",");
-        }
-        long ts = GTSHelper.tickAtIndex((GeoTimeSerie) o, i);
-        long location = GTSHelper.locationAtIndex((GeoTimeSerie) o, i);
-        long elevation = GTSHelper.elevationAtIndex((GeoTimeSerie) o, i);
-        Object v = GTSHelper.valueAtIndex((GeoTimeSerie) o, i);
-        out.print("[");
-        out.print(ts);
-        if (GeoTimeSerie.NO_LOCATION != location) {
-          double[] latlon = GeoXPLib.fromGeoXPPoint(location);
-          out.print(",");
-          out.print(latlon[0]);
-          out.print(",");
-          out.print(latlon[1]);
-        }
-        if (GeoTimeSerie.NO_ELEVATION != elevation) {
-          out.print(",");
-          out.print(elevation);
-        }
-        out.print(",");
-        //out.print(gson.toJson(v));    
-        if (strictJSON && (v instanceof Double) && (Double.isNaN((double) v) || Double.isInfinite((double) v))) {
-          out.print("null");
-        } else {
-          out.print(serializer.serialize(v));
-        }
-        out.print("]");
-        first = false;
-      }
-      out.print("]");
-      out.print("}");
-    } else if (o instanceof GTSEncoder) {
-      out.print("{");
-      out.print("\"c\":");
-      //out.print(gson.toJson(((GeoTimeSerie) o).getMetadata().getName()));
-      String name = ((GTSEncoder) o).getMetadata().getName();
-      if (null == name) {
-        name = "";
-      }
-      out.print(serializer.serialize(name));
-      out.print(",\"l\":");
-      objectToJSON(serializer, out, ((GTSEncoder) o).getMetadata().getLabels(), recursionLevel, strictJSON);
-      out.print(",\"a\":");
-      objectToJSON(serializer, out, ((GTSEncoder) o).getMetadata().getAttributes(), recursionLevel, strictJSON);
-      out.print(",\"v\":[");
-      boolean first = true;
-      GTSDecoder decoder = ((GTSEncoder) o).getUnsafeDecoder(false);
-      while(decoder.next()) {
-        if (!first) {
-          out.print(",");
-        }
-        long ts = decoder.getTimestamp();
-        long location = decoder.getLocation();
-        long elevation = decoder.getElevation();
-        // We do not call getBinaryValue because JSON cannot represent byte arrays
-        Object v = decoder.getValue();
-        out.print("[");
-        out.print(ts);
-        if (GeoTimeSerie.NO_LOCATION != location) {
-          double[] latlon = GeoXPLib.fromGeoXPPoint(location);
-          out.print(",");
-          out.print(latlon[0]);
-          out.print(",");
-          out.print(latlon[1]);
-        }
-        if (GeoTimeSerie.NO_ELEVATION != elevation) {
-          out.print(",");
-          out.print(elevation);
-        }
-        out.print(",");
-        //out.print(gson.toJson(v));    
-        if (strictJSON && (v instanceof Double) && (Double.isNaN((double) v) || Double.isInfinite((double) v))) {
-          out.print("null");
-        } else {
-          out.print(serializer.serialize(v));
-        }
-        out.print("]");
-        first = false;
-      }
-      out.print("]");
-      out.print("}");
-      
-    } else if (o instanceof Metadata) {
-      out.print("{");
-      out.print("\"c\":");
-      out.print(serializer.serialize(((Metadata) o).getName()));
-      out.print(",\"l\":");
-      objectToJSON(serializer, out, ((Metadata) o).getLabels(), recursionLevel, strictJSON);
-      out.print(",\"a\":");
-      objectToJSON(serializer, out, ((Metadata) o).getAttributes(), recursionLevel, strictJSON);
-      out.print("}");
-    //} else if (o instanceof JsonArray || o instanceof JsonElement || o instanceof JsonBuilder) {
-    //  out.print(o.toString());
-    } else if (o instanceof Macro) {
-      //out.print(gson.toJson(o.toString()));
-      out.print(serializer.serialize(o.toString()));
-    } else if (o instanceof NamedWarpScriptFunction) {
-      StringBuilder sb = new StringBuilder();
-      sb.append(WarpScriptStack.MACRO_START);
-      sb.append(" ");
-      sb.append(o.toString());
-      sb.append(" ");
-      sb.append(WarpScriptStack.MACRO_END);
-      sb.append(" ");
-      sb.append(WarpScriptLib.EVAL);
-      //out.print(gson.toJson(sb.toString()));
-      out.print(serializer.serialize(sb.toString()));
-    } else {
-      out.print("null");
-    }
-    
-    recursionLevel.addAndGet(-1);
-  }
-  
   /**
    * Sanitize a script instance, removing comments etc.
    * Inspired by MemoryWarpScriptStack#exec
@@ -562,6 +364,7 @@ public class StackUtils {
         if (inGTS.elevations.length != len) {
           throw new WarpScriptException("Incoherent number of elevations (" + inGTS.elevations.length + "), expected " + len);
         }
+        hasElevations = true;
       }
       
       TYPE type = TYPE.UNDEFINED;
@@ -686,17 +489,12 @@ public class StackUtils {
       sb.append(Boolean.toString((boolean) o));
     } else if (o instanceof WarpScriptStackFunction) {
       sb.append(o.toString());
-    } else if (o instanceof Snapshotable) {
+    } else if (o instanceof Snapshotable) { // Also includes Macro
       ((Snapshotable) o).snapshot();
-    } else if (o instanceof Macro) {
-      sb.append(o.toString());
     } else if (o instanceof NamedWarpScriptFunction){
       sb.append(o.toString());
     }
     return sb.toString();
   }
   
-  public static JsonSerializer getSerializer() {
-    return BOON_FACTORY.create();
-  }
 }

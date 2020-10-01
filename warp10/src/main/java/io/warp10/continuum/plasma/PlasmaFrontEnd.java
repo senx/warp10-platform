@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,28 +16,7 @@
 
 package io.warp10.continuum.plasma;
 
-import io.warp10.SSLUtils;
-import io.warp10.continuum.Configuration;
-import io.warp10.continuum.JettyUtil;
-import io.warp10.continuum.KafkaOffsetCounters;
-import io.warp10.continuum.KafkaSynchronizedConsumerPool;
-import io.warp10.continuum.KafkaSynchronizedConsumerPool.ConsumerFactory;
-import io.warp10.continuum.KafkaSynchronizedConsumerPool.Hook;
-import io.warp10.continuum.egress.ThriftDirectoryClient;
-import io.warp10.continuum.gts.GTSDecoder;
-import io.warp10.continuum.gts.GTSEncoder;
-import io.warp10.continuum.sensision.SensisionConstants;
-import io.warp10.continuum.store.Directory;
-import io.warp10.continuum.store.DirectoryClient;
-import io.warp10.continuum.store.thrift.data.KafkaDataMessage;
-import io.warp10.crypto.CryptoUtils;
-import io.warp10.crypto.KeyStore;
-import io.warp10.crypto.SipHashInline;
-import io.warp10.sensision.Sensision;
-import io.warp10.standalone.StandalonePlasmaHandler;
-
 import java.math.BigInteger;
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -50,24 +29,44 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import kafka.consumer.ConsumerIterator;
-import kafka.consumer.KafkaStream;
-import kafka.message.MessageAndMetadata;
-
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.zookeeper.CreateMode;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
+import org.eclipse.jetty.util.BlockingArrayQueue;
+import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
 import com.google.common.base.Preconditions;
 import com.netflix.curator.framework.CuratorFramework;
 import com.netflix.curator.framework.CuratorFrameworkFactory;
 import com.netflix.curator.retry.RetryNTimes;
 
+import io.warp10.SSLUtils;
+import io.warp10.continuum.Configuration;
+import io.warp10.continuum.JettyUtil;
+import io.warp10.continuum.KafkaOffsetCounters;
+import io.warp10.continuum.KafkaSynchronizedConsumerPool;
+import io.warp10.continuum.KafkaSynchronizedConsumerPool.ConsumerFactory;
+import io.warp10.continuum.KafkaSynchronizedConsumerPool.Hook;
+import io.warp10.continuum.egress.ThriftDirectoryClient;
+import io.warp10.continuum.gts.GTSEncoder;
+import io.warp10.continuum.sensision.SensisionConstants;
+import io.warp10.continuum.store.DirectoryClient;
+import io.warp10.continuum.store.thrift.data.KafkaDataMessage;
+import io.warp10.crypto.CryptoUtils;
+import io.warp10.crypto.KeyStore;
+import io.warp10.crypto.SipHashInline;
+import io.warp10.sensision.Sensision;
+import io.warp10.standalone.StandalonePlasmaHandler;
+import kafka.consumer.ConsumerIterator;
+import kafka.consumer.KafkaStream;
+import kafka.message.MessageAndMetadata;
+
 public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable, PlasmaSubscriptionListener {
 
+  private static final String DEFAULT_THREADPOOL_SIZE = "200";
   
   /**
    * Curator Framework for Subscriptions
@@ -112,13 +111,7 @@ public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable,
     super(keystore, properties, null, false);
   
     // Extract Directory PSK
-    String keyspec = properties.getProperty(Configuration.DIRECTORY_PSK);
-    
-    if (null != keyspec) {
-      byte[] key = this.keystore.decodeKey(keyspec);
-      Preconditions.checkArgument(16 == key.length, "Key " + Configuration.DIRECTORY_PSK + " MUST be 128 bits long.");
-      this.keystore.setKey(KeyStore.SIPHASH_DIRECTORY_PSK, key);
-    }    
+    KeyStore.checkAndSetKey(keystore, KeyStore.SIPHASH_DIRECTORY_PSK, properties, Configuration.DIRECTORY_PSK, 128);
 
     //
     // Make sure all required configuration is present
@@ -142,14 +135,8 @@ public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable,
     //
     // Extract keys
     //
-    
-    if (null != properties.getProperty(Configuration.PLASMA_FRONTEND_KAFKA_MAC)) {
-      keystore.setKey(KeyStore.SIPHASH_KAFKA_PLASMA_FRONTEND_IN, keystore.decodeKey(properties.getProperty(Configuration.PLASMA_FRONTEND_KAFKA_MAC)));
-    }
-
-    if (null != properties.getProperty(Configuration.PLASMA_FRONTEND_KAFKA_AES)) {
-      keystore.setKey(KeyStore.AES_KAFKA_PLASMA_FRONTEND_IN, keystore.decodeKey(properties.getProperty(Configuration.PLASMA_FRONTEND_KAFKA_AES)));
-    }
+    KeyStore.checkAndSetKey(keystore, KeyStore.SIPHASH_KAFKA_PLASMA_FRONTEND_IN, properties, Configuration.PLASMA_FRONTEND_KAFKA_MAC, 128);
+    KeyStore.checkAndSetKey(keystore, KeyStore.AES_KAFKA_PLASMA_FRONTEND_IN, properties, Configuration.PLASMA_FRONTEND_KAFKA_AES, 128, 192, 256);
 
     //
     // Start Curator Framework for subscriptions
@@ -303,7 +290,15 @@ public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable,
     // Start Jetty server
     //
     
-    Server server = new Server();
+    int maxThreads = Integer.parseInt(properties.getProperty(Configuration.PLASMA_FRONTEND_JETTY_THREADPOOL, DEFAULT_THREADPOOL_SIZE));
+    BlockingArrayQueue<Runnable> queue = null;
+    
+    if (properties.containsKey(Configuration.PLASMA_FRONTEND_JETTY_MAXQUEUESIZE)) {
+      int queuesize = Integer.parseInt(properties.getProperty(Configuration.PLASMA_FRONTEND_JETTY_MAXQUEUESIZE));
+      queue = new BlockingArrayQueue<Runnable>(queuesize);
+    }
+    
+    Server server = new Server(new QueuedThreadPool(maxThreads, 8, 60000, queue));
     
     boolean useHttp = null != properties.getProperty(Configuration.PLASMA_FRONTEND_PORT);
     boolean useHttps = null != properties.getProperty(Configuration.PLASMA_FRONTEND_PREFIX + Configuration._SSL_PORT);

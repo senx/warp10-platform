@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,6 +16,25 @@
 
 package io.warp10.continuum;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.UUID;
+import java.util.concurrent.locks.LockSupport;
+import java.util.regex.Pattern;
+
+import org.apache.thrift.TBase;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.warp10.WarpConfig;
 import io.warp10.WarpDist;
 import io.warp10.continuum.gts.GTSHelper;
@@ -29,24 +48,6 @@ import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.script.MemoryWarpScriptStack;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.ext.token.TOKENGEN;
-
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.UUID;
-import java.util.concurrent.locks.LockSupport;
-import java.util.regex.Pattern;
-
-import org.apache.thrift.TBase;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class Tokens {
 
@@ -63,7 +64,32 @@ public class Tokens {
   
   private static QuasarTokenFilter tokenFilter;
   
-  private static List<AuthenticationPlugin> plugins = new ArrayList<>();
+  private static List<AuthenticationPlugin> plugins = new ArrayList<AuthenticationPlugin>();
+  
+  private static final List<String> blockedAttributes;
+  
+  /**
+   * If set, skip attribute checks
+   */
+  private static final ThreadLocal<Boolean> skipCheckAttributes = new ThreadLocal<Boolean>() {
+    protected Boolean initialValue() {
+      return Boolean.FALSE;
+    }
+  };
+  
+  static {
+    if (null != WarpConfig.getProperty(Configuration.WARP_TOKEN_BANNED_ATTRIBUTES)) {
+      String[] attr = WarpConfig.getProperty(Configuration.WARP_TOKEN_BANNED_ATTRIBUTES).split(",");
+      
+      blockedAttributes = new ArrayList<String>();
+      
+      for (String a: attr) {
+        blockedAttributes.add(a.trim());
+      }
+    } else {
+      blockedAttributes = null;
+    }
+  }
   
   private static QuasarTokenFilter getTokenFilter() {
     if (null != tokenFilter) {
@@ -82,7 +108,7 @@ public class Tokens {
     return tokenFilter;
   }
   
-  public static ReadToken getReadToken(String token) {
+  private static ReadToken getReadToken(String token) {
     
     synchronized (fileTokens) {
       if (fileTokens.containsKey(token) && fileTokens.get(token) instanceof ReadToken) {
@@ -114,6 +140,8 @@ public class Tokens {
     rtoken.setIssuanceTimestamp(0L);
     rtoken.setExpiryTimestamp(Long.MAX_VALUE);
 
+    rtoken.setTokenType(TokenType.READ);
+    
     rtoken.setBilledId(bb.duplicate());
     rtoken.addToOwners(bb.duplicate());
     rtoken.addToProducers(bb.duplicate());
@@ -121,7 +149,7 @@ public class Tokens {
     return rtoken;
   }
   
-  public static WriteToken getWriteToken(String token) {
+  private static WriteToken getWriteToken(String token) {
     
     synchronized (fileTokens) {
       if (fileTokens.containsKey(token) && fileTokens.get(token) instanceof WriteToken) {
@@ -155,7 +183,7 @@ public class Tokens {
     wtoken.setExpiryTimestamp(Long.MAX_VALUE);
     
     wtoken.setTokenType(TokenType.WRITE);
-    
+        
     return wtoken;
   }
   
@@ -213,6 +241,7 @@ public class Tokens {
     WriteToken wtoken = Tokens.getWriteToken(token);
     
     if (null != wtoken) {
+      checkAttributes(wtoken);
       return wtoken;
     }
     
@@ -232,6 +261,8 @@ public class Tokens {
       throw new WarpScriptException("Invalid token.");
     }
     
+    checkAttributes(wtoken);
+    
     return wtoken;
   }
   
@@ -249,6 +280,7 @@ public class Tokens {
     ReadToken rtoken = Tokens.getReadToken(token);
     
     if (null != rtoken) {
+      checkAttributes(rtoken);
       return rtoken;
     }
       
@@ -268,7 +300,40 @@ public class Tokens {
       throw new WarpScriptException("Invalid token.");
     }
     
+    checkAttributes(rtoken);
+    
     return rtoken;
+  }
+  
+  /**
+   * Perform attribute checks on a token
+   */
+  private static void checkAttributes(Map<String,String> attributes) {
+    if (null == blockedAttributes || blockedAttributes.isEmpty() || skipCheckAttributes.get() || null == attributes || attributes.isEmpty()) {
+      return;
+    }
+    
+    for (String attr: blockedAttributes) {
+      if (attributes.containsKey(attr)) {
+        throw new RuntimeException("Invalid token attribute.");
+      }
+    }
+  }
+  
+  private static void checkAttributes(ReadToken rtoken) {
+    checkAttributes(rtoken.getAttributes());
+  }
+  
+  private static void checkAttributes(WriteToken wtoken) {
+    checkAttributes(wtoken.getAttributes());
+  }
+  
+  public static void disableCheckAttributes() {
+    skipCheckAttributes.set(true);
+  }
+  
+  public static void enableCheckAttributes() {
+    skipCheckAttributes.set(false);
   }
   
   /**
@@ -281,14 +346,13 @@ public class Tokens {
    */
   public static Map<String,String> labelSelectorsFromReadToken(ReadToken rtoken) {
     
-    Map<String,String> labelSelectors = new HashMap<String,String>();
+    LinkedHashMap<String,String> labelSelectors = new LinkedHashMap<String,String>();
     
     List<String> owners = new ArrayList<String>();
     List<String> producers = new ArrayList<String>();
-    Map<String, String> labels = new HashMap<String, String>();
 
     if (rtoken.getLabelsSize() > 0) {
-      labels = rtoken.getLabels();
+      Map<String,String> labels = rtoken.getLabels();
       if (!labels.isEmpty()) {
         for (Map.Entry<String, String> entry : labels.entrySet()) {
           switch (entry.getKey()) {
@@ -313,6 +377,27 @@ public class Tokens {
       for (ByteBuffer bb: rtoken.getProducers()) {
         producers.add(Tokens.getUUID(bb));
       }      
+    }
+    
+    if (!producers.isEmpty()) {
+      if (1 == producers.size()) {
+        labelSelectors.put(Constants.PRODUCER_LABEL, "=" + producers.get(0));        
+      } else {
+        StringBuilder sb = new StringBuilder();
+                
+        sb.append("~^(");
+        boolean first = true;
+        for (String producer: producers) {
+          if (!first) {
+            sb.append("|");
+          }
+          sb.append(producer);
+          first = false;
+        }
+        sb.append(")$");
+        
+        labelSelectors.put(Constants.PRODUCER_LABEL, sb.toString());
+      }
     }
     
     if (rtoken.getAppsSize() > 0) {
@@ -354,27 +439,6 @@ public class Tokens {
         sb.append(")$");
         
         labelSelectors.put(Constants.OWNER_LABEL, sb.toString());
-      }
-    }
-    
-    if (!producers.isEmpty()) {
-      if (1 == producers.size()) {
-        labelSelectors.put(Constants.PRODUCER_LABEL, "=" + producers.get(0));        
-      } else {
-        StringBuilder sb = new StringBuilder();
-                
-        sb.append("~^(");
-        boolean first = true;
-        for (String producer: producers) {
-          if (!first) {
-            sb.append("|");
-          }
-          sb.append(producer);
-          first = false;
-        }
-        sb.append(")$");
-        
-        labelSelectors.put(Constants.PRODUCER_LABEL, sb.toString());
       }
     }
 

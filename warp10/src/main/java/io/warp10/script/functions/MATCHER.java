@@ -35,10 +35,14 @@ public class MATCHER extends NamedWarpScriptFunction implements WarpScriptStackF
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    
+
     Object regexp = stack.pop();
-    
-    Pattern pattern = Pattern.compile(regexp.toString());
+
+    if (!(regexp instanceof String)) {
+      throw new WarpScriptException(getName() + " expects a STRING.");
+    }
+
+    Pattern pattern = Pattern.compile((String) regexp);
     
     Matcher m = pattern.matcher("");
     

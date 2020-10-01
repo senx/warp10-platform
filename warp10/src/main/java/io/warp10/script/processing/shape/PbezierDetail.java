@@ -42,7 +42,7 @@ public class PbezierDetail extends NamedWarpScriptFunction implements WarpScript
         
     PGraphics pg = (PGraphics) params.get(0);
     
-    pg.bezierDetail(((Number) params.get(1)).intValue());
+    pg.parent.bezierDetail(((Number) params.get(1)).intValue());
     
     stack.push(pg);
         

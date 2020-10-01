@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package io.warp10.continuum;
 
+import io.warp10.json.JsonUtils;
 import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
@@ -33,16 +34,13 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.boon.core.value.ValueList;
-import org.boon.json.JsonParser;
-import org.boon.json.JsonParserFactory;
-
 /**
  * This class generates a Throttling configuration by merging a base configuration
- * with the limits and a set of estimators collected from the various ingestion endpoints (and soon geo directories).
+ * with the limits and a set of estimators collected from the various ingestion endpoints.
  * 
  * Relies on macro ops/throttling-ddp.mc2 from repo 'devops'
  */
@@ -237,10 +235,9 @@ public class ThrottlingConfigGenerator {
     
     br.close();
     
-    JsonParser parser = new JsonParserFactory().create();
-    Object json = parser.parse(sb);
+    Object json = JsonUtils.jsonToObject(sb.toString());
     
-    String str = ((ValueList) json).get(0).toString();
+    String str = ((List) json).get(0).toString();
     
     br = new BufferedReader(new StringReader(str));
     

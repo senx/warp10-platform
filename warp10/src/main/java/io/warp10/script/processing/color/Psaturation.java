@@ -42,7 +42,7 @@ public class Psaturation extends NamedWarpScriptFunction implements WarpScriptSt
         
     PGraphics pg = (PGraphics) params.get(0);
     
-    double saturation = pg.saturation(((Number) params.get(1)).intValue());
+    double saturation = pg.parent.saturation(((Number) params.get(1)).intValue());
     
     stack.push(pg);
         

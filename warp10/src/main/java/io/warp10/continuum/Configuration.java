@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -24,6 +24,11 @@ public class Configuration {
   
   public static final String WARP_COMPONENTS = "warp.components";
 
+  /**
+   * Comma separated list of attributes which will invalidate the tokens they appear in
+   */
+  public static final String WARP_TOKEN_BANNED_ATTRIBUTES = "warp.token.banned.attributes";
+  
   public static final String WARP_TOKEN_FILE = "warp.token.file";
   
   public static final String WARP_HASH_CLASS = "warp.hash.class";
@@ -55,7 +60,7 @@ public class Configuration {
   public static final String WARP10_QUIET = "warp10.quiet";
   
   public static final String WARP10_TELEMETRY = "warp10.telemetry";
-  
+
   /**
    * Comma separated list of headers to return in the Access-Allow-Control-Headers response header to preflight requests.
    */
@@ -87,7 +92,13 @@ public class Configuration {
    * How often (in ms) should we refetch the region start/end keys
    */
   public static final String WARP_HBASE_REGIONKEYS_UPDATEPERIOD = "warp.hbase.regionkeys.updateperiod";
-  
+
+  /**
+   * WarpScript code used to resolve font URLs, can be a macro call or any other valid WarpScript excerpt
+   * The code is passed the URL to check and should return the updated URL. NOOP will accept all URLs.
+   */
+  public static final String PROCESSING_FONT_RESOLVER = "processing.font.resolver";
+
   /**
    * Number of registers to allocate in stacks. Defaults to WarpScriptStack.DEFAULT_REGISTERS
    */
@@ -135,6 +146,7 @@ public class Configuration {
   public static final String WARPSCRIPT_MAX_SYMBOLS = "warpscript.maxsymbols";
   public static final String WARPSCRIPT_MAX_WEBCALLS = "warpscript.maxwebcalls";
   public static final String WARPSCRIPT_MAX_PIXELS = "warpscript.maxpixels";
+  public static final String WARPSCRIPT_MAX_JSON = "warpscript.maxjson";
 
   // Hard limits for the above limits which can be changed via a function call
   public static final String WARPSCRIPT_MAX_OPS_HARD = "warpscript.maxops.hard";
@@ -147,6 +159,12 @@ public class Configuration {
   public static final String WARPSCRIPT_MAX_RECURSION_HARD = "warpscript.maxrecursion.hard";
   public static final String WARPSCRIPT_MAX_SYMBOLS_HARD = "warpscript.maxsymbols.hard";
   public static final String WARPSCRIPT_MAX_PIXELS_HARD = "warpscript.maxpixels.hard";
+  public static final String WARPSCRIPT_MAX_JSON_HARD = "warpscript.maxjson.hard";
+
+  /**
+   * When set to true, allow common comment block style. When false, keep the old strict comment block style within WarpScript
+   */
+  public static final String WARPSCRIPT_ALLOW_LOOSE_BLOCK_COMMENTS = "warpscript.comments.loose";
 
   /**
    * Flag to enable REXEC
@@ -1082,6 +1100,16 @@ public class Configuration {
   /////////////////////////////////////////////////////////////////////////////////////////
   
   /**
+   * Number of threads in Jetty's Thread Pool
+   */
+  public static final String PLASMA_FRONTEND_JETTY_THREADPOOL = "plasma.frontend.jetty.threadpool";
+  
+  /**
+   * Maximum size of Jetty ThreadPool queue size (unbounded by default)
+   */
+  public static final String PLASMA_FRONTEND_JETTY_MAXQUEUESIZE = "plasma.frontend.jetty.maxqueuesize";
+    
+  /**
    * ZooKeeper connect string for Kafka consumer
    */
   public static final String PLASMA_FRONTEND_KAFKA_ZKCONNECT = "plasma.frontend.kafka.zkconnect";
@@ -1389,6 +1417,16 @@ public class Configuration {
   /////////////////////////////////////////////////////////////////////////////////////////
   
   /**
+   * Number of threads in Jetty's Thread Pool
+   */
+  public static final String STANDALONE_JETTY_THREADPOOL = "standalone.jetty.threadpool";
+  
+  /**
+   * Maximum size of Jetty ThreadPool queue size (unbounded by default)
+   */
+  public static final String STANDALONE_JETTY_MAXQUEUESIZE = "standalone.jetty.maxqueuesize";
+
+  /**
    * Geo Time Series count above which block caching will be disabled for LevelDB.
    * The goal is to limit the cache pollution when scanning large chunks of data.
    * Note that this limit is per fetch call to the backend, which means that in the case of parallel scanners it is for each parallel fetch attempt.
@@ -1662,6 +1700,13 @@ public class Configuration {
   public static final String WARP_LABELS_MAXSIZE = "warp.labels.maxsize";
   
   /**
+   * Default priority order for matching labels when doing a FIND/FETCH.
+   * Comma separated list of label names.
+   * Defaults to .producer,.app,.owner
+   */
+  public static final String WARPSCRIPT_LABELS_PRIORITY = "warpscript.labels.priority";
+  
+  /**
    * Maximum length of attributes (names + values) - Defaults to 8192
    */
   public static final String WARP_ATTRIBUTES_MAXSIZE = "warp.attributes.maxsize";
@@ -1670,6 +1715,28 @@ public class Configuration {
    * Set to a message indicating the reason why updates are disabled, they are enabled if this is not set
    */
   public static final String WARP_UPDATE_DISABLED = "warp.update.disabled";
+  
+  /**
+   * Set to true to expose owner and producer labels in Geo Time Series retrieved from the Warp 10 Storage Engine 
+   */
+  public static final String WARP10_EXPOSE_OWNER_PRODUCER = "warp10.expose.owner.producer";
+  
+  /**
+   * Set to true to allow Directory queries with missing label selectors (using empty exact match)
+   */
+  public static final String WARP10_ABSENT_LABEL_SUPPORT = "warp10.absent.label.support";
+  
+  /**
+   * Set to true to allow the /delete endpoint to only delete metadata.
+   */
+  public static final String INGRESS_DELETE_METAONLY_SUPPORT = "ingress.delete.metaonly.support";
+  
+  /**
+   * Set to true to allow activeafter/quietafter parameters to delete requests.
+   * This must be explicitely configured to avoid deleting extraneous GTS when using those parameters when no
+   * activity tracking is active.
+   */
+  public static final String INGRESS_DELETE_ACTIVITY_SUPPORT = "ingress.delete.activity.support";
   
   /**
    * Manager secret, must be set to use the managing functions
@@ -1705,6 +1772,79 @@ public class Configuration {
    * Set to 'true' to disable stream updates
    */
   public static final String WARP_STREAMUPDATE_DISABLE = "warp.streamupdate.disable";
+
+  /**
+   * Set to 'true' to have an in-memory cache ahead of the persistent store.
+   * in.memory.chunk.count and in.memory.chunk.length MUST be defined
+   */
+  public static final String ACCELERATOR = "accelerator";
+
+  /**
+   * Default accelerator strategy for writes.
+   * Can contain 'cache', 'nocache', 'persist' and 'nopersist'.
+   * Defaults to 'cache persist'.
+   */
+  public static final String ACCELERATOR_DEFAULT_WRITE = "accelerator.default.write";
+
+  /**
+   * Default accelerator strategy for reads.
+   * Can contain 'cache', 'nocache', 'persist' and 'nopersist'.
+   * Defaults to 'cache persist'.
+   */
+  public static final String ACCELERATOR_DEFAULT_READ = "accelerator.default.read";
+
+  /**
+   * Default accelerator strategy for deletes.
+   * Can contain 'cache', 'nocache', 'persist' and 'nopersist'.
+   * Defaults to 'cache persist'. 
+   */
+  public static final String ACCELERATOR_DEFAULT_DELETE = "accelerator.default.delete";
+
+  /**
+   * Set to 'true' to preload the accelerator with the persisted data spanning the accelerator time range.
+   * Preloading can be disabled for setups where the accelerator is used as a temporary side cache only.
+   */
+  public static final String ACCELERATOR_PRELOAD = "accelerator.preload";
+  
+  /**
+   * Set to 'true' to preload the accelerator with data based on the lastactivity
+   */
+  public static final String ACCELERATOR_PRELOAD_ACTIVITY = "accelerator.preload.activity";
+  
+  /**
+   * Number of threads to use for preloading the accelerator
+   */
+  public static final String ACCELERATOR_PRELOAD_POOLSIZE = "accelerator.preload.poolsize";
+
+  /**
+   * Batch size to use for preloading the accelerator
+   */
+  public static final String ACCELERATOR_PRELOAD_BATCHSIZE = "accelerator.preload.batchsize";
+
+  /**
+   * Number of chunks per GTS to handle in memory
+   */
+  public static final String ACCELERATOR_CHUNK_COUNT = "accelerator.chunk.count";
+  
+  /**
+   * Length of each chunk (in time units)
+   */
+  public static final String ACCELERATOR_CHUNK_LENGTH = "accelerator.chunk.length";
+  
+  /**
+   * If set to true, then only the last recorded value of a GTS is kept
+   */
+  public static final String ACCELERATOR_EPHEMERAL = "accelerator.ephemeral";
+
+  /**
+   * How often (in ms) to perform a gc of the Warp 10 accelerator.
+   */
+  public static final String ACCELERATOR_GC_PERIOD = "accelerator.gcperiod";
+  
+  /**
+   * Maximum size (in bytes) of re-allocations performed during a gc cycle of the Warp 10 accelerator 
+   */
+  public static final String ACCELERATOR_GC_MAXALLOC = "accelerator.gc.maxalloc";  
 
   /**
    * Set to 'true' to indicate the instance will use memory only for storage. This type of instance is non persistent.
@@ -1781,6 +1921,17 @@ public class Configuration {
   // E G R E S S
   //
   
+  /**
+   * Number of threads in Jetty's Thread Pool
+   */
+  public static final String EGRESS_JETTY_THREADPOOL = "egress.jetty.threadpool";
+  
+  /**
+   * Maximum size of Jetty ThreadPool queue size (unbounded by default)
+   */
+  public static final String EGRESS_JETTY_MAXQUEUESIZE = "egress.jetty.maxqueuesize";
+    
+
   /**
    * Flag (true/false) indicating whether or not the Directory and Store clients should be exposed by Egress.
    * If set to true then Warp 10 plugins might access the exposed clients via the getExposedDirectoryClient and
@@ -2016,6 +2167,21 @@ public class Configuration {
   public static final String JARS_DIRECTORY = "warpscript.jars.directory";
   public static final String JARS_REFRESH = "warpscript.jars.refresh";
   public static final String JARS_FROMCLASSPATH = "warpscript.jars.fromclasspath";
+
+  /**
+   * Size of macro cache for the macros loaded from the classpath
+   */
+  public static final String WARPSCRIPT_LIBRARY_CACHE_SIZE = "warpscript.library.cache.size";
+
+  /**
+   * Default TTL for macros loaded from the classpath
+   */
+  public static final String WARPSCRIPT_LIBRARY_TTL = "warpscript.library.ttl";
+  
+  /**
+   * Maximum TTL for a macro loaded from the classpath
+   */
+  public static final String WARPSCRIPT_LIBRARY_TTL_HARD = "warpscript.library.ttl.hard";
   
   /*
    * CALL root directory property
@@ -2037,6 +2203,11 @@ public class Configuration {
    * Macro Repository root directory
    */  
   public static final String REPOSITORY_DIRECTORY = "warpscript.repository.directory";
+  
+  /**
+   * Number of macros loaded from 'warpscript.repository.directory' to keep in memory
+   */
+  public static final String REPOSITORY_CACHE_SIZE = "warpscript.repository.cache.size";
   
   /**
    * Macro repository refresh interval (in ms)

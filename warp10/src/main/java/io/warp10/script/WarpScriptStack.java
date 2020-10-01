@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import io.warp10.warp.sdk.WarpScriptJavaFunction;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
@@ -41,6 +42,16 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public interface WarpScriptStack {
   
+  /**
+   * Signals that can be sent to a stack
+   * The higher the ordinal of a signal, the higher its priority
+   *
+   */
+  public static enum Signal {
+    STOP,
+    KILL,
+  }
+  
   public static final int DEFAULT_MAX_RECURSION_LEVEL = 16;
   public static final long DEFAULT_FETCH_LIMIT = 100000L;
   public static final long DEFAULT_GTS_LIMIT = 100000L;
@@ -52,6 +63,7 @@ public interface WarpScriptStack {
   public static final int DEFAULT_MAX_SYMBOLS = 64;
   public static final int DEFAULT_MAX_WEBCALLS = 4;
   public static final long DEFAULT_MAX_PIXELS = 1000000L;
+  public static final long DEFAULT_MAX_JSON = 20L * 1024L * 1024L; // 20MB
   public static final long DEFAULT_REGISTERS = 256;
   
   public static final String MACRO_START = "<%";
@@ -128,7 +140,13 @@ public interface WarpScriptStack {
    * Is the stack configured to output strict JSON (i.e with no NaN/Infinity)?
    */
   public static final String ATTRIBUTE_JSON_STRICT = "json.strict";
-  
+
+  /**
+   * Maximum size of a JSON created and pushed on the stack, in number of characters.
+   */
+  public static final String ATTRIBUTE_JSON_MAXSIZE = "json.size.max";
+  public static final String ATTRIBUTE_JSON_MAXSIZE_HARD = "json.size.max.hard";
+
   /**
    * Maximum number of datapoints that can be fetched in a session
    */
@@ -264,6 +282,16 @@ public interface WarpScriptStack {
    * Last error encountered in a TRY block
    */
   public static final String ATTRIBUTE_LAST_ERROR = "last.error";
+  
+  /**
+   * Creation timestamp for the stack
+   */
+  public static final String ATTRIBUTE_CREATION_TIME = "creation.time";
+  
+  /**
+   * Name given to the stack
+   */  
+  public static final String ATTRIBUTE_NAME = "stack.name";
   
   /**
    * Index of RETURN_DEPTH counter
@@ -451,23 +479,38 @@ public interface WarpScriptStack {
    * @throws InformativeEmptyStackException if the stack is empty.
    */
   public Object pop() throws InformativeEmptyStackException;
-  
+
   /**
    * Remove and return 'N' objects from the top of the
    * stack.
-   * 
+   *
    * 'N' is consumed at the top of the stack prior to
    * removing and returning the objects.
-   * 
-   * 
+   *
+   *
    * @return An array of 'N' objects, the first being the deepest.
-   *  
+   *
    * @throws InformativeEmptyStackException if the stack is empty.
    * @throws IndexOutOfBoundsException If 'N' is not present or if
    *         'N' is invalid or if the stack is not deep enough.
    */
   public Object[] popn() throws WarpScriptException;
-  
+
+  /**
+   * Remove and return 'N' objects from the top of the
+   * stack.
+   *
+   * 'N' is NOT taken from the stack but given as parameter.
+   *
+   *
+   * @return An array of 'N' objects, the first being the deepest.
+   *
+   * @throws InformativeEmptyStackException if the stack is empty.
+   * @throws IndexOutOfBoundsException If 'N' is invalid or if
+   *          the stack is not deep enough.
+   */
+  public Object[] popn(int n) throws WarpScriptException;
+
   /**
    * Return the object on top of the stack without removing
    * it from the stack.
@@ -722,6 +765,16 @@ public interface WarpScriptStack {
   public String getUUID();
   
   /**
+   * Signal the stack, i.e. stop the currently executing code after the current statement and prevent further executions.
+   */
+  public void signal(Signal signal);
+  
+  /**
+   * Throw the exception associated with the current signal sent to the stack
+   */
+  public void handleSignal() throws WarpScriptATCException;
+  
+  /**
    * Set a stack attribute.
    * 
    * @param key Key under which the attribute should be stored.
@@ -778,5 +831,31 @@ public interface WarpScriptStack {
   /**
    * Restore the stack context from that on top of the stack
    */
-  public void restore() throws WarpScriptException;  
+  public void restore() throws WarpScriptException;
+  
+  /**
+   * Hide all stack levels
+   * @return The number of levels actually hidden
+   */
+  public int hide();
+  
+  /**
+   * Hide the deepest 'count' stack levels
+   * @param count Number of levels to hide
+   * @return The number of levels actually hidden
+   */
+  public int hide(int count);  
+  
+  /**
+   * Show all previously hidden stack levels.
+   */
+  public void show();
+  
+  /**
+   * Show some stack levels previously hidden. Up to 'count'
+   * levels previously hidden will be made visible. Those
+   * 'count' levels are the less deep of the hidden ones.
+   * @param count Number of levels to show
+   */
+  public void show(int count);
 }

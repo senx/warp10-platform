@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -35,6 +35,7 @@ import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
+import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Map;
@@ -62,9 +63,15 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
     }
   };
 
+  public static interface SnapshotEncoder {
+    public boolean addElement(SNAPSHOT snapshot, StringBuilder sb, Object o, boolean readable) throws WarpScriptException;
+  }
+
   public static interface Snapshotable {
     public String snapshot();
   }
+
+  private static List<SnapshotEncoder> encoders = null;
 
   /**
    * Maximum level of data structure nesting
@@ -277,7 +284,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
           sb.append(WarpScriptLib.LIST_START);
           sb.append(" ");
           for (Object oo : (Vector) o) {
-            addElement(snapshot, sb, oo, readable);
+            addElement(snapshot, sb, oo, true);
           }
           sb.append(WarpScriptLib.LIST_END);
           sb.append(" ");          
@@ -286,7 +293,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
           sb.append(WarpScriptLib.LIST_END);
           sb.append(" ");
           for (Object oo : (Vector) o) {
-            addElement(snapshot, sb, oo, readable);
+            addElement(snapshot, sb, oo, false);
             sb.append(WarpScriptLib.INPLACEADD);
             sb.append(" ");
           }
@@ -298,7 +305,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
           sb.append(WarpScriptLib.LIST_START);
           sb.append(" ");
           for (Object oo : (List) o) {
-            addElement(snapshot, sb, oo, readable);
+            addElement(snapshot, sb, oo, true);
           }          
           sb.append(WarpScriptLib.LIST_END);
           sb.append(" ");          
@@ -307,7 +314,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
           sb.append(WarpScriptLib.LIST_END);
           sb.append(" ");
           for (Object oo : (List) o) {
-            addElement(snapshot, sb, oo, readable);
+            addElement(snapshot, sb, oo, false);
             sb.append(WarpScriptLib.INPLACEADD);
             sb.append(" ");
           }          
@@ -317,7 +324,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
           sb.append(WarpScriptLib.LIST_START);
           sb.append(" ");
           for (Object oo : (Set) o) {
-            addElement(snapshot, sb, oo, readable);
+            addElement(snapshot, sb, oo, true);
           }
           sb.append(WarpScriptLib.LIST_END);
           sb.append(" ");          
@@ -326,7 +333,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
           sb.append(WarpScriptLib.LIST_END);
           sb.append(" ");
           for (Object oo : (Set) o) {
-            addElement(snapshot, sb, oo, readable);
+            addElement(snapshot, sb, oo, false);
             sb.append(WarpScriptLib.INPLACEADD);
             sb.append(" ");
           }
@@ -338,8 +345,8 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
           sb.append(WarpScriptLib.MAP_START);
           sb.append(System.lineSeparator());
           for (Entry<Object, Object> entry: ((Map<Object, Object>) o).entrySet()) {
-            addElement(snapshot, sb, entry.getKey(), readable);
-            addElement(snapshot, sb, entry.getValue(), readable);
+            addElement(snapshot, sb, entry.getKey(), true);
+            addElement(snapshot, sb, entry.getValue(), true);
             sb.append(System.lineSeparator());
           }                    
           sb.append(WarpScriptLib.MAP_END);
@@ -349,8 +356,8 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
           sb.append(WarpScriptLib.MAP_END);
           sb.append(" ");
           for (Entry<Object, Object> entry: ((Map<Object, Object>) o).entrySet()) {
-            addElement(snapshot, sb, entry.getValue(), readable);
-            addElement(snapshot, sb, entry.getKey(), readable);
+            addElement(snapshot, sb, entry.getValue(), false);
+            addElement(snapshot, sb, entry.getKey(), false);
             sb.append(WarpScriptLib.PUT);
             sb.append(" ");
           }          
@@ -378,11 +385,8 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
       } else if (o instanceof Mark) {
         sb.append(WarpScriptLib.MARK);
         sb.append(" ");
-      } else if (o instanceof Snapshotable) {
+      } else if (o instanceof Snapshotable) { // Also includes Macro
         sb.append(((Snapshotable) o).snapshot());
-        sb.append(" ");
-      } else if (o instanceof Macro) {
-        sb.append(o.toString());
         sb.append(" ");
       } else if (o instanceof RSAPublicKey) {
         sb.append("{ 'algorithm' 'RSA' 'exponent' '");
@@ -404,14 +408,28 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         sb.append(o.toString());
         sb.append(" ");
       } else {
+        // Check if any of the defined encoders can encode the current element
+        // loops will be caught by the recursion level check
+        boolean encoded = false;
+        if (null != encoders) {
+          for (SnapshotEncoder encoder: encoders) {
+            encoded = encoder.addElement(snapshot, sb, o, readable);
+            if (encoded) {
+              break;
+            }
+          }
+        }
+
         // Some types are not supported
         // functions, PImage...
         // Nevertheless we need to have the correct levels of the stack preserved, so
         // we push an informative string onto the stack there
-        try {
-          sb.append("'UNSUPPORTED:" + WarpURLEncoder.encode(o.getClass().toString(), StandardCharsets.UTF_8) + "' ");
-        } catch (UnsupportedEncodingException uee) {
-          throw new WarpScriptException(uee);
+        if (!encoded) {
+          try {
+            sb.append("'UNSUPPORTED:" + WarpURLEncoder.encode(o.getClass().toString(), StandardCharsets.UTF_8) + "' ");
+          } catch (UnsupportedEncodingException uee) {
+            throw new WarpScriptException(uee);
+          }
         }
       }
     } finally {
@@ -450,5 +468,12 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
     if (idx > lastIdx) {
       sb.append(chars, lastIdx, idx - lastIdx);
     }
+  }
+
+  public synchronized static void addEncoder(SnapshotEncoder encoder) {
+    if (null == encoders) {
+      encoders = new ArrayList<SnapshotEncoder>();
+    }
+    encoders.add(encoder);
   }
 }

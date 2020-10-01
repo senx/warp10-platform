@@ -93,9 +93,6 @@ public class StandaloneShardedDirectoryClientWrapper extends StandaloneDirectory
       this.filter = new ShardFilter() {        
         @Override
         public boolean exclude(long classId, long labelsId) {
-          if (null == modulus) {
-            return false;
-          }
           long key = ((classId & 0xFFFFFF000000L) | (labelsId & 0xFFFFFFL)) >>> shardkeyshift;
           boolean skip = true;
           for(int i = 0; i < modulus.length; i++) {
@@ -178,7 +175,8 @@ public class StandaloneShardedDirectoryClientWrapper extends StandaloneDirectory
   @Override
   public boolean register(Metadata metadata) throws IOException {
     if (null == metadata) {
-      return this.client.register(metadata);
+      this.client.register(null);
+      return;
     }
     
     if (null != this.filter) {

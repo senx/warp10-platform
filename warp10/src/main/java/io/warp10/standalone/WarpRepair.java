@@ -31,7 +31,7 @@ public class WarpRepair {
   
   public static void main(String[] args) throws IOException {
     String path = args[0];
-    
+
     Options options = new Options();
     options.createIfMissing(false);
     options.maxOpenFiles(200);
@@ -40,7 +40,11 @@ public class WarpRepair {
     
     boolean nativedisabled = "true".equals(System.getProperty(Configuration.LEVELDB_NATIVE_DISABLE));
     boolean javadisabled = "true".equals(System.getProperty(Configuration.LEVELDB_JAVA_DISABLE));
-    
+
+    repair(path, options, javadisabled, nativedisabled);
+  }
+  
+  public static void repair(String path, Options options, boolean javadisabled, boolean nativedisabled) throws IOException {    
     try {
       if (!nativedisabled) {
         JniDBFactory.factory.repair(new File(path), options);
@@ -50,7 +54,7 @@ public class WarpRepair {
     } catch (UnsatisfiedLinkError ule) {
       ule.printStackTrace();
       if (!javadisabled) {
-        Iq80DBFactory.factory.repair(new File(path), options);
+        LevelDBRepair.repair(new File(path), options);
       } else {
         throw new RuntimeException("No usable LevelDB implementation, aborting.");
       }

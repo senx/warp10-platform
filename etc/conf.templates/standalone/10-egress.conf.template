@@ -21,9 +21,10 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 
 //
-// Key to use for encrypting GTSSplit instances
+// 128/192/256 bits AES key for encrypting GTSSplit instances.
+// Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
-#egress.fetcher.aes =
+#egress.fetcher.aes = hex:hhhhhh...
 
 //
 // Maximum age of a valid GTSSplit (in ms)
@@ -32,5 +33,8 @@
 
 //
 // Should the egress exec handler expose its store/directory clients?
+//
+// When the Warp 10 Accelerator is used, the methods cache/nocache and persist/nopersist
+// of the class StandardAcceleratedStoreClient should be called prior to calling fetch
 //
 egress.clients.expose = false

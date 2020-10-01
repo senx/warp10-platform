@@ -43,18 +43,18 @@ public class Pscale extends NamedWarpScriptFunction implements WarpScriptStackFu
     PGraphics pg = (PGraphics) params.get(0);
     
     if (4 == params.size()) {
-      pg.scale(
+      pg.parent.scale(
           ((Number) params.get(1)).floatValue(),
           ((Number) params.get(2)).floatValue(),
           ((Number) params.get(3)).floatValue()
       );      
     } else if (3 == params.size()) {
-      pg.scale(
+      pg.parent.scale(
           ((Number) params.get(1)).floatValue(),
           ((Number) params.get(2)).floatValue()
       );            
     } else if (2 == params.size()) {
-      pg.scale(
+      pg.parent.scale(
           ((Number) params.get(1)).floatValue()
       );            
     }

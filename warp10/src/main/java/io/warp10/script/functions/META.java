@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -18,9 +18,11 @@ package io.warp10.script.functions;
 
 import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
+import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.continuum.store.Constants;
+import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
@@ -66,34 +68,38 @@ public class META extends NamedWarpScriptFunction implements WarpScriptStackFunc
     Object otoken = stack.pop();
     
     if (!(otoken instanceof String)) {
-      throw new WarpScriptException(getName() + " expects a token on top of the stack.");
+      throw new WarpScriptException(getName() + " expects a token.");
     }
     
     String token = (String) otoken;
 
-    List<GeoTimeSerie> series = new ArrayList<GeoTimeSerie>();
+    List<Metadata> metas = new ArrayList<Metadata>();
     
     Object o = stack.pop();
     
     if (o instanceof GeoTimeSerie) {
-      series.add((GeoTimeSerie) o);
+      metas.add(((GeoTimeSerie) o).getMetadata());
+    } else if (o instanceof GTSEncoder) {
+      metas.add(((GTSEncoder) o).getMetadata());      
     } else if (o instanceof List) {
       for (Object oo: (List<Object>) o) {
         if (oo instanceof GeoTimeSerie) {
-          series.add((GeoTimeSerie) oo);
+          metas.add(((GeoTimeSerie) oo).getMetadata());
+        } else if (oo instanceof GTSEncoder) {
+          metas.add(((GTSEncoder) oo).getMetadata());
         } else {
-          throw new WarpScriptException(getName() + " can only operate on Geo Time Series or a list thereof.");
+          throw new WarpScriptException(getName() + " can only operate on Geo Time Series, GTS Encoders or a list thereof.");
         }
       }
     } else {
-      throw new WarpScriptException(getName() + " can only operate on Geo Time Series or a list thereof");
+      throw new WarpScriptException(getName() + " can only operate on Geo Time Series, GTS Encoders or a list thereof");
     }
     
     //
     // Return immediately if 'series' is empty
     //
     
-    if (0 == series.size()) {
+    if (0 == metas.size()) {
       return stack;
     }
     
@@ -101,12 +107,12 @@ public class META extends NamedWarpScriptFunction implements WarpScriptStackFunc
     // Check that all GTS have a name and attributes
     //
     
-    for (GeoTimeSerie gts: series) {
-      if (null == gts.getName() || "".equals(gts.getName())) {
-        throw new WarpScriptException(getName() + " can only set attributes of Geo Time Series which have a non empty name.");
+    for (Metadata meta: metas) {
+      if (null == meta.getName() || "".equals(meta.getName())) {
+        throw new WarpScriptException(getName() + " can only set attributes of Geo Time Series or GTS Encoders which have a non empty name.");
       }
-      if (null == gts.getMetadata().getAttributes()) {
-        throw new WarpScriptException(getName() + " can only operate on Geo Time Series which have attributes.");
+      if (null == meta.getAttributes()) {
+        throw new WarpScriptException(getName() + " can only operate on Geo Time Series or GTS Encoders which have attributes.");
       }
     }
     
@@ -158,12 +164,15 @@ public class META extends NamedWarpScriptFunction implements WarpScriptStackFunc
       
       StringBuilder sb = new StringBuilder();
       
-      for (GeoTimeSerie gts: series) {
+      for (Metadata meta: metas) {
         sb.setLength(0);
-        GTSHelper.metadataToString(sb, gts.getName(), gts.getLabels());
-        Map<String,String> attributes = null != gts.getMetadata().getAttributes() ? gts.getMetadata().getAttributes() : new HashMap<String,String>();
-        GTSHelper.labelsToString(sb, attributes);
+        // Expose all labels as producer/owner will have been dropped by the meta endpoint
+        GTSHelper.metadataToString(sb, meta.getName(), meta.getLabels(), true);
+        Map<String,String> attributes = null != meta.getAttributes() ? meta.getAttributes() : new HashMap<String,String>();
+        // Always expose attributes
+        GTSHelper.labelsToString(sb, attributes, true);
         pw.println(sb.toString());
+        stack.handleSignal();
       }
       
       pw.close();

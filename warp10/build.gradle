@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -45,7 +45,7 @@ dependencies {
     //
     compile project(':crypto')
     compile project(':token')
-    compile 'io.warp10:sensision:1.0.20'
+    compile 'io.warp10:sensision:1.0.22'
 
     compile 'joda-time:joda-time:2.2'
     compile 'org.apache.commons:commons-lang3:3.6'
@@ -74,7 +74,7 @@ dependencies {
     compile 'org.eclipse.jetty.websocket:websocket-server:9.4.2.v20170220'
     compile 'org.eclipse.jetty.websocket:websocket-client:9.4.2.v20170220'
     compile 'com.netflix.curator:curator-x-discovery:1.3.3'
-    compile 'io.fastjson:boon:0.14'
+    compile 'com.fasterxml.jackson.core:jackson-databind:2.10.2'
     compile 'org.slf4j:slf4j-api:1.7.5'
 
     //
@@ -90,7 +90,10 @@ dependencies {
     //
     // LevelDB
     //
-    compile 'org.fusesource.leveldbjni:leveldbjni-all:1.7'
+    compile 'org.fusesource.leveldbjni:leveldbjni-all:1.8'
+    // https://mvnrepository.com/artifact/org.openlabtesting.leveldbjni/leveldbjni-linux64-aarch64
+    compile group: 'org.openlabtesting.leveldbjni', name: 'leveldbjni-linux64-aarch64', version: '1.8'
+
     compile 'org.iq80.leveldb:leveldb:0.12:uber'
 
     //
@@ -106,7 +109,7 @@ dependencies {
     //
     // Geo
     //
-    compile 'com.geoxp:geoxplib:1.0.0-rc14'
+    compile 'com.geoxp:geoxplib:1.0.1'
     compile("org.wololo:jts2geojson:0.10.0")
 
     //

@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ import com.google.common.net.InetAddresses;
 import jline.console.ConsoleReader;
 import jline.console.completer.Completer;
 import jline.console.completer.StringsCompleter;
-import org.apache.commons.lang.math.NumberUtils;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.commons.math3.util.Pair;
 
 import java.io.File;
@@ -605,7 +605,7 @@ public class WorfInteractive {
     try {
       if (Strings.isNullOrEmpty(line) && Strings.isNullOrEmpty(uuidDefault)) {
         if (optional) {
-          return new ArrayList<>();
+          return new ArrayList<String>();
         }
         return null;
       }

@@ -27,10 +27,6 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 
-import io.warp10.script.aggregator.CompareTo;
-import io.warp10.script.mapper.MapperCompareTo;
-import org.apache.commons.lang3.JavaVersion;
-import org.apache.commons.lang3.SystemUtils;
 import org.bouncycastle.crypto.digests.MD5Digest;
 import org.bouncycastle.crypto.digests.SHA1Digest;
 import org.bouncycastle.crypto.digests.SHA256Digest;
@@ -53,6 +49,7 @@ import io.warp10.continuum.gts.ZIP;
 import io.warp10.script.aggregator.And;
 import io.warp10.script.aggregator.Argminmax;
 import io.warp10.script.aggregator.CircularMean;
+import io.warp10.script.aggregator.CompareTo;
 import io.warp10.script.aggregator.Count;
 import io.warp10.script.aggregator.Delta;
 import io.warp10.script.aggregator.First;
@@ -94,7 +91,6 @@ import io.warp10.script.binary.LT;
 import io.warp10.script.binary.MOD;
 import io.warp10.script.binary.MUL;
 import io.warp10.script.binary.NE;
-import io.warp10.script.binary.POW;
 import io.warp10.script.binary.SHIFTLEFT;
 import io.warp10.script.binary.SHIFTRIGHT;
 import io.warp10.script.binary.SUB;
@@ -105,62 +101,30 @@ import io.warp10.script.filler.FillerTrend;
 import io.warp10.script.filter.FilterByClass;
 import io.warp10.script.filter.FilterByLabels;
 import io.warp10.script.filter.FilterByMetadata;
+import io.warp10.script.filter.FilterBySelector;
 import io.warp10.script.filter.FilterLastEQ;
 import io.warp10.script.filter.FilterLastGE;
 import io.warp10.script.filter.FilterLastGT;
 import io.warp10.script.filter.FilterLastLE;
 import io.warp10.script.filter.FilterLastLT;
 import io.warp10.script.filter.FilterLastNE;
+import io.warp10.script.filter.FilterAny;
+import io.warp10.script.filter.FilterBySize;
 import io.warp10.script.filter.LatencyFilter;
 import io.warp10.script.functions.*;
-import io.warp10.script.functions.math.ACOS;
-import io.warp10.script.functions.math.ADDEXACT;
-import io.warp10.script.functions.math.ASIN;
-import io.warp10.script.functions.math.ATAN;
-import io.warp10.script.functions.math.ATAN2;
-import io.warp10.script.functions.math.CBRT;
-import io.warp10.script.functions.math.CEIL;
-import io.warp10.script.functions.math.COPYSIGN;
-import io.warp10.script.functions.math.COS;
-import io.warp10.script.functions.math.COSH;
-import io.warp10.script.functions.math.DECREMENTEXACT;
-import io.warp10.script.functions.math.EXP;
-import io.warp10.script.functions.math.EXPM1;
-import io.warp10.script.functions.math.FLOOR;
-import io.warp10.script.functions.math.FLOORDIV;
-import io.warp10.script.functions.math.FLOORMOD;
 import io.warp10.script.functions.math.GETEXPONENT;
-import io.warp10.script.functions.math.HYPOT;
-import io.warp10.script.functions.math.IEEEREMAINDER;
-import io.warp10.script.functions.math.INCREMENTEXACT;
-import io.warp10.script.functions.math.LOG;
-import io.warp10.script.functions.math.LOG10;
-import io.warp10.script.functions.math.LOG1P;
-import io.warp10.script.functions.math.MAX;
-import io.warp10.script.functions.math.MIN;
-import io.warp10.script.functions.math.MULTIPLYEXACT;
-import io.warp10.script.functions.math.NEGATEEXACT;
-import io.warp10.script.functions.math.NEXTAFTER;
-import io.warp10.script.functions.math.NEXTDOWN;
-import io.warp10.script.functions.math.NEXTUP;
 import io.warp10.script.functions.math.RANDOM;
-import io.warp10.script.functions.math.RINT;
 import io.warp10.script.functions.math.ROUND;
 import io.warp10.script.functions.math.SCALB;
-import io.warp10.script.functions.math.SIGNUM;
-import io.warp10.script.functions.math.SIN;
-import io.warp10.script.functions.math.SINH;
-import io.warp10.script.functions.math.SQRT;
-import io.warp10.script.functions.math.SUBTRACTEXACT;
-import io.warp10.script.functions.math.TAN;
-import io.warp10.script.functions.math.TANH;
-import io.warp10.script.functions.math.TODEGREES;
-import io.warp10.script.functions.math.TOINTEXACT;
-import io.warp10.script.functions.math.TORADIANS;
-import io.warp10.script.functions.math.ULP;
+import io.warp10.script.functions.shape.CHECKSHAPE;
+import io.warp10.script.functions.shape.HULLSHAPE;
+import io.warp10.script.functions.shape.PERMUTE;
+import io.warp10.script.functions.shape.RESHAPE;
+import io.warp10.script.functions.shape.SHAPE;
 import io.warp10.script.mapper.MapperAbs;
 import io.warp10.script.mapper.MapperAdd;
 import io.warp10.script.mapper.MapperCeil;
+import io.warp10.script.mapper.MapperCompareTo;
 import io.warp10.script.mapper.MapperDayOfMonth;
 import io.warp10.script.mapper.MapperDayOfWeek;
 import io.warp10.script.mapper.MapperDotProduct;
@@ -172,6 +136,7 @@ import io.warp10.script.mapper.MapperFinite;
 import io.warp10.script.mapper.MapperFloor;
 import io.warp10.script.mapper.MapperGeoApproximate;
 import io.warp10.script.mapper.MapperGeoClearPosition;
+import io.warp10.script.mapper.MapperGeoFence;
 import io.warp10.script.mapper.MapperGeoOutside;
 import io.warp10.script.mapper.MapperGeoWithin;
 import io.warp10.script.mapper.MapperHourOfDay;
@@ -208,8 +173,8 @@ import io.warp10.script.mapper.MapperToLong;
 import io.warp10.script.mapper.MapperToString;
 import io.warp10.script.mapper.MapperYear;
 import io.warp10.script.mapper.STRICTMAPPER;
-import io.warp10.script.op.OpAND;
 import io.warp10.script.op.OpAdd;
+import io.warp10.script.op.OpBoolean;
 import io.warp10.script.op.OpDiv;
 import io.warp10.script.op.OpEQ;
 import io.warp10.script.op.OpGE;
@@ -219,7 +184,6 @@ import io.warp10.script.op.OpLT;
 import io.warp10.script.op.OpMask;
 import io.warp10.script.op.OpMul;
 import io.warp10.script.op.OpNE;
-import io.warp10.script.op.OpOR;
 import io.warp10.script.op.OpSub;
 import io.warp10.script.processing.Pencode;
 import io.warp10.script.processing.color.Palpha;
@@ -248,9 +212,11 @@ import io.warp10.script.processing.image.PimageMode;
 import io.warp10.script.processing.image.PnoTint;
 import io.warp10.script.processing.image.Ppixels;
 import io.warp10.script.processing.image.Pset;
+import io.warp10.script.processing.image.Psize;
 import io.warp10.script.processing.image.Ptint;
 import io.warp10.script.processing.image.PtoImage;
 import io.warp10.script.processing.image.PupdatePixels;
+import io.warp10.script.processing.image.Pmask;
 import io.warp10.script.processing.math.Pconstrain;
 import io.warp10.script.processing.math.Pdist;
 import io.warp10.script.processing.math.Plerp;
@@ -319,7 +285,6 @@ import io.warp10.script.processing.typography.PtextLeading;
 import io.warp10.script.processing.typography.PtextMode;
 import io.warp10.script.processing.typography.PtextSize;
 import io.warp10.script.processing.typography.PtextWidth;
-import io.warp10.script.unary.ABS;
 import io.warp10.script.unary.COMPLEMENT;
 import io.warp10.script.unary.FROMBIN;
 import io.warp10.script.unary.FROMBITS;
@@ -335,11 +300,6 @@ import io.warp10.script.unary.TOLONG;
 import io.warp10.script.unary.TOSTRING;
 import io.warp10.script.unary.TOTIMESTAMP;
 import io.warp10.script.unary.UNIT;
-import io.warp10.script.functions.shape.CHECKSHAPE;
-import io.warp10.script.functions.shape.HULLSHAPE;
-import io.warp10.script.functions.shape.PERMUTE;
-import io.warp10.script.functions.shape.RESHAPE;
-import io.warp10.script.functions.shape.SHAPE;
 import io.warp10.warp.sdk.WarpScriptExtension;
 
 /**
@@ -378,6 +338,7 @@ public class WarpScriptLib {
   public static final String POPR = "POPR";
   public static final String CPOPR = "CPOPR";
   public static final String PUSHR = "PUSHR";
+  public static final String RUNR = "RUNR";
   public static final String CLEARREGS = "CLEARREGS";
   public static final String RUN = "RUN";
   public static final String BOOTSTRAP = "BOOTSTRAP";
@@ -409,7 +370,11 @@ public class WarpScriptLib {
   public static final String GEO_WKT_UNIFORM = "GEO.WKT.UNIFORM";
   public static final String GEO_WKB = "GEO.WKB";
   public static final String GEO_WKB_UNIFORM = "GEO.WKB.UNIFORM";
-  
+
+  public static final String TOGEOJSON = "->GEOJSON";
+  public static final String TOWKT = "->WKT";
+  public static final String TOWKB = "->WKB";
+  public static final String GEO_BUFFER = "GEO.BUFFER";
   public static final String GEO_JSON = "GEO.JSON";
   public static final String GEO_JSON_UNIFORM = "GEO.JSON.UNIFORM";
   public static final String GEO_INTERSECTION = "GEO.INTERSECTION";
@@ -432,6 +397,11 @@ public class WarpScriptLib {
   public static final String MAPPER_LOWEST = "mapper.lowest";
   public static final String MAPPER_MAX = "mapper.max";
   public static final String MAPPER_MIN = "mapper.min";
+  public static final String MAPPER_GEO_WITHIN = "mapper.geo.within";
+  public static final String MAPPER_GEO_OUTSIDE = "mapper.geo.outside";
+  public static final String MAPPER_GEO_FENCE = "mapper.geo.fence";
+  public static final String MAPPER_GEO_APPROXIMATE = "mapper.geo.approximate";
+  public static final String MAPPER_GEO_CLEAR = "mapper.geo.clear";
   
   public static final String RSAPUBLIC = "RSAPUBLIC";
   public static final String RSAPRIVATE = "RSAPRIVATE";
@@ -476,6 +446,7 @@ public class WarpScriptLib {
   public static final String TIMED = "TIMED";
   public static final String CHRONOSTATS = "CHRONOSTATS";
   public static final String UNLIST = "UNLIST";
+  public static final String UNSET = "UNSET";
   public static final String UNION = "UNION";
   public static final String INTERSECTION = "INTERSECTION";
   public static final String DIFFERENCE = "DIFFERENCE";
@@ -500,6 +471,8 @@ public class WarpScriptLib {
   public static final String DUPN = "DUPN";
   public static final String DROP = "DROP";
   public static final String CLEAR = "CLEAR";
+  public static final String HIDE = "HIDE";
+  public static final String SHOW = "SHOW";
   public static final String CLEARDEFS = "CLEARDEFS";
   public static final String CLEARSYMBOLS = "CLEARSYMBOLS";
   public static final String DROPN = "DROPN";
@@ -519,6 +492,7 @@ public class WarpScriptLib {
   public static final String OPS = "OPS";
   public static final String MAXSYMBOLS = "MAXSYMBOLS";
   public static final String SYMBOLS = "SYMBOLS";
+  public static final String MAXJSON = "MAXJSON";
   public static final String NOW = "NOW";
   public static final String AGO = "AGO";
   public static final String MSTU = "MSTU";
@@ -553,6 +527,7 @@ public class WarpScriptLib {
   public static final String LINEON = "LINEON";
   public static final String LINEOFF = "LINEOFF";
   public static final String LMAP = "LMAP";
+  public static final String MMAP = "MMAP";
   public static final String NONNULL = "NONNULL";
   public static final String LFLATMAP = "LFLATMAP";
   public static final String STACKTOLIST = "STACKTOLIST";
@@ -644,6 +619,11 @@ public class WarpScriptLib {
   public static final String UNGZIP = "UNGZIP";
   public static final String DEFLATE = "DEFLATE";
   public static final String INFLATE = "INFLATE";
+  public static final String ECGEN = "ECGEN";
+  public static final String ECPRIVATE = "ECPRIVATE";
+  public static final String ECPUBLIC = "ECPUBLIC";
+  public static final String ECSIGN = "ECSIGN";
+  public static final String ECVERIFY = "ECVERIFY";
   public static final String RSAGEN = "RSAGEN";
   public static final String RSAENCRYPT = "RSAENCRYPT";
   public static final String RSADECRYPT = "RSADECRYPT";
@@ -782,6 +762,11 @@ public class WarpScriptLib {
   public static final String MSORT = "MSORT";
   public static final String GROUPBY = "GROUPBY";
   public static final String FILTERBY = "FILTERBY";
+  public static final String ACCEL_NOCACHE = "ACCEL.NOCACHE";
+  public static final String ACCEL_CACHE = "ACCEL.CACHE";
+  public static final String ACCEL_NOPERSIST = "ACCEL.NOPERSIST";
+  public static final String ACCEL_PERSIST = "ACCEL.PERSIST";
+  public static final String ACCEL_REPORT = "ACCEL.REPORT";
   public static final String UPDATE = "UPDATE";
   public static final String META = "META";
   public static final String METADIFF = "METADIFF";
@@ -801,6 +786,7 @@ public class WarpScriptLib {
   public static final String BUCKETSPAN = "BUCKETSPAN";
   public static final String BUCKETCOUNT = "BUCKETCOUNT";
   public static final String UNBUCKETIZE = "UNBUCKETIZE";
+  public static final String UNBUCKETIZE_CALENDAR = "UNBUCKETIZE.CALENDAR";
   public static final String LASTBUCKET = "LASTBUCKET";
   public static final String NAME = "NAME";
   public static final String LABELS = "LABELS";
@@ -823,6 +809,7 @@ public class WarpScriptLib {
   public static final String UNWRAPEMPTY = "UNWRAPEMPTY";
   public static final String UNWRAPSIZE = "UNWRAPSIZE";
   public static final String WRAPMV = "WRAPMV";
+  public static final String WRAPMVNOCOMP = "WRAPMV!";
   public static final String MVTICKSPLIT = "MVTICKSPLIT";
   public static final String MVINDEXSPLIT = "MVINDEXSPLIT";
   public static final String MVVALUES = "MVVALUES";
@@ -856,12 +843,14 @@ public class WarpScriptLib {
   public static final String NOTAFTER = "NOTAFTER";
   public static final String TSELEMENTS = "TSELEMENTS";
   public static final String ADDDAYS = "ADDDAYS";
+  public static final String ADDDURATION = "ADDDURATION";
   public static final String ADDMONTHS = "ADDMONTHS";
   public static final String ADDYEARS = "ADDYEARS";
   public static final String QUANTIZE = "QUANTIZE";
   public static final String NBOUNDS = "NBOUNDS";
   public static final String LBOUNDS = "LBOUNDS";
   public static final String BUCKETIZE = "BUCKETIZE";
+  public static final String BUCKETIZE_CALENDAR = "BUCKETIZE.CALENDAR";
   public static final String MAP = "MAP";
   public static final String FILTER = "FILTER";
   public static final String APPLY = "APPLY";
@@ -1012,6 +1001,8 @@ public class WarpScriptLib {
   public static final String PSATURATION = "Psaturation";
   public static final String PDECODE = "Pdecode";
   public static final String PIMAGE = "Pimage";
+  public static final String PSIZE = "Psize";
+  public static final String PMASK = "Pmask";
   public static final String PIMAGEMODE = "PimageMode";
   public static final String PTINT = "Ptint";
   public static final String PNOTINT = "PnoTint";
@@ -1068,10 +1059,14 @@ public class WarpScriptLib {
   public static final String TOHHCODELONG = "->HHCODELONG";
   public static final String TOGTSHHCODE = "->GTSHHCODE";
   public static final String TOGTSHHCODELONG = "->GTSHHCODELONG";
+  public static final String TOGEOCELL = "->GEOCELL";
+  public static final String TOGEOSHAPE = "->GEOSHAPE";
   public static final String TOGEOHASH = "->GEOHASH";
   public static final String TOZ = "->Z";
   public static final String TOMAT = "->MAT";
   public static final String TOVEC = "->VEC";
+  public static final String TOVARINT = "->VARINT";
+  public static final String VARINTTO = "VARINT->";
 
   public static final String LISTTO = "LIST->";
   public static final String SETTO = "SET->";
@@ -1089,17 +1084,32 @@ public class WarpScriptLib {
   public static final String TSELEMENTSTO = "TSELEMENTS->";
   public static final String HHCODETO = "HHCODE->";
   public static final String GTSHHCODETO = "GTSHHCODE->";
+  public static final String GEOCELLTO = "GEOCELL->";
+  public static final String GEOSHAPETO = "GEOSHAPE->";
   public static final String GEOHASHTO = "GEOHASH->";
+  public static final String GEOSPLIT = "GEOSPLIT";
   public static final String ZTO = "Z->";
   public static final String MATTO = "MAT->";
   public static final String VECTO = "VEC->";
 
+  public static final String GEOSHIFT = "GEOSHIFT";
   public static final String GEO_REGEXP = "GEO.REGEXP";
   public static final String GEO_OPTIMIZE = "GEO.OPTIMIZE";
+  public static final String GEO_NORMALIZE = "GEO.NORMALIZE";
   public static final String GEO_WITHIN = "GEO.WITHIN";
   public static final String GEO_INTERSECTS = "GEO.INTERSECTS";
   public static final String GEO_COVER = "GEO.COVER";
   public static final String GEO_COVER_RL = "GEO.COVER.RL";
+  public static final String HHCODE_CENTER = "HHCODE.CENTER";
+  public static final String HHCODE_BBOX = "HHCODE.BBOX";
+  public static final String HHCODE_NORTH = "HHCODE.NORTH";
+  public static final String HHCODE_SOUTH = "HHCODE.SOUTH";
+  public static final String HHCODE_EAST = "HHCODE.EAST";
+  public static final String HHCODE_WEST = "HHCODE.WEST";
+  public static final String HHCODE_NORTH_EAST = "HHCODE.NORTH.EAST";
+  public static final String HHCODE_NORTH_WEST = "HHCODE.NORTH.WEST";
+  public static final String HHCODE_SOUTH_EAST = "HHCODE.SOUTH.EAST";
+  public static final String HHCODE_SOUTH_WEST = "HHCODE.SOUTH.WEST";
 
   public static final String MAPPER_GT = "mapper.gt";
   public static final String MAPPER_GE = "mapper.ge";
@@ -1181,10 +1191,13 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new TOLIST(TOLIST));
     addNamedWarpScriptFunction(new LISTTO(LISTTO));
     addNamedWarpScriptFunction(new UNLIST(UNLIST));
+    addNamedWarpScriptFunction(new UNSET(UNSET));
     addNamedWarpScriptFunction(new TOSET(TO_SET));
     addNamedWarpScriptFunction(new SETTO(SETTO));
     addNamedWarpScriptFunction(new TOVECTOR(TO_VECTOR));
     addNamedWarpScriptFunction(new VECTORTO(VTO));
+    addNamedWarpScriptFunction(new TOVARINT(TOVARINT));
+    addNamedWarpScriptFunction(new VARINTTO(VARINTTO));
     addNamedWarpScriptFunction(new UNION(UNION));
     addNamedWarpScriptFunction(new INTERSECTION(INTERSECTION));
     addNamedWarpScriptFunction(new DIFFERENCE(DIFFERENCE));
@@ -1216,6 +1229,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new DUPN(DUPN));
     addNamedWarpScriptFunction(new SWAP(SWAP));
     addNamedWarpScriptFunction(new DROP(DROP));
+    addNamedWarpScriptFunction(new HIDE(HIDE));
+    addNamedWarpScriptFunction(new SHOW(SHOW));
     addNamedWarpScriptFunction(new SAVE(SAVE));
     addNamedWarpScriptFunction(new RESTORE(RESTORE));
     addNamedWarpScriptFunction(new CLEAR(CLEAR));
@@ -1238,6 +1253,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new OPS(OPS));
     addNamedWarpScriptFunction(new MAXSYMBOLS(MAXSYMBOLS));
     addNamedWarpScriptFunction(new SYMBOLS(SYMBOLS));
+    addNamedWarpScriptFunction(new MAXJSON(MAXJSON));
     addNamedWarpScriptFunction(new EVAL(EVAL));
     addNamedWarpScriptFunction(new NOW(NOW));
     addNamedWarpScriptFunction(new AGO(AGO));
@@ -1280,8 +1296,9 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new LINEON(LINEON));
     addNamedWarpScriptFunction(new LINEOFF(LINEOFF));
     addNamedWarpScriptFunction(new LMAP(LMAP));
+    addNamedWarpScriptFunction(new MMAP(MMAP));
     addNamedWarpScriptFunction(new NONNULL(NONNULL));
-    addNamedWarpScriptFunction(new LFLATMAP(LFLATMAP));
+    addNamedWarpScriptFunction(new LMAP(LFLATMAP, true));
     addNamedWarpScriptFunction(new EMPTYLIST("[]"));
     addNamedWarpScriptFunction(new MARK(LIST_START));
     addNamedWarpScriptFunction(new ENDLIST(LIST_END));
@@ -1367,7 +1384,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new SUB("-"));
     addNamedWarpScriptFunction(new DIV("/"));
     addNamedWarpScriptFunction(new MUL("*"));
-    addNamedWarpScriptFunction(new POW("**"));
+    addNamedWarpScriptFunction(new NumericalBinaryFunction("**", NumericalBinaryFunction.toLongBinaryOperator(Math::pow), Math::pow, false));
     addNamedWarpScriptFunction(new MOD("%"));
     addNamedWarpScriptFunction(new EQ(EQ));
     addNamedWarpScriptFunction(new NE("!="));
@@ -1398,7 +1415,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new COMPLEMENT("~"));
     addNamedWarpScriptFunction(new REVERSEBITS(REVBITS));
     addNamedWarpScriptFunction(new NOT(NOT));
-    addNamedWarpScriptFunction(new ABS(ABS));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(ABS, Math::abs, Math::abs));
     addNamedWarpScriptFunction(new TODOUBLE(TODOUBLE));
     addNamedWarpScriptFunction(new TOBOOLEAN(TOBOOLEAN));
     addNamedWarpScriptFunction(new TOLONG(TOLONG));
@@ -1442,6 +1459,11 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new UNGZIP(UNGZIP));
     addNamedWarpScriptFunction(new DEFLATE(DEFLATE));
     addNamedWarpScriptFunction(new INFLATE(INFLATE));
+    addNamedWarpScriptFunction(new ECGEN(ECGEN));
+    addNamedWarpScriptFunction(new ECPRIVATE(ECPRIVATE));
+    addNamedWarpScriptFunction(new ECPUBLIC(ECPUBLIC));
+    addNamedWarpScriptFunction(new ECSIGN(ECSIGN));
+    addNamedWarpScriptFunction(new ECVERIFY(ECVERIFY));
     addNamedWarpScriptFunction(new RSAGEN(RSAGEN));
     addNamedWarpScriptFunction(new RSAPUBLIC(RSAPUBLIC));
     addNamedWarpScriptFunction(new RSAPRIVATE(RSAPRIVATE));
@@ -1630,6 +1652,11 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new MSORT(MSORT));
     addNamedWarpScriptFunction(new GROUPBY(GROUPBY));
     addNamedWarpScriptFunction(new FILTERBY(FILTERBY));
+    addNamedWarpScriptFunction(new ACCELCACHE(ACCEL_CACHE, false));
+    addNamedWarpScriptFunction(new ACCELCACHE(ACCEL_NOCACHE, true));
+    addNamedWarpScriptFunction(new ACCELPERSIST(ACCEL_PERSIST, false));
+    addNamedWarpScriptFunction(new ACCELPERSIST(ACCEL_NOPERSIST, true));
+    addNamedWarpScriptFunction(new ACCELREPORT(ACCEL_REPORT));
     addNamedWarpScriptFunction(new UPDATE(UPDATE));
     addNamedWarpScriptFunction(new META(META));
     addNamedWarpScriptFunction(new META(METADIFF, true));    
@@ -1641,13 +1668,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new REPLACE(REPLACEALL, true));
     addNamedWarpScriptFunction(new REOPTALT(REOPTALT));
     
-    if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_1_8)) {
-      addNamedWarpScriptFunction(new TEMPLATE(TEMPLATE));
-      addNamedWarpScriptFunction(new TOTIMESTAMP(TOTIMESTAMP));
-    } else {
-      addNamedWarpScriptFunction(new FAIL(TEMPLATE, "Requires JAVA 1.8+"));
-      addNamedWarpScriptFunction(new FAIL(TOTIMESTAMP, "Requires JAVA 1.8+"));
-    }
+    addNamedWarpScriptFunction(new TEMPLATE(TEMPLATE));
+    addNamedWarpScriptFunction(new TOTIMESTAMP(TOTIMESTAMP));
 
     addNamedWarpScriptFunction(new STRINGFORMAT(STRINGFORMAT));
 
@@ -1658,6 +1680,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new BUCKETSPAN(BUCKETSPAN));
     addNamedWarpScriptFunction(new BUCKETCOUNT(BUCKETCOUNT));
     addNamedWarpScriptFunction(new UNBUCKETIZE(UNBUCKETIZE));
+    addNamedWarpScriptFunction(new UNBUCKETIZECALENDAR(UNBUCKETIZE_CALENDAR));
     addNamedWarpScriptFunction(new LASTBUCKET(LASTBUCKET));
     addNamedWarpScriptFunction(new NAME(NAME));
     addNamedWarpScriptFunction(new LABELS(LABELS));
@@ -1682,6 +1705,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new UNWRAPSIZE(UNWRAPSIZE));
     addNamedWarpScriptFunction(new UNWRAPENCODER(UNWRAPENCODER));
     addNamedWarpScriptFunction(new WRAP(WRAPMV, true, true, true, true));
+    addNamedWarpScriptFunction(new WRAP(WRAPMVNOCOMP, true, false, true, true));
     addNamedWarpScriptFunction(new TOMVSTRING(TOMVSTRING));
     addNamedWarpScriptFunction(new MVSPLIT(MVTICKSPLIT, true));
     addNamedWarpScriptFunction(new MVSPLIT(MVINDEXSPLIT, false));
@@ -1732,6 +1756,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new TSELEMENTS(TOTSELEMENTS));
     addNamedWarpScriptFunction(new FROMTSELEMENTS(TSELEMENTSTO));
     addNamedWarpScriptFunction(new ADDDAYS(ADDDAYS));
+    addNamedWarpScriptFunction(new ADDDURATION(ADDDURATION));
     addNamedWarpScriptFunction(new ADDMONTHS(ADDMONTHS));
     addNamedWarpScriptFunction(new ADDYEARS(ADDYEARS));
     
@@ -1747,6 +1772,7 @@ public class WarpScriptLib {
     //
     
     addNamedWarpScriptFunction(new BUCKETIZE(BUCKETIZE));
+    addNamedWarpScriptFunction(new BUCKETIZECALENDAR(BUCKETIZE_CALENDAR));
     addNamedWarpScriptFunction(new MAP(MAP));
     addNamedWarpScriptFunction(new FILTER(FILTER, true));
     addNamedWarpScriptFunction(new APPLY(APPLY, true));
@@ -1838,9 +1864,10 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new MapperKernelTricube("mapper.kernel.tricube"));
     addNamedWarpScriptFunction(new MapperKernelTriweight("mapper.kernel.triweight"));
     addNamedWarpScriptFunction(new MapperKernelUniform("mapper.kernel.uniform"));
-        
-    addNamedWarpScriptFunction(new Percentile.Builder("mapper.percentile"));
-    
+
+    addNamedWarpScriptFunction(new Percentile.Builder("mapper.percentile", false));
+    addNamedWarpScriptFunction(new Percentile.Builder("mapper.percentile.forbid-nulls", true));
+
     //functions.put("mapper.abscissa", new MapperSAX.Builder());
     
     addNamedWarpScriptFunction(new FilterByClass.Builder("filter.byclass"));
@@ -1848,6 +1875,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new FilterByLabels.Builder("filter.byattr", false, true));
     addNamedWarpScriptFunction(new FilterByLabels.Builder("filter.bylabelsattr", true, true));
     addNamedWarpScriptFunction(new FilterByMetadata.Builder("filter.bymetadata"));
+    addNamedWarpScriptFunction(new FilterBySelector.Builder("filter.byselector"));
+    addNamedWarpScriptFunction(new FilterBySize.Builder("filter.bysize"));
 
     addNamedWarpScriptFunction(new FilterLastEQ.Builder("filter.last.eq"));
     addNamedWarpScriptFunction(new FilterLastGE.Builder("filter.last.ge"));
@@ -1855,6 +1884,20 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new FilterLastLE.Builder("filter.last.le"));
     addNamedWarpScriptFunction(new FilterLastLT.Builder("filter.last.lt"));
     addNamedWarpScriptFunction(new FilterLastNE.Builder("filter.last.ne"));
+
+    addNamedWarpScriptFunction(new FilterAny.Builder("filter.any.eq", FilterAny.Comparator.EQ));
+    addNamedWarpScriptFunction(new FilterAny.Builder("filter.any.ge", FilterAny.Comparator.GE));
+    addNamedWarpScriptFunction(new FilterAny.Builder("filter.any.gt", FilterAny.Comparator.GT));
+    addNamedWarpScriptFunction(new FilterAny.Builder("filter.any.le", FilterAny.Comparator.LE));
+    addNamedWarpScriptFunction(new FilterAny.Builder("filter.any.lt", FilterAny.Comparator.LT));
+    addNamedWarpScriptFunction(new FilterAny.Builder("filter.any.ne", FilterAny.Comparator.NE));
+
+    addNamedWarpScriptFunction(new FilterAny.Builder("filter.all.ne", FilterAny.Comparator.EQ, true));
+    addNamedWarpScriptFunction(new FilterAny.Builder("filter.all.lt", FilterAny.Comparator.GE, true));
+    addNamedWarpScriptFunction(new FilterAny.Builder("filter.all.le", FilterAny.Comparator.GT, true));
+    addNamedWarpScriptFunction(new FilterAny.Builder("filter.all.gt", FilterAny.Comparator.LE, true));
+    addNamedWarpScriptFunction(new FilterAny.Builder("filter.all.ge", FilterAny.Comparator.LT, true));
+    addNamedWarpScriptFunction(new FilterAny.Builder("filter.all.eq", FilterAny.Comparator.NE, true));
 
     addNamedWarpScriptFunction(new LatencyFilter.Builder("filter.latencies"));
     
@@ -1875,16 +1918,36 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new TOHHCODE(TOHHCODELONG, false));
     addNamedWarpScriptFunction(new TOHHCODE(TOGTSHHCODE, true, true));
     addNamedWarpScriptFunction(new TOHHCODE(TOGTSHHCODELONG, false, true));
+    addNamedWarpScriptFunction(new TOGEOCELL(TOGEOCELL));
+    addNamedWarpScriptFunction(new TOGEOSHAPE(TOGEOSHAPE));
     addNamedWarpScriptFunction(new HHCODETO(HHCODETO));
     addNamedWarpScriptFunction(new HHCODETO(GTSHHCODETO, true));
+    addNamedWarpScriptFunction(new GEOCELLTO(GEOCELLTO));
+    addNamedWarpScriptFunction(new GEOSHAPETO(GEOSHAPETO));
+    addNamedWarpScriptFunction(new HHCODEFUNC(HHCODE_BBOX, HHCODEFUNC.HHCodeAction.BBOX));
+    addNamedWarpScriptFunction(new HHCODEFUNC(HHCODE_CENTER, HHCODEFUNC.HHCodeAction.CENTER));
+    addNamedWarpScriptFunction(new HHCODEFUNC(HHCODE_NORTH, HHCODEFUNC.HHCodeAction.NORTH));
+    addNamedWarpScriptFunction(new HHCODEFUNC(HHCODE_SOUTH, HHCODEFUNC.HHCodeAction.SOUTH));
+    addNamedWarpScriptFunction(new HHCODEFUNC(HHCODE_EAST, HHCODEFUNC.HHCodeAction.EAST));
+    addNamedWarpScriptFunction(new HHCODEFUNC(HHCODE_WEST, HHCODEFUNC.HHCodeAction.WEST));
+    addNamedWarpScriptFunction(new HHCODEFUNC(HHCODE_NORTH_EAST, HHCODEFUNC.HHCodeAction.NORTH_EAST));
+    addNamedWarpScriptFunction(new HHCODEFUNC(HHCODE_NORTH_WEST, HHCODEFUNC.HHCodeAction.NORTH_WEST));
+    addNamedWarpScriptFunction(new HHCODEFUNC(HHCODE_SOUTH_EAST, HHCODEFUNC.HHCodeAction.SOUTH_EAST));
+    addNamedWarpScriptFunction(new HHCODEFUNC(HHCODE_SOUTH_WEST, HHCODEFUNC.HHCodeAction.SOUTH_WEST));
     addNamedWarpScriptFunction(new GEOREGEXP(GEO_REGEXP));
+    addNamedWarpScriptFunction(new GEOBUFFER(GEO_BUFFER));
     addNamedWarpScriptFunction(new GeoWKT(GEO_WKT, false));
     addNamedWarpScriptFunction(new GeoWKT(GEO_WKT_UNIFORM, true));
     addNamedWarpScriptFunction(new GeoWKB(GEO_WKB, false));
     addNamedWarpScriptFunction(new GeoWKB(GEO_WKB_UNIFORM, true));
     addNamedWarpScriptFunction(new GeoJSON(GEO_JSON, false));
     addNamedWarpScriptFunction(new GeoJSON(GEO_JSON_UNIFORM, true));
+    addNamedWarpScriptFunction(new TOGEOJSON(TOGEOJSON));
+    addNamedWarpScriptFunction(new TOWKT(TOWKT));
+    addNamedWarpScriptFunction(new TOWKB(TOWKB));
     addNamedWarpScriptFunction(new GEOOPTIMIZE(GEO_OPTIMIZE));
+    addNamedWarpScriptFunction(new GEONORMALIZE(GEO_NORMALIZE));
+    addNamedWarpScriptFunction(new GEOSHIFT(GEOSHIFT));
     addNamedWarpScriptFunction(new GeoIntersection(GEO_INTERSECTION));
     addNamedWarpScriptFunction(new GeoUnion(GEO_UNION));
     addNamedWarpScriptFunction(new GeoSubtraction(GEO_DIFFERENCE));
@@ -1893,15 +1956,18 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new HAVERSINE(HAVERSINE));
     addNamedWarpScriptFunction(new GEOPACK(GEOPACK));
     addNamedWarpScriptFunction(new GEOUNPACK(GEOUNPACK));
-    addNamedWarpScriptFunction(new MapperGeoWithin.Builder("mapper.geo.within"));
-    addNamedWarpScriptFunction(new MapperGeoOutside.Builder("mapper.geo.outside"));
-    addNamedWarpScriptFunction(new MapperGeoApproximate.Builder("mapper.geo.approximate"));
+    addNamedWarpScriptFunction(new MapperGeoWithin.Builder(MAPPER_GEO_WITHIN));
+    addNamedWarpScriptFunction(new MapperGeoOutside.Builder(MAPPER_GEO_OUTSIDE));
+    addNamedWarpScriptFunction(new MapperGeoFence.Builder(MAPPER_GEO_FENCE));
+    addNamedWarpScriptFunction(new MapperGeoApproximate.Builder(MAPPER_GEO_APPROXIMATE));
+    addNamedWarpScriptFunction(new MapperGeoClearPosition(MAPPER_GEO_CLEAR));
     addNamedWarpScriptFunction(new COPYGEO(COPYGEO));
     addNamedWarpScriptFunction(new BBOX(BBOX));
     addNamedWarpScriptFunction(new TOGEOHASH(TOGEOHASH));
     addNamedWarpScriptFunction(new GEOHASHTO(GEOHASHTO));
     addNamedWarpScriptFunction(new GEOCOVER(GEO_COVER, false));
     addNamedWarpScriptFunction(new GEOCOVER(GEO_COVER_RL, true));
+    addNamedWarpScriptFunction(new GEOSPLIT(GEOSPLIT));
     
     //
     // Counters
@@ -1952,61 +2018,61 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new TOVEC(TOVEC));
     addNamedWarpScriptFunction(new VECTO(VECTO));
 
-    addNamedWarpScriptFunction(new COS(COS));
-    addNamedWarpScriptFunction(new COSH(COSH));
-    addNamedWarpScriptFunction(new ACOS(ACOS));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(COS, null, Math::cos));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(COSH, null, Math::cosh));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(ACOS, null, Math::acos));
 
-    addNamedWarpScriptFunction(new SIN(SIN));
-    addNamedWarpScriptFunction(new SINH(SINH));
-    addNamedWarpScriptFunction(new ASIN(ASIN));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(SIN, null, Math::sin));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(SINH, null, Math::sinh));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(ASIN, null, Math::asin));
 
-    addNamedWarpScriptFunction(new TAN(TAN));
-    addNamedWarpScriptFunction(new TANH(TANH));
-    addNamedWarpScriptFunction(new ATAN(ATAN));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(TAN, null, Math::tan));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(TANH, null, Math::tanh));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(ATAN, null, Math::atan));
 
-    addNamedWarpScriptFunction(new SIGNUM(SIGNUM));
-    addNamedWarpScriptFunction(new FLOOR(FLOOR));
-    addNamedWarpScriptFunction(new CEIL(CEIL));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(SIGNUM, null, Math::signum));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(FLOOR, null, Math::floor));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(CEIL, null, Math::ceil));
     addNamedWarpScriptFunction(new ROUND(ROUND));
 
-    addNamedWarpScriptFunction(new RINT(RINT));
-    addNamedWarpScriptFunction(new NEXTUP(NEXTUP));
-    addNamedWarpScriptFunction(new ULP(ULP));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(RINT, null, Math::rint));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(ULP, null, Math::ulp));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(NEXTUP, null, Math::nextUp));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(NEXTDOWN, null, Math::nextDown));
 
-    addNamedWarpScriptFunction(new SQRT(SQRT));
-    addNamedWarpScriptFunction(new CBRT(CBRT));
-    addNamedWarpScriptFunction(new EXP(EXP));
-    addNamedWarpScriptFunction(new EXPM1(EXPM1));
-    addNamedWarpScriptFunction(new LOG(LOG_));
-    addNamedWarpScriptFunction(new LOG10(LOG10));
-    addNamedWarpScriptFunction(new LOG1P(LOG1P));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(SQRT, null, Math::sqrt));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(CBRT, null, Math::cbrt));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(EXP, null, Math::exp));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(EXPM1, null, Math::expm1));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(LOG_, null, Math::log));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(LOG10, null, Math::log10));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(LOG1P, null, Math::log1p));
 
-    addNamedWarpScriptFunction(new TORADIANS(TORADIANS));
-    addNamedWarpScriptFunction(new TODEGREES(TODEGREES));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(TORADIANS, null, Math::toRadians));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(TODEGREES, null, Math::toDegrees));
 
-    addNamedWarpScriptFunction(new MAX(MAX));
-    addNamedWarpScriptFunction(new MIN(MIN));
+    addNamedWarpScriptFunction(new NumericalBinaryFunction(MAX, Math::max, Math::max, true));
+    addNamedWarpScriptFunction(new NumericalBinaryFunction(MIN, Math::min, Math::min, true));
 
-    addNamedWarpScriptFunction(new COPYSIGN(COPYSIGN));
-    addNamedWarpScriptFunction(new HYPOT(HYPOT));
-    addNamedWarpScriptFunction(new IEEEREMAINDER(IEEEREMAINDER));
-    addNamedWarpScriptFunction(new NEXTAFTER(NEXTAFTER));
-    addNamedWarpScriptFunction(new ATAN2(ATAN2));
+    addNamedWarpScriptFunction(new NumericalBinaryFunction(COPYSIGN, null, Math::copySign, false));
+    addNamedWarpScriptFunction(new NumericalBinaryFunction(HYPOT, null, Math::hypot, false));
+    addNamedWarpScriptFunction(new NumericalBinaryFunction(IEEEREMAINDER, null, Math::IEEEremainder, false));
+    addNamedWarpScriptFunction(new NumericalBinaryFunction(NEXTAFTER, null, Math::nextAfter, false));
+    addNamedWarpScriptFunction(new NumericalBinaryFunction(ATAN2, null, Math::atan2, false));
 
-    addNamedWarpScriptFunction(new FLOORDIV(FLOORDIV));
-    addNamedWarpScriptFunction(new FLOORMOD(FLOORMOD));
+    addNamedWarpScriptFunction(new NumericalBinaryFunction(FLOORDIV, Math::floorDiv, null, false));
+    addNamedWarpScriptFunction(new NumericalBinaryFunction(FLOORMOD, Math::floorMod, null, false));
 
-    addNamedWarpScriptFunction(new ADDEXACT(ADDEXACT));
-    addNamedWarpScriptFunction(new SUBTRACTEXACT(SUBTRACTEXACT));
-    addNamedWarpScriptFunction(new MULTIPLYEXACT(MULTIPLYEXACT));
-    addNamedWarpScriptFunction(new INCREMENTEXACT(INCREMENTEXACT));
-    addNamedWarpScriptFunction(new DECREMENTEXACT(DECREMENTEXACT));
-    addNamedWarpScriptFunction(new NEGATEEXACT(NEGATEEXACT));
-    addNamedWarpScriptFunction(new TOINTEXACT(TOINTEXACT));
+    addNamedWarpScriptFunction(new NumericalBinaryFunction(ADDEXACT, Math::addExact, null, true));
+    addNamedWarpScriptFunction(new NumericalBinaryFunction(SUBTRACTEXACT, Math::subtractExact, null, true));
+    addNamedWarpScriptFunction(new NumericalBinaryFunction(MULTIPLYEXACT, Math::multiplyExact, null, true));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(INCREMENTEXACT, Math::incrementExact, null));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(DECREMENTEXACT, Math::decrementExact, null));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(NEGATEEXACT, Math::negateExact, null));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(TOINTEXACT, Math::toIntExact, null));
 
     addNamedWarpScriptFunction(new SCALB(SCALB));
     addNamedWarpScriptFunction(new RANDOM(RANDOM));
-    addNamedWarpScriptFunction(new NEXTDOWN(NEXTDOWN));
     addNamedWarpScriptFunction(new GETEXPONENT(GETEXPONENT));
     
     addNamedWarpScriptFunction(new IDENT(IDENT));
@@ -2109,6 +2175,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new Pdecode(PDECODE));
     addNamedWarpScriptFunction(new Pimage(PIMAGE));
     addNamedWarpScriptFunction(new PimageMode(PIMAGEMODE));
+    addNamedWarpScriptFunction(new Psize(PSIZE));
+    addNamedWarpScriptFunction(new Pmask(PMASK));
     addNamedWarpScriptFunction(new Ptint(PTINT));
     addNamedWarpScriptFunction(new PnoTint(PNOTINT));
     addNamedWarpScriptFunction(new Ppixels(PPIXELS));
@@ -2171,13 +2239,16 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new Min("bucketizer.min", true));
     addNamedWarpScriptFunction(new Max("bucketizer.max", true));
     addNamedWarpScriptFunction(new Mean("bucketizer.mean", false));
-    addNamedWarpScriptFunction(new Median("bucketizer.median"));
+    addNamedWarpScriptFunction(new Median("bucketizer.median", false));
+    addNamedWarpScriptFunction(new Median("bucketizer.median.forbid-nulls", true));
     addNamedWarpScriptFunction(new MAD("bucketizer.mad"));
     addNamedWarpScriptFunction(new Or("bucketizer.or", false));
     addNamedWarpScriptFunction(new Sum("bucketizer.sum", true));
     addNamedWarpScriptFunction(new Join.Builder("bucketizer.join", true, false, null));
     addNamedWarpScriptFunction(new Count("bucketizer.count", false));
-    addNamedWarpScriptFunction(new Percentile.Builder("bucketizer.percentile"));
+    addNamedWarpScriptFunction(new Percentile.Builder("bucketizer.percentile", false));
+    addNamedWarpScriptFunction(new Percentile.Builder("bucketizer.percentile.forbid-nulls", true));
+
     addNamedWarpScriptFunction(new Min("bucketizer.min.forbid-nulls", false));
     addNamedWarpScriptFunction(new Max("bucketizer.max.forbid-nulls", false));
     addNamedWarpScriptFunction(new Mean("bucketizer.mean.exclude-nulls", true));
@@ -2203,7 +2274,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new Min(MAPPER_MIN, true));
     addNamedWarpScriptFunction(new Max(MAPPER_MAX, true));
     addNamedWarpScriptFunction(new Mean("mapper.mean", false));
-    addNamedWarpScriptFunction(new Median("mapper.median"));
+    addNamedWarpScriptFunction(new Median("mapper.median", false));
+    addNamedWarpScriptFunction(new Median("mapper.median.forbid-nulls", true));
     addNamedWarpScriptFunction(new MAD("mapper.mad"));
     addNamedWarpScriptFunction(new Or("mapper.or", false));
     addNamedWarpScriptFunction(new Highest(MAPPER_HIGHEST));
@@ -2231,7 +2303,6 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new MapperTanh("mapper.tanh"));
     addNamedWarpScriptFunction(new MapperSigmoid("mapper.sigmoid"));
     addNamedWarpScriptFunction(new MapperProduct("mapper.product"));
-    addNamedWarpScriptFunction(new MapperGeoClearPosition("mapper.geo.clear"));
     addNamedWarpScriptFunction(new Count("mapper.count.exclude-nulls", true));
     addNamedWarpScriptFunction(new Count("mapper.count.include-nulls", false));
     addNamedWarpScriptFunction(new Count("mapper.count.nonnull", true));
@@ -2261,7 +2332,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new Max("reducer.max.nonnull", false));
     addNamedWarpScriptFunction(new Mean("reducer.mean", false));
     addNamedWarpScriptFunction(new Mean("reducer.mean.exclude-nulls", true));
-    addNamedWarpScriptFunction(new Median("reducer.median"));
+    addNamedWarpScriptFunction(new Median("reducer.median", false));
+    addNamedWarpScriptFunction(new Median("reducer.median.forbid-nulls", true));
     addNamedWarpScriptFunction(new MAD("reducer.mad"));
     addNamedWarpScriptFunction(new Or("reducer.or", false));
     addNamedWarpScriptFunction(new Or("reducer.or.exclude-nulls", true));
@@ -2285,7 +2357,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new Count("reducer.count.nonnull", true));
     addNamedWarpScriptFunction(new ShannonEntropy("reducer.shannonentropy.0", false));
     addNamedWarpScriptFunction(new ShannonEntropy("reducer.shannonentropy.1", true));
-    addNamedWarpScriptFunction(new Percentile.Builder("reducer.percentile"));
+    addNamedWarpScriptFunction(new Percentile.Builder("reducer.percentile", false));
+    addNamedWarpScriptFunction(new Percentile.Builder("reducer.percentile.forbid-nulls", true));
     addNamedWarpScriptFunction(new CircularMean.Builder("reducer.mean.circular", true));
     addNamedWarpScriptFunction(new CircularMean.Builder("reducer.mean.circular.exclude-nulls", false));
     addNamedWarpScriptFunction(new RMS("reducer.rms", false));
@@ -2313,10 +2386,10 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new OpGT("op.gt"));
     addNamedWarpScriptFunction(new OpLE("op.le"));
     addNamedWarpScriptFunction(new OpGE("op.ge"));
-    addNamedWarpScriptFunction(new OpAND("op.and.ignore-nulls", false));
-    addNamedWarpScriptFunction(new OpAND("op.and", true));
-    addNamedWarpScriptFunction(new OpOR("op.or.ignore-nulls", false));
-    addNamedWarpScriptFunction(new OpOR("op.or", true));
+    addNamedWarpScriptFunction(new OpBoolean("op.and.ignore-nulls", false, false));
+    addNamedWarpScriptFunction(new OpBoolean("op.and", false, true));
+    addNamedWarpScriptFunction(new OpBoolean("op.or.ignore-nulls", true, false));
+    addNamedWarpScriptFunction(new OpBoolean("op.or", true, true));
 
     /////////////////////////
 
@@ -2329,6 +2402,7 @@ public class WarpScriptLib {
       addNamedWarpScriptFunction(new POPR(POPR + i, i));
       addNamedWarpScriptFunction(new POPR(CPOPR + i, i, true));
       addNamedWarpScriptFunction(new PUSHR(PUSHR + i, i));
+      addNamedWarpScriptFunction(new RUNR(RUNR + i, i));
     }
   }
 
@@ -2435,7 +2509,7 @@ public class WarpScriptLib {
         wse.register();
         
         String namespace = props.getProperty(Configuration.CONFIG_WARPSCRIPT_NAMESPACE_PREFIX + wse.getClass().getName(), "").trim(); 
-        if (null != namespace && !"".equals(namespace)) {
+        if (!"".equals(namespace)) {
           namespace = WarpURLDecoder.decode(namespace, StandardCharsets.UTF_8);
           LOG.info("LOADED extension '" + extension + "'" + " under namespace '" + namespace + "'.");
         } else {

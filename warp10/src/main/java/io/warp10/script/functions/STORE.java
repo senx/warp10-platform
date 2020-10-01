@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ public class STORE extends NamedWarpScriptFunction implements WarpScriptStackFun
       throw new WarpScriptException(getName() + " expects a variable name or register number or a list thereof on top of the stack.");
     }
     
-    int count = 1;
+    int count = 0;
     
     // Check that each element of the list is either a LONG or a STRING
     if (var instanceof List) {
@@ -55,22 +55,26 @@ public class STORE extends NamedWarpScriptFunction implements WarpScriptStackFun
       throw new WarpScriptException(getName() + " expects " + count + " elements on the stack, only found " + stack.depth());
     }
     
-    if (count > 1) {
-      for (int i = count - 1; i >= 0; i--) {
+    if (count > 0) {
+      // Iterate from first to last symbol to make sure
+      // 1 2 3 [ 'a' 'b' 'b' ] STORE $b
+      // pushes 3
+      for (int i = 0; i < count; i++) {
         Object symbol = ((List) var).get(i);
-        
-        Object o = stack.pop();
         
         if (null == symbol) {
           continue;
         }
         
         if (symbol instanceof Long) {
-          stack.store(((Long) symbol).intValue(), o);
+          stack.store(((Long) symbol).intValue(), stack.get(count - 1 - i));
         } else {
-          stack.store(symbol.toString(), o);
+          stack.store(symbol.toString(), stack.get(count - 1 - i));
         }  
-      }      
+      }
+
+      stack.push(count);
+      stack.dropn();
     } else {
       Object o = stack.pop();
         

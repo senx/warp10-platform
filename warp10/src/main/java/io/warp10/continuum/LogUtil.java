@@ -16,6 +16,7 @@
 
 package io.warp10.continuum;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Enumeration;
@@ -25,7 +26,7 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 
-import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.json.JsonUtils;
 import io.warp10.continuum.thrift.data.LoggingEvent;
 import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
@@ -35,8 +36,6 @@ import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
-import org.boon.json.JsonSerializer;
-import org.boon.json.JsonSerializerFactory;
 
 public class LogUtil {
   
@@ -77,8 +76,11 @@ public class LogUtil {
     event = ensureLoggingEvent(event);
     
     if (null != name && null != value) {
-      JsonSerializer ser = new JsonSerializerFactory().create();    
-      event.putToAttributes(name, ser.serialize(value).toString());
+      try {
+        event.putToAttributes(name, JsonUtils.objectToJson(value));
+      } catch (IOException e) {
+        event.putToAttributes(name, "Could not JSONify: " + value);
+      }
     }
     
     return event;
@@ -161,14 +163,12 @@ public class LogUtil {
 
       t = t.getCause();
     }
-    
-    if (null == event) {
-      event = new LoggingEvent();
-    }
-    
-    JsonSerializer ser = new JsonSerializerFactory().create();    
 
-    event.putToAttributes(name, ser.serialize(stacktrace).toString());
+    try{
+      event.putToAttributes(name, JsonUtils.objectToJson(stacktrace));
+    } catch (IOException e) {
+      event.putToAttributes(name, "Could not JSONify: " + stacktrace);
+    }
     
     return event;
   }
@@ -188,10 +188,6 @@ public class LogUtil {
   public static final LoggingEvent unwrapLog(byte[] key, String logmsg) {    
     try {
       byte[] data = OrderPreservingBase64.decode(logmsg.getBytes(StandardCharsets.US_ASCII));
-      
-      if (null == data) {
-        return null;      
-      }
       
       data = CryptoUtils.unwrap(key, data);
       
@@ -238,9 +234,11 @@ public class LogUtil {
     }
     
     if (!headerMap.isEmpty()) {
-      JsonSerializer ser = new JsonSerializerFactory().create();    
-
-      event.putToAttributes(LogUtil.HTTP_HEADERS, ser.serialize(headerMap).toString());
+      try {
+      event.putToAttributes(LogUtil.HTTP_HEADERS, JsonUtils.objectToJson(headerMap));
+      } catch (IOException e) {
+        event.putToAttributes(LogUtil.HTTP_HEADERS, "Could not JSONify: " + headerMap);
+      }
     }
     
     return event;

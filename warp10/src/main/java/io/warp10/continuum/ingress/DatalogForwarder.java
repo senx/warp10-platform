@@ -39,6 +39,7 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.locks.LockSupport;
 import java.util.zip.GZIPOutputStream;
 
+import com.google.common.base.Preconditions;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
@@ -57,6 +58,7 @@ import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.script.WarpScriptException;
 import io.warp10.sensision.Sensision;
+import io.warp10.standalone.AcceleratorConfig;
 
 /**
  * Forward UPDATA/META/DELETE requests to another Warp 10 instance
@@ -263,6 +265,32 @@ public class DatalogForwarder extends Thread {
           if (action.request.isSetNow()) {
             conn.setRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_NOW_HEADERX), action.request.getNow());
           }
+          if (action.request.getAttributesSize() > 0) {
+            String accel = "";
+            if (null != action.request.getAttributes().get(AcceleratorConfig.ATTR_NOCACHE)) {
+              // The test below checks for "false" because initially the nocache attribute was set to the empty string
+              // to mean 'true', so we need to explicitely look for 'false' and invert it so the empty string is indeed
+              // synonymous for true.
+              if ("false".equals(action.request.getAttributes().get(AcceleratorConfig.ATTR_NOCACHE))) {
+                accel += AcceleratorConfig.CACHE + " ";                
+              } else {
+                accel += AcceleratorConfig.NOCACHE + " ";
+              }
+            }
+            if (null != action.request.getAttributes().get(AcceleratorConfig.ATTR_NOPERSIST)) {
+              // The test below checks for "false" because initially the nocache attribute was set to the empty string
+              // to mean 'true', so we need to explicitely look for 'false' and invert it so the empty string is indeed
+              // synonymous for true.
+              if ("false".equals(action.request.getAttributes().get(AcceleratorConfig.ATTR_NOPERSIST))) {
+                accel += AcceleratorConfig.PERSIST;                
+              } else {
+                accel += AcceleratorConfig.NOPERSIST;
+              }
+            }
+            if (!"".equals(accel)) {
+              conn.setRequestProperty(AcceleratorConfig.ACCELERATOR_HEADER, accel);
+            }
+          }
         } else {
           conn.setRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_DATALOG), action.encodedRequest);
         }
@@ -319,11 +347,6 @@ public class DatalogForwarder extends Thread {
                 }
               }
               continue;
-            } else {
-              // Ignore line if shard is not included in those we forward
-              if (!include) {
-                continue;
-              }
             }
           } else {
             // No shards defined, include everything
@@ -598,6 +621,7 @@ public class DatalogForwarder extends Thread {
 
     if (properties.containsKey(Configuration.DATALOG_PSK)) {
       this.datalogPSK = keystore.decodeKey(properties.getProperty(Configuration.DATALOG_PSK));
+      Preconditions.checkArgument((16 == this.datalogPSK.length) || (24 == this.datalogPSK.length) || (32 == this.datalogPSK.length), Configuration.DATALOG_PSK + " MUST be 128, 192 or 256 bits long.");
     } else {
       this.datalogPSK = null;
     }

@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -97,7 +97,9 @@ public class Warp10InputSplit extends InputSplit implements Writable {
   
   @Override
   public long getLength() throws IOException {
-    return 0;
+    // We return a dummy length != 0 otherwise some data frameworks
+    // may reject the split as being empty.
+    return 1;
   }
   
   @Override

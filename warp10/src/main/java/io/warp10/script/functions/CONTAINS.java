@@ -38,10 +38,10 @@ public class CONTAINS extends NamedWarpScriptFunction implements WarpScriptStack
     Object coll = stack.peek();
 
     if (coll instanceof Collection) {
-      stack.push(((Collection) coll).contains(elt));      
-    } else if (coll instanceof String) {
+      stack.push(((Collection) coll).contains(elt));
+    } else if (coll instanceof String && elt instanceof String) {
       stack.pop();
-      stack.push(coll.toString().contains(elt.toString()));
+      stack.push(((String) coll).contains((String) elt));
     } else {
       throw new WarpScriptException(getName() + " operates on a list, set or STRING.");
     }

@@ -316,11 +316,11 @@ public class GTSWrapperHelper {
     if (!wrapper.isCompressed()) {
       return wrapper.getEncoded();
     }
-    
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    
+        
     byte[] bytes = wrapper.getEncoded();
    
+    ByteArrayOutputStream baos = new ByteArrayOutputStream(bytes.length);
+
     int pass = wrapper.getCompressionPasses();
     
     while(pass > 0) {
@@ -328,7 +328,8 @@ public class GTSWrapperHelper {
       baos.reset();
       
       try {
-        GZIPInputStream gzis = new GZIPInputStream(in);
+        GZIPInputStream gzis = new GZIPInputStream(in, 2048);
+        
         byte[] buf = new byte[1024];
         
         while(true) {

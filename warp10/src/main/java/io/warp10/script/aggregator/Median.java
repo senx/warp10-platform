@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,185 +16,127 @@
 
 package io.warp10.script.aggregator;
 
+import com.geoxp.GeoXPLib;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptAggregatorFunction;
 import io.warp10.script.WarpScriptBucketizerFunction;
+import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptMapperFunction;
 import io.warp10.script.WarpScriptReducerFunction;
-import io.warp10.script.WarpScriptException;
+import io.warp10.script.binary.EQ;
 
 import java.util.Arrays;
-
-import com.geoxp.GeoXPLib;
+import java.util.Comparator;
 
 /**
  * Return the median of the values on the interval.
- * The returned location will be the median of all locations.
- * The returned elevation will be the median of all elevations.
+ * If median data point has an associated location and elevation, return it
+ * If forbidNulls and null among inputs, the function will raise an exception.
  */
-public class Median extends NamedWarpScriptFunction implements WarpScriptAggregatorFunction, WarpScriptMapperFunction, WarpScriptBucketizerFunction, WarpScriptReducerFunction {
-  
-  public Median(String name) {
+public class Median extends NamedWarpScriptFunction implements WarpScriptMapperFunction, WarpScriptBucketizerFunction, WarpScriptReducerFunction {
+
+  private final boolean forbidNulls;
+
+  public Median(String name, boolean forbidNulls) {
     super(name);
+    this.forbidNulls = forbidNulls;
   }
-  
+
   @Override
   public Object apply(Object[] args) throws WarpScriptException {
     long tick = (long) args[0];
-    long[] ticks = (long[]) args[3];
     long[] locations = (long[]) args[4];
     long[] elevations = (long[]) args[5];
-    Object[] values = (Object[]) args[6];
+    final Object[] values = (Object[]) args[6];
 
     //
-    // Sort locations, elevations
+    // count null value.
     //
-    
-    Arrays.sort(locations);
-    Arrays.sort(elevations);
-    
+    int nullCounter = 0;
+    for (Object v: values) {
+      if (null == v) {
+        nullCounter++;
+      }
+    }
+
+    if (0 != nullCounter && this.forbidNulls) {
+      throw new WarpScriptException(this.getName() + " cannot compute median of null values.");
+    }
+
+    Integer[] indices = new Integer[values.length];
+    for (int i = 0; i < indices.length; i++) {
+      indices[i] = i;
+    }
+    //
+    // sort indices from values, null at the end of the sorted array.
+    // a null is considered bigger than any other value.
+    //
+    final String functionName = this.getName();
+    Arrays.sort(indices, new Comparator<Integer>() {
+      @Override
+      public int compare(Integer idx1, Integer idx2) {
+        if (null == values[idx1] && null == values[idx2]) {
+          return 0;
+        } else if (null == values[idx1] || null == values[idx2]) {
+          return null == values[idx1] ? 1 : -1;
+        } else if (values[idx1] instanceof Number && values[idx2] instanceof Number) {
+          return EQ.compare((Number) values[idx1], (Number) values[idx2]);
+        } else {
+          throw new RuntimeException(functionName + " can only operate on numeric Geo Time Series.");
+        }
+      }
+    });
+
     long location = GeoTimeSerie.NO_LOCATION;
     long elevation = GeoTimeSerie.NO_ELEVATION;
-    
+    double median;
+
+    int nonNullLength = values.length - nullCounter;
+
     //
-    // If start and end locations are identical, set median to that value
+    // singleton case
     //
-    
-    if (locations[0] == locations[locations.length - 1]) {
-      location = locations[0];
+    if (1 == nonNullLength) {
+      return new Object[] {tick, locations[indices[0]], elevations[indices[0]], ((Number) values[indices[0]]).doubleValue()};
     } else {
-      // Remove NO_LOCATION
-      int idx = Arrays.binarySearch(locations, GeoTimeSerie.NO_LOCATION);
-      int len = locations.length;
-      
-      if (idx >= 0) {
-        int i = idx + 1;
-        while (i < locations.length && GeoTimeSerie.NO_LOCATION == locations[i]) {
-          i++;
+      if (0 == nonNullLength % 2) {
+        //
+        // even number of non null values, return mean of both values.
+        // If there is a location for both points, return centroid of locations
+        // If there is an elevation for both points, return mean of elevations
+        // If there is location or elevation for just one point, return this point. Better than nothing.
+        //
+        int low = indices[nonNullLength / 2 - 1];
+        int high = indices[nonNullLength / 2];
+        median = (((Number) values[low]).doubleValue() + ((Number) values[high]).doubleValue()) / 2.0D;
+        if (GeoTimeSerie.NO_ELEVATION != elevations[low] && GeoTimeSerie.NO_ELEVATION != elevations[high]) {
+          elevation = (elevations[low] + elevations[high]) / 2;
+        } else if (GeoTimeSerie.NO_ELEVATION != elevations[low]) {
+          elevation = elevations[low];
+        } else if (GeoTimeSerie.NO_ELEVATION != elevations[high]) {
+          elevation = elevations[high];
         }
-        // Remove the NO_LOCATION values from the array
-        if (i < locations.length) {
-          System.arraycopy(locations, i, locations, idx, locations.length - i);
-          len -= (i - idx);
+        if (GeoTimeSerie.NO_LOCATION != locations[low] && GeoTimeSerie.NO_LOCATION != locations[high]) {
+          long[] xyLow = GeoXPLib.xyFromGeoXPPoint(locations[low]);
+          long[] xyHigh = GeoXPLib.xyFromGeoXPPoint(locations[high]);
+          location = GeoXPLib.toGeoXPPoint((xyLow[0] + xyHigh[0]) / 2, (xyLow[1] + xyHigh[1]) / 2);
+        } else if (GeoTimeSerie.NO_LOCATION != locations[low]) {
+          location = locations[low];
+        } else if (GeoTimeSerie.NO_LOCATION != locations[high]) {
+          location = locations[high];
         }
-      }
-      
-      // Compute median of location
-      
-      if (0 == len % 2) {
-        double[] high = GeoXPLib.fromGeoXPPoint(locations[len / 2]);
-        double[] low = GeoXPLib.fromGeoXPPoint(locations[(len / 2) - 1]);
-        location = GeoXPLib.toGeoXPPoint((high[0] + low[0])/2.0D, (high[1] + low[1])/2.0D);
+
       } else {
-        location = locations[len / 2];
-      }      
-    }
-
-    //
-    // If start and end elevations are identical, set median to that value
-    //
-    
-    if (elevations[0] == elevations[elevations.length - 1]) {
-      elevation = elevations[0];
-    } else {
-      // Remove NO_elevation
-      int idx = Arrays.binarySearch(elevations, GeoTimeSerie.NO_ELEVATION);
-      int len = elevations.length;
-      
-      if (idx >= 0) {
-        int i = idx + 1;
-        while (i < elevations.length && GeoTimeSerie.NO_ELEVATION == elevations[i]) {
-          i++;
-        }
-        // Remove the NO_elevation values from the array
-        if (i < elevations.length) {
-          System.arraycopy(elevations, i, elevations, idx, elevations.length - i);
-          len -= (i - idx);
-        }
+        //
+        // odd number of non null values
+        //
+        location = locations[indices[nonNullLength / 2]];
+        elevation = elevations[indices[nonNullLength / 2]];
+        median = ((Number) values[indices[nonNullLength / 2]]).doubleValue();
       }
-      
-      // Compute median of elevation
-      
-      if (0 == len % 2) {
-        elevation = (elevations[len / 2] + elevations[(len / 2) - 1]) / 2L;
-      } else {
-        elevation = elevations[len / 2];
-      }      
+
     }
 
-    
-    //
-    // Remove nulls
-    //
-    
-    int nonnulls = values.length;
-    
-    for (int i = 0; i < values.length; i++) {
-      if (null == values[i]) {
-        // If the null is the last value, decrement the number of
-        // nonnulls and bail out
-        if (i == values.length - 1) {
-          nonnulls--;
-          break;
-        }
-        // Find the first non null starting from the end of the array
-        while(nonnulls > i + 1 && null == values[nonnulls - 1]) {
-          nonnulls--;          
-        }
-        
-        // Bail out if no non null value was found
-        if (i == nonnulls) {
-          break;
-        }
-        
-        values[i] = values[nonnulls - 1];        
-      }
-    }
-
-    //
-    // Remove nulls
-    //
-
-    if (nonnulls != values.length) {
-      values = Arrays.copyOf(values, nonnulls);
-    }
-    
-    //
-    // Sort values
-    //
-    Arrays.sort(values);
-
-    //
-    // If extrema are identical, use this as the median, otherwise remove nulls
-    //
-    
-    Object median = null;
-    
-    if (0 != values.length) {
-      if (values[0].equals(values[values.length - 1])) {
-        median = values[0];
-      } else {      
-        int len = values.length;
-        
-        // Compute median
-        if (0 == len % 2) {
-          Object low = values[(len / 2) - 1];
-          Object high = values[len / 2];
-          
-          if (low instanceof Long && high instanceof Long) {
-            median = ((long) low + (long) high) / 2L;
-          } else if (low instanceof Double && high instanceof Double) {
-            median = ((double) low + (double) high) / 2.0D;
-          } else {
-            throw new WarpScriptException("Unable to compute median on an even number of non numeric values.");
-          }
-        } else {
-          median = values[len / 2];
-        }
-      }      
-    }
-    
-    return new Object[] { tick, location, elevation, median };
+    return new Object[] {tick, location, elevation, median};
   }
 }

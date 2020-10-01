@@ -44,13 +44,13 @@ public class Pset extends NamedWarpScriptFunction implements WarpScriptStackFunc
     PGraphics pg = (PGraphics) params.get(0);
     
     if (params.get(3) instanceof PImage) {
-      pg.set(
+      pg.parent.set(
         ((Number) params.get(1)).intValue(),
         ((Number) params.get(2)).intValue(),
         (PImage) params.get(3)
       );            
     } else {
-      pg.set(
+      pg.parent.set(
         ((Number) params.get(1)).intValue(),
         ((Number) params.get(2)).intValue(),
         ((Number) params.get(3)).intValue()

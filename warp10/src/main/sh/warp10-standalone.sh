@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-#   Copyright 2018  SenX S.A.S.
+#   Copyright 2018-2020  SenX S.A.S.
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -25,12 +25,19 @@
 # Description:       Warp stores sensor data
 ### END INIT INFO
 
-set -euo pipefail
-
 # Source function library.
 if [[ -e /lib/lsb/init-functions ]]; then
   . /lib/lsb/init-functions
 fi
+
+# Determine Python interpreter to use
+PYTHON=$(which python3)
+PYTHON=${PYTHON:-$(which python2)}
+PYTHON=${PYTHON:-$(which python)}
+
+# Extract JAVA_OPTS before we switch to strict mode
+JAVA_OPTS=${JAVA_OPTS:-}
+set -euo pipefail
 
 #JAVA_HOME=/opt/java8
 #WARP10_HOME=/opt/warp10-@VERSION@
@@ -126,7 +133,7 @@ LOG4J_CONF=${WARP10_HOME}/etc/log4j.properties
 JAVA_HEAP_DUMP=${WARP10_HOME}/logs/java.heapdump
 # you can specialize your metrics for this instance of Warp10
 #SENSISION_DEFAULT_LABELS=-Dsensision.default.labels=instance=warp10-test,env=dev
-JAVA_OPTS="-Djava.awt.headless=true -Dlog4j.configuration=file:${LOG4J_CONF} -Dsensision.server.port=0 ${SENSISION_DEFAULT_LABELS:-} -Dsensision.events.dir=${SENSISION_EVENTS_DIR} -Xms${WARP10_HEAP} -Xmx${WARP10_HEAP_MAX} -XX:+UseG1GC"
+JAVA_OPTS="-Djava.awt.headless=true -Dlog4j.configuration=file:${LOG4J_CONF} -Dsensision.server.port=0 ${SENSISION_DEFAULT_LABELS:-} -Dsensision.events.dir=${SENSISION_EVENTS_DIR} -Dfile.encoding=UTF-8 -Xms${WARP10_HEAP} -Xmx${WARP10_HEAP_MAX} -XX:+UseG1GC ${JAVA_OPTS}"
 export MALLOC_ARENA_MAX=1
 
 # Sed suffix allows compatibility between Linux and MacOS
@@ -338,14 +345,14 @@ bootstrap() {
   rm ${WARP10_HOME}/etc/log4j.properties${SED_SUFFIX}
 
   # Generate secrets
-  ${WARP10_HOME}/etc/generate_crypto_key.py ${WARP10_SECRETS}
+  ${PYTHON} ${WARP10_HOME}/etc/generate_crypto_key.py ${WARP10_SECRETS}
   chown -R ${WARP10_USER}:${WARP10_GROUP} ${WARP10_CONFIG_DIR}
 
 
   getConfigFiles
 
   # Edit the warp10-tokengen.mc2 to use or not the secret
-  secret=`su ${WARP10_USER} -c "${JAVACMD} -cp ${WARP10_CP} io.warp10.WarpConfig ${CONFIG_FILES} 'token.secret' | grep 'token.secret' | sed -e 's/^.*=//'"`
+  secret=`su ${WARP10_USER} -c "${JAVACMD} -cp ${WARP10_CP} -Dfile.encoding=UTF-8 io.warp10.WarpConfig ${CONFIG_FILES} . 'token.secret' | grep -e '^@CONF@ ' | sed -e 's/^@CONF@ //' | grep 'token.secret' | sed -e 's/^.*=//'"`
   if [[ "${secret}"  != "null" ]]; then
     sed -i${SED_SUFFIX} -e "s|^{{secret}}|'"${secret}"'|" ${WARP10_HOME}/templates/warp10-tokengen.mc2
   else
@@ -354,7 +361,7 @@ bootstrap() {
   rm ${WARP10_HOME}/templates/warp10-tokengen.mc2${SED_SUFFIX}
 
   # Generate read/write tokens valid for a period of 100 years. We use 'io.warp10.bootstrap' as application name.
-  su ${WARP10_USER} -c "${JAVACMD} -cp ${WARP10_JAR} io.warp10.worf.TokenGen ${CONFIG_FILES} ${WARP10_HOME}/templates/warp10-tokengen.mc2 ${WARP10_HOME}/etc/initial.tokens"
+  su ${WARP10_USER} -c "${JAVACMD} -cp ${WARP10_JAR} -Dfile.encoding=UTF-8 io.warp10.worf.TokenGen ${CONFIG_FILES} ${WARP10_HOME}/templates/warp10-tokengen.mc2 ${WARP10_HOME}/etc/initial.tokens"
   sed -i${SED_SUFFIX} 's/^.\{1\}//;$ s/.$//' ${WARP10_HOME}/etc/initial.tokens # Remove first and last character
   rm "${WARP10_HOME}/etc/initial.tokens${SED_SUFFIX}"
 
@@ -386,7 +393,7 @@ start() {
   getConfigFiles
 
   #
-  # Config file exists ?
+  # Config file exists?
   #
   if [[ -z "${CONFIG_FILES}" ]]; then
     echo "Config file does not exist - Use 'bootstrap' command before the very first launch (it must be run as root)"
@@ -394,7 +401,13 @@ start() {
     exit 1
   fi
 
-  LEVELDB_HOME="`${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${CONFIG_FILES} 'leveldb.home' | grep 'leveldb.home' | sed -e 's/^.*=//'`"
+  # 
+  # Extract configuration keys
+  # 
+
+  CONFIG_KEYS=$(${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} -Dfile.encoding=UTF-8 io.warp10.WarpConfig ${CONFIG_FILES} . 'leveldb.home' 'standalone.host' 'standalone.port' | grep -e '^@CONF@ ' | sed -e 's/^@CONF@ //')
+
+  LEVELDB_HOME="$(echo "${CONFIG_KEYS}" | grep -e '^leveldb\.home=' | sed -e 's/^.*=//')"
 
   #
   # Leveldb exists ?
@@ -415,14 +428,16 @@ start() {
     ${JAVACMD} ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_INIT} ${LEVELDB_HOME} >> ${WARP10_HOME}/logs/warp10.log 2>&1
   fi
 
-  WARP10_LISTENSTO_HOST="`${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${CONFIG_FILES} 'standalone.host' | grep 'standalone.host' | sed -e 's/^.*=//'`"
-  WARP10_LISTENSTO_PORT="`${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${CONFIG_FILES} 'standalone.port' | grep 'standalone.port' | sed -e 's/^.*=//'`"
+  WARP10_LISTENSTO_HOST="$(echo "${CONFIG_KEYS}" | grep -e '^standalone\.host=' | sed -e 's/^.*=//')"
+  WARP10_LISTENSTO_PORT="$(echo "${CONFIG_KEYS}" | grep -e '^standalone\.port=' | sed -e 's/^.*=//')"
   WARP10_LISTENSTO="${WARP10_LISTENSTO_HOST}:${WARP10_LISTENSTO_PORT}"
 
   #
   # Start Warp10 instance..
+  # By default, standard and error output is redirected to warp10.log file, and error output is duplicated to standard output
+  # As a consequence, if Warp 10 is launched by systemd, error messages will be in systemd journal too.
   #
-  ${JAVACMD} ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_CLASS} ${CONFIG_FILES} >> ${WARP10_HOME}/logs/warp10.log 2>&1 &
+  ${JAVACMD} ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_CLASS} ${CONFIG_FILES} >> ${WARP10_HOME}/logs/warp10.log 2> >(tee >(cat 1>&2)) &
 
   echo $! > ${PID_FILE}
 
@@ -543,7 +558,7 @@ worf() {
     echo "Usage: $0 $1 appName ttl(ms)"
     exit 1
   fi
-  ${JAVACMD} -cp ${WARP10_JAR} io.warp10.worf.Worf ${WARP10_SECRETS} -puidg -t -a $2 -ttl $3
+  ${JAVACMD} -cp ${WARP10_JAR} -Dfile.encoding=UTF-8 io.warp10.worf.Worf ${WARP10_SECRETS} -puidg -t -a $2 -ttl $3
 }
 
 repair() {
@@ -558,7 +573,7 @@ repair() {
     exit 1
   else
     echo "Repair Leveldb..."
-    ${JAVACMD} -cp ${WARP10_JAR} io.warp10.standalone.WarpRepair ${LEVELDB_HOME}
+    ${JAVACMD} -cp ${WARP10_JAR} -Dfile.encoding=UTF-8 io.warp10.standalone.WarpRepair ${LEVELDB_HOME}
   fi
 }
 

@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -176,8 +176,8 @@ public class WarpDB extends Thread implements DB {
         } else {
           throw new UnsatisfiedLinkError("Native LevelDB implementation disabled.");
         }
-      } catch (UnsatisfiedLinkError ule) {
-        ule.printStackTrace();
+      } catch (NoClassDefFoundError|UnsatisfiedLinkError e) {
+        e.printStackTrace();
         if (!javadisabled) {
           System.out.println("WARNING: falling back to pure java implementation of LevelDB.");
           db = Iq80DBFactory.factory.open(new File(home), options);
@@ -186,7 +186,7 @@ public class WarpDB extends Thread implements DB {
         }
       }                
     } catch (InterruptedException ie) {
-      throw new RuntimeException("Interrupted while opending LevelDB.", ie);
+      throw new RuntimeException("Interrupted while opening LevelDB.", ie);
     } finally {
       if (mutex.isHeldByCurrentThread()) {
         mutex.unlock();
@@ -441,19 +441,39 @@ public class WarpDB extends Thread implements DB {
     try {
       mutex.lockInterruptibly();
       
+      int pending = pendingOps.get();
+      
+      LOG.info("Waiting for " + pendingOps.get() + " pending ops to finish.");      
+      
       while(pendingOps.get() > 0 || compactionsSuspended.get()) {
+        if (pendingOps.get() != pending) {
+          pending = pendingOps.get();
+          if (pending > 0) {
+            LOG.info("Waiting for " + pendingOps.get() + " pending ops to finish.");
+          } else {
+            continue;
+          }
+        }
         LockSupport.parkNanos(100000000L);
       }
       
+      LOG.info("No more pending ops.");
+      
       try {
         // Close the db
+        LOG.info("Closing LevelDB.");
         this.db.close();
         this.db = null;
-
+        LOG.info("LevelDB closed.");
+        
+        LOG.info("Invoking offline operation.");
         Object result = callable.call();
+        LOG.info("Returned from offline operation.");
         
         // Reopen LevelDB
+        LOG.info("Opening LevelDB.");
         open(nativedisabled, javadisabled, home, options);
+        LOG.info("LevelDB now open.");
         
         return result;
       } catch (Throwable t) {
@@ -559,5 +579,35 @@ public class WarpDB extends Thread implements DB {
     } catch (InterruptedException ie) {
       throw new WarpScriptException("Interrupted while attempting to open WarpDB.", ie);
     }
+  }
+  
+  public boolean isJavaDisabled() {
+    return javadisabled;
+  }
+  
+  public boolean isNativeDisabled() {
+    return nativedisabled;
+  }
+  
+  public Options getOptions() {
+    //
+    // Clone the current options
+    //
+    
+    Options opt = new Options();
+    opt.blockRestartInterval(options.blockRestartInterval());
+    opt.blockSize(options.blockSize());
+    opt.cacheSize(options.cacheSize());
+    opt.comparator(options.comparator());
+    opt.compressionType(options.compressionType());
+    opt.createIfMissing(options.createIfMissing());
+    opt.errorIfExists(options.errorIfExists());
+    opt.logger(options.logger());
+    opt.maxOpenFiles(options.maxOpenFiles());
+    opt.paranoidChecks(options.paranoidChecks());
+    opt.verifyChecksums(options.verifyChecksums());
+    opt.writeBufferSize(options.writeBufferSize());
+    
+    return opt;
   }
 }

@@ -16,7 +16,35 @@
 
 package io.warp10.continuum.egress;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.MalformedURLException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Properties;
+import java.util.Set;
+import java.util.UUID;
+import java.util.zip.GZIPInputStream;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.eclipse.jetty.server.Request;
+import org.eclipse.jetty.server.handler.AbstractHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.warp10.ThrowableUtils;
+import io.warp10.WarpConfig;
 import io.warp10.continuum.BootstrapManager;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.LogUtil;
@@ -27,41 +55,17 @@ import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.continuum.thrift.data.LoggingEvent;
 import io.warp10.crypto.KeyStore;
+import io.warp10.script.MemoryWarpScriptStack;
+import io.warp10.script.StackUtils;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStack;
-import io.warp10.script.WarpScriptStopException;
-import io.warp10.script.functions.AUTHENTICATE;
-import io.warp10.script.MemoryWarpScriptStack;
-import io.warp10.script.StackUtils;
 import io.warp10.script.WarpScriptStack.StackContext;
+import io.warp10.script.WarpScriptStackRegistry;
+import io.warp10.script.WarpScriptStopException;
+import io.warp10.script.ext.stackps.StackPSWarpScriptExtension;
+import io.warp10.script.functions.AUTHENTICATE;
 import io.warp10.sensision.Sensision;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.zip.GZIPInputStream;
-import java.util.Properties;
-import java.util.Set;
-import java.util.UUID;
-
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import org.eclipse.jetty.server.Request;
-import org.eclipse.jetty.server.handler.AbstractHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class EgressExecHandler extends AbstractHandler {
 
@@ -110,6 +114,8 @@ public class EgressExecHandler extends AbstractHandler {
     } else {
       return;
     }
+
+    int errorCode = HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
     
     //
     // CORS header
@@ -138,7 +144,12 @@ public class EgressExecHandler extends AbstractHandler {
     //
     
     WarpScriptStack stack = new MemoryWarpScriptStack(this.storeClient, this.directoryClient);
-
+    stack.setAttribute(WarpScriptStack.ATTRIBUTE_NAME, "[EgressExecHandler " + Thread.currentThread().getName() + "]");
+    
+    if (null != req.getHeader(StackPSWarpScriptExtension.HEADER_SESSION)) {
+      stack.setAttribute(StackPSWarpScriptExtension.ATTRIBUTE_SESSION, req.getHeader(StackPSWarpScriptExtension.HEADER_SESSION));
+    }
+    
     Throwable t = null;
 
     StringBuilder scriptSB = new StringBuilder();
@@ -149,6 +160,8 @@ public class EgressExecHandler extends AbstractHandler {
     long now = System.nanoTime();
     
     try {
+      WarpConfig.setThreadProperty(WarpConfig.THREAD_PROPERTY_SESSION, UUID.randomUUID().toString());
+      
       //
       // Replace the context with the bootstrap one
       //
@@ -191,14 +204,22 @@ public class EgressExecHandler extends AbstractHandler {
       // Extract parameters from the path info and set their value as symbols
       //
       
-      String pathInfo = req.getPathInfo().substring(target.length());
+      String pathInfo = req.getPathInfo();
       
-      if (null != pathInfo && pathInfo.length() > 0) {
-        pathInfo = pathInfo.substring(1);
+      if (pathInfo != null && pathInfo.length() > Constants.API_ENDPOINT_EXEC.length() + 1) {
+        pathInfo = pathInfo.substring(Constants.API_ENDPOINT_EXEC.length() + 1);
         String[] tokens = pathInfo.split("/");
 
+        // Store the depth of the stack in case the Bootstrap leave something on the stack.
+        int initialStackDepth = stack.depth();
+
         for (String token: tokens) {
-          String[] subtokens = token.split("=");
+          String[] subtokens = token.split("=", 2);
+
+          if (2 != subtokens.length) {
+            errorCode = HttpServletResponse.SC_BAD_REQUEST;
+            throw new MalformedURLException("Each symbol definition must have at least one equal sign.");
+          }
           
           // Legit uses of URLDecoder.decode, do not replace by WarpURLDecoder
           // as the encoding is performed by the browser
@@ -212,7 +233,11 @@ public class EgressExecHandler extends AbstractHandler {
           scriptSB.append("// @param ").append(subtokens[0]).append("=").append(subtokens[1]).append("\n");
 
           stack.exec(subtokens[1]);
-          
+
+          if (1 != (stack.depth() - initialStackDepth)) {
+            throw new WarpScriptException("Each symbol definition must output one element.");
+          }
+
           stack.store(subtokens[0], stack.pop());
         }
       }
@@ -387,7 +412,7 @@ public class EgressExecHandler extends AbstractHandler {
       }
 
       if(debugDepth > 0) {        
-        resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        resp.setStatus(errorCode);
         PrintWriter pw = resp.getWriter();
         
         try {
@@ -400,15 +425,30 @@ public class EgressExecHandler extends AbstractHandler {
         } catch (WarpScriptException ee) {
         }
 
-        try { StackUtils.toJSON(pw, stack, debugDepth); } catch (WarpScriptException ee) {}
+        try {
+          // As the resulting JSON is streamed, there is no need to limit its size.
+          StackUtils.toJSON(pw, stack, debugDepth, Long.MAX_VALUE);
+        } catch (WarpScriptException ee) {
+        }
 
       } else {
-        String prefix = "ERROR line #" + lineno + ": ";
-        String msg = prefix + ThrowableUtils.getErrorMessage(t, Constants.MAX_HTTP_REASON_LENGTH - prefix.length());
-        resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msg);
+        // Check if the response is already committed. This may happen if the writer has already been written to and an
+        // error happened during the write, for instance a stack overflow caused by infinite recursion.
+        if(!resp.isCommitted()) {
+          String prefix = "";
+          // If error happened before any WarpScript execution, do not add line.
+          if (lineno > 0) {
+            prefix = "ERROR line #" + lineno + ": ";
+          }
+          String msg = prefix + ThrowableUtils.getErrorMessage(t, Constants.MAX_HTTP_REASON_LENGTH - prefix.length());
+          resp.sendError(errorCode, msg);
+        }
         return;
       }
     } finally {
+      WarpConfig.clearThreadProperties();
+      WarpScriptStackRegistry.unregister(stack);
+      
       // Clear this metric in case there was an exception
       Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_REQUESTS, Sensision.EMPTY_LABELS, 1);
       Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_TIME_US, Sensision.EMPTY_LABELS, (long) ((System.nanoTime() - now) / 1000));

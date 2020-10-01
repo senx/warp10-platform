@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -15,23 +15,6 @@
 //
 
 package io.warp10.standalone;
-
-import io.warp10.CapacityExtractorOutputStream;
-import io.warp10.continuum.TimeSource;
-import io.warp10.continuum.gts.GTSDecoder;
-import io.warp10.continuum.gts.GTSEncoder;
-import io.warp10.continuum.gts.GTSHelper;
-import io.warp10.continuum.sensision.SensisionConstants;
-import io.warp10.continuum.store.Constants;
-import io.warp10.continuum.store.GTSDecoderIterator;
-import io.warp10.continuum.store.StoreClient;
-import io.warp10.continuum.store.thrift.data.GTSWrapper;
-import io.warp10.continuum.store.thrift.data.Metadata;
-import io.warp10.crypto.KeyStore;
-import io.warp10.crypto.SipHashInline;
-import io.warp10.quasar.token.thrift.data.ReadToken;
-import io.warp10.quasar.token.thrift.data.WriteToken;
-import io.warp10.sensision.Sensision;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -59,6 +42,23 @@ import org.apache.thrift.protocol.TCompactProtocol;
 
 import com.google.common.collect.MapMaker;
 
+import io.warp10.CapacityExtractorOutputStream;
+import io.warp10.continuum.TimeSource;
+import io.warp10.continuum.gts.GTSDecoder;
+import io.warp10.continuum.gts.GTSEncoder;
+import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.sensision.SensisionConstants;
+import io.warp10.continuum.store.Constants;
+import io.warp10.continuum.store.GTSDecoderIterator;
+import io.warp10.continuum.store.StoreClient;
+import io.warp10.continuum.store.thrift.data.FetchRequest;
+import io.warp10.continuum.store.thrift.data.GTSWrapper;
+import io.warp10.continuum.store.thrift.data.Metadata;
+import io.warp10.crypto.KeyStore;
+import io.warp10.crypto.SipHashInline;
+import io.warp10.quasar.token.thrift.data.WriteToken;
+import io.warp10.sensision.Sensision;
+
 /**
  * This class implements an in memory store which handles data expiration
  * using chunks which can be discarded when they no longer belong to the
@@ -83,14 +83,14 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
    * Number of chunks
    */
   private final int chunkcount;
-
+  
   private final Properties properties;
 
   private final boolean ephemeral;
   
   private final long[] classKeyLongs;
   private final long[] labelsKeyLongs;
-
+  
   public StandaloneChunkedMemoryStore(Properties properties, KeyStore keystore) {
     this.properties = properties;
 
@@ -105,7 +105,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
       this.chunkspan = Long.parseLong(properties.getProperty(io.warp10.continuum.Configuration.IN_MEMORY_CHUNK_LENGTH, Long.toString(Long.MAX_VALUE)));      
       this.ephemeral = false;
     }    
-  
+
     this.labelsKeyLongs = SipHashInline.getKey(keystore.getKey(KeyStore.SIPHASH_LABELS));
     this.classKeyLongs = SipHashInline.getKey(keystore.getKey(KeyStore.SIPHASH_CLASS));
     
@@ -146,8 +146,22 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
   }
   
   @Override
-  public GTSDecoderIterator fetch(final ReadToken token, final List<Metadata> metadatas, final long now, final long then, final long count, final long skip, final double sample, boolean writeTimestamp, final int preBoundary, final int postBoundary) {
+  public GTSDecoderIterator fetch(FetchRequest req) {
+    final List<Metadata> metadatas = req.getMetadatas();
+    final long now = req.getNow();
+    final long then = req.getThents();
+    final long count = req.getCount();
+    final long skip = req.getSkip();
+    long step = req.getStep();
+    long timestep = req.getTimestep();
+    final double sample = req.getSample();
+    final long preBoundary = req.getPreBoundary();
+    final long postBoundary = req.getPostBoundary();
 
+    if (step > 1L || timestep > 1L) {
+      throw new RuntimeException("Parameters 'step' and 'timestep' are not supported by the in-memory store."); 
+    }
+    
     GTSDecoderIterator iterator = new GTSDecoderIterator() {
 
       private int idx = 0;
@@ -261,7 +275,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
     Metadata meta = encoder.getMetadata();
 
     // 128BITS
-    long id = null != meta ? meta.getClassId() : encoder.getClassId();
+    long id = meta.getClassId();
     
     int bidx = 0;
     
@@ -274,7 +288,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
     bytes[bidx++] = (byte) ((id >> 8) & 0xff);
     bytes[bidx++] = (byte) (id & 0xff);
     
-    id = null != meta ? meta.getLabelsId() : encoder.getLabelsId();
+    id = meta.getLabelsId();
 
     bytes[bidx++] = (byte) ((id >> 56) & 0xff);
     bytes[bidx++] = (byte) ((id >> 48) & 0xff);
@@ -320,12 +334,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
       if (plasmaHandler.hasSubscriptions()) {
         plasmaHandler.publish(encoder);
       }
-    }
-  }
-  
-  @Override
-  public void archive(int chunk, GTSEncoder encoder) throws IOException {
-    throw new IOException("in-memory platform does not support archiving.");
+    }    
   }
   
   @Override
@@ -346,9 +355,18 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
       maxalloc = Long.parseLong(properties.getProperty(io.warp10.continuum.Configuration.STANDALONE_MEMORY_GC_MAXALLOC));
     }
     
+    long delayns = 1000000L * Math.min(Long.MAX_VALUE / 1000000L, gcperiod / Constants.TIME_UNITS_PER_MS);
+    
     while(true) {
-      LockSupport.parkNanos(1000000L * (gcperiod / Constants.TIME_UNITS_PER_MS));
+      // Do not reclaim data for ephemeral setups
+      if (this.ephemeral) {
+        Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_GTS, Sensision.EMPTY_LABELS, this.series.size());
+        LockSupport.parkNanos(30 * 1000000000L);
+        continue;
+      }
 
+      LockSupport.parkNanos(delayns);
+            
       List<BigInteger> metadatas = new ArrayList<BigInteger>();
       metadatas.addAll(this.series.keySet());
 
@@ -439,6 +457,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
       
       Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_BYTES, Sensision.EMPTY_LABELS, bytes);
       Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_DATAPOINTS, Sensision.EMPTY_LABELS, datapoints);
+      Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_GTS, Sensision.EMPTY_LABELS, this.series.size());
 
       if (datapointsdelta > 0) {
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_GC_DATAPOINTS, Sensision.EMPTY_LABELS, datapointsdelta);
@@ -454,10 +473,6 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
   
   @Override
   public long delete(WriteToken token, Metadata metadata, long start, long end) throws IOException {
-    if (Long.MIN_VALUE != start || Long.MAX_VALUE != end) {
-      throw new IOException("MemoryStore only supports deleting complete Geo Time Series.");
-    }
-    
     //
     // Regen classId/labelsId
     //
@@ -494,10 +509,20 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
 
     BigInteger clslbls = new BigInteger(bytes);
 
+    InMemoryChunkSet set = null;
+    
     synchronized(this.series) {
-      this.series.remove(clslbls);
+      if (Long.MIN_VALUE == start && Long.MAX_VALUE == end) {
+        this.series.remove(clslbls);
+      } else {
+        set = this.series.get(clslbls);
+      }
     }
     
+    if (null != set) {
+      return set.delete(start, end);
+    }
+
     return 0L;
   }
   
@@ -506,6 +531,10 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
   } 
   
   public void dump(String path) throws IOException {
+    
+    if (null == this.directoryClient) {
+      return;
+    }
     
     long nano = System.nanoTime();
     int gts = 0;
@@ -668,5 +697,17 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
   
   public void setDirectoryClient(StandaloneDirectoryClient directoryClient) {
     this.directoryClient = directoryClient;
+  }
+  
+  public long getChunkSpan() {
+    return this.chunkspan;
+  }
+  
+  public int getChunkCount() {
+    return this.chunkcount;
+  }
+  
+  public int getGTSCount() {
+    return this.series.size();
   }
 }

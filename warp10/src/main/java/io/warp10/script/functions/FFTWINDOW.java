@@ -55,6 +55,10 @@ public class FFTWINDOW extends GTSStackFunction {
     Map<String,Object> params = new HashMap<String, Object>();
     
     Object window = stack.pop();
+
+    if (!(window instanceof String)) {
+      throw new WarpScriptException(getName() + " expects a STRING algorithm name.");
+    }
     
     params.put(WINDOWING_ALGORITHM, window);
     
@@ -64,7 +68,7 @@ public class FFTWINDOW extends GTSStackFunction {
   @Override
   protected Object gtsOp(Map<String, Object> params, GeoTimeSerie gts) throws WarpScriptException {
     
-    String algorithm = params.get(WINDOWING_ALGORITHM).toString().toLowerCase();
+    String algorithm = ((String) params.get(WINDOWING_ALGORITHM)).toLowerCase();
     
     GTSHelper.sort(gts);
     
@@ -77,7 +81,7 @@ public class FFTWINDOW extends GTSStackFunction {
     //
     
     if (TYPE.DOUBLE != gts.getType() && TYPE.LONG != gts.getType()) {
-      throw new WarpScriptException("Geo Time Series " + GTSHelper.buildSelector(gts) + " is not numeric.");
+      throw new WarpScriptException("Geo Time Series " + GTSHelper.buildSelector(gts, false) + " is not numeric.");
     }
     
     double window = 0.0D;

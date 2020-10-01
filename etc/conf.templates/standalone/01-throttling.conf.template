@@ -42,7 +42,7 @@ throttling.manager.rampup = 120000
 //
 // Maximum number of estimators we cache in memory
 //
-//throttling.manager.estimator.cache.size = 10000
+#throttling.manager.estimator.cache.size = 10000
 
 //
 // Default value for the rate when not configured through a file
@@ -57,4 +57,4 @@ throttling.manager.mads.default = 100000
 //
 // Default value for the maxwait timeout
 //
-//throttling.manager.maxwait.default =
+#throttling.manager.maxwait.default =

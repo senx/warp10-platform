@@ -42,7 +42,7 @@ public class Psphere extends NamedWarpScriptFunction implements WarpScriptStackF
         
     PGraphics pg = (PGraphics) params.get(0);
     
-    pg.sphere(((Number) params.get(1)).floatValue());
+    pg.parent.sphere(((Number) params.get(1)).floatValue());
     
     stack.push(pg);
         

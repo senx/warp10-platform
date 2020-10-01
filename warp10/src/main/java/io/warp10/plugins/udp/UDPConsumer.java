@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,8 +16,13 @@
 package io.warp10.plugins.udp;
 
 import io.warp10.script.MemoryWarpScriptStack;
+import io.warp10.script.WarpScriptKillException;
+import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
+import io.warp10.script.WarpScriptStackRegistry;
 import io.warp10.script.WarpScriptStopException;
+import io.warp10.warp.sdk.AbstractWarp10Plugin;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -94,7 +99,7 @@ public class UDPConsumer extends Thread {
     in.close();
 
     this.warpscript = new String(baos.toByteArray(), StandardCharsets.UTF_8);
-    this.stack = new MemoryWarpScriptStack(null, null, new Properties());
+    this.stack = new MemoryWarpScriptStack(AbstractWarp10Plugin.getExposedStoreClient(), AbstractWarp10Plugin.getExposedDirectoryClient(), new Properties());
     stack.maxLimits();
 
     try {
@@ -154,7 +159,8 @@ public class UDPConsumer extends Thread {
 
     for (int i = 0; i < this.parallelism; i++) {
 
-      final MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null, new Properties());
+      final MemoryWarpScriptStack stack = new MemoryWarpScriptStack(AbstractWarp10Plugin.getExposedStoreClient(), AbstractWarp10Plugin.getExposedDirectoryClient(), new Properties());
+      stack.setAttribute(WarpScriptStack.ATTRIBUTE_NAME, "[Warp10UDPPlugin " + socket.getLocalPort() + " #" + i + "]");
       stack.maxLimits();
 
       final LinkedBlockingQueue<List<Object>> queue = this.queues[Math.min(i, this.queues.length - 1)];
@@ -162,38 +168,43 @@ public class UDPConsumer extends Thread {
       executors[i] = new Thread() {
         @Override
         public void run() {
-          while (true) {
+          try {
+            while (true) {
+              try {
+                List<List<Object>> msgs = new ArrayList<List<Object>>();
 
-            try {
-              List<List<Object>> msgs = new ArrayList<List<Object>>();
-
-              if (timeout > 0) {
-                List<Object> msg = queue.poll(timeout, TimeUnit.MILLISECONDS);
-                if (null != msg) {
+                if (timeout > 0) {
+                  List<Object> msg = queue.poll(timeout, TimeUnit.MILLISECONDS);
+                  if (null != msg) {
+                    msgs.add(msg);
+                    queue.drainTo(msgs, maxMessages - 1);
+                  }
+                } else {
+                  List<Object> msg = queue.take();
                   msgs.add(msg);
                   queue.drainTo(msgs, maxMessages - 1);
                 }
-              } else {
-                List<Object> msg = queue.take();
-                msgs.add(msg);
-                queue.drainTo(msgs, maxMessages - 1);
+
+                stack.clear();
+
+                if (0 < msgs.size()) {
+                  stack.push(msgs);
+                } else {
+                  stack.push(null);
+                }
+
+                stack.exec(macro);
+              } catch (InterruptedException e) {
+                return;
+              } catch (WarpScriptKillException wske) {
+                return;
+              } catch (WarpScriptStopException wsse) {
+              } catch (Exception e) {
+                e.printStackTrace();
               }
-
-              stack.clear();
-
-              if (0 < msgs.size()) {
-                stack.push(msgs);
-              } else {
-                stack.push(null);
-              }
-
-              stack.exec(macro);
-            } catch (InterruptedException e) {
-              return;
-            } catch (WarpScriptStopException wsse) {
-            } catch (Exception e) {
-              e.printStackTrace();
-            }
+            }            
+          } finally {
+            WarpScriptStackRegistry.unregister(stack);
           }
         }
       };
@@ -212,12 +223,15 @@ public class UDPConsumer extends Thread {
 
         try {
           int queueIndex = 0;
+          
+          byte[] payload = Arrays.copyOfRange(packet.getData(), packet.getOffset(), packet.getOffset() + packet.getLength());
+          
           // Apply the partitioning macro if it is defined
           if (null != this.partitioner) {
             this.stack.clear();
             this.stack.push(packet.getAddress().getHostAddress());
             this.stack.push((long) packet.getPort());
-            this.stack.push(Arrays.copyOfRange(packet.getData(), packet.getOffset(), packet.getOffset() + packet.getLength()));
+            this.stack.push(payload);
             this.stack.exec(this.partitioner);
             int seq = ((Number) this.stack.pop()).intValue();
             queueIndex = seq % this.parallelism;
@@ -226,7 +240,7 @@ public class UDPConsumer extends Thread {
           ArrayList<Object> msg = new ArrayList<Object>();
           msg.add(packet.getAddress().getHostAddress());
           msg.add(packet.getPort());
-          msg.add(Arrays.copyOfRange(packet.getData(), packet.getOffset(), packet.getOffset() + packet.getLength()));
+          msg.add(payload);
 
           this.queues[queueIndex].put(msg);
 

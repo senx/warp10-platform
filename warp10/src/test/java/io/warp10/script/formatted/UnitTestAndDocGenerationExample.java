@@ -46,7 +46,7 @@ public class UnitTestAndDocGenerationExample extends RunAndGenerateDocumentation
   }
 
   protected List<String> TAGS() {
-    List<String> tags = new ArrayList<>();
+    List<String> tags = new ArrayList<String>();
     //tags.add("some tag");
     return tags;
   }

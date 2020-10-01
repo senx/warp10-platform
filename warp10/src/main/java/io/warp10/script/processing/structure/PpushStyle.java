@@ -42,7 +42,7 @@ public class PpushStyle extends NamedWarpScriptFunction implements WarpScriptSta
         
     PGraphics pg = (PGraphics) params.get(0);
     
-    pg.pushStyle();
+    pg.parent.pushStyle();
     
     stack.push(pg);
         

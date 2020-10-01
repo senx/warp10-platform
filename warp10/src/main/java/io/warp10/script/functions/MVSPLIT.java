@@ -68,6 +68,7 @@ public class MVSPLIT extends NamedWarpScriptFunction implements WarpScriptStackF
     
     boolean check = false;
     boolean includeZero = false;
+    long maxindex = Long.MIN_VALUE;
     
     if (top instanceof List) {
       
@@ -88,6 +89,9 @@ public class MVSPLIT extends NamedWarpScriptFunction implements WarpScriptStackF
             if (0L == (Long) elt) {
               includeZero = true;
             }
+            if (((Long) elt).longValue() > maxindex) {
+              maxindex = ((Long) elt).longValue();
+            }
           } else if (elt instanceof List) {
             if (2 != ((List) elt).size()) {
               throw new WarpScriptException(getName() + " expects ticks or ranges of ticks (LONGs).");
@@ -103,6 +107,10 @@ public class MVSPLIT extends NamedWarpScriptFunction implements WarpScriptStackF
             }
             
             ranges.add(range);
+            
+            if (range.getRight() > maxindex) {
+              maxindex = range.getRight();
+            }
           } else {
             throw new WarpScriptException(getName() + " expects ticks or ranges of ticks (LONGs).");
           }
@@ -251,6 +259,11 @@ public class MVSPLIT extends NamedWarpScriptFunction implements WarpScriptStackF
               }
               
               index++;
+              
+              // Early exit if we are past the last index we were interested in
+              if (!bytick && check && index > maxindex) {
+                break;
+              }
             }
           } else if (includeZero) {
             // We only have a single value, assume timestamp is 0 with no location/elevation

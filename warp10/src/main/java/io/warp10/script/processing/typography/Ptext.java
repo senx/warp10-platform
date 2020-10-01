@@ -43,20 +43,20 @@ public class Ptext extends NamedWarpScriptFunction implements WarpScriptStackFun
     PGraphics pg = (PGraphics) params.get(0);
 
     if (4 == params.size()) {
-      pg.text(
+      pg.parent.text(
           params.get(1).toString(),
           ((Number) params.get(2)).floatValue(),
           ((Number) params.get(3)).floatValue()          
       );
     } else if (5 == params.size()) {
-      pg.text(
+      pg.parent.text(
           params.get(1).toString(),
           ((Number) params.get(2)).floatValue(),
           ((Number) params.get(3)).floatValue(),          
           ((Number) params.get(4)).floatValue()          
       );
     } else if (6 == params.size()) {
-      pg.text(
+      pg.parent.text(
           params.get(1).toString(),
           ((Number) params.get(2)).floatValue(),
           ((Number) params.get(3)).floatValue(),          

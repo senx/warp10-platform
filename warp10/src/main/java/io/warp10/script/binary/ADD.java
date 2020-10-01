@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -101,7 +101,7 @@ public class ADD extends NamedWarpScriptFunction implements WarpScriptStackFunct
         type = TYPE.STRING;
       } else if (TYPE.DOUBLE == gts1.getType() || TYPE.DOUBLE == gts2.getType()) {
         type = TYPE.DOUBLE;
-      } else if (TYPE.LONG == gts1.getType() && TYPE.LONG == gts2.getType()) {
+      } else if (TYPE.LONG == gts1.getType() || TYPE.LONG == gts2.getType()) {
         type = TYPE.LONG;
       }
       
@@ -137,14 +137,19 @@ public class ADD extends NamedWarpScriptFunction implements WarpScriptStackFunct
           };
           break;
         default:
-          throw new WarpScriptException(getName() + " Invalid Geo Time Series™ type.");
+          // Leave op to null.
+          // Both GTSs are empty, thus applyBinaryOp will only apply its bucketization logic to the result.
       }
 
       GTSOpsHelper.applyBinaryOp(result, gts1, gts2, op);
-
+      
+      // If result is empty, set type and sizehint to default.
+      if (0 == result.size()) {
+        result = result.cloneEmpty();
+      }
       stack.push(result);
     } else if (op1 instanceof GeoTimeSerie || op2 instanceof GeoTimeSerie) {
-      TYPE type = TYPE.UNDEFINED;
+      TYPE type;
       
       boolean op1gts = op1 instanceof GeoTimeSerie;
       
@@ -177,38 +182,30 @@ public class ADD extends NamedWarpScriptFunction implements WarpScriptStackFunct
         } else {
           type = TYPE.STRING;
         }
+      } else {
+        throw new WarpScriptException(getName() + " can only be used with String or numeric types with a GTS.");
       }
       
       for (int i = 0; i < n; i++) {
         Object value;
-        if (op1gts) {
-          switch (type) {
-            case STRING:
+        switch (type) {
+          case STRING:
+            // Only in the case of a String the + operation is not permutative.
+            if (op1gts) {
               value = GTSHelper.valueAtIndex(gts, i).toString() + op.toString();
-              break;
-            case DOUBLE:
-              value = ((Number) GTSHelper.valueAtIndex(gts, i)).doubleValue() + ((Number) op).doubleValue();
-              break;
-            case LONG:
-              value = ((Number) GTSHelper.valueAtIndex(gts, i)).longValue() + ((Number) op).longValue();
-              break;
-            default:
-              throw new WarpScriptException(getName() + " Invalid Geo Time Series™ type.");
-          }          
-        } else {
-          switch (type) {
-            case STRING:
+            } else {
               value = op.toString() + GTSHelper.valueAtIndex(gts, i).toString();
-              break;
-            case DOUBLE:
-              value = ((Number) GTSHelper.valueAtIndex(gts, i)).doubleValue() + ((Number) op).doubleValue();
-              break;
-            case LONG:
-              value = ((Number) GTSHelper.valueAtIndex(gts, i)).longValue() + ((Number) op).longValue();
-              break;
-            default:
-              throw new WarpScriptException(getName() + " Invalid Geo Time Series™ type.");
-          }                    
+            }
+            break;
+          case DOUBLE:
+            value = ((Number) GTSHelper.valueAtIndex(gts, i)).doubleValue() + ((Number) op).doubleValue();
+            break;
+          case LONG:
+            value = ((Number) GTSHelper.valueAtIndex(gts, i)).longValue() + ((Number) op).longValue();
+            break;
+          default:
+            // Cannot happen, type is in [STRING, DOUBLE, LONG]
+            throw new WarpScriptException(getName() + " Invalid operand type.");
         }
         GTSHelper.setValue(result, GTSHelper.tickAtIndex(gts, i), GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i), value, false);
       }      

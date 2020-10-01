@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,16 +16,6 @@
 
 package io.warp10.continuum.egress;
 
-import io.warp10.WarpURLEncoder;
-import io.warp10.continuum.Configuration;
-import io.warp10.continuum.gts.GTSHelper;
-import io.warp10.continuum.store.Constants;
-import io.warp10.continuum.store.MetadataIterator;
-import io.warp10.continuum.store.thrift.data.DirectoryRequest;
-import io.warp10.continuum.store.thrift.data.Metadata;
-import io.warp10.crypto.OrderPreservingBase64;
-import io.warp10.crypto.SipHashInline;
-
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -35,12 +25,21 @@ import java.net.Proxy;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Map.Entry;
+import java.util.NoSuchElementException;
 
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.protocol.TCompactProtocol;
+
+import io.warp10.WarpURLEncoder;
+import io.warp10.continuum.Configuration;
+import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.store.Constants;
+import io.warp10.continuum.store.MetadataIterator;
+import io.warp10.continuum.store.thrift.data.DirectoryRequest;
+import io.warp10.continuum.store.thrift.data.Metadata;
+import io.warp10.crypto.OrderPreservingBase64;
+import io.warp10.crypto.SipHashInline;
 
 public class StreamingMetadataIterator extends MetadataIterator {
   
@@ -142,7 +141,7 @@ public class StreamingMetadataIterator extends MetadataIterator {
           selector.append(WarpURLEncoder.encode(entry.getValue(), StandardCharsets.UTF_8));
         }
         first = false;
-      }
+      }        
       
       selector.append("}");
 

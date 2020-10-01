@@ -52,21 +52,52 @@ public class FOREACH extends NamedWarpScriptFunction implements WarpScriptStackF
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    
-    Object macro = stack.pop(); // RUN-macro
+
+    Object top = stack.pop();
+
+    boolean pushIndex = false;
+    if (top instanceof Boolean) {
+      pushIndex = (Boolean) top;
+      top = stack.pop();
+    }
+
+    Object macro = top;// RUN-macro
+
     Object obj = stack.pop(); // LIST or MAP
     
     if (!(macro instanceof Macro)) {
       throw new WarpScriptException(getName() + " expects a macro on top of the stack.");
     }
     
-    if (!(obj instanceof List) && !(obj instanceof Map) && !(obj instanceof Iterator) && !(obj instanceof Iterable) && !(obj instanceof GeoTimeSerie) && !(obj instanceof GTSEncoder)) {
-      throw new WarpScriptException(getName() + " operates on a list, map, Geo Time Series™, ENCODER, iterator or iterable.");
+    if (!(obj instanceof Map) && !(obj instanceof Iterator) && !(obj instanceof Iterable) && !(obj instanceof GeoTimeSerie) && !(obj instanceof GTSEncoder) && !(obj instanceof String)) {
+      throw new WarpScriptException(getName() + " operates on a list, map, Geo Time Series™, ENCODER, STRING, iterator or iterable.");
     }
+
+    long index = 0;
     
+    if (obj instanceof String) {
+      final String s = (String) obj;
+      
+      obj = new Iterator<String>() {        
+        int idx = 0;
+        
+        @Override
+        public boolean hasNext() {
+          return idx < s.length();
+        }
+        @Override
+        public String next() {
+          return Character.toString(s.charAt(idx++));
+        }
+      };
+    }
+   
     if (obj instanceof List) {
       for (Object o: ((List<Object>) obj)) {
         stack.push(o);
+        if (pushIndex) {
+          stack.push(index++);
+        }
         //
         // Execute RUN-macro
         //        
@@ -82,6 +113,9 @@ public class FOREACH extends NamedWarpScriptFunction implements WarpScriptStackF
       for (Entry<Object,Object> entry: ((Map<Object,Object>) obj).entrySet()) {
         stack.push(entry.getKey());
         stack.push(entry.getValue());
+        if (pushIndex) {
+          stack.push(index++);
+        }
         try {
           stack.exec((Macro) macro);
         } catch (WarpScriptLoopBreakException elbe) {
@@ -95,6 +129,9 @@ public class FOREACH extends NamedWarpScriptFunction implements WarpScriptStackF
       while(iter.hasNext()) {
         Object o = iter.next();
         stack.push(o);
+        if (pushIndex) {
+          stack.push(index++);
+        }
         try {
           stack.exec((Macro) macro);
         } catch (WarpScriptLoopBreakException elbe) {
@@ -125,6 +162,9 @@ public class FOREACH extends NamedWarpScriptFunction implements WarpScriptStackF
         }
         elt.add(GTSHelper.valueAtIndex(gts, i));
         stack.push(elt);
+        if (pushIndex) {
+          stack.push(index++);
+        }
         try {
           stack.exec((Macro) macro);
         } catch (WarpScriptLoopBreakException elbe) {
@@ -133,7 +173,7 @@ public class FOREACH extends NamedWarpScriptFunction implements WarpScriptStackF
           // Do nothing!
         }        
       }
-    } else if (obj instanceof GTSEncoder) {
+    } else { // obj instanceof GTSEncoder
       GTSDecoder decoder = ((GTSEncoder) obj).getDecoder();
       while(decoder.next()) {
         List<Object> elt = new ArrayList<Object>(5);
@@ -155,6 +195,9 @@ public class FOREACH extends NamedWarpScriptFunction implements WarpScriptStackF
         }
         elt.add(decoder.getBinaryValue());
         stack.push(elt);
+        if (pushIndex) {
+          stack.push(index++);
+        }
         try {
           stack.exec((Macro) macro);
         } catch (WarpScriptLoopBreakException elbe) {
