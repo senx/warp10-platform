@@ -175,8 +175,7 @@ public class StandaloneShardedDirectoryClientWrapper extends StandaloneDirectory
   @Override
   public boolean register(Metadata metadata) throws IOException {
     if (null == metadata) {
-      this.client.register(null);
-      return;
+      return this.client.register(null);
     }
     
     if (null != this.filter) {

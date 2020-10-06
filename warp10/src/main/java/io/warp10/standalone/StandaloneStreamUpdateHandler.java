@@ -26,7 +26,6 @@ import io.warp10.continuum.TimeSource;
 import io.warp10.continuum.Tokens;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
-import io.warp10.continuum.ingress.DatalogForwarder;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.DirectoryClient;
@@ -332,36 +331,7 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
               if (line.startsWith("UPDATE ")) {
                 String[] subtokens = line.split("\\s+");
                 setToken(subtokens[1]);
-                
-                //
-                // Close the current datalog file if it exists
-                //
-                
-                if (null != loggingWriter) {
-                  Map<String,String> labels = new HashMap<String,String>();
-                  labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(StandardCharsets.US_ASCII)), StandardCharsets.UTF_8));
-                  labels.put(SensisionConstants.SENSISION_LABEL_TYPE, dr.getType());
-                  Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_LOGGED, labels, 1);
-
-                  if (handler.datalogSync) {
-                    loggingWriter.flush();
-                    loggingFD.sync();
-                  }
-                  loggingWriter.close();
-                  // Create hard links when multiple datalog forwarders are configured
-                  for (Path srcDir: Warp.getDatalogSrcDirs()) {
-                    try {
-                      Files.createLink(new File(srcDir.toFile(), loggingFile.getName() + DatalogForwarder.DATALOG_SUFFIX).toPath(), loggingFile.toPath());              
-                    } catch (Exception e) {
-                      throw new RuntimeException("Encountered an error while attempting to link " + loggingFile + " to " + srcDir);
-                    }
-                  }
-                  //loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));
-                  loggingFile.delete();
-                  loggingFile = null;
-                  loggingWriter = null;
-                }
-                
+                               
                 continue;
               }
 
@@ -569,27 +539,6 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
           } finally {
             WarpConfig.clearThreadProperties();
             
-            if (null != loggingWriter) {              
-              Map<String,String> labels = new HashMap<String,String>();
-              labels.put(SensisionConstants.SENSISION_LABEL_ID, new String(OrderPreservingBase64.decode(dr.getId().getBytes(StandardCharsets.US_ASCII)), StandardCharsets.UTF_8));
-              labels.put(SensisionConstants.SENSISION_LABEL_TYPE, dr.getType());
-              Sensision.update(SensisionConstants.CLASS_WARP_DATALOG_REQUESTS_LOGGED, labels, 1);
-
-              loggingWriter.close();
-              // Create hard links when multiple datalog forwarders are configured
-              for (Path srcDir: Warp.getDatalogSrcDirs()) {
-                try {
-                  Files.createLink(new File(srcDir.toFile(), loggingFile.getName() + DatalogForwarder.DATALOG_SUFFIX).toPath(), loggingFile.toPath());              
-                } catch (Exception e) {
-                  throw new RuntimeException("Encountered an error while attempting to link " + loggingFile + " to " + srcDir);
-                }
-              }
-              //loggingFile.renameTo(new File(loggingFile.getAbsolutePath() + DatalogForwarder.DATALOG_SUFFIX));
-              loggingFile.delete();
-              loggingFile = null;
-              loggingWriter = null;
-            }
-
             this.handler.storeClient.store(null);
             this.handler.directoryClient.register(null);
 

@@ -60,7 +60,6 @@ import io.warp10.continuum.egress.EgressFetchHandler;
 import io.warp10.continuum.egress.EgressFindHandler;
 import io.warp10.continuum.egress.EgressInteractiveHandler;
 import io.warp10.continuum.egress.EgressMobiusHandler;
-import io.warp10.continuum.ingress.DatalogForwarder;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.ParallelGTSDecoderIteratorWrapper;
@@ -72,7 +71,7 @@ import io.warp10.quasar.filter.QuasarTokenFilter;
 import io.warp10.script.ScriptRunner;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.sensision.Sensision;
-import io.warp10.standalone.wal.WALManager;
+import io.warp10.standalone.datalog.DatalogManager;
 import io.warp10.warp.sdk.AbstractWarp10Plugin;
 
 public class Warp extends WarpDist implements Runnable {
@@ -320,11 +319,12 @@ public class Warp extends WarpDist implements Runnable {
     StandaloneDirectoryClient sdc = null;
     StoreClient scc = null;
         
-    WALManager wm = null;
+    DatalogManager dlm = null;
     
-    if (inmemory && null != properties.getProperty(Configuration.STANDALONE_WAL_MANAGER)) {
-      Class clazz = Class.forName(properties.getProperty(Configuration.STANDALONE_WAL_MANAGER));
-      wm = (WALManager) clazz.newInstance();
+    if (null != properties.getProperty(Configuration.STANDALONE_DATALOG_MANAGER)) {
+      System.out.println("INITIALIZING DATALOG MANAGER.");
+      Class clazz = Class.forName(properties.getProperty(Configuration.STANDALONE_DATALOG_MANAGER));
+      dlm = (DatalogManager) clazz.newInstance();
     }
 
     if (inmemory) {
@@ -375,12 +375,12 @@ public class Warp extends WarpDist implements Runnable {
       scc = new StandaloneParallelStoreClientWrapper(scc);
     }
 
-    if (inmemory) {
-      sdc = WALManager.wrap(wm, sdc);
-      scc = WALManager.wrap(wm, scc);
+    sdc = DatalogManager.wrap(dlm, sdc);
+    scc = DatalogManager.wrap(dlm, scc);
 
-      // Replay the WAL
-      WALManager.replay(wm, sdc, scc);      
+    if (inmemory && null != dlm) {
+      // Replay the Datalog
+      DatalogManager.replay(dlm, sdc, scc);      
     }
     
     if (properties.containsKey(Configuration.RUNNER_ROOT)) {
@@ -400,41 +400,11 @@ public class Warp extends WarpDist implements Runnable {
     //
     
     if (!analyticsEngineOnly && properties.containsKey(Configuration.DATALOG_FORWARDERS)) {
-      // Extract the names of the forwarders and start them all, ensuring we only start each one once
-      String[] forwarders = properties.getProperty(Configuration.DATALOG_FORWARDERS).split(",");
-      
-      Set<String> names = new HashSet<String>();
-      for (String name: forwarders) {
-        names.add(name.trim());
-      }
-      
-      Set<Path> srcDirs = new HashSet<Path>();
-      
-      Path datalogdir = new File(properties.getProperty(Configuration.DATALOG_DIR)).toPath().toRealPath();
-      
-      for (String name: names) {
-        DatalogForwarder forwarder = new DatalogForwarder(name, keystore, properties);
-        
-        Path root = forwarder.getRootDir().toRealPath();
-        
-        if (datalogdir.equals(root)) {
-          throw new RuntimeException("Datalog directory '" + datalogdir + "' cannot be used as a forwarder source.");
-        }
-      
-        if (!srcDirs.add(root)) {
-          throw new RuntimeException("Duplicate datalog source directory '" + root + "'.");
-        }
-      }
-      
-      datalogSrcDirs = Collections.unmodifiableSet(srcDirs);
-      
+      //
+      // TODO(hbs): allocate DatalogManager
+      //
+            
     } else if (!analyticsEngineOnly && properties.containsKey(Configuration.DATALOG_FORWARDER_SRCDIR) && properties.containsKey(Configuration.DATALOG_FORWARDER_DSTDIR)) {
-      Path datalogdir = new File(properties.getProperty(Configuration.DATALOG_DIR)).toPath().toRealPath();
-      DatalogForwarder forwarder = new DatalogForwarder(keystore, properties);      
-      Path root = forwarder.getRootDir().toRealPath();
-      if (datalogdir.equals(root)) {
-        throw new RuntimeException("Datalog directory '" + datalogdir + "' cannot be used as the source directory of a forwarder.");
-      }
     }
     
     //

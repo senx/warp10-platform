@@ -1,29 +1,28 @@
-package io.warp10.standalone.wal;
+package io.warp10.standalone.datalog;
 
 import java.io.IOException;
-import java.util.List;
 
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.store.GTSDecoderIterator;
 import io.warp10.continuum.store.StoreClient;
+import io.warp10.continuum.store.thrift.data.FetchRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
-import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.standalone.StandalonePlasmaHandlerInterface;
 
-public class WALStoreClient implements StoreClient {
+public class DatalogStoreClient implements StoreClient {
 
-  private final WALManager manager;
+  private final DatalogManager manager;
   private final StoreClient store;
   
-  public WALStoreClient(WALManager manager, StoreClient store) {
+  public DatalogStoreClient(DatalogManager manager, StoreClient store) {
     this.manager = manager;
     this.store = store;
   }
   
   @Override
-  public GTSDecoderIterator fetch(ReadToken token, List<Metadata> metadatas, long now, long then, long count, long skip, double sample, boolean writeTimestamp, int preBoundary, int postBoundary) throws IOException {
-    return store.fetch(token, metadatas, now, then, count, skip, sample, writeTimestamp, preBoundary, postBoundary);
+  public GTSDecoderIterator fetch(FetchRequest req) throws IOException {
+    return store.fetch(req);
   }
 
   @Override
@@ -32,11 +31,6 @@ public class WALStoreClient implements StoreClient {
     // HAVE BEEN computed
     store.store(encoder);
     manager.store(encoder);
-  }
-
-  @Override
-  public void archive(int chunk, GTSEncoder encoder) throws IOException {
-    store.archive(chunk, encoder);
   }
 
   @Override

@@ -515,3 +515,119 @@ struct FetchRequest {
    */
   12: optional i64 postBoundary = 0,
 }
+
+enum DatalogRecordType {
+  UPDATE = 1,
+  DELETE = 2,
+  REGISTER = 3,
+  UNREGISTER = 4,
+}
+
+struct DatalogRecord {
+  /**
+   * Type of the Datalog Record
+   */
+  1: DatalogRecordType type,
+  
+  /**
+   * Id of the instance which created the record
+   */
+  2: string id,
+  
+  /**
+   * Timestamp of initial record creation, in ms since the Epoch
+   */
+  3: i64 timestamp,
+  
+  /**
+   * Timestamp at which the record was added to the DatalogFile. This
+   * may be different from the previous timestamp when processing a
+   * DatalogRecord which was forwarded.
+   */
+  4: i64 storeTimestamp,
+  
+  /**
+   * Associated Metadata
+   */
+  5: Metadata metadata,
+  
+  /**
+   * Optional encode base timestamp (for UPDATE messages)
+   */
+  6: optional i64 baseTimestamp = 0,
+  /**
+   * Optional encoder (for UPDATE messages)
+   */
+  7: optional binary encoder,
+  
+  /**
+   * Optional start timestamp (for DELETE messages)
+   */
+  8: optional i64 start = -9223372036854775808,
+  /**
+   * Optional end timestamp (for DELETE messages)
+   */
+  9: optional i64 stop = 9223372036854775807,
+}
+
+enum DatalogMessageType {
+  WELCOME = 1,
+  INIT = 2,
+  SEEK = 3,
+  TSEEK = 4,
+  COMMIT = 5,
+  DATA = 6,
+}
+
+struct DatalogMessage {
+  1: DatalogMessageType type,
+  
+  //
+  // Welcome related fields
+  //
+  // Nonce used for authentication and key derivation
+  2: optional i64 nonce,
+  // Timestamp used for authentication and key derivation
+  3: optional i64 timestamp,
+  // Flag indicating whether all further exchanges should be encrypted or not
+  4: optional bool encrypt,
+  
+  //
+  // Init related fields
+  //
+  11: optional string id,
+  12: optional binary sig,
+  13: optional list<i64> shards,
+  14: optional i64 shardShift,
+  
+  //
+  // Seek related fields
+  //
+  // File timestamp
+  21: optional i64 filets,
+  // MSB and LSB of the file UUID
+  22: optional i64 msb,
+  23: optional i64 lsb,
+  // Position in the file
+  24: optional i64 position,
+  
+  //
+  // TSeek related fields
+  //
+  // Minimum timestamp to consider
+  31: optional i64 seekts,
+  
+  //
+  // Commit related fields
+  //
+  41: optional string ref,
+  
+  //
+  // DATA messages
+  //
+  51: optional binary record,
+  /**
+   * Reference to use in the commit message
+   */
+  52: optional string commitref, 
+}

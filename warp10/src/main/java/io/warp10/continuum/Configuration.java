@@ -1493,9 +1493,9 @@ public class Configuration {
   public static final String LEVELDB_COMPRESSION_TYPE = "leveldb.compression.type";
  
   /**
-   * WAL Manager Fully Qualified Class Name
+   * Datalog Manager Fully Qualified Class Name
    */
-  public static final String STANDALONE_WAL_MANAGER = "standalone.wal.manager";
+  public static final String STANDALONE_DATALOG_MANAGER = "standalone.datalog.manager";
   
   /**
    * Set to true to disable the delete endpoint in the standalone version of Warp 10.
