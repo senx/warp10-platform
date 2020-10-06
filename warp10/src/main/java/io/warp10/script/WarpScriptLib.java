@@ -408,6 +408,7 @@ public class WarpScriptLib {
   
   public static final String MSGFAIL = "MSGFAIL";
   
+  public static final String ADD = "+";
   public static final String INPLACEADD = "+!";
   public static final String PUT = "PUT";
 
@@ -620,6 +621,7 @@ public class WarpScriptLib {
   public static final String DEFLATE = "DEFLATE";
   public static final String INFLATE = "INFLATE";
   public static final String ECGEN = "ECGEN";
+  public static final String ECDH = "ECDH";
   public static final String ECPRIVATE = "ECPRIVATE";
   public static final String ECPUBLIC = "ECPUBLIC";
   public static final String ECSIGN = "ECSIGN";
@@ -1379,7 +1381,7 @@ public class WarpScriptLib {
     //addNamedWarpScriptFunction(new DUMP(DUMP));
     
     // Binary ops
-    addNamedWarpScriptFunction(new ADD("+"));
+    addNamedWarpScriptFunction(new ADD(ADD));
     addNamedWarpScriptFunction(new INPLACEADD(INPLACEADD));
     addNamedWarpScriptFunction(new SUB("-"));
     addNamedWarpScriptFunction(new DIV("/"));
@@ -1460,6 +1462,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new DEFLATE(DEFLATE));
     addNamedWarpScriptFunction(new INFLATE(INFLATE));
     addNamedWarpScriptFunction(new ECGEN(ECGEN));
+    addNamedWarpScriptFunction(new ECDH(ECDH));
     addNamedWarpScriptFunction(new ECPRIVATE(ECPRIVATE));
     addNamedWarpScriptFunction(new ECPUBLIC(ECPUBLIC));
     addNamedWarpScriptFunction(new ECSIGN(ECSIGN));
