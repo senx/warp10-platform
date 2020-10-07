@@ -33,7 +33,7 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
 /**
- * Perform ECC Diffie-Hellman
+ * Perform an ECC Diffie-Hellman key agreement as per https://en.wikipedia.org/wiki/Elliptic-curve_Diffie%E2%80%93Hellman
  */
 public class ECDH extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
