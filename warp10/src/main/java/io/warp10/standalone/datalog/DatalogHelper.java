@@ -3,6 +3,7 @@ package io.warp10.standalone.datalog;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.concurrent.locks.LockSupport;
 
 import org.apache.thrift.TBase;
 import org.apache.thrift.TDeserializer;
@@ -21,18 +22,8 @@ import io.warp10.continuum.store.thrift.data.Metadata;
  * This class contains helper methods to create WAL records.
  */
 public class DatalogHelper {
-  
-  private static final String id;
-  
-  static {
-    id = WarpConfig.getProperty(Configuration.DATALOG_ID);
     
-    if (null == id) {
-      throw new RuntimeException("Datalog id MUST be set via '" + Configuration.DATALOG_ID + "'.");
-    }
-  }
-  
-  public static DatalogRecord getUpdateRecord(GTSEncoder encoder) throws IOException {
+  public static DatalogRecord getUpdateRecord(String id, GTSEncoder encoder) throws IOException {
     DatalogRecord record = new DatalogRecord();
     record.setType(DatalogRecordType.UPDATE);
     record.setId(id);
@@ -44,7 +35,7 @@ public class DatalogHelper {
     return record;
   }
   
-  public static DatalogRecord getDeleteRecord(Metadata metadata, long start, long end) throws IOException {
+  public static DatalogRecord getDeleteRecord(String id,Metadata metadata, long start, long end) throws IOException {
     DatalogRecord record = new DatalogRecord();
     record.setType(DatalogRecordType.DELETE);
     record.setId(id);
@@ -56,7 +47,7 @@ public class DatalogHelper {
     return record;
   }
   
-  public static DatalogRecord getRegisterRecord(Metadata metadata) throws IOException {
+  public static DatalogRecord getRegisterRecord(String id,Metadata metadata) throws IOException {
     DatalogRecord record = new DatalogRecord();
     record.setType(DatalogRecordType.REGISTER);
     record.setId(id);
@@ -66,7 +57,7 @@ public class DatalogHelper {
     return record;
   }
   
-  public static DatalogRecord getUnregisterRecord(Metadata metadata) throws IOException {
+  public static DatalogRecord getUnregisterRecord(String id, Metadata metadata) throws IOException {
     DatalogRecord record = new DatalogRecord();
     record.setType(DatalogRecordType.UNREGISTER);
     record.setId(id);
@@ -141,16 +132,24 @@ public class DatalogHelper {
     if (0 != size && size != len) {
       throw new IOException("Invalid blob size " + len + ", expected " + size);
     }
-    
+
     return DatalogHelper.readChunk(in, len);
   }
 
   static byte[] readChunk(InputStream in, final int size) throws IOException {
+    
     byte[] bytes = new byte[size];
-    int len = in.read(bytes);
-    if (bytes.length != len) {
-      throw new IOException("Invalid length, expected " + size + " got " + len);
+    
+    int len = 0;
+    
+    while(len < size) {
+      int nread = in.read(bytes, len, size - len);
+      if (nread < 0) {
+        throw new IOException("EOF reached.");
+      }
+      len += nread;
     }
+
     return bytes;
   }
 

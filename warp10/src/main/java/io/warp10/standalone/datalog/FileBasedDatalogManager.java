@@ -64,8 +64,10 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
 
   public static final String CONFIG_DATALOG_CONSUMER_ECC_PRIVATE = "datalog.consumer.ecc.private";
   public static final String CONFIG_DATALOG_CONSUMER_ECC_PUBLIC = "datalog.consumer.ecc.public";
+  public static final String CONFIG_DATALOG_CONSUMER_FEEDER_ECC_PUBLIC = "datalog.consumer.feeder.ecc.public";
   public static final String CONFIG_DATALOG_CONSUMER_ID = "datalog.consumer.id";
-
+  public static final String CONFIG_DATALOG_CONSUMER_EXCLUDED = "datalog.consumer.excluded";
+  
   public static final String SF_META_NOW = "now";
   public static final String SF_META_UUID = "uuid";
   public static final String SF_META_ID = "id";
@@ -203,7 +205,6 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
     LOG.info("Started Datalog manager using directory '" + dirpath + "'.");
     
     new TCPDatalogFeeder(this);
-    new TCPDatalogConsumer();
   }
   
   @Override
@@ -212,7 +213,7 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
     if (null == metadata) {
       append(null);
     } else {
-      append(DatalogHelper.getRegisterRecord(metadata));
+      append(DatalogHelper.getRegisterRecord(id, metadata));
     }
   }
 
@@ -222,7 +223,7 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
     if (null == metadata) {
       append(null);
     } else {
-      append(DatalogHelper.getUnregisterRecord(metadata));
+      append(DatalogHelper.getUnregisterRecord(id, metadata));
     }
   }
 
@@ -232,14 +233,14 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
     if (null == encoder) {
       append(null);
     } else {
-      append(DatalogHelper.getUpdateRecord(encoder));
+      append(DatalogHelper.getUpdateRecord(id, encoder));
     }
   }
 
   @Override
   protected void delete(WriteToken token, Metadata metadata, long start, long end) throws IOException {
     System.out.println("delete: " + token + " " + metadata + " " + start + " " + end);
-    append(DatalogHelper.getDeleteRecord(metadata, start, end));
+    append(DatalogHelper.getDeleteRecord(id, metadata, start, end));
   }
   
   @Override
@@ -559,7 +560,6 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
   public String getNextFile(String key) {
     synchronized(activeFiles) {      
       int idx = Collections.binarySearch(activeFiles, key);
-      System.out.println("IDX  (" + key + ") =" + idx);
 
       if (idx >= 0) {
         if (idx < activeFiles.size() - 1) {

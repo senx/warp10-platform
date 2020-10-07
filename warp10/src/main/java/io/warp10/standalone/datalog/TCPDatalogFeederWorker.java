@@ -1,6 +1,7 @@
 package io.warp10.standalone.datalog;
 
 import java.io.EOFException;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -13,7 +14,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
@@ -41,8 +41,13 @@ import io.warp10.script.MemoryWarpScriptStack;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.binary.ADD;
+import io.warp10.script.functions.ECDH;
 import io.warp10.script.functions.ECPRIVATE;
 import io.warp10.script.functions.ECPUBLIC;
+import io.warp10.script.functions.HASH;
+import io.warp10.script.functions.REVERSE;
+import io.warp10.script.functions.TOLONGBYTES;
 
 public class TCPDatalogFeederWorker extends Thread {
   
@@ -54,9 +59,9 @@ public class TCPDatalogFeederWorker extends Thread {
   public static final int CMD_SHARDS = 0x6;
   public static final int CMD_NONCE = 0x7;
   
-  static final int MAX_BLOB_SIZE = 1024;
+  static final int MAX_BLOB_SIZE = 1024 * 1024;
   
-  private static final long MAX_INFLIGHT_SIZE = 100000L;
+  private static final long MAX_INFLIGHT_SIZE = 1000000L;
   private static final int SOCKET_TIMEOUT = 300000;
   
   private static final Logger LOG = LoggerFactory.getLogger(TCPDatalogFeederWorker.class);
@@ -80,6 +85,7 @@ public class TCPDatalogFeederWorker extends Thread {
     this.clients = clients;
     this.checkmacro = checkmacro;
     
+    this.setName("[Datalog Feeder Worker]");
     this.setDaemon(true);
     this.start();
   }
@@ -100,7 +106,7 @@ public class TCPDatalogFeederWorker extends Thread {
       
       WarpScriptStack stack = new MemoryWarpScriptStack(EgressExecHandler.getExposedStoreClient(), EgressExecHandler.getExposedDirectoryClient());
       
-      boolean encrypt = "true".equals(FileBasedDatalogManager.CONFIG_DATALOG_FEEDER_ENCRYPT);
+      boolean encrypt = "true".equals(WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_FEEDER_ENCRYPT));
       
       //
       // Extract ECC private/public key
@@ -183,18 +189,19 @@ public class TCPDatalogFeederWorker extends Thread {
       msg.setTimestamp(timestamp);
       msg.setEncrypt(encrypt);
             
-      byte[] record = DatalogHelper.serialize(msg);
-      DatalogHelper.writeLong(out, record.length, 4);
-      out.write(record);
-
+      byte[] bytes = DatalogHelper.serialize(msg);
+      DatalogHelper.writeLong(out, bytes.length, 4);
+      out.write(bytes);
+      out.flush();
+      
       //
       // Read the response, it MUST be an INIT message
       //
       
-      record = DatalogHelper.readBlob(in, 0);
+      bytes = DatalogHelper.readBlob(in, 0);
 
       msg.clear();
-      DatalogHelper.deserialize(record, msg);
+      DatalogHelper.deserialize(bytes, msg);
       
       if (DatalogMessageType.INIT != msg.getType()) {
         LOG.error("Invalid " + DatalogMessageType.INIT.name() + " message.");
@@ -217,12 +224,61 @@ public class TCPDatalogFeederWorker extends Thread {
         stack.push(timestamp);
         stack.push(msg.getId());
         stack.push(msg.getSig());
-        stack.push(eccPrivate);
+        stack.push(encrypt);
         stack.run(checkmacro);
-        aesKey = (byte[]) stack.pop();
+        ECPublicKey consumerPub = (ECPublicKey) stack.pop();
         
-        if (encrypt && null == aesKey) {
-          throw new WarpScriptException("Missing encryption key.");
+        if (encrypt && null == consumerPub) {
+          throw new WarpScriptException("Missing consumer public key.");
+        }
+        
+        if (encrypt) {
+          //
+          // Key is
+          // ->LONGBYTES(SIPHASH(nonce,timestamp,secret),8)
+          // + ->LONGBYTES(SIPHASH(timestamp,nonce,secret),8)
+          // + ->LONGBYTES(SIPHASH(nonce,timestamp,CLONEREVERSE(secret)),8)
+          // + ->LONGBYTES(SIPHASH(timestamp,nonce,CLONEREVERSE(secret)),8)
+          //          
+
+          stack.clear();
+          stack.push(eccPrivate);
+          stack.push(consumerPub);
+          new ECDH(WarpScriptLib.ECDH).apply(stack);
+          byte[] secret = Hex.decode((String) stack.pop());
+          
+          stack.clear();
+          stack.push(secret);
+          stack.push(nonce);
+          stack.push(timestamp);
+          new HASH(WarpScriptLib.HASH).apply(stack);
+          stack.push(8L);
+          new TOLONGBYTES(WarpScriptLib.TOLONGBYTES).apply(stack);
+          stack.push(secret);
+          stack.push(timestamp);
+          stack.push(nonce);
+          new HASH(WarpScriptLib.HASH).apply(stack);
+          stack.push(8L);
+          new TOLONGBYTES(WarpScriptLib.TOLONGBYTES).apply(stack);
+          stack.push(secret);
+          new REVERSE(WarpScriptLib.REVERSE, false).apply(stack);
+          stack.push(nonce);
+          stack.push(timestamp);
+          new HASH(WarpScriptLib.HASH).apply(stack);
+          stack.push(8L);
+          new TOLONGBYTES(WarpScriptLib.TOLONGBYTES).apply(stack);
+          stack.push(secret);
+          new REVERSE(WarpScriptLib.REVERSE, false).apply(stack);
+          stack.push(timestamp);
+          stack.push(nonce);
+          new HASH(WarpScriptLib.HASH).apply(stack);
+          stack.push(8L);
+          new TOLONGBYTES(WarpScriptLib.TOLONGBYTES).apply(stack);
+          new ADD(WarpScriptLib.ADD).apply(stack);
+          new ADD(WarpScriptLib.ADD).apply(stack);
+          new ADD(WarpScriptLib.ADD).apply(stack);
+          
+          aesKey = (byte[]) stack.pop();          
         }
       } catch (WarpScriptException wse) {
         LOG.error("Error validating peer " + DatalogMessageType.INIT.name() + " message.", wse);
@@ -251,33 +307,30 @@ public class TCPDatalogFeederWorker extends Thread {
       // Wait for SEEK or TSEEK message
       //
       
-      record = DatalogHelper.readBlob(in, 0);
+      bytes = DatalogHelper.readBlob(in, 0);
       
       if (encrypt) {
-        record = CryptoHelper.unwrapBlob(aesKey, record);
+        bytes = CryptoHelper.unwrapBlob(aesKey, bytes);
       }
       
       msg.clear();
-      DatalogHelper.deserialize(record, msg);
+      DatalogHelper.deserialize(bytes, msg);
       
       boolean checkts = false;
       
-      System.out.println("SEEK "+ msg);
+      //System.out.println("SEEK "+ msg);
 
-      if (DatalogMessageType.SEEK.equals(msg.getType())) {
-        // Build file name from ts/uuid
-        currentFile = new String(Hex.encode(Longs.toByteArray(msg.getFilets())), StandardCharsets.US_ASCII);
-        UUID uuid = new UUID(msg.getMsb(), msg.getLsb());
-        currentFile += "." + uuid.toString() + FileBasedDatalogManager.SUFFIX;
+      if (DatalogMessageType.SEEK.equals(msg.getType())) {        // Build file name from tåås/uuid
+        currentFile = msg.getRef().replaceAll(":.*","") + FileBasedDatalogManager.SUFFIX;
         String file = this.manager.getNextFile(currentFile);
         if (!currentFile.equals(file)) {
           position = 0L;
         } else {
-          position = msg.getPosition();
+          position = Long.parseLong(msg.getRef().replaceAll("[^:]*:",  "").replaceAll(":.*", ""));
         }        
       } else if (DatalogMessageType.TSEEK.equals(msg.getType())) {
         String hexts = new String(Hex.encode(Longs.toByteArray(msg.getSeekts())), StandardCharsets.US_ASCII);
-        System.out.println("CHECKING " + hexts);
+        //System.out.println("CHECKING " + hexts);
         currentFile = this.manager.getNextFile(hexts);
 
         if (null == currentFile || !currentFile.startsWith(hexts)) {
@@ -297,7 +350,7 @@ public class TCPDatalogFeederWorker extends Thread {
         return;
       }
 
-      System.out.println("SEEK "+ msg + " >>> " + currentFile);
+      //System.out.println("SEEK "+ msg + " >>> " + currentFile);
 
       //
       // List of inflight records (file:pos:size)
@@ -341,7 +394,19 @@ public class TCPDatalogFeederWorker extends Thread {
           // Retrieve the size of the current file
           //
           
-          long len = fs.getFileStatus(path).getLen();
+          long len = 0;
+          
+          try {
+            len = fs.getFileStatus(path).getLen();
+          } catch (FileNotFoundException fnfe) {
+            // This could happen when the file was cycled between the exists test above and the check
+            previousFile = currentFile;
+            currentFile = this.manager.getNextFile(currentFile);
+            newfile = true;
+            position = 0;
+            LockSupport.parkNanos(STANDARD_WAIT);
+            continue;
+          }
           
           //
           // If the file length is less than the position then unless it is the last file, skip to the next
@@ -389,7 +454,7 @@ public class TCPDatalogFeederWorker extends Thread {
             // This is a newfile so reset checkts to false
             checkts = false;
             newfile = false;
-            System.out.println("READ " + count + " FROM " + previousFile + " >>> " + currentFile);
+            //System.out.println("READ " + count + " FROM " + previousFile + " >>> " + currentFile);
             count = 0;
           }
           
@@ -417,6 +482,8 @@ public class TCPDatalogFeederWorker extends Thread {
           //
           // Attempt to read records
           //
+          
+          limit = size >= MAX_INFLIGHT_SIZE;
           
           while(!limit) {
             // Record the current position
@@ -451,15 +518,16 @@ public class TCPDatalogFeederWorker extends Thread {
             inflight.add(ref);
             size += val.getLength();
             
-            record = DatalogHelper.serialize(msg);
+            bytes = DatalogHelper.serialize(msg);
             if (encrypt) {
-              record = CryptoHelper.wrapBlob(aesKey, record);
+              bytes = CryptoHelper.wrapBlob(aesKey, bytes);
             }
             
-            DatalogHelper.writeLong(out, record.length, 4);
-            out.write(record);
-
-            System.out.println(msg);
+            DatalogHelper.writeLong(out, bytes.length, 4);
+            out.write(bytes);
+            out.flush();
+            
+            //System.out.println("SENDING " + msg.getCommitref());
             if (size >= MAX_INFLIGHT_SIZE) {
               limit = true;
             }
@@ -470,13 +538,17 @@ public class TCPDatalogFeederWorker extends Thread {
           //
           // If we voluntarily exited the loop due to the inflight limit being reached, wait for a
           // message from our peer, either SEEK/TSEEK or COMMIT
+          // Also wait for such a message if there are inflight messages and there is input to read on the socket
           //
           
-          if (limit) {
-            System.out.println("PAUSED AFTER " + size + " BYTES.");
-            record = DatalogHelper.readBlob(in, 0);
+          if (limit || (inflight.size() > 0 && in.available() > 0)) {
+            //System.out.println("PAUSED AFTER " + size + " BYTES.");
+            bytes = DatalogHelper.readBlob(in, 0);
+            if (encrypt) {
+              bytes = CryptoHelper.unwrapBlob(aesKey, bytes);
+            }
             msg.clear();
-            DatalogHelper.deserialize(record, msg);
+            DatalogHelper.deserialize(bytes, msg);
             
             if (DatalogMessageType.COMMIT == msg.getType()) {
               // Find the index of the commit ref in the inflight list
@@ -488,19 +560,17 @@ public class TCPDatalogFeederWorker extends Thread {
               }
               
               // Commit all messages up to 'ref', updating 'size' on the fly
-              for (int i = 0; i < idx; i++) {
+              for (int i = 0; i <= idx; i++) {
                 size -= Long.parseLong(inflight.remove(0).replaceAll(".*:",""));
               }
+              //System.out.println("FEEDER INFLIGHT=" + inflight.size());
             } else if (DatalogMessageType.SEEK == msg.getType()) {
-              // Build file name from ts/uuid
-              currentFile = new String(Hex.encode(Longs.toByteArray(msg.getFilets())), StandardCharsets.US_ASCII);
-              UUID uuid = new UUID(msg.getMsb(), msg.getLsb());
-              currentFile += "." + uuid.toString() + FileBasedDatalogManager.SUFFIX;
+              currentFile = msg.getRef().replaceAll(":.*","") + FileBasedDatalogManager.SUFFIX;
               String file = this.manager.getNextFile(currentFile);
               if (!currentFile.equals(file)) {
                 position = 0L;
               } else {
-                position = msg.getPosition();
+                position = Long.parseLong(msg.getRef().replaceAll("[^:]*:",  "").replaceAll(":.*", ""));
               }        
               inflight.clear();
               size = 0;
@@ -560,6 +630,9 @@ public class TCPDatalogFeederWorker extends Thread {
       }
     } catch (IOException ioe) {
       LOG.error("Error talking to Datalog consumer.", ioe);
+    } catch (Throwable t) {
+      t.printStackTrace();
+      throw t;
     } finally {
       clients.decrementAndGet();
       if (null != this.socket) {

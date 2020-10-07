@@ -35,9 +35,12 @@ public class DatalogStoreClient implements StoreClient {
 
   @Override
   public long delete(WriteToken token, Metadata metadata, long start, long end) throws IOException {
-    long result = store.delete(token, metadata, start, end);
+    // We store the delete message BEFORE the actual delete operation, this may cause a message
+    // to be logged for a delete operation that ultimately fails, but it is in the general case better
+    // as deletes can take a long time and therefore the order of data coming after the delete for the
+    // same series could be swapped if the delete op is recorded after the op instead of before.
     manager.delete(token, metadata, start, end);
-    return result;
+    return store.delete(token, metadata, start, end);
   }
 
   @Override

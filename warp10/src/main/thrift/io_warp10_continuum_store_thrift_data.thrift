@@ -601,15 +601,10 @@ struct DatalogMessage {
   14: optional i64 shardShift,
   
   //
-  // Seek related fields
+  // Seek/Commit related field
   //
-  // File timestamp
-  21: optional i64 filets,
-  // MSB and LSB of the file UUID
-  22: optional i64 msb,
-  23: optional i64 lsb,
-  // Position in the file
-  24: optional i64 position,
+  // Seek ref <TS>.<UUID>:<POSITION>
+  21: optional string ref,
   
   //
   // TSeek related fields
@@ -618,16 +613,11 @@ struct DatalogMessage {
   31: optional i64 seekts,
   
   //
-  // Commit related fields
-  //
-  41: optional string ref,
-  
-  //
   // DATA messages
   //
   51: optional binary record,
   /**
    * Reference to use in the commit message
    */
-  52: optional string commitref, 
+  52: optional string commitref,
 }

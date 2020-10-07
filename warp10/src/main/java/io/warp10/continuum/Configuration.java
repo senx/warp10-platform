@@ -1495,7 +1495,17 @@ public class Configuration {
   /**
    * Datalog Manager Fully Qualified Class Name
    */
-  public static final String STANDALONE_DATALOG_MANAGER = "standalone.datalog.manager";
+  public static final String DATALOG_MANAGER = "datalog.manager";
+  
+  /**
+   * Comma separated list of consumer names
+   */
+  public static final String DATALOG_CONSUMERS = "datalog.consumers";
+  
+  /**
+   * Class name of consumer.
+   */
+  public static final String DATALOG_CONSUMER_CLASS = "datalog.consumer.class";
   
   /**
    * Set to true to disable the delete endpoint in the standalone version of Warp 10.

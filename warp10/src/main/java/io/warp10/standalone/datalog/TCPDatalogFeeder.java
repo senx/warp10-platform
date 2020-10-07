@@ -39,7 +39,7 @@ public class TCPDatalogFeeder extends Thread {
       throw new RuntimeException("Error initializing Datalog TCP Forwarder.", e);
     }
     this.setDaemon(true);
-    this.setName("[Datalog TCP Forwarder on port " + port + "]");
+    this.setName("[Datalog TCP Feeder on port " + port + "]");
     this.start();    
   }
   

@@ -71,6 +71,7 @@ import io.warp10.quasar.filter.QuasarTokenFilter;
 import io.warp10.script.ScriptRunner;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.sensision.Sensision;
+import io.warp10.standalone.datalog.DatalogConsumer;
 import io.warp10.standalone.datalog.DatalogManager;
 import io.warp10.warp.sdk.AbstractWarp10Plugin;
 
@@ -321,12 +322,21 @@ public class Warp extends WarpDist implements Runnable {
         
     DatalogManager dlm = null;
     
-    if (null != properties.getProperty(Configuration.STANDALONE_DATALOG_MANAGER)) {
-      System.out.println("INITIALIZING DATALOG MANAGER.");
-      Class clazz = Class.forName(properties.getProperty(Configuration.STANDALONE_DATALOG_MANAGER));
+    if (null != properties.getProperty(Configuration.DATALOG_MANAGER)) {
+      Class clazz = Class.forName(properties.getProperty(Configuration.DATALOG_MANAGER));
       dlm = (DatalogManager) clazz.newInstance();
     }
 
+    if (null != properties.getProperty(Configuration.DATALOG_CONSUMERS)) {
+      String[] consumers = properties.getProperty(Configuration.DATALOG_CONSUMERS).split(",");
+      for (String consumer: consumers) {
+        consumer = consumer.trim();        
+        Class clazz = Class.forName(WarpConfig.getProperty(Configuration.DATALOG_CONSUMER_CLASS + "." + consumer));
+        DatalogConsumer dc = (DatalogConsumer) clazz.newInstance();
+        dc.init(keystore, consumer);
+      }
+    }
+    
     if (inmemory) {
       sdc = new StandaloneDirectoryClient(null, keystore);
       
