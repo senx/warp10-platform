@@ -354,7 +354,7 @@ public class Percentile extends NamedWarpScriptFunction implements WarpScriptMap
     StringBuilder sb = new StringBuilder();
     sb.append(StackUtils.toString(this.percentile));
     sb.append(" ");
-    sb.append("type" + type);
+    sb.append("'type" + type + "'");
     sb.append(" ");
     sb.append(this.getName());
     return sb.toString();
