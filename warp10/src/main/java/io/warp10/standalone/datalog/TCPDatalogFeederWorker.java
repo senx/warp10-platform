@@ -1,3 +1,19 @@
+//
+//   Copyright 2020  SenX S.A.S.
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+//
+
 package io.warp10.standalone.datalog;
 
 import java.io.EOFException;
@@ -211,8 +227,8 @@ public class TCPDatalogFeederWorker extends Thread {
       //
       // Check signature and compute encryption key if encrypt is true
       // The check is performed by the DATALOG_CHECKMACRO macro
-      // The macro is called with nonce, timestamp, id, sig, eccpriv
-      // It returns an encryption key (or null if eccpriv is NULL) and throws an error (MSGFAIL / FAIL)
+      // The macro is called with nonce, timestamp, id, sig
+      // It returns the ECC public key associated with 'id' and throws an error (MSGFAIL / FAIL)
       // if the signature is invalid.
       //
       
@@ -224,12 +240,11 @@ public class TCPDatalogFeederWorker extends Thread {
         stack.push(timestamp);
         stack.push(msg.getId());
         stack.push(msg.getSig());
-        stack.push(encrypt);
         stack.run(checkmacro);
         ECPublicKey consumerPub = (ECPublicKey) stack.pop();
         
         if (encrypt && null == consumerPub) {
-          throw new WarpScriptException("Missing consumer public key.");
+          throw new WarpScriptException("Missing consumer public key for consumer '" + msg.getId() + "'.");
         }
         
         if (encrypt) {
