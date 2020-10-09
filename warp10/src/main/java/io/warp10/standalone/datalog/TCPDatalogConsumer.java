@@ -286,6 +286,12 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
           }
         }
         
+        if (null != excluded) {
+          for (String ex: excluded) {
+            msg.addToExcluded(ex);
+          }
+        }
+        
         bytes = DatalogHelper.serialize(msg);
         // We do not encrypt the init message since the feeder does not yet know who we
         // are

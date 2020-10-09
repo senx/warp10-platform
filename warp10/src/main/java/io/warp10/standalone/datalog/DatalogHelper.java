@@ -90,9 +90,13 @@ public class DatalogHelper {
   }
   
   public static void deserialize(byte[] bytes, TBase msg) throws IOException {
+    deserialize(bytes, 0, bytes.length, msg);
+  }
+  
+  public static void deserialize(byte[] bytes, int offset, int len, TBase msg) throws IOException {
     try {
       TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
-      deserializer.deserialize(msg, bytes);
+      deserializer.deserialize(msg, bytes, offset, len);
     } catch (TException te) {
       throw new IOException("Error deserializing record.", te);
     }

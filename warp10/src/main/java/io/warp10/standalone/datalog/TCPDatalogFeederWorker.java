@@ -27,9 +27,12 @@ import java.net.URI;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
@@ -53,6 +56,7 @@ import io.warp10.continuum.egress.EgressExecHandler;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.thrift.data.DatalogMessage;
 import io.warp10.continuum.store.thrift.data.DatalogMessageType;
+import io.warp10.continuum.store.thrift.data.DatalogRecord;
 import io.warp10.script.MemoryWarpScriptStack;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptLib;
@@ -296,12 +300,20 @@ public class TCPDatalogFeederWorker extends Thread {
       
       int[] modulus = new int[msg.getShardsSize()];
       int[] remainder = new int[modulus.length];
-      
+            
       boolean hasShards = msg.getShardsSize() > 0;
       for (int i = 0; i< modulus.length; i++) {
         long shard = msg.getShards().get(i);
         modulus[i] = (int) ((shard >>> 32) & 0xFFFFFFFFL);
         remainder[i] = (int) (shard & 0xFFFFFFFFL);
+      }
+      
+      // Store the excluded ids
+      
+      List<String> excluded = null;
+      
+      if (msg.getExcludedSize() > 0) {
+        excluded = new ArrayList<String>(msg.getExcluded());
       }
       
       // This is the number of bits to shift the <classID><labelsID> combo to the right, defaults to 48.
@@ -535,6 +547,16 @@ public class TCPDatalogFeederWorker extends Thread {
               }
             }
             
+            if (null != excluded) {
+              DatalogRecord record = new DatalogRecord();
+              DatalogHelper.deserialize(val.getBytes(), 0, val.getLength(), record);
+              
+              // Ignore the record if it contains the id which created this record
+              if (excluded.contains(record.getId())) {
+                continue;
+              }
+            }
+            
             //
             // Send the record and keep track of it in the list of in flight records
             //
@@ -648,7 +670,7 @@ public class TCPDatalogFeederWorker extends Thread {
         } catch (SocketTimeoutException ste) {
           LOG.error("Timeout exceeded while waiting for input.", ste);
           return;
-        } catch (EOFException eofe) {
+        } catch (EOFException|FileNotFoundException e) {
           LockSupport.parkNanos(STANDARD_WAIT / 10);
         } catch (Throwable t) {
           t.printStackTrace();

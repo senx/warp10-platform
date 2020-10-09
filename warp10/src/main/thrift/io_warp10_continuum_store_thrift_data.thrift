@@ -599,6 +599,7 @@ struct DatalogMessage {
   12: optional binary sig,
   13: optional list<i64> shards,
   14: optional i64 shardShift,
+  15: optional list<string> excluded,
   
   //
   // Seek/Commit related field
@@ -616,6 +617,7 @@ struct DatalogMessage {
   // DATA messages
   //
   51: optional binary record,
+  
   /**
    * Reference to use in the commit message
    */
