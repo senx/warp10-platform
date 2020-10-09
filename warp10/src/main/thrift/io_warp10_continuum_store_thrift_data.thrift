@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -514,4 +514,8 @@ struct FetchRequest {
    * Size of the post boundary in number of data points.
    */
   12: optional i64 postBoundary = 0,
+  /**
+   * Flag indicating we want to return the HBase celle TTL instead of the value
+   */
+  13: optional bool TTL = false;
 }
