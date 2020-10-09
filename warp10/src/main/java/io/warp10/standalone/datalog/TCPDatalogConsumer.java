@@ -40,11 +40,8 @@ import com.geoxp.oss.CryptoHelper;
 import com.google.common.primitives.Longs;
 
 import io.warp10.WarpConfig;
-import io.warp10.continuum.egress.EgressExecHandler;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.store.Constants;
-import io.warp10.continuum.store.DirectoryClient;
-import io.warp10.continuum.store.StoreClient;
 import io.warp10.continuum.store.thrift.data.DatalogMessage;
 import io.warp10.continuum.store.thrift.data.DatalogMessageType;
 import io.warp10.continuum.store.thrift.data.DatalogRecord;
@@ -79,9 +76,6 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
   private ECPublicKey eccPublic;
 
   private String id;
-  
-  private StoreClient storeClient;
-  private DirectoryClient directoryClient;
   
   /**
    * Set of IDs whose messages are ignored
@@ -518,17 +512,14 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
   }
   
   @Override
-  public void init(KeyStore ks, String name, StoreClient storeClient, DirectoryClient directoryClient) {
+  public void init(KeyStore ks, String name) {
     this.feeder = name;
     this.suffix = "." + name;
     
     this.CLASS_KEYS = SipHashInline.getKey(ks.getKey(KeyStore.SIPHASH_CLASS));
     this.LABELS_KEYS = SipHashInline.getKey(ks.getKey(KeyStore.SIPHASH_LABELS));
     
-    this.storeClient = storeClient;
-    this.directoryClient = directoryClient;
-    
-    this.stack = new MemoryWarpScriptStack(storeClient, directoryClient);
+    this.stack = new MemoryWarpScriptStack(null, null);
     
     //
     // Extract ECC private/public key

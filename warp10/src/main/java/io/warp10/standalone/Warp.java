@@ -73,6 +73,7 @@ import io.warp10.script.WarpScriptLib;
 import io.warp10.sensision.Sensision;
 import io.warp10.standalone.datalog.DatalogConsumer;
 import io.warp10.standalone.datalog.DatalogManager;
+import io.warp10.standalone.datalog.DatalogWorkers;
 import io.warp10.warp.sdk.AbstractWarp10Plugin;
 
 public class Warp extends WarpDist implements Runnable {
@@ -379,20 +380,18 @@ public class Warp extends WarpDist implements Runnable {
     scc = DatalogManager.wrap(dlm, scc);
 
     if (null != properties.getProperty(Configuration.DATALOG_CONSUMERS)) {
+      
+      DatalogWorkers.init(scc,sdc);
+      
       String[] consumers = properties.getProperty(Configuration.DATALOG_CONSUMERS).split(",");
       for (String consumer: consumers) {
         consumer = consumer.trim();        
         Class clazz = Class.forName(WarpConfig.getProperty(Configuration.DATALOG_CONSUMER_CLASS + "." + consumer));
         DatalogConsumer dc = (DatalogConsumer) clazz.newInstance();
-        dc.init(keystore, consumer, scc, sdc);
+        dc.init(keystore, consumer);
       }
     }
 
-    if (inmemory && null != dlm) {
-      // Replay the Datalog
-      DatalogManager.replay(dlm, sdc, scc);      
-    }
-    
     if (properties.containsKey(Configuration.RUNNER_ROOT)) {
       if (!properties.containsKey(Configuration.RUNNER_ENDPOINT)) {
         properties.setProperty(Configuration.RUNNER_ENDPOINT, "");
@@ -403,18 +402,6 @@ public class Warp extends WarpDist implements Runnable {
         //
         ScriptRunner runner = new ScriptRunner(keystore.clone(), properties);
       }
-    }
-    
-    //
-    // Start the Datalog Forwarders
-    //
-    
-    if (!analyticsEngineOnly && properties.containsKey(Configuration.DATALOG_FORWARDERS)) {
-      //
-      // TODO(hbs): allocate DatalogManager
-      //
-            
-    } else if (!analyticsEngineOnly && properties.containsKey(Configuration.DATALOG_FORWARDER_SRCDIR) && properties.containsKey(Configuration.DATALOG_FORWARDER_DSTDIR)) {
     }
     
     //

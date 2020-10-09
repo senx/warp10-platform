@@ -16,12 +16,10 @@
 
 package io.warp10.standalone.datalog;
 
-import io.warp10.continuum.store.DirectoryClient;
-import io.warp10.continuum.store.StoreClient;
 import io.warp10.crypto.KeyStore;
 
 public interface DatalogConsumer {
-  public void init(KeyStore ks, String name, StoreClient storeClient, DirectoryClient directoryClient);
+  public void init(KeyStore ks, String name);
   public void success(String ref);
   public void failure(String ref);  
 }

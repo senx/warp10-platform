@@ -19,7 +19,6 @@ package io.warp10.standalone.datalog;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.LockSupport;
 
-import io.warp10.continuum.egress.EgressExecHandler;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.continuum.store.thrift.data.DatalogRecord;
 import io.warp10.standalone.StandaloneDirectoryClient;
@@ -39,8 +38,8 @@ public class DatalogWorker extends Thread {
 
   @Override
   public void run() {    
-    StoreClient storeClient = EgressExecHandler.getExposedStoreClient();
-    StandaloneDirectoryClient directoryClient = (StandaloneDirectoryClient) EgressExecHandler.getExposedDirectoryClient();
+    StoreClient storeClient = DatalogWorkers.getStoreClient();
+    StandaloneDirectoryClient directoryClient = (StandaloneDirectoryClient) DatalogWorkers.getDirectoryClient();
     
     while(true) {
       
