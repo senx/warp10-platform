@@ -226,7 +226,8 @@ public class StandaloneScriptRunner extends ScriptRunner {
             m.appendTail(mc2WithReplacement);
               
             stack.execMulti(mc2WithReplacement.toString());
-          } catch (Exception e) {                
+          } catch (Exception e) {
+            e.printStackTrace(System.err);
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_FAILURES, labels, 1);
           } finally {
             WarpConfig.clearThreadProperties();

@@ -16,6 +16,7 @@
 package io.warp10.plugins.udp;
 
 import io.warp10.warp.sdk.AbstractWarp10Plugin;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,7 +59,7 @@ public class UDPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
   /**
    * Map of spec file to UDPConsumer instance
    */
-  private Map<String, UDPConsumer> consumers = new HashMap<String, UDPConsumer>();
+  private final Map<String, UDPConsumer> consumers = new HashMap<String, UDPConsumer>();
 
   private boolean done = false;
 
@@ -174,7 +175,7 @@ public class UDPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
       @Override
       public void run() {
         done = true;
-        System.out.println("UDP Plugin shutting down all consumers.");
+        LOG.info("UDP Plugin shutting down all consumers.");
         this.interrupt();
         for (UDPConsumer consumer: consumers.values()) {
           try {

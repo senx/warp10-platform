@@ -179,7 +179,7 @@ public class WarpDB extends Thread implements DB {
       } catch (NoClassDefFoundError|UnsatisfiedLinkError e) {
         e.printStackTrace();
         if (!javadisabled) {
-          System.out.println("WARNING: falling back to pure java implementation of LevelDB.");
+          LOG.warn("WARNING: falling back to pure java implementation of LevelDB.");
           db = Iq80DBFactory.factory.open(new File(home), options);
         } else {
           throw new RuntimeException("No usable LevelDB implementation, aborting.");

@@ -175,7 +175,7 @@ public class TCPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
       @Override
       public void run() {
         done = true;
-        System.out.println("TCP Plugin shutting down all managers.");
+        LOG.info("TCP Plugin shutting down all managers.");
         this.interrupt();
         for (TCPManager server: managers.values()) {
           try {
