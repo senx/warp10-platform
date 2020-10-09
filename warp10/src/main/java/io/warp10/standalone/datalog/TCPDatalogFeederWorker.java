@@ -67,14 +67,6 @@ import io.warp10.script.functions.TOLONGBYTES;
 
 public class TCPDatalogFeederWorker extends Thread {
   
-  public static final int CMD_AUTH = 0x1;
-  public static final int CMD_SEEK = 0x2;
-  public static final int CMD_TSEEK = 0x3;
-  public static final int CMD_COMMIT = 0x4;
-  public static final int CMD_RECORD = 0x5;
-  public static final int CMD_SHARDS = 0x6;
-  public static final int CMD_NONCE = 0x7;
-  
   static final int MAX_BLOB_SIZE = 1024 * 1024;
   
   private static final long MAX_INFLIGHT_SIZE = 1000000L;
@@ -89,7 +81,7 @@ public class TCPDatalogFeederWorker extends Thread {
    */
   private static final long SEQFILE_SYNC_MARKER_LEN = 20;
   
-  private static final long MINSIZE = 200;
+  private static final long MINSIZE = 168;
   private static final long STANDARD_WAIT = 5000000L;
   private final Socket socket;
   private final AtomicInteger clients;
@@ -305,14 +297,17 @@ public class TCPDatalogFeederWorker extends Thread {
       int[] modulus = new int[msg.getShardsSize()];
       int[] remainder = new int[modulus.length];
       
+      boolean hasShards = msg.getShardsSize() > 0;
       for (int i = 0; i< modulus.length; i++) {
         long shard = msg.getShards().get(i);
         modulus[i] = (int) ((shard >>> 32) & 0xFFFFFFFFL);
         remainder[i] = (int) (shard & 0xFFFFFFFFL);
       }
       
-      // This is the number of bits to shift the <classID><labelsID> combo to the left, defaults to 48
-      // to retain 32 bits covering 16 bits of classId and 16 bits of labelsId.
+      // This is the number of bits to shift the <classID><labelsID> combo to the right, defaults to 48.
+      // The shard is determined by shifting <classID><labelsID> to the right and keeping the lower 32 bits
+      // on which a modulus is applied. The remainder of this operation is the shardid.
+
       long shardShift = 48;
       if (msg.isSetShardShift()) {
         shardShift = msg.getShardShift();
@@ -514,6 +509,28 @@ public class TCPDatalogFeederWorker extends Thread {
               long timestamp2 = DatalogHelper.bytesToLong(k, 0, 8);
               // End the loop is timestamp is before mints
               if (timestamp2 < mints) {
+                continue;
+              }
+            }
+            
+            if (hasShards) {
+              byte[] k = key.getBytes();
+              long classId = DatalogHelper.bytesToLong(k, 8, 8);
+              long labelsId = DatalogHelper.bytesToLong(k, 16, 8);
+              
+              long shifted = (labelsId >>> shardShift) & 0xFFFFFFFFL;
+              shifted |= (classId << (64 - shardShift)) & 0xFFFFFFFFL;
+              
+              // Now check all shards until one matches
+              boolean matched = false;
+              int sid = (int) shifted; 
+              for (int i = 0; i < modulus.length; i++) {
+                if (0 != modulus[i] && remainder[i] == sid % modulus[i]) {
+                  matched = true;
+                  break;
+                }
+              }
+              if (!matched) {
                 continue;
               }
             }

@@ -326,16 +326,6 @@ public class Warp extends WarpDist implements Runnable {
       Class clazz = Class.forName(properties.getProperty(Configuration.DATALOG_MANAGER));
       dlm = (DatalogManager) clazz.newInstance();
     }
-
-    if (null != properties.getProperty(Configuration.DATALOG_CONSUMERS)) {
-      String[] consumers = properties.getProperty(Configuration.DATALOG_CONSUMERS).split(",");
-      for (String consumer: consumers) {
-        consumer = consumer.trim();        
-        Class clazz = Class.forName(WarpConfig.getProperty(Configuration.DATALOG_CONSUMER_CLASS + "." + consumer));
-        DatalogConsumer dc = (DatalogConsumer) clazz.newInstance();
-        dc.init(keystore, consumer);
-      }
-    }
     
     if (inmemory) {
       sdc = new StandaloneDirectoryClient(null, keystore);
@@ -387,6 +377,16 @@ public class Warp extends WarpDist implements Runnable {
 
     sdc = DatalogManager.wrap(dlm, sdc);
     scc = DatalogManager.wrap(dlm, scc);
+
+    if (null != properties.getProperty(Configuration.DATALOG_CONSUMERS)) {
+      String[] consumers = properties.getProperty(Configuration.DATALOG_CONSUMERS).split(",");
+      for (String consumer: consumers) {
+        consumer = consumer.trim();        
+        Class clazz = Class.forName(WarpConfig.getProperty(Configuration.DATALOG_CONSUMER_CLASS + "." + consumer));
+        DatalogConsumer dc = (DatalogConsumer) clazz.newInstance();
+        dc.init(keystore, consumer, scc, sdc);
+      }
+    }
 
     if (inmemory && null != dlm) {
       // Replay the Datalog

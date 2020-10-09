@@ -43,6 +43,8 @@ import io.warp10.WarpConfig;
 import io.warp10.continuum.egress.EgressExecHandler;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.store.Constants;
+import io.warp10.continuum.store.DirectoryClient;
+import io.warp10.continuum.store.StoreClient;
 import io.warp10.continuum.store.thrift.data.DatalogMessage;
 import io.warp10.continuum.store.thrift.data.DatalogMessageType;
 import io.warp10.continuum.store.thrift.data.DatalogRecord;
@@ -78,6 +80,9 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
 
   private String id;
   
+  private StoreClient storeClient;
+  private DirectoryClient directoryClient;
+  
   /**
    * Set of IDs whose messages are ignored
    */
@@ -87,6 +92,8 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
 
   private long[] CLASS_KEYS;
   private long[] LABELS_KEYS;
+  
+  private String feeder;
   
   /**
    * Optional encryption key
@@ -105,9 +112,53 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
   @Override
   public void run() {
       
-    String host = "127.0.0.1";
-    int port = 4321;
-            
+    String host = WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_CONSUMER_FEEDER_HOST + suffix);
+    int port = Integer.parseInt(WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_CONSUMER_FEEDER_PORT + suffix));
+        
+    String feederShardsSpec = WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_CONSUMER_FEEDER_SHARDS + suffix);
+    
+    long[] feederShards = null;
+    int feederShardShift = Integer.parseInt(WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_CONSUMER_FEEDER_SHARDSHIFT + suffix, "48"));
+
+    if (null != feederShardsSpec) {
+      String[] tokens = feederShardsSpec.split(",");
+      feederShards = new long[tokens.length];
+      for (int i = 0; i < tokens.length; i++) {
+        String token = tokens[i];
+        String[] subtokens = token.trim().split(":");
+        if (2 != subtokens.length) {
+          throw new RuntimeException("Invalid feeder shard spec " + token + " in " + FileBasedDatalogManager.CONFIG_DATALOG_CONSUMER_FEEDER_SHARDS + suffix);
+        }
+        feederShards[i] = (((long) Integer.parseInt(subtokens[0])) << 32) | ((long) Integer.parseInt(subtokens[1]));
+      }
+    }
+    
+    int[] modulus = null;
+    int[] remainder = null;
+    
+    String shardSpec = WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_CONSUMER_SHARDS + suffix);
+    
+    boolean hasShards = false;
+    int shardShift = Integer.parseInt(WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_CONSUMER_SHARDSHIFT + suffix, "48"));
+;
+    
+    if (null != shardSpec) {
+      hasShards = true;
+      String[] tokens = feederShardsSpec.split(",");
+      modulus = new int[tokens.length];
+      remainder = new int[tokens.length];
+      feederShards = new long[tokens.length];
+      for (int i = 0; i < tokens.length; i++) {
+        String token = tokens[i];
+        String[] subtokens = token.trim().split(":");
+        if (2 != subtokens.length) {
+          throw new RuntimeException("Invalid shard spec " + token + " in " + FileBasedDatalogManager.CONFIG_DATALOG_CONSUMER_SHARDS + suffix);
+        }
+        modulus[i] = Integer.parseInt(subtokens[0]);
+        remainder[i] = Integer.parseInt(subtokens[1]);
+      }      
+    }
+    
     while(true) {
       Socket socket = null;
       
@@ -229,6 +280,12 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
         msg.setId(this.id);
         msg.setSig(sig);
         
+        if (null != feederShards) {
+          for (long shard: feederShards) {
+            msg.addToShards(shard);
+          }
+        }
+        
         bytes = DatalogHelper.serialize(msg);
         // We do not encrypt the init message since the feeder does not yet know who we
         // are
@@ -260,7 +317,7 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
         
         Map<String,String> labels = new HashMap<String,String>();
         labels.put(SENSISION_LABEL_CONSUMER, this.id);
-        labels.put(SENSISION_LABEL_FEEDER, host + ":" + port);
+        labels.put(SENSISION_LABEL_FEEDER, this.feeder);
              
         while(true) {
           
@@ -410,6 +467,30 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
           record.getMetadata().setLabelsId(labelsid);
           
           //
+          // Check shards if needed
+          //
+          
+          if (hasShards) {
+            // compute shardid
+            long shifted = (labelsid >>> shardShift) & 0xFFFFFFFFL;
+            shifted |= (classid << (64 - shardShift)) & 0xFFFFFFFFL;
+            int sid = (int) shifted;
+            
+            boolean matched = false;
+            
+            for (int i = 0; i < modulus.length; i++) {
+              if (0 != modulus[i] && remainder[i] == sid % modulus[i]) {
+                matched = true;
+                break;
+              }
+            }
+            
+            if (!matched) {
+              continue;
+            }
+          }
+          
+          //
           // Offer the message
           //
           
@@ -431,13 +512,17 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
   }
   
   @Override
-  public void init(KeyStore ks, String name) {
+  public void init(KeyStore ks, String name, StoreClient storeClient, DirectoryClient directoryClient) {
+    this.feeder = name;
     this.suffix = "." + name;
     
     this.CLASS_KEYS = SipHashInline.getKey(ks.getKey(KeyStore.SIPHASH_CLASS));
     this.LABELS_KEYS = SipHashInline.getKey(ks.getKey(KeyStore.SIPHASH_LABELS));
     
-    this.stack = new MemoryWarpScriptStack(EgressExecHandler.getExposedStoreClient(), EgressExecHandler.getExposedDirectoryClient());
+    this.storeClient = storeClient;
+    this.directoryClient = directoryClient;
+    
+    this.stack = new MemoryWarpScriptStack(storeClient, directoryClient);
     
     //
     // Extract ECC private/public key

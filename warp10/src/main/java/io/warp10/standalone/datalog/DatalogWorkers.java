@@ -25,8 +25,6 @@ import io.warp10.continuum.store.thrift.data.DatalogRecord;
 
 public class DatalogWorkers {
   
-  private static final Map<String,TCPDatalogConsumer> consumers = new ConcurrentHashMap<String,TCPDatalogConsumer>();
-  
   static class DatalogJob {
     final TCPDatalogConsumer consumer;
     final String ref;
