@@ -83,7 +83,13 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
   public static final String CONFIG_DATALOG_CONSUMER_FEEDER_ECC_PUBLIC = "datalog.consumer.feeder.ecc.public";
   public static final String CONFIG_DATALOG_CONSUMER_ID = "datalog.consumer.id";
   public static final String CONFIG_DATALOG_CONSUMER_EXCLUDED = "datalog.consumer.excluded";
-  
+  public static final String CONFIG_DATALOG_CONSUMER_FEEDER_HOST = "datalog.consumer.feeder.host";
+  public static final String CONFIG_DATALOG_CONSUMER_FEEDER_PORT = "datalog.consumer.feeder.port";
+  public static final String CONFIG_DATALOG_CONSUMER_FEEDER_SHARDS = "datalog.consumer.feeder.shards";
+  public static final String CONFIG_DATALOG_CONSUMER_FEEDER_SHARDSHIFT = "datalog.consumer.feeder.shardshift";
+  public static final String CONFIG_DATALOG_CONSUMER_SHARDS = "datalog.consumer.shards";
+  public static final String CONFIG_DATALOG_CONSUMER_SHARDSHIFT = "datalog.consumer.shardshift";
+
   public static final String SF_META_NOW = "now";
   public static final String SF_META_UUID = "uuid";
   public static final String SF_META_ID = "id";
@@ -274,6 +280,7 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
     switch (record.getType()) {
       case UPDATE:
         GTSDecoder decoder = new GTSDecoder(record.getBaseTimestamp(), record.bufferForEncoder());
+        decoder.next();
         GTSEncoder encoder = decoder.getEncoder();
         encoder.setMetadata(record.getMetadata());
         this.storeClient.store(encoder);
