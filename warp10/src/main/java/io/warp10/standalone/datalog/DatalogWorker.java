@@ -19,6 +19,7 @@ package io.warp10.standalone.datalog;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.LockSupport;
 
+import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.continuum.store.thrift.data.DatalogRecord;
 import io.warp10.standalone.StandaloneDirectoryClient;
@@ -41,6 +42,12 @@ public class DatalogWorker extends Thread {
     StoreClient storeClient = DatalogWorkers.getStoreClient();
     StandaloneDirectoryClient directoryClient = (StandaloneDirectoryClient) DatalogWorkers.getDirectoryClient();
     
+    DatalogManager manager = null;
+    if (storeClient instanceof DatalogStoreClient) {
+      manager = ((DatalogStoreClient) storeClient).getDatalogManager();
+    }
+    boolean hasManager = null != manager;
+    
     while(true) {
       
       DatalogJob job = null;
@@ -57,28 +64,32 @@ public class DatalogWorker extends Thread {
         record = job.record;
         
         System.out.println(job.record);
-/*
-        switch (job.record.getType()) {
-          case UPDATE:
-            GTSDecoder decoder = new GTSDecoder(record.getBaseTimestamp(), record.bufferForEncoder());
-            decoder.next();
-            storeClient.store(decoder.getEncoder());
-            job.consumer.success(job.ref);
-            break;
-          case REGISTER:
-            directoryClient.register(record.getMetadata());
-            job.consumer.success(job.ref);
-            break;
-          case UNREGISTER:
-            directoryClient.unregister(record.getMetadata());
-            job.consumer.success(job.ref);
-            break;
-          case DELETE:
-            storeClient.delete(null, record.getMetadata(), record.getStart(), record.getStop());
-            job.consumer.success(job.ref);
-            break;
+        
+        if (hasManager) {
+          manager.process(record);
+          job.consumer.success(job.ref);
+        } else {
+          switch (job.record.getType()) {
+            case UPDATE:
+              GTSDecoder decoder = new GTSDecoder(record.getBaseTimestamp(), record.bufferForEncoder());
+              decoder.next();
+              storeClient.store(decoder.getEncoder());
+              job.consumer.success(job.ref);
+              break;
+            case REGISTER:
+              directoryClient.register(record.getMetadata());
+              job.consumer.success(job.ref);
+              break;
+            case UNREGISTER:
+              directoryClient.unregister(record.getMetadata());
+              job.consumer.success(job.ref);
+              break;
+            case DELETE:
+              storeClient.delete(null, record.getMetadata(), record.getStart(), record.getStop());
+              job.consumer.success(job.ref);
+              break;
+          } 
         }
-*/
       } catch (Throwable t) {
         if (null != job) {
           job.consumer.failure(job.ref);

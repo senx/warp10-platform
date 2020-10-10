@@ -89,6 +89,8 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
   public static final String CONFIG_DATALOG_CONSUMER_FEEDER_SHARDSHIFT = "datalog.consumer.feeder.shardshift";
   public static final String CONFIG_DATALOG_CONSUMER_SHARDS = "datalog.consumer.shards";
   public static final String CONFIG_DATALOG_CONSUMER_SHARDSHIFT = "datalog.consumer.shardshift";
+  public static final String CONFIG_DATALOG_CONSUMER_OFFSETFILE = "datalog.consumer.offsetfile";
+  public static final String CONFIG_DATALOG_CONSUMER_OFFSETDELAY = "datalog.consumer.offsetdelay";
 
   public static final String SF_META_NOW = "now";
   public static final String SF_META_UUID = "uuid";

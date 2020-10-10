@@ -63,4 +63,8 @@ public class DatalogStoreClient implements StoreClient {
   public void addPlasmaHandler(StandalonePlasmaHandlerInterface plasmaHandler) {
     store.addPlasmaHandler(plasmaHandler);
   }
+  
+  public DatalogManager getDatalogManager() {
+    return this.manager;
+  }
 }

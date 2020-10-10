@@ -602,13 +602,13 @@ struct DatalogMessage {
   15: optional list<string> excluded,
   
   //
-  // Seek/Commit related field
+  // Seek/Commit related field, feed will start with that ref 
   //
   // Seek ref <TS>.<UUID>:<POSITION>
   21: optional string ref,
   
   //
-  // TSeek related fields
+  // TSeek related fields, feed will start at this timestamp
   //
   // Minimum timestamp to consider
   31: optional i64 seekts,

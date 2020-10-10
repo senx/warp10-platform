@@ -16,6 +16,7 @@
 
 package io.warp10.standalone.datalog;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -30,6 +31,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.locks.LockSupport;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.bouncycastle.jce.interfaces.ECPrivateKey;
 import org.bouncycastle.jce.interfaces.ECPublicKey;
 import org.bouncycastle.util.encoders.Hex;
@@ -101,6 +104,17 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
   private List<String> successful = new ArrayList<String>();
   private List<String> failed = new ArrayList<String>();
 
+  /**
+   * Path to the file where last committed offset is kept track of
+   */
+  private File offsetFile;
+  
+  /**
+   * Delay (in ms) between offset commits to offsetFile. 0 means write every commit.
+   */
+  private long offsetDelay;
+  private long lastsync = 0;
+  
   private String suffix;
   
   @Override
@@ -298,9 +312,24 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
         //
         
         msg.clear();
-        msg.setType(DatalogMessageType.TSEEK);
-        msg.setSeekts(0);
+        if (this.offsetFile.exists()) {
+          String seek = FileUtils.readFileToString(offsetFile, StandardCharsets.UTF_8).replaceAll("\n.*","").trim();
+          // if seek is a number, issue a TSEEK message, otherwise a seek one
+          try {
+            long ts = Long.parseLong(seek);
+            msg.setType(DatalogMessageType.TSEEK);
+            msg.setSeekts(ts);
+          } catch (NumberFormatException nfe) {
+            msg.setType(DatalogMessageType.SEEK);
+            msg.setRef(seek);
+          }
+        } else {
+          // If the offset file does not exist, start the feed at the current time
+          msg.setType(DatalogMessageType.TSEEK);
+          msg.setSeekts(System.currentTimeMillis());
+        }
         
+        System.out.println("SEEK MSG=" + msg);
         bytes = DatalogHelper.serialize(msg);
         if (encrypt) {
           bytes = CryptoHelper.wrapBlob(AES_KEY, bytes);
@@ -368,6 +397,7 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
                 msg.clear();
                 msg.setType(DatalogMessageType.COMMIT);
                 msg.setRef(inflight.get(inflight.size() - 1));
+                syncCommit(msg.getRef());
                 bytes = DatalogHelper.serialize(msg);
                 if (encrypt) {
                   bytes = CryptoHelper.wrapBlob(AES_KEY, bytes);
@@ -378,6 +408,7 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
                 inflight.clear();
                 failed.clear();
                 successful.clear();
+                
               } else {
                 //System.out.println(">>>COMMIT " + inflight.get(idx));
                 //System.out.println(">>>SEEK " + inflight.get(idx + 1));
@@ -386,6 +417,7 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
                 msg.clear();
                 msg.setType(DatalogMessageType.COMMIT);
                 msg.setRef(inflight.get(idx));
+                syncCommit(msg.getRef());
                 bytes = DatalogHelper.serialize(msg);
                 if (encrypt) {
                   bytes = CryptoHelper.wrapBlob(AES_KEY, bytes);
@@ -393,7 +425,7 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
                 DatalogHelper.writeLong(out, bytes.length, 4);
                 out.write(bytes);
                 out.flush();
-                
+
                 // Send SEEK message for first failed ref
                 msg.clear();
                 msg.setType(DatalogMessageType.SEEK);
@@ -506,8 +538,7 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
           } catch (IOException ioe) {            
           }
         }
-      }
-      
+      }      
     }
   }
   
@@ -575,6 +606,14 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
       excluded.add(id.trim());
     }
     
+    if (null == WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_CONSUMER_OFFSETFILE + suffix)) {
+      throw new RuntimeException("Missing offset file '" + FileBasedDatalogManager.CONFIG_DATALOG_CONSUMER_OFFSETFILE + suffix + "'.");
+    }
+    
+    this.offsetFile = new File(WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_CONSUMER_OFFSETFILE + suffix));
+    
+    this.offsetDelay = Long.parseLong(WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_CONSUMER_OFFSETDELAY + suffix, "0"));
+    
     this.setName("[Datalog Consumer " + name + "]");
     this.setDaemon(true);
     this.start();
@@ -590,6 +629,14 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
   public void success(String ref) {
     synchronized (failed) {
       successful.add(ref);
+    }
+  }
+  
+  private void syncCommit(String ref) throws IOException {
+    long now = System.currentTimeMillis();
+    if (now - lastsync >= offsetDelay) {
+      FileUtils.write(offsetFile, ref, StandardCharsets.UTF_8, false);
+      lastsync = now;
     }
   }
 }
