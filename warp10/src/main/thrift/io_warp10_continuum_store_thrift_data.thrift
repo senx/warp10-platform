@@ -515,7 +515,7 @@ struct FetchRequest {
    */
   12: optional i64 postBoundary = 0,
   /**
-   * Flag indicating we want to return the HBase celle TTL instead of the value
+   * Flag indicating we want to return the HBase cells TTL instead of the value
    */
   13: optional bool TTL = false;
 }
