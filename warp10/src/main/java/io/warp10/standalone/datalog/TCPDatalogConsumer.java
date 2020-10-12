@@ -137,7 +137,7 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
         if (2 != subtokens.length) {
           throw new RuntimeException("Invalid feeder shard spec " + token + " in " + FileBasedDatalogManager.CONFIG_DATALOG_CONSUMER_FEEDER_SHARDS + suffix);
         }
-        feederShards[i] = (((long) Integer.parseInt(subtokens[0])) << 32) | ((long) Integer.parseInt(subtokens[1]));
+        feederShards[i] = (((long) Integer.parseInt(subtokens[0])) << 32) | ((long) Integer.parseInt(subtokens[1]) & 0xFFFFFFFFL);
       }
     }
     
@@ -148,14 +148,12 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
     
     boolean hasShards = false;
     int shardShift = Integer.parseInt(WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_CONSUMER_SHARDSHIFT + suffix, "48"));
-;
     
     if (null != shardSpec) {
       hasShards = true;
       String[] tokens = feederShardsSpec.split(",");
       modulus = new int[tokens.length];
       remainder = new int[tokens.length];
-      feederShards = new long[tokens.length];
       for (int i = 0; i < tokens.length; i++) {
         String token = tokens[i];
         String[] subtokens = token.trim().split(":");
@@ -292,6 +290,7 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
           for (long shard: feederShards) {
             msg.addToShards(shard);
           }
+          msg.setShardShift(feederShardShift);
         }
         
         if (null != excluded) {
