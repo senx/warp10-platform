@@ -98,6 +98,9 @@ public class DTW extends NamedWarpScriptFunction implements WarpScriptStackFunct
         case "euclidean":
           distance = DTW::euclidean;
           break;
+        case "squaredeuclidean":
+          distance = DTW::squaredEuclidean;
+          break;
         case "loxodromic":
           distance = DTW::loxodromic;
           break;
@@ -118,8 +121,8 @@ public class DTW extends NamedWarpScriptFunction implements WarpScriptStackFunct
     double threshold = ((Number) o).doubleValue();
 
     // If the threshold is not strictly positive, consider there is no threshold.
-    if (threshold <= 0) {
-      threshold = Long.MAX_VALUE;
+    if (threshold <= 0.0D) {
+      threshold = Double.POSITIVE_INFINITY;
     }
 
     o = stack.pop();
@@ -127,8 +130,8 @@ public class DTW extends NamedWarpScriptFunction implements WarpScriptStackFunct
     // Optional window parameter.
     int window = Integer.MAX_VALUE;
 
-    if (o instanceof Number) {
-      window = (int) Math.min(Integer.MAX_VALUE, ((Number) o).longValue());
+    if (o instanceof Long) {
+      window = (int) Math.min(Integer.MAX_VALUE, (Long) o);
 
       // If the window is negative, consider there is no window.
       if (window < 0) {
@@ -203,6 +206,9 @@ public class DTW extends NamedWarpScriptFunction implements WarpScriptStackFunct
 
     //
     // Extract values, compute min/max and quantize values (x - max/(max - min))
+    // Values are multi-dimensional, with first index being the dimension and second index the element index. See
+    // DTW.compute(double[][], int, int, double[][], int, int, int, double, io.warp10.script.functions.DTW.DTWDistance)
+    // for more details.
     //
     double[][] values1;
     double[][] values2;
@@ -213,13 +219,13 @@ public class DTW extends NamedWarpScriptFunction implements WarpScriptStackFunct
     } else if (LOCATIONS == type) {
       long[] locations1 = GTSHelper.getOriginalLocations(gts1);
       if (null == locations1) {
-        throw new WarpScriptException(getName() + " expects GTSs to have locations when DTW is applied on them.");
+        throw new WarpScriptException(getName() + " expects GTSs to have locations when DTW is applied to them.");
       }
 
       values1 = new double[2][locations1.length];
       for (int i = 0; i < locations1.length; i++) {
         if (GeoTimeSerie.NO_LOCATION == locations1[i]) {
-          throw new WarpScriptException(getName() + " expects GTSs to have locations when DTW is applied on them.");
+          throw new WarpScriptException(getName() + " expects GTSs to have locations when DTW is applied to them.");
         }
         double[] latLon = GeoXPLib.fromGeoXPPoint(locations1[i]);
         values1[0][i] = latLon[0];
@@ -228,13 +234,13 @@ public class DTW extends NamedWarpScriptFunction implements WarpScriptStackFunct
 
       long[] locations2 = GTSHelper.getOriginalLocations(gts2);
       if (null == locations2) {
-        throw new WarpScriptException(getName() + " expects GTSs to have locations when DTW is applied on them.");
+        throw new WarpScriptException(getName() + " expects GTSs to have locations when DTW is applied to them.");
       }
 
       values2 = new double[2][locations2.length];
       for (int i = 0; i < locations2.length; i++) {
         if (GeoTimeSerie.NO_LOCATION == locations2[i]) {
-          throw new WarpScriptException(getName() + " expects GTSs to have locations when DTW is applied on them.");
+          throw new WarpScriptException(getName() + " expects GTSs to have locations when DTW is applied to them.");
         }
         double[] latLon = GeoXPLib.fromGeoXPPoint(locations2[i]);
         values2[0][i] = latLon[0];
@@ -243,26 +249,26 @@ public class DTW extends NamedWarpScriptFunction implements WarpScriptStackFunct
     } else if (ELEVATIONS == type) {
       long[] elev1 = GTSHelper.getOriginalElevations(gts1);
       if (null == elev1) {
-        throw new WarpScriptException(getName() + " expects GTSs to have elevations when DTW is applied on them.");
+        throw new WarpScriptException(getName() + " expects GTSs to have elevations when DTW is applied to them.");
       }
 
       values1 = new double[1][elev1.length];
       for (int i = 0; i < elev1.length; i++) {
         if (GeoTimeSerie.NO_ELEVATION == elev1[i]) {
-          throw new WarpScriptException(getName() + " expects GTSs to have elevations when DTW is applied on them.");
+          throw new WarpScriptException(getName() + " expects GTSs to have elevations when DTW is applied to them.");
         }
         values1[0][i] = elev1[i];
       }
 
       long[] elev2 = GTSHelper.getOriginalElevations(gts2);
       if (null == elev2) {
-        throw new WarpScriptException(getName() + " expects GTSs to have elevations when DTW is applied on them.");
+        throw new WarpScriptException(getName() + " expects GTSs to have elevations when DTW is applied to them.");
       }
 
       values2 = new double[1][elev2.length];
       for (int i = 0; i < elev1.length; i++) {
         if (GeoTimeSerie.NO_ELEVATION == elev2[i]) {
-          throw new WarpScriptException(getName() + " expects GTSs to have elevations when DTW is applied on them.");
+          throw new WarpScriptException(getName() + " expects GTSs to have elevations when DTW is applied to them.");
         }
         values2[0][i] = elev2[i];
       }
@@ -307,11 +313,11 @@ public class DTW extends NamedWarpScriptFunction implements WarpScriptStackFunct
             }
           }
 
-          if (max - min < 0.000001) {
+          double range = max - min;
+
+          if (0.0D == range) {
             throw new WarpScriptException(getName() + " cannot normalize a constant GTS.");
           }
-
-          double range = max - min;
 
           for (int i = 0; i < dimVal1.length; i++) {
             dimVal1[i] = (dimVal1[i] - min) / range;
@@ -329,11 +335,11 @@ public class DTW extends NamedWarpScriptFunction implements WarpScriptStackFunct
             }
           }
 
-          if (max - min < 0.000001) {
+          range = max - min;
+
+          if (0.0D == range) {
             throw new WarpScriptException(getName() + " cannot normalize a constant GTS.");
           }
-
-          range = max - min;
 
           for (int i = 0; i < dimVal2.length; i++) {
             dimVal2[i] = (dimVal2[i] - min) / range;
@@ -350,10 +356,10 @@ public class DTW extends NamedWarpScriptFunction implements WarpScriptStackFunct
 
   /**
    * Compute the DTW pseudo-distance on two multi-dimensional data.
-   * @param values1 One of the two series to compare to the other. First index is the dimension, second is the element index.
+   * @param values1 One of the two series to compare to the other. First index is the dimension, second is the element index. This way, less arrays are allocated because usually dimensions << number of elements.
    * @param offset1 The start index from which to consider the data in values1.
    * @param len1 Number of elements to consider in values1.
-   * @param values2 One of the two series to compare to the other.
+   * @param values2 One of the two series to compare to the other. First index is the dimension, second is the element index.
    * @param offset1 The start index from which to consider the data in values2.
    * @param len2 Number of elements to consider in values2.
    * @param window The window defining th maximum index difference when matching the data. Integer.MAX_VALUE for no window constraint.
@@ -521,17 +527,29 @@ public class DTW extends NamedWarpScriptFunction implements WarpScriptStackFunct
     return Math.sqrt(d);
   }
 
+  public static double squaredEuclidean(double[][] values1, int index1, double[][] values2, int index2) throws WarpScriptException {
+    double d = 0D;
+    for (int dimension = 0; dimension < values1.length; dimension++) {
+      d += Math.pow(values1[dimension][index1] - values2[dimension][index2], 2.0D);
+    }
+    return d;
+  }
+
   public static double loxodromic(double[][] values1, int index1, double[][] values2, int index2) throws WarpScriptException {
     if (2 != values1.length) {
       throw new WarpScriptException("Loxodromic distance must be given two dimensions: lat, lon.");
     }
 
-    double lat1 = values1[0][index1];
-    double lat2 = values2[0][index2];
-    double lon1 = values1[1][index1];
-    double lon2 = values2[1][index2];
+    double lat1 = Math.toRadians(values1[0][index1]);
+    double lon1 = Math.toRadians(values1[1][index1]);
+    double lat2 = Math.toRadians(values2[0][index2]);
+    double lon2 = Math.toRadians(values2[1][index2]);
 
-    return GeoXPLib.loxodromicDistance(GeoXPLib.toGeoXPPoint(lat1, lon1), GeoXPLib.toGeoXPPoint(lat2, lon2));
+
+    double x = (lon1 - lon2) * Math.cos((lat1 + lat2) / 2.0D);
+    double y = lat1 - lat2;
+
+    return (180.0D / Math.PI) * (1852.0D * 60.0D) * Math.sqrt(x * x + y * y);
   }
 
   public static double orthodromic(double[][] values1, int index1, double[][] values2, int index2) throws WarpScriptException {
@@ -539,11 +557,12 @@ public class DTW extends NamedWarpScriptFunction implements WarpScriptStackFunct
       throw new WarpScriptException("Orthodromic distance must be given two dimensions: lat, lon.");
     }
 
-    double lat1 = values1[0][index1];
-    double lat2 = values2[0][index2];
-    double lon1 = values1[1][index1];
-    double lon2 = values2[1][index2];
+    double lat1 = Math.toRadians(values1[0][index1]);
+    double lon1 = Math.toRadians(values1[1][index1]);
+    double lat2 = Math.toRadians(values2[0][index2]);
+    double lon2 = Math.toRadians(values2[1][index2]);
 
-    return GeoXPLib.orthodromicDistance(GeoXPLib.toGeoXPPoint(lat1, lon1), GeoXPLib.toGeoXPPoint(lat2, lon2));
+    // Return result in meters
+    return (180.0D / Math.PI) * (1852.0D * 60.0D) * Math.acos(Math.sin(lat1) * Math.sin(lat2) + Math.cos(lat1) * Math.cos(lat2) * Math.cos((lon2 - lon1)));
   }
 }

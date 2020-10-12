@@ -55,8 +55,8 @@ public class OPTDTW extends NamedWarpScriptFunction implements WarpScriptStackFu
     // Optional window parameter.
     int window = Integer.MAX_VALUE;
 
-    if (o instanceof Number) {
-      window = (int) Math.min(Integer.MAX_VALUE, ((Number) o).longValue());
+    if (o instanceof Long) {
+      window = (int) Math.min(Integer.MAX_VALUE, (Long) o);
 
       // If the window is negative, consider there is no window.
       if (window < 0) {
