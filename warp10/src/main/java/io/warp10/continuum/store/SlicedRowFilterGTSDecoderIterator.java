@@ -419,15 +419,11 @@ public class SlicedRowFilterGTSDecoderIterator extends GTSDecoderIterator implem
                 if (writeTimestamp) {
                   encoder.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), cell.getTimestamp() * Constants.TIME_UNITS_PER_MS);
                 } else if (fetchTTL) {
-                  Iterator<Tag> iter = CellUtil.tagsIterator(cell.getTagsArray(), cell.getTagsOffset(), cell.getTagsLength());
                   boolean hasTTL = false;
-                  while (iter.hasNext()) {
-                    Tag t = iter.next();
-                    if (TagType.TTL_TAG_TYPE != t.getType()) {
-                      continue;
-                    }
-                    if (Bytes.SIZEOF_LONG == t.getTagLength()) {
-                      long ttl = Bytes.toLong(t.getBuffer(), t.getTagOffset(), t.getTagLength());
+                  Tag tag = Tag.getTag(cell.getTagsArray(), cell.getTagsOffset(), cell.getTagsLength(), TagType.TTL_TAG_TYPE);
+                  if (null != tag) {
+                    if (Bytes.SIZEOF_LONG == tag.getTagLength()) {
+                      long ttl = Bytes.toLong(tag.getBuffer(), tag.getTagOffset(), tag.getTagLength());
                       encoder.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), ttl * Constants.TIME_UNITS_PER_MS);
                       hasTTL = true;
                     }
