@@ -96,17 +96,17 @@ public class Warp extends WarpDist implements Runnable {
   private static Set<Path> datalogSrcDirs = Collections.unmodifiableSet(new HashSet<Path>());
 
   private static final String[] REQUIRED_PROPERTIES = {
-      Configuration.INGRESS_WEBSOCKET_MAXMESSAGESIZE,
-      Configuration.PLASMA_FRONTEND_WEBSOCKET_MAXMESSAGESIZE,
-      Configuration.WARP_HASH_CLASS,
-      Configuration.WARP_HASH_LABELS,
-      Configuration.WARP_HASH_TOKEN,
-      Configuration.WARP_HASH_APP,
-      Configuration.WARP_AES_TOKEN,
-      Configuration.WARP_AES_SCRIPTS,
-      Configuration.CONFIG_WARPSCRIPT_UPDATE_ENDPOINT,
-      Configuration.CONFIG_WARPSCRIPT_META_ENDPOINT,
-      Configuration.WARP_TIME_UNITS,
+    Configuration.INGRESS_WEBSOCKET_MAXMESSAGESIZE,
+    Configuration.PLASMA_FRONTEND_WEBSOCKET_MAXMESSAGESIZE,
+    Configuration.WARP_HASH_CLASS,
+    Configuration.WARP_HASH_LABELS,
+    Configuration.WARP_HASH_TOKEN,
+    Configuration.WARP_HASH_APP,
+    Configuration.WARP_AES_TOKEN,
+    Configuration.WARP_AES_SCRIPTS,
+    Configuration.CONFIG_WARPSCRIPT_UPDATE_ENDPOINT,
+    Configuration.CONFIG_WARPSCRIPT_META_ENDPOINT,
+    Configuration.WARP_TIME_UNITS,
   };
 
   public Warp() {
@@ -119,7 +119,10 @@ public class Warp extends WarpDist implements Runnable {
 
     System.setProperty("java.awt.headless", "true");
 
-    LOG.info("\n" + Constants.WARP10_BANNER + "\n" + "  Revision " + Revision.REVISION + "\n");
+    System.out.println();
+    System.out.println(Constants.WARP10_BANNER);
+    System.out.println("  Revision " + Revision.REVISION);
+    System.out.println();
 
     if (StandardCharsets.UTF_8 != Charset.defaultCharset()) {
       throw new RuntimeException("Default encoding MUST be UTF-8 but it is " + Charset.defaultCharset() + ". Aborting.");
@@ -333,9 +336,9 @@ public class Warp extends WarpDist implements Runnable {
         ((StandaloneChunkedMemoryStore) scc).load();
       } else {
         scc = new StandaloneMemoryStore(keystore,
-            Long.valueOf(properties.getProperty(Configuration.IN_MEMORY_DEPTH, Long.toString(60 * 60 * 1000 * Constants.TIME_UNITS_PER_MS))),
-            Long.valueOf(properties.getProperty(Configuration.IN_MEMORY_HIGHWATERMARK, "100000")),
-            Long.valueOf(properties.getProperty(Configuration.IN_MEMORY_LOWWATERMARK, "80000")));
+          Long.valueOf(properties.getProperty(Configuration.IN_MEMORY_DEPTH, Long.toString(60 * 60 * 1000 * Constants.TIME_UNITS_PER_MS))),
+          Long.valueOf(properties.getProperty(Configuration.IN_MEMORY_HIGHWATERMARK, "100000")),
+          Long.valueOf(properties.getProperty(Configuration.IN_MEMORY_LOWWATERMARK, "80000")));
         ((StandaloneMemoryStore) scc).setDirectoryClient(sdc);
         if ("true".equals(properties.getProperty(Configuration.IN_MEMORY_EPHEMERAL))) {
           ((StandaloneMemoryStore) scc).setEphemeral(true);
