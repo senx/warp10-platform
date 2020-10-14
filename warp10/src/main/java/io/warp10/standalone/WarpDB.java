@@ -236,6 +236,10 @@ public class WarpDB extends Thread implements DB {
     }
   }
   
+  public WriteBatch createWriteBatchUnlocked() {
+    return this.db.createWriteBatch();
+  }
+
   @Override
   public void delete(byte[] key) throws DBException {
     try {
