@@ -54,15 +54,17 @@ public class WarpDB extends Thread implements DB {
   private AtomicBoolean compactionsSuspended = new AtomicBoolean(false);
 
   private static final class WarpDBReentrantLock extends ReentrantLock {
+    
+    public WarpDBReentrantLock(boolean fair) {
+      super(fair);
+    }
+    
     public Thread getOwner() {
       return super.getOwner();
-    }    
-    public Collection<Thread> getQueuedThreads() {
-      return super.getQueuedThreads();
     }
   }
   
-  private WarpDBReentrantLock mutex = new WarpDBReentrantLock();
+  private WarpDBReentrantLock mutex = new WarpDBReentrantLock(true);
   
   private final boolean nativedisabled;
   private final boolean javadisabled;
