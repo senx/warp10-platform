@@ -839,7 +839,9 @@ public class EgressFetchHandler extends AbstractHandler {
             freq.setStep(step);
             freq.setTimestep(timestep);
             freq.setSample(sample);
+            // We force writeTimestamp and TTL to false since they cannot be specified in the /fetch URL
             freq.setWriteTimestamp(false);
+            freq.setTTL(false);
             freq.setPreBoundary(preBoundary);
             freq.setPostBoundary(postBoundary);
 
