@@ -410,6 +410,22 @@ public class WarpDB extends Thread implements DB {
     throw new DBException("Unsupported 'suspendCompactions' operation.");
   }
   
+  /**
+   * write method meant to be called during deletes
+   */
+  public void writeUnlocked(WriteBatch deletes, WriteOptions options) throws DBException {
+    if (options.snapshot()) {
+      throw new RuntimeException("Snapshots are unsupported.");      
+    }
+
+    try {
+      pendingOps.incrementAndGet();
+      this.db.write(deletes, options);
+    } finally {
+      this.pendingOps.decrementAndGet();
+    }
+  }
+  
   @Override
   public void write(WriteBatch updates) throws DBException {
     try {

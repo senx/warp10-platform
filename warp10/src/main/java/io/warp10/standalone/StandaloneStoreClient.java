@@ -704,7 +704,7 @@ public class StandaloneStoreClient implements StoreClient {
             if (syncwrites) {
               options = new WriteOptions().sync(Math.random() < syncrate);
             }
-            this.db.write(batch, options);
+            this.db.writeUnlocked(batch, options);
             batch.close();
             batch = this.db.createWriteBatchUnlocked();
             batchsize = 0;
