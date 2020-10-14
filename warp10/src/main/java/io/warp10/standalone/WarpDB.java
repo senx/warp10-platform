@@ -236,6 +236,15 @@ public class WarpDB extends Thread implements DB {
     }
   }
   
+  /**
+   * This method is meant to be called during a delete instead of
+   * the above createWriteBatch so the delete operation can
+   * proceed even if a thread called doOffline and is
+   * currently holding the lock. Those WriteBatch instances should
+   * still be created otherwise the pendingOps count will never go
+   * back down to 0 as the delete is stuck waiting for the mutex
+   * in createWriteBatch.
+   */
   public WriteBatch createWriteBatchUnlocked() {
     return this.db.createWriteBatch();
   }
