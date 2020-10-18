@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -33,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -43,6 +45,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 
 import io.warp10.continuum.DirectoryUtil;
+import io.warp10.continuum.MetadataUtils;
+
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
@@ -67,6 +71,7 @@ import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.egress.ThriftDirectoryClient;
 import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.gts.MetadataIdComparator;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.Directory;
@@ -110,11 +115,52 @@ public class StandaloneDirectoryClient implements DirectoryClient {
   private long LIMIT_CLASS_CARDINALITY = 100;
   private long LIMIT_LABELS_CARDINALITY = 100;
   
+  private static final int CACHE_SIZE = 1000000;
+  
+  private static final Map<String,Long> classids = new HashMap<String,Long>();
+
+  private static final Comparator<Long> LABELSID_COMPARATOR = new Comparator<Long>() {
+    public int compare(Long o1, Long o2) {
+      long l1 = o1.longValue();
+      long l2 = o2.longValue();
+      
+      boolean neg1 = 0L != (l1 & 0x8000000000000000L);
+      boolean neg2 = 0L != (l2 & 0x8000000000000000L);
+        
+      if ((neg1 && neg2) || (!neg1 && !neg2)) {
+        return Long.compare(l1, l2);
+      } else if (neg1) {
+        return 1;
+      } else { // neg2
+        return -1;
+      }
+    }
+  };
+  
+  private static final Comparator<String> CLASS_COMPARATOR = new Comparator<String>() {
+    @Override
+    public int compare(String o1, String o2) {
+      long id1 = classids.get(o1);
+      long id2 = classids.get(o2);
+      boolean neg1 = 0L != (id1 & 0x8000000000000000L);
+      boolean neg2 = 0L != (id2 & 0x8000000000000000L);
+      
+      if ((neg1 && neg2) || (!neg1 && !neg2)) {
+        return Long.compare(id1, id2);
+      } else if (neg1) {
+        return 1;
+      } else { // neg2
+        return -1;
+      }
+    }
+  };
+  
   /**
    * Maps of class name to labelsId to metadata
    */
   // 128BITS
-  private static final Map<String,Map<Long,Metadata>> metadatas = new MapMaker().concurrencyLevel(64).makeMap();
+  private static final Map<String,Map<Long,Metadata>> metadatas = new ConcurrentSkipListMap<String,Map<Long,Metadata>>(CLASS_COMPARATOR);
+  
   private static final Map<BigInteger,Metadata> metadatasById = new MapMaker().concurrencyLevel(64).makeMap();
 
   private long activityWindow = 0L;
@@ -266,8 +312,9 @@ public class StandaloneDirectoryClient implements DirectoryClient {
               GTSHelper.internalizeStrings(metadata);
 
               synchronized(metadatas) {
-                if (!metadatas.containsKey(metadata.getName())) {
-                  metadatas.put(metadata.getName(), (Map) new MapMaker().concurrencyLevel(64).makeMap());
+                if (!classids.containsKey(metadata.getName())) {
+                  classids.put(metadata.getName(), metadata.getClassId());
+                  metadatas.put(metadata.getName(), new ConcurrentSkipListMap<Long, Metadata>(LABELSID_COMPARATOR));
                 }                
               }
               
@@ -433,7 +480,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       }
              
       if (null != exactClassName) {
-        if (!this.metadatas.containsKey(exactClassName)) {
+        if (!this.classids.containsKey(exactClassName)) {
           continue;
         }
         classNames = new HashSet<String>();
@@ -606,7 +653,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     // If the metadata are not known, register them
     //
         
-    if (Configuration.INGRESS_METADATA_SOURCE.equals(metadata.getSource()) && !metadatas.containsKey(metadata.getName())) {
+    if (Configuration.INGRESS_METADATA_SOURCE.equals(metadata.getSource()) && !classids.containsKey(metadata.getName())) {
       store(metadata);
     } else if (Configuration.INGRESS_METADATA_SOURCE.equals(metadata.getSource())) {
       // Compute labelsId
@@ -644,7 +691,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       // When it is a metadata update request, only store the metadata if the GTS is already known
       if (Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource())
           || Configuration.INGRESS_METADATA_UPDATE_DELTA_ENDPOINT.equals(metadata.getSource())) {
-        if (metadatas.containsKey(metadata.getName())) {
+        if (classids.containsKey(metadata.getName())) {
           // 128BITS
           long labelsId = GTSHelper.labelsId(this.labelsLongs, metadata.getLabels());
           if (metadatas.get(metadata.getName()).containsKey(labelsId)) {
@@ -666,7 +713,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
   }
   
   public synchronized void unregister(Metadata metadata) {
-    if (!metadatas.containsKey(metadata.getName())) {
+    if (!classids.containsKey(metadata.getName())) {
       return;
     }
     // 128BITS
@@ -677,6 +724,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     metadatas.get(metadata.getName()).remove(labelsId);
     if (metadatas.get(metadata.getName()).isEmpty()) {
       metadatas.remove(metadata.getName());
+      classids.remove(metadata.getName());
     }
 
     String app = metadata.getLabels().get(Constants.APPLICATION_LABEL);
@@ -826,7 +874,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       // Update the attributes
       Metadata oldmeta = null;
       synchronized(metadatas) {
-        if (metadatas.containsKey(metadata.getName())) {
+        if (classids.containsKey(metadata.getName())) {
           oldmeta = metadatas.get(metadata.getName()).get(labelsId);
           
           if (null != oldmeta && metadata.getAttributesSize() > 0) {
@@ -859,7 +907,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
         // Copy the attributes if the Metadata is already known, which can happen when
         // tracking the activity
         synchronized(metadatas) {
-          if (metadatas.containsKey(metadata.getName())) {
+          if (classids.containsKey(metadata.getName())) {
             oldmeta = metadatas.get(metadata.getName()).get(labelsId);        
           }        
         }
@@ -884,8 +932,9 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       }
       
       synchronized (metadatas) {
-        if (!metadatas.containsKey(metadata.getName())) {
-          metadatas.put(metadata.getName(), (Map) new MapMaker().concurrencyLevel(64).makeMap());
+        if (!classids.containsKey(metadata.getName())) {
+          classids.put(metadata.getName(), metadata.getClassId());
+          metadatas.put(metadata.getName(), new ConcurrentSkipListMap<Long, Metadata>(LABELSID_COMPARATOR));
         }
         if (null == metadatas.get(metadata.getName()).put(labelsId, metadata)) {
           Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, 1);
