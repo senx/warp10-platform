@@ -155,7 +155,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
   /**
    * Comparator which sorts the IDs in their lexicographical order suitable for scanning HBase keys
    */
-  private static final Comparator<Long> ID_COMPARATOR = new Comparator<Long>() {
+  public static final Comparator<Long> ID_COMPARATOR = new Comparator<Long>() {
     @Override
     public int compare(Long o1, Long o2) {
       if (Long.signum(o1) == Long.signum(o2)) {
@@ -304,7 +304,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
   //private final Map<Long,String> classNames = new MapMaker().concurrencyLevel(64).makeMap();
   private final Map<Long,String> classNames = new ConcurrentSkipListMap<Long, String>(ID_COMPARATOR);
   
-  private final Map<String,Set<String>> classesPerOwner = new MapMaker().concurrencyLevel(64).makeMap();
+  private final Map<String,Map<Long,String>> classesPerOwner = new MapMaker().concurrencyLevel(64).makeMap();
 
   private final ReentrantLock metadatasLock = new ReentrantLock();
   
@@ -704,14 +704,14 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 sensisionLabels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, app);
                 
                 synchronized(classesPerOwner) {
-                  Set<String> classes = classesPerOwner.get(owner);
+                  Map<Long,String> classes = classesPerOwner.get(owner);
                   
                   if (null == classes) {
-                    classes = new ConcurrentSkipListSet<String>();
+                    classes = new ConcurrentSkipListMap<Long,String>(ID_COMPARATOR);
                     classesPerOwner.put(owner, classes);
                   }
-                  
-                  classes.add(metadata.getName());
+                                    
+                  classes.put(metadata.getClassId(), metadata.getName());
                 }
 
                 Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS_PERAPP, sensisionLabels, 1);
@@ -1885,15 +1885,15 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
 
               String owner = metadata.getLabels().get(Constants.OWNER_LABEL);
               
-              synchronized(directory.classesPerOwner) {
-                Set<String> classes = directory.classesPerOwner.get(owner);
+              synchronized(directory.classesPerOwner) {                
+                Map<Long, String> classes = directory.classesPerOwner.get(owner);
                 
-                if (null == classes) {
-                  classes = new HashSet<String>();
+                if (null == classes) {                  
+                  classes = new ConcurrentSkipListMap<Long, String>();
                   directory.classesPerOwner.put(owner, classes);
                 }
                 
-                classes.add(metadata.getName());
+                classes.put(metadata.getClassId(), metadata.getName());
               }
               
               Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_OWNERS, Sensision.EMPTY_LABELS, directory.classesPerOwner.size());
@@ -2094,7 +2094,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             String ownersel = request.getLabelsSelectors().get(i).get(Constants.OWNER_LABEL);
             
             if (null != ownersel && ownersel.startsWith("=")) {
-              classNames = classesPerOwner.get(ownersel.substring(1));
+              classNames = classesPerOwner.get(ownersel.substring(1)).values();              
             } else {
               classNames = this.classNames.values();
             }
@@ -2631,7 +2631,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
           String ownersel = labelsSelector.get(Constants.OWNER_LABEL);
           
           if (null != ownersel && ownersel.startsWith("=")) {
-            classNames = classesPerOwner.get(ownersel.substring(1));
+            classNames = classesPerOwner.get(ownersel.substring(1)).values();
             if (null == classNames) {
               classNames = new ArrayList<String>();
             }

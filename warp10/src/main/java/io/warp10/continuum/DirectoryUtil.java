@@ -126,7 +126,7 @@ public class DirectoryUtil {
   public static DirectoryStatsResponse stats(DirectoryStatsRequest request,
                                              StandaloneDirectoryClient.ShardFilter filter,
                                              Map<String, Map<Long, Metadata>> metadatas,
-                                             Map<String, Set<String>> classesPerOwner,
+                                             Map<String, Map<Long, String>> classesPerOwner,
                                              long classCardinalityLimit,
                                              long labelsCardinalityLimit,
                                              long maxage,
@@ -245,7 +245,7 @@ public class DirectoryUtil {
               String ownersel = request.getLabelsSelectors().get(i).get(Constants.OWNER_LABEL);
 
               if (null != ownersel && ownersel.startsWith("=")) {
-                classNames = classesPerOwner.get(ownersel.substring(1));
+                classNames = classesPerOwner.get(ownersel.substring(1)).values();
               } else {
                 classNames = metadatas.keySet();
               }

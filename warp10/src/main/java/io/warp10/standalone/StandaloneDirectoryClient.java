@@ -119,39 +119,14 @@ public class StandaloneDirectoryClient implements DirectoryClient {
   
   private static final Map<String,Long> classids = new HashMap<String,Long>();
 
-  private static final Comparator<Long> LABELSID_COMPARATOR = new Comparator<Long>() {
-    public int compare(Long o1, Long o2) {
-      long l1 = o1.longValue();
-      long l2 = o2.longValue();
-      
-      boolean neg1 = 0L != (l1 & 0x8000000000000000L);
-      boolean neg2 = 0L != (l2 & 0x8000000000000000L);
-        
-      if ((neg1 && neg2) || (!neg1 && !neg2)) {
-        return Long.compare(l1, l2);
-      } else if (neg1) {
-        return 1;
-      } else { // neg2
-        return -1;
-      }
-    }
-  };
   
   private static final Comparator<String> CLASS_COMPARATOR = new Comparator<String>() {
     @Override
     public int compare(String o1, String o2) {
       long id1 = classids.get(o1);
       long id2 = classids.get(o2);
-      boolean neg1 = 0L != (id1 & 0x8000000000000000L);
-      boolean neg2 = 0L != (id2 & 0x8000000000000000L);
       
-      if ((neg1 && neg2) || (!neg1 && !neg2)) {
-        return Long.compare(id1, id2);
-      } else if (neg1) {
-        return 1;
-      } else { // neg2
-        return -1;
-      }
+      return Directory.ID_COMPARATOR.compare(id1, id2);
     }
   };
   
@@ -314,7 +289,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
               synchronized(metadatas) {
                 if (!classids.containsKey(metadata.getName())) {
                   classids.put(metadata.getName(), metadata.getClassId());
-                  metadatas.put(metadata.getName(), new ConcurrentSkipListMap<Long, Metadata>(LABELSID_COMPARATOR));
+                  metadatas.put(metadata.getName(), new ConcurrentSkipListMap<Long, Metadata>(Directory.ID_COMPARATOR));
                 }                
               }
               
@@ -934,7 +909,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       synchronized (metadatas) {
         if (!classids.containsKey(metadata.getName())) {
           classids.put(metadata.getName(), metadata.getClassId());
-          metadatas.put(metadata.getName(), new ConcurrentSkipListMap<Long, Metadata>(LABELSID_COMPARATOR));
+          metadatas.put(metadata.getName(), new ConcurrentSkipListMap<Long, Metadata>(Directory.ID_COMPARATOR));
         }
         if (null == metadatas.get(metadata.getName()).put(labelsId, metadata)) {
           Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, 1);
