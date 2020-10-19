@@ -249,7 +249,7 @@ public class HBaseStoreClient implements StoreClient {
 
     boolean useBlockCache = metadatas.size() <= blockcacheThreshold;
 
-    if (metadatas.size() < ParallelGTSDecoderIteratorWrapper.getMinGTSPerScanner() || !ParallelGTSDecoderIteratorWrapper.useParallelScanners()) {
+    if (!freq.isParallelScanners() || metadatas.size() < ParallelGTSDecoderIteratorWrapper.getMinGTSPerScanner() || !ParallelGTSDecoderIteratorWrapper.useParallelScanners()) {
       if (optimized) {
         return new OptimizedSlicedRowFilterGTSDecoderIterator(freq, this.conn, this.tableName, this.colfam, this.keystore, useBlockCache);
       } else {
