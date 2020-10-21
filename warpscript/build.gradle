@@ -70,6 +70,7 @@ jar {
     include 'io/warp10/continuum/store/Constants.class'
     include 'io/warp10/continuum/store/DirectoryClient.class'
     include 'io/warp10/continuum/store/GTSDecoderIterator.class'
+    include 'io/warp10/continuum/store/MetadataIterator.class'
     include 'io/warp10/continuum/store/thrift/data/**'
     include 'io/warp10/warp/sdk/**'
     include 'io/warp10/continuum/sensision/SensisionConstants.class'
