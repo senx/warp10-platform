@@ -65,7 +65,6 @@ cp ../../etc/warpscripts/*.mc2* ${WARP10_HOME}/warpscripts/test/60000
 cp ../../etc/calls/*.sh ${WARP10_HOME}/calls
 cp ../../etc/calls/*.py ${WARP10_HOME}/calls
 cp ../../etc/macros/* ${WARP10_HOME}/macros
-cp ../../etc/generate_crypto_key.py ${WARP10_HOME}/etc
 sed -e "s/@VERSION@/${VERSION}/g" ../../etc/log4j.properties >> ${WARP10_HOME}/etc/log4j.properties
 
 # Copy template configuration
