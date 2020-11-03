@@ -54,15 +54,17 @@ public class WarpDB extends Thread implements DB {
   private AtomicBoolean compactionsSuspended = new AtomicBoolean(false);
 
   private static final class WarpDBReentrantLock extends ReentrantLock {
+    
+    public WarpDBReentrantLock(boolean fair) {
+      super(fair);
+    }
+    
     public Thread getOwner() {
       return super.getOwner();
-    }    
-    public Collection<Thread> getQueuedThreads() {
-      return super.getQueuedThreads();
     }
   }
   
-  private WarpDBReentrantLock mutex = new WarpDBReentrantLock();
+  private WarpDBReentrantLock mutex = new WarpDBReentrantLock(true);
   
   private final boolean nativedisabled;
   private final boolean javadisabled;
@@ -236,6 +238,19 @@ public class WarpDB extends Thread implements DB {
     }
   }
   
+  /**
+   * This method is meant to be called during a delete instead of
+   * the above createWriteBatch so the delete operation can
+   * proceed even if a thread called doOffline and is
+   * currently holding the lock. Those WriteBatch instances should
+   * still be created otherwise the pendingOps count will never go
+   * back down to 0 as the delete is stuck waiting for the mutex
+   * in createWriteBatch.
+   */
+  public WriteBatch createWriteBatchUnlocked() {
+    return this.db.createWriteBatch();
+  }
+
   @Override
   public void delete(byte[] key) throws DBException {
     try {
@@ -393,6 +408,22 @@ public class WarpDB extends Thread implements DB {
   @Override
   public void suspendCompactions() throws InterruptedException {
     throw new DBException("Unsupported 'suspendCompactions' operation.");
+  }
+  
+  /**
+   * write method meant to be called during deletes
+   */
+  public void writeUnlocked(WriteBatch deletes, WriteOptions options) throws DBException {
+    if (options.snapshot()) {
+      throw new RuntimeException("Snapshots are unsupported.");      
+    }
+
+    try {
+      pendingOps.incrementAndGet();
+      this.db.write(deletes, options);
+    } finally {
+      this.pendingOps.decrementAndGet();
+    }
   }
   
   @Override
