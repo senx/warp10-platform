@@ -530,5 +530,12 @@ struct FetchRequest {
    * be transfered between the RegionServer and the Client for each cell, even if there is no interest
    * in the tags. Overall performance may therefore degrade.
    */
-  13: optional bool TTL = false;
+  13: optional bool TTL = false,
+  /**
+   * Flag indicating whether or not to use parallel scanners if available. This may be
+   * needed when the order of the returned GTS is important. Performing parallel
+   * scans will mix the results of all of them thus altering the order of the original
+   * GTS list.
+   */
+  14: optional bool parallelScanners = true,
 }
