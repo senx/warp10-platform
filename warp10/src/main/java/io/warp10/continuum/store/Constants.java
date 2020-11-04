@@ -25,8 +25,13 @@ import java.util.Set;
 import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class Constants {
-  
+
+  private static final Logger LOG = LoggerFactory.getLogger(Constants.class);
+
   //
   //  A T T E N T I O N
   //  
@@ -482,7 +487,7 @@ public class Constants {
     MAX_ENCODER_SIZE = Integer.parseInt(WarpConfig.getProperty(Configuration.MAX_ENCODER_SIZE, Integer.toString(DEFAULT_MAX_ENCODER_SIZE)));
     
     if (null == System.getProperty(Configuration.WARP10_QUIET)) {
-      System.out.println("########[ Initialized with " + TIME_UNITS_PER_MS + " time units per millisecond ]########");
+      LOG.info("########[ Initialized with " + TIME_UNITS_PER_MS + " time units per millisecond ]########");
     }
     
     //

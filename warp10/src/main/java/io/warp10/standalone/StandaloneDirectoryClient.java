@@ -262,8 +262,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
 
               // If classId/labelsId are incoherent, skip metadata
               if (classId != hbClassId || labelsId != hbLabelsId) {
-                // FIXME(hbs): LOG
-                System.err.println("Incoherent class/labels Id for " + metadata);
+                LOG.error("Incoherent class/labels Id for " + metadata);
                 continue;
               }
 
@@ -305,9 +304,8 @@ public class StandaloneDirectoryClient implements DirectoryClient {
                   continue;
                 }
               }
-
-              // FIXME(hbs): LOG
-              System.err.println("Duplicate labelsId for classId " + classId + ": " + metadata);
+              
+              LOG.error("Duplicate labelsId for classId " + classId + ": " + metadata);
               continue;
 
             } catch (InvalidCipherTextException icte) {
@@ -371,8 +369,8 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       }
 
       nano = System.nanoTime() - nano;
-
-      System.out.println("Loaded " + count + " GTS in " + (nano / 1000000.0D) + " ms");
+      
+      LOG.info("Loaded " + count + " GTS in " + (nano / 1000000.0D) + " ms");
     } finally {
       Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, count);
       try {
