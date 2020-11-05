@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -52,7 +52,7 @@ import org.apache.thrift.TException;
 public class DirectoryUtil {
   /**
    * Compute the hash of a DirectoryFindRequest for the provided SipHash key
-   * 
+   *
    * @param k0 first half of SipHash key
    * @param k1 second half of SipHash key
    * @param request DirectoryFindRequest to hash
@@ -70,20 +70,20 @@ public class DirectoryUtil {
     //
     // Create a ByteArrayOutputStream into which the content will be dumped
     //
-    
+
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    
+
     // Add timestamp
-    
+
     try {
       baos.write(Longs.toByteArray(timestamp));
-      
+
       if (null != classSelectors) {
         for (String classSelector: classSelectors) {
           baos.write(classSelector.getBytes(StandardCharsets.UTF_8));
         }
       }
-      
+
       if (null != labelsSelectors) {
         for (Map<String, String> map: labelsSelectors) {
           TreeMap<String,String> tm = new TreeMap<String, String>();
@@ -93,18 +93,18 @@ public class DirectoryUtil {
             baos.write(entry.getValue().getBytes(StandardCharsets.UTF_8));
           }
         }
-      }      
+      }
     } catch (IOException ioe) {
       return 0L;
     }
-    
+
     // Compute hash
-    
+
     byte[] data = baos.toByteArray();
-    
+
     long hash = SipHashInline.hash24(k0, k1, data, 0, data.length);
-    
-    return hash;    
+
+    return hash;
   }
 
   /**
@@ -126,7 +126,7 @@ public class DirectoryUtil {
   public static DirectoryStatsResponse stats(DirectoryStatsRequest request,
                                              StandaloneDirectoryClient.ShardFilter filter,
                                              Map<String, Map<Long, Metadata>> metadatas,
-                                             Map<String, Set<String>> classesPerOwner,
+                                             Map<String, Map<Long, String>> classesPerOwner,
                                              long classCardinalityLimit,
                                              long labelsCardinalityLimit,
                                              long maxage,
@@ -245,7 +245,7 @@ public class DirectoryUtil {
               String ownersel = request.getLabelsSelectors().get(i).get(Constants.OWNER_LABEL);
 
               if (null != ownersel && ownersel.startsWith("=")) {
-                classNames = classesPerOwner.get(ownersel.substring(1));
+                classNames = classesPerOwner.get(ownersel.substring(1)).values();
               } else {
                 classNames = metadatas.keySet();
               }
