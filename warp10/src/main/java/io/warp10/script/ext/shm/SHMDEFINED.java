@@ -16,45 +16,27 @@
 
 package io.warp10.script.ext.shm;
 
-import java.util.concurrent.locks.ReentrantLock;
-
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
-public class SHMSTORE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  public SHMSTORE(String name) {
+public class SHMDEFINED extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+  public SHMDEFINED(String name) {
     super(name);
   }
 
   @Override
-  public Object apply(WarpScriptStack stack) throws WarpScriptException {    
-    Object mutexo = stack.getAttribute(MUTEX.MUTEX_ATTRIBUTE + stack.getUUID());
-    
-    if (null == mutexo) {
-      throw new WarpScriptException(getName() + " can only be called when in a MUTEX section.");
-    }
-    
-    String mutex = String.valueOf(mutexo);
-    
+  public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
     
     if (!(top instanceof String)) {
       throw new WarpScriptException(getName() + " expects a symbol name on top of the stack.");
     }
-    
+
     String symbol = (String) top;
     
-    top = stack.pop();
-    
-    ReentrantLock lock = SharedMemoryWarpScriptExtension.getLock(mutex);
-    
-    if (!lock.isHeldByCurrentThread()) {
-      throw new WarpScriptException(getName() + " expects the mutex '" + mutex + "' to be held when calling " + getName());
-    }
-    
-    SharedMemoryWarpScriptExtension.store(symbol, mutex, top);
+    stack.push(SharedMemoryWarpScriptExtension.defined(symbol));
 
     return stack;
   }
