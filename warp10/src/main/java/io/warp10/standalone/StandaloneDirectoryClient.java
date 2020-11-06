@@ -281,16 +281,20 @@ public class StandaloneDirectoryClient implements DirectoryClient {
 
               GTSHelper.internalizeStrings(metadata);
 
+              Map<Long, Metadata> metadatasForClassName;
               synchronized(metadatas) {
                 if (!classids.containsKey(metadata.getName())) {
                   classids.put(metadata.getName(), metadata.getClassId());
-                  metadatas.put(metadata.getName(), new ConcurrentSkipListMap<Long, Metadata>(Directory.ID_COMPARATOR));
+                  metadatasForClassName = new ConcurrentSkipListMap<Long, Metadata>(Directory.ID_COMPARATOR);
+                  metadatas.put(metadata.getName(), metadatasForClassName);
+                } else {
+                  metadatasForClassName = metadatas.get(metadata.getName());
                 }
               }
 
-              synchronized(metadatas.get(metadata.getName())) {
-                if (!metadatas.get(metadata.getName()).containsKey(labelsId)) {
-                  metadatas.get(metadata.getName()).put(labelsId, metadata);
+              synchronized(metadatasForClassName) {
+                if (!metadatasForClassName.containsKey(labelsId)) {
+                  metadatasForClassName.put(labelsId, metadata);
 
                   //
                   // Store Metadata under 'id'
@@ -400,12 +404,12 @@ public class StandaloneDirectoryClient implements DirectoryClient {
 
     SmartPattern classSmartPattern;
 
-    Collection<Metadata> metadatas;
+    Collection<Metadata> requestedMetadatas;
 
     if (classExpr.size() > 1) {
-      metadatas = new HashSet<Metadata>();
+      requestedMetadatas = new HashSet<Metadata>();
     } else {
-      metadatas = new ArrayList<Metadata>();
+      requestedMetadatas = new ArrayList<Metadata>();
     }
 
     Set<String> classNames = null;
@@ -449,13 +453,13 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       }
 
       if (null != exactClassName) {
-        if (!this.classids.containsKey(exactClassName)) {
+        if (!classids.containsKey(exactClassName)) {
           continue;
         }
         classNames = new HashSet<String>();
         classNames.add(exactClassName);
       } else {
-        classNames = this.metadatas.keySet();
+        classNames = metadatas.keySet();
       }
 
       //
@@ -484,115 +488,120 @@ public class StandaloneDirectoryClient implements DirectoryClient {
         //
 
         if (classSmartPattern.matches(className)) {
-          for (Metadata metadata: this.metadatas.get(className).values()) {
+          Map<Long, Metadata> metadatasForClassname = metadatas.get(className);
 
-            //
-            // Check activity
-            //
+          // Check for nullity because of possible concurrent unregistration.
+          if(null != metadatasForClassname) {
+            for (Metadata metadata: metadatasForClassname.values()) {
 
-            if (hasActiveAfter && metadata.getLastActivity() < activeAfter) {
-              continue;
-            }
+              //
+              // Check activity
+              //
 
-            if (hasQuietAfter && metadata.getLastActivity() >= quietAfter) {
-              continue;
-            }
-
-
-            boolean exclude = false;
-
-            if (null != missingLabels) {
-              for (String missing: missingLabels) {
-                // If the Metadata contain one of the missing labels, exclude the entry
-                if (null != metadata.getLabels().get(missing)) {
-                  exclude = true;
-                  break;
-                }
+              if (hasActiveAfter && metadata.getLastActivity() < activeAfter) {
+                continue;
               }
-              // Check attributes
-              if (!exclude && metadata.getAttributesSize() > 0) {
+
+              if (hasQuietAfter && metadata.getLastActivity() >= quietAfter) {
+                continue;
+              }
+
+
+              boolean exclude = false;
+
+              if (null != missingLabels) {
                 for (String missing: missingLabels) {
                   // If the Metadata contain one of the missing labels, exclude the entry
-                  if (null != metadata.getAttributes().get(missing)) {
+                  if (null != metadata.getLabels().get(missing)) {
                     exclude = true;
                     break;
                   }
                 }
+                // Check attributes
+                if (!exclude && metadata.getAttributesSize() > 0) {
+                  for (String missing: missingLabels) {
+                    // If the Metadata contain one of the missing labels, exclude the entry
+                    if (null != metadata.getAttributes().get(missing)) {
+                      exclude = true;
+                      break;
+                    }
+                  }
+                }
+                if (exclude) {
+                  continue;
+                }
               }
+
+              int idx = 0;
+
+              for (String labelName: labelNames) {
+                //
+                // Immediately exclude metadata which do not contain one of the
+                // labels for which we have patterns either in labels or in attributes
+                //
+
+                String labelValue = metadata.getLabels().get(labelName);
+
+                if (null == labelValue) {
+                  labelValue = metadata.getAttributes().get(labelName);
+                  if (null == labelValue) {
+                    exclude = true;
+                    break;
+                  }
+                }
+
+                labelValues[idx++] = labelValue;
+              }
+
+              // If we did not collect enough label/attribute values, exclude the GTS
+              if (idx < labelNames.size()) {
+                exclude = true;
+              }
+
               if (exclude) {
                 continue;
               }
-            }
 
-            int idx = 0;
-
-            for (String labelName: labelNames) {
               //
-              // Immediately exclude metadata which do not contain one of the
-              // labels for which we have patterns either in labels or in attributes
+              // Check if the label value matches, if not, exclude the GTS
               //
 
-              String labelValue = metadata.getLabels().get(labelName);
-
-              if (null == labelValue) {
-                labelValue = metadata.getAttributes().get(labelName);
-                if (null == labelValue) {
+              for (int j = 0; j < labelNames.size(); j++) {
+                if (!labelSmartPatterns.get(j).matches(labelValues[j])) {
                   exclude = true;
                   break;
                 }
               }
 
-              labelValues[idx++] = labelValue;
-            }
-
-            // If we did not collect enough label/attribute values, exclude the GTS
-            if (idx < labelNames.size()) {
-              exclude = true;
-            }
-
-            if (exclude) {
-              continue;
-            }
-
-            //
-            // Check if the label value matches, if not, exclude the GTS
-            //
-
-            for (int j = 0; j < labelNames.size(); j++) {
-              if (!labelSmartPatterns.get(j).matches(labelValues[j])) {
-                exclude = true;
-                break;
+              if (exclude) {
+                continue;
               }
-            }
 
-            if (exclude) {
-              continue;
-            }
+              //
+              // We have a match, rebuild metadata
+              //
+              // FIXME(hbs): include a 'safe' mode to expose the internal Metadata instances?
+              //
 
-            //
-            // We have a match, rebuild metadata
-            //
-            // FIXME(hbs): include a 'safe' mode to expose the internal Metadata instances?
-            //
+              Metadata meta = new Metadata();
+              meta.setName(className);
+              meta.setLabels(Collections.unmodifiableMap(metadata.getLabels()));
+              meta.setAttributes(Collections.unmodifiableMap(metadata.getAttributes()));
+              // 128BITS
+              if (metadata.isSetClassId()) {
+                meta.setClassId(metadata.getClassId());
+              } else {
+                meta.setClassId(GTSHelper.classId(classKey, meta.getName()));
+              }
+              if (metadata.isSetLabelsId()) {
+                meta.setLabelsId(metadata.getLabelsId());
+              } else {
+                meta.setLabelsId(GTSHelper.labelsId(labelsKey, meta.getLabels()));
+              }
 
-            Metadata meta = new Metadata();
-            meta.setName(className);
-            meta.setLabels(Collections.unmodifiableMap(metadata.getLabels()));
-            meta.setAttributes(Collections.unmodifiableMap(metadata.getAttributes()));
-            // 128BITS
-            if (metadata.isSetClassId()) {
-              meta.setClassId(metadata.getClassId());
-            } else {
-              meta.setClassId(GTSHelper.classId(classKey, meta.getName()));
+              meta.setLastActivity(metadata.getLastActivity());
+              requestedMetadatas.add(meta);
             }
-            if (metadata.isSetLabelsId()) {
-              meta.setLabelsId(metadata.getLabelsId());
-            } else {
-              meta.setLabelsId(GTSHelper.labelsId(labelsKey, meta.getLabels()));
-            }
-
-            meta.setLastActivity(metadata.getLastActivity());
-            metadatas.add(meta);
           }
         }
       }
@@ -600,10 +609,10 @@ public class StandaloneDirectoryClient implements DirectoryClient {
 
     if (classExpr.size() > 1) {
       List<Metadata> metas = new ArrayList<Metadata>();
-      metas.addAll(metadatas);
+      metas.addAll(requestedMetadatas);
       return metas;
     } else {
-      return (List<Metadata>) metadatas;
+      return (List<Metadata>) requestedMetadatas;
     }
   }
 
@@ -622,73 +631,84 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     // If the metadata are not known, register them
     //
 
-    if (Configuration.INGRESS_METADATA_SOURCE.equals(metadata.getSource()) && !classids.containsKey(metadata.getName())) {
-      store(metadata);
-    } else if (Configuration.INGRESS_METADATA_SOURCE.equals(metadata.getSource())) {
-      // Compute labelsId
-      // 128BITS
-      long labelsId = GTSHelper.labelsId(this.labelsLongs, metadata.getLabels());
+    boolean mustStore = false;
 
-      if (!metadatas.get(metadata.getName()).containsKey(labelsId)) {
-        // Metadata is unknown so we know the Metadata should be stored
-        store(metadata);
-      } else {
-        // Check that we do not have a collision
-        if (!metadatas.get(metadata.getName()).get(labelsId).getLabels().equals(metadata.getLabels())) {
-          LOG.warn("LabelsId collision under class '" + metadata.getName() + "' " + metadata.getLabels() + " and " + metadatas.get(metadata.getName()).get(labelsId).getLabels());
-          Sensision.update(SensisionConstants.CLASS_WARP_DIRECTORY_LABELS_COLLISIONS, Sensision.EMPTY_LABELS, 1);
-        }
-
-        //
-        // Check activity of the GTS, storing it if the activity window has passed
-        if (activityWindow > 0) {
-          //
-          // If the currently stored lastactivity is more than 'activityWindow' before the one in 'metadata',
-          // store the metadata
-          //
-          long currentLastActivity = metadatas.get(metadata.getName()).get(labelsId).getLastActivity();
-          if (metadata.getLastActivity() - currentLastActivity >= activityWindow) {
-            store(metadata);
-          }
-        }
-      }
-    } else if (!Configuration.INGRESS_METADATA_SOURCE.equals(metadata.getSource())) {
-      //
-      // Metadata registration is not from Ingress, this means we can update the value as it comes from the directory service or a metadata update
-      //
-
-      // When it is a metadata update request, only store the metadata if the GTS is already known
-      if (Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource())
-          || Configuration.INGRESS_METADATA_UPDATE_DELTA_ENDPOINT.equals(metadata.getSource())) {
-        if (classids.containsKey(metadata.getName())) {
+    synchronized(metadatas) {
+      if (Configuration.INGRESS_METADATA_SOURCE.equals(metadata.getSource())) {
+        if (!classids.containsKey(metadata.getName())) {
+          mustStore = true;
+        } else {
+          // Compute labelsId
           // 128BITS
           long labelsId = GTSHelper.labelsId(this.labelsLongs, metadata.getLabels());
-          if (metadatas.get(metadata.getName()).containsKey(labelsId)) {
-            // Check the activity so we only increase it
-            // 128 bits
-            Metadata meta = metadatas.get(metadata.getName()).get(labelsId);
-            long currentLastActivity = meta.getLastActivity();
-            if (metadata.getLastActivity() < currentLastActivity) {
-              metadata.setLastActivity(currentLastActivity);
+
+          if (!metadatas.get(metadata.getName()).containsKey(labelsId)) {
+            // Metadata is unknown so we know the Metadata should be stored
+            mustStore = true;
+          } else {
+            // Check that we do not have a collision
+            if (!metadatas.get(metadata.getName()).get(labelsId).getLabels().equals(metadata.getLabels())) {
+              LOG.warn("LabelsId collision under class '" + metadata.getName() + "' " + metadata.getLabels() + " and " + metadatas.get(metadata.getName()).get(labelsId).getLabels());
+              Sensision.update(SensisionConstants.CLASS_WARP_DIRECTORY_LABELS_COLLISIONS, Sensision.EMPTY_LABELS, 1);
             }
 
-            store(metadata);
+            //
+            // Check activity of the GTS, storing it if the activity window has passed
+            if (activityWindow > 0) {
+              //
+              // If the currently stored lastactivity is more than 'activityWindow' before the one in 'metadata',
+              // store the metadata
+              //
+              long currentLastActivity = metadatas.get(metadata.getName()).get(labelsId).getLastActivity();
+              if (metadata.getLastActivity() - currentLastActivity >= activityWindow) {
+                mustStore = true;
+              }
+            }
           }
         }
       } else {
-        store(metadata);
+        //
+        // Metadata registration is not from Ingress, this means we can update the value as it comes from the directory service or a metadata update
+        //
+
+        // When it is a metadata update request, only store the metadata if the GTS is already known
+        if (Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource())
+            || Configuration.INGRESS_METADATA_UPDATE_DELTA_ENDPOINT.equals(metadata.getSource())) {
+          if (classids.containsKey(metadata.getName())) {
+            // 128BITS
+            long labelsId = GTSHelper.labelsId(this.labelsLongs, metadata.getLabels());
+            if (metadatas.get(metadata.getName()).containsKey(labelsId)) {
+              // Check the activity so we only increase it
+              // 128 bits
+              Metadata meta = metadatas.get(metadata.getName()).get(labelsId);
+              long currentLastActivity = meta.getLastActivity();
+              if (metadata.getLastActivity() < currentLastActivity) {
+                metadata.setLastActivity(currentLastActivity);
+              }
+
+              mustStore = true;
+            }
+          }
+        } else {
+          mustStore = true;
+        }
       }
+    }
+
+    if(mustStore) {
+      store(metadata);
     }
   }
 
   public void unregister(Metadata metadata) {
     // 128BITS
-    long labelsId = GTSHelper.labelsId(this.labelsLongs, metadata.getLabels());
+    long labelsId;
 
     synchronized (metadatas) {
       if (!classids.containsKey(metadata.getName())) {
         return;
       }
+      labelsId = GTSHelper.labelsId(this.labelsLongs, metadata.getLabels());
       if (!metadatas.get(metadata.getName()).containsKey(labelsId)) {
         return;
       }
@@ -709,7 +729,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     // Remove Metadata indexed by id
     byte[] idbytes = new byte[16];
     GTSHelper.fillGTSIds(idbytes, 0, classId, labelsId);
-    this.metadatasById.remove(new BigInteger(idbytes));
+    metadatasById.remove(new BigInteger(idbytes));
 
     //
     // Remove entry from DB if need be
@@ -920,7 +940,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       byte[] idbytes = new byte[16];
       GTSHelper.fillGTSIds(idbytes, 0, classId, labelsId);
       BigInteger id = new BigInteger(idbytes);
-      this.metadatasById.put(id, metadata);
+      metadatasById.put(id, metadata);
 
     } catch (TException te) {
       throw new RuntimeException(te);
