@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -112,7 +113,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
   private long LIMIT_CLASS_CARDINALITY = 100;
   private long LIMIT_LABELS_CARDINALITY = 100;
 
-  private static final Map<String,Long> classids = new HashMap<String,Long>();
+  private static final Map<String,Long> classids = new ConcurrentHashMap<String,Long>();
 
 
   private static final Comparator<String> CLASS_COMPARATOR = new Comparator<String>() {
