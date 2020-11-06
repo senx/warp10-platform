@@ -605,7 +605,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     } else {
       return (List<Metadata>) metadatas;
     }
-  };
+  }
 
   public void register(Metadata metadata) throws IOException {
 
@@ -681,19 +681,22 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     }
   }
 
-  public synchronized void unregister(Metadata metadata) {
-    if (!classids.containsKey(metadata.getName())) {
-      return;
-    }
+  public void unregister(Metadata metadata) {
     // 128BITS
     long labelsId = GTSHelper.labelsId(this.labelsLongs, metadata.getLabels());
-    if (!metadatas.get(metadata.getName()).containsKey(labelsId)) {
-      return;
-    }
-    metadatas.get(metadata.getName()).remove(labelsId);
-    if (metadatas.get(metadata.getName()).isEmpty()) {
-      metadatas.remove(metadata.getName());
-      classids.remove(metadata.getName());
+
+    synchronized (metadatas) {
+      if (!classids.containsKey(metadata.getName())) {
+        return;
+      }
+      if (!metadatas.get(metadata.getName()).containsKey(labelsId)) {
+        return;
+      }
+      metadatas.get(metadata.getName()).remove(labelsId);
+      if (metadatas.get(metadata.getName()).isEmpty()) {
+        metadatas.remove(metadata.getName());
+        classids.remove(metadata.getName());
+      }
     }
 
     String app = metadata.getLabels().get(Constants.APPLICATION_LABEL);
