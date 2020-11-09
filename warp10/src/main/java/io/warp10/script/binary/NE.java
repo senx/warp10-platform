@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -15,6 +15,8 @@
 //
 
 package io.warp10.script.binary;
+
+import java.util.Arrays;
 
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.WarpScriptException;
@@ -45,6 +47,8 @@ public class NE extends ComparisonOperation {
         || (op2 instanceof GeoTimeSerie && (op1 instanceof Number || op1 instanceof String))) {
       // both numbers, both GTSs or one GTS and one String or Number
       comparison(stack, op1, op2);
+    } else if (op1 instanceof byte[] && op2 instanceof byte[]) {
+      stack.push(!Arrays.equals((byte[]) op1, (byte[]) op2));
     } else {
       if (null == op1) {
         stack.push(null != op2);
