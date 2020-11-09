@@ -119,10 +119,20 @@ public class StandaloneDirectoryClient implements DirectoryClient {
   private static final Comparator<String> CLASS_COMPARATOR = new Comparator<String>() {
     @Override
     public int compare(String o1, String o2) {
-      long id1 = classids.get(o1);
-      long id2 = classids.get(o2);
+      Long id1 = classids.get(o1);
+      Long id2 = classids.get(o2);
 
-      return Directory.ID_COMPARATOR.compare(id1, id2);
+      // A key may be missing during a find if a concurrent unregister is done.
+      if (null == id1) {
+        if (null == id2) {
+          return 0;
+        }
+        return -1;
+      } else if (null == id2) {
+        return 1;
+      } else {
+        return Directory.ID_COMPARATOR.compare(id1, id2);
+      }
     }
   };
 
