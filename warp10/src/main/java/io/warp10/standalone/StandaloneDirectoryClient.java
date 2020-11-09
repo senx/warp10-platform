@@ -319,7 +319,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
                   continue;
                 }
               }
-              
+
               LOG.error("Duplicate labelsId for classId " + classId + ": " + metadata);
               continue;
 
@@ -641,72 +641,68 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     // If the metadata are not known, register them
     //
 
-    boolean mustStore = false;
+    if (Configuration.INGRESS_METADATA_SOURCE.equals(metadata.getSource())) {
+      Map<Long, Metadata> metadatasForClassname = metadatas.get(metadata.getName());
 
-    synchronized(metadatas) {
-      if (Configuration.INGRESS_METADATA_SOURCE.equals(metadata.getSource())) {
-        if (!classids.containsKey(metadata.getName())) {
-          mustStore = true;
+      if (null == metadatasForClassname) {
+        store(metadata);
+      } else {
+        // Compute labelsId
+        // 128BITS
+        long labelsId = GTSHelper.labelsId(this.labelsLongs, metadata.getLabels());
+
+        if (!metadatasForClassname.containsKey(labelsId)) {
+          // Metadata is unknown so we know the Metadata should be stored
+          store(metadata);
         } else {
-          // Compute labelsId
+          // Check that we do not have a collision
+          if (!metadatasForClassname.get(labelsId).getLabels().equals(metadata.getLabels())) {
+            LOG.warn("LabelsId collision under class '" + metadata.getName() + "' " + metadata.getLabels() + " and " + metadatas.get(metadata.getName()).get(labelsId).getLabels());
+            Sensision.update(SensisionConstants.CLASS_WARP_DIRECTORY_LABELS_COLLISIONS, Sensision.EMPTY_LABELS, 1);
+          }
+
+          //
+          // Check activity of the GTS, storing it if the activity window has passed
+          if (activityWindow > 0) {
+            //
+            // If the currently stored lastactivity is more than 'activityWindow' before the one in 'metadata',
+            // store the metadata
+            //
+            long currentLastActivity = metadatasForClassname.get(labelsId).getLastActivity();
+            if (metadata.getLastActivity() - currentLastActivity >= activityWindow) {
+              store(metadata);
+            }
+          }
+        }
+      }
+    } else {
+      //
+      // Metadata registration is not from Ingress, this means we can update the value as it comes from the directory service or a metadata update
+      //
+
+      // When it is a metadata update request, only store the metadata if the GTS is already known
+      if (Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource())
+          || Configuration.INGRESS_METADATA_UPDATE_DELTA_ENDPOINT.equals(metadata.getSource())) {
+        Map<Long, Metadata> metadatasForClassname = metadatas.get(metadata.getName());
+
+        if (null != metadatasForClassname) {
           // 128BITS
           long labelsId = GTSHelper.labelsId(this.labelsLongs, metadata.getLabels());
-
-          if (!metadatas.get(metadata.getName()).containsKey(labelsId)) {
-            // Metadata is unknown so we know the Metadata should be stored
-            mustStore = true;
-          } else {
-            // Check that we do not have a collision
-            if (!metadatas.get(metadata.getName()).get(labelsId).getLabels().equals(metadata.getLabels())) {
-              LOG.warn("LabelsId collision under class '" + metadata.getName() + "' " + metadata.getLabels() + " and " + metadatas.get(metadata.getName()).get(labelsId).getLabels());
-              Sensision.update(SensisionConstants.CLASS_WARP_DIRECTORY_LABELS_COLLISIONS, Sensision.EMPTY_LABELS, 1);
+          if (metadatasForClassname.containsKey(labelsId)) {
+            // Check the activity so we only increase it
+            // 128 bits
+            Metadata meta = metadatasForClassname.get(labelsId);
+            long currentLastActivity = meta.getLastActivity();
+            if (metadata.getLastActivity() < currentLastActivity) {
+              metadata.setLastActivity(currentLastActivity);
             }
 
-            //
-            // Check activity of the GTS, storing it if the activity window has passed
-            if (activityWindow > 0) {
-              //
-              // If the currently stored lastactivity is more than 'activityWindow' before the one in 'metadata',
-              // store the metadata
-              //
-              long currentLastActivity = metadatas.get(metadata.getName()).get(labelsId).getLastActivity();
-              if (metadata.getLastActivity() - currentLastActivity >= activityWindow) {
-                mustStore = true;
-              }
-            }
+            store(metadata);
           }
         }
       } else {
-        //
-        // Metadata registration is not from Ingress, this means we can update the value as it comes from the directory service or a metadata update
-        //
-
-        // When it is a metadata update request, only store the metadata if the GTS is already known
-        if (Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource())
-            || Configuration.INGRESS_METADATA_UPDATE_DELTA_ENDPOINT.equals(metadata.getSource())) {
-          if (classids.containsKey(metadata.getName())) {
-            // 128BITS
-            long labelsId = GTSHelper.labelsId(this.labelsLongs, metadata.getLabels());
-            if (metadatas.get(metadata.getName()).containsKey(labelsId)) {
-              // Check the activity so we only increase it
-              // 128 bits
-              Metadata meta = metadatas.get(metadata.getName()).get(labelsId);
-              long currentLastActivity = meta.getLastActivity();
-              if (metadata.getLastActivity() < currentLastActivity) {
-                metadata.setLastActivity(currentLastActivity);
-              }
-
-              mustStore = true;
-            }
-          }
-        } else {
-          mustStore = true;
-        }
+        store(metadata);
       }
-    }
-
-    if(mustStore) {
-      store(metadata);
     }
   }
 
@@ -714,7 +710,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     // 128BITS
     long labelsId;
 
-    synchronized (metadatas) {
+    synchronized(metadatas) {
       if (!classids.containsKey(metadata.getName())) {
         return;
       }
@@ -873,22 +869,21 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     metadata.setLabelsId(labelsId);
 
     if (Configuration.INGRESS_METADATA_UPDATE_DELTA_ENDPOINT.equals(metadata.getSource())){
-      // Update the attributes
-      Metadata oldmeta = null;
-      synchronized(metadatas) {
-        if (classids.containsKey(metadata.getName())) {
-          oldmeta = metadatas.get(metadata.getName()).get(labelsId);
-
-          if (null != oldmeta && metadata.getAttributesSize() > 0) {
-            for (Entry<String,String> attr: metadata.getAttributes().entrySet()) {
+      if (metadata.getAttributesSize() > 0) {
+        // Update the attributes
+        Map<Long, Metadata> metadatasForClassname = metadatas.get(metadata.getName());
+        if (null != metadatasForClassname) {
+          Metadata oldmeta = metadatasForClassname.get(labelsId);
+          if (null != oldmeta) {
+            for (Entry<String, String> attr: metadata.getAttributes().entrySet()) {
               if ("".equals(attr.getValue())) {
                 oldmeta.getAttributes().remove(attr.getKey());
               } else {
                 oldmeta.putToAttributes(attr.getKey(), attr.getValue());
               }
             }
-            metadata.setAttributes(new HashMap<String,String>(oldmeta.getAttributes()));
-          } else if (metadata.getAttributesSize() > 0) {
+            metadata.setAttributes(new HashMap<String, String>(oldmeta.getAttributes()));
+          } else {
             // Remove the attributes with an empty value
             Set<String> names = new HashSet<String>(metadata.getAttributes().keySet());
             for (String name: names) {
@@ -905,16 +900,14 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       // If we are not updating the attributes, copy the attributes from the directory as we are probably
       // registering the GTS due to its recent activity.
       if (!Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource())) {
-        Metadata oldmeta = null;
         // Copy the attributes if the Metadata is already known, which can happen when
         // tracking the activity
-        synchronized(metadatas) {
-          if (classids.containsKey(metadata.getName())) {
-            oldmeta = metadatas.get(metadata.getName()).get(labelsId);
+        Map<Long, Metadata> metadataForClassname = metadatas.get(metadata.getName());
+        if (null != metadataForClassname) {
+          Metadata oldmeta = metadataForClassname.get(labelsId);
+          if (null != oldmeta && oldmeta.getAttributesSize() > 0) {
+            metadata.getAttributes().putAll(oldmeta.getAttributes());
           }
-        }
-        if (null != oldmeta && oldmeta.getAttributesSize() > 0) {
-          metadata.getAttributes().putAll(oldmeta.getAttributes());
         }
       }
     }
@@ -933,7 +926,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
         store(bytes, serialized);
       }
 
-      synchronized (metadatas) {
+      synchronized(metadatas) {
         if (!classids.containsKey(metadata.getName())) {
           classids.put(metadata.getName(), metadata.getClassId());
           metadatas.put(metadata.getName(), new ConcurrentSkipListMap<Long, Metadata>(Directory.ID_COMPARATOR));
