@@ -41,7 +41,7 @@ public class SHMSTORE extends NamedWarpScriptFunction implements WarpScriptStack
     Object top = stack.pop();
     
     if (!(top instanceof String)) {
-      throw new WarpScriptException(getName() + " expects a symbol name on top of the stack.");
+      throw new WarpScriptException(getName() + " expects a symbol name.");
     }
     
     String symbol = (String) top;
