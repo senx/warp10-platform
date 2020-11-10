@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -17,11 +17,7 @@
 package io.warp10.script.ext.shm;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -67,7 +63,8 @@ public class SharedMemoryWarpScriptExtension extends WarpScriptExtension impleme
     
     functions.put("SHMSTORE", new SHMSTORE("SHMSTORE"));
     functions.put("SHMLOAD", new SHMLOAD("SHMLOAD"));
-    functions.put("MUTEX", new MUTEX("MUTEX"));   
+    functions.put("SHMDEFINED", new SHMDEFINED("SHMDEFINED"));
+    functions.put("MUTEX", new MUTEX("MUTEX"));
   }
   
   public SharedMemoryWarpScriptExtension() {
@@ -124,26 +121,35 @@ public class SharedMemoryWarpScriptExtension extends WarpScriptExtension impleme
       shmobjectUses.put(symbol, System.currentTimeMillis());      
     }
   }
-  
+
   public static final Object load(String symbol) throws WarpScriptException {
-    
+
     synchronized(locks) {
       String mutex = shmobjectLocks.get(symbol);
-      
+
       if (null == mutex) {
         throw new WarpScriptException("Unknown shared memory symbol '" + symbol + "'.");
       }
-      
+
       ReentrantLock lock = locks.get(mutex);
 
       if (!lock.isHeldByCurrentThread()) {
         throw new WarpScriptException("Invalid access to shared memory symbol '" + symbol + "', not in a mutex section with mutex '" + mutex + "' held.");
       }
-      
+
       Object value = shmobjects.get(symbol);
 
       shmobjectUses.put(symbol, System.currentTimeMillis());
       return value;
+    }
+  }
+
+  public static final Object defined(String symbol) throws WarpScriptException {
+
+    synchronized(locks) {
+      String mutex = shmobjectLocks.get(symbol);
+
+      return null != mutex;
     }
   }
   
