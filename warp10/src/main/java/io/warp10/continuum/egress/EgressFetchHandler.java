@@ -466,7 +466,7 @@ public class EgressFetchHandler extends AbstractHandler {
             throw new IOException("Tokens with hooks cannot be used for fetching data.");
           }
         } catch (WarpScriptException wse) {
-          httpStatusCode = HttpServletResponse.SC_BAD_REQUEST;
+          httpStatusCode = HttpServletResponse.SC_FORBIDDEN;
           throw wse;
         }
       }
