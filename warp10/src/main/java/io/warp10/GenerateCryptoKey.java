@@ -63,7 +63,7 @@ public class GenerateCryptoKey {
             .collect(Collectors.toList());
           Files.write(p, replaced);
         } catch (IOException e) {
-          e.printStackTrace();
+          LOG.error("GenerateCryptoKey",e);
         }
       }
     );
