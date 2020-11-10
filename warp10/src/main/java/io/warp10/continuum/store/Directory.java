@@ -113,6 +113,7 @@ import io.warp10.continuum.LogUtil;
 import io.warp10.continuum.MetadataUtils;
 import io.warp10.continuum.MetadataUtils.MetadataID;
 import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.gts.MetadataIdComparator;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.thrift.data.DirectoryFindRequest;
 import io.warp10.continuum.store.thrift.data.DirectoryFindResponse;
@@ -141,7 +142,7 @@ import kafka.message.MessageAndMetadata;
 
 /**
  * Manages Metadata for a subset of known GTS.
- * Listens to Kafka to get updates of and new Metadatas 
+ * Listens to Kafka to get updates of and new Metadatas
  */
 public class Directory extends AbstractHandler implements DirectoryService.Iface, Runnable {
 
@@ -151,11 +152,11 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
    * Maximum size of the input URI
    */
   public static final int DIRECTORY_REQUEST_HEADER_SIZE = 64 * 1024;
-  
+
   /**
    * Comparator which sorts the IDs in their lexicographical order suitable for scanning HBase keys
    */
-  private static final Comparator<Long> ID_COMPARATOR = new Comparator<Long>() {
+  public static final Comparator<Long> ID_COMPARATOR = new Comparator<Long>() {
     @Override
     public int compare(Long o1, Long o2) {
       if (Long.signum(o1) == Long.signum(o2)) {
@@ -176,7 +177,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             return -1;
           } else {
             return 1;
-          }          
+          }
         }
       }
     }
@@ -199,21 +200,21 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
    * Allow individual tracking of 100 class names
    */
   private long LIMIT_CLASS_CARDINALITY = 100;
-  
+
   /**
    * Allow tracking of 100 label names
    */
   private long LIMIT_LABELS_CARDINALITY = 100;
-  
+
   private final KeyStore keystore;
 
   /**
    * Name under which the directory service is registered in ZK
    */
   public static final String DIRECTORY_SERVICE = "com.cityzendata.continuum.directory";
-  
+
   private static final String DIRECTORY_INIT_NTHREADS_DEFAULT = "4";
-  
+
   private final int modulus;
   private final int remainder;
   private String host;
@@ -223,7 +224,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
   private int streamingTcpBacklog;
   private int streamingselectors;
   private int streamingacceptors;
-    
+
   /**
    * Set of required parameters, those MUST be set
    */
@@ -262,12 +263,12 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
    * Name of HBase table where metadata should be written
    */
   private final TableName hbaseTable;
-  
+
   /**
    * Name of column family where metadata should be written
    */
   private final byte[] colfam;
-  
+
   /**
    * How often to commit Kafka offsets
    */
@@ -277,88 +278,88 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
    * How big do we allow the Put list to grow
    */
   private final long maxPendingPutsSize;
-  
+
   /**
    * Instance of HBase connection to create Table instances
    */
   private final Connection conn;
-  
+
   /**
    * CyclicBarrier instance to synchronize consuming threads prior to committing offsets
    */
   private CyclicBarrier barrier;
-  
+
   /**
    * Flag for signaling abortion of consuming process
    */
   private final AtomicBoolean abort = new AtomicBoolean(false);
-  
+
   /**
    * Maps of class name to labelsId to metadata
    */
   private final Map<String,Map<Long,Metadata>> metadatas = new MapMaker().concurrencyLevel(64).makeMap();
-  
+
   /**
    * Map of classId to class names
    */
   //private final Map<Long,String> classNames = new MapMaker().concurrencyLevel(64).makeMap();
   private final Map<Long,String> classNames = new ConcurrentSkipListMap<Long, String>(ID_COMPARATOR);
-  
-  private final Map<String,Set<String>> classesPerOwner = new MapMaker().concurrencyLevel(64).makeMap();
+
+  private final Map<String,Map<Long,String>> classesPerOwner = new MapMaker().concurrencyLevel(64).makeMap();
 
   private final ReentrantLock metadatasLock = new ReentrantLock();
-  
+
   /**
    * Number of threads for servicing requests
    */
   private final int serviceNThreads;
-  
+
   private final AtomicBoolean cachePopulated = new AtomicBoolean(false);
   private final AtomicBoolean fullyInitialized = new AtomicBoolean(false);
-  
+
   private final Properties properties;
 
   private final ServiceDiscovery<Map> sd;
-  
+
   private final long[] SIPHASH_CLASS_LONGS;
   private final long[] SIPHASH_LABELS_LONGS;
   private final long[] SIPHASH_PSK_LONGS;
-  
+
   /**
    * Maximum age of a Find request
    */
   private final long maxage;
-  
+
   private final int maxThriftFrameLength;
-  
+
   private final int maxFindResults;
-  
+
   private final int maxHardFindResults;
-  
+
   private final int initNThreads;
-  
+
   private final long idleTimeout;
-  
+
   /**
    * Should we register our service in ZK
    */
   private final boolean register;
-  
+
   /**
    * Service instance
    */
   private ServiceInstance<Map> instance = null;
-  
+
   /**
    * Thread used as shutdown hook for deregistering instance
    */
   private Thread deregisterHook = null;
-  
+
   /**
    * Should we initialize Directory upon startup by reading from HBase
    */
   private final boolean init;
-  
+
   /**
    * Should we store in HBase metadata we receive via Kafka
    */
@@ -373,21 +374,21 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
    * Do we track activity of GeoTimeSeries?
    */
   private final boolean trackingActivity;
-  
+
   /**
    * Activity window for activity tracking
    */
   private final long activityWindow;
-  
+
   /**
    * Directory plugin to use
    */
   private final DirectoryPlugin plugin;
-  
+
   private final String sourceAttribute;
-  
+
   private int METADATA_CACHE_SIZE = 1000000;
-  
+
   /**
    * Cache to keep a serialized version of recently returned Metadata.
    */
@@ -404,33 +405,33 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
 
     SIPHASH_CLASS_LONGS = SipHashInline.getKey(this.keystore.getKey(KeyStore.SIPHASH_CLASS));
     SIPHASH_LABELS_LONGS = SipHashInline.getKey(this.keystore.getKey(KeyStore.SIPHASH_LABELS));
-    
+
     this.properties = (Properties) props.clone();
-  
+
     this.sourceAttribute = props.getProperty(io.warp10.continuum.Configuration.DIRECTORY_PLUGIN_SOURCEATTR);
-    
+
     //
     // Check mandatory parameters
     //
-    
+
     for (String required: REQUIRED_PROPERTIES) {
-      Preconditions.checkNotNull(properties.getProperty(required), "Missing configuration parameter '%s'.", required);          
+      Preconditions.checkNotNull(properties.getProperty(required), "Missing configuration parameter '%s'.", required);
     }
 
     maxThriftFrameLength = Integer.parseInt(this.properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_FRAME_MAXLEN, "0"));
 
     maxFindResults = Integer.parseInt(this.properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_FIND_MAXRESULTS, "100000"));
-  
+
     maxHardFindResults = Integer.parseInt(this.properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_FIND_MAXRESULTS_HARD));
 
     this.register = "true".equals(this.properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_REGISTER));
     this.init = "true".equals(this.properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_INIT));
     this.store = "true".equals(this.properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_STORE));
     this.delete = "true".equals(this.properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_DELETE));
-    
+
     this.activityWindow = Long.parseLong(this.properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_ACTIVITY_WINDOW, "0"));
     this.trackingActivity = this.activityWindow > 0;
-    
+
     //
     // Extract parameters
     //
@@ -455,12 +456,12 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     String[] tokens = partition.split(":");
     this.modulus = Integer.parseInt(tokens[0]);
     this.remainder = Integer.parseInt(tokens[1]);
-    
+
     this.maxage = Long.parseLong(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_MAXAGE));
-    
+
     final String topic = properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_TOPIC);
     final int nthreads = Integer.valueOf(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_NTHREADS));
-    
+
     Configuration conf = new Configuration();
     conf.set("hbase.zookeeper.quorum", properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_HBASE_METADATA_ZKCONNECT));
     if (!"".equals(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_HBASE_METADATA_ZNODE))) {
@@ -470,11 +471,11 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     if (properties.containsKey(io.warp10.continuum.Configuration.DIRECTORY_HBASE_ZOOKEEPER_PROPERTY_CLIENTPORT)) {
       conf.set("hbase.zookeeper.property.clientPort", properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_HBASE_ZOOKEEPER_PROPERTY_CLIENTPORT));
     }
-    
+
     //
     // Handle additional HBase configurations
     //
-    
+
     if (properties.containsKey(io.warp10.continuum.Configuration.DIRECTORY_HBASE_CONFIG)) {
       String[] keys = properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_HBASE_CONFIG).split(",");
       for (String key: keys) {
@@ -489,13 +490,13 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
 
     this.hbaseTable = TableName.valueOf(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_HBASE_METADATA_TABLE));
     this.colfam = properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_HBASE_METADATA_COLFAM).getBytes(StandardCharsets.UTF_8);
-    
+
     this.serviceNThreads = Integer.valueOf(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_SERVICE_NTHREADS));
-    
+
     //
     // Extract keys
     //
-    
+
     extractKeys(properties);
 
     SIPHASH_PSK_LONGS = SipHashInline.getKey(this.keystore.getKey(KeyStore.SIPHASH_DIRECTORY_PSK));
@@ -503,18 +504,18 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     //
     // Load Directory plugin
     //
-    
+
     if (this.properties.containsKey(io.warp10.continuum.Configuration.DIRECTORY_PLUGIN_CLASS)) {
       try {
         ClassLoader pluginCL = this.getClass().getClassLoader();
 
         Class pluginClass = Class.forName(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_PLUGIN_CLASS), true, pluginCL);
         this.plugin = (DirectoryPlugin) pluginClass.newInstance();
-        
+
         //
         // Now call the 'init' method of the plugin
         //
-        
+
         this.plugin.init(new Properties(properties));
       } catch (Exception e) {
         throw new RuntimeException("Unable to instantiate plugin class", e);
@@ -522,11 +523,11 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     } else {
       this.plugin = null;
     }
-    
+
     //
     // Create Curator framework and service discovery
     //
-    
+
     CuratorFramework curatorFramework = CuratorFrameworkFactory.builder()
         .connectionTimeoutMs(1000)
         .retryPolicy(new RetryNTimes(10, 500))
@@ -538,7 +539,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         .basePath(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_ZK_ZNODE))
         .client(curatorFramework)
         .build();
-    
+
     //
     // Launch a Thread which will populate the metadata cache
     // We don't do that in the constructor otherwise it might take too long to return
@@ -550,9 +551,9 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
 
       Thread[] initThreads = new Thread[this.initNThreads];
       final AtomicBoolean[] stopMarkers = new AtomicBoolean[this.initNThreads];
-      
+
       final LinkedBlockingQueue<Result> resultQ = new LinkedBlockingQueue<Result>(initThreads.length * 8192);
-      
+
       for (int i = 0; i < initThreads.length; i++) {
         stopMarkers[i] = new AtomicBoolean(false);
         final AtomicBoolean stopMe = stopMarkers[i];
@@ -572,30 +573,30 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
 
             while (!stopMe.get()) {
               try {
-                
+
                 Result result = resultQ.poll(100, TimeUnit.MILLISECONDS);
-                
+
                 if (null == result) {
                   continue;
                 }
-                
+
                 byte[] value = result.getValue(self.colfam, Constants.EMPTY_COLQ);
 
                 if (null != engine) {
                   //
                   // Unwrap
                   //
-                  
+
                   byte[] unwrapped = engine.unwrap(value, 0, value.length);
-                  
+
                   //
                   // Unpad
                   //
-                  
+
                   int padcount = padding.padCount(unwrapped);
-                  value = Arrays.copyOf(unwrapped, unwrapped.length - padcount);                                   
+                  value = Arrays.copyOf(unwrapped, unwrapped.length - padcount);
                 }
-                
+
                 //
                 // Deserialize
                 //
@@ -606,53 +607,53 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 //
                 // Compute classId/labelsId and compare it to the values in the row key
                 //
-                
+
                 long classId = GTSHelper.classId(self.SIPHASH_CLASS_LONGS, metadata.getName());
                 long labelsId = GTSHelper.labelsId(self.SIPHASH_LABELS_LONGS, metadata.getLabels());
-                
+
                 //
                 // Recheck labelsid so we don't retain GTS with invalid labelsid in the row key (which may have happened due
                 // to bugs)
                 //
-                
+
                 int rem = ((int) ((labelsId >>> 56) & 0xffL)) % self.modulus;
-                
+
                 if (self.remainder != rem) {
                   continue;
                 }
-                
+
                 ByteBuffer bb = ByteBuffer.wrap(result.getRow()).order(ByteOrder.BIG_ENDIAN);
                 bb.position(1);
                 long hbClassId = bb.getLong();
                 long hbLabelsId = bb.getLong();
-                
+
                 // If classId/labelsId are incoherent, skip metadata
                 if (classId != hbClassId || labelsId != hbLabelsId) {
                   LOG.warn("Incoherent class/labels Id for " + metadata);
                   continue;
                 }
-          
+
                 metadata.setClassId(classId);
                 metadata.setLabelsId(labelsId);
-                
+
                 if (!metadata.isSetAttributes()) {
                   metadata.setAttributes(new HashMap<String,String>());
                 }
-                
+
                 //
                 // Internalize Strings
                 //
-                
+
                 GTSHelper.internalizeStrings(metadata);
-                
+
                 //
                 // Let the DirectoryPlugin handle the Metadata
                 //
-                
+
                 if (null != plugin) {
-                  
+
                   long nano = 0;
-                  
+
                   try {
                     //
                     // Directory plugins have no provision for delta attribute updates
@@ -662,24 +663,24 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                         metadata.getName(),
                         metadata.getLabels(),
                         metadata.getAttributes());
-                    
+
                     if (null != sourceAttribute) {
                       gts.getAttributes().put(sourceAttribute, metadata.getSource());
                     }
-                    
+
                     nano = System.nanoTime();
-                    
+
                     if (!plugin.store(null, gts)) {
                       throw new RuntimeException("Error storing GTS " + gts + " using external plugin.");
-                    }                    
+                    }
                   } finally {
                     nano = System.nanoTime() - nano;
                     Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_PLUGIN_STORE_CALLS, Sensision.EMPTY_LABELS, 1);
-                    Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_PLUGIN_STORE_TIME_NANOS, Sensision.EMPTY_LABELS, nano);                                      
+                    Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_PLUGIN_STORE_TIME_NANOS, Sensision.EMPTY_LABELS, nano);
                   }
                   continue;
                 }
-                
+
                 try {
                   metadatasLock.lockInterruptibly();
                   if (!metadatas.containsKey(metadata.getName())) {
@@ -691,27 +692,27 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                     metadatasLock.unlock();
                   }
                 }
-                
+
                 //
                 // Store per owner class name. We use the name since it has been internalized,
                 // therefore we only consume the HashNode and the HashSet overhead
                 //
-                
+
                 String owner = metadata.getLabels().get(Constants.OWNER_LABEL);
 
                 String app = metadata.getLabels().get(Constants.APPLICATION_LABEL);
                 Map<String,String> sensisionLabels = new HashMap<String,String>();
                 sensisionLabels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, app);
-                
+
                 synchronized(classesPerOwner) {
-                  Set<String> classes = classesPerOwner.get(owner);
-                  
+                  Map<Long,String> classes = classesPerOwner.get(owner);
+
                   if (null == classes) {
-                    classes = new ConcurrentSkipListSet<String>();
+                    classes = new ConcurrentSkipListMap<Long,String>(ID_COMPARATOR);
                     classesPerOwner.put(owner, classes);
                   }
-                  
-                  classes.add(metadata.getName());
+
+                  classes.put(metadata.getClassId(), metadata.getName());
                 }
 
                 Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS_PERAPP, sensisionLabels, 1);
@@ -723,47 +724,47 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                     continue;
                   } else if (!metadatas.get(metadata.getName()).get(labelsId).getLabels().equals(metadata.getLabels())) {
                     LOG.warn("LabelsId collision under class '" + metadata.getName() + "' " + metadata.getLabels() + " and " + metadatas.get(metadata.getName()).get(labelsId).getLabels());
-                    Sensision.update(SensisionConstants.CLASS_WARP_DIRECTORY_LABELS_COLLISIONS, Sensision.EMPTY_LABELS, 1);                    
+                    Sensision.update(SensisionConstants.CLASS_WARP_DIRECTORY_LABELS_COLLISIONS, Sensision.EMPTY_LABELS, 1);
                   }
                 }
-                
+
                 continue;
               } catch (InvalidCipherTextException icte) {
                 throw new RuntimeException(icte);
               } catch (TException te) {
                 throw new RuntimeException(te);
-              } catch (InterruptedException ie) {              
+              } catch (InterruptedException ie) {
               }
             }
           }
         });
-        
+
         initThreads[i].setDaemon(true);
         initThreads[i].setName("[Directory initializer #" + i + "]");
         initThreads[i].start();
       }
-      
+
       Thread populator = new Thread(new Runnable() {
-        
+
         @Override
         public void run() {
-          
+
           long nano = System.nanoTime();
-          
+
           Table htable = null;
-          
+
           long count = 0L;
-          
+
           boolean done = false;
-          
+
           byte[] lastrow = Constants.HBASE_METADATA_KEY_PREFIX;
-          
+
           while(!done) {
             try {
               //
               // Populate the metadata cache with initial data from HBase
               //
-                       
+
               htable = self.conn.getTable(self.hbaseTable);
 
               Scan scan = new Scan();
@@ -776,7 +777,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               scan.setMaxResultSize(1000000L);
 
               ResultScanner scanner = htable.getScanner(scan);
-                        
+
               do {
                 Result result = scanner.next();
 
@@ -784,28 +785,28 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                   done = true;
                   break;
                 }
-                
+
                 //
                 // FIXME(hbs): this could be done in a filter on the RS side
                 //
-                
+
                 int r = (((int) result.getRow()[Constants.HBASE_METADATA_KEY_PREFIX.length + 8]) & 0xff) % self.modulus;
-                
+
                 //byte r = (byte) (result.getRow()[HBASE_METADATA_KEY_PREFIX.length + 8] % self.modulus);
-                
+
                 // Skip metadata if its modulus is not the one we expect
                 if (self.remainder != r) {
                   continue;
                 }
-                
+
                 //
                 // Store the current row so we can restart from there if an exception occurs
                 //
-                
+
                 lastrow = result.getRow();
-                
+
                 boolean interrupted = true;
-                
+
                 while(interrupted) {
                   interrupted = false;
                   try {
@@ -819,9 +820,9 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                     interrupted = true;
                   }
                 }
-                
+
               } while (true);
-              
+
             } catch (Exception e) {
               LOG.error("Caught exception in scanning loop, will attempt to continue where we stopped", e);
             } finally {
@@ -830,45 +831,45 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 // We do not update this metric when using a Directory plugin
                 Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, count);
               }
-            }                    
+            }
           }
-          
+
           //
           // Wait until resultQ is empty
           //
-          
+
           while(!resultQ.isEmpty()) {
             LockSupport.parkNanos(100000000L);
           }
-          
+
           //
           // Notify the init threads to stop
           //
-          
+
           for (int i = 0; i < initNThreads; i++) {
             stopMarkers[i].set(true);
           }
-          
+
           self.cachePopulated.set(true);
-          
+
           nano = System.nanoTime() - nano;
-          
+
           LOG.info("Loaded " + count + " GTS in " + (nano / 1000000.0D) + " ms");
-        }            
+        }
       });
-      
+
       populator.setName("Warp Directory Populator");
       populator.setDaemon(true);
-      populator.start();      
+      populator.start();
     } else {
       LOG.info("Skipped initialization");
       this.cachePopulated.set(true);
     }
-    
+
     this.commitPeriod = Long.valueOf(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_COMMITPERIOD));
-    
+
     this.maxPendingPutsSize = Long.parseLong(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_HBASE_METADATA_MAXPENDINGPUTSSIZE));
-    
+
     this.host = properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_HOST);
     this.port = Integer.parseInt(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_PORT));
     this.tcpBacklog = Integer.parseInt(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_TCP_BACKLOG, "0"));
@@ -876,9 +877,9 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     this.streamingTcpBacklog = Integer.parseInt(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_STREAMING_TCP_BACKLOG, "0"));
     this.streamingacceptors = Integer.parseInt(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_STREAMING_ACCEPTORS));
     this.streamingselectors = Integer.parseInt(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_STREAMING_SELECTORS));
-    
+
     int streamingMaxThreads = Integer.parseInt(props.getProperty(io.warp10.continuum.Configuration.DIRECTORY_STREAMING_THREADPOOL));
-    
+
     final String groupid = properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_GROUPID);
 
     final KafkaOffsetCounters counters = new KafkaOffsetCounters(topic, groupid, this.commitPeriod * 2);
@@ -886,30 +887,30 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     Thread t = new Thread(new Runnable() {
       @Override
       public void run() {
-        
+
         //
         // Wait until directory is fully initialized
         //
-        
+
         while(!self.fullyInitialized.get()) {
           LockSupport.parkNanos(1000000000L);
         }
 
         Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_CLASSES, Sensision.EMPTY_LABELS, classNames.size());
-        
+
         //
         // Enter an endless loop which will spawn 'nthreads' threads
         // each time the Kafka consumer is shut down (which will happen if an error
         // happens while talking to HBase, to get a chance to re-read data from the
         // previous snapshot).
         //
-        
+
         while (true) {
           try {
             Map<String,Integer> topicCountMap = new HashMap<String, Integer>();
-            
+
             topicCountMap.put(topic, nthreads);
-                        
+
             Properties props = new Properties();
             props.setProperty("zookeeper.connect", properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_ZKCONNECT));
             props.setProperty("group.id", groupid);
@@ -919,33 +920,33 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             if (null != properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY)) {
               props.setProperty("partition.assignment.strategy", properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY));
             }
-            props.setProperty("auto.commit.enable", "false");    
-            
+            props.setProperty("auto.commit.enable", "false");
+
             if (null != properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_CONSUMER_AUTO_OFFSET_RESET)) {
               props.setProperty("auto.offset.reset", properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_CONSUMER_AUTO_OFFSET_RESET));
             }
-            
+
             ConsumerConfig config = new ConsumerConfig(props);
             ConsumerConnector connector = Consumer.createJavaConsumerConnector(config);
 
             Map<String,List<KafkaStream<byte[], byte[]>>> consumerMap = connector.createMessageStreams(topicCountMap);
-            
+
             List<KafkaStream<byte[], byte[]>> streams = consumerMap.get(topic);
-            
+
             self.barrier = new CyclicBarrier(streams.size() + 1);
 
             ExecutorService executor = Executors.newFixedThreadPool(nthreads);
-            
+
             //
             // now create runnables which will consume messages
             //
-            
+
             // Reset counters
             counters.reset();
-            
+
             for (final KafkaStream<byte[],byte[]> stream : streams) {
               executor.submit(new DirectoryConsumer(self, stream, counters));
-            }      
+            }
 
             while(!abort.get() && !Thread.currentThread().isInterrupted()) {
               try {
@@ -955,11 +956,11 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                   // an exception was thrown when flushing the commits just before
                   // entering the barrier
                   //
-                  
+
                   if (abort.get()) {
                     break;
                   }
-                    
+
                   //
                   // All processing threads are waiting on the barrier, this means we can flush the offsets because
                   // they have all processed data successfully for the given activity period
@@ -976,9 +977,9 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                     // a commit will lead to a forward leap which will make the Directory fail
                     counters.commit();
                   }
-                                   
+
                   counters.sensisionPublish();
-                  
+
                   Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_KAFKA_COMMITS, Sensision.EMPTY_LABELS, 1);
 
                   // Release the waiting threads
@@ -987,13 +988,13 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                   } catch (Exception e) {
                     break;
                   }
-                }                
+                }
               } catch (Throwable t) {
                 // We need to catch possible errors in commitOffsets
                 LOG.error("", t);
                 abort.set(true);
               }
-              
+
               LockSupport.parkNanos(1000000L);
             }
 
@@ -1001,7 +1002,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             // We exited the loop, this means one of the threads triggered an abort,
             // we will shut down the executor and shut down the connector to start over.
             //
-            
+
             executor.shutdownNow();
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARP_DIRECTORY_KAFKA_SHUTDOWNS, Sensision.EMPTY_LABELS, 1);
             connector.shutdown();
@@ -1011,87 +1012,87 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             abort.set(false);
             LockSupport.parkNanos(1000000000L);
           }
-        }          
+        }
       }
     });
-    
+
     t.setName("Warp Directory Spawner");
     t.setDaemon(true);
     t.start();
-    
+
     t = new Thread(this);
     t.setName("Warp Directory");
     t.setDaemon(true);
     t.start();
-    
+
     //
     // Start Jetty for the streaming service
     //
-    
+
     //
     // Start Jetty server for the streaming service
     //
-    
+
     BlockingArrayQueue<Runnable> queue = null;
-    
+
     if (props.containsKey(io.warp10.continuum.Configuration.DIRECTORY_STREAMING_MAXQUEUESIZE)) {
       int queuesize = Integer.parseInt(props.getProperty(io.warp10.continuum.Configuration.DIRECTORY_STREAMING_MAXQUEUESIZE));
       queue = new BlockingArrayQueue<Runnable>(queuesize);
     }
 
     Server server = new Server(new QueuedThreadPool(streamingMaxThreads,8, (int) idleTimeout, queue));
-    
+
     //
     // Iterate over the properties to find those starting with DIRECTORY_STREAMING_JETTY_ATTRIBUTE and set
     // the Jetty attributes accordingly
     //
-    
+
     for (Entry<Object,Object> entry: props.entrySet()) {
       if (entry.getKey().toString().startsWith(io.warp10.continuum.Configuration.DIRECTORY_STREAMING_JETTY_ATTRIBUTE_PREFIX)) {
         server.setAttribute(entry.getKey().toString().substring(io.warp10.continuum.Configuration.DIRECTORY_STREAMING_JETTY_ATTRIBUTE_PREFIX.length()), entry.getValue().toString());
       }
     }
-    
+
     //ServerConnector connector = new ServerConnector(server, this.streamingacceptors, this.streamingselectors);
     HttpConfiguration config = new HttpConfiguration();
     config.setRequestHeaderSize(DIRECTORY_REQUEST_HEADER_SIZE);
     HttpConnectionFactory factory = new HttpConnectionFactory(config);
     ServerConnector connector = new ServerConnector(server,null,null,null,this.streamingacceptors, this.streamingselectors,factory);
-    
+
     connector.setIdleTimeout(idleTimeout);
     connector.setPort(this.streamingport);
     connector.setHost(host);
     connector.setAcceptQueueSize(this.streamingTcpBacklog);
     connector.setName("Directory Streaming Service");
-    
+
     server.setConnectors(new Connector[] { connector });
 
     server.setHandler(this);
-    
+
     JettyUtil.setSendServerVersion(server, false);
-    
+
     //
     // Wait for initialization to be done
     //
-    
+
     while(!this.fullyInitialized.get()) {
       LockSupport.parkNanos(1000000000L);
     }
-    
+
     try {
       server.start();
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
   }
-  
+
   @Override
   public void run() {
-    
+
     //
     // Add a shutdown hook to unregister Directory
     //
-    
+
     if (this.register) {
       final Directory self = this;
       this.deregisterHook = new Thread() {
@@ -1112,7 +1113,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     //
     // Wait until cache has been populated
     //
-    
+
     while(!this.cachePopulated.get()) {
       Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_JVM_FREEMEMORY, Sensision.EMPTY_LABELS, Runtime.getRuntime().freeMemory());
       LockSupport.parkNanos(1000000000L);
@@ -1121,23 +1122,23 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     //
     // Let's call GC once after populating so we take the trash out.
     //
-    
+
     LOG.info("Triggering a GC to clean up after initial loading.");
     long nano = System.nanoTime();
     Runtime.getRuntime().gc();
     nano = System.nanoTime() - nano;
     LOG.info("GC performed in " + (nano / 1000000.0D) + " ms.");
-        
+
     this.fullyInitialized.set(true);
-    
+
     Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_JVM_FREEMEMORY, Sensision.EMPTY_LABELS, Runtime.getRuntime().freeMemory());
 
     //
     // Start the Thrift Service
     //
-        
+
     DirectoryService.Processor processor = new DirectoryService.Processor(this);
-    
+
     this.instance = null;
 
     try {
@@ -1151,7 +1152,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
       args.minWorkerThreads(this.serviceNThreads);
       if (0 != maxThriftFrameLength) {
         args.inputTransportFactory(new io.warp10.thrift.TFramedTransport.Factory(maxThriftFrameLength));
-        args.outputTransportFactory(new io.warp10.thrift.TFramedTransport.Factory(maxThriftFrameLength));        
+        args.outputTransportFactory(new io.warp10.thrift.TFramedTransport.Factory(maxThriftFrameLength));
       } else {
         args.inputTransportFactory(new io.warp10.thrift.TFramedTransport.Factory());
         args.outputTransportFactory(new io.warp10.thrift.TFramedTransport.Factory());
@@ -1159,7 +1160,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
       args.inputProtocolFactory(new TCompactProtocol.Factory());
       args.outputProtocolFactory(new TCompactProtocol.Factory());
       TServer server = new TThreadPoolServer(args);
-      
+
       //
       // TODO(hbs): Check that the number of registered services does not go over the licensed number
       //
@@ -1171,7 +1172,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
       builder.name(DIRECTORY_SERVICE);
       builder.serviceType(ServiceType.DYNAMIC);
       Map<String,String> payload = new HashMap<String,String>();
-      
+
       payload.put(PAYLOAD_MODULUS_KEY, Integer.toString(modulus));
       payload.put(PAYLOAD_REMAINDER_KEY, Integer.toString(remainder));
       payload.put(PAYLOAD_THRIFT_PROTOCOL_KEY, "org.apache.thrift.protocol.TCompactProtocol");
@@ -1188,7 +1189,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         sd.start();
         sd.registerService(instance);
       }
-      
+
       server.serve();
 
     } catch (TTransportException tte) {
@@ -1200,20 +1201,20 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         try {
           sd.unregisterService(instance);
         } catch (Exception e) {
-        }        
+        }
       }
       if (null != deregisterHook) {
         try {
           Runtime.getRuntime().removeShutdownHook(deregisterHook);
-        } catch (Exception e) {          
+        } catch (Exception e) {
         }
       }
     }
   }
-  
+
   /**
    * Extract Directory related keys and populate the KeyStore with them.
-   * 
+   *
    * @param props Properties from which to extract the key specs
    */
   private void extractKeys(Properties props) {
@@ -1229,17 +1230,17 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
 
     private final Directory directory;
     private final KafkaStream<byte[],byte[]> stream;
-        
+
     private final KafkaOffsetCounters counters;
-    
+
     private final AtomicBoolean localabort = new AtomicBoolean(false);
-    
+
     public DirectoryConsumer(Directory directory, KafkaStream<byte[], byte[]> stream, KafkaOffsetCounters counters) {
       this.directory = directory;
       this.stream = stream;
       this.counters = counters;
     }
-    
+
     @Override
     public void run() {
       Table htable = null;
@@ -1249,7 +1250,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
 
         byte[] siphashKey = directory.keystore.getKey(KeyStore.SIPHASH_KAFKA_METADATA);
         byte[] kafkaAESKey = directory.keystore.getKey(KeyStore.AES_KAFKA_METADATA);
-            
+
         htable = directory.conn.getTable(directory.hbaseTable);
 
         final Table ht = htable;
@@ -1258,49 +1259,49 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         // AtomicLong with the timestamp of the last Put or 0 if
         // none were added since the last flush
         //
-        
+
         final AtomicLong lastAction = new AtomicLong(0L);
-        
+
         final List<Mutation> actions = new ArrayList<Mutation>();
         final ReentrantLock actionsLock = new ReentrantLock();
-        
+
         final AtomicLong actionsSize = new AtomicLong(0L);
-        
+
         //
         // Start the synchronization Thread
         //
-        
+
         Thread synchronizer = new Thread(new Runnable() {
           @Override
           public void run() {
             try {
               long lastsync = System.currentTimeMillis();
               long lastflush = lastsync;
-              
+
               //
               // Check for how long we've been storing readings, if we've reached the commitperiod,
               // flush any pending commits and synchronize with the other threads so offsets can be committed
               //
 
-              while(!localabort.get() && !Thread.currentThread().isInterrupted()) { 
+              while(!localabort.get() && !Thread.currentThread().isInterrupted()) {
                 long now = System.currentTimeMillis();
-                
+
                 if (now - lastsync > directory.commitPeriod) {
                   //
                   // We synchronize on 'puts' so the main Thread does not add Puts to it
                   //
-                  
+
                   //synchronized (puts) {
                   try {
                     actionsLock.lockInterruptibly();
-                    
+
                     //
                     // Attempt to flush
                     //
-                    
+
                     try {
                       Object[] results = new Object[actions.size()];
-                      
+
                       if (directory.store||directory.delete) {
                         ht.batch(actions, results);
 
@@ -1312,11 +1313,11 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                         }
                         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_HBASE_COMMITS, Sensision.EMPTY_LABELS, 1);
                       }
-                      
+
                       actions.clear();
                       actionsSize.set(0L);
                       // Reset lastPut to 0
-                      lastAction.set(0L);                    
+                      lastAction.set(0L);
                     } catch (IOException ioe) {
                       // Clear list of Puts
                       actions.clear();
@@ -1330,7 +1331,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                       actionsSize.set(0L);
                       // If an exception is thrown, abort
                       directory.abort.set(true);
-                      return;                    
+                      return;
                     }
                     //
                     // Now join the cyclic barrier which will trigger the
@@ -1351,22 +1352,22 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                   } finally {
                     if (actionsLock.isHeldByCurrentThread()) {
                       actionsLock.unlock();
-                    }                  
+                    }
                   }
                 } else if (0 != lastAction.get() && (now - lastAction.get() > 500) || actionsSize.get() > directory.maxPendingPutsSize) {
                   //
                   // If the last Put was added to 'ht' more than 500ms ago, force a flush
                   //
-                  
+
                   try {
                     //synchronized(puts) {
                     actionsLock.lockInterruptibly();
                     try {
                       Object[] results = new Object[actions.size()];
-                      
+
                       if (directory.store||directory.delete) {
                         ht.batch(actions, results);
-                        
+
                         // Check results for nulls
                         for (Object o: results) {
                           if (null == o) {
@@ -1375,7 +1376,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                         }
                         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_HBASE_COMMITS, Sensision.EMPTY_LABELS, 1);
                       }
-                      
+
                       actions.clear();
                       actionsSize.set(0L);
                       // Reset lastPut to 0
@@ -1386,25 +1387,25 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                       actionsSize.set(0L);
                       directory.abort.set(true);
                       return;
-                    } catch(InterruptedException ie) {                  
+                    } catch(InterruptedException ie) {
                       // Clear list of Puts
                       actions.clear();
                       actionsSize.set(0L);
                       directory.abort.set(true);
                       return;
-                    }                  
+                    }
                   } catch (InterruptedException ie) {
                     directory.abort.set(true);
                     return;
                   } finally {
                     if (actionsLock.isHeldByCurrentThread()) {
                       actionsLock.unlock();
-                    }                  
+                    }
                   }
                 }
-   
+
                 LockSupport.parkNanos(1000000L);
-              }              
+              }
             } catch (Throwable t) {
               LOG.error("Caught exception in synchronizer", t);
               throw t;
@@ -1413,17 +1414,17 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             }
           }
         });
-        
+
         synchronizer.setName("Warp Directory Synchronizer");
         synchronizer.setDaemon(true);
         synchronizer.start();
-        
+
         // TODO(hbs): allow setting of writeBufferSize
 
         MetadataID id = null;
-        
+
         byte[] hbaseAESKey = directory.keystore.getKey(KeyStore.AES_HBASE_METADATA);
-        
+
         while (iter.hasNext()) {
           Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_JVM_FREEMEMORY, Sensision.EMPTY_LABELS, Runtime.getRuntime().freeMemory());
 
@@ -1433,22 +1434,22 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
           // will miss the synchronization point with the other
           // threads.
           //
-          
+
           boolean nonEmpty = iter.nonEmpty();
-          
+
           if (nonEmpty) {
             MessageAndMetadata<byte[], byte[]> msg = iter.next();
             if (!counters.safeCount(msg.partition(), msg.offset())) {
               continue;
             }
-            
+
             //
             // We do an early selection check based on the Kafka key.
             // Since 20151104 we now correctly push the Kafka key (cf Ingress bug in pushMetadataMessage(k,v))
             //
-                        
+
             int r = (((int) msg.key()[8]) & 0xff) % directory.modulus;
-            
+
             if (directory.remainder != r) {
               continue;
             }
@@ -1457,56 +1458,56 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             // We do not rely on the Kafka key for selection as it might have been incorrectly set.
             // We therefore unwrap all messages and decide later.
             //
-            
+
             byte[] data = msg.message();
-            
+
             if (null != siphashKey) {
               data = CryptoUtils.removeMAC(siphashKey, data);
             }
-            
+
             // Skip data whose MAC was not verified successfully
             if (null == data) {
               Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_KAFKA_FAILEDMACS, Sensision.EMPTY_LABELS, 1);
               continue;
             }
-            
+
             // Unwrap data if need be
             if (null != kafkaAESKey) {
               data = CryptoUtils.unwrap(kafkaAESKey, data);
             }
-            
+
             // Skip data that was not unwrapped successfuly
             if (null == data) {
               Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_KAFKA_FAILEDDECRYPTS, Sensision.EMPTY_LABELS, 1);
               continue;
             }
-            
+
             //
             // TODO(hbs): We could check that metadata class/labels Id match those of the key, but
             // since it was wrapped/authenticated, we suppose it's ok.
             //
-                        
+
             //byte[] labelsBytes = Arrays.copyOfRange(data, 8, 16);
             //long labelsId = Longs.fromByteArray(labelsBytes);
-            
+
             // 128bits
             byte[] metadataBytes = Arrays.copyOfRange(data, 16, data.length);
             TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
             Metadata metadata = new Metadata();
             deserializer.deserialize(metadata, metadataBytes);
-            
+
             //
             // Force Attributes
             //
-            
+
             if (!metadata.isSetAttributes()) {
               metadata.setAttributes(new HashMap<String,String>());
             }
-            
+
             //
             // Recompute labelsid and classid
             //
-            
+
             // 128bits
             long classId = GTSHelper.classId(directory.SIPHASH_CLASS_LONGS, metadata.getName());
             long labelsId = GTSHelper.labelsId(directory.SIPHASH_LABELS_LONGS, metadata.getLabels());
@@ -1518,17 +1519,17 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             // Recheck labelsid so we don't retain GTS with invalid labelsid in the row key (which may have happened due
             // to bugs)
             //
-            
+
             int rem = ((int) ((labelsId >>> 56) & 0xffL)) % directory.modulus;
-            
+
             if (directory.remainder != rem) {
               continue;
             }
-            
+
             String app = metadata.getLabels().get(Constants.APPLICATION_LABEL);
             Map<String,String> sensisionLabels = new HashMap<String,String>();
             sensisionLabels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, app);
-            
+
             //
             // Check the source of the metadata
             //
@@ -1536,17 +1537,17 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             //
             // If Metadata is from Delete, remove it from the cache AND from HBase
             //
-            
+
             if (io.warp10.continuum.Configuration.INGRESS_METADATA_DELETE_SOURCE.equals(metadata.getSource())) {
-              
+
               //
               // Call external plugin
               //
-              
+
               if (null != directory.plugin) {
-                
+
                 long nano = 0;
-                
+
                 try {
                   GTS gts = new GTS(
                       // 128bits
@@ -1554,16 +1555,16 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                       metadata.getName(),
                       metadata.getLabels(),
                       metadata.getAttributes());
-                  
+
                   nano = System.nanoTime();
-                      
+
                   if (!directory.plugin.delete(gts)) {
                     break;
-                  }                  
+                  }
                 } finally {
                   nano = System.nanoTime() - nano;
                   Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_PLUGIN_DELETE_CALLS, Sensision.EMPTY_LABELS, 1);
-                  Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_PLUGIN_DELETE_TIME_NANOS, Sensision.EMPTY_LABELS, nano);                  
+                  Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_PLUGIN_DELETE_TIME_NANOS, Sensision.EMPTY_LABELS, nano);
                 }
 
               } else {
@@ -1589,7 +1590,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                       if (directory.metadatasLock.isHeldByCurrentThread()) {
                         directory.metadatasLock.unlock();
                       }
-                    }                    
+                    }
                   }
                   Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, -1);
                   Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS_PERAPP, sensisionLabels, -1);
@@ -1599,16 +1600,16 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               //
               // Clear the cache
               //
-              
+
               id = MetadataUtils.id(metadata);
               directory.serializedMetadataCache.remove(id);
-              
+
               if (!directory.delete) {
                 continue;
               }
 
               // Remove HBase entry
-              
+
               // Prefix + classId + labelsId
               byte[] rowkey = new byte[Constants.HBASE_METADATA_KEY_PREFIX.length + 8 + 8];
 
@@ -1617,11 +1618,11 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               bb.put(Constants.HBASE_METADATA_KEY_PREFIX);
               bb.putLong(classId);
               bb.putLong(labelsId);
-              
+
               //System.arraycopy(HBASE_METADATA_KEY_PREFIX, 0, rowkey, 0, HBASE_METADATA_KEY_PREFIX.length);
               // Copy classId/labelsId
               //System.arraycopy(data, 0, rowkey, HBASE_METADATA_KEY_PREFIX.length, 16);
-              
+
               Delete delete = new Delete(rowkey);
 
               try {
@@ -1631,23 +1632,23 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 // estimate the size of the Delete
                 actionsSize.addAndGet(rowkey.length + 16);
                 lastAction.set(System.currentTimeMillis());
-                Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_HBASE_DELETES, Sensision.EMPTY_LABELS, 1);                
+                Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_HBASE_DELETES, Sensision.EMPTY_LABELS, 1);
               } finally {
                 if (actionsLock.isHeldByCurrentThread()) {
                   actionsLock.unlock();
                 }
               }
-              
+
               continue;
-            } // if (io.warp10.continuum.Configuration.INGRESS_METADATA_DELETE_SOURCE.equals(metadata.getSource())                   
+            } // if (io.warp10.continuum.Configuration.INGRESS_METADATA_DELETE_SOURCE.equals(metadata.getSource())
 
             //
             // Call external plugin
             //
-            
+
             if (null != directory.plugin) {
               long nano = 0;
-              
+
               try {
                 GTS gts = new GTS(
                     // 128bits
@@ -1659,23 +1660,23 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 //
                 // If we are doing a metadata update and the GTS is not known, skip the call to store.
                 //
-                
+
                 if ((io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource()) || io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_DELTA_ENDPOINT.equals(metadata.getSource())) && !directory.plugin.known(gts)) {
                   continue;
                 }
 
                 nano = System.nanoTime();
-                
+
                 if (!directory.plugin.store(metadata.getSource(), gts)) {
                   // If we could not store the GTS, stop the directory consumer
                   break;
-                }                
+                }
               } finally {
                 nano = System.nanoTime() - nano;
                 Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_PLUGIN_STORE_CALLS, Sensision.EMPTY_LABELS, 1);
-                Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_PLUGIN_STORE_TIME_NANOS, Sensision.EMPTY_LABELS, nano);                  
+                Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_PLUGIN_STORE_TIME_NANOS, Sensision.EMPTY_LABELS, nano);
               }
-              
+
             } else { // no directory plugin
               //
               // If Metadata comes from Ingress and it is already in the cache, do
@@ -1683,28 +1684,28 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               // if the last activity is more recent than the one we have in cache and then update
               // the attributes.
               //
-              
+
               if (io.warp10.continuum.Configuration.INGRESS_METADATA_SOURCE.equals(metadata.getSource())
                   && directory.metadatas.containsKey(metadata.getName())
                   && directory.metadatas.get(metadata.getName()).containsKey(labelsId)) {
-                
+
                 if (!directory.trackingActivity) {
                   continue;
                 }
-                
+
                 //
                 // We need to keep track of the activity
                 //
-                
+
                 Metadata meta = directory.metadatas.get(metadata.getName()).get(labelsId);
-                
+
                 // If none of the Metadata instances has a last activity recorded, do nothing
                 if (!metadata.isSetLastActivity() && !meta.isSetLastActivity()) {
                   continue;
                 }
-                
+
                 // If one of the Metadata instances does not have a last activity set, use the one which is defined
-                
+
                 if (!metadata.isSetLastActivity()) {
                   metadata.setLastActivity(meta.getLastActivity());
                 } else if (!meta.isSetLastActivity()) {
@@ -1718,45 +1719,45 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 // the correct attributes when storing. Clear the serialized metadata cache
                 meta.setLastActivity(Math.max(meta.getLastActivity(), metadata.getLastActivity()));
                 metadata.setLastActivity(meta.getLastActivity());
-                
+
                 // Copy attributes from the currently store Metadata instance
                 metadata.setAttributes(meta.getAttributes());
-                
+
                 TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
                 metadataBytes = serializer.serialize(meta);
-                
+
                 id = MetadataUtils.id(metadata);
                 directory.serializedMetadataCache.remove(id);
-              }              
-              
+              }
+
               //
               // If metadata is an update, only take it into consideration if the GTS is already known
               //
-              
+
               if ((io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource())
                   || io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_DELTA_ENDPOINT.equals(metadata.getSource()))
                   && (!directory.metadatas.containsKey(metadata.getName())
                       || !directory.metadatas.get(metadata.getName()).containsKey(labelsId))) {
                 continue;
-              }              
+              }
             }
-            
+
             //
             // Clear the cache if it is an update
             //
-            
+
             if (io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource())
                 || io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_DELTA_ENDPOINT.equals(metadata.getSource())) {
               id = MetadataUtils.id(metadata);
               directory.serializedMetadataCache.remove(id);
-              
+
               //
               // If this is a delta update of attributes, consolidate them
               //
-              
+
               if (io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_DELTA_ENDPOINT.equals(metadata.getSource())) {
                 Metadata meta = directory.metadatas.get(metadata.getName()).get(labelsId);
-                
+
                 for (Entry<String,String> attr: metadata.getAttributes().entrySet()) {
                   if ("".equals(attr.getValue())) {
                     meta.getAttributes().remove(attr.getKey());
@@ -1764,25 +1765,25 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                     meta.putToAttributes(attr.getKey(), attr.getValue());
                   }
                 }
-                
+
                 // We need to update the attributes with those from 'meta' so we
                 // store the up to date version of the Metadata in HBase
                 metadata.setAttributes(new HashMap<String,String>(meta.getAttributes()));
-                  
+
                 // We re-serialize metadata
                 TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
                 metadataBytes = serializer.serialize(metadata);
               }
-              
+
               //
               // Update the last activity
               //
-              
-              if (null == directory.plugin) {                
+
+              if (null == directory.plugin) {
                 Metadata meta = directory.metadatas.get(metadata.getName()).get(labelsId);
-                
+
                 boolean hasChanged = false;
-                
+
                 if (!metadata.isSetLastActivity() && meta.isSetLastActivity()) {
                   metadata.setLastActivity(meta.getLastActivity());
                   hasChanged = true;
@@ -1791,15 +1792,15 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                   metadata.setLastActivity(meta.getLastActivity());
                   hasChanged = true;
                 }
-                                
+
                 if (hasChanged) {
                   // We re-serialize metadata
                   TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
                   metadataBytes = serializer.serialize(metadata);
-                }                
+                }
               }
             }
-                        
+
             //
             // Write Metadata to HBase as it is either new or an updated version\
             // WARNING(hbs): in case of an updated version, we might erase a newer version of
@@ -1807,7 +1808,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             // a failure of this Directory process). This will eventually be corrected when the newer version is
             // later re-read from Kafka.
             //
-            
+
             // Prefix + classId + labelsId
             byte[] rowkey = new byte[Constants.HBASE_METADATA_KEY_PREFIX.length + 8 + 8];
 
@@ -1823,10 +1824,10 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             //
             // Encrypt contents
             //
-                        
+
             Put put = null;
             byte[] encrypted = null;
-            
+
             if (directory.store) {
               put = new Put(rowkey);
               if (null != hbaseAESKey) {
@@ -1836,7 +1837,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 put.addColumn(directory.colfam, new byte[0], metadataBytes);
               }
             }
-              
+
             try {
               actionsLock.lockInterruptibly();
               //synchronized (puts) {
@@ -1844,7 +1845,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 actions.add(put);
                 actionsSize.addAndGet(encrypted.length);
                 lastAction.set(System.currentTimeMillis());
-                Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_HBASE_PUTS, Sensision.EMPTY_LABELS, 1);                
+                Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_HBASE_PUTS, Sensision.EMPTY_LABELS, 1);
               }
 
               if (null != directory.plugin) {
@@ -1854,14 +1855,14 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               //
               // Internalize Strings
               //
-              
+
               GTSHelper.internalizeStrings(metadata);
 
               //
               // Store it in the cache (we dot that in the synchronized section)
               //
 
-              //byte[] classBytes = Arrays.copyOf(data, 8);            
+              //byte[] classBytes = Arrays.copyOf(data, 8);
               //long classId = Longs.fromByteArray(classBytes);
 
               try {
@@ -1872,45 +1873,45 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                   directory.metadatas.put(metadata.getName(), new ConcurrentSkipListMap<Long,Metadata>(ID_COMPARATOR));
                   directory.classNames.put(classId, metadata.getName());
                   Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_CLASSES, Sensision.EMPTY_LABELS, 1);
-                }                
+                }
               } finally {
                 if (directory.metadatasLock.isHeldByCurrentThread()) {
                   directory.metadatasLock.unlock();
                 }
               }
-              
+
               //
               // Store per owner class
               //
 
               String owner = metadata.getLabels().get(Constants.OWNER_LABEL);
-              
+
               synchronized(directory.classesPerOwner) {
-                Set<String> classes = directory.classesPerOwner.get(owner);
-                
+                Map<Long, String> classes = directory.classesPerOwner.get(owner);
+
                 if (null == classes) {
-                  classes = new HashSet<String>();
+                  classes = new ConcurrentSkipListMap<Long, String>(ID_COMPARATOR);
                   directory.classesPerOwner.put(owner, classes);
                 }
-                
-                classes.add(metadata.getName());
+
+                classes.put(metadata.getClassId(), metadata.getName());
               }
-              
+
               Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_OWNERS, Sensision.EMPTY_LABELS, directory.classesPerOwner.size());
-              
+
               //
               // Force classId/labelsId in Metadata, we will need them!
               //
-              
+
               metadata.setClassId(classId);
               metadata.setLabelsId(labelsId);
-              
+
               // 128bits
               if (null == directory.metadatas.get(metadata.getName()).put(labelsId, metadata)) {
                 Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, 1);
                 Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS_PERAPP, sensisionLabels, 1);
               }
-           
+
             } finally {
               if (actionsLock.isHeldByCurrentThread()) {
                 actionsLock.unlock();
@@ -1919,8 +1920,8 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
           } else {
             // Sleep a tiny while
             LockSupport.parkNanos(2000000L);
-          }          
-        }        
+          }
+        }
       } catch (Throwable t) {
         LOG.error("", t);
       } finally {
@@ -1936,82 +1937,82 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
 
   @Override
   public DirectoryFindResponse find(DirectoryFindRequest request) throws TException {
-    
+
     DirectoryFindResponse response = new DirectoryFindResponse();
 
     //
     // Check request age
     //
-    
+
     long now = System.currentTimeMillis();
-    
+
     if (now - request.getTimestamp() > this.maxage) {
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_FIND_EXPIRED, Sensision.EMPTY_LABELS, 1);
       response.setError("Request has expired.");
       return response;
     }
-    
+
     //
     // Compute request hash
     //
-    
+
     long hash = DirectoryUtil.computeHash(SIPHASH_PSK_LONGS[0], SIPHASH_PSK_LONGS[1], request);
-    
+
     // Check hash against value in the request
-    
+
     if (hash != request.getHash()) {
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_FIND_INVALID, Sensision.EMPTY_LABELS, 1);
       response.setError("Invalid request.");
       return response;
     }
-    
+
     //
     // Build patterns from expressions
     //
-    
+
     Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_FIND_REQUESTS, Sensision.EMPTY_LABELS, 1);
 
     SmartPattern classSmartPattern;
-    
+
     Collection<Metadata> metas;
-    
+
     //
     // Allocate a set if there is more than one class selector as we may have
     // duplicate results
     //
-    
+
     if (request.getClassSelectorSize() > 1) {
       metas = new HashSet<Metadata>();
     } else {
       metas = new ArrayList<Metadata>();
     }
-    
+
     long count = 0;
 
     List<String> missingLabels = Constants.ABSENT_LABEL_SUPPORT ? new ArrayList<String>() : null;
-    
+
     for (int i = 0; i < request.getClassSelectorSize(); i++) {
-      
+
       //
       // Call external plugin if it is defined
       //
-      
+
       if (null != this.plugin) {
-        
+
         long time = 0;
         long precount = 0;
         long nano = System.nanoTime();
-        
+
         try (DirectoryPlugin.GTSIterator iter = this.plugin.find(this.remainder, request.getClassSelector().get(i), request.getLabelsSelectors().get(i))) {
-          
+
           while(iter.hasNext()) {
-            
+
             GTS gts = iter.next();
             nano = System.nanoTime() - nano;
             time += nano;
-            
+
             count++;
-            
+
             if (count >= maxHardFindResults) {
               Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_FIND_LIMITED, Sensision.EMPTY_LABELS, 1);
               response.setError("Find request would return more than " + maxHardFindResults + " results, aborting.");
@@ -2026,38 +2027,38 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             meta.setAttributes(new HashMap<String,String>(gts.getAttributes()));
             meta.setClassId(GTSHelper.classId(SIPHASH_CLASS_LONGS, meta.getName()));
             meta.setLabelsId(GTSHelper.labelsId(SIPHASH_LABELS_LONGS, meta.getLabels()));
-            
+
             metas.add(meta);
             nano = System.nanoTime();
-          }                  
-        } catch (Exception e) {          
+          }
+        } catch (Exception e) {
         } finally {
           Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_PLUGIN_FIND_CALLS, Sensision.EMPTY_LABELS, 1);
           Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_PLUGIN_FIND_RESULTS, Sensision.EMPTY_LABELS, count - precount);
-          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_PLUGIN_FIND_TIME_NANOS, Sensision.EMPTY_LABELS, time);                  
+          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_PLUGIN_FIND_TIME_NANOS, Sensision.EMPTY_LABELS, time);
         }
       } else { // No Directory plugin
         String exactClassName = null;
-        
+
         if (request.getClassSelector().get(i).startsWith("=") || !request.getClassSelector().get(i).startsWith("~")) {
           exactClassName = request.getClassSelector().get(i).startsWith("=") ? request.getClassSelector().get(i).substring(1) : request.getClassSelector().get(i);
           classSmartPattern = new SmartPattern(exactClassName);
         } else {
           classSmartPattern = new SmartPattern(Pattern.compile(request.getClassSelector().get(i).substring(1)));
         }
-        
+
         Map<String,SmartPattern> labelPatterns = new LinkedHashMap<String,SmartPattern>();
-        
+
         if (null != missingLabels) {
-          missingLabels.clear();          
+          missingLabels.clear();
         }
-        
+
         if (request.getLabelsSelectors().get(i).size() > 0) {
           for (Entry<String,String> entry: request.getLabelsSelectors().get(i).entrySet()) {
             String label = entry.getKey();
             String expr = entry.getValue();
             SmartPattern pattern;
-            
+
             if (null != missingLabels && ("=".equals(expr) || "".equals(expr))) {
               missingLabels.add(label);
               continue;
@@ -2068,18 +2069,18 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             } else {
               pattern = new SmartPattern(Pattern.compile(expr.substring(1)));
             }
-            
+
             labelPatterns.put(label,  pattern);
-          }      
+          }
         }
-              
+
         //
         // Loop over the class names to find matches
         //
 
         // Copy the class names as 'this.classNames' might be updated while in the for loop
         Collection<String> classNames = new ArrayList<String>();
-        
+
         if (null != exactClassName) {
           // If the class name is an exact match, check if it is known, if not, skip to the next selector
           if(!this.metadatas.containsKey(exactClassName)) {
@@ -2092,9 +2093,9 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
           //
           if (request.getLabelsSelectors().get(i).size() > 0) {
             String ownersel = request.getLabelsSelectors().get(i).get(Constants.OWNER_LABEL);
-            
+
             if (null != ownersel && ownersel.startsWith("=")) {
-              classNames = classesPerOwner.get(ownersel.substring(1));
+              classNames = classesPerOwner.get(ownersel.substring(1)).values();
             } else {
               classNames = this.classNames.values();
             }
@@ -2106,20 +2107,20 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         List<String> labelNames = new ArrayList<String>(labelPatterns.size());
         List<SmartPattern> labelSmartPatterns = new ArrayList<SmartPattern>(labelPatterns.size());
         String[] labelValues = null;
-                
+
         for(Entry<String,SmartPattern> entry: labelPatterns.entrySet()) {
           labelNames.add(entry.getKey());
           labelSmartPatterns.add(entry.getValue());
         }
 
         labelValues = new String[labelNames.size()];
-        
+
         for (String className: classNames) {
-          
+
           //
           // If class matches, check all labels for matches
           //
-          
+
           if (classSmartPattern.matches(className)) {
             for (Metadata metadata: this.metadatas.get(className).values()) {
               boolean exclude = false;
@@ -2131,7 +2132,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                     exclude = true;
                     break;
                   }
-                }              
+                }
                 // Check attributes
                 if (!exclude && metadata.getAttributesSize() > 0) {
                   for (String missing: missingLabels) {
@@ -2140,15 +2141,15 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                       exclude = true;
                       break;
                     }
-                  }                              
+                  }
                 }
                 if (exclude) {
                   continue;
                 }
               }
-              
+
               int idx = 0;
-        
+
               for (String labelName: labelNames) {
                 //
                 // Immediately exclude metadata which do not contain one of the
@@ -2156,7 +2157,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 //
 
                 String labelValue = metadata.getLabels().get(labelName);
-                
+
                 if (null == labelValue) {
                   labelValue = metadata.getAttributes().get(labelName);
                   if (null == labelValue) {
@@ -2164,30 +2165,30 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                     break;
                   }
                 }
-                
+
                 labelValues[idx++] = labelValue;
               }
-              
+
               // If we did not collect enough label/attribute values, exclude the GTS
               if (idx < labelNames.size()) {
                 exclude = true;
               }
-              
+
               if (exclude) {
                 continue;
               }
-              
+
               //
               // Check if the label value matches, if not, exclude the GTS
               //
-              
+
               for (int j = 0; j < labelNames.size(); j++) {
                 if (!labelSmartPatterns.get(j).matches(labelValues[j])) {
                   exclude = true;
                   break;
                 }
               }
-              
+
               if (exclude) {
                 continue;
               }
@@ -2210,14 +2211,14 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               meta.setAttributes(new HashMap<String,String>(metadata.getAttributes()));
               meta.setClassId(GTSHelper.classId(SIPHASH_CLASS_LONGS, meta.getName()));
               meta.setLabelsId(GTSHelper.labelsId(SIPHASH_LABELS_LONGS, meta.getLabels()));
-              
+
               metas.add(meta);
-              
+
               count++;
             }
           }
-        }      
-      }        
+        }
+      }
     }
 
     if (request.getClassSelectorSize() > 1) {
@@ -2232,70 +2233,70 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     // Optimize the result when the number of matching Metadata exceeds maxFindResults.
     // We extract common labels and attempt to compress the result
     //
-    
+
     count = response.getMetadatasSize();
-    
+
     if (count >= this.maxFindResults) {
-      
+
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_FIND_COMPACTED, Sensision.EMPTY_LABELS, 1);
-      
+
       //
       // Extract common labels
       //
-      
+
       Map<String,String> commonLabels = null;
       Set<String> remove = new HashSet<String>();
-      
+
       for (Metadata metadata: response.getMetadatas()) {
         if (null == commonLabels) {
           commonLabels = new HashMap<String, String>(metadata.getLabels());
           continue;
         }
-        
+
         remove.clear();
-        
+
         for (Entry<String,String> entry: commonLabels.entrySet()) {
           if (!metadata.getLabels().containsKey(entry.getKey()) || !entry.getValue().equals(metadata.getLabels().get(entry.getKey()))) {
             remove.add(entry.getKey());
           }
         }
-        
+
         if (!remove.isEmpty()) {
           for (String label: remove) {
             commonLabels.remove(label);
           }
         }
       }
-      
+
       //
       // Remove common labels from all Metadata
       //
-      
+
       long commonLabelsSize = 0;
-      
+
       if (!commonLabels.isEmpty()) {
         for (Metadata metadata: response.getMetadatas()) {
           for (String label: commonLabels.keySet()) {
             metadata.getLabels().remove(label);
           }
         }
-        
+
         //
         // Estimate common labels size
         //
-        
+
         for (Entry<String,String> entry: commonLabels.entrySet()) {
           commonLabelsSize += entry.getKey().length() * 2 + entry.getValue().length() * 2;
         }
-        
+
         response.setCommonLabels(commonLabels);
       }
-      
-      
+
+
       TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
 
       byte[] serialized = serializer.serialize(response);
-        
+
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
       try {
         GZIPOutputStream gzos = new GZIPOutputStream(baos);
@@ -2304,41 +2305,41 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
       } catch (IOException ioe) {
         throw new TException(ioe);
       }
-      
+
       serialized = baos.toByteArray();
-        
+
       if (serialized.length > this.maxThriftFrameLength - commonLabelsSize - 256) {
         response.setError("Find request result would exceed maximum result size (" + this.maxThriftFrameLength + " bytes).");
         response.getMetadatas().clear();
         response.getCommonLabels().clear();
         return response;
       }
-      
+
       response = new DirectoryFindResponse();
       response.setCompressed(serialized);
     }
-    
+
     Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_FIND_RESULTS, Sensision.EMPTY_LABELS, count);
 
     return response;
   }
-  
+
   @Override
   public DirectoryGetResponse get(DirectoryGetRequest request) throws TException {
     DirectoryGetResponse response = new DirectoryGetResponse();
-    
+
     String name = this.classNames.get(request.getClassId());
-    
+
     if (null != name) {
-      Metadata metadata = this.metadatas.get(name).get(request.getLabelsId()); 
+      Metadata metadata = this.metadatas.get(name).get(request.getLabelsId());
       if (null != metadata) {
         response.setMetadata(metadata);
       }
     }
-    
+
     return response;
   }
-  
+
   @Override
   public DirectoryStatsResponse stats(DirectoryStatsRequest request) throws TException {
     return DirectoryUtil.stats(request, null, metadatas, classesPerOwner, LIMIT_CLASS_CARDINALITY, LIMIT_LABELS_CARDINALITY, maxage, SIPHASH_CLASS_LONGS, SIPHASH_LABELS_LONGS, SIPHASH_PSK_LONGS);
@@ -2349,12 +2350,12 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     handleStreaming(target, baseRequest, request, response);
     handleStats(target, baseRequest, request, response);
   }
-  
-  void handleStats(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException { 
+
+  void handleStats(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
     if (!Constants.API_ENDPOINT_DIRECTORY_STATS_INTERNAL.equals(target)) {
       return;
     }
-    
+
     long nano = System.nanoTime();
 
     baseRequest.setHandled(true);
@@ -2362,85 +2363,85 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     //
     // Read DirectoryRequests from stdin
     //
-    
+
     BufferedReader br = new BufferedReader(request.getReader());
-    
+
     while (true) {
       String line = br.readLine();
-      
+
       if (null == line) {
         break;
       }
-      
+
       byte[] raw = OrderPreservingBase64.decode(line.getBytes(StandardCharsets.US_ASCII));
 
       // Extract DirectoryStatsRequest
       TDeserializer deser = new TDeserializer(new TCompactProtocol.Factory());
       DirectoryStatsRequest req = new DirectoryStatsRequest();
-      
+
       try {
         deser.deserialize(req, raw);
         DirectoryStatsResponse resp = stats(req);
 
         response.setContentType("text/plain");
         OutputStream out = response.getOutputStream();
-              
+
         TSerializer ser = new TSerializer(new TCompactProtocol.Factory());
         byte[] data = ser.serialize(resp);
-        
+
         OrderPreservingBase64.encodeToStream(data, out);
-        
+
         out.write('\r');
         out.write('\n');
       } catch (TException te) {
         throw new IOException(te);
-      }            
+      }
     }
   }
-  
+
   public void handleStreaming(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
     if (!Constants.API_ENDPOINT_DIRECTORY_STREAMING_INTERNAL.equals(target)) {
       return;
     }
-    
+
     long now = System.currentTimeMillis();
-    
+
     long nano = System.nanoTime();
-    
+
     baseRequest.setHandled(true);
-    
+
     //
     // Extract 'selector'
     //
-    
+
     String selector = request.getParameter(Constants.HTTP_PARAM_SELECTOR);
-    
+
     if (null == selector) {
       throw new IOException("Missing parameter '" + Constants.HTTP_PARAM_SELECTOR + "'.");
     }
-        
+
     // Decode selector
-    
+
     selector = new String(OrderPreservingBase64.decode(selector.getBytes(StandardCharsets.US_ASCII)), StandardCharsets.UTF_8);
-    
+
     //
     // Check request signature
     //
-    
+
     String signature = request.getHeader(Constants.getHeader(io.warp10.continuum.Configuration.HTTP_HEADER_DIRECTORY_SIGNATURE));
-    
+
     if (null == signature) {
       throw new IOException("Missing header '" + Constants.getHeader(io.warp10.continuum.Configuration.HTTP_HEADER_DIRECTORY_SIGNATURE) + "'.");
     }
-    
+
     boolean signed = false;
-    
+
     //
     // Signature has the form hex(ts):hex(hash)
     //
-    
+
     String[] subelts = signature.split(":");
-    
+
     if (2 != subelts.length) {
       throw new IOException("Invalid signature.");
     }
@@ -2448,33 +2449,33 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     long nowts = System.currentTimeMillis();
     long sigts = new BigInteger(subelts[0], 16).longValue();
     long sighash = new BigInteger(subelts[1], 16).longValue();
-        
+
     if (nowts - sigts > this.maxage) {
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_STREAMING_EXPIRED, Sensision.EMPTY_LABELS, 1);
       throw new IOException("Signature has expired.");
     }
-        
+
     // Recompute hash of ts:selector
-        
+
     String tssel = Long.toString(sigts) + ":" + selector;
-        
+
     byte[] bytes = tssel.getBytes(StandardCharsets.UTF_8);
     long checkedhash = SipHashInline.hash24(SIPHASH_PSK_LONGS[0], SIPHASH_PSK_LONGS[1], bytes, 0, bytes.length);
-        
+
     if (checkedhash != sighash) {
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_STREAMING_INVALID, Sensision.EMPTY_LABELS, 1);
       throw new IOException("Corrupted signature");
     }
-    
+
     boolean hasActiveAfter = null != request.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER);
     long activeAfter = hasActiveAfter ? Long.parseLong(request.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER)) : 0L;
     boolean hasQuietAfter = null != request.getParameter(Constants.HTTP_PARAM_QUIETAFTER);
     long quietAfter = hasQuietAfter ? Long.parseLong(request.getParameter(Constants.HTTP_PARAM_QUIETAFTER)) : 0L;
 
     //
-    // Parse selector  
+    // Parse selector
     //
-    
+
     Object[] tokens = null;
 
     try {
@@ -2482,77 +2483,77 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     } catch (WarpScriptException ee) {
       throw new IOException(ee);
     }
-    
+
     String classSelector = (String) tokens[0];
     Map<String,String> labelsSelector = (Map<String,String>) tokens[1];
-        
+
     //
     // Loop over the Metadata, outputing the matching ones
     //
-    
+
     response.setStatus(HttpServletResponse.SC_OK);
     response.setContentType("text/plain");
 
     //
     // Delegate to the external plugin if it is defined
     //
-    
+
     long count = 0;
     long hits = 0;
-    
+
     TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
 
     MetadataID id = null;
-    
+
     OutputStream out = response.getOutputStream();
-    
+
     if (null != this.plugin) {
-      
+
       long nanofind = System.nanoTime();
       long time = 0;
 
       Metadata metadata = new Metadata();
 
       try (DirectoryPlugin.GTSIterator iter = this.plugin.find(this.remainder, classSelector, labelsSelector)) {
-        
+
         while(iter.hasNext()) {
           GTS gts = iter.next();
           nanofind = System.nanoTime() - nanofind;
           time += nanofind;
-    
+
           metadata.clear();
           metadata.setName(gts.getName());
           metadata.setLabels(gts.getLabels());
           metadata.setAttributes(gts.getAttributes());
-          
+
           //
           // Recompute class/labels Id
           //
-          
+
           long classId = GTSHelper.classId(this.SIPHASH_CLASS_LONGS, metadata.getName());
           long labelsId = GTSHelper.labelsId(this.SIPHASH_LABELS_LONGS, metadata.getLabels());
 
           metadata.setClassId(classId);
           metadata.setLabelsId(labelsId);
-          
+
           try {
             //
-            // Extract id 
+            // Extract id
             //
-            
+
             id = MetadataUtils.id(id, metadata);
-            
+
             //
             // Attempt to retrieve serialized content from the cache
             //
-            
+
             byte[] data = serializedMetadataCache.get(id);
-            
+
             if (null == data) {
               data = serializer.serialize(metadata);
               synchronized(serializedMetadataCache) {
                 // cache content
-                serializedMetadataCache.put(MetadataUtils.id(metadata),data);                
+                serializedMetadataCache.put(MetadataUtils.id(metadata),data);
               }
             } else {
               hits++;
@@ -2563,23 +2564,23 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             out.write('\n');
             count++;
           } catch (TException te) {
-          }        
+          }
           nanofind = System.nanoTime();
         }
-        
-      } catch (Exception e) {        
+
+      } catch (Exception e) {
       } finally {
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_PLUGIN_FIND_CALLS, Sensision.EMPTY_LABELS, 1);
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_PLUGIN_FIND_RESULTS, Sensision.EMPTY_LABELS, count);
         Sensision.update(SensisionConstants.CLASS_WARP_DIRECTORY_METADATA_CACHE_HITS, Sensision.EMPTY_LABELS, hits);
-        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_PLUGIN_FIND_TIME_NANOS, Sensision.EMPTY_LABELS, time);        
+        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_PLUGIN_FIND_TIME_NANOS, Sensision.EMPTY_LABELS, time);
       }
       return;
     } else { // No Plugin
-      
+
       String exactClassName = null;
       SmartPattern classSmartPattern;
-      
+
       List<String> missingLabels = Constants.ABSENT_LABEL_SUPPORT ? new ArrayList<String>() : null;
 
       if (classSelector.startsWith("=") || !classSelector.startsWith("~")) {
@@ -2588,14 +2589,14 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
       } else {
         classSmartPattern = new SmartPattern(Pattern.compile(classSelector.substring(1)));
       }
-        
+
       Map<String,SmartPattern> labelPatterns = new LinkedHashMap<String,SmartPattern>();
-        
+
       for (Entry<String,String> entry: labelsSelector.entrySet()) {
         String label = entry.getKey();
         String expr = entry.getValue();
         SmartPattern pattern;
-            
+
         if (null != missingLabels && ("=".equals(expr) || "".equals(expr))) {
           missingLabels.add(label);
           continue;
@@ -2606,16 +2607,16 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         } else {
           pattern = new SmartPattern(Pattern.compile(expr.substring(1)));
         }
-            
+
         labelPatterns.put(label,  pattern);
-      }      
+      }
 
       //
       // Loop over the class names to find matches
       //
 
       Collection<String> classNames = new ArrayList<String>();
-      
+
       if (null != exactClassName) {
         // If the class name is an exact match, check if it is known, if not, return
         if(!this.metadatas.containsKey(exactClassName)) {
@@ -2626,45 +2627,45 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         //
         // Extract per owner classes if owner selector exists
         //
-        
+
         if (labelsSelector.size() > 0) {
           String ownersel = labelsSelector.get(Constants.OWNER_LABEL);
-          
+
           if (null != ownersel && ownersel.startsWith("=")) {
-            classNames = classesPerOwner.get(ownersel.substring(1));
+            classNames = classesPerOwner.get(ownersel.substring(1)).values();
             if (null == classNames) {
               classNames = new ArrayList<String>();
             }
-          } else {        
+          } else {
             classNames = this.classNames.values();
           }
         } else {
           classNames = this.classNames.values();
         }
       }
-            
+
       List<String> labelNames = new ArrayList<String>(labelPatterns.size());
       List<SmartPattern> labelSmartPatterns = new ArrayList<SmartPattern>(labelPatterns.size());
       List<String> labelValues = new ArrayList<String>(labelPatterns.size());
-            
+
       for(Entry<String,SmartPattern> entry: labelPatterns.entrySet()) {
         labelNames.add(entry.getKey());
         labelSmartPatterns.add(entry.getValue());
         labelValues.add(null);
       }
-      
+
       long labelsComparisons = 0;
       long classesInspected = 0;
       long classesMatched = 0;
       long metadataInspected = 0;
-      
+
       for (String className: classNames) {
         classesInspected++;
-        
+
         //
         // If class matches, check all labels for matches
         //
-        
+
         if (classSmartPattern.matches(className)) {
           classesMatched++;
           Map<Long,Metadata> classMetadatas = this.metadatas.get(className);
@@ -2674,15 +2675,15 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
           for (Metadata metadata: classMetadatas.values()) {
             metadataInspected++;
             boolean exclude = false;
-            
+
             //
             // Check activity
             //
-            
+
             if (hasActiveAfter && metadata.getLastActivity() < activeAfter) {
               continue;
             }
-            
+
             if (hasQuietAfter && metadata.getLastActivity() >= quietAfter) {
               continue;
             }
@@ -2694,7 +2695,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                   exclude = true;
                   break;
                 }
-              }              
+              }
               // Check attributes
               if (!exclude && metadata.getAttributesSize() > 0) {
                 for (String missing: missingLabels) {
@@ -2703,7 +2704,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                     exclude = true;
                     break;
                   }
-                }                              
+                }
               }
               if (exclude) {
                 continue;
@@ -2711,7 +2712,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             }
 
             int idx = 0;
-      
+
             for (String labelName: labelNames) {
               //
               // Immediately exclude metadata which do not contain one of the
@@ -2719,7 +2720,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
               //
 
               String labelValue = metadata.getLabels().get(labelName);
-              
+
               if (null == labelValue) {
                 labelValue = metadata.getAttributes().get(labelName);
                 if (null == labelValue) {
@@ -2727,23 +2728,23 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                   break;
                 }
               }
-              
+
               labelValues.set(idx++, labelValue);
             }
-            
+
             // If we did not collect enough label/attribute values, exclude the GTS
             if (idx < labelNames.size()) {
               exclude = true;
             }
-            
+
             if (exclude) {
               continue;
             }
-            
+
             //
             // Check if the label value matches, if not, exclude the GTS
             //
-            
+
             for (int i = 0; i < labelNames.size(); i++) {
               labelsComparisons++;
               if (!labelSmartPatterns.get(i).matches(labelValues.get(i))) {
@@ -2758,27 +2759,27 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
 
             try {
               //
-              // Extract id 
+              // Extract id
               //
-              
+
               id = MetadataUtils.id(id, metadata);
-              
+
               //
               // Attempt to retrieve serialized content from the cache
               //
-              
+
               byte[] data = serializedMetadataCache.get(id);
-              
-              if (null == data) {                
+
+              if (null == data) {
                 data = serializer.serialize(metadata);
                 synchronized(serializedMetadataCache) {
                   // cache content
-                  serializedMetadataCache.put(MetadataUtils.id(metadata),data);                  
+                  serializedMetadataCache.put(MetadataUtils.id(metadata),data);
                 }
               } else {
                 hits++;
               }
-              
+
               OrderPreservingBase64.encodeToStream(data, out);
               out.write('\r');
               out.write('\n');
@@ -2788,10 +2789,10 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
             }
           }
         }
-      }    
-      
+      }
+
       long nownano = System.nanoTime();
-      
+
       LoggingEvent event = LogUtil.setLoggingEventAttribute(null, LogUtil.DIRECTORY_SELECTOR, selector);
       event = LogUtil.setLoggingEventAttribute(event, LogUtil.DIRECTORY_REQUEST_TIMESTAMP, now);
       event = LogUtil.setLoggingEventAttribute(event, LogUtil.DIRECTORY_RESULTS, count);
@@ -2800,16 +2801,16 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
       event = LogUtil.setLoggingEventAttribute(event, LogUtil.DIRECTORY_CLASSES_INSPECTED, classesInspected);
       event = LogUtil.setLoggingEventAttribute(event, LogUtil.DIRECTORY_CLASSES_MATCHED, classesMatched);
       event = LogUtil.setLoggingEventAttribute(event, LogUtil.DIRECTORY_LABELS_COMPARISONS, labelsComparisons);
-      
+
       String eventstr = LogUtil.serializeLoggingEvent(this.keystore, event);
-      
+
       LOG.info("Search returned " + count + " results in " + ((nownano - nano) / 1000000.0D) + " ms, inspected " + metadataInspected + " metadatas in " + classesInspected + " classes (" + classesMatched + " matched) and performed " + labelsComparisons + " comparisons. EVENT=" + eventstr);
     }
-    
+
     Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_STREAMING_REQUESTS, Sensision.EMPTY_LABELS, 1);
     Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_STREAMING_RESULTS, Sensision.EMPTY_LABELS, count);
     Sensision.update(SensisionConstants.CLASS_WARP_DIRECTORY_METADATA_CACHE_HITS, Sensision.EMPTY_LABELS, hits);
     nano = System.nanoTime() - nano;
     Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_STREAMING_TIME_US, Sensision.EMPTY_LABELS, nano / 1000);
-  }  
+  }
 }

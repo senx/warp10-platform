@@ -285,7 +285,7 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
 
     List<Metadata> metadatas = req.getMetadatas();
     
-    int gtsPerScanner = (int) Math.max(MIN_GTS_PERSCANNER, Math.floor(metadatas.size() / MAX_PARALLEL_SCANNERS));
+    int gtsPerScanner = (int) Math.max(MIN_GTS_PERSCANNER, metadatas.size() / MAX_PARALLEL_SCANNERS);
     
     int metaidx = 0;
     
@@ -371,7 +371,7 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
     // and 'maxscanners', the maximum number of parallel scanners to create
     //
     
-    int gtsPerScanner = (int) Math.max(MIN_GTS_PERSCANNER, Math.floor(metadatas.size() / MAX_PARALLEL_SCANNERS));
+    int gtsPerScanner = (int) Math.max(MIN_GTS_PERSCANNER, metadatas.size() / MAX_PARALLEL_SCANNERS);
     
     int metaidx = 0;
     
@@ -393,7 +393,9 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
         FetchRequest freq = new FetchRequest(req);
         // Restore Metadatas
         req.setMetadatas(lm);
+        // For standalone writeTimestamp and TTL are forced to false
         freq.setWriteTimestamp(false);
+        freq.setTTL(false);
         freq.setMetadatas(metas);
         iterator = client.fetch(freq);
 

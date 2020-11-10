@@ -108,8 +108,8 @@ dependencies {
     //
     // Geo
     //
-    api 'com.geoxp:geoxplib:1.0.0'
-    api 'org.wololo:jts2geojson:0.10.0'
+    compile 'com.geoxp:geoxplib:1.0.1'
+    compile("org.wololo:jts2geojson:0.10.0")
 
     //
     // Java Merge Sort

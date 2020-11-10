@@ -1446,10 +1446,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     if (null != context.symbolTable) {
       this.symbolTable.putAll(context.symbolTable);
     }
-    
-    for (int i = 0; i < this.registers.length; i++) {
-      this.registers[i] = context.registers[i];
-    }
+
+    System.arraycopy(context.registers, 0, this.registers, 0, this.registers.length);
     
     //
     // Restore redefined functions
@@ -1670,9 +1668,17 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   }
   
   @Override
+  public int hide() {
+    int count = size;
+    offset += count;
+    size -= count;
+    return count;
+  }
+  
+  @Override
   public int hide(int count) {    
     if (0 == count) {
-      count = size;
+      return 0;
     } else if (count > size) {
       count = size;
     } else if (count < 0) {
@@ -1692,9 +1698,16 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   }
   
   @Override
+  public void show() {
+    int count = offset;
+    offset -= count;
+    size += count;
+  }
+  
+  @Override
   public void show(int count) {
     if (0 == count) {
-      count = offset;
+      return;
     } else if (count > offset) {
       count = offset;
     } else if (count < 0) {

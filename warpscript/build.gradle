@@ -83,6 +83,7 @@ tasks.withType(Jar) {
     include 'io/warp10/continuum/store/Constants.*'
     include 'io/warp10/continuum/store/DirectoryClient.*'
     include 'io/warp10/continuum/store/GTSDecoderIterator.*'
+    include 'io/warp10/continuum/store/MetadataIterator.*'
     include 'io/warp10/continuum/store/thrift/data/**'
     include 'io/warp10/warp/sdk/**'
     include 'io/warp10/continuum/sensision/SensisionConstants.*'

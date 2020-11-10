@@ -56,6 +56,8 @@ public class GEOHASHTO extends NamedWarpScriptFunction implements WarpScriptStac
         geohashes.add(geohash.toString().toLowerCase());
       }
 
+      // geocells is sorted and deduped because it internally uses a deduping Coverage and
+      // Coverage#toGeoCells sorts the array.
       long[] geocells = GeoHashHelper.toGeoCells(geohashes);
       
       stack.push(GeoXPLib.fromCells(geocells, false));

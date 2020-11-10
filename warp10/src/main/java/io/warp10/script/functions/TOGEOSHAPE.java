@@ -23,8 +23,8 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.TreeSet;
 
 /**
  * Converts a list of geocells (longs) or HHCode prefixes (strings or bytes) to a GeoXPShape.
@@ -44,7 +44,8 @@ public class TOGEOSHAPE extends NamedWarpScriptFunction implements WarpScriptSta
     }
 
     List cellList = (List) top;
-    ArrayList<Long> geocells = new ArrayList<Long>();
+    // Use a TreeSet to make sure geocells are sorted and without duplicate.
+    TreeSet<Long> geocells = new TreeSet<Long>();
 
     long[] hhAndRes;
     for (Object cell: cellList) {

@@ -25,6 +25,9 @@
 # Description:       Warp stores sensor data
 ### END INIT INFO
 
+# Change directory to avoid "find: Failed to restore initial working directory"
+cd /
+
 # Source function library.
 if [[ -e /lib/lsb/init-functions ]]; then
   . /lib/lsb/init-functions
@@ -133,7 +136,7 @@ LOG4J_CONF=${WARP10_HOME}/etc/log4j.properties
 JAVA_HEAP_DUMP=${WARP10_HOME}/logs/java.heapdump
 # you can specialize your metrics for this instance of Warp10
 #SENSISION_DEFAULT_LABELS=-Dsensision.default.labels=instance=warp10-test,env=dev
-JAVA_OPTS="-Djava.awt.headless=true -Dlog4j.configuration=file:${LOG4J_CONF} -Dsensision.server.port=0 ${SENSISION_DEFAULT_LABELS:-} -Dsensision.events.dir=${SENSISION_EVENTS_DIR} -Xms${WARP10_HEAP} -Xmx${WARP10_HEAP_MAX} -XX:+UseG1GC ${JAVA_OPTS}"
+JAVA_OPTS="-Djava.awt.headless=true -Dlog4j.configuration=file:${LOG4J_CONF} -Dsensision.server.port=0 ${SENSISION_DEFAULT_LABELS:-} -Dsensision.events.dir=${SENSISION_EVENTS_DIR} -Dfile.encoding=UTF-8 -Xms${WARP10_HEAP} -Xmx${WARP10_HEAP_MAX} -XX:+UseG1GC ${JAVA_OPTS}"
 export MALLOC_ARENA_MAX=1
 
 # Sed suffix allows compatibility between Linux and MacOS
@@ -336,12 +339,15 @@ bootstrap() {
   sed -i${SED_SUFFIX} -e 's|^standalone\.home.*|standalone.home = '${WARP10_HOME_ESCAPED}'|' ${WARP10_CONFIG_DIR}/*
   rm ${WARP10_CONFIG_DIR}/*${SED_SUFFIX}
 
+  sed -i -e 's|^ExecStart=.*|ExecStart='${WARP10_HOME_ESCAPED}'/bin/warp10-standalone.sh start|' ${WARP10_HOME}/bin/warp10.service
+  sed -i -e 's|^ExecStop=.*|ExecStop='${WARP10_HOME_ESCAPED}'/bin/warp10-standalone.sh stop|' ${WARP10_HOME}/bin/warp10.service
+
   sed -i${SED_SUFFIX} -e 's|^\(\s\{0,100\}\)WARP10_HOME=/opt/warp10-.*|\1WARP10_HOME='${WARP10_HOME_ESCAPED}'|' ${WARP10_HOME}/bin/snapshot.sh
   sed -i${SED_SUFFIX} -e 's|^\(\s\{0,100\}\)LEVELDB_HOME=${WARP10_HOME}/leveldb|\1LEVELDB_HOME='${LEVELDB_HOME_ESCAPED}'|' ${WARP10_HOME}/bin/snapshot.sh
   rm ${WARP10_HOME}/bin/snapshot.sh${SED_SUFFIX}
 
-  sed -i${SED_SUFFIX} -e 's|warpLog\.File=.*|warpLog.File='${WARP10_HOME_ESCAPED}'/logs/warp10.log|' ${WARP10_HOME}/etc/log4j.properties
-  sed -i${SED_SUFFIX} -e 's|warpscriptLog\.File=.*|warpscriptLog.File='${WARP10_HOME_ESCAPED}'/logs/warpscript.out|' ${WARP10_HOME}/etc/log4j.properties
+  sed -i${SED_SUFFIX} -e 's|warpLog\.File =.*|warpLog.File = '${WARP10_HOME_ESCAPED}'/logs/warp10.log|' ${WARP10_HOME}/etc/log4j.properties
+  sed -i${SED_SUFFIX} -e 's|warpscriptLog\.File =.*|warpscriptLog.File = '${WARP10_HOME_ESCAPED}'/logs/warpscript.out|' ${WARP10_HOME}/etc/log4j.properties
   rm ${WARP10_HOME}/etc/log4j.properties${SED_SUFFIX}
 
   # Generate secrets
@@ -352,7 +358,7 @@ bootstrap() {
   getConfigFiles
 
   # Edit the warp10-tokengen.mc2 to use or not the secret
-  secret=`su ${WARP10_USER} -c "${JAVACMD} -cp ${WARP10_CP} io.warp10.WarpConfig ${CONFIG_FILES} . 'token.secret' | grep -e '^@CONF@ ' | sed -e 's/^@CONF@ //' | grep 'token.secret' | sed -e 's/^.*=//'"`
+  secret=`su ${WARP10_USER} -c "${JAVACMD} -cp ${WARP10_CP} -Dlog4j.configuration=file:${LOG4J_CONF} -Dfile.encoding=UTF-8 io.warp10.WarpConfig ${CONFIG_FILES} . 'token.secret' | grep -e '^@CONF@ ' | sed -e 's/^@CONF@ //' | grep 'token.secret' | sed -e 's/^.*=//'"`
   if [[ "${secret}"  != "null" ]]; then
     sed -i${SED_SUFFIX} -e "s|^{{secret}}|'"${secret}"'|" ${WARP10_HOME}/templates/warp10-tokengen.mc2
   else
@@ -361,7 +367,7 @@ bootstrap() {
   rm ${WARP10_HOME}/templates/warp10-tokengen.mc2${SED_SUFFIX}
 
   # Generate read/write tokens valid for a period of 100 years. We use 'io.warp10.bootstrap' as application name.
-  su ${WARP10_USER} -c "${JAVACMD} -cp ${WARP10_JAR} io.warp10.worf.TokenGen ${CONFIG_FILES} ${WARP10_HOME}/templates/warp10-tokengen.mc2 ${WARP10_HOME}/etc/initial.tokens"
+  su ${WARP10_USER} -c "${JAVACMD} -cp ${WARP10_JAR} -Dlog4j.configuration=file:${LOG4J_CONF} -Dfile.encoding=UTF-8 io.warp10.worf.TokenGen ${CONFIG_FILES} ${WARP10_HOME}/templates/warp10-tokengen.mc2 ${WARP10_HOME}/etc/initial.tokens"
   sed -i${SED_SUFFIX} 's/^.\{1\}//;$ s/.$//' ${WARP10_HOME}/etc/initial.tokens # Remove first and last character
   rm "${WARP10_HOME}/etc/initial.tokens${SED_SUFFIX}"
 
@@ -405,7 +411,7 @@ start() {
   # Extract configuration keys
   # 
 
-  CONFIG_KEYS=$(${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} io.warp10.WarpConfig ${CONFIG_FILES} . 'leveldb.home' 'standalone.host' 'standalone.port' | grep -e '^@CONF@ ' | sed -e 's/^@CONF@ //')
+  CONFIG_KEYS=$(${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} -Dfile.encoding=UTF-8 io.warp10.WarpConfig ${CONFIG_FILES} . 'leveldb.home' 'standalone.host' 'standalone.port' | grep -e '^@CONF@ ' | sed -e 's/^@CONF@ //')
 
   LEVELDB_HOME="$(echo "${CONFIG_KEYS}" | grep -e '^leveldb\.home=' | sed -e 's/^.*=//')"
 
@@ -437,7 +443,7 @@ start() {
   # By default, standard and error output is redirected to warp10.log file, and error output is duplicated to standard output
   # As a consequence, if Warp 10 is launched by systemd, error messages will be in systemd journal too.
   #
-  ${JAVACMD} ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_CLASS} ${CONFIG_FILES} >> ${WARP10_HOME}/logs/warp10.log 2> >(tee >(cat 1>&2)) &
+  ${JAVACMD} ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_CLASS} ${CONFIG_FILES} > >(tee -a ${WARP10_HOME}/logs/warp10.log) 2>&1 &
 
   echo $! > ${PID_FILE}
 
@@ -558,7 +564,7 @@ worf() {
     echo "Usage: $0 $1 appName ttl(ms)"
     exit 1
   fi
-  ${JAVACMD} -cp ${WARP10_JAR} io.warp10.worf.Worf ${WARP10_SECRETS} -puidg -t -a $2 -ttl $3
+  ${JAVACMD} -cp ${WARP10_JAR} -Dfile.encoding=UTF-8 io.warp10.worf.Worf ${WARP10_SECRETS} -puidg -t -a $2 -ttl $3
 }
 
 repair() {
@@ -573,7 +579,7 @@ repair() {
     exit 1
   else
     echo "Repair Leveldb..."
-    ${JAVACMD} -cp ${WARP10_JAR} io.warp10.standalone.WarpRepair ${LEVELDB_HOME}
+    ${JAVACMD} -cp ${WARP10_JAR} -Dfile.encoding=UTF-8 io.warp10.standalone.WarpRepair ${LEVELDB_HOME}
   fi
 }
 

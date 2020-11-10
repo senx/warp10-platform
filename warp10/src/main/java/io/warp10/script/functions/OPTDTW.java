@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -36,8 +36,6 @@ import io.warp10.script.WarpScriptStackFunction;
  */
 public class OPTDTW extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
-  private final DTW dtw = new DTW("", false, false);
-
   public OPTDTW(String name) {
     super(name);
   }
@@ -53,6 +51,20 @@ public class OPTDTW extends NamedWarpScriptFunction implements WarpScriptStackFu
     int count = ((Number) o).intValue();
     
     o = stack.pop();
+
+    // Optional window parameter.
+    int window = Integer.MAX_VALUE;
+
+    if (o instanceof Long) {
+      window = (int) Math.min(Integer.MAX_VALUE, (Long) o);
+
+      // If the window is negative, consider there is no window.
+      if (window < 0) {
+        window = Integer.MAX_VALUE;
+      }
+
+      o = stack.pop();
+    }
     
     if (!(o instanceof List)) {
       throw new WarpScriptException(getName() + " expects a numeric list to use as query below the count.");
@@ -82,11 +94,11 @@ public class OPTDTW extends NamedWarpScriptFunction implements WarpScriptStackFu
       sequence[i++] = ((Number) oo).doubleValue();
     }
 
-    if (sequence.length <= query.length) {
+    if (sequence.length < query.length) {
       throw new WarpScriptException(getName() + " expects the query list to be shorter than the sequence list.");
     }
     
-    double mindist = 0.0;
+    double mindist = Double.POSITIVE_INFINITY;
     
     PriorityQueue<Pair<Integer, Double>> distances = new PriorityQueue<Pair<Integer,Double>>(new Comparator<Pair<Integer,Double>>() {
       @Override
@@ -104,7 +116,7 @@ public class OPTDTW extends NamedWarpScriptFunction implements WarpScriptStackFu
       for (int j = 0; j < subsequence.length; j++) {
         subsequence[j] = (subsequence[j] - musigma[0]) / musigma[1];
       }
-      double dist = dtw.compute(query, 0, query.length, subsequence, 0, query.length, mindist);
+      double dist = DTW.compute(new double[][] {query}, 0, query.length, new double[][] {subsequence}, 0, query.length, window, mindist, DTW::manhattan);
       
       if (dist < 0) {
         continue;
@@ -118,7 +130,7 @@ public class OPTDTW extends NamedWarpScriptFunction implements WarpScriptStackFu
       //
         
       if (count > 0 && distances.size() >= count) {
-        Object adist[] = distances.toArray();
+        Object[] adist = distances.toArray();
         mindist = ((Pair<Integer,Double>) adist[count - 1]).getValue();
       }
     }

@@ -185,13 +185,7 @@ public class SORTBY extends NamedWarpScriptFunction implements WarpScriptStackFu
       comparator = new Comparator<Integer>() {
         @Override
         public int compare(Integer i1, Integer i2) {
-          if (lvalues[i1] < lvalues[i2]) {
-            return -1;
-          } else if (lvalues[i1] > lvalues[i2]) {
-            return 1;
-          } else {
-            return 0;
-          }
+          return Long.compare(lvalues[i1], lvalues[i2]);
         }
       };
     } else if ("DOUBLE".equals(valtype)) {
@@ -200,13 +194,7 @@ public class SORTBY extends NamedWarpScriptFunction implements WarpScriptStackFu
       comparator = new Comparator<Integer>() {
         @Override
         public int compare(Integer i1, Integer i2) {
-          if (dvalues[i1] < dvalues[i2]) {
-            return -1;
-          } else if (dvalues[i1] > dvalues[i2]) {
-            return 1;
-          } else {
-            return 0;
-          }
+          return Double.compare(dvalues[i1], dvalues[i2]);
         }
       };
     } else if ("STRING".equals(valtype)) {

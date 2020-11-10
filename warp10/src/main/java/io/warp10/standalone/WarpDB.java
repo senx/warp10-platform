@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -54,15 +54,17 @@ public class WarpDB extends Thread implements DB {
   private AtomicBoolean compactionsSuspended = new AtomicBoolean(false);
 
   private static final class WarpDBReentrantLock extends ReentrantLock {
+    
+    public WarpDBReentrantLock(boolean fair) {
+      super(fair);
+    }
+    
     public Thread getOwner() {
       return super.getOwner();
-    }    
-    public Collection<Thread> getQueuedThreads() {
-      return super.getQueuedThreads();
     }
   }
   
-  private WarpDBReentrantLock mutex = new WarpDBReentrantLock();
+  private WarpDBReentrantLock mutex = new WarpDBReentrantLock(true);
   
   private final boolean nativedisabled;
   private final boolean javadisabled;
@@ -176,17 +178,17 @@ public class WarpDB extends Thread implements DB {
         } else {
           throw new UnsatisfiedLinkError("Native LevelDB implementation disabled.");
         }
-      } catch (UnsatisfiedLinkError ule) {
-        ule.printStackTrace();
+      } catch (NoClassDefFoundError|UnsatisfiedLinkError e) {
+        e.printStackTrace();
         if (!javadisabled) {
-          System.out.println("WARNING: falling back to pure java implementation of LevelDB.");
+          LOG.warn("WARNING: falling back to pure java implementation of LevelDB.");
           db = Iq80DBFactory.factory.open(new File(home), options);
         } else {
           throw new RuntimeException("No usable LevelDB implementation, aborting.");
         }
       }                
     } catch (InterruptedException ie) {
-      throw new RuntimeException("Interrupted while opending LevelDB.", ie);
+      throw new RuntimeException("Interrupted while opening LevelDB.", ie);
     } finally {
       if (mutex.isHeldByCurrentThread()) {
         mutex.unlock();
@@ -236,6 +238,19 @@ public class WarpDB extends Thread implements DB {
     }
   }
   
+  /**
+   * This method is meant to be called during a delete instead of
+   * the above createWriteBatch so the delete operation can
+   * proceed even if a thread called doOffline and is
+   * currently holding the lock. Those WriteBatch instances should
+   * still be created otherwise the pendingOps count will never go
+   * back down to 0 as the delete is stuck waiting for the mutex
+   * in createWriteBatch.
+   */
+  public WriteBatch createWriteBatchUnlocked() {
+    return this.db.createWriteBatch();
+  }
+
   @Override
   public void delete(byte[] key) throws DBException {
     try {
@@ -393,6 +408,22 @@ public class WarpDB extends Thread implements DB {
   @Override
   public void suspendCompactions() throws InterruptedException {
     throw new DBException("Unsupported 'suspendCompactions' operation.");
+  }
+  
+  /**
+   * write method meant to be called during deletes
+   */
+  public void writeUnlocked(WriteBatch deletes, WriteOptions options) throws DBException {
+    if (options.snapshot()) {
+      throw new RuntimeException("Snapshots are unsupported.");      
+    }
+
+    try {
+      pendingOps.incrementAndGet();
+      this.db.write(deletes, options);
+    } finally {
+      this.pendingOps.decrementAndGet();
+    }
   }
   
   @Override

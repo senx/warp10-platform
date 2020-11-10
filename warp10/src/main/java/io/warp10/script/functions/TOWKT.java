@@ -50,7 +50,7 @@ public class TOWKT extends NamedWarpScriptFunction implements WarpScriptStackFun
 
       stack.push(geometry.toText());
     } catch (WarpScriptException wse) {
-      throw new WarpScriptException(getName() + " expects a GEOSHAPE, a WKT STRING or WKB BYTES.", wse);
+      throw new WarpScriptException(getName() + " expects a GEOSHAPE, a GeoJSON STRING or WKB BYTES.", wse);
     } catch (ParseException pe) {
       throw new WarpScriptException(getName() + " was given invalid input.", pe);
     }
