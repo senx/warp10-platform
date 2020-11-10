@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -29,3 +29,8 @@ directory.stats.class.maxcardinality = 100
 // Maximum number of labels for which to report detailed stats in 'FINDSTATS'
 //
 directory.stats.labels.maxcardinality = 100
+
+//
+// Number of threads to use for the initial loading of Metadata
+//
+#directory.init.nthreads = 4
