@@ -108,8 +108,8 @@ dependencies {
     //
     // Geo
     //
-    compile 'com.geoxp:geoxplib:1.0.1'
-    compile("org.wololo:jts2geojson:0.10.0")
+    api 'com.geoxp:geoxplib:1.0.1'
+    api("org.wololo:jts2geojson:0.10.0")
 
     //
     // Java Merge Sort
@@ -126,6 +126,7 @@ dependencies {
 }
 
 task pack(type: Jar) {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE // allow duplicates
     zip64 = true
     archiveAppendix = (null != System.getProperty('warp')) ? System.getProperty('warp') : ""
 

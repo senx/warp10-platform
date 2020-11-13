@@ -37,7 +37,7 @@ ext {
 tasks.withType(Jar) {
     manifest.attributes.put("Implementation-Title", "WarpScript")
 
-    if('sources' == classifier) {
+    if('sources' == archiveClassifier) {
         from project(':warp10').sourceSets.main.allSource
     } else {
         from project(':warp10').sourceSets.main.output
@@ -92,7 +92,7 @@ tasks.withType(Jar) {
     include 'io/warp10/standalone/AcceleratorConfig.*'
     include 'io/warp10/standalone/AcceleratorConfig$*.*'
 
-    if('sources' == classifier) {
+    if('sources' == archiveClassifier) {
         from project(':token').sourceSets.main.allSource
     } else {
         from project(':token').sourceSets.main.output
@@ -101,7 +101,7 @@ tasks.withType(Jar) {
     include 'io/warp10/quasar/filter/QuasarTokenFilter.*'
     include 'io/warp10/quasar/filter/exception/QuasarTokenException.*'
 
-    if('sources' == classifier) {
+    if('sources' == archiveClassifier) {
         from project(':crypto').sourceSets.main.allSource
     } else {
         from project(':crypto').sourceSets.main.output

@@ -20,7 +20,7 @@
 tasks.withType(Jar) {
     manifest.attributes.put("Implementation-Title", "HBase Filters")
 
-    if('sources' == classifier) {
+    if('sources' == archiveClassifier) {
         from project(':warp10').sourceSets.main.allSource
     } else {
         from project(':warp10').sourceSets.main.output

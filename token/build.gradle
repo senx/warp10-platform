@@ -27,8 +27,8 @@ dependencies {
     testCompileOnly 'org.slf4j:slf4j-log4j12:1.7.21'
 
     // WARP10 DEPENDENCIES
-    compile project(':crypto')
-    compile 'io.warp10:sensision:1.0.22'
+    api project(':crypto')
+    api 'io.warp10:sensision:1.0.22'
 
     api 'org.apache.thrift:libthrift:0.11.0'
 }
