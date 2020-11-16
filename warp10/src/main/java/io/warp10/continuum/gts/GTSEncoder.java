@@ -401,7 +401,11 @@ public class GTSEncoder implements Cloneable {
     } else if (value instanceof Double || value instanceof Float) {
       tsTypeFlag |= FLAGS_TYPE_DOUBLE;
       // Only compare to the previous double value if the last floating point value was NOT encoded as a BigDecimal
-      if (validLastDoubleValue && null == lastBDValue && lastDoubleValue == ((Number) value).doubleValue()) {
+      if (validLastDoubleValue
+          && null == lastBDValue
+          && (lastDoubleValue == ((Number) value).doubleValue()
+              // We need to check for NaNs in a specific way
+              || (Double.isNaN(lastDoubleValue) && Double.isNaN(((Number) value).doubleValue())))) {
         tsTypeFlag |= FLAGS_VALUE_IDENTICAL;
       } else {
         tsTypeFlag |= FLAGS_DOUBLE_IEEE754;
