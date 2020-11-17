@@ -1043,7 +1043,7 @@ public class Ingress extends AbstractHandler implements Runnable {
           } catch (ParseException pe) {
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_PARSEERRORS, sensisionLabels, 1);
             httpStatusCode = HttpServletResponse.SC_BAD_REQUEST;
-            throw new IOException("Parse error at '" + line + "'", pe);
+            throw new IOException("Parse error at index " + pe.getErrorOffset() + " in '" + line + "'", pe);
           }
                   
           if (encoder != lastencoder || dms.get() + 16 + lastencoder.size() > DATA_MESSAGES_THRESHOLD) {
