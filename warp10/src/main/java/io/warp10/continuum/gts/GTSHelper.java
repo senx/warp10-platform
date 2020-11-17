@@ -2463,25 +2463,29 @@ public class GTSHelper {
     }
     
     //idx = str.indexOf("/");
-    idx = UnsafeString.indexOf(str, '/');
+    idx = UnsafeString.indexOf(str, '/', tsoffset);
 
     if (-1 == idx){
-      throw new ParseException("Missing timestamp separator.", idx);
+      throw new ParseException("Missing timestamp separator.", tsoffset);
     }
     
     long timestamp;
-    
-    if (tsoffset == idx) {
-      // No timestamp provided, use 'now'
-      timestamp = null != now ? (long) now : TimeSource.getTime();
-    } else {
-      if ('T' == str.charAt(tsoffset)) {
-        // Support T-XXX to record timestamps which are relative to 'now', useful for
-        // devices with no time reference but only relative timestamps
-        timestamp = (null != now ? (long) now : TimeSource.getTime()) + Long.parseLong(str.substring(1 + tsoffset, idx));
+
+    try {
+      if (tsoffset == idx) {
+        // No timestamp provided, use 'now'
+        timestamp = null != now ? (long) now : TimeSource.getTime();
       } else {
-        timestamp = Long.parseLong(str.substring(tsoffset,  idx));
+        if ('T' == str.charAt(tsoffset)) {
+          // Support T-XXX to record timestamps which are relative to 'now', useful for
+          // devices with no time reference but only relative timestamps
+          timestamp = (null != now ? (long) now : TimeSource.getTime()) + Long.parseLong(str.substring(1 + tsoffset, idx));
+        } else {
+          timestamp = Long.parseLong(str.substring(tsoffset, idx));
+        }
       }
+    } catch (NumberFormatException nfe) {
+      throw new ParseException("Invalid timestamp.", tsoffset);
     }
 
     boolean ignored = false;
@@ -2519,12 +2523,16 @@ public class GTSHelper {
       idx = idx2 + 1;
       //idx2 = latlon.indexOf(":");
       idx2 = UnsafeString.indexOf(latlon, ':');
-            
-      if (-1 != idx2) {
-        location = GeoXPLib.toGeoXPPoint(Double.parseDouble(latlon.substring(0, idx2)), Double.parseDouble(latlon.substring(idx2 + 1)));
-      } else {
-        // Parse the location value as a Long
-        location = Long.parseLong(latlon);        
+
+      try {
+        if (-1 != idx2) {
+          location = GeoXPLib.toGeoXPPoint(Double.parseDouble(latlon.substring(0, idx2)), Double.parseDouble(latlon.substring(idx2 + 1)));
+        } else {
+          // Parse the location value as a Long
+          location = Long.parseLong(latlon);
+        }
+      } catch (NumberFormatException nfe) {
+        throw new ParseException("Invalid location: '" + latlon +"'.", idx - latlon.length() - 1);
       }
     } else {
       // Advance past the second '/'    
@@ -2535,14 +2543,22 @@ public class GTSHelper {
     idx2 = UnsafeString.indexOf(str, ' ', idx);
     
     if (-1 == idx2){
-      throw new ParseException(str, idx);
+      if(0 == tsoffset) {
+        throw new ParseException("Missing GTS name, labels and value.", idx);
+      } else {
+        throw new ParseException("Missing value.", idx);
+      }
     }
 
     long elevation = GeoTimeSerie.NO_ELEVATION;
     
     if (idx != idx2) {
       // We have an elevation
-      elevation = Long.parseLong(str.substring(idx, idx2));
+      try {
+        elevation = Long.parseLong(str.substring(idx, idx2));
+      } catch (NumberFormatException nfe) {
+        throw new ParseException("Invalid elevation: '" + str.substring(idx, idx2) + "'.", idx);
+      }
     }
 
     // Advance past the ' '    
@@ -2574,7 +2590,7 @@ public class GTSHelper {
       // No class+labels, assume same class+labels as those in encoder, except
       // if encoder is null in which case we throw a parse exception
       if (null == encoder) {
-        throw new ParseException(str, idx);
+        throw new ParseException("Missing or invalid GTS name and labels.", idx);
       }
       name = encoder.getMetadata().getName();
       labels = encoder.getMetadata().getLabels();
@@ -2591,14 +2607,20 @@ public class GTSHelper {
       idx2 = UnsafeString.indexOf(str, '}', idx);
       
       if (-1 == idx2){
-        throw new ParseException(str, idx);
+        throw new ParseException("Missing end of labels '}'.", str.length() - 1);
       }
       
       //
       // Parse labels
       //
-      
-      labels = parseLabels(null != extraLabels ? extraLabels.size() : 0, str.substring(idx, idx2));           
+
+      try {
+        labels = parseLabels(null != extraLabels ? extraLabels.size() : 0, str.substring(idx, idx2));
+      } catch (ParseException pe) {
+        ParseException newpe = new ParseException("Invalid label definition.", pe.getErrorOffset() + idx);
+        newpe.initCause(pe);
+        throw newpe;
+      }
       
       //
       // FIXME(hbs): parse attributes????
@@ -2617,9 +2639,15 @@ public class GTSHelper {
         }
         if (null != parsedAttributes) {
           if (idx >= str.length()) {
-            throw new ParseException("Missing attributes.", idx2);
+            throw new ParseException("Missing end of attributes '}'.", str.length() - 1);
           }
-          attributes = parseLabels(str.substring(attrstart, idx));
+          try {
+            attributes = parseLabels(str.substring(attrstart, idx));
+          } catch (ParseException pe) {
+            ParseException newpe = new ParseException("Invalid attribute definition.", pe.getErrorOffset() + idx);
+            newpe.initCause(pe);
+            throw newpe;
+          }
           // Set the atomic boolean to true to indicate that attributes were parsed
           parsedAttributes.set(true);
         }
@@ -2631,7 +2659,7 @@ public class GTSHelper {
       }
       
       if (idx >= str.length()) {
-        throw new ParseException("Missing value.", idx2);
+        throw new ParseException("Missing value.", str.length() - 1);
       }
     }
 
@@ -2672,14 +2700,21 @@ public class GTSHelper {
     
     String valuestr = str.substring(idx);
     
-    Object value = parseValue(valuestr);
+    Object value;
+    try {
+      value = parseValue(valuestr);
+    } catch (ParseException pe) {
+      ParseException newpe = new ParseException("Cannot parse value.", pe.getErrorOffset() + idx);
+      newpe.initCause(pe);
+      throw newpe;
+    }
 
     if (null == value) {
-      throw new ParseException("Unable to parse value '" + valuestr + "'", 0);
+      throw new ParseException("Unable to parse value '" + valuestr + "'", idx);
     }
 
     if ((value instanceof String  && value.toString().length() > maxValueSize) || (value instanceof byte[] && ((byte[]) value).length > maxValueSize)) {
-      throw new ParseException("Value too large for GTS " + (null != encoder ? GTSHelper.buildSelector(encoder.getMetadata(), false) : ""), 0);
+      throw new ParseException("Value too large for GTS " + (null != encoder ? GTSHelper.buildSelector(encoder.getMetadata(), false) : ""), idx);
     }
     
     // Allocate a new Encoder if need be, with a base timestamp of 0L.
@@ -2716,7 +2751,7 @@ public class GTSHelper {
     // Check labels/attributes sizes, subtract 6 to account for '// {} '
     // Subtract value length
     if (str.length() - 6 - valuestr.length() > MetadataUtils.SIZE_THRESHOLD && !MetadataUtils.validateMetadata(encoder.getMetadata())) {
-      throw new ParseException("Invalid metadata", 0);
+      throw new ParseException("Invalid or too large metadata", 0);
     }
     
     return encoder;
