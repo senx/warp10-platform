@@ -24,15 +24,20 @@ import io.warp10.script.WarpScriptMacroRepository;
 
 import com.google.common.annotations.Beta;
 import com.google.common.io.Files;
+import com.google.common.io.LineProcessor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.StringReader;
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -40,6 +45,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
@@ -48,6 +54,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class WarpConfig {
+
+  private static final Logger LOG = LoggerFactory.getLogger(WarpConfig.class);
 
   /**
    * Name of property used in various submodules to locate the Warp 10 configuration file
@@ -138,37 +146,47 @@ public class WarpConfig {
     if (null == files || 0 == files.length) {
       setProperties((Reader) null);
     } else {
+      if (null != properties) {
+        throw new RuntimeException("Properties already set.");
+      }
+
       //
-      // Read all files, in the order they were provided, in a String which
-      // will be fed to a StringReader
-      //
+      // Read all files, in the order they were provided.
       // If a file starts with '@', treat it as a file containing lists of files
+      // and add its content to the list of files. This cannot be recursive to avoid infinite loops.
       //
 
       List<String> filenames = new ArrayList<String>(Arrays.asList(files));
 
-      StringBuilder sb = new StringBuilder();
+      ListIterator<String> iterator = filenames.listIterator();
 
-      while (!filenames.isEmpty()) {
-        String file = filenames.remove(0);
+      while (iterator.hasNext()) {
+        String file = iterator.next();
 
-        boolean atfile = '@' == file.charAt(0);
+        if('@' == file.charAt(0)) {
+          // Remove the @file from the filenames list.
+          iterator.remove();
 
-        // Read content of file
-        List<String> lines = Files.readLines(new File(atfile ? file.substring(1) : file), StandardCharsets.UTF_8);
-
-        // If 'file' starts with '@', add the lines as filenames
-        if (atfile) {
-          filenames.addAll(0, lines);
-        } else {
-          for (String line : lines) {
-            sb.append(line);
-            sb.append("\n");
+          try (BufferedReader br = new BufferedReader(new FileReader(file.substring(1)))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+              iterator.add(line);
+            }
           }
         }
       }
 
-      setProperties(new StringReader(sb.toString()));
+      properties = new Properties();
+      for (String filename: filenames) {
+        File file = new File(filename);
+        try (InputStream fileInputStreamStream = new FileInputStream(file)) {
+          readConfig(fileInputStreamStream, properties);
+        } catch (IOException ioe) {
+          throw new IOException("Found errors while reading " + filename + ".", ioe);
+        }
+      }
+
+      checkAndInit();
     }
   }
 
@@ -203,6 +221,10 @@ public class WarpConfig {
       properties = readConfig(new StringReader(""), null);
     }
 
+    checkAndInit();
+  }
+
+  public static void checkAndInit(){
     //
     // Force a call to Constants.TIME_UNITS_PER_MS to check timeunits value is correct
     //
@@ -256,7 +278,7 @@ public class WarpConfig {
 
     int lineno = 0;
 
-    int errorcount = 0;
+    List<Integer> linesInError = new ArrayList<Integer>();
 
     while (true) {
       String line = br.readLine();
@@ -276,27 +298,31 @@ public class WarpConfig {
       // Lines not containing an '=' will emit warnings
 
       if (!line.contains("=")) {
-        System.err.println("Line " + lineno + " is missing an '=' sign, skipping.");
+        LOG.warn("'" + line + "' on line " + lineno + " is missing an '=' sign, skipping.");
         continue;
       }
 
       String[] tokens = line.split("=");
 
       if (tokens.length > 2) {
-        System.err.println("Invalid syntax on line " + lineno + ", will force an abort.");
-        errorcount++;
+        linesInError.add(lineno);
         continue;
       }
 
       if (tokens.length < 2) {
-        System.err.println("Empty value for property '" + tokens[0] + "', ignoring.");
+        LOG.warn("Empty value for property '" + tokens[0] + "' on line " + lineno + ", ignoring.");
         continue;
       }
 
       // Remove URL encoding if a '%' sign is present in the token
-      for (int i = 0; i < tokens.length; i++) {
-        tokens[i] = WarpURLDecoder.decode(tokens[i], StandardCharsets.UTF_8);
-        tokens[i] = tokens[i].trim();
+      try {
+        for (int i = 0; i < tokens.length; i++) {
+          tokens[i] = WarpURLDecoder.decode(tokens[i], StandardCharsets.UTF_8);
+          tokens[i] = tokens[i].trim();
+        }
+      } catch (UnsupportedEncodingException uee) {
+        linesInError.add(lineno);
+        continue;
       }
 
       //
@@ -316,9 +342,8 @@ public class WarpConfig {
 
     br.close();
 
-    if (errorcount > 0) {
-      System.err.println("Aborting due to " + errorcount + " error" + (errorcount > 1 ? "s" : "") + ".");
-      System.exit(-1);
+    if (!linesInError.isEmpty()) {
+      throw new IOException("Malformed lines " + linesInError.toString() + ".");
     }
 
     //
@@ -338,7 +363,7 @@ public class WarpConfig {
           // Override property
           properties.setProperty(name, value);
         } catch (Exception e) {
-          System.err.println("Warning: failed to decode environment variable '" + entry.getKey() + "' = '" + entry.getValue() + "', using raw value.");
+          LOG.warn("Failed to decode environment variable '" + entry.getKey() + "' = '" + entry.getValue() + "', using raw value.");
           properties.setProperty(entry.getKey(), entry.getValue());
         }
       }      
@@ -363,7 +388,7 @@ public class WarpConfig {
           // Override property
           properties.setProperty(name, value);
         } catch (Exception e) {
-          System.err.println("Error decoding system property '" + entry.getKey().toString() + "' = '" + entry.getValue().toString() + "', using raw values.");
+          LOG.warn("Error decoding system property '" + entry.getKey().toString() + "' = '" + entry.getValue().toString() + "', using raw values.");
           properties.setProperty(entry.getKey().toString(), entry.getValue().toString());
         }
       }      
@@ -405,7 +430,7 @@ public class WarpConfig {
             if (properties.containsKey(var)) {
               value = value.replace("${" + var + "}", properties.getProperty(var));
             } else {
-              System.err.println("Property '" + var + "' referenced in property '" + name + "' is unset, unsetting '" + name + "'");
+              LOG.warn("Property '" + var + "' referenced in property '" + name + "' is unset, unsetting '" + name + "'");
               value = null;
             }
           } else {
@@ -419,14 +444,14 @@ public class WarpConfig {
           loopcount++;
 
           if (loopcount > 100) {
-            System.err.println("Hmmm, that's embarrassing, but I've been dereferencing variables " + loopcount + " times trying to set a value for '" + name + "' from value '" + origValue + "'.");
+            LOG.warn("Hmmm, that's embarrassing, but I've been dereferencing variables " + loopcount + " times trying to set a value for '" + name + "' from value '" + origValue + "'.");
             if (ignoreFailedExpands) {
-              System.err.println("Removing property '" + name + "'.");
+              LOG.warn("Removing property '" + name + "'.");
               // Clearing the value
               value = null;
               break;
             } else {
-              System.exit(-1);
+              throw new IOException("Failed to expand '" + name +"'.");
             }
           }
         }
@@ -489,11 +514,6 @@ public class WarpConfig {
   }
 
   public static void main(String... args) {
-    if (2 > args.length) {
-      System.err.println("2 arguments minimum required: properties files and the property key");
-      System.exit(-1);
-    }
-
     if (null != properties) {
       System.err.println("Properties already set");
       System.exit(-1);
@@ -522,13 +542,14 @@ public class WarpConfig {
     String[] files = lfiles.toArray(new String[lfiles.size()]);
 
     try {
-      WarpConfig.setProperties(files);
+      setProperties(files);
       
       for (int i = args.length - keycount; i < args.length; i++) {
-        System.out.println("@CONF@ " + args[i] + "=" + WarpConfig.getProperty(args[i]));        
+        System.out.println("@CONF@ " + args[i] + "=" + getProperty(args[i]));
       }
-    } catch (Exception e) {
-      e.printStackTrace();
+    } catch (Throwable t) {
+      System.err.println(ThrowableUtils.getErrorMessage(t));
+      System.exit(-1);
     }
   }
 }
