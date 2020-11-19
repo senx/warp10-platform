@@ -15,16 +15,13 @@
 //
 package io.warp10;
 
+import com.google.common.annotations.Beta;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.Tokens;
 import io.warp10.continuum.store.Constants;
 import io.warp10.script.WarpFleetMacroRepository;
 import io.warp10.script.WarpScriptJarRepository;
 import io.warp10.script.WarpScriptMacroRepository;
-
-import com.google.common.annotations.Beta;
-import com.google.common.io.Files;
-import com.google.common.io.LineProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,7 +34,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.StringReader;
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -130,26 +126,24 @@ public class WarpConfig {
     threadProperties.remove();
   }
   
-  public static void safeSetProperties(String file) throws IOException {
+  public static void safeSetProperties(String... file) throws IOException {
     if (null != properties) {
       return;
     }
 
-    if (null == file) {
-      safeSetProperties((Reader) null);
-    } else {
-      safeSetProperties(new FileReader(file));
-    }
+    safeSetProperties(file);
   }
 
-  public static void setProperties(String[] files) throws IOException {
-    if (null == files || 0 == files.length) {
-      setProperties((Reader) null);
-    } else {
-      if (null != properties) {
-        throw new RuntimeException("Properties already set.");
-      }
+  public static void setProperties(String... files) throws IOException {
+    if (null != properties) {
+      throw new RuntimeException("Properties already set.");
+    }
 
+    properties = new Properties();
+
+    if (null == files || 0 == files.length) {
+       readConfig(new StringReader(""), properties);
+    } else {
       //
       // Read all files, in the order they were provided.
       // If a file starts with '@', treat it as a file containing lists of files
@@ -176,7 +170,6 @@ public class WarpConfig {
         }
       }
 
-      properties = new Properties();
       for (String filename: filenames) {
         File file = new File(filename);
         try (InputStream fileInputStreamStream = new FileInputStream(file)) {
@@ -185,17 +178,11 @@ public class WarpConfig {
           throw new IOException("Found errors while reading " + filename + ".", ioe);
         }
       }
-
-      checkAndInit();
     }
-  }
 
-  public static void setProperties(String file) throws IOException {
-    if (null == file) {
-      setProperties((Reader) null);
-    } else {
-      setProperties(new FileReader(file));
-    }
+    envVarsAndSysPropsOverride();
+    expandVars();
+    checkAndInit();
   }
 
   public static void safeSetProperties(Reader reader) throws IOException {
@@ -221,10 +208,12 @@ public class WarpConfig {
       properties = readConfig(new StringReader(""), null);
     }
 
+    envVarsAndSysPropsOverride();
+    expandVars();
     checkAndInit();
   }
 
-  public static void checkAndInit(){
+  private static void checkAndInit(){
     //
     // Force a call to Constants.TIME_UNITS_PER_MS to check timeunits value is correct
     //
@@ -262,10 +251,6 @@ public class WarpConfig {
   }
 
   public static Properties readConfig(Reader reader, Properties properties) throws IOException {
-    return readConfig(reader, properties, true);
-  }
-
-  public static Properties readConfig(Reader reader, Properties properties, boolean expandVars) throws IOException {
     //
     // Read the properties in the config file
     //
@@ -320,7 +305,7 @@ public class WarpConfig {
           tokens[i] = WarpURLDecoder.decode(tokens[i], StandardCharsets.UTF_8);
           tokens[i] = tokens[i].trim();
         }
-      } catch (UnsupportedEncodingException uee) {
+      } catch (IllegalArgumentException iae) {
         linesInError.add(lineno);
         continue;
       }
@@ -346,8 +331,12 @@ public class WarpConfig {
       throw new IOException("Malformed lines " + linesInError.toString() + ".");
     }
 
+    return properties;
+  }
+
+  private static void envVarsAndSysPropsOverride() throws IOException {
     //
-    // Now override properties with environment variables
+    // Override properties with environment variables
     //
 
     if (null == properties.getOrDefault(WARP10_NOENV, System.getProperty(WARP10_NOENV))) {
@@ -366,11 +355,11 @@ public class WarpConfig {
           LOG.warn("Failed to decode environment variable '" + entry.getKey() + "' = '" + entry.getValue() + "', using raw value.");
           properties.setProperty(entry.getKey(), entry.getValue());
         }
-      }      
+      }
     }
 
     //
-    // Now override properties with system properties
+    // Override properties with system properties
     //
 
     if (null == properties.getOrDefault(WARP10_NOSYS, System.getProperty(WARP10_NOSYS))) {
@@ -391,88 +380,86 @@ public class WarpConfig {
           LOG.warn("Error decoding system property '" + entry.getKey().toString() + "' = '" + entry.getValue().toString() + "', using raw values.");
           properties.setProperty(entry.getKey().toString(), entry.getValue().toString());
         }
-      }      
+      }
     }
+  }
 
-    if (expandVars) {
+  private static void expandVars() throws IOException {
+    //
+    // Now expand ${xxx} constructs
+    //
+
+    Pattern VAR = Pattern.compile(".*\\$\\{([^}]+)\\}.*");
+
+    Set<String> emptyProperties = new HashSet<String>();
+
+    boolean ignoreFailedExpands = null != properties.getOrDefault(WARP10_IGNOREFAILEDEXPANDS, System.getProperty(WARP10_IGNOREFAILEDEXPANDS));
+
+    for (Entry<Object, Object> entry : properties.entrySet()) {
+      String name = entry.getKey().toString();
+      String value = entry.getValue().toString();
+
       //
-      // Now expand ${xxx} constructs
+      // Replace '' with the empty string
       //
 
-      Pattern VAR = Pattern.compile(".*\\$\\{([^}]+)\\}.*");
+      if ("''".equals(value)) {
+        value = "";
+      }
 
-      Set<String> emptyProperties = new HashSet<String>();
+      int loopcount = 0;
 
-      boolean ignoreFailedExpands = null != properties.getOrDefault(WARP10_IGNOREFAILEDEXPANDS, System.getProperty(WARP10_IGNOREFAILEDEXPANDS));
-      
-      for (Entry<Object, Object> entry : properties.entrySet()) {
-        String name = entry.getKey().toString();
-        String value = entry.getValue().toString();
+      String origValue = value;
 
-        //
-        // Replace '' with the empty string
-        //
+      while (true) {
+        Matcher m = VAR.matcher(value);
 
-        if ("''".equals(value)) {
-          value = "";
-        }
+        if (m.matches()) {
+          String var = m.group(1);
 
-        int loopcount = 0;
-
-        String origValue = value;
-        
-        while (true) {
-          Matcher m = VAR.matcher(value);
-
-          if (m.matches()) {
-            String var = m.group(1);
-
-            if (properties.containsKey(var)) {
-              value = value.replace("${" + var + "}", properties.getProperty(var));
-            } else {
-              LOG.warn("Property '" + var + "' referenced in property '" + name + "' is unset, unsetting '" + name + "'");
-              value = null;
-            }
+          if (properties.containsKey(var)) {
+            value = value.replace("${" + var + "}", properties.getProperty(var));
           } else {
-            break;
+            LOG.warn("Property '" + var + "' referenced in property '" + name + "' is unset, unsetting '" + name + "'");
+            value = null;
           }
-
-          if (null == value) {
-            break;
-          }
-
-          loopcount++;
-
-          if (loopcount > 100) {
-            LOG.warn("Hmmm, that's embarrassing, but I've been dereferencing variables " + loopcount + " times trying to set a value for '" + name + "' from value '" + origValue + "'.");
-            if (ignoreFailedExpands) {
-              LOG.warn("Removing property '" + name + "'.");
-              // Clearing the value
-              value = null;
-              break;
-            } else {
-              throw new IOException("Failed to expand '" + name +"'.");
-            }
-          }
+        } else {
+          break;
         }
 
         if (null == value) {
-          emptyProperties.add(name);
-        } else {
-          properties.setProperty(name, value);
+          break;
+        }
+
+        loopcount++;
+
+        if (loopcount > 100) {
+          LOG.warn("Hmmm, that's embarrassing, but I've been dereferencing variables " + loopcount + " times trying to set a value for '" + name + "' from value '" + origValue + "'.");
+          if (ignoreFailedExpands) {
+            LOG.warn("Removing property '" + name + "'.");
+            // Clearing the value
+            value = null;
+            break;
+          } else {
+            throw new IOException("Failed to expand '" + name +"'.");
+          }
         }
       }
 
-      //
-      // Remove empty properties
-      //
-
-      for (String property : emptyProperties) {
-        properties.remove(property);
+      if (null == value) {
+        emptyProperties.add(name);
+      } else {
+        properties.setProperty(name, value);
       }
     }
 
-    return properties;
+    //
+    // Remove empty properties
+    //
+
+    for (String property : emptyProperties) {
+      properties.remove(property);
+    }
   }
 
   public static Properties getProperties() {
