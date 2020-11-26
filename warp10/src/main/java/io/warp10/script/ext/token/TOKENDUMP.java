@@ -85,6 +85,8 @@ public class TOKENDUMP extends NamedWarpScriptFunction implements WarpScriptStac
 
     Object top = null;
 
+    boolean customKeys = false;
+
     if (this.multikey) {
       top = stack.pop();
 
@@ -102,6 +104,7 @@ public class TOKENDUMP extends NamedWarpScriptFunction implements WarpScriptStac
 
       AESKey = (byte[]) top;
 
+      customKeys = true;
       top = stack.pop();
     } else {
       //
@@ -131,22 +134,34 @@ public class TOKENDUMP extends NamedWarpScriptFunction implements WarpScriptStac
     ReadToken rtoken = null;
     WriteToken wtoken = null;
 
-    byte[] token = OrderPreservingBase64.decode(tokenstr.getBytes(StandardCharsets.UTF_8));
-
-    QuasarTokenDecoder dec = decoder;
-
-    if (null == dec) {
-      long[] lkey = SipHashInline.getKey(SipHashKey);
-      dec = new QuasarTokenDecoder(lkey[0], lkey[1], AESKey);
-    }
-
-    try {
-      rtoken = dec.decodeReadToken(token);
-    } catch (QuasarTokenException qte) {
+    if (!customKeys) {
       try {
-        wtoken = dec.decodeWriteToken(token);
-      } catch (Exception e) {
-        throw new WarpScriptException(getName() + " invalid token.", e);
+        rtoken = Tokens.extractReadToken(tokenstr);
+      } catch (WarpScriptException wse) {
+        try {
+          wtoken = Tokens.extractWriteToken(tokenstr);
+        } catch (Exception e) {
+          throw new WarpScriptException(getName() + " invalid token.", e);
+        }
+      }
+    } else {
+      byte[] token = OrderPreservingBase64.decode(tokenstr.getBytes(StandardCharsets.UTF_8));
+
+      QuasarTokenDecoder dec = decoder;
+
+      if (null == dec) {
+        long[] lkey = SipHashInline.getKey(SipHashKey);
+        dec = new QuasarTokenDecoder(lkey[0], lkey[1], AESKey);
+      }
+
+      try {
+        rtoken = dec.decodeReadToken(token);
+      } catch (QuasarTokenException qte) {
+        try {
+          wtoken = dec.decodeWriteToken(token);
+        } catch (Exception e) {
+          throw new WarpScriptException(getName() + " invalid token.", e);
+        }
       }
     }
 
