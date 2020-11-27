@@ -52,7 +52,7 @@ public class Capabilities {
 
     Map<String,String> caps = new LinkedHashMap<String,String>();
     if (null != capabilities) {
-      if (null == names || names.isEmpty()) {
+      if (null == names) {
         caps.putAll(capabilities.capabilities);
       } else {
         for (Object elt: names) {

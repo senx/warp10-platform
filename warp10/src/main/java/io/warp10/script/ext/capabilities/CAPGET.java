@@ -39,7 +39,7 @@ public class CAPGET extends NamedWarpScriptFunction implements WarpScriptStackFu
 
     if (top instanceof String) {
       stack.push(Capabilities.get(stack, (String) top));
-    } else if (top instanceof List) {
+    } else if (top instanceof List || null == top) {
       stack.push(Capabilities.get(stack, (List) top));
     } else {
       throw new WarpScriptException(getName() + " expects a capability name (STRING) or a LIST thereof.");

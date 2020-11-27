@@ -22,19 +22,19 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
 public class CAPCHECK extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   public CAPCHECK(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
 
     Object top = stack.pop();
 
-    if (top instanceof String) {      
+    if (top instanceof String) {
       Capabilities capabilities = null;
-      
+
       if (stack.getAttribute(CapabilitiesWarpScriptExtension.CAPABILITIES_ATTR) instanceof Capabilities) {
         capabilities = (Capabilities) stack.getAttribute(CapabilitiesWarpScriptExtension.CAPABILITIES_ATTR);
         stack.push(capabilities.capabilities.containsKey((String) top));
@@ -42,9 +42,9 @@ public class CAPCHECK extends NamedWarpScriptFunction implements WarpScriptStack
         stack.push(false);
       }
     } else {
-      stack.push(false);
+      throw new WarpScriptException(getName() + " expects a STRING capability name.");
     }
-    
+
     return stack;
-  }  
+  }
 }
