@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -85,8 +85,6 @@ public class TOKENDUMP extends NamedWarpScriptFunction implements WarpScriptStac
 
     Object top = null;
 
-    boolean customKeys = false;
-
     if (this.multikey) {
       top = stack.pop();
 
@@ -104,7 +102,6 @@ public class TOKENDUMP extends NamedWarpScriptFunction implements WarpScriptStac
 
       AESKey = (byte[]) top;
 
-      customKeys = true;
       top = stack.pop();
     } else {
       //
@@ -134,7 +131,7 @@ public class TOKENDUMP extends NamedWarpScriptFunction implements WarpScriptStac
     ReadToken rtoken = null;
     WriteToken wtoken = null;
 
-    if (!customKeys) {
+    if (!this.multikey) {
       try {
         rtoken = Tokens.extractReadToken(tokenstr);
       } catch (WarpScriptException wse) {
@@ -147,12 +144,8 @@ public class TOKENDUMP extends NamedWarpScriptFunction implements WarpScriptStac
     } else {
       byte[] token = OrderPreservingBase64.decode(tokenstr.getBytes(StandardCharsets.UTF_8));
 
-      QuasarTokenDecoder dec = decoder;
-
-      if (null == dec) {
-        long[] lkey = SipHashInline.getKey(SipHashKey);
-        dec = new QuasarTokenDecoder(lkey[0], lkey[1], AESKey);
-      }
+      long[] lkey = SipHashInline.getKey(SipHashKey);
+      QuasarTokenDecoder dec = new QuasarTokenDecoder(lkey[0], lkey[1], AESKey);
 
       try {
         rtoken = dec.decodeReadToken(token);
