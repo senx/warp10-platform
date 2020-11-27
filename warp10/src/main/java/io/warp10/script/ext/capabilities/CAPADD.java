@@ -16,46 +16,56 @@
 
 package io.warp10.script.ext.capabilities;
 
+import java.util.Map;
 import java.util.Map.Entry;
 
 import io.warp10.continuum.Tokens;
 import io.warp10.quasar.token.thrift.data.ReadToken;
+import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
 public class CAPADD extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   public CAPADD(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    
+
     Object top = stack.pop();
-    
+
     if (!(top instanceof String)) {
       throw new WarpScriptException(getName() + " expects a TOKEN.");
     }
-    
-    String token = (String) top;
-    
-    ReadToken rtoken = Tokens.extractReadToken(token);
 
-    if (null == rtoken) {
-      throw new WarpScriptException(getName() + " invalid READ TOKEN.");
+    String token = (String) top;
+
+    Map<String,String> attributes = null;
+
+    try {
+      ReadToken rtoken = Tokens.extractReadToken(token);
+      attributes = rtoken.getAttributes();
+    } catch (Exception e) {
+      try {
+        WriteToken wtoken = Tokens.extractWriteToken(token);
+        attributes = wtoken.getAttributes();
+      } catch (Exception ee) {
+        throw new WarpScriptException(getName() + " invalid token.");
+      }
     }
-    
-    if (rtoken.getAttributesSize() > 0) {
+
+    if (null != attributes && !attributes.isEmpty()) {
       Capabilities capabilities = null;
-      
+
       if (stack.getAttribute(CapabilitiesWarpScriptExtension.CAPABILITIES_ATTR) instanceof Capabilities) {
         capabilities = (Capabilities) stack.getAttribute(CapabilitiesWarpScriptExtension.CAPABILITIES_ATTR);
       }
-      
-      for (Entry<String,String> entry: rtoken.getAttributes().entrySet()) {
+
+      for (Entry<String,String> entry: attributes.entrySet()) {
         if (entry.getKey().startsWith(CapabilitiesWarpScriptExtension.CAPABILITIES_PREFIX)) {
           if (null == capabilities) {
             capabilities = new Capabilities();
@@ -65,7 +75,7 @@ public class CAPADD extends NamedWarpScriptFunction implements WarpScriptStackFu
         }
       }
     }
-    
+
     return stack;
-  }  
+  }
 }
