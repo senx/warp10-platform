@@ -60,7 +60,7 @@ Our goal is to build a large community of users to move our platform into territ
 
 Open source software is built by people like you, who spend their free time creating things the rest of the community can use.
 
-You want to contribute to Warp 10? We encourage you to read the contributing page on warp10.io (lien vers la page associée).
+You want to contribute to Warp 10? We encourage you to read the [contributing page](https://www.warp10.io/content/06_Community/02_Contributing) before.
 
 
 ## Commercial Support
