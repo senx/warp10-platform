@@ -19,7 +19,7 @@ The Warp 10 Platform provides a rich set of features to simplify your work aroun
 * Warp 10 Storage Engine, our collection and storage layer, a Geo Time Series Database
 * [WarpLib](https://www.warp10.io/doc/reference), a library dedicated to sensor data analysis with more than 1000 functions and extension capabilities
 * [WarpScript](https://www.warp10.io/content/03_Documentation/04_WarpScript), a language specifically designed for analytics of time series data. It is one of the pillars of the analytics layer of the Warp 10 Platform
-* [FLoWS](https://www.warp10.io/content/03_Documentation/04_FLoWS), an alternative to WarpScript for users discovering the Warp 10 platform. It is meant to be easy to learn, look familiar to other programming languages and enable time series analysis by leveraging the whole of WarpLib.
+* [FLoWS](https://www.warp10.io/content/03_Documentation/04_FLoWS), an alternative to WarpScript for users discovering the Warp 10 Platform. It is meant to be easy to learn, look familiar to users of other programming languages and enable time series analysis by leveraging the whole of WarpLib.
 * Plasma and Mobius, streaming engines allowing to cascade the Warp 10 Platform with Complex Event Processing solutions and to build dynamic dashboards
 * Runner, a system for scheduling WarpScript program executions on the server side
 * [Sensision](https://github.com/senx/sensision), a framework for exposing metrics and pushing them into Warp 10
