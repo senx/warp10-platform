@@ -45,7 +45,6 @@ import java.util.Map;
 public class TOKENDUMP extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
   private final QuasarTokenEncoder encoder = new QuasarTokenEncoder();
-  private final QuasarTokenDecoder decoder;
 
   public static final String KEY_PARAMS = "params";
 
@@ -56,21 +55,17 @@ public class TOKENDUMP extends NamedWarpScriptFunction implements WarpScriptStac
 
   public TOKENDUMP(String name) {
     super(name);
-    decoder = null;
   }
 
   public TOKENDUMP(String name, KeyStore keystore) {
     super(name);
     tokenAESKey = keystore.getKey(KeyStore.AES_TOKEN);
     tokenSipHashKey = keystore.getKey(KeyStore.SIPHASH_TOKEN);
-    long[] lkey = SipHashInline.getKey(tokenSipHashKey);
-    decoder = new QuasarTokenDecoder(lkey[0], lkey[1], tokenAESKey);
   }
 
   public TOKENDUMP(String name, boolean multikey) {
     super(name);
     this.multikey = multikey;
-    decoder = null;
   }
 
   @Override
