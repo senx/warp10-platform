@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -45,7 +45,6 @@ import java.util.Map;
 public class TOKENDUMP extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
   private final QuasarTokenEncoder encoder = new QuasarTokenEncoder();
-  private final QuasarTokenDecoder decoder;
 
   public static final String KEY_PARAMS = "params";
 
@@ -56,21 +55,17 @@ public class TOKENDUMP extends NamedWarpScriptFunction implements WarpScriptStac
 
   public TOKENDUMP(String name) {
     super(name);
-    decoder = null;
   }
 
   public TOKENDUMP(String name, KeyStore keystore) {
     super(name);
     tokenAESKey = keystore.getKey(KeyStore.AES_TOKEN);
     tokenSipHashKey = keystore.getKey(KeyStore.SIPHASH_TOKEN);
-    long[] lkey = SipHashInline.getKey(tokenSipHashKey);
-    decoder = new QuasarTokenDecoder(lkey[0], lkey[1], tokenAESKey);
   }
 
   public TOKENDUMP(String name, boolean multikey) {
     super(name);
     this.multikey = multikey;
-    decoder = null;
   }
 
   @Override
@@ -131,22 +126,30 @@ public class TOKENDUMP extends NamedWarpScriptFunction implements WarpScriptStac
     ReadToken rtoken = null;
     WriteToken wtoken = null;
 
-    byte[] token = OrderPreservingBase64.decode(tokenstr.getBytes(StandardCharsets.UTF_8));
-
-    QuasarTokenDecoder dec = decoder;
-
-    if (null == dec) {
-      long[] lkey = SipHashInline.getKey(SipHashKey);
-      dec = new QuasarTokenDecoder(lkey[0], lkey[1], AESKey);
-    }
-
-    try {
-      rtoken = dec.decodeReadToken(token);
-    } catch (QuasarTokenException qte) {
+    if (!this.multikey) {
       try {
-        wtoken = dec.decodeWriteToken(token);
-      } catch (Exception e) {
-        throw new WarpScriptException(getName() + " invalid token.", e);
+        rtoken = Tokens.extractReadToken(tokenstr);
+      } catch (WarpScriptException wse) {
+        try {
+          wtoken = Tokens.extractWriteToken(tokenstr);
+        } catch (Exception e) {
+          throw new WarpScriptException(getName() + " invalid token.", e);
+        }
+      }
+    } else {
+      byte[] token = OrderPreservingBase64.decode(tokenstr.getBytes(StandardCharsets.UTF_8));
+
+      long[] lkey = SipHashInline.getKey(SipHashKey);
+      QuasarTokenDecoder dec = new QuasarTokenDecoder(lkey[0], lkey[1], AESKey);
+
+      try {
+        rtoken = dec.decodeReadToken(token);
+      } catch (QuasarTokenException qte) {
+        try {
+          wtoken = dec.decodeWriteToken(token);
+        } catch (Exception e) {
+          throw new WarpScriptException(getName() + " invalid token.", e);
+        }
       }
     }
 
