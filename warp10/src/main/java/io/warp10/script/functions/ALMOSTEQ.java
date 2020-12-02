@@ -48,8 +48,8 @@ public class ALMOSTEQ extends NamedWarpScriptFunction implements WarpScriptStack
     }
 
     double lambda = Math.abs(((Number) lambdaParam).doubleValue());
-    double op1 = Math.abs(((Number) op1Param).doubleValue());
-    double op2 = Math.abs(((Number) op2Param).doubleValue());
+    double op1 = ((Number) op1Param).doubleValue();
+    double op2 = ((Number) op2Param).doubleValue();
 
     if (Double.isNaN(op1) || Double.isNaN(op2)) {
       stack.push(Double.isNaN(op1) && Double.isNaN(op2));
