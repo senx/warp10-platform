@@ -125,16 +125,24 @@ public class WarpConfig {
   public static void clearThreadProperties() {
     threadProperties.remove();
   }
+
+  public static void safeSetProperties(String... files) throws IOException {
+    safeSetProperties(true, files);
+  }
   
-  public static void safeSetProperties(String... file) throws IOException {
+  public static void safeSetProperties(boolean exitOnError, String... files) throws IOException {
     if (null != properties) {
       return;
     }
 
-    safeSetProperties(file);
+    setProperties(exitOnError, files);
   }
 
   public static void setProperties(String... files) throws IOException {
+    setProperties(true, files);
+  }
+
+  public static void setProperties(boolean exitOnError, String... files) throws IOException {
     if (null != properties) {
       throw new RuntimeException("Properties already set.");
     }
@@ -173,7 +181,7 @@ public class WarpConfig {
       for (String filename: filenames) {
         File file = new File(filename);
         try (InputStream fileInputStreamStream = new FileInputStream(file)) {
-          readConfig(fileInputStreamStream, properties);
+          readConfig(exitOnError, fileInputStreamStream, properties);
         } catch (IOException ioe) {
           throw new IOException("Found errors while reading " + filename + ".", ioe);
         }
@@ -181,16 +189,20 @@ public class WarpConfig {
     }
 
     envVarsAndSysPropsOverride();
-    expandVars();
+    expandVars(exitOnError);
     checkAndInit();
   }
 
   public static void safeSetProperties(Reader reader) throws IOException {
+    safeSetProperties(true, reader);
+  }
+
+  public static void safeSetProperties(boolean exitOnError, Reader reader) throws IOException {
     if (null != properties) {
       return;
     }
 
-    setProperties(reader);
+    setProperties(exitOnError, reader);
   }
 
   public static boolean isPropertiesSet() {
@@ -198,18 +210,22 @@ public class WarpConfig {
   }
 
   public static void setProperties(Reader reader) throws IOException {
+    setProperties(true, reader);
+  }
+
+  public static void setProperties(boolean exitOnError, Reader reader) throws IOException {
     if (null != properties) {
       throw new RuntimeException("Properties already set.");
     }
 
     if (null != reader) {
-      properties = readConfig(reader, null);
+      properties = readConfig(exitOnError, reader, null);
     } else {
-      properties = readConfig(new StringReader(""), null);
+      properties = readConfig(exitOnError, new StringReader(""), null);
     }
 
     envVarsAndSysPropsOverride();
-    expandVars();
+    expandVars(exitOnError);
     checkAndInit();
   }
 
@@ -246,11 +262,15 @@ public class WarpConfig {
     WarpFleetMacroRepository.init(properties);
   }
 
-  private static Properties readConfig(InputStream file, Properties properties) throws IOException {
-    return readConfig(new InputStreamReader(file), properties);
+  private static Properties readConfig(boolean exitOnError, InputStream file, Properties properties) throws IOException {
+    return readConfig(exitOnError, new InputStreamReader(file), properties);
   }
 
   public static Properties readConfig(Reader reader, Properties properties) throws IOException {
+    return readConfig(true, reader, properties);
+  }
+
+  public static Properties readConfig(boolean exitOnError, Reader reader, Properties properties) throws IOException {
     //
     // Read the properties in the config file
     //
@@ -328,7 +348,12 @@ public class WarpConfig {
     br.close();
 
     if (!linesInError.isEmpty()) {
-      throw new IOException("Malformed lines " + linesInError.toString() + ".");
+      if (exitOnError) {
+        LOG.error("Malformed lines " + linesInError.toString() + " in configuration.");
+        System.exit(-1);
+      } else {
+        throw new IOException("Malformed lines " + linesInError.toString() + ".");
+      }
     }
 
     return properties;
@@ -384,7 +409,7 @@ public class WarpConfig {
     }
   }
 
-  private static void expandVars() throws IOException {
+  private static void expandVars(boolean exitOnError) throws IOException {
     //
     // Now expand ${xxx} constructs
     //
@@ -441,7 +466,12 @@ public class WarpConfig {
             value = null;
             break;
           } else {
-            throw new IOException("Failed to expand '" + name +"'.");
+            if (exitOnError) {
+              LOG.error("Failed to expand '" + name + "' in configuration.");
+              System.exit(-1);
+            } else {
+              throw new IOException("Failed to expand '" + name + "'.");
+            }
           }
         }
       }
@@ -529,7 +559,7 @@ public class WarpConfig {
     String[] files = lfiles.toArray(new String[lfiles.size()]);
 
     try {
-      setProperties(files);
+      setProperties(false, files);
       
       for (int i = args.length - keycount; i < args.length; i++) {
         System.out.println("@CONF@ " + args[i] + "=" + getProperty(args[i]));
