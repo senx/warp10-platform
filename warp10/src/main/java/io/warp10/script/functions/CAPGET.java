@@ -14,35 +14,36 @@
 //   limitations under the License.
 //
 
-package io.warp10.script.ext.capabilities;
+package io.warp10.script.functions;
+
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.warp.sdk.Capabilities;
 
-public class CAPCHECK extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class CAPGET extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  public CAPCHECK(String name) {
+  public CAPGET(String name) {
     super(name);
   }
 
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-
     Object top = stack.pop();
 
     if (top instanceof String) {
-      Capabilities capabilities = null;
-
-      if (stack.getAttribute(CapabilitiesWarpScriptExtension.CAPABILITIES_ATTR) instanceof Capabilities) {
-        capabilities = (Capabilities) stack.getAttribute(CapabilitiesWarpScriptExtension.CAPABILITIES_ATTR);
-        stack.push(capabilities.capabilities.containsKey((String) top));
-      } else {
-        stack.push(false);
-      }
+      stack.push(Capabilities.get(stack, (String) top));
+    } else if (top instanceof List || null == top) {
+      stack.push(Capabilities.get(stack, (List) top));
     } else {
-      throw new WarpScriptException(getName() + " expects a STRING capability name.");
+      throw new WarpScriptException(getName() + " expects a capability name (STRING) or a LIST thereof.");
     }
 
     return stack;

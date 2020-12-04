@@ -14,18 +14,17 @@
 //   limitations under the License.
 //
 
-package io.warp10.script.ext.capabilities;
-
-import java.util.List;
+package io.warp10.script.functions;
 
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.warp.sdk.Capabilities;
 
-public class CAPDEL extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class CAPCHECK extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  public CAPDEL(String name) {
+  public CAPCHECK(String name) {
     super(name);
   }
 
@@ -34,30 +33,17 @@ public class CAPDEL extends NamedWarpScriptFunction implements WarpScriptStackFu
 
     Object top = stack.pop();
 
-    Capabilities capabilities = null;
-
-    if (stack.getAttribute(CapabilitiesWarpScriptExtension.CAPABILITIES_ATTR) instanceof Capabilities) {
-      capabilities = (Capabilities) stack.getAttribute(CapabilitiesWarpScriptExtension.CAPABILITIES_ATTR);
-    }
-
     if (top instanceof String) {
-      if (null != capabilities) {
-        capabilities.capabilities.remove((String) top);
-      }
-    } else if (top instanceof List) {
-      if (null != capabilities) {
-        for (Object elt: (List) top) {
-          if (elt instanceof String) {
-            capabilities.capabilities.remove((String) elt);
-          }
-        }
-      }
-    } else if (null == top) {
-      if (null != capabilities) {
-        capabilities.capabilities.clear();
+      Capabilities capabilities = null;
+
+      if (stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR) instanceof Capabilities) {
+        capabilities = (Capabilities) stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR);
+        stack.push(capabilities.capabilities.containsKey((String) top));
+      } else {
+        stack.push(false);
       }
     } else {
-      throw new WarpScriptException(getName() + " expects a capability name (STRING), a LIST thereof or NULL.");
+      throw new WarpScriptException(getName() + " expects a STRING capability name.");
     }
 
     return stack;
