@@ -79,6 +79,6 @@ public class Capabilities {
   }
 
   public Object putIfAbsent(String key, String value) {
-    return this.putIfAbsent(key, value);
+    return this.capabilities.putIfAbsent(key, value);
   }
 }
