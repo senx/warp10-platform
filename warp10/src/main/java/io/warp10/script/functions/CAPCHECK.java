@@ -38,7 +38,7 @@ public class CAPCHECK extends NamedWarpScriptFunction implements WarpScriptStack
 
       if (stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR) instanceof Capabilities) {
         capabilities = (Capabilities) stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR);
-        stack.push(capabilities.capabilities.containsKey((String) top));
+        stack.push(capabilities.containsKey((String) top));
       } else {
         stack.push(false);
       }

@@ -65,4 +65,20 @@ public class Capabilities {
 
     return caps;
   }
+
+  public void clear() {
+    this.capabilities.clear();
+  }
+
+  public boolean containsKey(String key) {
+    return this.capabilities.containsKey(key);
+  }
+
+  public Object remove(String key) {
+    return this.capabilities.remove(key);
+  }
+
+  public Object putIfAbsent(String key, String value) {
+    return this.putIfAbsent(key, value);
+  }
 }

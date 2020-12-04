@@ -43,19 +43,19 @@ public class CAPDEL extends NamedWarpScriptFunction implements WarpScriptStackFu
 
     if (top instanceof String) {
       if (null != capabilities) {
-        capabilities.capabilities.remove((String) top);
+        capabilities.remove((String) top);
       }
     } else if (top instanceof List) {
       if (null != capabilities) {
         for (Object elt: (List) top) {
           if (elt instanceof String) {
-            capabilities.capabilities.remove((String) elt);
+            capabilities.remove((String) elt);
           }
         }
       }
     } else if (null == top) {
       if (null != capabilities) {
-        capabilities.capabilities.clear();
+        capabilities.clear();
       }
     } else {
       throw new WarpScriptException(getName() + " expects a capability name (STRING), a LIST thereof or NULL.");

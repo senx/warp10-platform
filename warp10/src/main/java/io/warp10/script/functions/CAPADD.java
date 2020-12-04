@@ -72,7 +72,7 @@ public class CAPADD extends NamedWarpScriptFunction implements WarpScriptStackFu
             capabilities = new Capabilities();
             stack.setAttribute(WarpScriptStack.CAPABILITIES_ATTR, capabilities);
           }
-          capabilities.capabilities.putIfAbsent(entry.getKey().substring(WarpScriptStack.CAPABILITIES_PREFIX.length()), entry.getValue());
+          capabilities.putIfAbsent(entry.getKey().substring(WarpScriptStack.CAPABILITIES_PREFIX.length()), entry.getValue());
         }
       }
     }
