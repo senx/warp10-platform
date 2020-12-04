@@ -70,38 +70,38 @@ import io.warp10.script.functions.REVERSE;
 import io.warp10.script.functions.TOLONGBYTES;
 
 public class TCPDatalogFeederWorker extends Thread {
-  
+
   static final int MAX_BLOB_SIZE = 1024 * 1024;
-  
+
   private static final long MAX_INFLIGHT_SIZE = 1000000L;
   private static final int SOCKET_TIMEOUT = 300000;
-  
+
   private static final Logger LOG = LoggerFactory.getLogger(TCPDatalogFeederWorker.class);
-      
+
   private final FileBasedDatalogManager manager;
-  
+
   /**
    * SequenceFile sync marks are 0xFFFFFFFF (4 bytes) followed by 16 bytes
    */
   private static final long SEQFILE_SYNC_MARKER_LEN = 20;
-  
+
   private static final long MINSIZE = 168;
   private static final long STANDARD_WAIT = 5000000L;
   private final Socket socket;
   private final AtomicInteger clients;
   private final String checkmacro;
-  
+
   public TCPDatalogFeederWorker(FileBasedDatalogManager manager, Socket socket, AtomicInteger clients, String checkmacro) {
     this.manager = manager;
     this.socket = socket;
     this.clients = clients;
     this.checkmacro = checkmacro;
-    
+
     this.setName("[Datalog Feeder Worker]");
     this.setDaemon(true);
     this.start();
   }
-  
+
 
   @Override
   public void run() {
@@ -109,24 +109,24 @@ public class TCPDatalogFeederWorker extends Thread {
       this.socket.setSoTimeout(SOCKET_TIMEOUT);
 
       long mints = Long.MIN_VALUE;
-      
+
       String dir = WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_MANAGER_DIR);
-            
+
       //
       // Allocate stack
       //
-      
+
       WarpScriptStack stack = new MemoryWarpScriptStack(EgressExecHandler.getExposedStoreClient(), EgressExecHandler.getExposedDirectoryClient());
-      
+
       boolean encrypt = "true".equals(WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_FEEDER_ENCRYPT));
-      
+
       //
       // Extract ECC private/public key
       //
-      
+
       ECPrivateKey eccPrivate = null;
       ECPublicKey eccPublic = null;
-      
+
       if (encrypt) {
         String eccpri = WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_FEEDER_ECC_PRIVATE);
         String eccpub = WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_FEEDER_ECC_PUBLIC);
@@ -136,7 +136,7 @@ public class TCPDatalogFeederWorker extends Thread {
         Map<String,String> map = new HashMap<String,String>();
         map.put(Constants.KEY_CURVE, tokens[0]);
         map.put(Constants.KEY_D, tokens[1]);
-              
+
         try {
           stack.push(map);
           new ECPRIVATE(WarpScriptLib.ECPRIVATE).apply(stack);
@@ -150,7 +150,7 @@ public class TCPDatalogFeederWorker extends Thread {
         map.clear();
         map.put(Constants.KEY_CURVE, tokens[0]);
         map.put(Constants.KEY_Q, tokens[1]);
-        
+
         try {
           stack.push(map);
           new ECPUBLIC(WarpScriptLib.ECPUBLIC).apply(stack);
@@ -158,68 +158,68 @@ public class TCPDatalogFeederWorker extends Thread {
         } catch (WarpScriptException wse) {
           LOG.error("Error extracting ECC public key.", wse);
           return;
-        }        
+        }
       }
-      
+
       Configuration conf = new Configuration();
       conf.set("fs.defaultFS", "file:///");
       conf.set("fs.hdfs.impl", org.apache.hadoop.hdfs.DistributedFileSystem.class.getName());
       conf.set("fs.file.impl", org.apache.hadoop.fs.LocalFileSystem.class.getName());
       FileSystem fs;
-      
+
       try {
         fs = FileSystem.get(URI.create("/"), conf);
       } catch (IOException ioe) {
         throw new RuntimeException(ioe);
       }
-      
+
       long position = 0;
       String currentFile = null;
       // Get data from 10 minutes ago
       String previousFile = "000000000000000" + Long.toHexString(System.currentTimeMillis() - 600000L);
       previousFile = previousFile.substring(previousFile.length() - 16);
-      
+
       long count = 0;
-      
+
       SequenceFile.Reader reader = null;
-      
+
       boolean newfile = true;
 
       InputStream in = socket.getInputStream();
       OutputStream out = socket.getOutputStream();
-      
+
       //
       // Generate and emit WELCOME message
       //
-      
+
       long nonce = ThreadLocalRandom.current().nextLong();
       long timestamp = System.currentTimeMillis();
-      
+
       DatalogMessage msg = new DatalogMessage();
       msg.setType(DatalogMessageType.WELCOME);
       msg.setNonce(nonce);
       msg.setTimestamp(timestamp);
       msg.setEncrypt(encrypt);
-            
+
       byte[] bytes = DatalogHelper.serialize(msg);
       DatalogHelper.writeLong(out, bytes.length, 4);
       out.write(bytes);
       out.flush();
-      
+
       //
       // Read the response, it MUST be an INIT message
       //
-      
+
       bytes = DatalogHelper.readBlob(in, 0);
 
       msg.clear();
       DatalogHelper.deserialize(bytes, msg);
-      
+
       if (DatalogMessageType.INIT != msg.getType()) {
         LOG.error("Invalid " + DatalogMessageType.INIT.name() + " message.");
         return;
       }
-      
+
       //
       // Check signature and compute encryption key if encrypt is true
       // The check is performed by the DATALOG_CHECKMACRO macro
@@ -227,9 +227,9 @@ public class TCPDatalogFeederWorker extends Thread {
       // It returns the ECC public key associated with 'id' and throws an error (MSGFAIL / FAIL)
       // if the signature is invalid.
       //
-      
+
       byte[] aesKey = null;
-      
+
       try {
         stack.clear();
         stack.push(nonce);
@@ -238,11 +238,11 @@ public class TCPDatalogFeederWorker extends Thread {
         stack.push(msg.getSig());
         stack.run(checkmacro);
         ECPublicKey consumerPub = (ECPublicKey) stack.pop();
-        
+
         if (encrypt && null == consumerPub) {
           throw new WarpScriptException("Missing consumer public key for consumer '" + msg.getId() + "'.");
         }
-        
+
         if (encrypt) {
           //
           // Key is
@@ -250,14 +250,14 @@ public class TCPDatalogFeederWorker extends Thread {
           // + ->LONGBYTES(SIPHASH(timestamp,nonce,secret),8)
           // + ->LONGBYTES(SIPHASH(nonce,timestamp,CLONEREVERSE(secret)),8)
           // + ->LONGBYTES(SIPHASH(timestamp,nonce,CLONEREVERSE(secret)),8)
-          //          
+          //
 
           stack.clear();
           stack.push(eccPrivate);
           stack.push(consumerPub);
           new ECDH(WarpScriptLib.ECDH).apply(stack);
           byte[] secret = Hex.decode((String) stack.pop());
-          
+
           stack.clear();
           stack.push(secret);
           stack.push(nonce);
@@ -288,34 +288,34 @@ public class TCPDatalogFeederWorker extends Thread {
           new ADD(WarpScriptLib.ADD).apply(stack);
           new ADD(WarpScriptLib.ADD).apply(stack);
           new ADD(WarpScriptLib.ADD).apply(stack);
-          
-          aesKey = (byte[]) stack.pop();          
+
+          aesKey = (byte[]) stack.pop();
         }
       } catch (WarpScriptException wse) {
         LOG.error("Error validating peer " + DatalogMessageType.INIT.name() + " message.", wse);
         return;
       }
-      
+
       // Store the shards if they were defined
-      
+
       int[] modulus = new int[msg.getShardsSize()];
       int[] remainder = new int[modulus.length];
-            
+
       boolean hasShards = msg.getShardsSize() > 0;
       for (int i = 0; i< modulus.length; i++) {
         long shard = msg.getShards().get(i);
         modulus[i] = (int) ((shard >>> 32) & 0xFFFFFFFFL);
         remainder[i] = (int) (shard & 0xFFFFFFFFL);
       }
-      
+
       // Store the excluded ids
-      
+
       List<String> excluded = null;
-      
+
       if (msg.getExcludedSize() > 0) {
         excluded = new ArrayList<String>(msg.getExcluded());
       }
-      
+
       // This is the number of bits to shift the <classID><labelsID> combo to the right, defaults to 48.
       // The shard is determined by shifting <classID><labelsID> to the right and keeping the lower 32 bits
       // on which a modulus is applied. The remainder of this operation is the shardid.
@@ -324,22 +324,22 @@ public class TCPDatalogFeederWorker extends Thread {
       if (msg.isSetShardShift()) {
         shardShift = msg.getShardShift();
       }
-      
+
       //
       // Wait for SEEK or TSEEK message
       //
-      
+
       bytes = DatalogHelper.readBlob(in, 0);
-      
+
       if (encrypt) {
         bytes = CryptoHelper.unwrapBlob(aesKey, bytes);
       }
-      
+
       msg.clear();
       DatalogHelper.deserialize(bytes, msg);
-      
+
       boolean checkts = false;
-      
+
       //System.out.println("SEEK "+ msg);
 
       if (DatalogMessageType.SEEK.equals(msg.getType())) {        // Build file name from tåås/uuid
@@ -349,7 +349,7 @@ public class TCPDatalogFeederWorker extends Thread {
           position = 0L;
         } else {
           position = Long.parseLong(msg.getRef().replaceAll("[^:]*:",  "").replaceAll(":.*", ""));
-        }        
+        }
       } else if (DatalogMessageType.TSEEK.equals(msg.getType())) {
         String hexts = new String(Hex.encode(Longs.toByteArray(msg.getSeekts())), StandardCharsets.US_ASCII);
         //System.out.println("CHECKING " + hexts);
@@ -357,15 +357,15 @@ public class TCPDatalogFeederWorker extends Thread {
 
         if (null == currentFile || !currentFile.startsWith(hexts)) {
           currentFile = this.manager.getPreviousFile(hexts);
-          
+
           // If there is no file before 'hexts', use the one after
           if (null == currentFile) {
             currentFile = this.manager.getNextFile(hexts);
           }
-          
-          checkts = true;        
+
+          checkts = true;
         }
-        
+
         mints = msg.getSeekts();
       } else {
         LOG.error("Invalid message type " + msg.getType().name() + ", expected " + DatalogMessageType.SEEK.name() + " or " + DatalogMessageType.TSEEK.name());
@@ -377,32 +377,32 @@ public class TCPDatalogFeederWorker extends Thread {
       //
       // List of inflight records (file:pos:size)
       //
-      
+
       List<String> inflight = new ArrayList<String>();
       long size = 0;
       boolean limit = false;
-            
+
       while(true) {
-        try {          
+        try {
           if (null == currentFile) {
             currentFile = this.manager.getNextFile(previousFile);
             newfile = true;
             checkts = false;
             position = 0;
           }
-          
+
           // There is no file tracked by the manager
           if (null == currentFile) {
             LockSupport.parkNanos(STANDARD_WAIT);
             continue;
           }
-          
+
           //
           // If the current file no longer exists, advance to the next and continue
           //
-          
+
           Path path = new Path(dir, currentFile);
-          
+
           if (!fs.exists(path)) {
             previousFile = currentFile;
             currentFile = this.manager.getNextFile(currentFile);
@@ -411,13 +411,13 @@ public class TCPDatalogFeederWorker extends Thread {
             LockSupport.parkNanos(STANDARD_WAIT);
             continue;
           }
-          
+
           //
           // Retrieve the size of the current file
           //
-          
+
           long len = 0;
-          
+
           try {
             len = fs.getFileStatus(path).getLen();
           } catch (FileNotFoundException fnfe) {
@@ -429,11 +429,11 @@ public class TCPDatalogFeederWorker extends Thread {
             LockSupport.parkNanos(STANDARD_WAIT);
             continue;
           }
-          
+
           //
           // If the file length is less than the position then unless it is the last file, skip to the next
           //
-          
+
           if (len < position) {
             String next = this.manager.getNextFile(currentFile);
             if (null != next && !currentFile.equals(next)) {
@@ -449,11 +449,11 @@ public class TCPDatalogFeederWorker extends Thread {
             LockSupport.parkNanos(STANDARD_WAIT);
             continue;
           }
-          
+
           // If the file is less than MINSIZE, do not attempt to open it yet as it
           // might be the current Datalog file which did not record anything yet
           //
-          
+
           if (len < MINSIZE || len < position + SEQFILE_SYNC_MARKER_LEN) {
             // Check if this file is the last, if it is not the case then it might be
             // a file that was left there without records and should be skipped.
@@ -465,7 +465,7 @@ public class TCPDatalogFeederWorker extends Thread {
                 currentFile = next;
                 newfile = true;
                 checkts = false;
-                position = 0;              
+                position = 0;
               }
             }
             LockSupport.parkNanos(STANDARD_WAIT);
@@ -479,34 +479,34 @@ public class TCPDatalogFeederWorker extends Thread {
             //System.out.println("READ " + count + " FROM " + previousFile + " >>> " + currentFile);
             count = 0;
           }
-          
+
           //
           // Open the current file
           //
-          
+
           reader = new SequenceFile.Reader(conf,
               SequenceFile.Reader.file(path),
               SequenceFile.Reader.start(0));
 
           String fileref = path.getName().substring(0, 8 + 1 + 36);
-          
+
           //
           // If we have a position other than 0, seek there
           //
-          
+
           if (position > 0) {
             reader.seek(position);
           }
-          
+
           BytesWritable key = new BytesWritable();
           BytesWritable val = new BytesWritable();
 
           //
           // Attempt to read records
           //
-          
+
           limit = size >= MAX_INFLIGHT_SIZE;
-          
+
           while(!limit) {
             // Record the current position
             position = reader.getPosition();
@@ -515,7 +515,7 @@ public class TCPDatalogFeederWorker extends Thread {
               break;
             }
             position = reader.getPosition();
-            
+
             if (checkts) {
               byte[] k = key.getBytes();
               long timestamp2 = DatalogHelper.bytesToLong(k, 0, 8);
@@ -524,18 +524,22 @@ public class TCPDatalogFeederWorker extends Thread {
                 continue;
               }
             }
-            
+
+            // TODO(hbs): support determining shard using a macro which would look at the metadata
+            // and return a boolean whether or not the message should be sent. The macro would be supplied
+            // by the consumer.
+
             if (hasShards) {
               byte[] k = key.getBytes();
               long classId = DatalogHelper.bytesToLong(k, 8, 8);
               long labelsId = DatalogHelper.bytesToLong(k, 16, 8);
-              
+
               long shifted = (labelsId >>> shardShift) & 0xFFFFFFFFL;
               shifted |= (classId << (64 - shardShift)) & 0xFFFFFFFFL;
-              
+
               // Now check all shards until one matches
               boolean matched = false;
-              int sid = (int) shifted; 
+              int sid = (int) shifted;
               for (int i = 0; i < modulus.length; i++) {
                 if (0 != modulus[i] && remainder[i] == sid % modulus[i]) {
                   matched = true;
@@ -546,21 +550,21 @@ public class TCPDatalogFeederWorker extends Thread {
                 continue;
               }
             }
-            
+
             if (null != excluded) {
               DatalogRecord record = new DatalogRecord();
               DatalogHelper.deserialize(val.getBytes(), 0, val.getLength(), record);
-              
+
               // Ignore the record if it contains the id which created this record
               if (excluded.contains(record.getId())) {
                 continue;
               }
             }
-            
+
             //
             // Send the record and keep track of it in the list of in flight records
             //
-            
+
             msg.clear();
             msg.setType(DatalogMessageType.DATA);
             ByteBuffer bb = ByteBuffer.wrap(val.getBytes(), 0, val.getLength());
@@ -571,30 +575,30 @@ public class TCPDatalogFeederWorker extends Thread {
 
             inflight.add(ref);
             size += val.getLength();
-            
+
             bytes = DatalogHelper.serialize(msg);
             if (encrypt) {
               bytes = CryptoHelper.wrapBlob(aesKey, bytes);
             }
-            
+
             DatalogHelper.writeLong(out, bytes.length, 4);
             out.write(bytes);
             out.flush();
-            
+
             //System.out.println("SENDING " + msg.getCommitref());
             if (size >= MAX_INFLIGHT_SIZE) {
               limit = true;
             }
-            
-            count++;            
+
+            count++;
           }
-         
+
           //
           // If we voluntarily exited the loop due to the inflight limit being reached, wait for a
           // message from our peer, either SEEK/TSEEK or COMMIT
           // Also wait for such a message if there are inflight messages and there is input to read on the socket
           //
-          
+
           if (limit || (inflight.size() > 0 && in.available() > 0)) {
             //System.out.println("PAUSED AFTER " + size + " BYTES.");
             bytes = DatalogHelper.readBlob(in, 0);
@@ -603,16 +607,16 @@ public class TCPDatalogFeederWorker extends Thread {
             }
             msg.clear();
             DatalogHelper.deserialize(bytes, msg);
-            
+
             if (DatalogMessageType.COMMIT == msg.getType()) {
               // Find the index of the commit ref in the inflight list
               int idx = inflight.indexOf(msg.getRef());
-              
+
               if (-1 == idx) {
                 LOG.error("Invalid commit ref '" + msg.getRef() + "'.");
                 return;
               }
-              
+
               // Commit all messages up to 'ref', updating 'size' on the fly
               for (int i = 0; i <= idx; i++) {
                 size -= Long.parseLong(inflight.remove(0).replaceAll(".*:",""));
@@ -625,7 +629,7 @@ public class TCPDatalogFeederWorker extends Thread {
                 position = 0L;
               } else {
                 position = Long.parseLong(msg.getRef().replaceAll("[^:]*:",  "").replaceAll(":.*", ""));
-              }        
+              }
               inflight.clear();
               size = 0;
             } else if (DatalogMessageType.TSEEK == msg.getType()) {
@@ -634,9 +638,9 @@ public class TCPDatalogFeederWorker extends Thread {
 
               if (null == currentFile || !currentFile.startsWith(hexts)) {
                 currentFile = this.manager.getPreviousFile(hexts);
-                checkts = true;        
+                checkts = true;
               }
-              
+
               mints = msg.getSeekts();
               inflight.clear();
               size = 0;
@@ -647,14 +651,14 @@ public class TCPDatalogFeederWorker extends Thread {
 
             continue;
           }
-          
+
           //
           // If the next file is not the current one, then if the current position is 20 bytes less than the file
           // size we indeed reached the EOF and we can go to the next file in the list
           //
-          
+
           String next = this.manager.getNextFile(currentFile);
-          
+
           if (!currentFile.equals(next)) {
             len = fs.getFileStatus(path).getLen();
             System.out.println("FILE=" + currentFile + " POS=" + position + " LEN=" + len + " NEXT=" + next);
@@ -665,7 +669,7 @@ public class TCPDatalogFeederWorker extends Thread {
               position = 0;
             }
           }
-          
+
           LockSupport.parkNanos(STANDARD_WAIT / 10);
         } catch (SocketTimeoutException ste) {
           LOG.error("Timeout exceeded while waiting for input.", ste);
@@ -692,7 +696,7 @@ public class TCPDatalogFeederWorker extends Thread {
       if (null != this.socket) {
         try {
           this.socket.close();
-        } catch (Exception e) {          
+        } catch (Exception e) {
         }
       }
     }
