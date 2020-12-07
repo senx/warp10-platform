@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -32,18 +32,19 @@ public class PARSEVALUE extends NamedWarpScriptFunction implements WarpScriptSta
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
-    
+
     if (!(top instanceof String)) {
       throw new WarpScriptException(getName() + " operates on a STRING.");
     }
-    
+
+    String value = top.toString().trim();
+
     try {
-      String value = top.toString().trim();      
       stack.push(GTSHelper.parseValue(value));
     } catch (ParseException pe) {
-      throw new WarpScriptException(getName() + " encountered an exception while parsing.", pe);
+      throw new WarpScriptException(getName() + " encountered a parse error at index " + pe.getErrorOffset() + " for '" + value + "'.", pe);
     }
-    
+
     return stack;
   }
 }
