@@ -14,7 +14,7 @@
 //   limitations under the License.
 //
 
-package io.warp10.script.ext.capabilities;
+package io.warp10.script.functions;
 
 import java.util.List;
 
@@ -22,6 +22,7 @@ import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.warp.sdk.Capabilities;
 
 public class CAPDEL extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
@@ -36,25 +37,25 @@ public class CAPDEL extends NamedWarpScriptFunction implements WarpScriptStackFu
 
     Capabilities capabilities = null;
 
-    if (stack.getAttribute(CapabilitiesWarpScriptExtension.CAPABILITIES_ATTR) instanceof Capabilities) {
-      capabilities = (Capabilities) stack.getAttribute(CapabilitiesWarpScriptExtension.CAPABILITIES_ATTR);
+    if (stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR) instanceof Capabilities) {
+      capabilities = (Capabilities) stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR);
     }
 
     if (top instanceof String) {
       if (null != capabilities) {
-        capabilities.capabilities.remove((String) top);
+        capabilities.remove((String) top);
       }
     } else if (top instanceof List) {
       if (null != capabilities) {
         for (Object elt: (List) top) {
           if (elt instanceof String) {
-            capabilities.capabilities.remove((String) elt);
+            capabilities.remove((String) elt);
           }
         }
       }
     } else if (null == top) {
       if (null != capabilities) {
-        capabilities.capabilities.clear();
+        capabilities.clear();
       }
     } else {
       throw new WarpScriptException(getName() + " expects a capability name (STRING), a LIST thereof or NULL.");

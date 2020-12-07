@@ -14,7 +14,7 @@
 //   limitations under the License.
 //
 
-package io.warp10.script.ext.capabilities;
+package io.warp10.warp.sdk;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -33,8 +33,8 @@ public class Capabilities {
 
   public static String get(WarpScriptStack stack, String name) {
     Capabilities capabilities = null;
-    if (stack.getAttribute(CapabilitiesWarpScriptExtension.CAPABILITIES_ATTR) instanceof Capabilities) {
-      capabilities = (Capabilities) stack.getAttribute(CapabilitiesWarpScriptExtension.CAPABILITIES_ATTR);
+    if (stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR) instanceof Capabilities) {
+      capabilities = (Capabilities) stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR);
     }
     if (null != capabilities) {
       return capabilities.capabilities.get(name);
@@ -46,8 +46,8 @@ public class Capabilities {
   public static Map<String,String> get(WarpScriptStack stack, List<Object> names) {
     Capabilities capabilities = null;
 
-    if (stack.getAttribute(CapabilitiesWarpScriptExtension.CAPABILITIES_ATTR) instanceof Capabilities) {
-      capabilities = (Capabilities) stack.getAttribute(CapabilitiesWarpScriptExtension.CAPABILITIES_ATTR);
+    if (stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR) instanceof Capabilities) {
+      capabilities = (Capabilities) stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR);
     }
 
     Map<String,String> caps = new LinkedHashMap<String,String>();
@@ -64,5 +64,21 @@ public class Capabilities {
     }
 
     return caps;
+  }
+
+  public void clear() {
+    this.capabilities.clear();
+  }
+
+  public boolean containsKey(String key) {
+    return this.capabilities.containsKey(key);
+  }
+
+  public Object remove(String key) {
+    return this.capabilities.remove(key);
+  }
+
+  public Object putIfAbsent(String key, String value) {
+    return this.capabilities.putIfAbsent(key, value);
   }
 }

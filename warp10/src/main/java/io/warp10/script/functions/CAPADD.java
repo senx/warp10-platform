@@ -14,7 +14,7 @@
 //   limitations under the License.
 //
 
-package io.warp10.script.ext.capabilities;
+package io.warp10.script.functions;
 
 import java.util.Map;
 import java.util.Map.Entry;
@@ -26,6 +26,7 @@ import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.warp.sdk.Capabilities;
 
 public class CAPADD extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
@@ -61,17 +62,17 @@ public class CAPADD extends NamedWarpScriptFunction implements WarpScriptStackFu
     if (null != attributes && !attributes.isEmpty()) {
       Capabilities capabilities = null;
 
-      if (stack.getAttribute(CapabilitiesWarpScriptExtension.CAPABILITIES_ATTR) instanceof Capabilities) {
-        capabilities = (Capabilities) stack.getAttribute(CapabilitiesWarpScriptExtension.CAPABILITIES_ATTR);
+      if (stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR) instanceof Capabilities) {
+        capabilities = (Capabilities) stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR);
       }
 
       for (Entry<String,String> entry: attributes.entrySet()) {
-        if (entry.getKey().startsWith(CapabilitiesWarpScriptExtension.CAPABILITIES_PREFIX)) {
+        if (entry.getKey().startsWith(WarpScriptStack.CAPABILITIES_PREFIX)) {
           if (null == capabilities) {
             capabilities = new Capabilities();
-            stack.setAttribute(CapabilitiesWarpScriptExtension.CAPABILITIES_ATTR, capabilities);
+            stack.setAttribute(WarpScriptStack.CAPABILITIES_ATTR, capabilities);
           }
-          capabilities.capabilities.putIfAbsent(entry.getKey().substring(CapabilitiesWarpScriptExtension.CAPABILITIES_PREFIX.length()), entry.getValue());
+          capabilities.putIfAbsent(entry.getKey().substring(WarpScriptStack.CAPABILITIES_PREFIX.length()), entry.getValue());
         }
       }
     }
