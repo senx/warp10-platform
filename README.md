@@ -43,8 +43,6 @@ To test Warp 10 without installing it, try the [free sandbox](https://sandbox.s
 
 The team has put lots of efforts into the [documentation](https://www.warp10.io/doc/reference) of the Warp 10 Platform, there are still some areas which may need improving, so we count on you to raise the overall quality.
 
-We understand that discovering all the features of the Warp 10 Platform at once can be intimidating, that's why we've put together a [Google Group](https://groups.google.com/forum/#!forum/warp10-users) we recommend you subscribe to. You can also use [StackOverflow](https://stackoverflow.com/) [warp10](https://stackoverflow.com/search?q=warp10) and [warpscript](https://stackoverflow.com/search?q=warpscript) tags.
-
 We understand that discovering all the features of the Warp 10 Platform at once can be intimidating, that’s why you have several options to find answers to your questions:
 * Explore the [blog](https://blog.senx.io/) and especially the Tutorials and Thinking in WarpScript categories
 * Explore the [tutorials](https://www.warp10.io/content/04_Tutorials) on [warp10.io](https://www.warp10.io/)
