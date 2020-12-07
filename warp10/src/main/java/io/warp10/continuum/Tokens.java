@@ -31,6 +31,7 @@ import java.util.UUID;
 import java.util.concurrent.locks.LockSupport;
 import java.util.regex.Pattern;
 
+import io.warp10.ThrowableUtils;
 import org.apache.thrift.TBase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -496,11 +497,11 @@ public class Tokens {
               if (!(params.containsKey(TOKENGEN.KEY_ID))) {
                 throw new WarpScriptException("Missing '" + TOKENGEN.KEY_ID + "' field in token spec.");
               }
-              TBase token = new TOKENGEN("TOKENGEN", Long.MAX_VALUE >> 4).tokenFromMap(params);
+              TBase token = TOKENGEN.tokenFromMap(params, "Token generation in token file", Long.MAX_VALUE >> 4);
               tokens.put(params.get(TOKENGEN.KEY_ID).toString(), token);
             }
           } catch (WarpScriptException wse) {
-            LOG.error("Error parsing token spec '" + line + "'.", wse);
+            LOG.error("Error parsing token spec in file " + path + " at line '" + line + "': " + ThrowableUtils.getErrorMessage(wse));
           }
           continue;
         }

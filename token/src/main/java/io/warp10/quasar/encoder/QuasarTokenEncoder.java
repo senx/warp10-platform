@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -32,33 +32,35 @@ import io.warp10.quasar.token.thrift.data.WriteToken;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 public class QuasarTokenEncoder {
 
-  private final TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
-
-  public String deliverReadToken(String appName, String producerUID, String ownerUID, java.util.List<java.lang.String> apps, long ttl, KeyStore keystore) throws TException {
+  public String deliverReadToken(String appName, String producerUID, String ownerUID, List<String> apps, long ttl, KeyStore keystore) throws TException {
     ReadToken token = getReadToken(appName, producerUID, Arrays.asList(ownerUID), null, apps, null, null, ttl);
     return cypherToken(token, keystore);
   }
 
-  public String deliverReadToken(String appName, String producerUID, String ownerUID, java.util.List<java.lang.String> apps,  Map<String, String> labels, long ttl, KeyStore keystore) throws TException {
+  public String deliverReadToken(String appName, String producerUID, String ownerUID, List<String> apps, Map<String, String> labels, long ttl, KeyStore keystore) throws TException {
     ReadToken token = getReadToken(appName, producerUID, Arrays.asList(ownerUID), null, apps, labels, null, ttl);
     return cypherToken(token, keystore);
   }
 
-  public String deliverReadToken(String appName, String producerUID, java.util.List<java.lang.String> owners, java.util.List<java.lang.String> apps, java.util.Map<java.lang.String, java.lang.String> hooks, long ttl, KeyStore keystore) throws TException {
+  public String deliverReadToken(String appName, String producerUID, List<String> owners, List<String> apps, Map<String, String> hooks, long ttl, KeyStore keystore) throws TException {
     ReadToken token = getReadToken(appName, producerUID, owners, null, apps, null, hooks, ttl);
     return cypherToken(token, keystore);
   }
 
-  public String deliverReadToken(String appName, String producerUID, java.util.List<java.lang.String> owners, java.util.List<java.lang.String> apps,  Map<String, String> labels, java.util.Map<java.lang.String, java.lang.String> hooks, long ttl, KeyStore keystore) throws TException {
+  public String deliverReadToken(String appName, String producerUID, List<String> owners, List<String> apps,  Map<String, String> labels, Map<String, String> hooks, long ttl, KeyStore keystore) throws TException {
     ReadToken token = getReadToken(appName, producerUID, owners, null, apps, labels, hooks, ttl);
     return cypherToken(token, keystore);
   }
 
-  public String deliverReadToken(String appName, String producerUID, java.util.List<java.lang.String> owners, java.util.List<java.lang.String> producers, java.util.List<java.lang.String> apps,  Map<String, String> labels, java.util.Map<java.lang.String, java.lang.String> hooks, long ttl, KeyStore keystore) throws TException {
+  public String deliverReadToken(String appName, String producerUID, List<String> owners, List<String> producers, List<String> apps,  Map<String, String> labels, Map<String, String> hooks, long ttl, KeyStore keystore) throws TException {
     ReadToken token = getReadToken(appName, producerUID, owners, producers, apps, labels, hooks, ttl);
     return cypherToken(token, keystore);
   }
@@ -75,7 +77,7 @@ public class QuasarTokenEncoder {
    * @return ReadToken thrift structure
    * @throws TException
    */
-  public ReadToken getReadToken(String appName, String producerUID, java.util.List<java.lang.String> owners, java.util.List<java.lang.String> producers, java.util.List<java.lang.String> apps,  Map<String, String> labels, java.util.Map<java.lang.String, java.lang.String> hooks, long ttl) throws TException {
+  public ReadToken getReadToken(String appName, String producerUID, List<String> owners, List<String> producers, List<String> apps,  Map<String, String> labels, Map<String, String> hooks, long ttl) throws TException {
     long currentTime = System.currentTimeMillis();
 
     // Generate the READ Tokens
@@ -175,6 +177,9 @@ public class QuasarTokenEncoder {
   }
   
   public String encryptToken(TBase<?, ?> token, byte[] tokenAESKey, byte[] tokenSipHashKey) throws TException {
+    // TSerializer is not thread-safe so we initialize one each time.
+    TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+
     // Serialize the  thrift token into byte array
     byte[] serialized = serializer.serialize(token);
 
