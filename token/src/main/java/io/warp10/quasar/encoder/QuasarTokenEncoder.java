@@ -40,27 +40,27 @@ import java.util.UUID;
 
 public class QuasarTokenEncoder {
 
-  public String deliverReadToken(String appName, String producerUID, String ownerUID, java.util.List<java.lang.String> apps, long ttl, KeyStore keystore) throws TException {
+  public String deliverReadToken(String appName, String producerUID, String ownerUID, List<String> apps, long ttl, KeyStore keystore) throws TException {
     ReadToken token = getReadToken(appName, producerUID, Arrays.asList(ownerUID), null, apps, null, null, ttl);
     return cypherToken(token, keystore);
   }
 
-  public String deliverReadToken(String appName, String producerUID, String ownerUID, java.util.List<java.lang.String> apps, Map<String, String> labels, long ttl, KeyStore keystore) throws TException {
+  public String deliverReadToken(String appName, String producerUID, String ownerUID, List<String> apps, Map<String, String> labels, long ttl, KeyStore keystore) throws TException {
     ReadToken token = getReadToken(appName, producerUID, Arrays.asList(ownerUID), null, apps, labels, null, ttl);
     return cypherToken(token, keystore);
   }
 
-  public String deliverReadToken(String appName, String producerUID, java.util.List<java.lang.String> owners, java.util.List<java.lang.String> apps, java.util.Map<java.lang.String, java.lang.String> hooks, long ttl, KeyStore keystore) throws TException {
+  public String deliverReadToken(String appName, String producerUID, List<String> owners, List<String> apps, Map<String, String> hooks, long ttl, KeyStore keystore) throws TException {
     ReadToken token = getReadToken(appName, producerUID, owners, null, apps, null, hooks, ttl);
     return cypherToken(token, keystore);
   }
 
-  public String deliverReadToken(String appName, String producerUID, java.util.List<java.lang.String> owners, java.util.List<java.lang.String> apps,  Map<String, String> labels, java.util.Map<java.lang.String, java.lang.String> hooks, long ttl, KeyStore keystore) throws TException {
+  public String deliverReadToken(String appName, String producerUID, List<String> owners, List<String> apps,  Map<String, String> labels, Map<String, String> hooks, long ttl, KeyStore keystore) throws TException {
     ReadToken token = getReadToken(appName, producerUID, owners, null, apps, labels, hooks, ttl);
     return cypherToken(token, keystore);
   }
 
-  public String deliverReadToken(String appName, String producerUID, java.util.List<java.lang.String> owners, java.util.List<java.lang.String> producers, java.util.List<java.lang.String> apps,  Map<String, String> labels, java.util.Map<java.lang.String, java.lang.String> hooks, long ttl, KeyStore keystore) throws TException {
+  public String deliverReadToken(String appName, String producerUID, List<String> owners, List<String> producers, List<String> apps,  Map<String, String> labels, Map<String, String> hooks, long ttl, KeyStore keystore) throws TException {
     ReadToken token = getReadToken(appName, producerUID, owners, producers, apps, labels, hooks, ttl);
     return cypherToken(token, keystore);
   }
@@ -77,7 +77,7 @@ public class QuasarTokenEncoder {
    * @return ReadToken thrift structure
    * @throws TException
    */
-  public ReadToken getReadToken(String appName, String producerUID, java.util.List<java.lang.String> owners, java.util.List<java.lang.String> producers, java.util.List<java.lang.String> apps,  Map<String, String> labels, java.util.Map<java.lang.String, java.lang.String> hooks, long ttl) throws TException {
+  public ReadToken getReadToken(String appName, String producerUID, List<String> owners, List<String> producers, List<String> apps,  Map<String, String> labels, Map<String, String> hooks, long ttl) throws TException {
     long currentTime = System.currentTimeMillis();
 
     // Generate the READ Tokens

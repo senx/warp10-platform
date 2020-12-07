@@ -57,6 +57,12 @@ public class TOKENDUMP extends NamedWarpScriptFunction implements WarpScriptStac
    */
   private final boolean warpKeystore;
 
+  /**
+   * Create the TOKENDUMP function.
+   * @param name The name of the function.
+   * @param keystore The keystore containing the AES and SipHash keys to decode tokens when no such keys are given when applying this function.
+   * @param warpKeystore Whether the given keystore is that of a Warp/WarpDist instance. If true, a secret is needed to access the keystore keys.
+   */
   public TOKENDUMP(String name, KeyStore keystore, boolean warpKeystore) {
     super(name);
     if(null != keystore) {
