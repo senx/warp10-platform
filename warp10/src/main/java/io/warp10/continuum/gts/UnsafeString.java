@@ -63,8 +63,6 @@ public class UnsafeString {
         countOffset = -1L;
       }
       
-      declaredField = null;
-
       try {
         declaredField = String.class.getDeclaredField("offset");
       } catch (NoSuchFieldException e) {
@@ -78,8 +76,6 @@ public class UnsafeString {
         offsetOffset = -1L;
       }
       
-      declaredField = null;
-
       try {
         declaredField = String.class.getDeclaredField("hash");
       } catch (NoSuchFieldException e) {
