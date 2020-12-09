@@ -25,6 +25,7 @@
 #warpscript.repository.directory = 
 
 // How often (in ms) should the above directory be rescanned
+// If set to 0 then ondemand will be forced to true and no automatic loading of macros will occur.
 #warpscript.repository.refresh = 60000
 
 // Set to false to disable on demand loading of macros not yet loaded.
