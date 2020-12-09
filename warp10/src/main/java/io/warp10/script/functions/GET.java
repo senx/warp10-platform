@@ -42,8 +42,10 @@ public class GET extends NamedWarpScriptFunction implements WarpScriptStackFunct
     Object value;
 
     try {
-      if (key instanceof List) {
+      if (key instanceof List && coll instanceof List) {
         // The list is considered to be a kind of path. For instance [ 'a' 0 -1 ] GET is equivalent to 'a' GET 0 GET -1 GET.
+        // We restrict that syntax only to top-level collections of type List because a Map can have list keys.
+        // This top-level limitation allows a list of maps of strings to be addressed through this syntax.
         value = coll;
         for (Object keyElement: (List) key) {
           value = get(keyElement, value);
