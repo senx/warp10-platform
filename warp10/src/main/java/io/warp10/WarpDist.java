@@ -96,15 +96,25 @@ public class WarpDist {
   }
  
   public static void setProperties(String[] files) throws IOException {
-    WarpConfig.setProperties(files);
-    
-    properties = WarpConfig.getProperties();    
+    try {
+      WarpConfig.setProperties(false, files);
+
+      properties = WarpConfig.getProperties();
+    } catch (Throwable t) {
+      System.err.println(ThrowableUtils.getErrorMessage(t));
+      System.exit(-1);
+    }
   }
   
   public static void setProperties(String file) throws IOException {
-    WarpConfig.setProperties(file);
-    
-    properties = WarpConfig.getProperties();
+    try {
+      WarpConfig.setProperties(false, file);
+
+      properties = WarpConfig.getProperties();
+    } catch (Throwable t) {
+      System.err.println(ThrowableUtils.getErrorMessage(t));
+      System.exit(-1);
+    }
   }
   
   public static void setKeyStore(KeyStore ks) {
