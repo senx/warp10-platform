@@ -944,8 +944,7 @@ public class EgressFetchHandler extends AbstractHandler {
   private static void rawDump(PrintWriter pw, GTSDecoderIterator iter, boolean dedup, boolean signed, long count, AtomicReference<Metadata> lastMeta, AtomicLong lastCount, boolean sortMeta, boolean expose) throws IOException {
     
     String name = null;
-    Map<String,String> labels = null;
-    
+
     StringBuilder sb = new StringBuilder();
     
     Metadata lastMetadata = lastMeta.get();
@@ -986,7 +985,6 @@ public class EgressFetchHandler extends AbstractHandler {
       //
 
       name = decoder.getName();
-      labels = lbls;
       sb.setLength(0);
       GTSHelper.encodeName(sb, name);
       sb.append("{");
@@ -1939,8 +1937,7 @@ public class EgressFetchHandler extends AbstractHandler {
   private void packedDump(PrintWriter pw, GTSDecoderIterator iter, long now, long count, boolean dedup, boolean signed, AtomicReference<Metadata> lastMeta, AtomicLong lastCount, int maxDecoderLen, String classSuffix, long chunksize, boolean sortMeta, boolean expose) throws IOException {
     
     String name = null;
-    Map<String,String> labels = null;
-    
+
     StringBuilder sb = new StringBuilder();
     
     Metadata lastMetadata = lastMeta.get();
@@ -1983,7 +1980,6 @@ public class EgressFetchHandler extends AbstractHandler {
       //
 
       name = decoder.getName();
-      labels = lbls;
       sb.setLength(0);
       GTSHelper.encodeName(sb, name + classSuffix);
       sb.append("{");
