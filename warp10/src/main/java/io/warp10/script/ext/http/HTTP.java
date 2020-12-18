@@ -17,11 +17,10 @@
 package io.warp10.script.ext.http;
 
 import io.warp10.WarpConfig;
-import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WebAccessController;
+import io.warp10.script.formatted.FormattedWarpScriptFunction;
 import io.warp10.standalone.StandaloneWebCallService;
 import org.apache.commons.codec.binary.Base64;
 
@@ -42,7 +41,18 @@ import java.util.concurrent.locks.ReentrantLock;
 /**
  * Apply an HTTP method over an url
  */
-public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class HTTP extends FormattedWarpScriptFunction {
+
+
+  private final Arguments args;
+  private final Arguments output;
+
+  protected Arguments getArguments() {
+    return args;
+  }
+  protected Arguments getOutput() {
+    return output;
+  }
 
   private final ReentrantLock stackCountersLock = new ReentrantLock();
   private final WebAccessController webAccessController;
@@ -58,10 +68,20 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
     } else {
       webAccessController = new WebAccessController(patternConf);
     }
+
+    getDocstring().append("Apply an HTTP method over an url and fetch response.");
+
+    args = new ArgumentsBuilder()
+      //todo
+      .build();
+
+    output = new ArgumentsBuilder()
+      //todo
+      .build();
   }
 
   @Override
-  public Object apply(WarpScriptStack stack) throws WarpScriptException {
+  public WarpScriptStack apply(Map<String, Object> formattedArgs, WarpScriptStack stack) throws WarpScriptException {
 
     if (!stack.isAuthenticated()) {
       throw new WarpScriptException(getName() + " requires the stack to be authenticated.");
