@@ -17,7 +17,6 @@
 package io.warp10.script.ext.http;
 
 import io.warp10.WarpConfig;
-import io.warp10.continuum.Configuration;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WebAccessController;
