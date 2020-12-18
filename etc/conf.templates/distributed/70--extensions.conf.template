@@ -58,6 +58,8 @@
 #token.secret = ....
 // URLFETCH, MAXURLFETCHCOUNT, MAXURLFETCHSIZE
 #warpscript.extension.urlfetch = io.warp10.script.ext.urlfetch.UrlFetchWarpScriptExtension
+// HTTP, MAXURLCOUNT, MAXDOWNLOADSIZE
+warpscript.extension.http = io.warp10.script.ext.http.HttpWarpScriptExtension
 // WSPS WSINFO WSKILL STACKPSSECRET
 #warpscript.extension.stackps = io.warp10.script.ext.stackps.StackPSWarpScriptExtension
 #stackps.secret = ....
