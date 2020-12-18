@@ -23,7 +23,6 @@ import io.warp10.script.WebAccessController;
 import io.warp10.script.formatted.FormattedWarpScriptFunction;
 import io.warp10.standalone.StandaloneWebCallService;
 import io.warp10.warp.sdk.Capabilities;
-import io.warp10.script.ext.http.HttpWarpScriptExtension;
 
 import org.apache.commons.codec.binary.Base64;
 
@@ -46,6 +45,15 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class HTTP extends FormattedWarpScriptFunction {
 
+  //
+  // Arguments
+  //
+
+  public static final String METHOD = "method";
+  public static final String URL = "url";
+  public static final String HEADER = "header";
+  public static final String BODY = "body";
+  public static final String RESPONSE = "response";
 
   private final Arguments args;
   private final Arguments output;
@@ -56,6 +64,10 @@ public class HTTP extends FormattedWarpScriptFunction {
   protected Arguments getOutput() {
     return output;
   }
+
+  //
+  // Control
+  //
 
   private final ReentrantLock stackCountersLock = new ReentrantLock();
   private final WebAccessController webAccessController;
@@ -75,16 +87,23 @@ public class HTTP extends FormattedWarpScriptFunction {
     getDocstring().append("Apply an HTTP method over an url and fetch response.");
 
     args = new ArgumentsBuilder()
-      //todo
+      .addArgument(String.class, METHOD, "The http method.")
+      .addArgument(String.class, URL, "The URL to send the GET request to. Must begin with http:// or https://.")
+      .addOptionalArgument(Map.class, HEADER, "An optional header.", new HashMap<>())
+      .addOptionalArgument(String.class, BODY, "An optional body", "")
       .build();
 
     output = new ArgumentsBuilder()
-      //todo
+      .addArgument(List.class, RESPONSE, "A list containing, for each URL, a 4-element list. These 4-element lists contain, in this order, a LONG status code, a STRING status message or an empty STRING if not available, a MAP of headers and a STRING representing a bytes array encoded as base 64.")
       .build();
   }
 
   @Override
   public WarpScriptStack apply(Map<String, Object> formattedArgs, WarpScriptStack stack) throws WarpScriptException {
+
+    //
+    // Check capability
+    //
 
     if (stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR) instanceof Capabilities) {
       Capabilities capabilities = (Capabilities) stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR);
@@ -93,40 +112,23 @@ public class HTTP extends FormattedWarpScriptFunction {
       }
     }
 
-    Object o = stack.pop();
+    //
+    // Retrieve arguments
+    //
 
-    Map<Object, Object> properties = new HashMap<Object, Object>();
-    if (o instanceof Map) {
-      properties = (Map<Object, Object>) o;
-      o = stack.pop();
-    }
+    String method = (String) formattedArgs.get(METHOD);
+    Map<Object, Object> properties = (Map) formattedArgs.get(HEADER);
+    String body = (String) formattedArgs.get(BODY);
 
-    if (!(o instanceof String) && !(o instanceof List)) {
-      throw new WarpScriptException(getName() + " expects a URL or list thereof on top of the stack.");
-    }
+    //
+    // Check URL
+    //
 
-    List<URL> urls = new ArrayList<URL>();
-
+    URL url = null;
     try {
-      if (o instanceof String) {
-        urls.add(new URL(o.toString()));
-      } else {
-        for (Object oo: (List) o) {
-          urls.add(new URL(oo.toString()));
-        }
-      }
+      url = new URL((String) formattedArgs.get(URL));
     } catch (MalformedURLException mue) {
       throw new WarpScriptException(getName() + " encountered an invalid URL.", mue);
-    }
-
-    //
-    // Check URLs
-    //
-
-    for (URL url: urls) {
-      if (!webAccessController.checkURL(url)) {
-        throw new WarpScriptException(getName() + " encountered a forbidden URL '" + url + "'");
-      }
     }
 
     //
@@ -160,101 +162,100 @@ public class HTTP extends FormattedWarpScriptFunction {
       }
     }
 
-    if (urlCount.get() + urls.size() > (long) HttpWarpScriptExtension.getLongAttribute(stack, HttpWarpScriptExtension.ATTRIBUTE_HTTP_LIMIT)) {
+    if (urlCount.get() + 1 > (long) HttpWarpScriptExtension.getLongAttribute(stack, HttpWarpScriptExtension.ATTRIBUTE_HTTP_LIMIT)) {
       throw new WarpScriptException(getName() + " is limited to " + HttpWarpScriptExtension.getLongAttribute(stack, HttpWarpScriptExtension.ATTRIBUTE_HTTP_LIMIT) + " calls.");
     }
 
-    List<Object> results = new ArrayList<Object>();
+    // Recheck the count here in case of concurrent runs
+    if (urlCount.addAndGet(1) > (long) HttpWarpScriptExtension.getLongAttribute(stack, HttpWarpScriptExtension.ATTRIBUTE_HTTP_LIMIT)) {
+      throw new WarpScriptException(getName() + " is limited to " + HttpWarpScriptExtension.getLongAttribute(stack, HttpWarpScriptExtension.ATTRIBUTE_HTTP_LIMIT) + " calls.");
+    }
 
-    for (URL url: urls) {
-      // Recheck the count here in case of concurrent runs
-      if (urlCount.addAndGet(1) > (long) HttpWarpScriptExtension.getLongAttribute(stack, HttpWarpScriptExtension.ATTRIBUTE_HTTP_LIMIT)) {
-        throw new WarpScriptException(getName() + " is limited to " + HttpWarpScriptExtension.getLongAttribute(stack, HttpWarpScriptExtension.ATTRIBUTE_HTTP_LIMIT) + " calls.");
+    HttpURLConnection conn = null;
+    
+    List<Object> res = new ArrayList<Object>();
+
+    try {
+      conn = (HttpURLConnection) url.openConnection();
+
+      if (null != url.getUserInfo()) {
+        String basicAuth = "Basic " + new String(Base64.encodeBase64String(url.getUserInfo().getBytes(StandardCharsets.UTF_8)));
+        properties.put("Authorization", basicAuth);
       }
 
-      HttpURLConnection conn = null;
+      for (Map.Entry<Object, Object> prop: properties.entrySet()) {
+        conn.setRequestProperty(String.valueOf(prop.getKey()), String.valueOf(prop.getValue()));
+      }
 
+      conn.setDoInput(true);
+      conn.setDoOutput(false);
+      conn.setRequestMethod("GET");
+
+      byte[] buf = new byte[8192];
+
+      ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+      InputStream in = null;
+      // When there is an error (response code is 404 for instance), body is in the error stream.
       try {
-        conn = (HttpURLConnection) url.openConnection();
+        in = conn.getInputStream();
+      } catch (IOException ioe) {
+        in = conn.getErrorStream();
+      }
 
-        if (null != url.getUserInfo()) {
-          String basicAuth = "Basic " + new String(Base64.encodeBase64String(url.getUserInfo().getBytes(StandardCharsets.UTF_8)));
-          properties.put("Authorization", basicAuth);
+      while (true) {
+        int len = in.read(buf);
+
+        if (len < 0) {
+          break;
         }
 
-        for (Map.Entry<Object, Object> prop: properties.entrySet()) {
-          conn.setRequestProperty(String.valueOf(prop.getKey()), String.valueOf(prop.getValue()));
+        if (downloadSize.get() + baos.size() + len > (long) HttpWarpScriptExtension.getLongAttribute(stack, HttpWarpScriptExtension.ATTRIBUTE_HTTP_MAXSIZE)) {
+          throw new WarpScriptException(getName() + " would exceed maximum size of content which can be retrieved via this function (" + HttpWarpScriptExtension.getLongAttribute(stack, HttpWarpScriptExtension.ATTRIBUTE_HTTP_MAXSIZE) + " bytes)");
         }
 
-        conn.setDoInput(true);
-        conn.setDoOutput(false);
-        conn.setRequestMethod("GET");
+        baos.write(buf, 0, len);
+      }
 
-        byte[] buf = new byte[8192];
+      downloadSize.addAndGet(baos.size());
 
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+      //
+      // Form response
+      //
 
-        InputStream in = null;
-        // When there is an error (response code is 404 for instance), body is in the error stream.
-        try {
-          in = conn.getInputStream();
-        } catch (IOException ioe) {
-          in = conn.getErrorStream();
-        }
+      res.add(conn.getResponseCode());
+      Map<String, List<String>> hdrs = conn.getHeaderFields();
 
-        while (true) {
-          int len = in.read(buf);
-
-          if (len < 0) {
-            break;
-          }
-
-          if (downloadSize.get() + baos.size() + len > (long) HttpWarpScriptExtension.getLongAttribute(stack, HttpWarpScriptExtension.ATTRIBUTE_HTTP_MAXSIZE)) {
-            throw new WarpScriptException(getName() + " would exceed maximum size of content which can be retrieved via this function (" + HttpWarpScriptExtension.getLongAttribute(stack, HttpWarpScriptExtension.ATTRIBUTE_HTTP_MAXSIZE) + " bytes)");
-          }
-
-          baos.write(buf, 0, len);
-        }
-
-        downloadSize.addAndGet(baos.size());
-
-        List<Object> res = new ArrayList<Object>();
-
-        res.add(conn.getResponseCode());
-        Map<String, List<String>> hdrs = conn.getHeaderFields();
-
-        if (hdrs.containsKey(null)) {
-          List<String> statusMsg = hdrs.get(null);
-          if (statusMsg.size() > 0) {
-            res.add(statusMsg.get(0));
-          } else {
-            res.add("");
-          }
+      if (hdrs.containsKey(null)) {
+        List<String> statusMsg = hdrs.get(null);
+        if (statusMsg.size() > 0) {
+          res.add(statusMsg.get(0));
         } else {
           res.add("");
         }
+      } else {
+        res.add("");
+      }
 
-        //
-        // Make the headers map modifiable
-        //
+      //
+      // Make the headers map modifiable
+      //
 
-        hdrs = new HashMap<String, List<String>>(hdrs);
-        hdrs.remove(null);
+      hdrs = new HashMap<String, List<String>>(hdrs);
+      hdrs.remove(null);
 
-        res.add(hdrs);
-        res.add(Base64.encodeBase64String(baos.toByteArray()));
+      res.add(hdrs);
+      res.add(Base64.encodeBase64String(baos.toByteArray()));
 
-        results.add(res);
-      } catch (IOException ioe) {
-        throw new WarpScriptException(getName() + " encountered an error while fetching '" + url + "'", ioe);
-      } finally {
-        if (null != conn) {
-          conn.disconnect();
-        }
+    } catch (IOException ioe) {
+      throw new WarpScriptException(getName() + " encountered an error while fetching '" + url + "'", ioe);
+    } finally {
+      if (null != conn) {
+        conn.disconnect();
       }
     }
 
-    stack.push(results);
+    stack.push(res);
 
     return stack;
   }
