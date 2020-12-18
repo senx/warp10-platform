@@ -104,16 +104,22 @@ public class HTTP extends FormattedWarpScriptFunction {
   public WarpScriptStack apply(Map<String, Object> formattedArgs, WarpScriptStack stack) throws WarpScriptException {
 
     //
-    // Check capability
+    // Check capability if set in configuration, or else check stack authentication
     //
 
-    if (stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR) instanceof Capabilities) {
-      Properties props = WarpConfig.getProperties();
-      Capabilities capabilities = (Capabilities) stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR);
+    Properties props = WarpConfig.getProperties();
 
-      if(props.containsKey(HttpWarpScriptExtension.HTTP_CAPABILITY) && !(capabilities.containsKey(props.getProperty(HttpWarpScriptExtension.HTTP_CAPABILITY)))) {
-        throw new WarpScriptException("Capability " + HttpWarpScriptExtension.HTTP_CAPABILITY + " is required by function " + getName());
+    if (props.containsKey(HttpWarpScriptExtension.HTTP_CAPABILITY)) {
+      if (stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR) instanceof Capabilities) {
+        Capabilities capabilities = (Capabilities) stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR);
+
+        if (!(capabilities.containsKey(props.getProperty(HttpWarpScriptExtension.HTTP_CAPABILITY)))) {
+          throw new WarpScriptException("Capability " + HttpWarpScriptExtension.HTTP_CAPABILITY + " is required by function " + getName());
+        }
       }
+
+    } else if (!stack.isAuthenticated()) {
+      throw new WarpScriptException(getName() + " requires the stack to be authenticated.");
     }
 
     //
