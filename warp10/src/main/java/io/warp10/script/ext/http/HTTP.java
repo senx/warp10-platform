@@ -29,6 +29,7 @@ import org.apache.commons.codec.binary.Base64;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -188,8 +189,14 @@ public class HTTP extends FormattedWarpScriptFunction {
       }
 
       conn.setDoInput(true);
-      conn.setDoOutput(false);
-      conn.setRequestMethod("GET");
+      conn.setDoOutput(body.length() > 0);
+      conn.setRequestMethod(method.toUpperCase());
+
+      if (body.length() > 0) {
+        try (OutputStream os = conn.getOutputStream()) {
+          os.write(body.getBytes());
+        }
+      }
 
       byte[] buf = new byte[8192];
 
@@ -248,7 +255,7 @@ public class HTTP extends FormattedWarpScriptFunction {
       res.add(Base64.encodeBase64String(baos.toByteArray()));
 
     } catch (IOException ioe) {
-      throw new WarpScriptException(getName() + " encountered an error while fetching '" + url + "'", ioe);
+      throw new WarpScriptException(getName() + " encountered an error while making an HTTP " + method + " request over '" + url + "'", ioe);
     } finally {
       if (null != conn) {
         conn.disconnect();
