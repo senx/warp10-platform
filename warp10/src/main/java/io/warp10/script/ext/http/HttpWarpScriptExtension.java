@@ -30,6 +30,15 @@ import java.util.Map;
 public class HttpWarpScriptExtension extends WarpScriptExtension {
 
   //
+  // CAPABILITIES
+  //
+
+  /**
+   * If this configuration is set, then HTTP function will check for this capability.
+   */
+  public static final String HTTP_CAPABILITY = "warpscript.http.capability";
+
+  //
   // CONFIGURATION
   //
 

@@ -22,6 +22,9 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WebAccessController;
 import io.warp10.script.formatted.FormattedWarpScriptFunction;
 import io.warp10.standalone.StandaloneWebCallService;
+import io.warp10.warp.sdk.Capabilities;
+import io.warp10.script.ext.http.HttpWarpScriptExtension;
+
 import org.apache.commons.codec.binary.Base64;
 
 import java.io.ByteArrayOutputStream;
@@ -83,8 +86,11 @@ public class HTTP extends FormattedWarpScriptFunction {
   @Override
   public WarpScriptStack apply(Map<String, Object> formattedArgs, WarpScriptStack stack) throws WarpScriptException {
 
-    if (!stack.isAuthenticated()) {
-      throw new WarpScriptException(getName() + " requires the stack to be authenticated.");
+    if (stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR) instanceof Capabilities) {
+      Capabilities capabilities = (Capabilities) stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR);
+      if(!(capabilities.containsKey(HttpWarpScriptExtension.HTTP_CAPABILITY))) {
+        throw new WarpScriptException("Capability " + HttpWarpScriptExtension.HTTP_CAPABILITY + " is required by function " + getName());
+      }
     }
 
     Object o = stack.pop();
