@@ -17,6 +17,7 @@
 package io.warp10.script.ext.http;
 
 import io.warp10.WarpConfig;
+import io.warp10.continuum.Configuration;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WebAccessController;
@@ -38,6 +39,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -107,8 +109,10 @@ public class HTTP extends FormattedWarpScriptFunction {
     //
 
     if (stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR) instanceof Capabilities) {
+      Properties props = WarpConfig.getProperties();
       Capabilities capabilities = (Capabilities) stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR);
-      if(!(capabilities.containsKey(HttpWarpScriptExtension.HTTP_CAPABILITY))) {
+
+      if(props.containsKey(HttpWarpScriptExtension.HTTP_CAPABILITY) && !(capabilities.containsKey(props.getProperty(HttpWarpScriptExtension.HTTP_CAPABILITY)))) {
         throw new WarpScriptException("Capability " + HttpWarpScriptExtension.HTTP_CAPABILITY + " is required by function " + getName());
       }
     }
