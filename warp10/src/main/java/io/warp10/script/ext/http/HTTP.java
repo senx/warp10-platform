@@ -14,7 +14,7 @@
 //   limitations under the License.
 //
 
-package io.warp10.script.ext.urlfetch;
+package io.warp10.script.ext.http;
 
 import io.warp10.WarpConfig;
 import io.warp10.script.NamedWarpScriptFunction;
@@ -40,17 +40,17 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * Fetch content from a URL
+ * Apply an HTTP method over an url
  */
-public class URLFETCH extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
   private final ReentrantLock stackCountersLock = new ReentrantLock();
   private final WebAccessController webAccessController;
 
-  public URLFETCH(String name) {
+  public HTTP(String name) {
     super(name);
 
-    String patternConf = WarpConfig.getProperty(UrlFetchWarpScriptExtension.WARPSCRIPT_URLFETCH_HOST_PATTERNS);
+    String patternConf = WarpConfig.getProperty(HttpWarpScriptExtension.WARPSCRIPT_HTTP_HOST_PATTERNS);
 
     // If not defined, use already existing StandaloneWebCallService webAccessController which uses Configuration.WEBCALL_HOST_PATTERNS
     if (null == patternConf) {
@@ -104,27 +104,27 @@ public class URLFETCH extends NamedWarpScriptFunction implements WarpScriptStack
     }
 
     //
-    // Check that we do not exceed the maxurlfetch limit
+    // Check that we do not exceed the limits
     //
 
     // Get the current counters in the stack and initialize them if not present.
-    AtomicLong urlfetchCount;
-    AtomicLong urlfetchSize;
+    AtomicLong urlCount;
+    AtomicLong downloadSize;
 
     try {
       stackCountersLock.lockInterruptibly();
 
-      Object ufCount = stack.getAttribute(UrlFetchWarpScriptExtension.ATTRIBUTE_URLFETCH_COUNT);
-      Object ufSize = stack.getAttribute(UrlFetchWarpScriptExtension.ATTRIBUTE_URLFETCH_SIZE);
+      Object ufCount = stack.getAttribute(HttpWarpScriptExtension.ATTRIBUTE_HTTP_COUNT);
+      Object ufSize = stack.getAttribute(HttpWarpScriptExtension.ATTRIBUTE_HTTP_SIZE);
 
       if (null == ufCount || null == ufSize) {
-        urlfetchCount = new AtomicLong();
-        urlfetchSize = new AtomicLong();
-        stack.setAttribute(UrlFetchWarpScriptExtension.ATTRIBUTE_URLFETCH_COUNT, urlfetchCount);
-        stack.setAttribute(UrlFetchWarpScriptExtension.ATTRIBUTE_URLFETCH_SIZE, urlfetchSize);
+        urlCount = new AtomicLong();
+        downloadSize = new AtomicLong();
+        stack.setAttribute(HttpWarpScriptExtension.ATTRIBUTE_HTTP_COUNT, urlCount);
+        stack.setAttribute(HttpWarpScriptExtension.ATTRIBUTE_HTTP_SIZE, downloadSize);
       } else {
-        urlfetchCount = (AtomicLong) ufCount;
-        urlfetchSize = (AtomicLong) ufSize;
+        urlCount = (AtomicLong) ufCount;
+        downloadSize = (AtomicLong) ufSize;
       }
     } catch (InterruptedException ie) {
       throw new WarpScriptException(getName() + " thread has been interrupted", ie);
@@ -134,16 +134,16 @@ public class URLFETCH extends NamedWarpScriptFunction implements WarpScriptStack
       }
     }
 
-    if (urlfetchCount.get() + urls.size() > (long) UrlFetchWarpScriptExtension.getLongAttribute(stack, UrlFetchWarpScriptExtension.ATTRIBUTE_URLFETCH_LIMIT)) {
-      throw new WarpScriptException(getName() + " is limited to " + UrlFetchWarpScriptExtension.getLongAttribute(stack, UrlFetchWarpScriptExtension.ATTRIBUTE_URLFETCH_LIMIT) + " calls.");
+    if (urlCount.get() + urls.size() > (long) HttpWarpScriptExtension.getLongAttribute(stack, HttpWarpScriptExtension.ATTRIBUTE_HTTP_LIMIT)) {
+      throw new WarpScriptException(getName() + " is limited to " + HttpWarpScriptExtension.getLongAttribute(stack, HttpWarpScriptExtension.ATTRIBUTE_HTTP_LIMIT) + " calls.");
     }
 
     List<Object> results = new ArrayList<Object>();
 
     for (URL url: urls) {
       // Recheck the count here in case of concurrent runs
-      if (urlfetchCount.addAndGet(1) > (long) UrlFetchWarpScriptExtension.getLongAttribute(stack, UrlFetchWarpScriptExtension.ATTRIBUTE_URLFETCH_LIMIT)) {
-        throw new WarpScriptException(getName() + " is limited to " + UrlFetchWarpScriptExtension.getLongAttribute(stack, UrlFetchWarpScriptExtension.ATTRIBUTE_URLFETCH_LIMIT) + " calls.");
+      if (urlCount.addAndGet(1) > (long) HttpWarpScriptExtension.getLongAttribute(stack, HttpWarpScriptExtension.ATTRIBUTE_HTTP_LIMIT)) {
+        throw new WarpScriptException(getName() + " is limited to " + HttpWarpScriptExtension.getLongAttribute(stack, HttpWarpScriptExtension.ATTRIBUTE_HTTP_LIMIT) + " calls.");
       }
 
       HttpURLConnection conn = null;
@@ -183,14 +183,14 @@ public class URLFETCH extends NamedWarpScriptFunction implements WarpScriptStack
             break;
           }
 
-          if (urlfetchSize.get() + baos.size() + len > (long) UrlFetchWarpScriptExtension.getLongAttribute(stack, UrlFetchWarpScriptExtension.ATTRIBUTE_URLFETCH_MAXSIZE)) {
-            throw new WarpScriptException(getName() + " would exceed maximum size of content which can be retrieved via URLFETCH (" + UrlFetchWarpScriptExtension.getLongAttribute(stack, UrlFetchWarpScriptExtension.ATTRIBUTE_URLFETCH_MAXSIZE) + " bytes)");
+          if (downloadSize.get() + baos.size() + len > (long) HttpWarpScriptExtension.getLongAttribute(stack, HttpWarpScriptExtension.ATTRIBUTE_HTTP_MAXSIZE)) {
+            throw new WarpScriptException(getName() + " would exceed maximum size of content which can be retrieved via this function (" + HttpWarpScriptExtension.getLongAttribute(stack, HttpWarpScriptExtension.ATTRIBUTE_HTTP_MAXSIZE) + " bytes)");
           }
 
           baos.write(buf, 0, len);
         }
 
-        urlfetchSize.addAndGet(baos.size());
+        downloadSize.addAndGet(baos.size());
 
         List<Object> res = new ArrayList<Object>();
 

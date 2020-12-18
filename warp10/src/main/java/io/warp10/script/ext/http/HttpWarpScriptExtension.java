@@ -14,7 +14,7 @@
 //   limitations under the License.
 //
 
-package io.warp10.script.ext.urlfetch;
+package io.warp10.script.ext.http;
 
 import io.warp10.WarpConfig;
 import io.warp10.script.WarpScriptStack;
@@ -23,66 +23,65 @@ import io.warp10.warp.sdk.WarpScriptExtension;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 
 /**
- * Extension for URLFETCH and the associated function to change limits: MAXURLFETCHCOUNT and MAXURLFETCHSIZE
+ * Extension for HTTP and the associated function to change limits: MAXURLCOUNT and MAXDOWNLOADSIZE
  */
-public class UrlFetchWarpScriptExtension extends WarpScriptExtension {
+public class HttpWarpScriptExtension extends WarpScriptExtension {
 
   //
   // CONFIGURATION
   //
 
   /**
-   * Maximum number of calls to URLFETCH in a session
+   * Maximum number of calls to HTTP in a session
    */
-  public static final String WARPSCRIPT_URLFETCH_LIMIT = "warpscript.urlfetch.limit";
-  public static final String WARPSCRIPT_URLFETCH_LIMIT_HARD = "warpscript.urlfetch.limit.hard";
+  public static final String WARPSCRIPT_HTTP_LIMIT = "warpscript.http.limit";
+  public static final String WARPSCRIPT_HTTP_LIMIT_HARD = "warpscript.http.limit.hard";
 
   /**
-   * Maximum cumulative size of content retrieved via calls to URLFETCH in a session
+   * Maximum cumulative size of content retrieved via calls to HTTP in a session
    */
-  public static final String WARPSCRIPT_URLFETCH_MAXSIZE = "warpscript.urlfetch.maxsize";
-  public static final String WARPSCRIPT_URLFETCH_MAXSIZE_HARD = "warpscript.urlfetch.maxsize.hard";
+  public static final String WARPSCRIPT_HTTP_MAXSIZE = "warpscript.http.maxsize";
+  public static final String WARPSCRIPT_HTTP_MAXSIZE_HARD = "warpscript.http.maxsize.hard";
 
   /**
    * Allowed and excluded host patterns.
    */
-  public static final String WARPSCRIPT_URLFETCH_HOST_PATTERNS = "warpscript.urlfetch.host.patterns";
+  public static final String WARPSCRIPT_HTTP_HOST_PATTERNS = "warpscript.http.host.patterns";
 
   //
   // STACK
   //
 
   /**
-   * Maximum number of calls to URLFETCH in a session
+   * Maximum number of calls to HTTP in a session
    */
-  public static final String ATTRIBUTE_URLFETCH_LIMIT = "urlfetch.limit";
-  public static final String ATTRIBUTE_URLFETCH_LIMIT_HARD = "urlfetch.limit.hard";
+  public static final String ATTRIBUTE_HTTP_LIMIT = "http.limit";
+  public static final String ATTRIBUTE_HTTP_LIMIT_HARD = "http.limit.hard";
 
   /**
-   * Number of calls to URLFETCH so far in the sessions
+   * Number of calls to HTTP so far in the sessions
    */
-  public static final String ATTRIBUTE_URLFETCH_COUNT = "urlfetch.count";
+  public static final String ATTRIBUTE_HTTP_COUNT = "http.count";
 
   /**
-   * Maximum cumulative size of content retrieved via calls to URLFETCH in a session
+   * Maximum cumulative size of content retrieved via calls to HTTP in a session
    */
-  public static final String ATTRIBUTE_URLFETCH_MAXSIZE = "urlfetch.maxsize";
-  public static final String ATTRIBUTE_URLFETCH_MAXSIZE_HARD = "urlfetch.maxsize.hard";
+  public static final String ATTRIBUTE_HTTP_MAXSIZE = "http.maxsize";
+  public static final String ATTRIBUTE_HTTP_MAXSIZE_HARD = "http.maxsize.hard";
 
   /**
-   * Current  URLFETCH so far in the sessions
+   * Current  HTTP so far in the sessions
    */
-  public static final String ATTRIBUTE_URLFETCH_SIZE = "urlfetch.size";
+  public static final String ATTRIBUTE_HTTP_SIZE = "http.size";
 
   //
   // DEFAULTS
   //
 
-  public static final long DEFAULT_URLFETCH_LIMIT = 64L;
-  public static final long DEFAULT_URLFETCH_MAXSIZE = 1000000L;
+  public static final long DEFAULT_HTTP_LIMIT = 64L;
+  public static final long DEFAULT_HTTP_MAXSIZE = 1000000L;
 
   //
   // ASSOCIATIONS attributes to either configuration or defaults
@@ -103,26 +102,26 @@ public class UrlFetchWarpScriptExtension extends WarpScriptExtension {
   static {
     // Initialize attribute->configuration
     Map<String, String> a2c = new HashMap<String, String>();
-    a2c.put(ATTRIBUTE_URLFETCH_LIMIT, WARPSCRIPT_URLFETCH_LIMIT);
-    a2c.put(ATTRIBUTE_URLFETCH_MAXSIZE, WARPSCRIPT_URLFETCH_MAXSIZE);
-    a2c.put(ATTRIBUTE_URLFETCH_LIMIT_HARD, WARPSCRIPT_URLFETCH_LIMIT_HARD);
-    a2c.put(ATTRIBUTE_URLFETCH_MAXSIZE_HARD, WARPSCRIPT_URLFETCH_MAXSIZE_HARD);
+    a2c.put(ATTRIBUTE_HTTP_LIMIT, WARPSCRIPT_HTTP_LIMIT);
+    a2c.put(ATTRIBUTE_HTTP_MAXSIZE, WARPSCRIPT_HTTP_MAXSIZE);
+    a2c.put(ATTRIBUTE_HTTP_LIMIT_HARD, WARPSCRIPT_HTTP_LIMIT_HARD);
+    a2c.put(ATTRIBUTE_HTTP_MAXSIZE_HARD, WARPSCRIPT_HTTP_MAXSIZE_HARD);
     attributeToConf = Collections.unmodifiableMap(a2c);
 
     // Initialize attribute->default
     Map<String, Long> a2d = new HashMap<String, Long>();
-    a2d.put(ATTRIBUTE_URLFETCH_LIMIT, DEFAULT_URLFETCH_LIMIT);
-    a2d.put(ATTRIBUTE_URLFETCH_MAXSIZE, DEFAULT_URLFETCH_MAXSIZE);
-    a2d.put(ATTRIBUTE_URLFETCH_LIMIT_HARD, DEFAULT_URLFETCH_LIMIT);
-    a2d.put(ATTRIBUTE_URLFETCH_MAXSIZE_HARD, DEFAULT_URLFETCH_MAXSIZE);
+    a2d.put(ATTRIBUTE_HTTP_LIMIT, DEFAULT_HTTP_LIMIT);
+    a2d.put(ATTRIBUTE_HTTP_MAXSIZE, DEFAULT_HTTP_MAXSIZE);
+    a2d.put(ATTRIBUTE_HTTP_LIMIT_HARD, DEFAULT_HTTP_LIMIT);
+    a2d.put(ATTRIBUTE_HTTP_MAXSIZE_HARD, DEFAULT_HTTP_MAXSIZE);
     attributeToDefault = Collections.unmodifiableMap(a2d);
 
     // Create functions and map
     functions = new HashMap<String, Object>();
 
-    functions.put("URLFETCH", new URLFETCH("URLFETCH"));
-    functions.put("MAXURLFETCHCOUNT", new MAXURLFETCHCOUNT("MAXURLFETCHCOUNT"));
-    functions.put("MAXURLFETCHSIZE", new MAXURLFETCHSIZE("MAXURLFETCHSIZE"));
+    functions.put("HTTP", new HTTP("HTTP"));
+    functions.put("MAXURLCOUNT", new MAXURLCOUNT("MAXURLCOUNT"));
+    functions.put("MAXDOWNLOADSIZE", new MAXDOWNLOADSIZE("MAXDOWNLOADSIZE"));
   }
 
   public Map<String, Object> getFunctions() {

@@ -14,7 +14,7 @@
 //   limitations under the License.
 //
 
-package io.warp10.script.ext.urlfetch;
+package io.warp10.script.ext.http;
 
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
@@ -22,11 +22,11 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
 /**
- * Change the maximum number of fetched urls by URLFETCH. Value cannot exceed the hard limit.
+ * Change the maximum number of fetched urls by HTTP. Value cannot exceed the hard limit.
  */
-public class MAXURLFETCHCOUNT extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class MAXURLCOUNT extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  public MAXURLFETCHCOUNT(String name) {
+  public MAXURLCOUNT(String name) {
     super(name);
   }
 
@@ -45,11 +45,11 @@ public class MAXURLFETCHCOUNT extends NamedWarpScriptFunction implements WarpScr
 
     long limit = ((Number) top).longValue();
 
-    if (limit > (long) UrlFetchWarpScriptExtension.getLongAttribute(stack, UrlFetchWarpScriptExtension.ATTRIBUTE_URLFETCH_LIMIT_HARD)) {
-      throw new WarpScriptException(getName() + " cannot extend limit past " + UrlFetchWarpScriptExtension.getLongAttribute(stack, UrlFetchWarpScriptExtension.ATTRIBUTE_URLFETCH_LIMIT_HARD));
+    if (limit > (long) HttpWarpScriptExtension.getLongAttribute(stack, HttpWarpScriptExtension.ATTRIBUTE_HTTP_LIMIT_HARD)) {
+      throw new WarpScriptException(getName() + " cannot extend limit past " + HttpWarpScriptExtension.getLongAttribute(stack, HttpWarpScriptExtension.ATTRIBUTE_HTTP_LIMIT_HARD));
     }
 
-    stack.setAttribute(UrlFetchWarpScriptExtension.ATTRIBUTE_URLFETCH_LIMIT, limit);
+    stack.setAttribute(HttpWarpScriptExtension.ATTRIBUTE_HTTP_LIMIT, limit);
 
     return stack;
   }
