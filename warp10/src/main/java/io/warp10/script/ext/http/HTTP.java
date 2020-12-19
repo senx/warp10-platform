@@ -90,9 +90,9 @@ public class HTTP extends FormattedWarpScriptFunction {
 
     args = new ArgumentsBuilder()
       .addArgument(String.class, METHOD, "The http method.")
-      .addArgument(String.class, URL, "The URL to send the GET request to. Must begin with http:// or https://.")
+      .addArgument(String.class, URL, "The URL to send the request to. Must begin with http:// or https://.")
       .addOptionalArgument(Map.class, HEADER, "An optional header.", new HashMap<>())
-      .addOptionalArgument(String.class, BODY, "An optional body", "")
+      .addOptionalArgument(String.class, BODY, "An optional body.", "")
       .build();
 
     output = new ArgumentsBuilder()
