@@ -96,7 +96,7 @@ public class HTTP extends FormattedWarpScriptFunction {
       .build();
 
     output = new ArgumentsBuilder()
-      .addArgument(List.class, RESPONSE, "A list containing, for each URL, a 4-element list. These 4-element lists contain, in this order, a LONG status code, a STRING status message or an empty STRING if not available, a MAP of headers and a STRING representing a bytes array encoded as base 64.")
+      .addArgument(List.class, RESPONSE, "A 4-element list that contains, in this order, a LONG status code, a STRING status message or an empty STRING if not available, a MAP of headers and a STRING representing a bytes array encoded as base 64.")
       .build();
   }
 
