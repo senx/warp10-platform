@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -5493,6 +5493,8 @@ public class GTSHelper {
 
         for (int j = 0; j < subgts.values; j++) {
           ((Object[]) parms[6])[j] = valueAtIndex(subgts, j);
+          // Find the first index of the current tick or the last one in case we map in reverse.
+          // This is because subgts is always sorted but never in reverse.
           if ((-1 == tickidx || reversed) && tick == tickAtIndex(subgts, j)) {
             tickidx = j;
           }
