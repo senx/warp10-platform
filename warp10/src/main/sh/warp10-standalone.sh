@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-#   Copyright 2018-2020  SenX S.A.S.
+#   Copyright 2016-2021  SenX S.A.S.
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -420,19 +420,18 @@ start() {
 
   LEVELDB_HOME="$(echo "${CONFIG_KEYS}" | grep -e '^leveldb\.home=' | sed -e 's/^.*=//')"
   IN_MEMORY="$(echo "${CONFIG_KEYS}" | grep -e '^in\.memory=' | sed -e 's/^.*=//')"
-  #
-  # Leveldb exists ?
-  #
-  if [ ! -e ${LEVELDB_HOME} ]; then
-    echo "${LEVELDB_HOME} does not exist - Creating it..."
-    mkdir -p ${LEVELDB_HOME} 2>&1
-    if [ $? != 0 ]; then
-      echo "${LEVELDB_HOME} creation failed"
-      exit 1
-    fi
-  fi
-
   if [ "${IN_MEMORY:-}" != "true" ]; then
+    #
+    # Leveldb exists ?
+    #
+    if [ ! -e ${LEVELDB_HOME} ]; then
+      echo "${LEVELDB_HOME} does not exist - Creating it..."
+      mkdir -p ${LEVELDB_HOME} 2>&1
+      if [ $? != 0 ]; then
+        echo "${LEVELDB_HOME} creation failed"
+        exit 1
+      fi
+    fi
     if [ "$(find -L ${LEVELDB_HOME} -maxdepth 1 -type f | wc -l)" -eq 0 ]; then
       echo "Init leveldb"
       # Create leveldb database
