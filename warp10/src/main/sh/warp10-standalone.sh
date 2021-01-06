@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-#   Copyright 2018-2020  SenX S.A.S.
+#   Copyright 2016-2021  SenX S.A.S.
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -416,27 +416,28 @@ start() {
   # Extract configuration keys
   # 
 
-  CONFIG_KEYS=$(${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} -Dfile.encoding=UTF-8 io.warp10.WarpConfig ${CONFIG_FILES} . 'leveldb.home' 'standalone.host' 'standalone.port' | grep -e '^@CONF@ ' | sed -e 's/^@CONF@ //')
+  CONFIG_KEYS=$(${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} -Dfile.encoding=UTF-8 io.warp10.WarpConfig ${CONFIG_FILES} . 'leveldb.home' 'standalone.host' 'standalone.port' 'in.memory' | grep -e '^@CONF@ ' | sed -e 's/^@CONF@ //')
 
   LEVELDB_HOME="$(echo "${CONFIG_KEYS}" | grep -e '^leveldb\.home=' | sed -e 's/^.*=//')"
-
-  #
-  # Leveldb exists ?
-  #
-  if [ ! -e ${LEVELDB_HOME} ]; then
-    echo "${LEVELDB_HOME} does not exist - Creating it..."
-    mkdir -p ${LEVELDB_HOME} 2>&1
-    if [ $? != 0 ]; then
-      echo "${LEVELDB_HOME} creation failed"
-      exit 1
+  IN_MEMORY="$(echo "${CONFIG_KEYS}" | grep -e '^in\.memory=' | sed -e 's/^.*=//')"
+  if [ "${IN_MEMORY:-}" != "true" ]; then
+    #
+    # Leveldb exists ?
+    #
+    if [ ! -e ${LEVELDB_HOME} ]; then
+      echo "${LEVELDB_HOME} does not exist - Creating it..."
+      mkdir -p ${LEVELDB_HOME} 2>&1
+      if [ $? != 0 ]; then
+        echo "${LEVELDB_HOME} creation failed"
+        exit 1
+      fi
     fi
-  fi
-
-  if [ "$(find -L ${LEVELDB_HOME} -maxdepth 1 -type f | wc -l)" -eq 0 ]; then
-    echo "Init leveldb"
-    # Create leveldb database
-    echo \"Init leveldb database...\" >> ${WARP10_HOME}/logs/warp10.log
-    ${JAVACMD} ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_INIT} ${LEVELDB_HOME} >> ${WARP10_HOME}/logs/warp10.log 2>&1
+    if [ "$(find -L ${LEVELDB_HOME} -maxdepth 1 -type f | wc -l)" -eq 0 ]; then
+      echo "Init leveldb"
+      # Create leveldb database
+      echo \"Init leveldb database...\" >> ${WARP10_HOME}/logs/warp10.log
+      ${JAVACMD} ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_INIT} ${LEVELDB_HOME} >> ${WARP10_HOME}/logs/warp10.log 2>&1
+    fi
   fi
 
   WARP10_LISTENSTO_HOST="$(echo "${CONFIG_KEYS}" | grep -e '^standalone\.host=' | sed -e 's/^.*=//')"
