@@ -451,6 +451,9 @@ public interface WarpScriptStack {
       this.statements = Arrays.copyOf(this.statements, newlen);
     }
   }
+
+  String CAPABILITIES_PREFIX = ".cap:";
+  String CAPABILITIES_ATTR = "stack.capabilities";
   
   /**
    * Retrieve the StoreClient instance associated with this stack.

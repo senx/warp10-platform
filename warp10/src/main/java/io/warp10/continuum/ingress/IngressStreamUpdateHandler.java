@@ -274,7 +274,7 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
                 }
               } catch (ParseException pe) {
                 Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STREAM_UPDATE_PARSEERRORS, sensisionLabels, 1);
-                throw new IOException("Parse error at '" + line + "'", pe);
+                throw new IOException("Parse error at index " + pe.getErrorOffset() + " in '" + line + "'", pe);
               }
 
               //

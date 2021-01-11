@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2020  SenX S.A.S.
+//   Copyright 2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,16 +16,21 @@
 
 package io.warp10.script.functions;
 
-import java.text.ParseException;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
-import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.warp.sdk.Capabilities;
 
-public class PARSEVALUE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  public PARSEVALUE(String name) {
+public class CAPGET extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+
+  public CAPGET(String name) {
     super(name);
   }
 
@@ -33,16 +38,12 @@ public class PARSEVALUE extends NamedWarpScriptFunction implements WarpScriptSta
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
 
-    if (!(top instanceof String)) {
-      throw new WarpScriptException(getName() + " operates on a STRING.");
-    }
-
-    String value = top.toString().trim();
-
-    try {
-      stack.push(GTSHelper.parseValue(value));
-    } catch (ParseException pe) {
-      throw new WarpScriptException(getName() + " encountered a parse error at index " + pe.getErrorOffset() + " for '" + value + "'.", pe);
+    if (top instanceof String) {
+      stack.push(Capabilities.get(stack, (String) top));
+    } else if (top instanceof List || null == top) {
+      stack.push(Capabilities.get(stack, (List) top));
+    } else {
+      throw new WarpScriptException(getName() + " expects a capability name (STRING) or a LIST thereof.");
     }
 
     return stack;

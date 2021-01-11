@@ -307,7 +307,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
 
   private final Map<String,Map<Long,String>> classesPerOwner = new MapMaker().concurrencyLevel(64).makeMap();
 
-  private final ReentrantLock metadatasLock = new ReentrantLock();
+  private final ReentrantLock metadatasLock = new ReentrantLock(true);
 
   /**
    * Number of threads for servicing requests
@@ -1263,7 +1263,7 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         final AtomicLong lastAction = new AtomicLong(0L);
 
         final List<Mutation> actions = new ArrayList<Mutation>();
-        final ReentrantLock actionsLock = new ReentrantLock();
+        final ReentrantLock actionsLock = new ReentrantLock(true);
 
         final AtomicLong actionsSize = new AtomicLong(0L);
 

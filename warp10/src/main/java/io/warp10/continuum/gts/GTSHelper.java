@@ -2463,25 +2463,29 @@ public class GTSHelper {
     }
     
     //idx = str.indexOf("/");
-    idx = UnsafeString.indexOf(str, '/');
+    idx = UnsafeString.indexOf(str, '/', tsoffset);
 
     if (-1 == idx){
-      throw new ParseException("Missing timestamp separator.", idx);
+      throw new ParseException("Missing timestamp separator.", tsoffset);
     }
     
     long timestamp;
-    
-    if (tsoffset == idx) {
-      // No timestamp provided, use 'now'
-      timestamp = null != now ? (long) now : TimeSource.getTime();
-    } else {
-      if ('T' == str.charAt(tsoffset)) {
-        // Support T-XXX to record timestamps which are relative to 'now', useful for
-        // devices with no time reference but only relative timestamps
-        timestamp = (null != now ? (long) now : TimeSource.getTime()) + Long.parseLong(str.substring(1 + tsoffset, idx));
+
+    try {
+      if (tsoffset == idx) {
+        // No timestamp provided, use 'now'
+        timestamp = null != now ? (long) now : TimeSource.getTime();
       } else {
-        timestamp = Long.parseLong(str.substring(tsoffset,  idx));
+        if ('T' == str.charAt(tsoffset)) {
+          // Support T-XXX to record timestamps which are relative to 'now', useful for
+          // devices with no time reference but only relative timestamps
+          timestamp = (null != now ? (long) now : TimeSource.getTime()) + Long.parseLong(str.substring(1 + tsoffset, idx));
+        } else {
+          timestamp = Long.parseLong(str.substring(tsoffset, idx));
+        }
       }
+    } catch (NumberFormatException nfe) {
+      throw new ParseException("Invalid timestamp.", tsoffset);
     }
 
     boolean ignored = false;
@@ -2519,12 +2523,16 @@ public class GTSHelper {
       idx = idx2 + 1;
       //idx2 = latlon.indexOf(":");
       idx2 = UnsafeString.indexOf(latlon, ':');
-            
-      if (-1 != idx2) {
-        location = GeoXPLib.toGeoXPPoint(Double.parseDouble(latlon.substring(0, idx2)), Double.parseDouble(latlon.substring(idx2 + 1)));
-      } else {
-        // Parse the location value as a Long
-        location = Long.parseLong(latlon);        
+
+      try {
+        if (-1 != idx2) {
+          location = GeoXPLib.toGeoXPPoint(Double.parseDouble(latlon.substring(0, idx2)), Double.parseDouble(latlon.substring(idx2 + 1)));
+        } else {
+          // Parse the location value as a Long
+          location = Long.parseLong(latlon);
+        }
+      } catch (NumberFormatException nfe) {
+        throw new ParseException("Invalid location: '" + latlon +"'.", idx - latlon.length() - 1);
       }
     } else {
       // Advance past the second '/'    
@@ -2535,14 +2543,22 @@ public class GTSHelper {
     idx2 = UnsafeString.indexOf(str, ' ', idx);
     
     if (-1 == idx2){
-      throw new ParseException(str, idx);
+      if(0 == tsoffset) {
+        throw new ParseException("Missing GTS name, labels and value.", idx);
+      } else {
+        throw new ParseException("Missing value.", idx);
+      }
     }
 
     long elevation = GeoTimeSerie.NO_ELEVATION;
     
     if (idx != idx2) {
       // We have an elevation
-      elevation = Long.parseLong(str.substring(idx, idx2));
+      try {
+        elevation = Long.parseLong(str.substring(idx, idx2));
+      } catch (NumberFormatException nfe) {
+        throw new ParseException("Invalid elevation: '" + str.substring(idx, idx2) + "'.", idx);
+      }
     }
 
     // Advance past the ' '    
@@ -2574,7 +2590,7 @@ public class GTSHelper {
       // No class+labels, assume same class+labels as those in encoder, except
       // if encoder is null in which case we throw a parse exception
       if (null == encoder) {
-        throw new ParseException(str, idx);
+        throw new ParseException("Missing or invalid GTS name and labels.", idx);
       }
       name = encoder.getMetadata().getName();
       labels = encoder.getMetadata().getLabels();
@@ -2591,14 +2607,20 @@ public class GTSHelper {
       idx2 = UnsafeString.indexOf(str, '}', idx);
       
       if (-1 == idx2){
-        throw new ParseException(str, idx);
+        throw new ParseException("Missing end of labels '}'.", str.length() - 1);
       }
       
       //
       // Parse labels
       //
-      
-      labels = parseLabels(null != extraLabels ? extraLabels.size() : 0, str.substring(idx, idx2));           
+
+      try {
+        labels = parseLabels(null != extraLabels ? extraLabels.size() : 0, str.substring(idx, idx2));
+      } catch (ParseException pe) {
+        ParseException newpe = new ParseException("Invalid label definition.", pe.getErrorOffset() + idx);
+        newpe.initCause(pe);
+        throw newpe;
+      }
       
       //
       // FIXME(hbs): parse attributes????
@@ -2617,9 +2639,15 @@ public class GTSHelper {
         }
         if (null != parsedAttributes) {
           if (idx >= str.length()) {
-            throw new ParseException("Missing attributes.", idx2);
+            throw new ParseException("Missing end of attributes '}'.", str.length() - 1);
           }
-          attributes = parseLabels(str.substring(attrstart, idx));
+          try {
+            attributes = parseLabels(str.substring(attrstart, idx));
+          } catch (ParseException pe) {
+            ParseException newpe = new ParseException("Invalid attribute definition.", pe.getErrorOffset() + idx);
+            newpe.initCause(pe);
+            throw newpe;
+          }
           // Set the atomic boolean to true to indicate that attributes were parsed
           parsedAttributes.set(true);
         }
@@ -2631,7 +2659,7 @@ public class GTSHelper {
       }
       
       if (idx >= str.length()) {
-        throw new ParseException("Missing value.", idx2);
+        throw new ParseException("Missing value.", str.length() - 1);
       }
     }
 
@@ -2672,14 +2700,22 @@ public class GTSHelper {
     
     String valuestr = str.substring(idx);
     
-    Object value = parseValue(valuestr);
+    Object value;
+    try {
+      value = parseValue(valuestr);
+    } catch (ParseException pe) {
+      // Copy ParseException and shift error offset.
+      ParseException newpe = new ParseException(pe.getMessage(), idx + pe.getErrorOffset());
+      newpe.initCause(pe.getCause());
+      throw newpe;
+    }
 
     if (null == value) {
-      throw new ParseException("Unable to parse value '" + valuestr + "'", 0);
+      throw new ParseException("Unable to parse value '" + valuestr + "'", idx);
     }
 
     if ((value instanceof String  && value.toString().length() > maxValueSize) || (value instanceof byte[] && ((byte[]) value).length > maxValueSize)) {
-      throw new ParseException("Value too large for GTS " + (null != encoder ? GTSHelper.buildSelector(encoder.getMetadata(), false) : ""), 0);
+      throw new ParseException("Value too large for GTS " + (null != encoder ? GTSHelper.buildSelector(encoder.getMetadata(), false) : ""), idx);
     }
     
     // Allocate a new Encoder if need be, with a base timestamp of 0L.
@@ -2716,7 +2752,7 @@ public class GTSHelper {
     // Check labels/attributes sizes, subtract 6 to account for '// {} '
     // Subtract value length
     if (str.length() - 6 - valuestr.length() > MetadataUtils.SIZE_THRESHOLD && !MetadataUtils.validateMetadata(encoder.getMetadata())) {
-      throw new ParseException("Invalid metadata", 0);
+      throw new ParseException("Invalid or too large metadata", 0);
     }
     
     return encoder;
@@ -2734,7 +2770,7 @@ public class GTSHelper {
       char firstChar = valuestr.charAt(0);
 
       if (('\'' == firstChar && valuestr.endsWith("'"))
-          || ('"' == firstChar && valuestr.endsWith("\""))) {
+              || ('"' == firstChar && valuestr.endsWith("\""))) {
         value = valuestr.substring(1, valuestr.length() - 1);
         value = WarpURLDecoder.decode((String) value, StandardCharsets.UTF_8);
       } else if (('t' == firstChar || 'T' == firstChar) && (1 == valuestr.length() || "true".equalsIgnoreCase(valuestr))) {
@@ -2742,43 +2778,64 @@ public class GTSHelper {
       } else if (('f' == firstChar || 'F' == firstChar) && (1 == valuestr.length() || "false".equalsIgnoreCase(valuestr))) {
         value = Boolean.FALSE;
       } else if ('H' == firstChar && valuestr.startsWith("HH:")) {
-        int colon = valuestr.indexOf(':',3);
+        int colon = valuestr.indexOf(':', 3);
         if (-1 == colon) {
           throw new ParseException("Invalid value for lat,lon conversion to HHCode.", 0);
         }
-        double lat = Double.parseDouble(valuestr.substring(3, colon));
-        double lon = Double.parseDouble(valuestr.substring(colon + 1));
-        
+        double lat;
+        double lon;
+
+        try {
+          lat = Double.parseDouble(valuestr.substring(3, colon));
+        } catch (NumberFormatException nfe) {
+          ParseException pe = new ParseException("Cannot parse latitude.", 3);
+          pe.initCause(nfe);
+          throw pe;
+        }
+        try {
+          lon = Double.parseDouble(valuestr.substring(colon + 1));
+        } catch (NumberFormatException nfe) {
+          ParseException pe = new ParseException("Cannot parse longitude.", colon + 1);
+          pe.initCause(nfe);
+          throw pe;
+        }
+
         value = GeoXPLib.toGeoXPPoint(lat, lon);
       } else if ('Q' == firstChar && valuestr.startsWith("Q:")) {
-        
+
         double[] q = new double[4];
-        
+
         int idx = 2;
         int qidx = 0;
-        
+
         while (qidx < q.length) {
           int colon = valuestr.indexOf(':', idx);
-          
+
           if (-1 == colon) {
             throw new ParseException("Invalid value for Quaternion, expected Q:w:x:y:z", 0);
           }
 
-          q[qidx++] = Double.parseDouble(valuestr.substring(idx, colon));
-          idx = colon + 1;
-          
-          if (3 == qidx) {
-            q[qidx++] = Double.parseDouble(valuestr.substring(idx));
+          try {
+            q[qidx++] = Double.parseDouble(valuestr.substring(idx, colon));
+            idx = colon + 1;
+
+            if (3 == qidx) {
+              q[qidx++] = Double.parseDouble(valuestr.substring(idx));
+            }
+          } catch (NumberFormatException nfe) {
+            ParseException pe = new ParseException("Cannot parse quaternion component.", idx);
+            pe.initCause(nfe);
+            throw pe;
           }
         }
-        
+
         if (!DoubleUtils.isFinite(q[0]) || !DoubleUtils.isFinite(q[1]) || !DoubleUtils.isFinite(q[2]) || !DoubleUtils.isFinite(q[3])) {
           throw new ParseException("Quaternion values require finite elements.", 0);
         }
-        
+
         value = TOQUATERNION.toQuaternion(q[0], q[1], q[2], q[3]);
-      } else if ('[' == valuestr.charAt(0)) {        
-        
+      } else if ('[' == valuestr.charAt(0)) {
+
         // Value is a nested set of lists, each one being a space separated list of tokens of the form enclosed in [ ... ]
         // VALUE
         // TS/VALUE
@@ -2787,19 +2844,19 @@ public class GTSHelper {
         // TS/LAT:LON/ELEV/VALUE
         //
         // Elements between two '/' can be empty
-        
+
         GTSEncoder encoder = new GTSEncoder();
 
         // Start index of the token to parse. Will advance through the token to parse each slash-separated field.
         int idxTokenStart = 1;
-        
+
         boolean comp = true;
         // Handle the case where the value starts with [! which means to not compress the resulting encoder
         if ('!' == valuestr.charAt(1)) {
           comp = false;
           idxTokenStart = 2;
         }
-        
+
         int idxTokenSlash = 0; // Used to find '/' inside the token
 
         // Last index (excluded) to be considered in valuestr
@@ -2820,48 +2877,48 @@ public class GTSHelper {
         if (idxValueEnd < idxTokenStart) {
           throw new ParseException("Missing closing bracket.", 0);
         }
-        
-        while(idxTokenStart < idxValueEnd) {
+
+        while (idxTokenStart < idxValueEnd) {
           // Ignore leading spaces
-          while(idxTokenStart < idxValueEnd && ' ' == valuestr.charAt(idxTokenStart)) {
+          while (idxTokenStart < idxValueEnd && ' ' == valuestr.charAt(idxTokenStart)) {
             idxTokenStart++;
           }
 
           if (idxTokenStart >= idxValueEnd) {
             break;
           }
-          
+
           // Find end of current token
           int idxTokenEnd = idxTokenStart + 1;
-          
-          while(idxTokenEnd < idxValueEnd && ' ' != valuestr.charAt(idxTokenEnd)) {
+
+          while (idxTokenEnd < idxValueEnd && ' ' != valuestr.charAt(idxTokenEnd)) {
             idxTokenEnd++;
           }
-          
+
           // Current token is between idxTokenStart (included) and idxTokenEnd (excluded)
-          
+
           // Find out if there is a first '/'
           idxTokenSlash = idxTokenStart + 1;
-          
-          while(idxTokenSlash < idxTokenEnd && '/' != valuestr.charAt(idxTokenSlash)) {
+
+          while (idxTokenSlash < idxTokenEnd && '/' != valuestr.charAt(idxTokenSlash)) {
             idxTokenSlash++;
           }
-          
+
           long ts;
           long location = GeoTimeSerie.NO_LOCATION;
           long elevation = GeoTimeSerie.NO_ELEVATION;
-              
+
           Object val;
-          
+
           // No '/', we simply have a value, we'll store it at ts 0
-          
+
           if (idxTokenSlash == idxTokenEnd) {
             ts = 0L;
             // Advance to the closing ']' if the value starts with '['
             if ('[' == valuestr.charAt(idxTokenStart)) {
               int closing = idxTokenStart + 1;
               int opening = 1;
-              while(closing < idxValueEnd && opening > 0) {
+              while (closing < idxValueEnd && opening > 0) {
                 char lead = valuestr.charAt(closing);
                 if (']' == lead) {
                   opening--;
@@ -2873,34 +2930,42 @@ public class GTSHelper {
               idxTokenEnd = closing; // idxTokenEnd points to the character just after ']' or after the last character of valuestr if opening > 0.
               // In that latter case, the parsing will fail when recursively calling GTSHelper.parseValue because at one time it will be given a token without closing bracket at the end.
             }
-            
-            val = GTSHelper.parseValue(valuestr.substring(idxTokenStart, idxTokenEnd));
+
+            try {
+              val = GTSHelper.parseValue(valuestr.substring(idxTokenStart, idxTokenEnd));
+            } catch (ParseException pe) {
+              // Copy ParseException and shift error offset.
+              ParseException newpe = new ParseException(pe.getMessage(), idxTokenStart + pe.getErrorOffset());
+              newpe.initCause(pe.getCause());
+              throw newpe;
+            }
+
             encoder.addValue(ts, location, elevation, val);
             idxTokenStart = idxTokenEnd;
             continue;
           }
-          
+
           //
           // Parse the timestamp
           //
           ts = Long.parseLong(valuestr.substring(idxTokenStart, idxTokenSlash));
-          
+
           // Advance idxTokenSlash after the first '/'
           idxTokenSlash++;
           idxTokenStart = idxTokenSlash;
-          
+
           // Identify a possible second '/'
-          while(idxTokenSlash < idxTokenEnd && '/' != valuestr.charAt(idxTokenSlash)) {
+          while (idxTokenSlash < idxTokenEnd && '/' != valuestr.charAt(idxTokenSlash)) {
             idxTokenSlash++;
           }
-          
+
           // No second '/', we have TS/VALUE
           if (idxTokenSlash == idxTokenEnd) {
             // Advance to the closing ']' if the value starts with '['
             if ('[' == valuestr.charAt(idxTokenStart)) {
               int closing = idxTokenStart + 1;
               int opening = 1;
-              while(closing < idxValueEnd && opening > 0) {
+              while (closing < idxValueEnd && opening > 0) {
                 char lead = valuestr.charAt(closing);
                 if (']' == lead) {
                   opening--;
@@ -2912,28 +2977,37 @@ public class GTSHelper {
               idxTokenEnd = closing; // idxTokenEnd points to the character just after ']' or after the last character of valuestr if opening > 0.
               // In that latter case, the parsing will fail when recursively calling GTSHelper.parseValue because at one time it will be given a token without closing bracket at the end.
             }
-            val = GTSHelper.parseValue(valuestr.substring(idxTokenStart, idxTokenEnd));
+
+            try {
+              val = GTSHelper.parseValue(valuestr.substring(idxTokenStart, idxTokenEnd));
+            } catch (ParseException pe) {
+              // Copy ParseException and shift error offset.
+              ParseException newpe = new ParseException(pe.getMessage(), idxTokenStart + pe.getErrorOffset());
+              newpe.initCause(pe.getCause());
+              throw newpe;
+            }
+
             encoder.addValue(ts, location, elevation, val);
             idxTokenStart = idxTokenEnd;
             continue;
           }
-          
+
           // Parse lat:lon or HHCode
           // Identify ':'
-          
+
           int idxTokenSemiCol = idxTokenStart;
-          
+
           // idxTokenSlash is the index of the second '/' we found
-          while(idxTokenSemiCol < idxTokenSlash && ':' != valuestr.charAt(idxTokenSemiCol)) {
+          while (idxTokenSemiCol < idxTokenSlash && ':' != valuestr.charAt(idxTokenSemiCol)) {
             idxTokenSemiCol++;
           }
-          
+
           // No ':', we have TS/HHCode/... or TS//...
           if (idxTokenSemiCol == idxTokenSlash) {
             if (idxTokenSemiCol > idxTokenStart) {
               location = Long.parseLong(valuestr.substring(idxTokenStart, idxTokenSemiCol));
             }
-          } else {       
+          } else {
             // Parse LAT:LON
             double lat = Double.parseDouble(valuestr.substring(idxTokenStart, idxTokenSemiCol));
             double lon = Double.parseDouble(valuestr.substring(idxTokenSemiCol + 1, idxTokenSlash));
@@ -2944,17 +3018,17 @@ public class GTSHelper {
           idxTokenStart = idxTokenSlash;
 
           // Identify a possible third '/'
-          while(idxTokenSlash < idxTokenEnd && '/' != valuestr.charAt(idxTokenSlash)) {
+          while (idxTokenSlash < idxTokenEnd && '/' != valuestr.charAt(idxTokenSlash)) {
             idxTokenSlash++;
           }
-          
+
           // No '/', we have TS/LAT:LON/VALUE
           if (idxTokenSlash == idxTokenEnd) {
             // Advance to the closing ']' if the value starts with '['
             if ('[' == valuestr.charAt(idxTokenStart)) {
               int closing = idxTokenStart + 1;
               int opening = 1;
-              while(closing < idxValueEnd && opening > 0) {
+              while (closing < idxValueEnd && opening > 0) {
                 char lead = valuestr.charAt(closing);
                 if (']' == lead) {
                   opening--;
@@ -2966,22 +3040,31 @@ public class GTSHelper {
               idxTokenEnd = closing; // idxTokenEnd points to the character just after ']' or after the last character of valuestr if opening > 0.
               // In that latter case, the parsing will fail when recursively calling GTSHelper.parseValue because at one time it will be given a token without closing bracket at the end.
             }
-            val = GTSHelper.parseValue(valuestr.substring(idxTokenStart, idxTokenEnd));
+
+            try {
+              val = GTSHelper.parseValue(valuestr.substring(idxTokenStart, idxTokenEnd));
+            } catch (ParseException pe) {
+              // Copy ParseException and shift error offset.
+              ParseException newpe = new ParseException(pe.getMessage(), idxTokenStart + pe.getErrorOffset());
+              newpe.initCause(pe.getCause());
+              throw newpe;
+            }
+
             encoder.addValue(ts, location, elevation, val);
             idxTokenStart = idxTokenEnd;
             continue;
           }
-          
+
           // Extract elevation
           if (idxTokenSlash > idxTokenStart) {
             elevation = Long.parseLong(valuestr.substring(idxTokenStart, idxTokenSlash));
           }
-          
+
           // Advance to the closing ']' if the value starts with '['
           if ('[' == valuestr.charAt(idxTokenSlash + 1)) {
             int closing = idxTokenSlash + 2;
             int opening = 1;
-            while(closing < idxValueEnd && opening > 0) {
+            while (closing < idxValueEnd && opening > 0) {
               char lead = valuestr.charAt(closing);
               if (']' == lead) {
                 opening--;
@@ -2994,20 +3077,28 @@ public class GTSHelper {
             // In that latter case, the parsing will fail when recursively calling GTSHelper.parseValue because at one time it will be given a token without closing bracket at the end.
           }
 
-          val = GTSHelper.parseValue(valuestr.substring(idxTokenSlash + 1, idxTokenEnd));
+          try {
+            val = GTSHelper.parseValue(valuestr.substring(idxTokenSlash + 1, idxTokenEnd));
+          } catch (ParseException pe) {
+            // Copy ParseException and shift error offset.
+            ParseException newpe = new ParseException(pe.getMessage(), idxTokenSlash + 1 + pe.getErrorOffset());
+            newpe.initCause(pe.getCause());
+            throw newpe;
+          }
+
           encoder.addValue(ts, location, elevation, val);
-          
+
           idxTokenStart = idxTokenEnd + 1;
         }
-        
+
         // Wrap GTSEncoder and encode result, we don't set the count in the wrapper to save some
         // space
         GTSWrapper wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(encoder, comp, GTSWrapperHelper.DEFAULT_COMP_RATIO_THRESHOLD, Integer.MAX_VALUE, false);
-        
+
         TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
-        
+
         byte[] ser = serializer.serialize(wrapper);
-        
+
         return ser;
       } else if ('b' == firstChar && valuestr.startsWith("b64:")) {
         value = Base64.decodeBase64(valuestr.substring(4));
@@ -3017,12 +3108,12 @@ public class GTSHelper {
         //
         // Custom encoders support values prefixed with ':' + a custom prefix, i.e. ':xxx:VALUE'.
         //
-        
+
         value = ValueEncoder.parse(valuestr);
       } else {
         //boolean likelydouble = UnsafeString.isDouble(valuestr);
         boolean likelylong = UnsafeString.isLong(valuestr);
-        
+
         //if (!likelydouble) {
         if (likelylong) {
           value = Long.parseLong(valuestr);
@@ -3043,9 +3134,12 @@ public class GTSHelper {
             value = Double.parseDouble(valuestr);
           }
         }
-      }      
+      }
+    } catch (ParseException pe) {
+      throw pe;
     } catch (Exception e) {
-      ParseException pe = new ParseException(valuestr, 0);
+      // Encapsulate Exception in ParseException with an offset of 0.
+      ParseException pe = new ParseException("Cannot parse value.", 0);
       pe.initCause(e);
       throw pe;
     }

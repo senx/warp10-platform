@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2020  SenX S.A.S.
+//   Copyright 2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,33 +16,34 @@
 
 package io.warp10.script.functions;
 
-import java.text.ParseException;
-
-import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.warp.sdk.Capabilities;
 
-public class PARSEVALUE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  public PARSEVALUE(String name) {
+public class CAPCHECK extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+
+  public CAPCHECK(String name) {
     super(name);
   }
 
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
+
     Object top = stack.pop();
 
-    if (!(top instanceof String)) {
-      throw new WarpScriptException(getName() + " operates on a STRING.");
-    }
+    if (top instanceof String) {
+      Capabilities capabilities = null;
 
-    String value = top.toString().trim();
-
-    try {
-      stack.push(GTSHelper.parseValue(value));
-    } catch (ParseException pe) {
-      throw new WarpScriptException(getName() + " encountered a parse error at index " + pe.getErrorOffset() + " for '" + value + "'.", pe);
+      if (stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR) instanceof Capabilities) {
+        capabilities = (Capabilities) stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR);
+        stack.push(capabilities.containsKey((String) top));
+      } else {
+        stack.push(false);
+      }
+    } else {
+      throw new WarpScriptException(getName() + " expects a STRING capability name.");
     }
 
     return stack;

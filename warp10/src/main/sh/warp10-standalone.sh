@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-#   Copyright 2018-2020  SenX S.A.S.
+#   Copyright 2016-2021  SenX S.A.S.
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -24,9 +24,6 @@
 # Short-Description: Warp data platform
 # Description:       Warp stores sensor data
 ### END INIT INFO
-
-# Change directory to avoid "find: Failed to restore initial working directory"
-cd /
 
 # Source function library.
 if [[ -e /lib/lsb/init-functions ]]; then
@@ -83,7 +80,15 @@ if [[ -z "${WARP10_HOME:-}" ]]; then
   WARP10_HOME=`cd $(dirname $0); cd $(pwd -P)/..; pwd -P`
 fi
 
+if [[ "//" == "${WARP10_HOME}" ]]; then
+  echo "Wrong path for WARP10_HOME: ${WARP10_HOME}"
+  exit 1
+fi
+
 export WARP10_HOME
+
+# Change directory to avoid "find: Failed to restore initial working directory"
+cd "${WARP10_HOME}"
 
 #
 # Data directory that contains logs, leveldb, config defined ?
@@ -411,27 +416,28 @@ start() {
   # Extract configuration keys
   # 
 
-  CONFIG_KEYS=$(${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} -Dfile.encoding=UTF-8 io.warp10.WarpConfig ${CONFIG_FILES} . 'leveldb.home' 'standalone.host' 'standalone.port' | grep -e '^@CONF@ ' | sed -e 's/^@CONF@ //')
+  CONFIG_KEYS=$(${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} -Dfile.encoding=UTF-8 io.warp10.WarpConfig ${CONFIG_FILES} . 'leveldb.home' 'standalone.host' 'standalone.port' 'in.memory' | grep -e '^@CONF@ ' | sed -e 's/^@CONF@ //')
 
   LEVELDB_HOME="$(echo "${CONFIG_KEYS}" | grep -e '^leveldb\.home=' | sed -e 's/^.*=//')"
-
-  #
-  # Leveldb exists ?
-  #
-  if [ ! -e ${LEVELDB_HOME} ]; then
-    echo "${LEVELDB_HOME} does not exist - Creating it..."
-    mkdir -p ${LEVELDB_HOME} 2>&1
-    if [ $? != 0 ]; then
-      echo "${LEVELDB_HOME} creation failed"
-      exit 1
+  IN_MEMORY="$(echo "${CONFIG_KEYS}" | grep -e '^in\.memory=' | sed -e 's/^.*=//')"
+  if [ "${IN_MEMORY:-}" != "true" ]; then
+    #
+    # Leveldb exists ?
+    #
+    if [ ! -e ${LEVELDB_HOME} ]; then
+      echo "${LEVELDB_HOME} does not exist - Creating it..."
+      mkdir -p ${LEVELDB_HOME} 2>&1
+      if [ $? != 0 ]; then
+        echo "${LEVELDB_HOME} creation failed"
+        exit 1
+      fi
     fi
-  fi
-
-  if [ "$(find -L ${LEVELDB_HOME} -maxdepth 1 -type f | wc -l)" -eq 0 ]; then
-    echo "Init leveldb"
-    # Create leveldb database
-    echo \"Init leveldb database...\" >> ${WARP10_HOME}/logs/warp10.log
-    ${JAVACMD} ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_INIT} ${LEVELDB_HOME} >> ${WARP10_HOME}/logs/warp10.log 2>&1
+    if [ "$(find -L ${LEVELDB_HOME} -maxdepth 1 -type f | wc -l)" -eq 0 ]; then
+      echo "Init leveldb"
+      # Create leveldb database
+      echo \"Init leveldb database...\" >> ${WARP10_HOME}/logs/warp10.log
+      ${JAVACMD} ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_INIT} ${LEVELDB_HOME} >> ${WARP10_HOME}/logs/warp10.log 2>&1
+    fi
   fi
 
   WARP10_LISTENSTO_HOST="$(echo "${CONFIG_KEYS}" | grep -e '^standalone\.host=' | sed -e 's/^.*=//')"
@@ -451,13 +457,6 @@ start() {
     echo "Start failed! - See ${WARP10_HOME}/logs/warp10.log for more details"
     exit 1
   fi
-
-  echo '  ___       __                           ____________   '
-  echo '  __ |     / /_____ _______________      __<  /_  __ \  '
-  echo '  __ | /| / /_  __ `/_  ___/__  __ \     __  /_  / / /  '
-  echo '  __ |/ |/ / / /_/ /_  /   __  /_/ /     _  / / /_/ /   '
-  echo '  ____/|__/  \__,_/ /_/    _  .___/      /_/  \____/    '
-  echo '                           /_/                          '
 
   echo "##"
   echo "## Warp 10 listens on ${WARP10_LISTENSTO}"

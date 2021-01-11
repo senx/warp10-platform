@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -25,11 +25,10 @@ import io.warp10.script.WarpScriptStack;
  * Checks the two operands on top of the stack for equality, accepting a difference under a configurable lambda value
  *
  * ALMOSTEQ expects the following parameters on the stack:
- * 3: lambda The tolerance of the comparision
+ * 3: lambda The tolerance of the comparison
  * 2: op2
  * 1: op1
- * Both op1 and op2 need to be instances of Number, and at least one of them need to be instance of Double
- * lambda needs to be a Number, and it will be used in absolute value
+ * lambda, op1 and op2 need to be instances of Number.
  */
 public class ALMOSTEQ extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
@@ -40,26 +39,22 @@ public class ALMOSTEQ extends NamedWarpScriptFunction implements WarpScriptStack
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object lambdaParam = stack.pop();
-    Object op2 = stack.pop();
-    Object op1 = stack.pop();
-    
-    double lambda;
+    Object op2Param = stack.pop();
+    Object op1Param = stack.pop();
 
-    if (lambdaParam instanceof Number) {
-      lambda = Math.abs(((Number) lambdaParam).doubleValue());
-    } else {
-      throw new WarpScriptException(getName() + " needs three parameters on the stack: 'lambda' (a numeric type) and two operands.");  
+    // All operands need to be numeric.
+    if  (!(lambdaParam instanceof Number) || !(op2Param instanceof Number)  || !(op1Param instanceof Number)) {
+      throw new WarpScriptException(getName() + " only accepts numeric parameters.");
     }
 
-    // At least one of the operands must be a Double and both operands need to be numeric types
-    if  (!(op2 instanceof Number)  || !(op1 instanceof Number) || !(op2 instanceof Double || op1 instanceof Double)) {
-      throw new WarpScriptException(getName() + " can only operate on numeric types and at least one of them must be a Double.");  
-    }
-    
-    if (Double.isNaN(((Number) op1).doubleValue()) || Double.isNaN(((Number) op2).doubleValue())) {
-      stack.push(Double.isNaN(((Number) op1).doubleValue()) && Double.isNaN(((Number) op2).doubleValue()));
+    double lambda = Math.abs(((Number) lambdaParam).doubleValue());
+    double op1 = ((Number) op1Param).doubleValue();
+    double op2 = ((Number) op2Param).doubleValue();
+
+    if (Double.isNaN(op1) || Double.isNaN(op2)) {
+      stack.push(Double.isNaN(op1) && Double.isNaN(op2));
     } else {
-      stack.push(lambda > Math.abs(((Number) op1).doubleValue() - ((Number) op2).doubleValue()));  
+      stack.push(lambda >= Math.abs(op1 - op2));
     }
 
     return stack;
