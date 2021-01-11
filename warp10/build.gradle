@@ -69,7 +69,7 @@ dependencies {
         exclude group: 'commons-beanutils', module: 'commons-beanutils-core'
     }
     api('org.apache.hbase:hbase-examples:1.0.0') {
-        // Conflits with tomcat:jasper-compiler and tomcat:jasper-runtime.
+        // Conflicts with tomcat:jasper-compiler and tomcat:jasper-runtime.
         exclude group: 'org.mortbay.jetty', module: 'jsp-2.1'
         // commons-beanutils:commons-beanutils-core is an alias of commons-beanutils:commons-beanutils, which is already a transitive dependency.
         exclude group: 'commons-beanutils', module: 'commons-beanutils-core'
@@ -182,7 +182,7 @@ task pack(type: Jar) {
     from files(sourceSets.main.output.classesDirs)
     from files(sourceSets.main.resources.srcDirs)
     from {
-        configurations.runtimeClasspath.collect {
+        configurations.compileClasspath.collect {
             it.isDirectory() ? it :zipTree(it)
         }
     } {
