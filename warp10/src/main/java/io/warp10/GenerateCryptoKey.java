@@ -1,5 +1,5 @@
 //
-//   Copyright 2020  SenX S.A.S.
+//   Copyright 2020-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -15,24 +15,66 @@
 //
 package io.warp10;
 
-import java.io.IOException;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.security.SecureRandom;
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
+import io.warp10.continuum.Configuration;
 import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.security.SecureRandom;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class GenerateCryptoKey {
 
   private static final Logger LOG = LoggerFactory.getLogger(GenerateCryptoKey.class);
   private static final SecureRandom sr = new SecureRandom();
+
+  private static final Map<String, Integer> keys = new HashMap<String, Integer>();
+
+  static {
+    // Always generate the longest key possible.
+    keys.put(Configuration.WARP_HASH_CLASS, 128);
+    keys.put(Configuration.WARP_HASH_LABELS, 128);
+    keys.put(Configuration.WARP_HASH_TOKEN, 128);
+    keys.put(Configuration.WARP_HASH_APP, 128);
+    keys.put(Configuration.WARP_AES_TOKEN, 256);
+    keys.put(Configuration.WARP_AES_SCRIPTS, 256);
+    keys.put(Configuration.WARP_AES_METASETS, 256);
+    keys.put(Configuration.WARP_AES_LOGGING, 256);
+    keys.put(Configuration.LEVELDB_METADATA_AES, 256);
+    keys.put(Configuration.LEVELDB_DATA_AES, 256);
+    keys.put(Configuration.CONFIG_FETCH_PSK, 128);
+    keys.put(Configuration.RUNNER_PSK, 256);
+    keys.put(Configuration.RUNNER_KAFKA_MAC, 128);
+    keys.put(Configuration.STORE_KAFKA_DATA_MAC, 128);
+    keys.put(Configuration.STORE_KAFKA_DATA_AES, 256);
+    keys.put(Configuration.STORE_HBASE_DATA_AES, 256);
+    keys.put(Configuration.DIRECTORY_KAFKA_METADATA_MAC, 128);
+    keys.put(Configuration.DIRECTORY_KAFKA_METADATA_AES, 256);
+    keys.put(Configuration.DIRECTORY_HBASE_METADATA_AES, 256);
+    keys.put(Configuration.DIRECTORY_PSK, 128);
+    keys.put(Configuration.PLASMA_FRONTEND_KAFKA_MAC, 128);
+    keys.put(Configuration.PLASMA_FRONTEND_KAFKA_AES, 256);
+    keys.put(Configuration.PLASMA_BACKEND_KAFKA_IN_MAC, 128);
+    keys.put(Configuration.PLASMA_BACKEND_KAFKA_IN_AES, 256);
+    keys.put(Configuration.PLASMA_BACKEND_KAFKA_OUT_MAC, 128);
+    keys.put(Configuration.PLASMA_BACKEND_KAFKA_OUT_AES, 256);
+    keys.put(Configuration.INGRESS_KAFKA_META_MAC, 128);
+    keys.put(Configuration.INGRESS_KAFKA_DATA_MAC, 128);
+    keys.put(Configuration.INGRESS_KAFKA_META_AES, 256);
+    keys.put(Configuration.INGRESS_KAFKA_DATA_AES, 256);
+    keys.put(Configuration.EGRESS_HBASE_DATA_AES, 256);
+    keys.put(Configuration.EGRESS_FETCHER_AES, 256);
+    keys.put(Configuration.WEBCALL_KAFKA_AES, 256);
+    keys.put(Configuration.WEBCALL_KAFKA_MAC, 128);
+    keys.put(Configuration.DATALOG_PSK, 256);
+  }
+
 
   public static void main(String[] args) {
     if (0 == args.length) {
@@ -50,22 +92,38 @@ public class GenerateCryptoKey {
 
   public static void fillConfigFile(final String[] configFiles) {
     // Generate crypto key in each file passed as argument
-    Arrays.asList(configFiles).forEach(file ->
-      {
-        Path p = FileSystems.getDefault().getPath(file);
-        // Read current file
-        try (Stream<String> lines = Files.lines(p)) {
-          List<String> replaced = lines
-            .map(line -> line.replaceAll("(.* = hex:)(.*)", "$1" + generateCryptoKey(256)))
-            // *.hash.* keys need shorted crypto key
-            .map(line -> line.replaceAll("(.*\\.hash\\..* = hex:)(.*)", "$1" + generateCryptoKey(128)))
-            .map(line -> line.replaceAll("(.*fetch.psk.* = hex:)(.*)", "$1" + generateCryptoKey(128)))
-            .collect(Collectors.toList());
-          Files.write(p, replaced);
-        } catch (IOException e) {
-          LOG.error("GenerateCryptoKey",e);
+    for (String configFile: configFiles) {
+      // Whether the file should be rewritten or not.
+      boolean rewrite = false;
+
+      Path configPath = Paths.get(configFile);
+      // Read current file
+      try {
+        List<String> lines = Files.readAllLines(configPath);
+
+        // Inline replace.
+        for (int i = 0; i < lines.size(); i++) {
+          String line = lines.get(i);
+
+          // Search of any of the keys.
+          for (Map.Entry<String, Integer> keyEntry: keys.entrySet()) {
+            int indexOfLine = line.indexOf(keyEntry.getKey() + " = hex:");
+            if (indexOfLine >= 0) {
+              // Replace, keeping the start of the line, so that we're leaving commented lines commented.
+              String replacedLine = line.substring(0, indexOfLine) + keyEntry.getKey() + " = hex:" + generateCryptoKey(keyEntry.getValue());
+              lines.set(i, replacedLine);
+              rewrite = true;
+              break; // Key found, no need to look for another key.
+            }
+          }
         }
+
+        if (rewrite) {
+          Files.write(configPath, lines);
+        }
+      } catch (IOException e) {
+        e.printStackTrace();
       }
-    );
+    }
   }
 }
