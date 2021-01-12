@@ -68,14 +68,13 @@ dependencies {
         // commons-beanutils:commons-beanutils-core is an alias of commons-beanutils:commons-beanutils, which is already a transitive dependency.
         exclude group: 'commons-beanutils', module: 'commons-beanutils-core'
     }
+    // For BulkDeleteProtos
     api('org.apache.hbase:hbase-examples:1.0.0') {
-        // Conflicts with tomcat:jasper-compiler and tomcat:jasper-runtime.
-        exclude group: 'org.mortbay.jetty', module: 'jsp-2.1'
-        // commons-beanutils:commons-beanutils-core is an alias of commons-beanutils:commons-beanutils, which is already a transitive dependency.
-        exclude group: 'commons-beanutils', module: 'commons-beanutils-core'
-        // Already included using each platform, see below. The -all version includes already included classes org.iq80.leveldb.*
-        exclude group: 'org.fusesource.leveldbjni', module: 'leveldbjni-all'
+        // This dependency is only for a single class, avoid pulling all the useless dependencies.
+        transitive = false
     }
+    // For Standalone(Chunked)MemoryStore
+    api('org.apache.hadoop:hadoop-hdfs:2.5.1')
 
     api 'org.eclipse.jetty:jetty-server:9.4.2.v20170220'
     api 'org.eclipse.jetty.websocket:websocket-server:9.4.2.v20170220'
@@ -120,6 +119,8 @@ dependencies {
     //
     // Worf
     //
+    // This jar includes all jansi and some hawtjni classes instead of declaring them as dependencies. Remove/update when possible.
+    // See configurations.all below for jansi.
     api 'jline:jline:2.13'
 
     //
@@ -130,6 +131,8 @@ dependencies {
     //
     // Geo
     //
+    // There are several jts-core (aka jts) packaging. The most up-to-date is org.locationtech.jts:jts-core but the versions
+    // of the libs below use com.vividsolutions:jts/jts-core.
     api('com.geoxp:geoxplib:1.0.1') {
         // Conflicts with com.vividsolutions:jts-core pulled by org.wololo:jts2geojson
         exclude group: 'com.vividsolutions', module: 'jts'
@@ -154,7 +157,7 @@ configurations.all {
     exclude group: 'org.iq80.leveldb', module: 'leveldb-api'
     // leveldb-0.12-uber.jar already contains snappy-java
     exclude group: 'org.xerial.snappy', module: 'snappy-java'
-    // jline-2.13.jar already contains jansi
+    // jline-2.13.jar already contains all jansi classes on top of declaring it as dependencies, thus duplicating classes.
     exclude group: 'org.fusesource.jansi', module:'jansi'
     // Unused
     exclude group: 'org.mortbay.jetty', module: 'servlet-api'
@@ -163,8 +166,8 @@ configurations.all {
 }
 
 task pack(type: Jar) {
-    // Can be used to test for conflits in dependencies.
-    // duplicatesStrategy = DuplicatesStrategy.WARN
+    // Can be used to check for conflicts in dependencies.
+//     duplicatesStrategy = DuplicatesStrategy.WARN
     // Duplicates must be kept in order not to remove the copyright notice of each dependency.
     duplicatesStrategy = DuplicatesStrategy.INCLUDE
     zip64 = true
@@ -195,6 +198,7 @@ task pack(type: Jar) {
         exclude 'about.html'
         exclude 'jetty-dir.css'
         exclude '**/junit/**'
+        exclude 'module-info.class'
     }
 }
 
