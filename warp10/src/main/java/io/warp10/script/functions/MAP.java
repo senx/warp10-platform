@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -191,6 +191,18 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
     // Make sure Math.abs(occurrences) will return a positive value.
     if (Long.MIN_VALUE == occurrences) {
       occurrences = Long.MIN_VALUE + 1;
+    }
+
+    // Make sure outputTicks is a List<Long>
+    if (null != outputTicks) {
+      if (!(outputTicks instanceof List)) {
+        throw new WarpScriptException(getName() + " expects '" + PARAM_OUTPUTTICKS + "' to be list of LONG values.");
+      }
+      for (Object tick: (List) outputTicks) {
+        if (!(tick instanceof Long)) {
+          throw new WarpScriptException(getName() + " expects '" + PARAM_OUTPUTTICKS + "' to be list of LONG values.");
+        }
+      }
     }
     
     for (GeoTimeSerie gts: series) {
