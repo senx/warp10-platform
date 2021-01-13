@@ -185,7 +185,7 @@ task pack(type: Jar) {
     from files(sourceSets.main.output.classesDirs)
     from files(sourceSets.main.resources.srcDirs)
     from {
-        configurations.compileClasspath.collect {
+        configurations.runtimeClasspath.collect {
             it.isDirectory() ? it :zipTree(it)
         }
     } {
@@ -290,5 +290,7 @@ changelog {
 //
 // Tasks dependencies
 //
-compileJava.dependsOn generateThrift
-pack.dependsOn generateChangelog
+compileJava.dependsOn("generateThrift")
+pack.dependsOn("generateChangelog")
+pack.dependsOn(":crypto:jar")
+pack.dependsOn(":token:jar")
