@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -327,7 +327,7 @@ public class Warp extends WarpDist implements Runnable {
       sdc.setActivityWindow(Long.parseLong(properties.getProperty(Configuration.INGRESS_ACTIVITY_WINDOW, "0")));
 
       if (null == properties.getProperty(Configuration.IN_MEMORY_CHUNKED)) {
-        throw new RuntimeException("Configuration key '" + Configuration.IN_MEMORY_CHUNKED + "' MUST now explicitely be set to 'true' or 'false' (if you wish to use the now deprecated non chunked memory store).");
+        throw new RuntimeException("Configuration key '" + Configuration.IN_MEMORY_CHUNKED + "' MUST now explicitly be set to 'true' or 'false' (if you wish to use the now deprecated non chunked memory store).");
       }
 
       if (!"false".equals(properties.getProperty(Configuration.IN_MEMORY_CHUNKED))) {
