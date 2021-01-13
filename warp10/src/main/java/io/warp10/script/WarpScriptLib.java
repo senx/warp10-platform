@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -211,6 +211,7 @@ import io.warp10.script.processing.image.Pimage;
 import io.warp10.script.processing.image.PimageMode;
 import io.warp10.script.processing.image.PnoTint;
 import io.warp10.script.processing.image.Ppixels;
+import io.warp10.script.processing.image.Presize;
 import io.warp10.script.processing.image.Pset;
 import io.warp10.script.processing.image.Psize;
 import io.warp10.script.processing.image.Ptint;
@@ -1008,6 +1009,7 @@ public class WarpScriptLib {
   public static final String PDECODE = "Pdecode";
   public static final String PIMAGE = "Pimage";
   public static final String PSIZE = "Psize";
+  public static final String PRESIZE = "Presize";
   public static final String PMASK = "Pmask";
   public static final String PIMAGEMODE = "PimageMode";
   public static final String PTINT = "Ptint";
@@ -2187,6 +2189,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new Pimage(PIMAGE));
     addNamedWarpScriptFunction(new PimageMode(PIMAGEMODE));
     addNamedWarpScriptFunction(new Psize(PSIZE));
+    addNamedWarpScriptFunction(new Presize(PRESIZE));
     addNamedWarpScriptFunction(new Pmask(PMASK));
     addNamedWarpScriptFunction(new Ptint(PTINT));
     addNamedWarpScriptFunction(new PnoTint(PNOTINT));

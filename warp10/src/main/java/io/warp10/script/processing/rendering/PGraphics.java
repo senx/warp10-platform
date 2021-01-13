@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -78,8 +78,8 @@ public class PGraphics extends NamedWarpScriptFunction implements WarpScriptStac
 
     long PIXEL_LIMIT = (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_MAX_PIXELS);
     
-    if (width * height > PIXEL_LIMIT) {
-      throw new WarpScriptException(getName() + " only allows graphics with a total number of pixels less than " + PIXEL_LIMIT + " requested size was " + width + "x" + height + " (" + (width * height) + ").");
+    if ((long) width * height > PIXEL_LIMIT) {
+      throw new WarpScriptException(getName() + " only allows graphics with a total number of pixels less than " + PIXEL_LIMIT + " requested size was " + width + "x" + height + " (" + ((long) width * height) + ").");
     }
 
     // Disable async saving of frame in case we want to save a frame to a file
