@@ -107,7 +107,8 @@ public class GenerateCryptoKey {
 
           // Search of any of the keys.
           for (Map.Entry<String, Integer> keyEntry: keys.entrySet()) {
-            int indexOfLine = line.indexOf(keyEntry.getKey() + " = hex:");
+            // Only look for "hex:hhh" in case the template configuration contains pre-filled keys.
+            int indexOfLine = line.indexOf(keyEntry.getKey() + " = hex:hhh");
             if (indexOfLine >= 0) {
               // Replace, keeping the start of the line, so that we're leaving commented lines commented.
               String replacedLine = line.substring(0, indexOfLine) + keyEntry.getKey() + " = hex:" + generateCryptoKey(keyEntry.getValue());
