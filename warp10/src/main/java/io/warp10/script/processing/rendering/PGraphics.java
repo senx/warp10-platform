@@ -23,6 +23,7 @@ import io.warp10.script.WarpScriptStack;
 
 import java.awt.image.BufferedImage;
 
+import io.warp10.script.functions.TYPEOF;
 import processing.awt.PGraphicsJava2D;
 import processing.core.PApplet;
 import processing.opengl.PGraphics3D;
@@ -77,9 +78,9 @@ public class PGraphics extends NamedWarpScriptFunction implements WarpScriptStac
     int width = ((Number) top).intValue();
 
     long PIXEL_LIMIT = (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_MAX_PIXELS);
-    
+
     if ((long) width * height > PIXEL_LIMIT) {
-      throw new WarpScriptException(getName() + " only allows graphics with a total number of pixels less than " + PIXEL_LIMIT + " requested size was " + width + "x" + height + " (" + ((long) width * height) + ").");
+      throw new WarpScriptException(getName() + " only allows " + TYPEOF.TYPE_PGRAPHICSIMAGE + " with a total number of pixels less than " + PIXEL_LIMIT + " requested size was " + width + "x" + height + " (" + ((long) width * height) + ").");
     }
 
     // Disable async saving of frame in case we want to save a frame to a file

@@ -20,6 +20,7 @@ import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.functions.TYPEOF;
 import processing.core.PImage;
 
 public class Psize extends NamedWarpScriptFunction implements WarpScriptStackFunction {
@@ -38,7 +39,7 @@ public class Psize extends NamedWarpScriptFunction implements WarpScriptStackFun
       stack.push((long) pi.pixelWidth);
       stack.push((long) pi.pixelHeight);
     } else {
-      throw new WarpScriptException(getName() + " expects a PImage or a PGraphics instance.");
+      throw new WarpScriptException(getName() + " expects a " + TYPEOF.TYPE_PIMAGE + " or a " + TYPEOF.TYPE_PGRAPHICSIMAGE + " instance.");
     }
 
     return stack;
