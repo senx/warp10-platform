@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -1856,20 +1856,15 @@ public class GTSHelper {
     int lastidx = Arrays.binarySearch(gts.ticks, 0, gts.values, stoptimestamp);
     
     if (-1 == lastidx) {
-      // The upper timestamp is less than the first tick, so subserie is necessarly empty
+      // The stop timestamp is less than the first tick of the GTS, so subserie is necessarily empty
       return subgts;
     } else if (lastidx < 0) {
-
-      // The upper timestamp is in between ticks, so we set the last index to the tick
+      // The last timestamp is in between ticks, so we set the last index to the tick
       // just before the insertion point
       lastidx =  -lastidx - 1 - 1;
-
-      if (lastidx >= gts.values) {
-        lastidx = gts.values - 1;
-      }
-    } else {
+    } else if (lastidx < gts.values - 1){
       // We found the stop timestamp, we now must find the last occurrence of
-      // it in case there are duplicates
+      // it in case there are duplicates, except if it's the last tick of the GTS.
       int lastlastidx = lastidx + 1;
       while(lastlastidx < gts.values && stoptimestamp == gts.ticks[lastlastidx]) {
         lastlastidx++;
@@ -1879,19 +1874,17 @@ public class GTSHelper {
     }
     
     int firstidx = Arrays.binarySearch(gts.ticks, 0, lastidx + 1, starttimestamp);
-    
-    if (firstidx < 0) {
-      // The first timestamp is in between existing ticks, so we set
-      // the first index to the index of the insertion point
-      firstidx = -firstidx - 1;
 
-      // Start after the last tick of the GTS
-      if (firstidx >= gts.values) {
-        return subgts;
-      }
+    if ((-gts.values - 1) == firstidx) {
+      // The start timestamp is more than the last tick of the GTS, so subserie is necessarily empty
+      return subgts;
+    } else if (firstidx < 0) {
+      // The first timestamp is in between ticks, so we set the first index to the tick
+      // of the insertion point
+      firstidx = -firstidx - 1;
     } else if (firstidx > 0) {
       // We found the start timestamp, we now must find the first occurrence of it
-      // in case there are duplicates
+      // in case there are duplicates, except if it's the first tick of the GTS.
       int firstfirstidx = firstidx - 1;
       
       while(firstfirstidx >= 0 && starttimestamp == gts.ticks[firstfirstidx]) {
@@ -1899,14 +1892,6 @@ public class GTSHelper {
       }
       
       firstidx = firstfirstidx + 1;
-    }
-        
-    //
-    // Check that indices are ok with the requested time range
-    //
-    
-    if (gts.ticks[firstidx] > stoptimestamp || gts.ticks[lastidx] < starttimestamp) {
-      return subgts;
     }
     
     //
