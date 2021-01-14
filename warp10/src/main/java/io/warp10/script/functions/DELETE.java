@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -19,7 +19,10 @@ package io.warp10.script.functions;
 import io.warp10.WarpConfig;
 import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.Configuration;
+import io.warp10.continuum.MetadataUtils;
+import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.continuum.store.Constants;
+import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
@@ -33,7 +36,9 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.Properties;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Delete a set of GTS.
@@ -52,18 +57,21 @@ public class DELETE extends NamedWarpScriptFunction implements WarpScriptStackFu
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    
     //
     // Extract expected number
     //
-    
+    boolean onlyDryRun = false;
+    long expected = Long.MAX_VALUE;
+
     Object o = stack.pop();
-    
-    if (!(o instanceof Long)) {
-      throw new WarpScriptException(getName() + " expects a count on top of the stack.");
+
+    if (o instanceof Long) {
+      expected = (long) o;
+    } else if (null == o) {
+      onlyDryRun = true;
+    } else {
+      throw new WarpScriptException(getName() + " expects a " + TYPEOF.TYPE_LONG + " count on top of the stack or " + TYPEOF.TYPE_NULL + " to indicate a dry run.");
     }
-    
-    long expected = (long) o;
     
     //
     // Extract start / end
@@ -198,26 +206,47 @@ public class DELETE extends NamedWarpScriptFunction implements WarpScriptStackFu
         throw new WarpScriptException(getName() + " failed to complete dryrun request successfully (" + conn.getResponseMessage() + ")");
       }
       
-      BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-      
       long actualCount = 0;
-      
-      while(true) {
-        String line = br.readLine();
-        
-        if (null == line) {
-          break;
-        }
-        
-        actualCount++;
 
-        // Do an early check for the expected count
-        if (expected < actualCount) {
-          throw new WarpScriptException(getName() + " expected at most " + expected + " Geo Time Series to be deleted but " + actualCount + " would have been deleted instead.");
+      try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
+        if (onlyDryRun) {
+          long gtsLimit = (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_GTS_LIMIT);
+
+          AtomicLong gtscount = (AtomicLong) stack.getAttribute(WarpScriptStack.ATTRIBUTE_GTS_COUNT);
+
+          List<GeoTimeSerie> series = new ArrayList<GeoTimeSerie>();
+
+          String line;
+          while (null != (line = br.readLine())) {
+            if (gtscount.incrementAndGet() > gtsLimit) {
+              throw new WarpScriptException(getName() + " exceeded limit of " + gtsLimit + " Geo Time Series, current count is " + gtscount.get());
+            }
+
+            Metadata meta = MetadataUtils.parseMetadata(line);
+            if (null == meta) {
+              throw new WarpScriptException(getName() + " got invalid Metadata from the delete endpoint: " + line);
+            }
+            GeoTimeSerie gts = new GeoTimeSerie();
+            // Use safeSetMetadata because the metadata have been created by parseMetadata.
+            gts.safeSetMetadata(meta);
+            series.add(gts);
+          }
+
+          stack.push(series);
+
+          // Stop here for the dry run.
+          return stack;
+        } else {
+          while (null != br.readLine()) {
+            actualCount++;
+
+            // Do an early check for the expected count
+            if (expected < actualCount) {
+              throw new WarpScriptException(getName() + " expected at most " + expected + " Geo Time Series to be deleted but " + actualCount + " would have been deleted instead.");
+            }
+          }
         }
       }
-
-      br.close();
       conn.disconnect();
       conn = null;
       
@@ -248,21 +277,13 @@ public class DELETE extends NamedWarpScriptFunction implements WarpScriptStackFu
         throw new WarpScriptException(getName() + " failed to complete actual request successfully (" + conn.getResponseMessage() + ")");
       }
 
-      br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-      
-      actualCount = 0;
-      
-      while(true) {
-        String line = br.readLine();
-        
-        if (null == line) {
-          break;
-        }
-        
-        actualCount++;
-      }
+      try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
+        actualCount = 0;
 
-      br.close();
+        while (null != br.readLine()) {
+          actualCount++;
+        }
+      }
 
       conn.disconnect();
       conn = null;
