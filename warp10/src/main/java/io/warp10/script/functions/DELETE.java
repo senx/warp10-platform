@@ -66,7 +66,7 @@ public class DELETE extends NamedWarpScriptFunction implements WarpScriptStackFu
     Object o = stack.pop();
 
     if (o instanceof Long) {
-      expected = (long) o;
+      expected = ((Long) o).longValue();
     } else if (null == o) {
       onlyDryRun = true;
     } else {
