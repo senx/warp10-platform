@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -149,9 +149,7 @@ public class WarpConfig {
 
     properties = new Properties();
 
-    if (null == files || 0 == files.length) {
-       readConfig(new StringReader(""), properties);
-    } else {
+    if (null != files && 0 != files.length) {
       //
       // Read all files, in the order they were provided.
       // If a file starts with '@', treat it as a file containing lists of files
@@ -165,7 +163,7 @@ public class WarpConfig {
       while (iterator.hasNext()) {
         String file = iterator.next();
 
-        if('@' == file.charAt(0)) {
+        if (null != file && 0 < file.length() && '@' == file.charAt(0)) {
           // Remove the @file from the filenames list.
           iterator.remove();
 
@@ -179,11 +177,13 @@ public class WarpConfig {
       }
 
       for (String filename: filenames) {
-        File file = new File(filename);
-        try (InputStream fileInputStreamStream = new FileInputStream(file)) {
-          readConfig(exitOnError, fileInputStreamStream, properties);
-        } catch (IOException ioe) {
-          throw new IOException("Found errors while reading " + filename + ".", ioe);
+        if (null != filename) {
+          File file = new File(filename);
+          try (InputStream fileInputStreamStream = new FileInputStream(file)) {
+            readConfig(exitOnError, fileInputStreamStream, properties);
+          } catch (IOException ioe) {
+            throw new IOException("Found errors while reading " + filename + ".", ioe);
+          }
         }
       }
     }
