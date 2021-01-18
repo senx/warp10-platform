@@ -30,11 +30,6 @@ if [[ -e /lib/lsb/init-functions ]]; then
   . /lib/lsb/init-functions
 fi
 
-# Determine Python interpreter to use
-PYTHON=$(which python3)
-PYTHON=${PYTHON:-$(which python2)}
-PYTHON=${PYTHON:-$(which python)}
-
 # Extract JAVA_OPTS before we switch to strict mode
 JAVA_OPTS=${JAVA_OPTS:-}
 set -euo pipefail
@@ -355,12 +350,11 @@ bootstrap() {
   sed -i${SED_SUFFIX} -e 's|warpscriptLog\.File =.*|warpscriptLog.File = '${WARP10_HOME_ESCAPED}'/logs/warpscript.out|' ${WARP10_HOME}/etc/log4j.properties
   rm ${WARP10_HOME}/etc/log4j.properties${SED_SUFFIX}
 
-  # Generate secrets
-  ${PYTHON} ${WARP10_HOME}/etc/generate_crypto_key.py ${WARP10_SECRETS}
-  chown -R ${WARP10_USER}:${WARP10_GROUP} ${WARP10_CONFIG_DIR}
-
-
   getConfigFiles
+
+  # Generate secrets
+  chown -R ${WARP10_USER}:${WARP10_GROUP} ${WARP10_CONFIG_DIR}
+  su ${WARP10_USER} -c "${JAVACMD} -cp ${WARP10_JAR} -Dfile.encoding=UTF-8 io.warp10.GenerateCryptoKey ${CONFIG_FILES}"
 
   # Edit the warp10-tokengen.mc2 to use or not the secret
   secret=`su ${WARP10_USER} -c "${JAVACMD} -cp ${WARP10_CP} -Dlog4j.configuration=file:${LOG4J_CONF} -Dfile.encoding=UTF-8 io.warp10.WarpConfig ${CONFIG_FILES} . 'token.secret' | grep -e '^@CONF@ ' | sed -e 's/^@CONF@ //' | grep 'token.secret' | sed -e 's/^.*=//'"`
