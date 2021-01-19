@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -492,17 +492,30 @@ public class StandaloneStoreClient implements StoreClient {
           return false;
         }
 
-        // While all the metadata are exhasted or there is potentially some data associated to a metadata.
+        // While all the metadata are exhausted or there is potentially some data associated to a metadata.
         while(true) {
           // Check if there are still some data associated with the current metadata.
-          if (idx >= 0 && iterator.hasNext()) {
-            byte[] key = iterator.peekNext().getKey();
-
-            // Still some data if there are boundaries to fetch...
-            if ((preBoundary > 0 || postBoundary > 0)
-                // ...or fetch is either time based or has not returned the requested number of points and stoprow was not yet reached.
-                || ((-1 == fcount || nvalues > 0) && (Bytes.compareTo(key, stoprow) <= 0))) {
+          if (idx >= 0) {
+            // Still potential data if iterator has a previous value and postBoundary is strictly positive.
+            // The definitive check to whether there is data or not is in next(). If no data is found,
+            // postBoundary will be set to 0 and the next call to hasNext will fail on this test.
+            if (postBoundary > 0 && iterator.hasPrev()) {
               return true;
+            }
+
+            if (iterator.hasNext()) {
+              // Still potential data if iterator has a next value and preBoundary is strictly positive.
+              // The definitive check to whether there is data or not is in next(). If no data is found,
+              // preBoundary will be set to 0 and the next call to hasNext will fail on this test.
+              if(preBoundary > 0) {
+                return true;
+              }
+
+              // Still some data if fetch is either time based or has not returned the requested number of points and stoprow was not yet reached.
+              byte[] key = iterator.peekNext().getKey();
+              if ((-1 == fcount || nvalues > 0) && (Bytes.compareTo(key, stoprow) <= 0)) {
+                return true;
+              }
             }
           }
           
