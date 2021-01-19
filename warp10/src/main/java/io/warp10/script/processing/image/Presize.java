@@ -21,6 +21,8 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.functions.TYPEOF;
+import processing.awt.PGraphicsJava2D;
+import processing.core.PGraphics;
 import processing.core.PImage;
 
 /**
@@ -77,7 +79,13 @@ public class Presize extends NamedWarpScriptFunction implements WarpScriptStackF
 
     if (top instanceof PImage) { // PGraphics extends PImage
       PImage img = (PImage) top;
+      if (top instanceof PGraphics) {
+        ((PGraphics) top).endDraw();
+      }
       img.resize(width, height);
+      if (top instanceof PGraphics) {
+        ((PGraphics) top).beginDraw();
+      }
       stack.push(img);
     } else {
       throw new WarpScriptException(getName() + " expects a " + TYPEOF.TYPE_PIMAGE + " or a " + TYPEOF.TYPE_PGRAPHICSIMAGE + " instance.");
