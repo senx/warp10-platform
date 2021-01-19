@@ -39,6 +39,7 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.functions.TYPEOF;
+import processing.core.PGraphics;
 import processing.core.PImage;
 
 /**
@@ -61,15 +62,15 @@ public class Pencode extends NamedWarpScriptFunction implements WarpScriptStackF
       top = stack.pop();
     }
 
-    if (!(top instanceof processing.core.PImage)) {
+    if (!(top instanceof PImage)) {
       throw new WarpScriptException(getName() + " operates on a " + TYPEOF.TYPE_PGRAPHICSIMAGE + " or " + TYPEOF.TYPE_PIMAGE + " instance.");
     }
 
-    PImage image = (processing.core.PImage) top;
-    processing.core.PGraphics  pg = null;
+    PImage image = (PImage) top;
+    PGraphics  pg = null;
 
-    if (image instanceof processing.core.PGraphics) {
-      pg = (processing.core.PGraphics) top;
+    if (image instanceof PGraphics) {
+      pg = (PGraphics) top;
       pg.endDraw();
     }
 
