@@ -77,15 +77,31 @@ public class Presize extends NamedWarpScriptFunction implements WarpScriptStackF
 
     top = stack.pop();
 
-    if (top instanceof PImage) { // PGraphics extends PImage
-      PImage img = (PImage) top;
-      if (top instanceof PGraphics) {
-        ((PGraphics) top).endDraw();
-      }
+    if (top instanceof PGraphics) {
+      PGraphics pg = (PGraphics) top;
+      pg.endDraw();
+      //
+      // Resizing a PGraphics is not normally a supported operation
+      // so we handle by creating a PImage instance, resizing the said
+      // image and replacing the inner image in the PGraphics with that
+      // resized image. We must update some companion fields on the way.
+      //
+      PImage img = new PImage(pg.image);
       img.resize(width, height);
-      if (top instanceof PGraphics) {
-        ((PGraphics) top).beginDraw();
-      }
+      img.loadPixels();
+      pg.image = img.getImage();
+      pg.pixels = img.pixels;
+      pg.pixelWidth = img.pixelWidth;
+      pg.pixelHeight = img.pixelHeight;
+      pg.width = img.width;
+      pg.height = img.height;
+      pg.pixelDensity = img.pixelDensity;
+      pg.updatePixels();
+      pg.beginDraw();
+      stack.push(pg);
+    } else if (top instanceof PImage) { // PGraphics extends PImage
+      PImage img = (PImage) top;
+      img.resize(width, height);
       stack.push(img);
     } else {
       throw new WarpScriptException(getName() + " expects a " + TYPEOF.TYPE_PIMAGE + " or a " + TYPEOF.TYPE_PGRAPHICSIMAGE + " instance.");
