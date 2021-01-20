@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -26,6 +26,17 @@
 // Directory where the leveldb files should be created
 //
 leveldb.home = ${standalone.home}/leveldb
+
+//
+// Whether to initialize LevelDB if not found in leveldb.home.
+// If false and LevelDB is not initialized, Warp 10 will throw an error and won't start. leveldb.home will still be created
+// as well as LOCK and LOG files.
+// If true and LevelDB is not initialized, all necessary LevelDB files will be created in leveldb.home and Warp 10 will
+// start as if LevelDB is already initialized.
+// This configuration has no effect if LevelDB is already initialized.
+// Defaults to false.
+//
+#leveldb.create.if.missing = false
 
 //
 // Flag to disable the native LevelDB implementation

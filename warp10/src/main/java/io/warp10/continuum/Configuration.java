@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -1461,6 +1461,11 @@ public class Configuration {
    * Directory where the leveldb files should be created
    */
   public static final String LEVELDB_HOME = "leveldb.home";
+
+  /**
+   * Create LevelDB if not already initialized
+   */
+  public static final String LEVELDB_CREATE_IF_MISSING = "leveldb.create.if.missing";
 
   /**
    * Maximum number of open files to use for LevelDB
