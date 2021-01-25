@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-20  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -86,6 +86,11 @@ public class WarpScriptMacroRepository extends Thread {
    * Default TTL for loaded macros
    */
   private static long ttl = DEFAULT_MACRO_TTL;
+
+  /**
+   * Maximum value for TTL set via MACROTTL - We use max long divided by 4 so the probability of overflowing is low...
+   */
+  private static long hardTTL = Long.MAX_VALUE >>> 2;
 
   /**
    * Default TTL for failed macros
@@ -338,6 +343,7 @@ public class WarpScriptMacroRepository extends Thread {
     delay = refreshDelay;
 
     ttl = Long.parseLong(properties.getProperty(Configuration.REPOSITORY_TTL, Long.toString(DEFAULT_MACRO_TTL)));
+    hardTTL = Long.parseLong(WarpConfig.getProperty(Configuration.REPOSITORY_TTL_HARD, Long.toString(hardTTL)));
     failedTtl = Long.parseLong(properties.getProperty(Configuration.REPOSITORY_TTL_FAILED, Long.toString(DEFAULT_FAILED_MACRO_TTL)));
 
     ondemand = !"false".equals(properties.getProperty(Configuration.REPOSITORY_ONDEMAND));
@@ -519,8 +525,12 @@ public class WarpScriptMacroRepository extends Thread {
       // Set expiration if ondemand is set and a ttl was specified
 
       try {
-        if (ondemand && null != stack.getAttribute(WarpScriptStack.ATTRIBUTE_MACRO_TTL)) {
-          macro.setExpiry(Math.addExact(System.currentTimeMillis(), (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_MACRO_TTL)));
+        if (ondemand && stack.getAttribute(WarpScriptStack.ATTRIBUTE_MACRO_TTL) instanceof Long) {
+          long adjusted = ((Long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_MACRO_TTL)).longValue();
+          if (adjusted > hardTTL) {
+            adjusted = hardTTL;
+          }
+          macro.setExpiry(Math.addExact(System.currentTimeMillis(), adjusted));
         } else if (ondemand) {
           macro.setExpiry(Math.addExact(System.currentTimeMillis(), ttl));
         }
