@@ -245,20 +245,17 @@ public class WarpScriptMacroLibrary {
       macro.setNameRecursive(name);
       
       long macroTtl = ttl;
-      
-      if (null != stack.getAttribute(WarpScriptStack.ATTRIBUTE_MACRO_TTL)) {
-        macroTtl = (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_MACRO_TTL);
+
+      if (stack.getAttribute(WarpScriptStack.ATTRIBUTE_MACRO_TTL) instanceof Long) {
+        macroTtl = ((Long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_MACRO_TTL)).longValue();
       }
-      
+
       if (macroTtl > hardTtl) {
         macroTtl = hardTtl;
       }
 
-      // Set expiry. Note using a ttl too long will wrap around the sum and will
-      // make the macro expire too early
-      
       try {
-        macro.setExpiry(Math.addExact(System.currentTimeMillis(), ttl));
+        macro.setExpiry(Math.addExact(System.currentTimeMillis(), macroTtl));
       } catch (ArithmeticException ae) {
         macro.setExpiry(Long.MAX_VALUE - 1);
       }
