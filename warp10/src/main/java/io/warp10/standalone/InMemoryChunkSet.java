@@ -870,17 +870,17 @@ public class InMemoryChunkSet {
         GTSEncoder encoder = new GTSEncoder();
         GTSDecoder decoder = chunks[i].getUnsafeDecoder(false);
         boolean deleted = false;
-        try {
-          while (decoder.next()) {
-            if (decoder.getTimestamp() >= start && decoder.getTimestamp() <= end) {
-              deleted = true;
-              count++;
-              continue;
-            }
-            encoder.addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue());
+        while (decoder.next()) {
+          if (decoder.getTimestamp() >= start && decoder.getTimestamp() <= end) {
+            deleted = true;
+            count++;
+            continue;
           }
-        } catch (IOException ioe) {
-          throw new RuntimeException("Error while deleting data.", ioe);
+          try {
+            encoder.addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue());
+          } catch (IOException ioe) {
+            throw new RuntimeException("Error while deleting data.", ioe);
+          }
         }
         // Replace the encoder if datapoints were deleted
         if (deleted) {
