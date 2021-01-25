@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -102,10 +102,10 @@ in.memory = false
 //
 // When this is true, the depth of data retained is
 // configured using in.memory.chunk.count and in.memory.chunk.length
-// This configuration MUST be set starting with 2.1.
-// Set it to false if you are using the deprecated non chunked memory store.
 //
-#in.memory.chunked = true
+// This configuration MUST be set starting with 2.1.
+//
+in.memory.chunked = true
 
 //
 // Number of chunks to retain (defaults to 3)

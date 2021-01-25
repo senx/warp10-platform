@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-#   Copyright 2018-2020  SenX S.A.S.
+#   Copyright 2016-2021  SenX S.A.S.
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -29,11 +29,6 @@
 if [[ -e /lib/lsb/init-functions ]]; then
   . /lib/lsb/init-functions
 fi
-
-# Determine Python interpreter to use
-PYTHON=$(which python3)
-PYTHON=${PYTHON:-$(which python2)}
-PYTHON=${PYTHON:-$(which python)}
 
 # Extract JAVA_OPTS before we switch to strict mode
 JAVA_OPTS=${JAVA_OPTS:-}
@@ -80,7 +75,15 @@ if [[ -z "${WARP10_HOME:-}" ]]; then
   WARP10_HOME=`cd $(dirname $0); cd $(pwd -P)/..; pwd -P`
 fi
 
+if [[ "//" == "${WARP10_HOME}" ]]; then
+  echo "Wrong path for WARP10_HOME: ${WARP10_HOME}"
+  exit 1
+fi
+
 export WARP10_HOME
+
+# Change directory to avoid "find: Failed to restore initial working directory"
+cd "${WARP10_HOME}"
 
 #
 # Data directory that contains logs, leveldb, config defined ?
@@ -336,23 +339,25 @@ bootstrap() {
   sed -i${SED_SUFFIX} -e 's|^standalone\.home.*|standalone.home = '${WARP10_HOME_ESCAPED}'|' ${WARP10_CONFIG_DIR}/*
   rm ${WARP10_CONFIG_DIR}/*${SED_SUFFIX}
 
+  sed -i -e 's|^ExecStart=.*|ExecStart='${WARP10_HOME_ESCAPED}'/bin/warp10-standalone.sh start|' ${WARP10_HOME}/bin/warp10.service
+  sed -i -e 's|^ExecStop=.*|ExecStop='${WARP10_HOME_ESCAPED}'/bin/warp10-standalone.sh stop|' ${WARP10_HOME}/bin/warp10.service
+
   sed -i${SED_SUFFIX} -e 's|^\(\s\{0,100\}\)WARP10_HOME=/opt/warp10-.*|\1WARP10_HOME='${WARP10_HOME_ESCAPED}'|' ${WARP10_HOME}/bin/snapshot.sh
   sed -i${SED_SUFFIX} -e 's|^\(\s\{0,100\}\)LEVELDB_HOME=${WARP10_HOME}/leveldb|\1LEVELDB_HOME='${LEVELDB_HOME_ESCAPED}'|' ${WARP10_HOME}/bin/snapshot.sh
   rm ${WARP10_HOME}/bin/snapshot.sh${SED_SUFFIX}
 
-  sed -i${SED_SUFFIX} -e 's|warpLog\.File=.*|warpLog.File='${WARP10_HOME_ESCAPED}'/logs/warp10.log|' ${WARP10_HOME}/etc/log4j.properties
-  sed -i${SED_SUFFIX} -e 's|warpscriptLog\.File=.*|warpscriptLog.File='${WARP10_HOME_ESCAPED}'/logs/warpscript.out|' ${WARP10_HOME}/etc/log4j.properties
+  sed -i${SED_SUFFIX} -e 's|warpLog\.File =.*|warpLog.File = '${WARP10_HOME_ESCAPED}'/logs/warp10.log|' ${WARP10_HOME}/etc/log4j.properties
+  sed -i${SED_SUFFIX} -e 's|warpscriptLog\.File =.*|warpscriptLog.File = '${WARP10_HOME_ESCAPED}'/logs/warpscript.out|' ${WARP10_HOME}/etc/log4j.properties
   rm ${WARP10_HOME}/etc/log4j.properties${SED_SUFFIX}
-
-  # Generate secrets
-  ${PYTHON} ${WARP10_HOME}/etc/generate_crypto_key.py ${WARP10_SECRETS}
-  chown -R ${WARP10_USER}:${WARP10_GROUP} ${WARP10_CONFIG_DIR}
-
 
   getConfigFiles
 
+  # Generate secrets
+  chown -R ${WARP10_USER}:${WARP10_GROUP} ${WARP10_CONFIG_DIR}
+  su ${WARP10_USER} -c "${JAVACMD} -cp ${WARP10_JAR} -Dfile.encoding=UTF-8 io.warp10.GenerateCryptoKey ${CONFIG_FILES}"
+
   # Edit the warp10-tokengen.mc2 to use or not the secret
-  secret=`su ${WARP10_USER} -c "${JAVACMD} -cp ${WARP10_CP} -Dfile.encoding=UTF-8 io.warp10.WarpConfig ${CONFIG_FILES} . 'token.secret' | grep -e '^@CONF@ ' | sed -e 's/^@CONF@ //' | grep 'token.secret' | sed -e 's/^.*=//'"`
+  secret=`su ${WARP10_USER} -c "${JAVACMD} -cp ${WARP10_CP} -Dlog4j.configuration=file:${LOG4J_CONF} -Dfile.encoding=UTF-8 io.warp10.WarpConfig ${CONFIG_FILES} . 'token.secret' | grep -e '^@CONF@ ' | sed -e 's/^@CONF@ //' | grep 'token.secret' | sed -e 's/^.*=//'"`
   if [[ "${secret}"  != "null" ]]; then
     sed -i${SED_SUFFIX} -e "s|^{{secret}}|'"${secret}"'|" ${WARP10_HOME}/templates/warp10-tokengen.mc2
   else
@@ -361,7 +366,7 @@ bootstrap() {
   rm ${WARP10_HOME}/templates/warp10-tokengen.mc2${SED_SUFFIX}
 
   # Generate read/write tokens valid for a period of 100 years. We use 'io.warp10.bootstrap' as application name.
-  su ${WARP10_USER} -c "${JAVACMD} -cp ${WARP10_JAR} -Dfile.encoding=UTF-8 io.warp10.worf.TokenGen ${CONFIG_FILES} ${WARP10_HOME}/templates/warp10-tokengen.mc2 ${WARP10_HOME}/etc/initial.tokens"
+  su ${WARP10_USER} -c "${JAVACMD} -cp ${WARP10_JAR} -Dlog4j.configuration=file:${LOG4J_CONF} -Dfile.encoding=UTF-8 io.warp10.worf.TokenGen ${CONFIG_FILES} ${WARP10_HOME}/templates/warp10-tokengen.mc2 ${WARP10_HOME}/etc/initial.tokens"
   sed -i${SED_SUFFIX} 's/^.\{1\}//;$ s/.$//' ${WARP10_HOME}/etc/initial.tokens # Remove first and last character
   rm "${WARP10_HOME}/etc/initial.tokens${SED_SUFFIX}"
 
@@ -405,27 +410,28 @@ start() {
   # Extract configuration keys
   # 
 
-  CONFIG_KEYS=$(${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} -Dfile.encoding=UTF-8 io.warp10.WarpConfig ${CONFIG_FILES} . 'leveldb.home' 'standalone.host' 'standalone.port' | grep -e '^@CONF@ ' | sed -e 's/^@CONF@ //')
+  CONFIG_KEYS=$(${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} -Dfile.encoding=UTF-8 io.warp10.WarpConfig ${CONFIG_FILES} . 'leveldb.home' 'standalone.host' 'standalone.port' 'in.memory' | grep -e '^@CONF@ ' | sed -e 's/^@CONF@ //')
 
   LEVELDB_HOME="$(echo "${CONFIG_KEYS}" | grep -e '^leveldb\.home=' | sed -e 's/^.*=//')"
-
-  #
-  # Leveldb exists ?
-  #
-  if [ ! -e ${LEVELDB_HOME} ]; then
-    echo "${LEVELDB_HOME} does not exist - Creating it..."
-    mkdir -p ${LEVELDB_HOME} 2>&1
-    if [ $? != 0 ]; then
-      echo "${LEVELDB_HOME} creation failed"
-      exit 1
+  IN_MEMORY="$(echo "${CONFIG_KEYS}" | grep -e '^in\.memory=' | sed -e 's/^.*=//')"
+  if [ "${IN_MEMORY:-}" != "true" ]; then
+    #
+    # Leveldb exists ?
+    #
+    if [ ! -e ${LEVELDB_HOME} ]; then
+      echo "${LEVELDB_HOME} does not exist - Creating it..."
+      mkdir -p ${LEVELDB_HOME} 2>&1
+      if [ $? != 0 ]; then
+        echo "${LEVELDB_HOME} creation failed"
+        exit 1
+      fi
     fi
-  fi
-
-  if [ "$(find -L ${LEVELDB_HOME} -maxdepth 1 -type f | wc -l)" -eq 0 ]; then
-    echo "Init leveldb"
-    # Create leveldb database
-    echo \"Init leveldb database...\" >> ${WARP10_HOME}/logs/warp10.log
-    ${JAVACMD} ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_INIT} ${LEVELDB_HOME} >> ${WARP10_HOME}/logs/warp10.log 2>&1
+    if [ "$(find -L ${LEVELDB_HOME} -maxdepth 1 -type f | wc -l)" -eq 0 ]; then
+      echo "Init leveldb"
+      # Create leveldb database
+      echo \"Init leveldb database...\" >> ${WARP10_HOME}/logs/warp10.log
+      ${JAVACMD} ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_INIT} ${LEVELDB_HOME} >> ${WARP10_HOME}/logs/warp10.log 2>&1
+    fi
   fi
 
   WARP10_LISTENSTO_HOST="$(echo "${CONFIG_KEYS}" | grep -e '^standalone\.host=' | sed -e 's/^.*=//')"
@@ -437,7 +443,7 @@ start() {
   # By default, standard and error output is redirected to warp10.log file, and error output is duplicated to standard output
   # As a consequence, if Warp 10 is launched by systemd, error messages will be in systemd journal too.
   #
-  ${JAVACMD} ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_CLASS} ${CONFIG_FILES} >> ${WARP10_HOME}/logs/warp10.log 2> >(tee >(cat 1>&2)) &
+  ${JAVACMD} ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_CLASS} ${CONFIG_FILES} > >(tee -a ${WARP10_HOME}/logs/warp10.log) 2>&1 &
 
   echo $! > ${PID_FILE}
 
@@ -445,13 +451,6 @@ start() {
     echo "Start failed! - See ${WARP10_HOME}/logs/warp10.log for more details"
     exit 1
   fi
-
-  echo '  ___       __                           ____________   '
-  echo '  __ |     / /_____ _______________      __<  /_  __ \  '
-  echo '  __ | /| / /_  __ `/_  ___/__  __ \     __  /_  / / /  '
-  echo '  __ |/ |/ / / /_/ /_  /   __  /_/ /     _  / / /_/ /   '
-  echo '  ____/|__/  \__,_/ /_/    _  .___/      /_/  \____/    '
-  echo '                           /_/                          '
 
   echo "##"
   echo "## Warp 10 listens on ${WARP10_LISTENSTO}"

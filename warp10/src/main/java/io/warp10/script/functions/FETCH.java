@@ -112,6 +112,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
   public static final String PARAM_TIMESPAN = "timespan";
   public static final String PARAM_TYPE = "type";
   public static final String PARAM_WRITE_TIMESTAMP = "wtimestamp";
+  public static final String PARAM_TTL = "ttl";
   public static final String PARAM_SHOWUUID = "showuuid";
   public static final String PARAM_TYPEATTR = "typeattr";
   public static final String PARAM_METASET = "metaset";
@@ -519,6 +520,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         }
         
         boolean writeTimestamp = Boolean.TRUE.equals(params.get(PARAM_WRITE_TIMESTAMP));
+        boolean ttl = Boolean.TRUE.equals(params.get(PARAM_TTL));
         
         boolean showUUID = Boolean.TRUE.equals(params.get(PARAM_SHOWUUID));
         
@@ -561,6 +563,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         req.setTimestep(timestep);
         req.setSample(sample);
         req.setWriteTimestamp(writeTimestamp);
+        req.setTTL(ttl);
         req.setPreBoundary(preBoundary);
         req.setPostBoundary(postBoundary);
         
@@ -1072,6 +1075,14 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
     
     if (map.containsKey(PARAM_WRITE_TIMESTAMP)) {
       params.put(PARAM_WRITE_TIMESTAMP, Boolean.TRUE.equals(map.get(PARAM_WRITE_TIMESTAMP)));
+    }
+
+    if (map.containsKey(PARAM_TTL)) {
+      params.put(PARAM_TTL, Boolean.TRUE.equals(map.get(PARAM_TTL)));
+    }
+
+    if (Boolean.TRUE.equals(params.get(PARAM_TTL)) && Boolean.TRUE.equals(params.get(PARAM_WRITE_TIMESTAMP))) {
+      throw new WarpScriptException(getName() + " Only one of '" + PARAM_WRITE_TIMESTAMP + "' and '" + PARAM_TTL + "' can be set to true.");
     }
     
     if (map.containsKey(PARAM_ACTIVE_AFTER)) {

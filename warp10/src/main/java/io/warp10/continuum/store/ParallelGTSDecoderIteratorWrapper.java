@@ -393,7 +393,9 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
         FetchRequest freq = new FetchRequest(req);
         // Restore Metadatas
         req.setMetadatas(lm);
+        // For standalone writeTimestamp and TTL are forced to false
         freq.setWriteTimestamp(false);
+        freq.setTTL(false);
         freq.setMetadatas(metas);
         iterator = client.fetch(freq);
 

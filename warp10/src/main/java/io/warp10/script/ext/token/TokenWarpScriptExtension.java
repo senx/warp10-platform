@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -27,11 +27,12 @@ import java.util.Map;
 
 public class TokenWarpScriptExtension extends WarpScriptExtension {
 
-  /*
+  /**
    * Name of configuration key with the token secret.
    */
   public static final String CONF_TOKEN_SECRET = "token.secret";
-  /*
+
+  /**
    * Name of the keystore key with OSS wrapped token secret
    */
   public static final String KEY_TOKEN_SECRET = "token.secret";
@@ -39,46 +40,34 @@ public class TokenWarpScriptExtension extends WarpScriptExtension {
   /**
    * Current Token Secret
    */
-  public static String TOKEN_SECRET = null;
+  public static String TOKEN_SECRET;
 
   private static final Map<String, Object> functions = new HashMap<String, Object>();
   private static final KeyStore keystore;
 
   static {
     TOKEN_SECRET = WarpConfig.getProperty(CONF_TOKEN_SECRET);
-    KeyStore ks = Warp.getKeyStore();
-    if (null == TOKEN_SECRET) { // if no configuration key
-      if (null != ks) {
-        // if OSS wrapped secret exists
-        byte[] ossHandledSecret = ks.getKey(TokenWarpScriptExtension.KEY_TOKEN_SECRET);
-        if (null != ossHandledSecret) {
-          keystore = ks;
-          TOKEN_SECRET = new String(ossHandledSecret, StandardCharsets.UTF_8).replaceAll("\n", "").trim();
-        } else {
-          keystore = null;
-        }
-      } else {
-        keystore = null;
+    keystore = Warp.getKeyStore();
+
+    // If no configuration key is defined in the configuration, look in the keystore if it exists.
+    if (null == TOKEN_SECRET && null != keystore) {
+      // if OSS wrapped secret exists
+      byte[] ossHandledSecret = keystore.getKey(TokenWarpScriptExtension.KEY_TOKEN_SECRET);
+      if (null != ossHandledSecret) {
+        TOKEN_SECRET = new String(ossHandledSecret, StandardCharsets.UTF_8).replaceAll("\n", "").trim();
       }
-    } else {
-      keystore = ks;
     }
   }
 
   public TokenWarpScriptExtension() {
-    if (null != keystore) {
-      functions.put("TOKENGEN", new TOKENGEN("TOKENGEN", keystore));
-      functions.put("TOKENDUMP", new TOKENDUMP("TOKENDUMP", keystore));
-    } else {
-      functions.put("TOKENGEN", new TOKENGEN("TOKENGEN"));
-      functions.put("TOKENDUMP", new TOKENDUMP("TOKENDUMP"));
-    }
+    functions.put("TOKENGEN", new TOKENGEN("TOKENGEN", keystore, true));
+    functions.put("TOKENDUMP", new TOKENDUMP("TOKENDUMP", keystore, true));
     functions.put("TOKENSECRET", new TOKENSECRET("TOKENSECRET"));
   }
 
   public TokenWarpScriptExtension(KeyStore keystore) {
-    functions.put("TOKENGEN", new TOKENGEN("TOKENGEN", keystore));
-    functions.put("TOKENDUMP", new TOKENDUMP("TOKENDUMP", keystore));
+    functions.put("TOKENGEN", new TOKENGEN("TOKENGEN", keystore, false));
+    functions.put("TOKENDUMP", new TOKENDUMP("TOKENDUMP", keystore, false));
   }
 
   @Override

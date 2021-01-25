@@ -102,17 +102,12 @@ public class OptimizedSlicedRowFilterGTSDecoderIterator extends GTSDecoderIterat
     
     List<byte[]> regionKeys = HBaseRegionKeys.getRegionKeys(conn, tableName);
 
-    int previousStartKeyIndex = Collections.binarySearch(regionKeys, keys.get(0), Bytes.BYTES_COMPARATOR);
     int previousEndKeyIndex = Collections.binarySearch(regionKeys, keys.get(1), Bytes.BYTES_COMPARATOR);
 
-    if (previousStartKeyIndex < 0) {
-      previousStartKeyIndex = -1 - previousStartKeyIndex;
-    }
     if (previousEndKeyIndex < 0) {
       previousEndKeyIndex = -1 - previousEndKeyIndex;
     }
 
-    previousStartKeyIndex >>>= 1;
     previousEndKeyIndex >>>= 1;
     
     for (int i = 1; i < metadatas.size(); i++) {
@@ -140,19 +135,6 @@ public class OptimizedSlicedRowFilterGTSDecoderIterator extends GTSDecoderIterat
         currentEndKeyIndex = -1 - currentEndKeyIndex;
         //currentEndKeyIndex = currentEndKeyIndex >>> 1;
       }
-
-      // If both values are even and equal, it means that they are outside a region, so notify HBaseKeys that it should
-      // reload the regions. We could also ignore the metadata, but that could lead to weird behavior as seen by the
-      // requesting client.
-      if (neg && 0 == currentStartKeyIndex % 2 && 0 == currentEndKeyIndex % 2 && currentStartKeyIndex == currentEndKeyIndex) {
-        /*
-        // Remove the current Metadata from the list
-        metadatas.remove(i);
-        // Decrement i so we leave i to the same index after it's incremented
-        i--;
-        continue;
-        */
-      }
               
       //
       // Change the indices so they represent region index and not bound index
@@ -174,7 +156,6 @@ public class OptimizedSlicedRowFilterGTSDecoderIterator extends GTSDecoderIterat
       
       group.add(metadatas.get(i));
       
-      previousStartKeyIndex = currentStartKeyIndex;
       previousEndKeyIndex = currentEndKeyIndex;
     }          
     

@@ -142,8 +142,6 @@ public class InMemoryChunkSet {
       int chunkid = chunk(timestamp);
     
       if (chunkid != lastchunk) {
-        chunkEncoder = null;
-      
         synchronized(this.chunks) {
           // Is the chunk non existent or has expired?
           if (null == this.chunks[chunkid] || this.chunkends[chunkid] < firstChunkStart) {

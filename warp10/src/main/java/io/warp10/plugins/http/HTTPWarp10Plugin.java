@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -57,6 +57,7 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
   private static final String PARAM_MACRO = "macro";
   private static final String PARAM_PREFIX = "prefix";
   private static final String PARAM_PARSE_PAYLOAD = "parsePayload";
+  private static final String PARAM_STREAMS_DELIMITER = "streamDelimiter";
 
   private static final String CONF_HTTP_HOST = "http.host";
   private static final String CONF_HTTP_PORT = "http.port";
@@ -107,6 +108,11 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
    * Map of uri to parse payloads
    */
   private Map<String, Boolean> parsePayloads = new HashMap<String, Boolean>();
+
+  /**
+   * Map of uri to stream delimiter.
+   */
+  private Map<String, Byte> streamDelimiters = new HashMap<String, Byte>();
 
   /**
    * Map of filename to uri
@@ -242,6 +248,7 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
           String uri = uris.remove(spec);
           this.macros.remove(uri);
           this.parsePayloads.remove(uri);
+          this.streamDelimiters.remove(uri);
           this.sizes.remove(spec);
           this.prefixes.remove(uri);
         }
@@ -252,6 +259,7 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
         for (String uri: inactiveURIs) {
           this.macros.remove(uri);
           this.parsePayloads.remove(uri);
+          this.streamDelimiters.remove(uri);
           this.prefixes.remove(uri);
         }        
       } catch (Throwable t) {
@@ -310,10 +318,18 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
       if (null != oldpath) {
         this.macros.remove(oldpath);
         this.parsePayloads.remove(oldpath);
+        this.streamDelimiters.remove(oldpath);
         this.prefixes.remove(oldpath);
       }
       this.macros.put(String.valueOf(config.get(PARAM_PATH)), (Macro) config.get(PARAM_MACRO));
       this.parsePayloads.put(String.valueOf(config.get(PARAM_PATH)), (Boolean) config.getOrDefault(PARAM_PARSE_PAYLOAD, true));
+      byte[] delimiter = ((byte[]) config.getOrDefault(PARAM_STREAMS_DELIMITER, null));
+      if (null != delimiter) {
+        if (delimiter.length > 1) {
+          throw new RuntimeException("Stream delimiter must be one byte long.");
+        }
+        this.streamDelimiters.put(String.valueOf(config.get(PARAM_PATH)), delimiter[0]);
+      }
       if (Boolean.TRUE.equals(config.get(PARAM_PREFIX))) {
         prefixes.add(String.valueOf(config.get(PARAM_PATH)));
       }
@@ -392,6 +408,10 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
 
   public boolean isParsePayload(String uri) {
     return this.parsePayloads.get(uri);
+  }
+
+  public Byte streamDelimiter(String uri) {
+    return this.streamDelimiters.get(uri);
   }
   
   public boolean isLcHeaders() {

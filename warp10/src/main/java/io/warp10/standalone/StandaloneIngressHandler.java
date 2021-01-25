@@ -233,6 +233,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
     }
     
     long lastActivity = System.currentTimeMillis();
+    int httpStatusCode = HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
     
     try {
       WarpConfig.setThreadProperty(WarpConfig.THREAD_PROPERTY_SESSION, UUID.randomUUID().toString());
@@ -248,6 +249,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
       boolean deltaAttributes = "delta".equals(request.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_ATTRIBUTES)));
 
       if (deltaAttributes && !this.allowDeltaAttributes) {
+        httpStatusCode = HttpServletResponse.SC_BAD_REQUEST;
         throw new IOException("Delta update of attributes is disabled.");
       }
       
@@ -300,10 +302,12 @@ public class StandaloneIngressHandler extends AbstractHandler {
       try {
         writeToken = Tokens.extractWriteToken(token);
         if (writeToken.getAttributesSize() > 0 && writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_NOUPDATE)) {
+          httpStatusCode = HttpServletResponse.SC_FORBIDDEN;
           throw new WarpScriptException("Token cannot be used for updating data.");
         }
       } catch (WarpScriptException ee) {
-        throw new IOException(ee);
+        httpStatusCode = HttpServletResponse.SC_FORBIDDEN;
+        throw ee;
       }
       
       long maxsize = maxValueSize;
@@ -430,6 +434,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
           if (null != deltastr) {
             long delta = Long.parseLong(deltastr);
             if (delta < 0) {
+              httpStatusCode = HttpServletResponse.SC_BAD_REQUEST;
               throw new WarpScriptException("Invalid '" + Constants.TOKEN_ATTR_MAXPAST + "' token attribute, MUST be positive.");
             }
             try {
@@ -444,6 +449,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
           if (null != deltastr) {
             long delta = Long.parseLong(deltastr);
             if (delta < 0) {
+              httpStatusCode = HttpServletResponse.SC_BAD_REQUEST;
               throw new WarpScriptException("Invalid '" + Constants.TOKEN_ATTR_MAXFUTURE + "' token attribute, MUST be positive.");
             }
             try {
@@ -495,6 +501,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
               long delta = Long.parseLong(nowstr.substring(1));
               now = now + delta;
             } catch (Exception e) {
+              httpStatusCode = HttpServletResponse.SC_BAD_REQUEST;
               throw new IOException("Invalid base timestamp.");
             }                  
           } else if (nowstr.startsWith("-")) {
@@ -502,12 +509,14 @@ public class StandaloneIngressHandler extends AbstractHandler {
               long delta = Long.parseLong(nowstr.substring(1));
               now = now - delta;
             } catch (Exception e) {
+              httpStatusCode = HttpServletResponse.SC_BAD_REQUEST;
               throw new IOException("Invalid base timestamp.");
             }                            
           } else {
             try {
               now = Long.parseLong(nowstr);
             } catch (Exception e) {
+              httpStatusCode = HttpServletResponse.SC_BAD_REQUEST;
               throw new IOException("Invalid base timestamp.");
             }                  
           }
@@ -586,7 +595,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
             //nano2 += System.nanoTime() - nano0;
           } catch (ParseException pe) {
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_UPDATE_PARSEERRORS, sensisionLabels, 1);
-            throw new IOException("Parse error at '" + line + "'", pe);
+            httpStatusCode = HttpServletResponse.SC_BAD_REQUEST;
+            throw new IOException("Parse error at index " + pe.getErrorOffset() + " in '" + line + "'", pe);
           }
 
           if (encoder != lastencoder || lastencoder.size() > ENCODER_SIZE_THRESHOLD) {
@@ -601,8 +611,13 @@ public class StandaloneIngressHandler extends AbstractHandler {
               lastencoder.setClassId(GTSHelper.classId(ckl0, ckl1, lastencoder.getName()));
               lastencoder.setLabelsId(GTSHelper.labelsId(lkl0, lkl1, lastencoder.getMetadata().getLabels()));
 
-              ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId(), expose);
-              ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount(), expose);
+              try {
+                ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId(), expose);
+                ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount(), expose);
+              } catch (WarpException we) {
+                httpStatusCode = 429; // Too Many Requests
+                throw we;
+              }
             }
             
             //
@@ -666,9 +681,15 @@ public class StandaloneIngressHandler extends AbstractHandler {
           // 128BITS
           lastencoder.setClassId(GTSHelper.classId(ckl0, ckl1, lastencoder.getName()));
           lastencoder.setLabelsId(GTSHelper.labelsId(lkl0, lkl1, lastencoder.getMetadata().getLabels()));
-                  
-          ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId(), expose);
-          ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount(), expose);
+
+          try {
+            ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId(), expose);
+            ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount(), expose);
+          } catch (WarpException we) {
+            httpStatusCode = 429; // Too Many Requests
+            throw we;
+          }
+
           this.storeClient.store(lastencoder);
           
           if (parseAttributes && lastHadAttributes) {
@@ -688,9 +709,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
         //
         // TODO(hbs): should we update the count in Sensision periodically so you can't trick the throttling mechanism?
         //
-      } catch (WarpException we) {
-        throw new IOException(we);
-      } finally {               
+      } finally {
         this.storeClient.store(null);
         this.directoryClient.register(null);
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_UPDATE_DATAPOINTS_RAW, sensisionLabels, count);
@@ -717,8 +736,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
       if (!response.isCommitted()) {
         String prefix = "Error when updating data: ";
         String msg = prefix + ThrowableUtils.getErrorMessage(t, Constants.MAX_HTTP_REASON_LENGTH - prefix.length());
-        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msg);
-        return;
+        response.sendError(httpStatusCode, msg);
       }
     } finally {
       WarpConfig.clearThreadProperties();

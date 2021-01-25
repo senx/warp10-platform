@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -51,6 +51,12 @@ ingress.websocket.maxmessagesize = 1048576
 // Set to true to consider attributes updates (calls to /meta) when tracking activity of GTS
 //
 #ingress.activity.meta = true
+
+//
+// Maximum value size of a measurement
+// Make sure this is less than 'max.encoder.size'
+//
+#standalone.value.maxsize = 65536
 
 //
 // Default maximum age of datapoints pushed to Warp 10, in ms. Any timestamp older than

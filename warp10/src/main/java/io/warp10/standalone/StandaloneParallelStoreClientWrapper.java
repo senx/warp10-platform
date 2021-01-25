@@ -44,7 +44,7 @@ public class StandaloneParallelStoreClientWrapper implements StoreClient {
   
   @Override
   public GTSDecoderIterator fetch(FetchRequest req) throws IOException {
-    if (ParallelGTSDecoderIteratorWrapper.useParallelScanners()) {
+    if (req.isParallelScanners() && ParallelGTSDecoderIteratorWrapper.useParallelScanners()) {
       return new ParallelGTSDecoderIteratorWrapper(parent, req);
     } else {
       return parent.fetch(req);

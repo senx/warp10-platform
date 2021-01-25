@@ -17,6 +17,7 @@
 package io.warp10.script.functions;
 
 import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptATCException;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
@@ -97,6 +98,10 @@ public class SORTWITH extends NamedWarpScriptFunction implements WarpScriptStack
           }
         });
       } catch (ComparisonException ce) {
+        // Rethrow encapsulated WarpScriptATCException, which allows STOP to work, for instance.
+        if (ce.getCause() instanceof WarpScriptATCException) {
+          throw (WarpScriptATCException) ce.getCause();
+        }
         throw new WarpScriptException(getName() + " encountered an error with comparator: " + ce.getCause().getMessage(), ce);
       }
 

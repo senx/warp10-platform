@@ -522,9 +522,8 @@ public final class Varint {
    */
   public static int skipVarint(ByteBuffer buffer) {
     int skipped = 1;
-    long bytevalue;
-    
-    while(((bytevalue = buffer.get()) & 0x80L) != 0) {
+
+    while((buffer.get() & 0x80L) != 0) {
       skipped++;
       Preconditions.checkArgument(skipped <= 9, "Variable length quantity is too long");
     }

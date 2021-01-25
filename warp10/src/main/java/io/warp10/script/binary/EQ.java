@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -29,16 +29,16 @@ import java.util.concurrent.atomic.AtomicLong;
  * Checks the two operands on top of the stack for equality
  */
 public class EQ extends ComparisonOperation {
-  
+
   public EQ(String name) {
     super(name, false, true); // NaN NaN == must return true in WarpScript
   }
-  
+
   @Override
   public boolean operator(int op1, int op2) {
     return op1 == op2;
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object op2 = stack.pop();
@@ -53,6 +53,8 @@ public class EQ extends ComparisonOperation {
     } else if (op1 instanceof GeoXPLib.GeoXPShape && op2 instanceof GeoXPLib.GeoXPShape) {
       // In WarpScript the long[] backing every GeoXPShape is sorted and without duplicate.
       stack.push(Arrays.equals(GeoXPLib.getCells((GeoXPLib.GeoXPShape) op1), GeoXPLib.getCells((GeoXPLib.GeoXPShape) op2)));
+    } else if (op1 instanceof byte[] && op2 instanceof byte[]) {
+      stack.push(Arrays.equals((byte[]) op1, (byte[]) op2));
     } else {
       if (null == op1) {
         stack.push(null == op2);
@@ -62,12 +64,12 @@ public class EQ extends ComparisonOperation {
     }
     return stack;
   }
-  
+
   public static int compare(Number a, Number b) {
     if (a.equals(b)) {
       return 0;
     }
-    
+
     if (a instanceof Double && b instanceof Double) {
       return ((Double) a).compareTo((Double) b);
     } else if (((a instanceof Long || a instanceof Integer || a instanceof Short || a instanceof Byte || a instanceof AtomicLong)
@@ -79,7 +81,7 @@ public class EQ extends ComparisonOperation {
       // We want '10 10.0 ==' or '10 10.0 >=' to be true
       BigDecimal bda;
       BigDecimal bdb;
-      
+
       if (a instanceof Double || a instanceof Float) {
         bda = new BigDecimal(a.doubleValue());
       } else if (a instanceof Long || a instanceof Integer || a instanceof Short || a instanceof Byte) {
@@ -87,7 +89,7 @@ public class EQ extends ComparisonOperation {
       } else {
         bda = new BigDecimal(a.toString());
       }
-      
+
       if (b instanceof Double || a instanceof Float) {
         bdb = new BigDecimal(b.doubleValue());
       } else if (b instanceof Long || b instanceof Integer || b instanceof Short || b instanceof Byte) {
@@ -95,7 +97,7 @@ public class EQ extends ComparisonOperation {
       } else {
         bdb = new BigDecimal(b.toString());
       }
-      
+
       return bda.compareTo(bdb);
     }
   }

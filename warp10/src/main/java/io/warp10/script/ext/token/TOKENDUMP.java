@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -45,112 +45,129 @@ import java.util.Map;
 public class TOKENDUMP extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
   private final QuasarTokenEncoder encoder = new QuasarTokenEncoder();
-  private final QuasarTokenDecoder decoder;
 
   public static final String KEY_PARAMS = "params";
 
-  private byte[] tokenAESKey = null;
-  private byte[] tokenSipHashKey = null;
+  private final byte[] keystoreTokenAESKey;
+  private final byte[] keystoreTokenSipHashKey;
 
-  private boolean multikey = false;
+  /**
+   * Whether the keystore used to initialize the keys is that of a Warp/WarpDist instance.
+   * If true, a secret is needed to access the keystore keys.
+   */
+  private final boolean warpKeystore;
 
-  public TOKENDUMP(String name) {
+  /**
+   * Create the TOKENDUMP function.
+   * @param name The name of the function.
+   * @param keystore The keystore containing the AES and SipHash keys to decode tokens when no such keys are given when applying this function.
+   * @param warpKeystore Whether the given keystore is that of a Warp/WarpDist instance. If true, a secret is needed to access the keystore keys.
+   */
+  public TOKENDUMP(String name, KeyStore keystore, boolean warpKeystore) {
     super(name);
-    decoder = null;
-  }
-
-  public TOKENDUMP(String name, KeyStore keystore) {
-    super(name);
-    tokenAESKey = keystore.getKey(KeyStore.AES_TOKEN);
-    tokenSipHashKey = keystore.getKey(KeyStore.SIPHASH_TOKEN);
-    long[] lkey = SipHashInline.getKey(tokenSipHashKey);
-    decoder = new QuasarTokenDecoder(lkey[0], lkey[1], tokenAESKey);
-  }
-
-  public TOKENDUMP(String name, boolean multikey) {
-    super(name);
-    this.multikey = multikey;
-    decoder = null;
+    if(null != keystore) {
+      keystoreTokenAESKey = keystore.getKey(KeyStore.AES_TOKEN);
+      keystoreTokenSipHashKey = keystore.getKey(KeyStore.SIPHASH_TOKEN);
+    } else {
+      keystoreTokenAESKey = null;
+      keystoreTokenSipHashKey = null;
+    }
+    this.warpKeystore = warpKeystore;
   }
 
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
+    byte[] tokenAESKey = null;
+    byte[] tokenSipHashKey = null;
+    boolean customKeys = false;
 
-    byte[] AESKey = tokenAESKey;
-    byte[] SipHashKey = tokenSipHashKey;
+    // First, check if SipHash and AES keys are explicitly defined. In that case, no need for secret.
+    Object top = stack.pop();
+    if (top instanceof byte[]) {
+      customKeys = true;
 
-    if ((null == AESKey || null == SipHashKey) && !this.multikey) {
-      throw new WarpScriptException(getName() + " cannot be used in this context.");
+      tokenSipHashKey = (byte[]) top;
+
+      top = stack.pop();
+
+      if (!(top instanceof byte[])) {
+        throw new WarpScriptException(getName() + " expects a BYTES AES Key if a BYTES SipHash is given.");
+      }
+
+      tokenAESKey = (byte[]) top;
+
+      top = stack.pop();
     }
 
-    Object top = null;
+    if (null == tokenAESKey) { // in that case we have also null == tokenSipHashKey
+      // SipHash and AES keys are not explicitly defined, so we fall back to those of the keystore.
+      // Check the secret if needed before the fallback.
+      if (warpKeystore) {
+        String secret = TokenWarpScriptExtension.TOKEN_SECRET;
 
-    if (this.multikey) {
-      top = stack.pop();
-
-      if (!(top instanceof byte[])) {
-        throw new WarpScriptException(getName() + " expects a SipHash Key (a byte array).");
-      }
-
-      SipHashKey = (byte[]) top;
-
-      top = stack.pop();
-
-      if (!(top instanceof byte[])) {
-        throw new WarpScriptException(getName() + " expects an AES Key (byte array).");
-      }
-
-      AESKey = (byte[]) top;
-
-      top = stack.pop();
-    } else {
-      //
-      // A non null token secret was configured, check it
-      //
-      String secret = TokenWarpScriptExtension.TOKEN_SECRET;
-
-      top = stack.pop();
-
-      if (null != secret) {
-        if (!(top instanceof String)) {
-          throw new WarpScriptException(getName() + " expects a token secret on top of the stack.");
+        if (null == secret) {
+          throw new WarpScriptException(getName() + " expects a token secret to be set in the configuration.");
         }
+
+        if (!(top instanceof String)) {
+          throw new WarpScriptException(getName() + " expects a STRING token secret.");
+        }
+
         if (!secret.equals(top)) {
           throw new WarpScriptException(getName() + " invalid token secret.");
         }
+
         top = stack.pop();
+      }
+
+      // Fallback to keystore keys.
+      if (null == keystoreTokenAESKey || null == keystoreTokenSipHashKey) {
+        throw new WarpScriptException(getName() + " expects SipHash and AES keys to be explicitly defined.");
+      } else {
+        tokenAESKey = keystoreTokenAESKey;
+        tokenSipHashKey = keystoreTokenSipHashKey;
       }
     }
 
     if (!(top instanceof String)) {
-      throw new WarpScriptException(getName() + " expects a token on top of the stack.");
+      throw new WarpScriptException(getName() + " expects a STRING token.");
     }
 
-    String tokenstr = top.toString();
+    String tokenstr = (String) top;
 
     ReadToken rtoken = null;
     WriteToken wtoken = null;
 
-    byte[] token = OrderPreservingBase64.decode(tokenstr.getBytes(StandardCharsets.UTF_8));
-
-    QuasarTokenDecoder dec = decoder;
-
-    if (null == dec) {
-      long[] lkey = SipHashInline.getKey(SipHashKey);
-      dec = new QuasarTokenDecoder(lkey[0], lkey[1], AESKey);
-    }
-
-    try {
-      rtoken = dec.decodeReadToken(token);
-    } catch (QuasarTokenException qte) {
+    if (!customKeys && warpKeystore) {
+      // In that case, we don't even need tokenAESKey and tokenSipHashKey and use directly the Tokens class.
+      // It has the advantage of decoding tokens defined in files.
       try {
-        wtoken = dec.decodeWriteToken(token);
-      } catch (Exception e) {
-        throw new WarpScriptException(getName() + " invalid token.", e);
+        rtoken = Tokens.extractReadToken(tokenstr);
+      } catch (WarpScriptException wse) {
+        try {
+          wtoken = Tokens.extractWriteToken(tokenstr);
+        } catch (Exception e) {
+          throw new WarpScriptException(getName() + " invalid token.", e);
+        }
+      }
+    } else {
+      byte[] token = OrderPreservingBase64.decode(tokenstr.getBytes(StandardCharsets.UTF_8));
+
+      long[] lkey = SipHashInline.getKey(tokenSipHashKey);
+      QuasarTokenDecoder dec = new QuasarTokenDecoder(lkey[0], lkey[1], tokenAESKey);
+
+      try {
+        rtoken = dec.decodeReadToken(token);
+      } catch (QuasarTokenException qte) {
+        try {
+          wtoken = dec.decodeWriteToken(token);
+        } catch (Exception e) {
+          throw new WarpScriptException(getName() + " invalid token.", e);
+        }
       }
     }
 
-    String ident = encoder.getTokenIdent(tokenstr, SipHashKey);
+    String ident = encoder.getTokenIdent(tokenstr, tokenSipHashKey);
 
     Map<Object, Object> result = new HashMap<Object, Object>();
     result.put(TOKENGEN.KEY_TOKEN, tokenstr);

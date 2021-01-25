@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -19,16 +19,14 @@ package io.warp10.standalone;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
-
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
-
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
@@ -44,12 +42,14 @@ import org.eclipse.jetty.util.BlockingArrayQueue;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.iq80.leveldb.CompressionType;
 import org.iq80.leveldb.Options;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
 import io.warp10.Revision;
-import io.warp10.WarpConfig;
 import io.warp10.SSLUtils;
+import io.warp10.WarpConfig;
 import io.warp10.WarpDist;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.JettyUtil;
@@ -78,23 +78,25 @@ import io.warp10.warp.sdk.AbstractWarp10Plugin;
 
 public class Warp extends WarpDist implements Runnable {
 
+  private static final Logger LOG = LoggerFactory.getLogger(Warp.class);
+
   private static final String DEFAULT_THREADPOOL_SIZE = "200";
-  
+
   private static final String DEFAULT_HTTP_ACCEPTORS = "2";
   private static final String DEFAULT_HTTP_SELECTORS = "4";
-  
+
   private static final String NULL = "null";
-        
+
   private static WarpDB db;
-  
+
   private static boolean standaloneMode = false;
-  
+
   private static int port;
-  
+
   private static String host;
-  
-  private static Set<Path> datalogSrcDirs = Collections.unmodifiableSet(new HashSet<Path>()); 
-  
+
+  private static Set<Path> datalogSrcDirs = Collections.unmodifiableSet(new HashSet<Path>());
+
   private static final String[] REQUIRED_PROPERTIES = {
     Configuration.INGRESS_WEBSOCKET_MAXMESSAGESIZE,
     Configuration.PLASMA_FRONTEND_WEBSOCKET_MAXMESSAGESIZE,
@@ -108,17 +110,17 @@ public class Warp extends WarpDist implements Runnable {
     Configuration.CONFIG_WARPSCRIPT_META_ENDPOINT,
     Configuration.WARP_TIME_UNITS,
   };
-  
+
   public Warp() {
     // TODO Auto-generated constructor stub
   }
-  
+
   public static void main(String[] args) throws Exception {
     // Indicate standalone mode is on
     standaloneMode = true;
 
     System.setProperty("java.awt.headless", "true");
-    
+
     System.out.println();
     System.out.println(Constants.WARP10_BANNER);
     System.out.println("  Revision " + Revision.REVISION);
@@ -128,31 +130,31 @@ public class Warp extends WarpDist implements Runnable {
       throw new RuntimeException("Default encoding MUST be UTF-8 but it is " + Charset.defaultCharset() + ". Aborting.");
     }
 
-    Map<String,String> labels = new HashMap<String, String>();
+    Map<String, String> labels = new HashMap<String, String>();
     labels.put(SensisionConstants.SENSISION_LABEL_COMPONENT, "standalone");
     Sensision.set(SensisionConstants.SENSISION_CLASS_WARP_REVISION, labels, Revision.REVISION);
 
     setProperties(args);
-    
+
     Properties properties = getProperties();
-    
+
     boolean analyticsEngineOnly = "true".equals(properties.getProperty(Configuration.ANALYTICS_ENGINE_ONLY));
     boolean nullbackend = "true".equals(properties.getProperty(NULL)) || analyticsEngineOnly;
-    
+
     boolean plasmabackend = "true".equals(properties.getProperty(Configuration.PURE_PLASMA));
-    
+
     boolean inmemory = "true".equals(properties.getProperty(Configuration.IN_MEMORY));
     boolean accelerator = "true".equals(properties.getProperty(Configuration.ACCELERATOR));
-    
+
     if (inmemory && accelerator) {
       throw new RuntimeException("Accelerator mode cannot be enabled when " + Configuration.IN_MEMORY + " is set to true.");
     }
-    
+
     boolean enablePlasma = !("true".equals(properties.getProperty(Configuration.WARP_PLASMA_DISABLE)));
     boolean enableMobius = !("true".equals(properties.getProperty(Configuration.WARP_MOBIUS_DISABLE)));
     boolean enableStreamUpdate = !("true".equals(properties.getProperty(Configuration.WARP_STREAMUPDATE_DISABLE)));
     boolean enableREL = !("true".equals(properties.getProperty(Configuration.WARP_INTERACTIVE_DISABLE)));
-    
+
     for (String property: REQUIRED_PROPERTIES) {
       Preconditions.checkNotNull(properties.getProperty(property), "Property '" + property + "' MUST be set.");
     }
@@ -162,7 +164,7 @@ public class Warp extends WarpDist implements Runnable {
     //
 
     KeyStore keystore;
-    
+
     if (properties.containsKey(Configuration.OSS_MASTER_KEY)) {
       keystore = new OSSKeyStore(properties.getProperty(Configuration.OSS_MASTER_KEY));
     } else {
@@ -174,8 +176,8 @@ public class Warp extends WarpDist implements Runnable {
     // We do that first so those keys do not have precedence over the specific
     // keys.
     //
-    
-    for (Entry<Object,Object> entry: properties.entrySet()) {
+
+    for (Entry<Object, Object> entry: properties.entrySet()) {
       if (entry.getKey().toString().startsWith(Configuration.WARP_KEY_PREFIX)) {
         byte[] key = keystore.decodeKey(entry.getValue().toString());
         if (null == key) {
@@ -188,24 +190,24 @@ public class Warp extends WarpDist implements Runnable {
     extractKeys(keystore, properties);
 
     setKeyStore(keystore);
-    
+
     //
     // Initialize levelDB
     //
-    
+
     Options options = new Options();
-    
+
     options.createIfMissing(false);
-    
+
     if (properties.containsKey(Configuration.LEVELDB_MAXOPENFILES)) {
       int maxOpenFiles = Integer.parseInt(properties.getProperty(Configuration.LEVELDB_MAXOPENFILES));
       options.maxOpenFiles(maxOpenFiles);
     }
-    
+
     if (null != properties.getProperty(Configuration.LEVELDB_CACHE_SIZE)) {
-      options.cacheSize(Long.parseLong(properties.getProperty(Configuration.LEVELDB_CACHE_SIZE)));    
+      options.cacheSize(Long.parseLong(properties.getProperty(Configuration.LEVELDB_CACHE_SIZE)));
     }
-    
+
     if (null != properties.getProperty(Configuration.LEVELDB_COMPRESSION_TYPE)) {
       if ("snappy".equalsIgnoreCase(properties.getProperty(Configuration.LEVELDB_COMPRESSION_TYPE))) {
         options.compressionType(CompressionType.SNAPPY);
@@ -217,7 +219,7 @@ public class Warp extends WarpDist implements Runnable {
     //
     // Attempt to load JNI library, fallback to pure java in case of error
     //
-    
+
     if (!inmemory && !nullbackend && !plasmabackend) {
       boolean nativedisabled = "true".equals(properties.getProperty(Configuration.LEVELDB_NATIVE_DISABLE));
       boolean javadisabled = "true".equals(properties.getProperty(Configuration.LEVELDB_JAVA_DISABLE));
@@ -227,97 +229,97 @@ public class Warp extends WarpDist implements Runnable {
 
     // Register shutdown hook to close the DB.
     Runtime.getRuntime().addShutdownHook(new Thread(new Warp()));
-    
+
     //
     // Initialize the backup manager
     //
-    
+
     if (null != db) {
       String triggerPath = properties.getProperty(Configuration.STANDALONE_SNAPSHOT_TRIGGER);
       String signalPath = properties.getProperty(Configuration.STANDALONE_SNAPSHOT_SIGNAL);
-      
+
       if (null != triggerPath && null != signalPath) {
         Thread backupManager = new StandaloneSnapshotManager(triggerPath, signalPath);
         backupManager.setDaemon(true);
         backupManager.setName("[Snapshot Manager]");
-        backupManager.start();        
+        backupManager.start();
       }
     }
-    
+
     WarpScriptLib.registerExtensions();
 
     //
     // Initialize ThrottlingManager
     //
-    
+
     ThrottlingManager.init();
 
     //
     // Create Jetty server
     //
-    
+
     int maxThreads = Integer.parseInt(properties.getProperty(Configuration.STANDALONE_JETTY_THREADPOOL, DEFAULT_THREADPOOL_SIZE));
     BlockingArrayQueue<Runnable> queue = null;
-    
+
     if (properties.containsKey(Configuration.STANDALONE_JETTY_MAXQUEUESIZE)) {
       int queuesize = Integer.parseInt(properties.getProperty(Configuration.STANDALONE_JETTY_MAXQUEUESIZE));
       queue = new BlockingArrayQueue<Runnable>(queuesize);
     }
-    
+
     Server server = new Server(new QueuedThreadPool(maxThreads, 8, 60000, queue));
 
     boolean useHTTPS = null != properties.getProperty(Configuration.STANDALONE_PREFIX + Configuration._SSL_PORT);
     boolean useHTTP = null != properties.getProperty(Configuration.STANDALONE_PORT);
-    
+
     ServerConnector httpConnector = null;
     ServerConnector httpsConnector = null;
-    
-    if (!useHTTPS && !useHTTP ) {
+
+    if (!useHTTPS && !useHTTP) {
       throw new RuntimeException("Missing '" + Configuration.STANDALONE_PORT + "' or '" + Configuration.STANDALONE_PREFIX + Configuration._SSL_PORT + "' configuration");
     }
-    
+
     List<Connector> connectors = new ArrayList<Connector>();
-    
+
     if (useHTTP) {
       int acceptors = Integer.valueOf(properties.getProperty(Configuration.STANDALONE_ACCEPTORS, DEFAULT_HTTP_ACCEPTORS));
       int selectors = Integer.valueOf(properties.getProperty(Configuration.STANDALONE_SELECTORS, DEFAULT_HTTP_SELECTORS));
       port = Integer.valueOf(properties.getProperty(Configuration.STANDALONE_PORT));
       host = properties.getProperty(Configuration.STANDALONE_HOST, "0.0.0.0");
       int tcpBacklog = Integer.valueOf(properties.getProperty(Configuration.STANDALONE_TCP_BACKLOG, "0"));
-      
+
       httpConnector = new ServerConnector(server, acceptors, selectors);
-      
+
       httpConnector.setPort(port);
       httpConnector.setAcceptQueueSize(tcpBacklog);
-      
+
       if (null != host) {
         httpConnector.setHost(host);
       }
-      
+
       String idle = properties.getProperty(Configuration.STANDALONE_IDLE_TIMEOUT);
-      
+
       if (null != idle) {
         httpConnector.setIdleTimeout(Long.parseLong(idle));
       }
-      
+
       httpConnector.setName("Warp 10 Standalone HTTP Endpoint");
-      
+
       connectors.add(httpConnector);
     }
 
     if (useHTTPS) {
       httpsConnector = SSLUtils.getConnector(server, Configuration.STANDALONE_PREFIX);
-      httpsConnector.setName("Warp 10 Standalone HTTPS Endpoint");      
+      httpsConnector.setName("Warp 10 Standalone HTTPS Endpoint");
       connectors.add(httpsConnector);
     }
-    
+
     server.setConnectors(connectors.toArray(new Connector[connectors.size()]));
 
     HandlerList handlers = new HandlerList();
-    
+
     Handler cors = new CORSHandler();
     handlers.addHandler(cors);
-    
+
     StandaloneDirectoryClient sdc = null;
     StoreClient scc = null;
         
@@ -330,26 +332,26 @@ public class Warp extends WarpDist implements Runnable {
     
     if (inmemory) {
       sdc = new StandaloneDirectoryClient(null, keystore);
-      
+
       sdc.setActivityWindow(Long.parseLong(properties.getProperty(Configuration.INGRESS_ACTIVITY_WINDOW, "0")));
-      
+
       if (null == properties.getProperty(Configuration.IN_MEMORY_CHUNKED)) {
-        throw new RuntimeException("Configuration key '" + Configuration.IN_MEMORY_CHUNKED + "' MUST now explicitely be set to 'true' or 'false' (if you wish to use the now deprecated non chunked memory store).");
+        throw new RuntimeException("Configuration key '" + Configuration.IN_MEMORY_CHUNKED + "' MUST now explicitly be set to 'true' or 'false' (if you wish to use the now deprecated non chunked memory store).");
       }
-      
+
       if (!"false".equals(properties.getProperty(Configuration.IN_MEMORY_CHUNKED))) {
         scc = new StandaloneChunkedMemoryStore(properties, keystore);
         ((StandaloneChunkedMemoryStore) scc).setDirectoryClient(sdc);
         ((StandaloneChunkedMemoryStore) scc).load();
       } else {
         scc = new StandaloneMemoryStore(keystore,
-            Long.valueOf(properties.getProperty(Configuration.IN_MEMORY_DEPTH, Long.toString(60 * 60 * 1000 * Constants.TIME_UNITS_PER_MS))),
-            Long.valueOf(properties.getProperty(Configuration.IN_MEMORY_HIGHWATERMARK, "100000")),
-            Long.valueOf(properties.getProperty(Configuration.IN_MEMORY_LOWWATERMARK, "80000")));
+          Long.valueOf(properties.getProperty(Configuration.IN_MEMORY_DEPTH, Long.toString(60 * 60 * 1000 * Constants.TIME_UNITS_PER_MS))),
+          Long.valueOf(properties.getProperty(Configuration.IN_MEMORY_HIGHWATERMARK, "100000")),
+          Long.valueOf(properties.getProperty(Configuration.IN_MEMORY_LOWWATERMARK, "80000")));
         ((StandaloneMemoryStore) scc).setDirectoryClient(sdc);
         if ("true".equals(properties.getProperty(Configuration.IN_MEMORY_EPHEMERAL))) {
           ((StandaloneMemoryStore) scc).setEphemeral(true);
-        }        
+        }
         ((StandaloneMemoryStore) scc).load();
       }
     } else if (plasmabackend) {
@@ -359,19 +361,19 @@ public class Warp extends WarpDist implements Runnable {
       sdc = new NullDirectoryClient(keystore);
       scc = new NullStoreClient();
     } else {
-      sdc = new StandaloneDirectoryClient(db, keystore);    
+      sdc = new StandaloneDirectoryClient(db, keystore);
       scc = new StandaloneStoreClient(db, keystore, properties);
-      
+
       if (accelerator) {
         scc = new StandaloneAcceleratedStoreClient(sdc, scc);
       }
     }
-        
+
     if (null != WarpConfig.getProperty(Configuration.DATALOG_DIR) && null != WarpConfig.getProperty(Configuration.DATALOG_SHARDS)) {
       sdc = new StandaloneShardedDirectoryClientWrapper(keystore, sdc);
       scc = new StandaloneShardedStoreClientWrapper(keystore, scc);
     }
-    
+
     if (ParallelGTSDecoderIteratorWrapper.useParallelScanners()) {
       scc = new StandaloneParallelStoreClientWrapper(scc);
     }
@@ -403,7 +405,7 @@ public class Warp extends WarpDist implements Runnable {
         ScriptRunner runner = new ScriptRunner(keystore.clone(), properties);
       }
     }
-    
+
     //
     // Enable the ThrottlingManager (not 
     //
@@ -411,20 +413,20 @@ public class Warp extends WarpDist implements Runnable {
     if (!analyticsEngineOnly) {
       ThrottlingManager.enable();
     }
-    
+
     QuasarTokenFilter tf = new QuasarTokenFilter(properties, keystore);
-    
+
     GzipHandler gzip = new GzipHandler();
-    EgressExecHandler egressExecHandler = new EgressExecHandler(keystore, properties, sdc, scc); 
+    EgressExecHandler egressExecHandler = new EgressExecHandler(keystore, properties, sdc, scc);
     gzip.setHandler(egressExecHandler);
     gzip.setMinGzipSize(0);
     gzip.addIncludedMethods("POST");
     handlers.addHandler(gzip);
     setEgress(true);
-    
+
     if (!analyticsEngineOnly) {
       gzip = new GzipHandler();
-      StandaloneIngressHandler sih = new StandaloneIngressHandler(keystore, sdc, scc); 
+      StandaloneIngressHandler sih = new StandaloneIngressHandler(keystore, sdc, scc);
       gzip.setHandler(sih);
       gzip.setMinGzipSize(0);
       gzip.addIncludedMethods("POST");
@@ -441,7 +443,7 @@ public class Warp extends WarpDist implements Runnable {
         gzip.setHandler(new StandaloneSplitsHandler(keystore, sdc));
         gzip.setMinGzipSize(0);
         gzip.addIncludedMethods("POST");
-        handlers.addHandler(gzip);      
+        handlers.addHandler(gzip);
       }
 
       gzip = new GzipHandler();
@@ -451,19 +453,19 @@ public class Warp extends WarpDist implements Runnable {
       gzip.setMinGzipSize(0);
       gzip.addIncludedMethods("POST");
       handlers.addHandler(gzip);
-      
+
       if (enablePlasma) {
         StandalonePlasmaHandler plasmaHandler = new StandalonePlasmaHandler(keystore, properties, sdc);
-        scc.addPlasmaHandler(plasmaHandler);     
+        scc.addPlasmaHandler(plasmaHandler);
         handlers.addHandler(plasmaHandler);
       }
-      
+
       if (enableStreamUpdate) {
         StandaloneStreamUpdateHandler streamUpdateHandler = new StandaloneStreamUpdateHandler(keystore, properties, sdc, scc);
         streamUpdateHandler.setPlugin(sih.getPlugin());
         handlers.addHandler(streamUpdateHandler);
       }
-      
+
       gzip = new GzipHandler();
       gzip.setHandler(new EgressFetchHandler(keystore, properties, sdc, scc));
       gzip.setMinGzipSize(0);
@@ -480,83 +482,83 @@ public class Warp extends WarpDist implements Runnable {
       EgressInteractiveHandler erel = new EgressInteractiveHandler(keystore, properties, sdc, scc);
       handlers.addHandler(erel);
     }
-    
+
     server.setHandler(handlers);
-        
+
     JettyUtil.setSendServerVersion(server, false);
-    
+
     // Clear master key from memory
     keystore.forget();
 
     //
     // Register the plugins after we've cleared the master key
     //
-    
+
     AbstractWarp10Plugin.registerPlugins();
 
     try {
       if (useHTTP) {
-        System.out.println("#### standalone.endpoint " + InetAddress.getByName(host) + ":" + port);
+        LOG.info("#### standalone.endpoint " + InetAddress.getByName(host) + ":" + port);
       }
       if (useHTTPS) {
-        System.out.println("#### standalone.ssl.endpoint " + InetAddress.getByName(httpsConnector.getHost()) + ":" + httpsConnector.getPort());
+        LOG.info("#### standalone.ssl.endpoint " + InetAddress.getByName(httpsConnector.getHost()) + ":" + httpsConnector.getPort());
       }
       server.start();
     } catch (Exception e) {
       server.stop();
       throw new RuntimeException(e);
     }
-    
+
     // Retrieve actual local port
     if (null != httpConnector) {
       port = httpConnector.getLocalPort();
     }
 
     WarpDist.setInitialized(true);
-    
+
     try {
-      while(true) {
+      while (true) {
         try {
           Thread.sleep(60000L);
-        } catch (InterruptedException ie) {        
+        } catch (InterruptedException ie) {
         }
-      }      
+      }
     } catch (Throwable t) {
-      System.err.println(t.getMessage());
+      LOG.error(t.getMessage());
       server.stop();
     }
   }
-  
+
   public static boolean isStandaloneMode() {
     return standaloneMode;
   }
-  
+
   public static int getPort() {
     return port;
   }
-  
+
   public static String getHost() {
     return host;
   }
-  
+
   @Override
   public void run() {
     try {
       if (null != db) {
-        synchronized(db) {
+        synchronized (db) {
           db.close();
           db = null;
         }
-        System.out.println("LevelDB was safely closed.");
+        LOG.info("LevelDB was safely closed.");
       }
     } catch (IOException ioe) {
       ioe.printStackTrace();
     }
   }
-  
+
   /**
    * Extract Ingress related keys and populate the KeyStore with them.
-   * 
+   *
    * @param props Properties from which to extract the key specs
    */
   public static void extractKeys(KeyStore keystore, Properties props) {
@@ -565,12 +567,12 @@ public class Warp extends WarpDist implements Runnable {
     KeyStore.checkAndSetKey(keystore, KeyStore.AES_LEVELDB_DATA, props, Configuration.LEVELDB_DATA_AES, 128, 192, 256);
     KeyStore.checkAndSetKey(keystore, KeyStore.SIPHASH_FETCH_PSK, props, Configuration.CONFIG_FETCH_PSK, 128);
     KeyStore.checkAndSetKey(keystore, KeyStore.AES_RUNNER_PSK, props, Configuration.RUNNER_PSK, 128, 192, 256);
-  }  
+  }
 
   public static WarpDB getDB() {
     return db;
   }
-  
+
   public static Set<Path> getDatalogSrcDirs() {
     return datalogSrcDirs;
   }

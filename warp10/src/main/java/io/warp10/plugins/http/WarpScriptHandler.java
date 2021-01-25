@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,12 +16,14 @@
 package io.warp10.plugins.http;
 
 import io.warp10.WarpConfig;
+import io.warp10.continuum.store.DirectoryClient;
+import io.warp10.continuum.store.StoreClient;
 import io.warp10.script.MemoryWarpScriptStack;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStackRegistry;
-
+import io.warp10.warp.sdk.AbstractWarp10Plugin;
 import org.apache.commons.io.IOUtils;
 import org.eclipse.jetty.http.MimeTypes;
 import org.eclipse.jetty.server.Request;
@@ -30,7 +32,9 @@ import org.eclipse.jetty.server.handler.AbstractHandler;
 import javax.servlet.DispatcherType;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -42,21 +46,26 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.zip.GZIPInputStream;
 
 public class WarpScriptHandler extends AbstractHandler {
 
   private final HTTPWarp10Plugin plugin;
   private final Properties properties;
+  private final StoreClient storeClient;
+  private final DirectoryClient directoryClient;
 
   public WarpScriptHandler(HTTPWarp10Plugin plugin) {
     this.plugin = plugin;
     this.properties = WarpConfig.getProperties();
+    this.storeClient = AbstractWarp10Plugin.getExposedStoreClient();
+    this.directoryClient = AbstractWarp10Plugin.getExposedDirectoryClient();
   }
 
   @Override
   public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException {
     // Only handle REQUEST
-    if(DispatcherType.REQUEST != baseRequest.getDispatcherType()){
+    if (DispatcherType.REQUEST != baseRequest.getDispatcherType()) {
       baseRequest.setHandled(true);
       return;
     }
@@ -70,7 +79,7 @@ public class WarpScriptHandler extends AbstractHandler {
 
     baseRequest.setHandled(true);
 
-    MemoryWarpScriptStack stack = new MemoryWarpScriptStack(HTTPWarp10Plugin.getExposedStoreClient(), HTTPWarp10Plugin.getExposedDirectoryClient(), this.properties);
+    MemoryWarpScriptStack stack = new MemoryWarpScriptStack(this.storeClient, this.directoryClient, this.properties);
 
     try {
       WarpConfig.setThreadProperty(WarpConfig.THREAD_PROPERTY_SESSION, UUID.randomUUID().toString());
@@ -103,14 +112,34 @@ public class WarpScriptHandler extends AbstractHandler {
       }
       params.put("headers", headers);
 
-      // Get the payload if the content-type is not application/x-www-form-urlencoded or we do not want to parse the payload
-      if (!MimeTypes.Type.FORM_ENCODED.is(request.getContentType()) || !plugin.isParsePayload(prefix)) {
-        byte[] payload = IOUtils.toByteArray(request.getInputStream());
-        if (0 < payload.length) {
-          params.put("payload", payload);
+      // We have to get the input stream before getting the parameters, else we won't be able to read it!
+      InputStream inputStream = null;
+
+      // The input stream is handled very differently if the WarpScript is expecting a splitted stream or not.
+      if (null == plugin.streamDelimiter(prefix)) {
+        // In the case of x-www-form-urlencoded request, the parameters are sent in the payload.
+        // We must not get the input stream if we want the request.getParameterMap() below to
+        // automatically parse the payload and add the result to the parameter map.
+        // Thus we get the input stream if the request is not x-www-form-urlencoded or if the configuration
+        // explicitly states that the payload must not be parsed.
+        if ((!MimeTypes.Type.FORM_ENCODED.is(request.getContentType()) || !plugin.isParsePayload(prefix))) {
+          // Ready all the stream and store the payload.
+          byte[] payload = IOUtils.toByteArray(request.getInputStream());
+          if (0 < payload.length) {
+            params.put("payload", payload);
+          }
+        }
+      } else {
+        // The input stream will be splitted and given to the macro later.
+        if (null != request.getHeader("Content-Type") && "application/gzip".equals(request.getHeader("Content-Type"))) {
+          inputStream = new GZIPInputStream(request.getInputStream());
+        } else {
+          inputStream = request.getInputStream();
         }
       }
 
+      // Get the parameters in the URL and payload if the parsing of x-www-form-urlencoded payload was allowed, see comment above.
+      // request.getParameterMap() will not parse the payload if the input stream of the request has been retrieved.
       Map<String, List<String>> httpparams = new HashMap<String, List<String>>();
       Map<String, String[]> pmap = request.getParameterMap();
       for (Entry<String, String[]> param: pmap.entrySet()) {
@@ -119,8 +148,51 @@ public class WarpScriptHandler extends AbstractHandler {
       params.put("params", httpparams);
 
       try {
-        stack.push(params);
-        stack.exec(macro);
+        if (null == plugin.streamDelimiter(prefix)) {
+          // Not streaming, only push params and exec the macro.
+          stack.push(params);
+          stack.exec(macro);
+        } else {
+          Byte splitByte = plugin.streamDelimiter(prefix);
+          ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+
+          int readCount;
+          byte[] buffer = new byte[1024];
+
+          // Read the stream by chunks until end of stream.
+          while ((readCount = inputStream.read(buffer)) != -1) {
+            int offset = 0;
+
+            // Split the chunk.
+            while (true) {
+              int indexOfSplit = indexOf(buffer, splitByte, offset, readCount);
+              if (-1 == indexOfSplit) {
+                // No delimiter found, add to output stream and continue reading the input stream.
+                outputStream.write(buffer, offset, readCount - offset);
+                break;
+              } else {
+                // Delimiter found, add split to output stream, which may not be empty because of code above.
+                outputStream.write(buffer, offset, indexOfSplit - offset);
+
+                // Push params, payload and execute macro.
+                stack.push(params);
+                stack.push(outputStream.toByteArray());
+                stack.exec(macro);
+
+                // Empty output stream.
+                outputStream.reset();
+              }
+
+              // Update offet, add 1 to also ignore delimiter.
+              offset = indexOfSplit + 1;
+            }
+          }
+
+          // End of stream, push null payload.
+          stack.push(params);
+          stack.push(null);
+          stack.exec(macro);
+        }
 
         Object top = stack.pop();
 
@@ -166,10 +238,19 @@ public class WarpScriptHandler extends AbstractHandler {
         }
       } catch (WarpScriptException wse) {
         throw new IOException(wse);
-      }      
+      }
     } finally {
       WarpConfig.clearThreadProperties();
       WarpScriptStackRegistry.unregister(stack);
-    }    
+    }
+  }
+
+  private static int indexOf(byte[] array, final byte target, int start, int end) {
+    for (int i = start; i < end; i++) {
+      if (target == array[i]) {
+        return i;
+      }
+    }
+    return -1;
   }
 }

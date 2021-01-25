@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2021  SenX S.A.S.
+//   Copyright 2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -14,33 +14,29 @@
 //   limitations under the License.
 //
 
-package io.warp10.script.processing.image;
+package io.warp10.script.ext.shm;
 
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
-import io.warp10.script.functions.TYPEOF;
-import processing.core.PImage;
 
-public class Psize extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-
-  public Psize(String name) {
+public class SHMDEFINED extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+  public SHMDEFINED(String name) {
     super(name);
   }
 
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-
     Object top = stack.pop();
-
-    if (top instanceof PImage) { // PGraphics extends PImage
-      PImage pi = (PImage) top;
-      stack.push((long) pi.pixelWidth);
-      stack.push((long) pi.pixelHeight);
-    } else {
-      throw new WarpScriptException(getName() + " expects a " + TYPEOF.TYPE_PIMAGE + " or a " + TYPEOF.TYPE_PGRAPHICSIMAGE + " instance.");
+    
+    if (!(top instanceof String)) {
+      throw new WarpScriptException(getName() + " expects a symbol name.");
     }
+
+    String symbol = (String) top;
+    
+    stack.push(SharedMemoryWarpScriptExtension.defined(symbol));
 
     return stack;
   }

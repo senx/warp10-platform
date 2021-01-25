@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2021  SenX S.A.S.
+//   Copyright 2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -14,18 +14,17 @@
 //   limitations under the License.
 //
 
-package io.warp10.script.processing.image;
+package io.warp10.script.functions;
 
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
-import io.warp10.script.functions.TYPEOF;
-import processing.core.PImage;
+import io.warp10.warp.sdk.Capabilities;
 
-public class Psize extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class CAPCHECK extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  public Psize(String name) {
+  public CAPCHECK(String name) {
     super(name);
   }
 
@@ -34,12 +33,17 @@ public class Psize extends NamedWarpScriptFunction implements WarpScriptStackFun
 
     Object top = stack.pop();
 
-    if (top instanceof PImage) { // PGraphics extends PImage
-      PImage pi = (PImage) top;
-      stack.push((long) pi.pixelWidth);
-      stack.push((long) pi.pixelHeight);
+    if (top instanceof String) {
+      Capabilities capabilities = null;
+
+      if (stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR) instanceof Capabilities) {
+        capabilities = (Capabilities) stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR);
+        stack.push(capabilities.containsKey((String) top));
+      } else {
+        stack.push(false);
+      }
     } else {
-      throw new WarpScriptException(getName() + " expects a " + TYPEOF.TYPE_PIMAGE + " or a " + TYPEOF.TYPE_PGRAPHICSIMAGE + " instance.");
+      throw new WarpScriptException(getName() + " expects a STRING capability name.");
     }
 
     return stack;

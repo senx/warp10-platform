@@ -27,12 +27,16 @@ import java.util.Random;
 
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellScanner;
+import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.Tag;
+import org.apache.hadoop.hbase.TagType;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
+import org.apache.hadoop.hbase.util.Bytes;
 
 import com.google.common.primitives.Longs;
 
@@ -78,6 +82,7 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
   private final byte[] colfam;
   
   private final boolean writeTimestamp;
+  private final boolean fetchTTL;
   
   private byte[] hbaseKey;
   
@@ -119,6 +124,7 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
     this.token = req.getToken();
     this.colfam = colfam;
     this.writeTimestamp = req.isWriteTimestamp();
+    this.fetchTTL = req.isTTL();
     this.hbaseKey = keystore.getKey(KeyStore.AES_HBASE_DATA);
 
     // If we are fetching up to Long.MIN_VALUE, then don't fetch a pre boundary
@@ -448,9 +454,17 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
                     continue;
                   }                               
                 }
-                                
+
                 if (writeTimestamp) {
                   encoder.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), cell.getTimestamp() * Constants.TIME_UNITS_PER_MS);
+                } else if (fetchTTL) {
+                  Tag tag = Tag.getTag(cell.getTagsArray(), cell.getTagsOffset(), cell.getTagsLength(), TagType.TTL_TAG_TYPE);
+                  if (null != tag && Bytes.SIZEOF_LONG == tag.getTagLength()) {
+                    long ttl = Bytes.toLong(tag.getBuffer(), tag.getTagOffset(), tag.getTagLength());
+                    encoder.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), ttl * Constants.TIME_UNITS_PER_MS);
+                  } else {
+                    encoder.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), Long.MAX_VALUE);
+                  }
                 } else {
                   encoder.addValue(timestamp, decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue());
                 }
