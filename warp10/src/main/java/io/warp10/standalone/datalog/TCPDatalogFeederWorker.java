@@ -1,5 +1,5 @@
 //
-//   Copyright 2020  SenX S.A.S.
+//   Copyright 2020-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -342,7 +342,7 @@ public class TCPDatalogFeederWorker extends Thread {
 
       //System.out.println("SEEK "+ msg);
 
-      if (DatalogMessageType.SEEK.equals(msg.getType())) {        // Build file name from tåås/uuid
+      if (DatalogMessageType.SEEK.equals(msg.getType())) {        // Build file name from ts/uuid
         currentFile = msg.getRef().replaceAll(":.*","") + FileBasedDatalogManager.SUFFIX;
         String file = this.manager.getNextFile(currentFile);
         if (!currentFile.equals(file)) {
