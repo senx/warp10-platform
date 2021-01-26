@@ -17,8 +17,6 @@
 package io.warp10.standalone.datalog;
 
 import java.io.IOException;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import io.warp10.continuum.store.DirectoryClient;
@@ -75,7 +73,7 @@ public class DatalogWorkers {
     long classid = record.getMetadata().getClassId();
     long labelsid = record.getMetadata().getLabelsId();
 
-    int partkey = (int) (((classid << 16) & 0xFFFFL) | ((labelsid >>> 48) & 0xFFFFL));
+    int partkey = (int) (((classid << 16) & 0xFFFF0000L) | ((labelsid >>> 48) & 0xFFFFL));
 
     DatalogJob job = new DatalogJob(consumer, ref, record);
 
@@ -87,6 +85,7 @@ public class DatalogWorkers {
   public static StoreClient getStoreClient() {
     return DatalogWorkers.store;
   }
+
   public static DirectoryClient getDirectoryClient() {
     return DatalogWorkers.directory;
   }
