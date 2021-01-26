@@ -227,7 +227,7 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
             new ECPUBLIC(WarpScriptLib.ECPUBLIC).apply(stack);
             feederPublic = (ECPublicKey) stack.pop();
           } catch (WarpScriptException wse) {
-            throw new RuntimeException("Error extracting ECC public key.", wse);
+            throw new RuntimeException("Error extracting ECC public key for feeder '" + this.feeder + "'.", wse);
           }
 
           long nonce = msg.getNonce();
