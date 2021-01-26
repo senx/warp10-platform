@@ -65,6 +65,7 @@ import io.warp10.script.binary.ADD;
 import io.warp10.script.functions.ECDH;
 import io.warp10.script.functions.ECPRIVATE;
 import io.warp10.script.functions.ECPUBLIC;
+import io.warp10.script.functions.ECSIGN;
 import io.warp10.script.functions.HASH;
 import io.warp10.script.functions.REVERSE;
 import io.warp10.script.functions.TOLONGBYTES;
@@ -119,6 +120,8 @@ public class TCPDatalogFeederWorker extends Thread {
       WarpScriptStack stack = new MemoryWarpScriptStack(EgressExecHandler.getExposedStoreClient(), EgressExecHandler.getExposedDirectoryClient());
 
       boolean encrypt = "true".equals(WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_FEEDER_ENCRYPT));
+
+      String id = WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_FEEDER_ID);
 
       //
       // Extract ECC private/public key
@@ -200,6 +203,26 @@ public class TCPDatalogFeederWorker extends Thread {
       msg.setNonce(nonce);
       msg.setTimestamp(timestamp);
       msg.setEncrypt(encrypt);
+      msg.setId(id);
+
+      //
+      // Sign nonce + timestamp + id
+      //
+
+      stack.clear();
+      stack.push(Longs.toByteArray(msg.getNonce()));
+      stack.push(Longs.toByteArray(msg.getTimestamp()));
+      stack.push(id.getBytes(StandardCharsets.UTF_8));
+      ADD ADD = new ADD(WarpScriptLib.ADD);
+      ADD.apply(stack);
+      ADD.apply(stack);
+      ECSIGN ECSIGN = new ECSIGN(WarpScriptLib.ECSIGN);
+      stack.push("SHA512WITHECDSA");
+      stack.push(eccPrivate);
+      ECSIGN.apply(stack);
+      byte[] sig = (byte[]) stack.pop();
+
+      msg.setSig(sig);
 
       byte[] bytes = DatalogHelper.serialize(msg);
       DatalogHelper.writeLong(out, bytes.length, 4);
@@ -221,7 +244,7 @@ public class TCPDatalogFeederWorker extends Thread {
       }
 
       //
-      // Check signature and compute encryption key if encrypt is true
+      // Check consumer signature and compute encryption key if encrypt is true
       // The check is performed by the DATALOG_CHECKMACRO macro
       // The macro is called with nonce, timestamp, id, sig
       // It returns the ECC public key associated with 'id' and throws an error (MSGFAIL / FAIL)
@@ -688,6 +711,8 @@ public class TCPDatalogFeederWorker extends Thread {
       }
     } catch (IOException ioe) {
       LOG.error("Error talking to Datalog consumer.", ioe);
+    } catch (WarpScriptException wse) {
+      LOG.error("Error executing WarpScript.", wse);
     } catch (Throwable t) {
       t.printStackTrace();
       throw t;
