@@ -55,15 +55,15 @@ import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.standalone.StandaloneDirectoryClient;
 
 public class FileBasedDatalogManager extends DatalogManager implements Runnable {
-  
+
   private static final Logger LOG = LoggerFactory.getLogger(FileBasedDatalogManager.class);
-  
+
   public static final String SUFFIX = ".datalog";
-  
+
   private static final long DEFAULT_MAXSIZE = 128 * 1024 * 1024L;
   private static final long DEFAULT_MAXTIME = 600 * 1000L;
   private static final long DEFAULT_PURGE = 0L;
-  
+
   public static final String CONFIG_DATALOG_MANAGER_DIR = "datalog.manager.dir";
   public static final String CONFIG_DATALOG_MANAGER_MAXSIZE = "datalog.manager.maxsize";
   public static final String CONFIG_DATALOG_MANAGER_MAXTIME = "datalog.manager.maxtime";
@@ -71,7 +71,8 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
   public static final String CONFIG_DATALOG_MANAGER_SYNCALL = "datalog.manager.syncall";
   public static final String CONFIG_DATALOG_MANAGER_COMPRESS = "datalog.manager.compress";
   public static final String CONFIG_DATALOG_MANAGER_ID = "datalog.manager.id";
-  
+
+  public static final String CONFIG_DATALOG_FEEDER_ID = "datalog.feeder.id";
   public static final String CONFIG_DATALOG_FEEDER_DIR = "datalog.feeder.dir";
   public static final String CONFIG_DATALOG_FEEDER_ECC_PRIVATE = "datalog.feeder.ecc.private";
   public static final String CONFIG_DATALOG_FEEDER_ECC_PUBLIC = "datalog.feeder.ecc.public";
@@ -95,13 +96,13 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
   public static final String SF_META_NOW = "now";
   public static final String SF_META_UUID = "uuid";
   public static final String SF_META_ID = "id";
-  
+
   private final AtomicBoolean done = new AtomicBoolean(false);
   private final AtomicBoolean closed = new AtomicBoolean(false);
   private final AtomicLong size = new AtomicLong(0L);
   private final ReentrantLock lock = new ReentrantLock(true);
   private final AtomicLong start = new AtomicLong(0L);
-  
+
   /**
    * Current SequenceFile Writer
    */
@@ -117,7 +118,7 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
   private final boolean syncAll;
   private final boolean compress;
   private final String id;
-  
+
   /**
    * Path of current SequenceFile
    */
@@ -126,22 +127,22 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
 
   private StoreClient storeClient = null;
   private StandaloneDirectoryClient directoryClient = null;
-  
+
   /**
    * List of all active SequenceFile
    */
   private List<String> activeFiles = new ArrayList<String>();
-    
+
   public FileBasedDatalogManager() {
-    
+
     conf = new Configuration();
     conf.set("fs.defaultFS", "file:///");
     conf.set("fs.hdfs.impl", org.apache.hadoop.hdfs.DistributedFileSystem.class.getName());
     conf.set("fs.file.impl", org.apache.hadoop.fs.LocalFileSystem.class.getName());
-    
+
     String dirname = WarpConfig.getProperty(CONFIG_DATALOG_MANAGER_DIR);
-    
-    try {      
+
+    try {
       fs = FileSystem.get(URI.create(dirname), conf);
       // We need to disable write checksums, otherwise a call to hsync will
       // NOT sync to disk!
@@ -149,42 +150,42 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
     } catch (IOException ioe) {
       throw new RuntimeException("Error getting Datalog filesystem.");
     }
-    
+
     if (null == dirname) {
       throw new RuntimeException("Missing '" + CONFIG_DATALOG_MANAGER_DIR + "' configuration.");
     }
-    
+
     dirpath = new Path(dirname);
-    
+
     try {
       if (!fs.exists(dirpath) || !fs.isDirectory(dirpath)) {
         throw new RuntimeException("Invalid '" + CONFIG_DATALOG_MANAGER_DIR + "' " + dirpath);
-      }      
+      }
     } catch (IOException ioe) {
       throw new RuntimeException("Error accessing " + dirpath);
     }
-    
+
     MAXSIZE = Long.parseLong(WarpConfig.getProperty(CONFIG_DATALOG_MANAGER_MAXSIZE, Long.toString(DEFAULT_MAXSIZE)));
     MAXTIME = Long.parseLong(WarpConfig.getProperty(CONFIG_DATALOG_MANAGER_MAXTIME, Long.toString(DEFAULT_MAXTIME)));
     PURGE_DELAY = Long.parseLong(WarpConfig.getProperty(CONFIG_DATALOG_MANAGER_PURGE, Long.toString(DEFAULT_PURGE)));
-    
+
     // Do we sync to disk after each individual records?
     syncAll = "true".equals(WarpConfig.getProperty(CONFIG_DATALOG_MANAGER_SYNCALL));
-    
+
     // Are SequenceFiles compressed?
     compress = "true".equals(WarpConfig.getProperty(CONFIG_DATALOG_MANAGER_COMPRESS));
-    
+
     // Our unique id
     id = WarpConfig.getProperty(CONFIG_DATALOG_MANAGER_ID);
 
     if (null == id) {
       throw new RuntimeException("Missing Datalog id '" + CONFIG_DATALOG_MANAGER_ID + "'.");
     }
-    
+
     //
     // Create shutdown hook
     //
-    
+
     Runtime.getRuntime().addShutdownHook(new Thread() {
       @Override
       public void run() {
@@ -194,24 +195,24 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
         }
       }
     });
-    
+
     //
     // Populate the list of active files
     //
 
     try {
       RemoteIterator<LocatedFileStatus> iter = fs.listFiles(dirpath, false);
-      
+
       while(iter.hasNext()) {
         LocatedFileStatus status = iter.next();
         String name = status.getPath().getName();
-        
+
         DATALOG_MATCHER.reset(name);
         if (DATALOG_MATCHER.matches()) {
           activeFiles.add(name);
         }
       }
-      
+
       Collections.sort(activeFiles);
     } catch (IOException ioe) {
       throw new RuntimeException("Unable to list active Datalog files.", ioe);
@@ -221,16 +222,16 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
     // Create the flushing thread. This thread keeps track of the size and time interval of each
     // SequenceFile and opens a new one if a threshold is reached.
     //
-    
+
     Thread flusher = new Thread(this);
     flusher.setDaemon(true);
     flusher.setName("[Datalog Flusher]");
     flusher.start();
     LOG.info("Started Datalog manager using directory '" + dirpath + "'.");
-    
+
     new TCPDatalogFeeder(this);
   }
-  
+
   @Override
   protected void register(Metadata metadata) throws IOException {
     //System.out.println("register: " + metadata);
@@ -266,19 +267,19 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
     System.out.println("delete: " + token + " " + metadata + " " + start + " " + end);
     append(DatalogHelper.getDeleteRecord(id, metadata, start, end));
   }
-  
+
   @Override
   protected void process(DatalogRecord record) throws IOException {
-    
+
     //
     // Ignore the record if it was created by this instance
     // to avoid loops.
     //
-    
+
     if (this.id.equals(record.getId())) {
       return;
     }
-    
+
     switch (record.getType()) {
       case UPDATE:
         GTSDecoder decoder = new GTSDecoder(record.getBaseTimestamp(), record.bufferForEncoder());
@@ -287,23 +288,23 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
         encoder.setMetadata(record.getMetadata());
         this.storeClient.store(encoder);
         break;
-        
-      case REGISTER:        
+
+      case REGISTER:
         this.directoryClient.register(record.getMetadata());
         break;
-        
+
       case UNREGISTER:
         this.directoryClient.unregister(record.getMetadata());
         break;
-        
+
       case DELETE:
         this.storeClient.delete(null, record.getMetadata(), record.getStart(), record.getStop());
         break;
     }
-    
+
     append(record);
   }
-  
+
   @Override
   protected StandaloneDirectoryClient wrap(StandaloneDirectoryClient sdc) {
     if (null != this.directoryClient) {
@@ -321,30 +322,30 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
     this.storeClient = sc;
     return new DatalogStoreClient(this, sc);
   }
-  
+
   private void purge() {
     long now = System.currentTimeMillis();
     if (PURGE_DELAY > 0 && now - lastpurge > Math.min(MAXTIME, PURGE_DELAY)) {
       // Retrieve all Datalog files
       try {
         RemoteIterator<LocatedFileStatus> iter = fs.listFiles(dirpath, false);
-        
+
         // Any file whose timestamp appearing in the name is
         // earlier than PURGE_DELAY + 2 * MAXTIME ago will be retained,
         // others will be purged
-        
+
         long cutoff = now - (PURGE_DELAY + 2 * MAXTIME);
-        
+
         // Iterate over the files
         while(iter.hasNext()) {
           LocatedFileStatus status = iter.next();
           String name = status.getPath().getName();
-          
+
           // Ignore the current file
           if (null != datalogpath && name.equals(datalogpath.getName())) {
             continue;
           }
-          
+
           DATALOG_MATCHER.reset(name);
           if (DATALOG_MATCHER.matches()) {
             long ts = Long.parseLong(DATALOG_MATCHER.group("ts"), 16);
@@ -356,7 +357,7 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
             try {
               fs.delete(status.getPath(), false);
               activeFiles.remove(name);
-            } catch (IOException ioe) {                    
+            } catch (IOException ioe) {
             }
           }
         }
@@ -366,21 +367,21 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
       }
     }
   }
-  
+
   @Override
   protected void replay(StandaloneDirectoryClient sdc, StoreClient scc) {
     //
     // Purge Datalog first
     //
     purge();
-    
+
     //
     // List all files
     //
-    
+
     try {
       lock.lockInterruptibly();
-      
+
       FileStatus[] files = fs.listStatus(dirpath);
 
       // Sort by name
@@ -390,7 +391,7 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
           return o1.getPath().getName().compareTo(o2.getPath().getName());
         }
       });
-      
+
       for (FileStatus file: files) {
         // Only consider files which match DATALOG_MATCHER
         if (!DATALOG_MATCHER.reset(file.getPath().getName()).matches()) {
@@ -400,17 +401,17 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
         SequenceFile.Reader reader = new SequenceFile.Reader(conf,
           SequenceFile.Reader.file(file.getPath()),
           SequenceFile.Reader.start(0));
-        
+
         BytesWritable key = new BytesWritable();
         BytesWritable val = new BytesWritable();
-        
+
         long count = 0L;
-        
+
         while(reader.next(key, val)) {
           System.out.println("VAL=" + DatalogHelper.getRecord(val.getBytes(), 0, val.getLength()));
           count++;
         }
-        
+
         LOG.info("Replayed " + count + " records.");
         reader.close();
       }
@@ -429,16 +430,16 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
       if (null == datalog) {
         throw new IOException("Datalog is not ready.");
       }
-      
+
       if (null != record) {
         // Set the store timestamp. This guarantees it will be past
         // the timestamp of the DatalogFile
         record.setStoreTimestamp(System.currentTimeMillis());
         byte[] value = DatalogHelper.serialize(record);
-        
+
         // Key is store timestamp + class id + labels id (to ease sharding)
         byte[] key = new byte[24];
-        
+
         int offset = 0;
         long l = record.getStoreTimestamp();
         key[offset++] = (byte) ((l >>> 56) & 0xFFL);
@@ -449,7 +450,7 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
         key[offset++] = (byte) ((l >>> 16) & 0xFFL);
         key[offset++] = (byte) ((l >>> 8) & 0xFFL);
         key[offset++] = (byte) (l & 0xFFL);
-        
+
         l = record.getMetadata().getClassId();
         key[offset++] = (byte) ((l >>> 56) & 0xFFL);
         key[offset++] = (byte) ((l >>> 48) & 0xFFL);
@@ -492,16 +493,16 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
       }
     }
   }
-  
+
   @Override
   public void run() {
-    try {            
+    try {
       while(true) {
         // Should we close the current file and reopen a new one?
         if (done.get() || null == datalog || size.get() > MAXSIZE || System.currentTimeMillis() - start.get() > MAXTIME) {
           try {
             lock.lockInterruptibly();
-            
+
             if (null != datalog) {
               datalog.hsync();
               datalog.close();
@@ -511,7 +512,7 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
                   synchronized(activeFiles) {
                     activeFiles.remove(datalogpath.getName());
                   }
-                } catch (Throwable t) {                  
+                } catch (Throwable t) {
                 }
               }
               datalogpath = null;
@@ -519,18 +520,18 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
                 break;
               }
             }
-            
+
             long now = System.currentTimeMillis();
             String hexnow = "0000000000000000" + Long.toHexString(now);
             hexnow = hexnow.substring(hexnow.length() - 16);
             String uuid = UUID.randomUUID().toString();
             datalogpath = new Path(dirpath + "/" + hexnow + "." + uuid + SUFFIX);
-            
+
             org.apache.hadoop.io.SequenceFile.Metadata meta = new org.apache.hadoop.io.SequenceFile.Metadata();
             meta.set(new Text(SF_META_NOW), new Text(String.valueOf(now)));
             meta.set(new Text(SF_META_UUID), new Text(uuid));
             meta.set(new Text(SF_META_ID), new Text(id));
-            
+
             datalog = SequenceFile.createWriter(
                 conf,
                 SequenceFile.Writer.file(datalogpath),
@@ -560,30 +561,30 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
           purge();
           LockSupport.parkNanos(1000000000L);
         }
-      }      
+      }
     } finally {
       closed.set(true);
     }
   }
-  
+
   public Map<String,Long> getActiveFiles() {
     return null;
   }
-  
+
   public String getCurrentFile() {
     if (null == datalogpath) {
       return null;
     }
     return datalogpath.getName();
   }
-  
+
   /**
-   * Return the file after 'key' 
+   * Return the file after 'key'
    * @param key
    * @return
    */
   public String getNextFile(String key) {
-    synchronized(activeFiles) {      
+    synchronized(activeFiles) {
       int idx = Collections.binarySearch(activeFiles, key);
 
       if (idx >= 0) {
@@ -607,11 +608,11 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
       }
     }
   }
-  
+
   public String getPreviousFile(String key) {
     synchronized(activeFiles) {
       int idx = Collections.binarySearch(activeFiles, key);
-      
+
       if (idx >= 0) {
         if (idx > 0) {
           // 'key' is in the list and not the first element, so return the
@@ -625,13 +626,13 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
         // 'key' was not found, return the file before it or null
         // if no file exists before it.
         idx = -idx - 1;
-        
+
         if (idx > 0) {
           return activeFiles.get(idx - 1);
         } else {
           return null;
         }
       }
-    }    
+    }
   }
 }
