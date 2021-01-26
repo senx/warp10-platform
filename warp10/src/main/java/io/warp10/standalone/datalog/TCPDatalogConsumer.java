@@ -59,6 +59,7 @@ import io.warp10.script.functions.ECDH;
 import io.warp10.script.functions.ECPRIVATE;
 import io.warp10.script.functions.ECPUBLIC;
 import io.warp10.script.functions.ECSIGN;
+import io.warp10.script.functions.ECVERIFY;
 import io.warp10.script.functions.HASH;
 import io.warp10.script.functions.REVERSE;
 import io.warp10.script.functions.TOLONGBYTES;
@@ -190,6 +191,49 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
         }
 
         //
+        // Retrieve feeder ECC public key
+        //
+
+        String feederpub = WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_CONSUMER_FEEDER_ECC_PUBLIC + suffix);
+
+        String[] tokens = feederpub.split(":");
+        Map<String,String> map = new HashMap<String,String>();
+        map.put(Constants.KEY_CURVE, tokens[0]);
+        map.put(Constants.KEY_Q, tokens[1]);
+
+        ECPublicKey feederPublic;
+
+        try {
+          stack.push(map);
+          new ECPUBLIC(WarpScriptLib.ECPUBLIC).apply(stack);
+          feederPublic = (ECPublicKey) stack.pop();
+        } catch (WarpScriptException wse) {
+          throw new RuntimeException("Error extracting ECC public key for feeder '" + this.feeder + "'.", wse);
+        }
+
+        //
+        // Check signature of feeder
+        //
+
+        stack.clear();
+        stack.push(Longs.toByteArray(msg.getNonce()));
+        stack.push(Longs.toByteArray(msg.getTimestamp()));
+        stack.push(msg.getId().getBytes(StandardCharsets.UTF_8));
+        ADD ADD = new ADD(WarpScriptLib.ADD);
+        ADD.apply(stack);
+        ADD.apply(stack);
+        ADD.apply(stack);
+        stack.push(msg.getSig());
+        stack.push("SHA512WITHECDSA");
+        stack.push(feederPublic);
+        ECVERIFY ECVERIFY = new ECVERIFY(WarpScriptLib.ECVERIFY);
+        ECVERIFY.apply(stack);
+
+        if (!Boolean.TRUE.equals(stack.pop())) {
+          throw new RuntimeException("Invalid signature from feeder '" + this.feeder + "'.");
+        }
+
+        //
         // Compute signature and emit INIT message
         //
 
@@ -197,7 +241,6 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
         stack.push(Longs.toByteArray(msg.getNonce()));
         stack.push(Longs.toByteArray(msg.getTimestamp()));
         stack.push(this.id.getBytes(StandardCharsets.UTF_8));
-        ADD ADD = new ADD(WarpScriptLib.ADD);
         ADD.apply(stack);
         ADD.apply(stack);
         ECSIGN ECSIGN = new ECSIGN(WarpScriptLib.ECSIGN);
@@ -208,28 +251,11 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
 
         boolean encrypt = msg.isEncrypt();
 
+        //
+        // Compute the encryption key using ECDH
+        //
+
         if (encrypt) {
-          //
-          // Compute the encryption key using ECDH
-          //
-
-          String feederpub = WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_CONSUMER_FEEDER_ECC_PUBLIC + suffix);
-
-          String[] tokens = feederpub.split(":");
-          Map<String,String> map = new HashMap<String,String>();
-          map.put(Constants.KEY_CURVE, tokens[0]);
-          map.put(Constants.KEY_Q, tokens[1]);
-
-          ECPublicKey feederPublic;
-
-          try {
-            stack.push(map);
-            new ECPUBLIC(WarpScriptLib.ECPUBLIC).apply(stack);
-            feederPublic = (ECPublicKey) stack.pop();
-          } catch (WarpScriptException wse) {
-            throw new RuntimeException("Error extracting ECC public key for feeder '" + this.feeder + "'.", wse);
-          }
-
           long nonce = msg.getNonce();
           long timestamp = msg.getTimestamp();
 
