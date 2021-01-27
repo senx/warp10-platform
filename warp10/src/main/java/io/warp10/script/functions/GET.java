@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -64,7 +64,7 @@ public class GET extends NamedWarpScriptFunction implements WarpScriptStackFunct
 
   /**
    * Get a value from a List, Map, byte[] or String using respectively a Long, Object, Long or Long key.
-   * @param key Either on Object for a Map or a Long for List, byte[] or String. Negative indexing is possible, in that case the corresponding index is size + index.
+   * @param key Either an Object for a Map or a Long for List, byte[] or String. Negative indexing is possible, in that case the corresponding index is size + index.
    * @param collection Either a List, Map, byte[] or String instance.
    * @return The value at the given key.
    * @throws WarpScriptException If the collection type cannot be handled or the key is invalid for the collection type.
