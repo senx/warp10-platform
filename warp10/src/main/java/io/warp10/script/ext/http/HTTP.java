@@ -90,13 +90,13 @@ public class HTTP extends FormattedWarpScriptFunction {
 
     args = new ArgumentsBuilder()
       .addArgument(String.class, METHOD, "The http method.")
-      .addArgument(String.class, URL, "The URL to send the GET request to. Must begin with http:// or https://.")
+      .addArgument(String.class, URL, "The URL to send the request to. Must begin with http:// or https://.")
       .addOptionalArgument(Map.class, HEADER, "An optional header.", new HashMap<>())
-      .addOptionalArgument(String.class, BODY, "An optional body", "")
+      .addOptionalArgument(String.class, BODY, "An optional body.", "")
       .build();
 
     output = new ArgumentsBuilder()
-      .addArgument(List.class, RESPONSE, "A list containing, for each URL, a 4-element list. These 4-element lists contain, in this order, a LONG status code, a STRING status message or an empty STRING if not available, a MAP of headers and a STRING representing a bytes array encoded as base 64.")
+      .addArgument(List.class, RESPONSE, "A 4-element list that contains, in this order, a LONG status code, a STRING status message or an empty STRING if not available, a MAP of headers and a STRING representing a bytes array encoded as base 64.")
       .build();
   }
 
