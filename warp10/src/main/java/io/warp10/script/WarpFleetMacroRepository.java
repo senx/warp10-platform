@@ -272,17 +272,23 @@ public class WarpFleetMacroRepository {
           
           macro = (Macro) stack.pop();
 
-          if (null != callingStack.getAttribute(WarpScriptStack.ATTRIBUTE_MACRO_TTL)) {
-            long macrottl = (long) callingStack.getAttribute(WarpScriptStack.ATTRIBUTE_MACRO_TTL);
-            if (macrottl < minttl) {
-              macrottl = minttl;
-            }
-            if (macrottl > maxttl) {
-              macrottl = maxttl;
-            }
-            macro.setExpiry(System.currentTimeMillis() + macrottl);
-          } else {
-            macro.setExpiry(System.currentTimeMillis() + ttl);
+          long macroTtl = ttl;
+
+          if (callingStack.getAttribute(WarpScriptStack.ATTRIBUTE_MACRO_TTL) instanceof Long) {
+            macroTtl = ((Long) callingStack.getAttribute(WarpScriptStack.ATTRIBUTE_MACRO_TTL)).longValue();
+          }
+
+          if (macroTtl < minttl) {
+            macroTtl = minttl;
+          }
+          if (macroTtl > maxttl) {
+            macroTtl = maxttl;
+          }
+
+          try {
+            macro.setExpiry(Math.addExact(System.currentTimeMillis(), macroTtl));
+          } catch (ArithmeticException ae) {
+            macro.setExpiry(Long.MAX_VALUE - 1);
           }
 
           macro.setNameRecursive(name);

@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-#   Copyright 2018-2020  SenX S.A.S.
+#   Copyright 2016-2021  SenX S.A.S.
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -29,11 +29,6 @@
 if [[ -e /lib/lsb/init-functions ]]; then
   . /lib/lsb/init-functions
 fi
-
-# Determine Python interpreter to use
-PYTHON=$(which python3)
-PYTHON=${PYTHON:-$(which python2)}
-PYTHON=${PYTHON:-$(which python)}
 
 # Extract JAVA_OPTS before we switch to strict mode
 JAVA_OPTS=${JAVA_OPTS:-}
@@ -355,12 +350,11 @@ bootstrap() {
   sed -i${SED_SUFFIX} -e 's|warpscriptLog\.File =.*|warpscriptLog.File = '${WARP10_HOME_ESCAPED}'/logs/warpscript.out|' ${WARP10_HOME}/etc/log4j.properties
   rm ${WARP10_HOME}/etc/log4j.properties${SED_SUFFIX}
 
-  # Generate secrets
-  ${PYTHON} ${WARP10_HOME}/etc/generate_crypto_key.py ${WARP10_SECRETS}
-  chown -R ${WARP10_USER}:${WARP10_GROUP} ${WARP10_CONFIG_DIR}
-
-
   getConfigFiles
+
+  # Generate secrets
+  chown -R ${WARP10_USER}:${WARP10_GROUP} ${WARP10_CONFIG_DIR}
+  su ${WARP10_USER} -c "${JAVACMD} -cp ${WARP10_JAR} -Dfile.encoding=UTF-8 io.warp10.GenerateCryptoKey ${CONFIG_FILES}"
 
   # Edit the warp10-tokengen.mc2 to use or not the secret
   secret=`su ${WARP10_USER} -c "${JAVACMD} -cp ${WARP10_CP} -Dlog4j.configuration=file:${LOG4J_CONF} -Dfile.encoding=UTF-8 io.warp10.WarpConfig ${CONFIG_FILES} . 'token.secret' | grep -e '^@CONF@ ' | sed -e 's/^@CONF@ //' | grep 'token.secret' | sed -e 's/^.*=//'"`
@@ -416,27 +410,28 @@ start() {
   # Extract configuration keys
   # 
 
-  CONFIG_KEYS=$(${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} -Dfile.encoding=UTF-8 io.warp10.WarpConfig ${CONFIG_FILES} . 'leveldb.home' 'standalone.host' 'standalone.port' | grep -e '^@CONF@ ' | sed -e 's/^@CONF@ //')
+  CONFIG_KEYS=$(${JAVACMD} -Xms64m -Xmx64m -XX:+UseG1GC -cp ${WARP10_CP} -Dfile.encoding=UTF-8 io.warp10.WarpConfig ${CONFIG_FILES} . 'leveldb.home' 'standalone.host' 'standalone.port' 'in.memory' | grep -e '^@CONF@ ' | sed -e 's/^@CONF@ //')
 
   LEVELDB_HOME="$(echo "${CONFIG_KEYS}" | grep -e '^leveldb\.home=' | sed -e 's/^.*=//')"
-
-  #
-  # Leveldb exists ?
-  #
-  if [ ! -e ${LEVELDB_HOME} ]; then
-    echo "${LEVELDB_HOME} does not exist - Creating it..."
-    mkdir -p ${LEVELDB_HOME} 2>&1
-    if [ $? != 0 ]; then
-      echo "${LEVELDB_HOME} creation failed"
-      exit 1
+  IN_MEMORY="$(echo "${CONFIG_KEYS}" | grep -e '^in\.memory=' | sed -e 's/^.*=//')"
+  if [ "${IN_MEMORY:-}" != "true" ]; then
+    #
+    # Leveldb exists ?
+    #
+    if [ ! -e ${LEVELDB_HOME} ]; then
+      echo "${LEVELDB_HOME} does not exist - Creating it..."
+      mkdir -p ${LEVELDB_HOME} 2>&1
+      if [ $? != 0 ]; then
+        echo "${LEVELDB_HOME} creation failed"
+        exit 1
+      fi
     fi
-  fi
-
-  if [ "$(find -L ${LEVELDB_HOME} -maxdepth 1 -type f | wc -l)" -eq 0 ]; then
-    echo "Init leveldb"
-    # Create leveldb database
-    echo \"Init leveldb database...\" >> ${WARP10_HOME}/logs/warp10.log
-    ${JAVACMD} ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_INIT} ${LEVELDB_HOME} >> ${WARP10_HOME}/logs/warp10.log 2>&1
+    if [ "$(find -L ${LEVELDB_HOME} -maxdepth 1 -type f | wc -l)" -eq 0 ]; then
+      echo "Init leveldb"
+      # Create leveldb database
+      echo \"Init leveldb database...\" >> ${WARP10_HOME}/logs/warp10.log
+      ${JAVACMD} ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_INIT} ${LEVELDB_HOME} >> ${WARP10_HOME}/logs/warp10.log 2>&1
+    fi
   fi
 
   WARP10_LISTENSTO_HOST="$(echo "${CONFIG_KEYS}" | grep -e '^standalone\.host=' | sed -e 's/^.*=//')"
