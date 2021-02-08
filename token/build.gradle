@@ -28,7 +28,7 @@ dependencies {
 
     // WARP10 DEPENDENCIES
     api project(':crypto')
-    api 'io.warp10:sensision:1.0.22'
+    api 'io.warp10:sensision:1.0.23'
 
     api 'org.apache.thrift:libthrift:0.11.0'
 }

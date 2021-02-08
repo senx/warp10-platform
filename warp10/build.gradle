@@ -44,7 +44,7 @@ dependencies {
     //
     api project(':crypto')
     api project(':token')
-    api 'io.warp10:sensision:1.0.22'
+    api 'io.warp10:sensision:1.0.23'
 
     api 'joda-time:joda-time:2.2'
     api 'org.apache.commons:commons-lang3:3.6'
