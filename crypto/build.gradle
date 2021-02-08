@@ -18,7 +18,7 @@
 // Project dependencies
 //
 dependencies {
-    testCompileOnly 'junit:junit:4.6'
+    testImplementation 'junit:junit:4.6'
     // UTILS
     api 'com.google.guava:guava:15.0'
     // CRYPTO JAVA PROVIDER

@@ -149,7 +149,7 @@ dependencies {
     //
     // Testing
     //
-    testCompileOnly 'junit:junit:4.6'
+    testImplementation 'junit:junit:4.6'
 }
 
 configurations.all {

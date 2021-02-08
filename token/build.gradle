@@ -23,8 +23,8 @@ sourceSets {
 }
 
 dependencies {
-    testCompileOnly 'junit:junit:4.6'
-    testCompileOnly 'org.slf4j:slf4j-log4j12:1.7.21'
+    testImplementation 'junit:junit:4.6'
+    testImplementation 'org.slf4j:slf4j-log4j12:1.7.21'
 
     // WARP10 DEPENDENCIES
     api project(':crypto')
