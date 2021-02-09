@@ -1483,14 +1483,34 @@ public class Configuration {
   public static final String LEVELDB_CACHE_SIZE = "leveldb.cache.size";
 
   /**
-   * LevelDB block size to use when compacting ranges
+   * LevelDB block size to use
    */
   public static final String LEVELDB_BLOCK_SIZE = "leveldb.block.size";
+
+  /**
+   * LevelDB block restart interval
+   */
+  public static final String LEVELDB_BLOCK_RESTART_INTERVAL = "leveldb.block.restart.interval";
+
+  /**
+   * Flag indicating whether or not to verify block checksums
+   */
+  public static final String LEVELDB_VERIFY_CHECKSUMS = "leveldb.verify.checksums";
+
+  /**
+   * Flag indicating whether or not to perform paranoid checks
+   */
+  public static final String LEVELDB_PARANOID_CHECKS = "leveldb.paranoid.checks";
 
   /**
    * Compression type to use for leveldb (SNAPPY/NONE)
    */
   public static final String LEVELDB_COMPRESSION_TYPE = "leveldb.compression.type";
+
+  /**
+   * Size of write buffer (in bytes)
+   */
+  public static final String LEVELDB_WRITEBUFFER_SIZE = "leveldb.writebuffer.size";
 
   /**
    * Set to true to disable the delete endpoint in the standalone version of Warp 10.

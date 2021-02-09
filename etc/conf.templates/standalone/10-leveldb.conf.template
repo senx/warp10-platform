@@ -80,7 +80,32 @@ leveldb.compression.type = SNAPPY
 //
 // Maximum number of open files to use for LevelDB
 //
-#leveldb.maxopenfiles =
+#leveldb.maxopenfiles = 1000
+
+//
+// LevelDB block size (in bytes)
+//
+#leveldb.block.size = 4096
+
+//
+// LevelDB block restart interval
+//
+#leveldb.block.restart.interval = 16
+
+//
+// Flag indicating whether or not to verify block checksums
+//
+#leveldb.verify.checksums = true
+
+//
+// Flag indicating whether or not to perform paranoid checks
+//
+#leveldb.paranoid.checks = false
+
+//
+// Size of write buffer (in bytes)
+//
+#leveldb.writebuffer.size = 2097152
 
 //
 // Geo Time Series count above which block caching will be disabled for LevelDB.
@@ -89,4 +114,3 @@ leveldb.compression.type = SNAPPY
 // Defaults to 0, meaning never disable the block cache
 //
 leveldb.blockcache.gts.threshold = 0
-

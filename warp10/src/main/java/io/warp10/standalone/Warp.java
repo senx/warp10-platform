@@ -206,12 +206,32 @@ public class Warp extends WarpDist implements Runnable {
       options.cacheSize(Long.parseLong(properties.getProperty(Configuration.LEVELDB_CACHE_SIZE)));
     }
 
+    if (null != properties.getProperty(Configuration.LEVELDB_WRITEBUFFER_SIZE)) {
+      options.writeBufferSize(Integer.parseInt(properties.getProperty(Configuration.LEVELDB_WRITEBUFFER_SIZE)));
+    }
+
     if (null != properties.getProperty(Configuration.LEVELDB_COMPRESSION_TYPE)) {
       if ("snappy".equalsIgnoreCase(properties.getProperty(Configuration.LEVELDB_COMPRESSION_TYPE))) {
         options.compressionType(CompressionType.SNAPPY);
       } else {
         options.compressionType(CompressionType.NONE);
       }
+    }
+
+    if (null != System.getProperty(Configuration.LEVELDB_BLOCK_SIZE)) {
+      options.blockSize(Integer.parseInt(System.getProperty(Configuration.LEVELDB_BLOCK_SIZE)));
+    }
+
+    if (null != System.getProperty(Configuration.LEVELDB_BLOCK_RESTART_INTERVAL)) {
+      options.blockRestartInterval(Integer.parseInt(System.getProperty(Configuration.LEVELDB_BLOCK_RESTART_INTERVAL)));
+    }
+
+    if (null != System.getProperty(Configuration.LEVELDB_VERIFY_CHECKSUMS)) {
+      options.verifyChecksums(Boolean.parseBoolean(System.getProperty(Configuration.LEVELDB_VERIFY_CHECKSUMS)));
+    }
+
+    if (null != System.getProperty(Configuration.LEVELDB_PARANOID_CHECKS)) {
+      options.paranoidChecks(Boolean.parseBoolean(System.getProperty(Configuration.LEVELDB_PARANOID_CHECKS)));
     }
 
     //
@@ -424,7 +444,7 @@ public class Warp extends WarpDist implements Runnable {
     }
 
     //
-    // Enable the ThrottlingManager (not 
+    // Enable the ThrottlingManager (not
     //
 
     if (!analyticsEngineOnly) {
