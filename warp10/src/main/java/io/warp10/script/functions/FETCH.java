@@ -633,7 +633,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
               lastCount += encoder.getCount();
 
               if (merge) {
-                if (null == lastEncoder || lastEncoder.getName() != encoder.getName() || !lastEncoder.getLabels().equals(encoder.getLabels())) {
+                if (null == lastEncoder || !lastEncoder.getName().equals(encoder.getName()) || !lastEncoder.getLabels().equals(encoder.getLabels())) {
                   lastEncoder = encoder;
                   series.add(lastEncoder);
                 } else {
