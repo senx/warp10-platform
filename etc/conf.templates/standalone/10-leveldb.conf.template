@@ -28,6 +28,11 @@
 leveldb.home = ${standalone.home}/leveldb
 
 //
+// Flag indicating whether or not we tolerate pre-existing LevelDB directory, defaults to false
+//
+#leveldb.error.if.exists = false
+
+//
 // Flag to disable the native LevelDB implementation
 // This flag is false by default if the configuration is missing 
 // When running WarpInit or WarpRepair, use a system property with the same name

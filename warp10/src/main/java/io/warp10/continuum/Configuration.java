@@ -1513,6 +1513,11 @@ public class Configuration {
   public static final String LEVELDB_WRITEBUFFER_SIZE = "leveldb.writebuffer.size";
 
   /**
+   * Flag indicating whether or not we tolerate pre-existing LevelDB directory
+   */
+  public static final String LEVELDB_ERROR_IF_EXISTS = "leveldb.error.if.exists";
+
+  /**
    * Set to true to disable the delete endpoint in the standalone version of Warp 10.
    */
   public static final String STANDALONE_DELETE_DISABLE = "standalone.delete.disable";
