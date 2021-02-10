@@ -1508,7 +1508,7 @@ public class Configuration {
   public static final String LEVELDB_COMPRESSION_TYPE = "leveldb.compression.type";
 
   /**
-   * Size of write buffer (in bytes)
+   * Size of write buffer (in bytes) - defaults to 4194304
    */
   public static final String LEVELDB_WRITEBUFFER_SIZE = "leveldb.writebuffer.size";
 
