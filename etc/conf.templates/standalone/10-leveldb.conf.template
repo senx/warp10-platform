@@ -105,7 +105,7 @@ leveldb.compression.type = SNAPPY
 //
 // Size of write buffer (in bytes)
 //
-#leveldb.writebuffer.size = 2097152
+#leveldb.writebuffer.size = 4194304
 
 //
 // Geo Time Series count above which block caching will be disabled for LevelDB.

@@ -218,20 +218,20 @@ public class Warp extends WarpDist implements Runnable {
       }
     }
 
-    if (null != System.getProperty(Configuration.LEVELDB_BLOCK_SIZE)) {
-      options.blockSize(Integer.parseInt(System.getProperty(Configuration.LEVELDB_BLOCK_SIZE)));
+    if (null != properties.getProperty(Configuration.LEVELDB_BLOCK_SIZE)) {
+      options.blockSize(Integer.parseInt(properties.getProperty(Configuration.LEVELDB_BLOCK_SIZE)));
     }
 
-    if (null != System.getProperty(Configuration.LEVELDB_BLOCK_RESTART_INTERVAL)) {
-      options.blockRestartInterval(Integer.parseInt(System.getProperty(Configuration.LEVELDB_BLOCK_RESTART_INTERVAL)));
+    if (null != properties.getProperty(Configuration.LEVELDB_BLOCK_RESTART_INTERVAL)) {
+      options.blockRestartInterval(Integer.parseInt(properties.getProperty(Configuration.LEVELDB_BLOCK_RESTART_INTERVAL)));
     }
 
-    if (null != System.getProperty(Configuration.LEVELDB_VERIFY_CHECKSUMS)) {
-      options.verifyChecksums(Boolean.parseBoolean(System.getProperty(Configuration.LEVELDB_VERIFY_CHECKSUMS)));
+    if (null != properties.getProperty(Configuration.LEVELDB_VERIFY_CHECKSUMS)) {
+      options.verifyChecksums("true".equals(properties.getProperty(Configuration.LEVELDB_VERIFY_CHECKSUMS)));
     }
 
-    if (null != System.getProperty(Configuration.LEVELDB_PARANOID_CHECKS)) {
-      options.paranoidChecks(Boolean.parseBoolean(System.getProperty(Configuration.LEVELDB_PARANOID_CHECKS)));
+    if (null != properties.getProperty(Configuration.LEVELDB_PARANOID_CHECKS)) {
+      options.paranoidChecks("true".equals(properties.getProperty(Configuration.LEVELDB_PARANOID_CHECKS)));
     }
 
     //
