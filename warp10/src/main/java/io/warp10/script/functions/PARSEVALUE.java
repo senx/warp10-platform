@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2020  SenX S.A.S.
+//   Copyright 2019-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package io.warp10.script.functions;
 
 import java.text.ParseException;
 
+import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
@@ -40,7 +41,11 @@ public class PARSEVALUE extends NamedWarpScriptFunction implements WarpScriptSta
     String value = top.toString().trim();
 
     try {
-      stack.push(GTSHelper.parseValue(value));
+      Object parsed = GTSHelper.parseValue(value);
+      if (GTSEncoder.MARKERS.DELETE.equals(parsed)) {
+        parsed = null;
+      }
+      stack.push(parsed);
     } catch (ParseException pe) {
       throw new WarpScriptException(getName() + " encountered a parse error at index " + pe.getErrorOffset() + " for '" + value + "'.", pe);
     }

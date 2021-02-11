@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -134,6 +134,10 @@ public class GTSEncoder implements Cloneable {
   static final byte FLAGS_ELEVATION_ZIGZAG = 0x04;
   static final byte FLAGS_ELEVATION_DELTA_PREVIOUS = 0x02;
   static final byte FLAGS_ELEVATION_IDENTICAL = 0x01;
+
+  public static enum MARKERS {
+    DELETE
+  }
 
   private boolean readonly = false;
 
@@ -434,7 +438,7 @@ public class GTSEncoder implements Cloneable {
           }
         }
       }
-    } else if (null == value) {
+    } else if (null == value || MARKERS.DELETE.equals(value)) {
       tsTypeFlag |= FLAGS_TYPE_BOOLEAN;
       tsTypeFlag |= FLAGS_DELETE_MARKER;
     } else {

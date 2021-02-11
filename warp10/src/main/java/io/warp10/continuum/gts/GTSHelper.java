@@ -1448,7 +1448,7 @@ public class GTSHelper {
     // Ignore nulls
     //
 
-    if (null == value) {
+    if (null == value && !overwrite) {
       return gts.values;
     }
 
@@ -1478,6 +1478,52 @@ public class GTSHelper {
             break;
           }
         }
+      }
+
+      // Handle the special case of deletions
+      if (null == value) {
+        // The timestamp was not found so no changes to the GTS
+        if (gts.values == idx) {
+          return gts.values;
+        }
+        // If the tick to remove is the last one, simply shrink the size
+        if (gts.values - 1 == idx) {
+          gts.values--;
+          // If the GTS becomes empty, set its type to UNDEFINED
+          if (0 == gts.values) {
+            gts.type = TYPE.UNDEFINED;
+          }
+          return gts.values;
+        }
+        // Shift arrays
+        int from = idx + 1;
+        int to = idx;
+        int len = gts.values - 1 - idx;
+        System.arraycopy(gts.ticks, from, gts.ticks, to, len);
+        if (null != gts.locations) {
+          System.arraycopy(gts.locations, from, gts.locations, to, len);
+        }
+        if (null != gts.elevations) {
+          System.arraycopy(gts.elevations, from, gts.elevations, to, len);
+        }
+        switch (gts.type) {
+          case LONG:
+            System.arraycopy(gts.longValues, from, gts.longValues, to, len);
+            break;
+          case DOUBLE:
+            System.arraycopy(gts.doubleValues, from, gts.doubleValues, to, len);
+            break;
+          case STRING:
+            System.arraycopy(gts.stringValues, from, gts.stringValues, to, len);
+            break;
+          case BOOLEAN:
+            for (int i = idx + 1; i < gts.values; i++) {
+              gts.booleanValues.set(i - 1, gts.booleanValues.get(i));
+            }
+            break;
+        }
+        gts.values--;
+        return gts.values;
       }
     }
 
@@ -2786,39 +2832,6 @@ public class GTSHelper {
         }
 
         value = GeoXPLib.toGeoXPPoint(lat, lon);
-      } else if ('Q' == firstChar && valuestr.startsWith("Q:")) {
-
-        double[] q = new double[4];
-
-        int idx = 2;
-        int qidx = 0;
-
-        while (qidx < q.length) {
-          int colon = valuestr.indexOf(':', idx);
-
-          if (-1 == colon) {
-            throw new ParseException("Invalid value for Quaternion, expected Q:w:x:y:z", 0);
-          }
-
-          try {
-            q[qidx++] = Double.parseDouble(valuestr.substring(idx, colon));
-            idx = colon + 1;
-
-            if (3 == qidx) {
-              q[qidx++] = Double.parseDouble(valuestr.substring(idx));
-            }
-          } catch (NumberFormatException nfe) {
-            ParseException pe = new ParseException("Cannot parse quaternion component.", idx);
-            pe.initCause(nfe);
-            throw pe;
-          }
-        }
-
-        if (!DoubleUtils.isFinite(q[0]) || !DoubleUtils.isFinite(q[1]) || !DoubleUtils.isFinite(q[2]) || !DoubleUtils.isFinite(q[3])) {
-          throw new ParseException("Quaternion values require finite elements.", 0);
-        }
-
-        value = TOQUATERNION.toQuaternion(q[0], q[1], q[2], q[3]);
       } else if ('[' == valuestr.charAt(0)) {
 
         // Value is a nested set of lists, each one being a space separated list of tokens of the form enclosed in [ ... ]
@@ -3095,6 +3108,41 @@ public class GTSHelper {
         //
 
         value = ValueEncoder.parse(valuestr);
+      } else if ('!' == firstChar && 1 == valuestr.length()) {
+        value = GTSEncoder.MARKERS.DELETE;
+      } else if ('Q' == firstChar && valuestr.startsWith("Q:")) {
+
+        double[] q = new double[4];
+
+        int idx = 2;
+        int qidx = 0;
+
+        while (qidx < q.length) {
+          int colon = valuestr.indexOf(':', idx);
+
+          if (-1 == colon) {
+            throw new ParseException("Invalid value for Quaternion, expected Q:w:x:y:z", 0);
+          }
+
+          try {
+            q[qidx++] = Double.parseDouble(valuestr.substring(idx, colon));
+            idx = colon + 1;
+
+            if (3 == qidx) {
+              q[qidx++] = Double.parseDouble(valuestr.substring(idx));
+            }
+          } catch (NumberFormatException nfe) {
+            ParseException pe = new ParseException("Cannot parse quaternion component.", idx);
+            pe.initCause(nfe);
+            throw pe;
+          }
+        }
+
+        if (!DoubleUtils.isFinite(q[0]) || !DoubleUtils.isFinite(q[1]) || !DoubleUtils.isFinite(q[2]) || !DoubleUtils.isFinite(q[3])) {
+          throw new ParseException("Quaternion values require finite elements.", 0);
+        }
+
+        value = TOQUATERNION.toQuaternion(q[0], q[1], q[2], q[3]);
       } else {
         //boolean likelydouble = UnsafeString.isDouble(valuestr);
         boolean likelylong = UnsafeString.isLong(valuestr);
@@ -3864,6 +3912,8 @@ public class GTSHelper {
     } else if (value instanceof byte[]) {
       sb.append("b64:");
       sb.append(Base64.encodeBase64URLSafeString((byte[]) value));
+    } else if (null == value) {
+      sb.append("!");
     }
   }
 
