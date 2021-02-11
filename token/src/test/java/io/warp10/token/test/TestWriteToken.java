@@ -115,7 +115,7 @@ public class TestWriteToken extends TokenTestCase {
 
     final QuasarTokenFilter tokenFilter = new QuasarTokenFilter(getConfig(), getKeyStore());
 
-    Thread.sleep(1);
+    Thread.sleep(2);
 
     try {
       tokenFilter.getWriteToken(writeToken);

@@ -1463,6 +1463,11 @@ public class Configuration {
   public static final String LEVELDB_HOME = "leveldb.home";
 
   /**
+   * Create LevelDB if not already initialized
+   */
+  public static final String LEVELDB_CREATE_IF_MISSING = "leveldb.create.if.missing";
+
+  /**
    * Maximum number of open files to use for LevelDB
    */
   public static final String LEVELDB_MAXOPENFILES = "leveldb.maxopenfiles";

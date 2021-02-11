@@ -195,7 +195,7 @@ public class Warp extends WarpDist implements Runnable {
 
     Options options = new Options();
 
-    options.createIfMissing(false);
+    options.createIfMissing("true".equals(properties.getProperty(Configuration.LEVELDB_CREATE_IF_MISSING)));
 
     options.errorIfExists("true".equals(properties.getProperty(Configuration.LEVELDB_ERROR_IF_EXISTS)));
 
