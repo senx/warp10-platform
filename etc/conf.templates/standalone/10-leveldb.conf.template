@@ -92,7 +92,8 @@ leveldb.cache.size = 100000000
 leveldb.compression.type = SNAPPY
 
 //
-// Maximum number of open files to use for LevelDB
+// Maximum number of open files to use for LevelDB.
+// This value should be at least 10 when using the pure Java LevelDB implementation.
 //
 #leveldb.maxopenfiles = 1000
 
