@@ -28,6 +28,16 @@
 leveldb.home = ${standalone.home}/leveldb
 
 //
+// Whether to initialize LevelDB if not found in leveldb.home.
+// If false and LevelDB is not initialized, Warp 10 will throw an error and won't start. leveldb.home will still be created.
+// If true and LevelDB is not initialized, all necessary LevelDB files will be created in leveldb.home and Warp 10 will
+// start as if LevelDB is already initialized.
+// This configuration has no effect if LevelDB is already initialized.
+// Defaults to false.
+//
+#leveldb.create.if.missing = false
+
+//
 // Flag to disable the native LevelDB implementation
 // This flag is false by default if the configuration is missing 
 // When running WarpInit or WarpRepair, use a system property with the same name

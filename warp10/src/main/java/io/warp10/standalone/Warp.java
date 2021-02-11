@@ -195,7 +195,7 @@ public class Warp extends WarpDist implements Runnable {
 
     Options options = new Options();
 
-    options.createIfMissing(false);
+    options.createIfMissing("true".equals(properties.getProperty(Configuration.LEVELDB_CREATE_IF_MISSING)));
 
     if (properties.containsKey(Configuration.LEVELDB_MAXOPENFILES)) {
       int maxOpenFiles = Integer.parseInt(properties.getProperty(Configuration.LEVELDB_MAXOPENFILES));
