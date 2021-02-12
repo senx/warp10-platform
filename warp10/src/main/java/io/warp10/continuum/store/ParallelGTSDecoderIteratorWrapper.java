@@ -199,13 +199,15 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
 
         try { this.iterator.close(); } catch (Exception e) {}
 
-        this.inflightCounter.addAndGet(-1);
-
         if (null != name) {
           this.thread.setName(name);
         }
 
         this.thread = null;
+
+        // Inflight decrement MUST be done last because close can be called just after this call.
+        // This can result in another GTSDecoderIteratorRunnable being interrupted because it uses the same thread.
+        this.inflightCounter.addAndGet(-1);
       }
     }
 
