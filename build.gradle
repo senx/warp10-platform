@@ -81,9 +81,6 @@ subprojects {
         maven {
             url 'https://dl.bintray.com/senx/maven'
         }
-        maven {
-            url 'https://dl.bintray.com/hbs/maven'
-        }
     }
 
     //

@@ -24,7 +24,7 @@ dependencies {
     // CRYPTO JAVA PROVIDER
     api 'org.bouncycastle:bcprov-jdk16:1.46'
     // OSS
-    api 'com.geoxp.oss:oss-client:1.0.0'
+    api 'com.geoxp.oss:oss-client:1.0.1'
 }
 
 //
