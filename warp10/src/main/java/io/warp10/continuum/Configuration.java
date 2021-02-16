@@ -128,6 +128,16 @@ public class Configuration {
   public static final String CONFIG_WARPSCRIPT_DEFAULTCL_PREFIX = "warpscript.defaultcl.";
 
   /**
+   * Prefix for loading a plugin using the default ClassLoader.
+   * For loading plugin class foo.Bar with the default ClassLoader, add
+   *
+   * plugin.defaultcl.foo.Bar = true
+   *
+   * in the configuration
+   */
+  public static final String CONFIG_PLUGIN_DEFAULTCL_PREFIX = "plugin.defaultcl.";
+
+  /**
    * This configuration parameter determines if undefining a function (via NULL 'XXX' DEF)
    * will unshadow the original statement thus making it available again or if it will replace
    * it with a function that will fail with a message saying the function is undefined.
