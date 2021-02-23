@@ -56,7 +56,6 @@ public class DirectoryUtil {
    * @param k0 first half of SipHash key
    * @param k1 second half of SipHash key
    * @param request DirectoryFindRequest to hash
-   * @return
    */
   public static long computeHash(long k0, long k1, DirectoryFindRequest request) {
     return computeHash(k0, k1, request.getTimestamp(), request.getClassSelector(), request.getLabelsSelectors());

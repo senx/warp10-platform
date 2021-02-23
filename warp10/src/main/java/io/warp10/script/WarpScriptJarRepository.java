@@ -187,11 +187,6 @@ public class WarpScriptJarRepository extends Thread {
   
   /**
    * Load an instance of a UDF, possibly checking the cache.
-   * 
-   * @param name
-   * @param cached
-   * @return
-   * @throws WarpScriptException
    */
   public static WarpScriptJavaFunction load(String name, boolean cached) throws WarpScriptException {
     

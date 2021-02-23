@@ -197,7 +197,7 @@ public class HyperLogLogPlus {
   
   /**
    * Thresholds for correcting bias
-   * @see https://docs.google.com/document/d/1gyjfMHy43U9OWBXxfaeG-3MjGzejW1dlpyMwEYAAWEI/view?fullscreen#
+   * @see <a href="https://docs.google.com/document/d/1gyjfMHy43U9OWBXxfaeG-3MjGzejW1dlpyMwEYAAWEI/view?fullscreen#">https://docs.google.com/document/d/1gyjfMHy43U9OWBXxfaeG-3MjGzejW1dlpyMwEYAAWEI/view?fullscreen#</a>
    */
   private static final int[] THRESHOLDS = new int[] { 10, 20, 40, 80, 220, 400, 900, 1800, 3100, 6500, 11500, 20000, 50000, 120000, 350000 };
   
@@ -277,9 +277,6 @@ public class HyperLogLogPlus {
   
   /**
    * Check if 'x' would modify the cardinality estimation
-   * 
-   * @param x
-   * @return
    */
   public synchronized boolean isNew(long x) {
     
@@ -382,9 +379,6 @@ public class HyperLogLogPlus {
   
   /**
    * Compute the estimated cardinality
-   * 
-   * @return
-   * @throws IOException
    */
   public long cardinality() throws IOException {
     

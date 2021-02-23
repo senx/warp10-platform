@@ -23,7 +23,7 @@ import java.util.Comparator;
 /**
  *Sort metadatas by increasing classId/labelsId byte representation to speed up reseeks
  *
- *@see ID_COMPARATOR in Directory
+ *@see io.warp10.continuum.store.Directory#ID_COMPARATOR
  */
 public class MetadataIdComparator implements Comparator<Metadata> {
   

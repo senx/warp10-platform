@@ -24,7 +24,7 @@ import io.warp10.script.WarpScriptStack;
 /**
  * Normal (Gaussian) distribution Probability Density Function.
  * 
- * @see http://en.wikipedia.org/wiki/Normal_distribution
+ * @see <a href="http://en.wikipedia.org/wiki/Normal_distribution">http://en.wikipedia.org/wiki/Normal_distribution</a>
  */
 public class NPDF extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 

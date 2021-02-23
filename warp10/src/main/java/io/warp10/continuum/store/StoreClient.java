@@ -41,8 +41,6 @@ public interface StoreClient {
    *   writeTimestamp Flag indicating we are interested in the HBase cell timestamp
    *   preBoundary Size of the pre boundary in number of values
    *   postBoundary Size of the post boundary in number of values
-   * @return
-   * @throws IOException
    */
   public GTSDecoderIterator fetch(FetchRequest req) throws IOException;
   public void addPlasmaHandler(StandalonePlasmaHandlerInterface handler);

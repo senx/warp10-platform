@@ -29,7 +29,7 @@ import org.junit.Test;
 /**
  * Test class
  * 
- * @see https://github.com/nahi/siphash-java-inline/blob/master/src/test/java/SipHashInlineTest.java
+ * @see <a href="https://github.com/nahi/siphash-java-inline/blob/master/src/test/java/SipHashInlineTest.java">https://github.com/nahi/siphash-java-inline/blob/master/src/test/java/SipHashInlineTest.java</a>
  *
  */
 public class SipHashInlineTest {

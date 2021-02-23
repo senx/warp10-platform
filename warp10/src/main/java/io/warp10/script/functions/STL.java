@@ -31,7 +31,7 @@ import java.util.Map;
 
 /**
  * Apply Seasonal Trend decomposition based on Loess procedure
- * @see http://www.wessa.net/download/stl.pdf
+ * @see <a href="http://www.wessa.net/download/stl.pdf">http://www.wessa.net/download/stl.pdf</a>
  */
 public class STL extends GTSStackFunction {
   
@@ -180,7 +180,7 @@ public class STL extends GTSStackFunction {
     //
     
     // default values are the same as for R's implementation (except for ns and ds)
-    // @see https://stat.ethz.ch/R-manual/R-devel/library/stats/html/stl.html
+    // @see <a href="https://stat.ethz.ch/R-manual/R-devel/library/stats/html/stl.html">https://stat.ethz.ch/R-manual/R-devel/library/stats/html/stl.html</a>
     
     if (null == params.get(PERIOD_PARAM)) {
       throw new WarpScriptException(getName() + " expects map of parameters to at least contains field PERIOD");

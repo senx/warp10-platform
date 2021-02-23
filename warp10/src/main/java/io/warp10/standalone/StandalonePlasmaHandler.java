@@ -823,8 +823,6 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
   
   /**
    * Return the current set of subscribed classId/labelsId
-   * 
-   * @return
    */
   public Set<BigInteger> getSubscriptions() {
     Set<BigInteger> ids = new HashSet<BigInteger>();

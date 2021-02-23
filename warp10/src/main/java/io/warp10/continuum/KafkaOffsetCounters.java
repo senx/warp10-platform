@@ -94,11 +94,6 @@ public class KafkaOffsetCounters {
    * 
    * If 1. happens, safeCount will return 'false'.
    * If 2. happens, safeCount will throw an IOException.
-   * 
-   * @param partition
-   * @param offset
-   * @return
-   * @throws IOException
    */
   public synchronized boolean safeCount(int partition, long offset) throws IOException {
     AtomicLong counter = null;
