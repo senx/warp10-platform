@@ -676,7 +676,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
 
           // Add unique sequence number
           sb.append("-");
-          sb.append(new String(OrderPreservingBase64.encode(Longs.toByteArray(Long.MAX_VALUE - DatalogForwarder.SEQNO.addAndGet(1))), StandardCharsets.US_ASCII));
+          sb.append(new String(OrderPreservingBase64.encode(Longs.toByteArray(DatalogForwarder.SEQNO.addAndGet(1))), StandardCharsets.US_ASCII));
 
           if (null == dr) {
             dr = new DatalogRequest();
@@ -1156,7 +1156,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
 
         // Add unique sequence number
         sb.append("-");
-        sb.append(new String(OrderPreservingBase64.encode(Longs.toByteArray(Long.MAX_VALUE - DatalogForwarder.SEQNO.addAndGet(1))), StandardCharsets.US_ASCII));
+        sb.append(new String(OrderPreservingBase64.encode(Longs.toByteArray(DatalogForwarder.SEQNO.addAndGet(1))), StandardCharsets.US_ASCII));
 
         if (null == dr) {
           dr = new DatalogRequest();
