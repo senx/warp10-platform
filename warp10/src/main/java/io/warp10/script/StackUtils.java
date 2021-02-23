@@ -196,7 +196,6 @@ public class StackUtils {
    * Any other object will trigger an exception
    * 
    * @param o The converted object
-   * @return
    */
   public static Object toSDKObject(Object o) throws WarpScriptException {
     if (o instanceof String || o instanceof Long || o instanceof Double || o instanceof Boolean) {

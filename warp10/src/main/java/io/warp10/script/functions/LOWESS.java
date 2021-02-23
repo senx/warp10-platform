@@ -28,10 +28,10 @@ import java.util.Map;
 
 /**
  * Apply LOWESS smoothing
- * @see http://en.wikipedia.org/wiki/Local_regression
- * @see http://streaming.stat.iastate.edu/~stat416/LectureNotes/handout_LOWESS.pdf
- * @see http://www.itl.nist.gov/div898/handbook/pmd/section1/pmd144.htm
- * @see http://www.itl.nist.gov/div898/handbook/pmd/section1/dep/dep144.htm
+ * @see <a href="http://en.wikipedia.org/wiki/Local_regression">http://en.wikipedia.org/wiki/Local_regression</a>
+ * @see <a href="http://streaming.stat.iastate.edu/~stat416/LectureNotes/handout_LOWESS.pdf">http://streaming.stat.iastate.edu/~stat416/LectureNotes/handout_LOWESS.pdf</a>
+ * @see <a href="http://www.itl.nist.gov/div898/handbook/pmd/section1/pmd144.htm">http://www.itl.nist.gov/div898/handbook/pmd/section1/pmd144.htm</a>
+ * @see <a href="http://www.itl.nist.gov/div898/handbook/pmd/section1/dep/dep144.htm">http://www.itl.nist.gov/div898/handbook/pmd/section1/dep/dep144.htm</a>
  */
 public class LOWESS extends GTSStackFunction {
   

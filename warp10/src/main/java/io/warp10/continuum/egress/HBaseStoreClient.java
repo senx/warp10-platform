@@ -279,9 +279,6 @@ public class HBaseStoreClient implements StoreClient {
   /**
    * Return a RegionLocator instance suitable for inspecting the underlying table regions.
    * Be aware that the returned RegionLocator is not thread-safe and should be unmanaged using close().
-   * 
-   * @return
-   * @throws IOException
    */
   public RegionLocator getRegionLocator() throws IOException {
     return this.conn.getRegionLocator(this.tableName);

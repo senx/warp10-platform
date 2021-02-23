@@ -135,7 +135,7 @@ public class GTSOutliersHelper {
   
   /**
    * Compute Z-score or modified Z-score
-   * @see http://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
+   * @see <a href="http://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm">http://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm</a>
    * 
    * @param gts
    * @param useMedian       Should we compute Z-score using median/mad rather than mean/std
@@ -214,7 +214,7 @@ public class GTSOutliersHelper {
   /**
    * Applying Z-score test
    * If useMedian is true, then use modified z-score.
-   * @see http://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
+   * @see <a href="http://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm">http://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm</a>
    * 
    * @param gts
    * @param useMedian   Should we compute Z-score using median/mad rather than mean/std
@@ -247,7 +247,7 @@ public class GTSOutliersHelper {
     
   /**
    * Applying Grubbs' test using mean/std or median/mad
-   * @see http://www.itl.nist.gov/div898/handbook/eda/section3/eda35h1.htm
+   * @see <a href="http://www.itl.nist.gov/div898/handbook/eda/section3/eda35h1.htm">http://www.itl.nist.gov/div898/handbook/eda/section3/eda35h1.htm</a>
    * 
    * @param gts
    * @param useMedian     Should the test use median/mad instead of mean/std
@@ -315,7 +315,7 @@ public class GTSOutliersHelper {
   
   /**
    * Applying generalized extreme Studentized deviate test using mean/std or median/mad
-   * @see http://www.itl.nist.gov/div898/handbook/eda/section3/eda35h3.htm
+   * @see <a href="http://www.itl.nist.gov/div898/handbook/eda/section3/eda35h3.htm">http://www.itl.nist.gov/div898/handbook/eda/section3/eda35h3.htm</a>
    * 
    * @param gts
    * @param k       Upper bound of suspected number of outliers
@@ -509,8 +509,8 @@ public class GTSOutliersHelper {
    * Applying Seasonal Hybrid ESD.
    * This test is based on piecewise median and STL seasonal extraction, completed by an ESD test.
    * It was developed at Twitter.
-   * @see https://www.usenix.org/system/files/conference/hotcloud14/hotcloud14-vallis.pdf
-   * @see https://github.com/twitter/AnomalyDetection
+   * @see <a href="https://www.usenix.org/system/files/conference/hotcloud14/hotcloud14-vallis.pdf">https://www.usenix.org/system/files/conference/hotcloud14/hotcloud14-vallis.pdf</a>
+   * @see <a href="https://github.com/twitter/AnomalyDetection">https://github.com/twitter/AnomalyDetection</a>
    * 
    * @param gts
    * @param k       Upper bound of suspected number of outliers

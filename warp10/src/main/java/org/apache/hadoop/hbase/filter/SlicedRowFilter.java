@@ -344,7 +344,7 @@ public class SlicedRowFilter extends FilterBase {
   
   
   /**
-   * @see HBASE-9717 for an API change suggestion that would speed up scanning.
+   * @see "HBASE-9717 for an API change suggestion that would speed up scanning."
    */
       
   @Override

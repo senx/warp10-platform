@@ -216,7 +216,7 @@ public interface KeyStore {
    * Get a key from the configuration, and, if it exists and if the number of bits of the key is in the given values,
    * add it to the keystore.
    * @param keystore The KeyStore to add the key to.
-   * @param keyname The key name under which to add the key in the keystore.
+   * @param keystoreKey The key name under which to add the key in the keystore.
    * @param props The properties from which to get the key.
    * @param configurationKey The configuration key holding the key value.
    * @param sizeInBits The valid number of bits of the key. Typically 128 or 128, 192, 256.

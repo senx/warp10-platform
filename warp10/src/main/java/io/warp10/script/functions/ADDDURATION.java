@@ -140,9 +140,6 @@ public class ADDDURATION extends NamedWarpScriptFunction implements WarpScriptSt
 
   /**
    * Convert an ISO8601 duration to a Period.
-   * @param duration
-   * @return
-   * @throws WarpScriptException
    */
   public static ReadWritablePeriodWithSubSecondOffset durationToPeriod(String duration) throws WarpScriptException {
     // Separate seconds from  digits below second precision

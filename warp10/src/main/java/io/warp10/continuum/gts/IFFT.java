@@ -32,7 +32,7 @@ import edu.emory.mathcs.jtransforms.fft.DoubleFFT_1D;
  * Computes an inverse FFT given Re/Im or Amp/Phase pseudo GTS
  * 
  * Code implements Cooley-Tuckey radix-2, inspired by the following:
- * @see http://introcs.cs.princeton.edu/java/97data/FFT.java.html
+ * @see <a href="http://introcs.cs.princeton.edu/java/97data/FFT.java.html">http://introcs.cs.princeton.edu/java/97data/FFT.java.html</a>
  */
 public class IFFT {
   

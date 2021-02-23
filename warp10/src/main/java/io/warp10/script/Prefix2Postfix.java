@@ -31,9 +31,6 @@ public class Prefix2Postfix {
   /**
    * Converts prefix to postfix, considering the arguments of the prefix
    * notation are in the order they will be popped out of the stack
-   * 
-   * @param prefix
-   * @return
    */
   public static String convert(String prefix) {
     StringBuilder sb = new StringBuilder();

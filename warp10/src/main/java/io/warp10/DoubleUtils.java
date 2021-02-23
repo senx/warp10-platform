@@ -24,9 +24,6 @@ public class DoubleUtils {
   
   /**
    * Compute mean and variance without applying Bessel's correction
-   * 
-   * @param values
-   * @return
    */
   public static double[] muvar(double[] values, int offset, int len) {
     double sum = 0.0D;
@@ -36,7 +33,7 @@ public class DoubleUtils {
     
     // Choose shifting value to avoid cancellation during
     // variance computation
-    // @see https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance 
+    // @see <a href="https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance">https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance</a>
     
     double shift = values[offset];
     

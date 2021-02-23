@@ -63,8 +63,8 @@ public class Constants {
   
   /**
    * Banner, based on Figlet
-   * @see http://patorjk.com/software/taag/#p=display&f=Speed&t=Warp%2010
-   */  
+   * @see <a href="http://patorjk.com/software/taag/#p=display&f=Speed&t=Warp%2010">http://patorjk.com/software/taag/#p=display&f=Speed&t=Warp%2010</a>
+   */
   public static final String WARP10_BANNER = "  ___       __                           ____________ \n" + 
       "  __ |     / /_____ _______________      __<  /_  __ \\\n" + 
       "  __ | /| / /_  __ `/_  ___/__  __ \\     __  /_  / / /\n" + 

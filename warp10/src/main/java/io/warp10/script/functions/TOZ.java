@@ -83,7 +83,7 @@ public class TOZ extends NamedWarpScriptFunction implements WarpScriptStackFunct
         if (8 == bitcount) {
           //
           // Reverse the lower 8 bits
-          // @see http://graphics.stanford.edu/~seander/bithacks.html#ReverseByteWith64BitsDiv
+          // @see <a href="http://graphics.stanford.edu/~seander/bithacks.html#ReverseByteWith64BitsDiv">http://graphics.stanford.edu/~seander/bithacks.html#ReverseByteWith64BitsDiv</a>
           //
           
           value = (value * 0x0202020202L & 0x010884422010L) % 1023L;

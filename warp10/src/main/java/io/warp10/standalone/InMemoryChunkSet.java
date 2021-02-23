@@ -215,10 +215,6 @@ public class InMemoryChunkSet {
 
   /**
    * Fetches some data from this chunk set
-   *
-   * @param now The end timestamp to consider (inclusive).
-   * @param timespan The timespan or value count to consider.
-   * @return
    */
   public GTSDecoder fetch(long now, long then, long count, long skip, double sample, CapacityExtractorOutputStream extractor, long preBoundary, long postBoundary) throws IOException {
     GTSEncoder encoder = fetchEncoder(now, then, count, skip, sample, preBoundary, postBoundary);
@@ -749,8 +745,6 @@ public class InMemoryChunkSet {
 
   /**
    * Compute the total number of datapoints stored in this chunk set.
-   *
-   * @return
    */
   public long getCount() {
     long count = 0L;
@@ -766,8 +760,6 @@ public class InMemoryChunkSet {
 
   /**
    * Compute the total size occupied by the encoders in this chunk set
-   *
-   * @return
    */
   public long getSize() {
     long size = 0L;
@@ -857,7 +849,6 @@ public class InMemoryChunkSet {
    *
    * @param start Lower timestamp to delete (inclusive)
    * @param end Upper timestamp to delete (inclusive)
-   * @return
    */
   public long delete(long start, long end) {
     long count = 0L;

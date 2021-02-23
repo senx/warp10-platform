@@ -27,10 +27,11 @@ import java.util.Map;
 
 /**
  * Apply a Grubbs' test
- * @see http://www.itl.nist.gov/div898/handbook/eda/section3/eda35h1.htm
- * 
+ * <p>
  * If mad is true, then use modified z-score.
  * Alpha is optional. Default value is 0.05.
+ *
+ * @see <a href="http://www.itl.nist.gov/div898/handbook/eda/section3/eda35h1.htm">http://www.itl.nist.gov/div898/handbook/eda/section3/eda35h1.htm</a>
  */
 public class GRUBBSTEST extends GTSStackFunction {
 

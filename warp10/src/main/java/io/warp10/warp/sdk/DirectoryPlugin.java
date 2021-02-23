@@ -157,7 +157,6 @@ public abstract class DirectoryPlugin {
    * Note that the key for the GTS is the combination name + labels, the attributes are not part of the key.
    * 
    * @param gts GTS to delete
-   * @return
    */
   public abstract boolean delete(GTS gts);
   

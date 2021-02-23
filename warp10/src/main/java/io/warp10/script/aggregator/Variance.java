@@ -128,7 +128,7 @@ public class Variance extends NamedWarpScriptFunction implements WarpScriptMappe
     //
     // Compute variance
     // E[X-mu^2] = E[X^2] - (E[X])^2
-    // @see http://en.wikipedia.org/wiki/Variance
+    // @see <a href="http://en.wikipedia.org/wiki/Variance">http://en.wikipedia.org/wiki/Variance</a>
     //
     
     int n = nticks;
@@ -136,7 +136,7 @@ public class Variance extends NamedWarpScriptFunction implements WarpScriptMappe
     
     //
     // Apply Bessel's correction
-    // @see http://en.wikipedia.org/wiki/Bessel's_correction
+    // @see <a href="http://en.wikipedia.org/wiki/Bessel's_correction">http://en.wikipedia.org/wiki/Bessel's_correction</a>
     //
     
     if (n > 1 && useBessel) {

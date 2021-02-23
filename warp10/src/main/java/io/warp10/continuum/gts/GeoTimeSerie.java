@@ -318,7 +318,6 @@ public class GeoTimeSerie implements Cloneable {
   
   /**
    * Return the number of measures in this Geo Time Series.
-   * @return
    */
   public int size() {
     return this.values;
@@ -366,8 +365,6 @@ public class GeoTimeSerie implements Cloneable {
   
   /**
    * Clone everything except the type/values/locations/elevations.
-   * 
-   * @return
    */
   public GeoTimeSerie cloneEmpty(int sizehint) {
     GeoTimeSerie serie = new GeoTimeSerie(this.lastbucket, this.bucketcount, this.bucketspan, sizehint);
