@@ -117,42 +117,26 @@ tasks.withType(Jar) {
 }
 
 //
-// Customize POM filename
-//
-model {
-    tasks.generatePomFileForMavenPublication {
-        destination = file("$buildDir/generated-pom.xml")
-    }
-}
-
-//
 // Customize POM file in maven publication
 //
 publishing {
     publications {
         maven(MavenPublication) {
-            genPomForWarpscript(pom)
-        }
-    }
-}
+            pom.withXml {
+            // compute the list of dependencies
+            project(":warp10").configurations.compileClasspath.resolvedConfiguration.firstLevelModuleDependencies.each {
+                directDep ->
+                    addChildsToWarpscriptDeps(directDep)
+            }
 
-//
-// Generate custom pom for WarpScript with the minimal dependencies
-//
-def genPomForWarpscript(Object pom) {
-    pom.withXml {
-        // compute the list of dependencies
-        project(":warp10").configurations.compileClasspath.resolvedConfiguration.firstLevelModuleDependencies.each {
-            directDep ->
-                addChildsToWarpscriptDeps(directDep)
+            def dependenciesNode = asNode().appendNode('dependencies')
+            mc2DepsList.each {
+                def dependencyNode = dependenciesNode.appendNode('dependency')
+                dependencyNode.appendNode('groupId', it.getModuleGroup())
+                dependencyNode.appendNode('artifactId', it.getModuleName())
+                dependencyNode.appendNode('version', it.getModuleVersion())
+            }
         }
-
-        def dependenciesNode = asNode().appendNode('dependencies')
-        mc2DepsList.each {
-            def dependencyNode = dependenciesNode.appendNode('dependency')
-            dependencyNode.appendNode('groupId', it.getModuleGroup())
-            dependencyNode.appendNode('artifactId', it.getModuleName())
-            dependencyNode.appendNode('version', it.getModuleVersion())
         }
     }
 }
