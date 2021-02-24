@@ -26,17 +26,16 @@ pipeline {
     environment {
         THRIFT_HOME = '/opt/thrift-0.11.0'
         GRADLE_CMD = "./gradlew -Psigning.gnupg.keyName=${getParam('gpgKeyName')} -PossrhUsername=${getParam('ossrhUsername')} -PossrhPassword=${getParam('ossrhPassword')}"
-        VERSION = "UNKNOWN"
     }
     stages {
 
         stage('Checkout') {
             steps {
                 notifyBuild('STARTED')
-                git credentialsId: "${getParam('gitCredentials')}", poll: false, branch: "${getParam('gitBranch')}", url: "${getParam('gitUrl')}"
-                sh 'git fetch --tags'
+                git credentialsId: "${getParam('gitCredentials')}", poll: false, branch: "${getParam('gitBranch')}", url: "git@${getParam('gitHost')}:${getParam('gitUser')}/${getParam('gitRepo')}.git"
                 script {
                     VERSION = getVersion()
+                    TAG = getTag()
                 }
                 echo "Building ${VERSION}"
             }
@@ -110,24 +109,29 @@ pipeline {
             }
         }
 
-        stage('Publish') {
-            /* when {
-                 expression { return isItATagCommit() }
-             }*/
-            parallel {
-                stage('Deploy to Maven Central') {
-                    options {
-                        timeout(time: 2, unit: 'HOURS')
-                    }
-                    input {
-                        message 'Should we deploy to Maven Central?'
-                    }
-                    steps {
-                        sh '$GRADLE_CMD uploadArchives'
-                        sh '$GRADLE_CMD closeAndReleaseRepository'
-                        notifyBuild('PUBLISHED')
-                    }
+        stage('Release on GitHub') {
+            when {
+                 expression { return 'github.com' == getParam('gitHost') }
+            }
+            steps {
+                script {
+                    releaseID = createGitHubRelease()
                 }
+                sh "curl -f -X POST -H \"Authorization:token ${getParam('githubToken')}\" -H \"Content-Type:application/octet-stream\" -T warp10/build/libs/warp10-${VERSION}.tar.gz https://uploads.github.com/repos/${getParam('gitUser')}/${getParam('gitRepo')}/releases/${releaseID}/assets?name=warp10-${VERSION}.tar.gz"
+            }
+        }
+
+        stage('Deploy to Maven Central') {
+            options {
+                timeout(time: 2, unit: 'HOURS')
+            }
+            input {
+                message "Should we deploy to Maven Central?"
+            }
+            steps {
+                sh '$GRADLE_CMD uploadArchives'
+                sh '$GRADLE_CMD closeAndReleaseRepository'
+                notifyBuild('PUBLISHED')
             }
         }
 
@@ -152,7 +156,7 @@ pipeline {
 void notifyBuild(String buildStatus) {
     // build status of null means successful
     buildStatus = buildStatus ?: 'SUCCESSFUL'
-    String subject = "${buildStatus}: Job ${env.JOB_NAME} [${env.BUILD_DISPLAY_NAME}] | ${env.VERSION}"
+    String subject = "${buildStatus}: Job ${env.JOB_NAME} [${env.BUILD_DISPLAY_NAME}]"
     String summary = "${subject} (${env.BUILD_URL})"
     // Override default values based on build status
     if (buildStatus == 'STARTED') {
@@ -179,6 +183,13 @@ void notifySlack(color, message, buildStatus) {
     sh "curl -X POST -H 'Content-type: application/json' --data '${payload}' ${slackURL}"
 }
 
+String createGitHubRelease() {
+    String githubURL = "https://api.github.com/repos/${getParam('gitUser')}/${getParam('gitRepo')}/releases"
+    String payload = "{\"tag_name\": \"${VERSION}\", \"name\": \"${VERSION}\", \"body\": \"Release ${VERSION}\", \"target_commitish\": \"${getParam('gitBranch')}\", \"draft\": false, \"prerelease\": false}"
+    releaseID = sh (returnStdout: true, script: "curl -f -X POST -H \"Authorization:token ${getParam('githubToken')} \" --data '${payload}' ${githubURL} | sed -n -e 's/\"id\":\\ \\([0-9]\\+\\),/\\1/p' | head -n 1").trim()
+    return releaseID
+}
+
 String getParam(key) {
     return params.get(key)
 }
@@ -187,8 +198,6 @@ String getVersion() {
     return sh(returnStdout: true, script: '$GRADLE_CMD --quiet version').trim()
 }
 
-boolean isItATagCommit() {
-    String lastCommit = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
-    String tag = sh(returnStdout: true, script: "git show-ref --tags -d | grep ^${lastCommit} | sed -e 's,.* refs/tags/,,' -e 's/\\^{}//'").trim()
-    return tag != ''
+String getTag() {
+    return sh(returnStdout: true, script: 'git describe --tags').trim()
 }

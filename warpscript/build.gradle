@@ -123,20 +123,20 @@ publishing {
     publications {
         maven(MavenPublication) {
             pom.withXml {
-            // compute the list of dependencies
-            project(":warp10").configurations.compileClasspath.resolvedConfiguration.firstLevelModuleDependencies.each {
-                directDep ->
-                    addChildsToWarpscriptDeps(directDep)
-            }
+                // compute the list of dependencies
+                project(":warp10").configurations.compileClasspath.resolvedConfiguration.firstLevelModuleDependencies.each {
+                    directDep ->
+                        addChildsToWarpscriptDeps(directDep)
+                }
 
-            def dependenciesNode = asNode().appendNode('dependencies')
-            mc2DepsList.each {
-                def dependencyNode = dependenciesNode.appendNode('dependency')
-                dependencyNode.appendNode('groupId', it.getModuleGroup())
-                dependencyNode.appendNode('artifactId', it.getModuleName())
-                dependencyNode.appendNode('version', it.getModuleVersion())
+                def dependenciesNode = asNode().appendNode('dependencies')
+                mc2DepsList.each {
+                    def dependencyNode = dependenciesNode.appendNode('dependency')
+                    dependencyNode.appendNode('groupId', it.getModuleGroup())
+                    dependencyNode.appendNode('artifactId', it.getModuleName())
+                    dependencyNode.appendNode('version', it.getModuleVersion())
+                }
             }
-        }
         }
     }
 }
