@@ -14,32 +14,22 @@
 //   limitations under the License.
 //
 
-//
-// Set jars title and class inclusion/exclusion
-//
-tasks.withType(Jar) {
-    manifest.attributes.put("Implementation-Title", "HBase Filters")
-
-    if('sources' == archiveClassifier) {
-        from project(':warp10').sourceSets.main.allSource
-    } else {
-        from project(':warp10').sourceSets.main.output
+sourceSets {
+  main {
+    java {
+      srcDir new File(project(':warp10').projectDir, "src/main/java/")
+      include "org/apache/hadoop/hbase/filter/*.java"
     }
-    include 'org/apache/hadoop/hbase/filter/**'
+  }
+}
+
+dependencies {
+  compileOnly project(':warp10')
 }
 
 //
-// Configure bintray artifacts, repo and name.
+// Set jars title
 //
-bintray {
-    // Not uploaded to a maven repo, so just copy the jar.
-    filesSpec {
-        from jar
-        into project.group.replaceAll('\\.', '/') + "/$project.name/$project.version"
-    }
-
-    pkg {
-        repo = 'generic'
-        name = project.name
-    }
+tasks.withType(Jar) {
+    manifest.attributes.put("Implementation-Title", "HBase Filters")
 }

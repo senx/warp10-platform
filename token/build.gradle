@@ -41,18 +41,6 @@ tasks.withType(Jar) {
 }
 
 //
-// Configure bintray artifacts, repo and name.
-//
-bintray {
-    publications = ['maven']
-
-    pkg {
-        repo = 'maven'
-        name = 'warp10'
-    }
-}
-
-//
 // Tasks dependencies
 //
 compileJava.dependsOn generateThrift

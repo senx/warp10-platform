@@ -1,3 +1,5 @@
+import org.gradle.api.publish.maven.MavenPublication
+
 //
 //   Copyright 2018-2021  SenX S.A.S.
 //
@@ -15,8 +17,10 @@
 //
 
 plugins {
-    id "com.jfrog.bintray" version "1.8.4" apply false // Not applied to root, only to sub projects
+    id 'io.codearte.nexus-staging' version '0.22.0' apply false
 }
+
+project.ext."gnsp.disableApplyOnlyOnRootProjectEnforcement" = true
 
 //
 // Update REVISION File
@@ -63,19 +67,20 @@ subprojects {
     apply plugin: 'eclipse'
     apply plugin: 'idea'
     apply plugin: 'maven-publish'
-    apply plugin: 'com.jfrog.bintray'
+    apply plugin: 'signing'
+    apply plugin: 'io.codearte.nexus-staging'
+
 
     version = versionFromGit
     group = 'io.warp10'
 
-    sourceCompatibility = 1.8
-    targetCompatibility = 1.8
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
 
     //
     // Repositories for dependency resolution for all subprojects
     //
     repositories {
-        jcenter()
         mavenCentral()
         //mavenLocal()
     }
@@ -110,6 +115,15 @@ subprojects {
         //options.debug = false;
         //options.optimize = false;
         //options.debugOptions.debugLevel = ''
+    }
+
+    // Disable crazy-strict fail-fast javadoc checks
+    javadoc.options.addStringOption('Xdoclint:none', '-quiet')
+
+    // Adds sourceJar and javadocJar task
+    java {
+        withSourcesJar()
+        withJavadocJar()
     }
 
     //
@@ -158,14 +172,6 @@ subprojects {
     }
 
     //
-    // Sources jar
-    //
-    task sourcesJar(type: Jar) {
-        archiveClassifier = 'sources'
-        from sourceSets.main.allSource
-    }
-
-    //
     // Common jar conf
     //
     tasks.withType(Jar) {
@@ -179,11 +185,22 @@ subprojects {
         }
     }
 
-    //
-    // Disable the new gradle metadata generation because it is not uploaded to bintray by the plugin
-    //
-    tasks.withType(GenerateModuleMetadata) {
-        enabled = false
+    artifacts {
+        archives jar, javadocJar, sourcesJar
+    }
+
+    signing {
+        useGpgCmd()
+        sign configurations.archives
+    }
+
+    if (project.hasProperty("ossrhUsername")) {
+        nexusStaging {
+            packageGroup = "io.warp10"
+            stagingProfileId = "io.warp10"
+            username ossrhUsername
+            password ossrhPassword
+        }
     }
 
     //
@@ -197,33 +214,7 @@ subprojects {
         }
     }
 
-    //
-    // Bintray deployment common conf
-    //
-    bintray {
-        user = project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER')
-        key = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
-
-        publish = true
-//        dryRun = true
-
-        // publications (for maven repo) or filesSpec (for generic repo) to be set by each subproject.
-
-        pkg {
-            // repo and name to be set by each subproject
-            userOrg = 'senx'
-            licenses = ['Apache-2.0']
-            vcsUrl = 'https://github.com/senx/warp10-platform.git'
-            version {
-                name = project.version
-                released = new Date()
-                vcsTag = project.version
-            }
-        }
-    }
-
     build.dependsOn updateRevision
-    bintrayUpload.dependsOn checkPublicationState
 }
 
 // ------------------------------------------------------------------
@@ -247,4 +238,6 @@ def getVersionFromGit() {
     }
 }
 
-
+task version {
+    println getVersionFromGit()
+}

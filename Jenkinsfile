@@ -1,6 +1,6 @@
 #!/usr/bin/env groovy
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -25,98 +25,134 @@ pipeline {
     }
     environment {
         THRIFT_HOME = '/opt/thrift-0.11.0'
-        version = "${getVersion()}"
-        BINTRAY_USER = getParam('BINTRAY_USER')
-        BINTRAY_API_KEY = getParam('BINTRAY_API_KEY')
+        GRADLE_CMD = "./gradlew -Psigning.gnupg.keyName=${getParam('gpgKeyName')} -PossrhUsername=${getParam('ossrhUsername')} -PossrhPassword=${getParam('ossrhPassword')}"
+        VERSION = "UNKNOWN"
     }
     stages {
 
         stage('Checkout') {
             steps {
-                this.notifyBuild('STARTED', version)
-                git credentialsId: 'github', poll: false, url: 'git@github.com:senx/warp10-platform.git'
+                notifyBuild('STARTED')
+                git credentialsId: "${getParam('gitCredentials')}", poll: false, branch: "${getParam('gitBranch')}", url: "${getParam('gitUrl')}"
                 sh 'git fetch --tags'
-                echo "Building ${version}"
+                script {
+                    VERSION = getVersion()
+                }
+                echo "Building ${VERSION}"
             }
         }
 
         stage('Build') {
             steps {
-                sh './gradlew clean build -x test'
-                sh './gradlew generateChangelog'
+                sh '$GRADLE_CMD clean build -x test'
+                sh '$GRADLE_CMD generateChangelog'
+                archiveArtifacts allowEmptyArchive: true, artifacts: '**/build/libs/*.jar', fingerprint: true
             }
         }
 
         stage('Test') {
             options { retry(3) }
             steps {
-                sh './gradlew -Djava.security.egd=file:/dev/urandom test'
+                sh '$GRADLE_CMD -Djava.security.egd=file:/dev/urandom test'
                 junit allowEmptyResults: true, keepLongStdio: true, testResults: '**/build/test-results/**/*.xml'
                 step([$class: 'JUnitResultArchiver', allowEmptyResults: true, keepLongStdio: true, testResults: '**/build/test-results/**/*.xml'])
             }
         }
 
 
-        stage('Pack and Tar') {
+        stage('Tar') {
             steps {
-                sh './gradlew jar pack -x test'
-                archiveArtifacts allowEmptyArchive: true, artifacts: '**/build/libs/*.jar', fingerprint: true
-                sh './gradlew createTarArchive -x test'
+                sh '$GRADLE_CMD createTarArchive -x test'
                 archiveArtifacts allowEmptyArchive: true, artifacts: '**/build/libs/*.tar.gz', fingerprint: true
             }
         }
 
-/*        stage('Publish') {
+        stage('Deploy libs to SenX\' Nexus') {
             steps {
-                sh './gradlew warp10:uploadArchives'
-                sh './gradlew warpscript:uploadArchives'
+                nexusPublisher nexusInstanceId: 'nex', nexusRepositoryId: 'maven-releases', packages: [
+                  [
+                    $class         : 'MavenPackage',
+                    mavenAssetList : [
+                      [classifier: ''       , extension: 'jar', filePath: 'crypto/build/libs/crypto-' + VERSION + '.jar'],
+                      [classifier: 'sources', extension: 'jar', filePath: 'crypto/build/libs/crypto-' + VERSION + '-sources.jar'],
+                      [classifier: 'javadoc', extension: 'jar', filePath: 'crypto/build/libs/crypto-' + VERSION + '-javadoc.jar']
+                    ],
+                    mavenCoordinate: [artifactId: 'crypto', groupId: 'io.warp10', packaging: 'jar', version: VERSION ]
+                  ],
+                  [
+                    $class         : 'MavenPackage',
+                    mavenAssetList : [
+                      [classifier: ''       , extension: 'jar', filePath: 'token/build/libs/token-' + VERSION + '.jar'],
+                      [classifier: 'sources', extension: 'jar', filePath: 'token/build/libs/token-' + VERSION + '-sources.jar'],
+                      [classifier: 'javadoc', extension: 'jar', filePath: 'token/build/libs/token-' + VERSION + '-javadoc.jar']
+                    ],
+                    mavenCoordinate: [artifactId: 'token', groupId: 'io.warp10', packaging: 'jar', version: VERSION ]
+                  ],
+                  [
+                    $class         : 'MavenPackage',
+                    mavenAssetList : [
+                      [classifier: ''       , extension: 'jar', filePath: 'hbaseFilters/build/libs/hbaseFilters-' + VERSION + '.jar'],
+                      [classifier: 'sources', extension: 'jar', filePath: 'hbaseFilters/build/libs/hbaseFilters-' + VERSION + '-sources.jar'],
+                      [classifier: 'javadoc', extension: 'jar', filePath: 'hbaseFilters/build/libs/hbaseFilters-' + VERSION + '-javadoc.jar']
+                    ],
+                    mavenCoordinate: [artifactId: 'hbaseFilters', groupId: 'io.warp10', packaging: 'jar', version: VERSION ]
+                  ],
+                  [
+                    $class         : 'MavenPackage',
+                    mavenAssetList : [
+                      [classifier: ''       , extension: 'jar', filePath: 'warpscript/build/libs/warpscript-' + VERSION + '.jar'],
+                      [classifier: 'sources', extension: 'jar', filePath: 'warpscript/build/libs/warpscript-' + VERSION + '-sources.jar'],
+                      [classifier: 'javadoc', extension: 'jar', filePath: 'warpscript/build/libs/warpscript-' + VERSION + '-javadoc.jar']
+                    ],
+                    mavenCoordinate: [artifactId: 'warpscript', groupId: 'io.warp10', packaging: 'jar', version: VERSION ]
+                  ],
+                ]
             }
-        }*/
+        }
 
-        stage('Deploy') {
-            when {
-                expression { return isItATagCommit() }
-            }
+        stage('Publish') {
+            /* when {
+                 expression { return isItATagCommit() }
+             }*/
             parallel {
-                stage('Deploy to Bintray') {
+                stage('Deploy to Maven Central') {
                     options {
                         timeout(time: 2, unit: 'HOURS')
                     }
                     input {
-                        message 'Should we deploy to Bintray?'
+                        message 'Should we deploy to Maven Central?'
                     }
                     steps {
-                        sh './gradlew crypto:clean crypto:bintrayUpload -x test'
-                        sh './gradlew token:clean  token:bintrayUpload -x test'
-                        sh './gradlew warp10:clean warp10:bintrayUpload -x test'
-                        sh './gradlew warp10:clean warpscript:bintrayUpload -x test'
-                        this.notifyBuild('PUBLISHED', version)
+                        sh '$GRADLE_CMD uploadArchives'
+                        sh '$GRADLE_CMD closeAndReleaseRepository'
+                        notifyBuild('PUBLISHED')
                     }
                 }
             }
         }
+
     }
 
     post {
         success {
-            this.notifyBuild('SUCCESSFUL', version)
+            notifyBuild('SUCCESSFUL')
         }
         failure {
-            this.notifyBuild('FAILURE', version)
+            notifyBuild('FAILURE')
         }
         aborted {
-            this.notifyBuild('ABORTED', version)
+            notifyBuild('ABORTED')
         }
         unstable {
-            this.notifyBuild('UNSTABLE', version)
+            notifyBuild('UNSTABLE')
         }
     }
 }
 
-void notifyBuild(String buildStatus, String version) {
+void notifyBuild(String buildStatus) {
     // build status of null means successful
     buildStatus = buildStatus ?: 'SUCCESSFUL'
-    String subject = "${buildStatus}: Job ${env.JOB_NAME} [${env.BUILD_DISPLAY_NAME}] | ${version}"
+    String subject = "${buildStatus}: Job ${env.JOB_NAME} [${env.BUILD_DISPLAY_NAME}] | ${env.VERSION}"
     String summary = "${subject} (${env.BUILD_URL})"
     // Override default values based on build status
     if (buildStatus == 'STARTED') {
@@ -134,7 +170,7 @@ void notifyBuild(String buildStatus, String version) {
     }
 
     // Send notifications
-    this.notifySlack(colorCode, summary, buildStatus)
+    notifySlack(colorCode, summary, buildStatus)
 }
 
 void notifySlack(color, message, buildStatus) {
@@ -148,7 +184,7 @@ String getParam(key) {
 }
 
 String getVersion() {
-    return sh(returnStdout: true, script: 'git describe --abbrev=0 --tags').trim()
+    return sh(returnStdout: true, script: '$GRADLE_CMD --quiet version').trim()
 }
 
 boolean isItATagCommit() {
