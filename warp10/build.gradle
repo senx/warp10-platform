@@ -208,7 +208,7 @@ tasks.withType(Jar) {
 }
 
 //
-// Defines pack as built and published artifact
+// Defines pack as a built and published artifact
 //
 artifacts {
     archives pack, javadocJar, sourcesJar

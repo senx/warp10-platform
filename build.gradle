@@ -20,6 +20,7 @@ plugins {
     id 'io.codearte.nexus-staging' version '0.22.0' apply false
 }
 
+// Allow the application of nexus-staging on subprojects only
 project.ext."gnsp.disableApplyOnlyOnRootProjectEnforcement" = true
 
 //
@@ -127,15 +128,13 @@ subprojects {
     }
 
     //
-    // IDE CONFIGURATIONS 
+    // IDE confs
     //
-    // IDEA DEFAULT CONFIGURATION
     idea {
         module {
             inheritOutputDirs = true
         }
     }
-    // ECLIPSE
     eclipse {
         classpath {
             //customizing the classes output directory:
@@ -185,6 +184,9 @@ subprojects {
         }
     }
 
+    //
+    // Sign maven publication only if signing key name is in the properties
+    //
     if (project.hasProperty("signing.gnupg.keyName")) {
         signing {
             useGpgCmd()
