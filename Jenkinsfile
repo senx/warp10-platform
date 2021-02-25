@@ -68,40 +68,65 @@ pipeline {
 
         stage('Deploy libs to SenX\' Nexus') {
             steps {
+                sh '$GRADLE_CMD generatePomFileForMavenPublication -x test'
                 nexusPublisher nexusInstanceId: 'nex', nexusRepositoryId: 'maven-releases', packages: [
+                  /////////////////////// CRYPTO //////////////////////
                   [
                     $class         : 'MavenPackage',
                     mavenAssetList : [
                       [classifier: ''       , extension: 'jar', filePath: 'crypto/build/libs/crypto-' + VERSION + '.jar'],
+                      [classifier: ''       , extension: 'asc', filePath: 'crypto/build/libs/crypto-' + VERSION + '.jar.asc'],
                       [classifier: 'sources', extension: 'jar', filePath: 'crypto/build/libs/crypto-' + VERSION + '-sources.jar'],
-                      [classifier: 'javadoc', extension: 'jar', filePath: 'crypto/build/libs/crypto-' + VERSION + '-javadoc.jar']
+                      [classifier: 'sources', extension: 'asc', filePath: 'crypto/build/libs/crypto-' + VERSION + '-sources.jar.asc'],
+                      [classifier: 'javadoc', extension: 'jar', filePath: 'crypto/build/libs/crypto-' + VERSION + '-javadoc.jar'],
+                      [classifier: 'javadoc', extension: 'asc', filePath: 'crypto/build/libs/crypto-' + VERSION + '-javadoc.jar.asc'],
+                      [classifier: 'pom'    , extension: 'pom', filePath: 'crypto/build/crypto-' + VERSION + '.pom'],
+                      [classifier: 'pom'    , extension: 'asc', filePath: 'crypto/build/crypto-' + VERSION + '.pom.asc']
                     ],
                     mavenCoordinate: [artifactId: 'crypto', groupId: 'io.warp10', packaging: 'jar', version: VERSION ]
                   ],
+                  /////////////////////// TOKEN //////////////////////
                   [
                     $class         : 'MavenPackage',
                     mavenAssetList : [
                       [classifier: ''       , extension: 'jar', filePath: 'token/build/libs/token-' + VERSION + '.jar'],
+                      [classifier: ''       , extension: 'asc', filePath: 'token/build/libs/token-' + VERSION + '.jar.asc'],
                       [classifier: 'sources', extension: 'jar', filePath: 'token/build/libs/token-' + VERSION + '-sources.jar'],
-                      [classifier: 'javadoc', extension: 'jar', filePath: 'token/build/libs/token-' + VERSION + '-javadoc.jar']
+                      [classifier: 'sources', extension: 'asc', filePath: 'token/build/libs/token-' + VERSION + '-sources.jar.asc'],
+                      [classifier: 'javadoc', extension: 'jar', filePath: 'token/build/libs/token-' + VERSION + '-javadoc.jar'],
+                      [classifier: 'javadoc', extension: 'asc', filePath: 'token/build/libs/token-' + VERSION + '-javadoc.jar.asc'],
+                      [classifier: 'pom'    , extension: 'pom', filePath: 'token/build/token-' + VERSION + '.pom'],
+                      [classifier: 'pom'    , extension: 'asc', filePath: 'token/build/token-' + VERSION + '.pom.asc']
                     ],
                     mavenCoordinate: [artifactId: 'token', groupId: 'io.warp10', packaging: 'jar', version: VERSION ]
                   ],
+                  /////////////////////// HBASEFILTER //////////////////////
                   [
                     $class         : 'MavenPackage',
                     mavenAssetList : [
                       [classifier: ''       , extension: 'jar', filePath: 'hbaseFilters/build/libs/hbaseFilters-' + VERSION + '.jar'],
+                      [classifier: ''       , extension: 'asc', filePath: 'hbaseFilters/build/libs/hbaseFilters-' + VERSION + '.jar.asc'],
                       [classifier: 'sources', extension: 'jar', filePath: 'hbaseFilters/build/libs/hbaseFilters-' + VERSION + '-sources.jar'],
-                      [classifier: 'javadoc', extension: 'jar', filePath: 'hbaseFilters/build/libs/hbaseFilters-' + VERSION + '-javadoc.jar']
+                      [classifier: 'sources', extension: 'asc', filePath: 'hbaseFilters/build/libs/hbaseFilters-' + VERSION + '-sources.jar.asc'],
+                      [classifier: 'javadoc', extension: 'jar', filePath: 'hbaseFilters/build/libs/hbaseFilters-' + VERSION + '-javadoc.jar'],
+                      [classifier: 'javadoc', extension: 'asc', filePath: 'hbaseFilters/build/libs/hbaseFilters-' + VERSION + '-javadoc.jar.asc'],
+                      [classifier: 'pom'    , extension: 'pom', filePath: 'hbaseFilters/build/hbaseFilters-' + VERSION + '.pom'],
+                      [classifier: 'pom'    , extension: 'asc', filePath: 'hbaseFilters/build/hbaseFilters-' + VERSION + '.pom.asc']
                     ],
                     mavenCoordinate: [artifactId: 'hbaseFilters', groupId: 'io.warp10', packaging: 'jar', version: VERSION ]
                   ],
+                  /////////////////////// WARPSCRIPT //////////////////////
                   [
                     $class         : 'MavenPackage',
                     mavenAssetList : [
                       [classifier: ''       , extension: 'jar', filePath: 'warpscript/build/libs/warpscript-' + VERSION + '.jar'],
+                      [classifier: ''       , extension: 'asc', filePath: 'warpscript/build/libs/warpscript-' + VERSION + '.jar.asc'],
                       [classifier: 'sources', extension: 'jar', filePath: 'warpscript/build/libs/warpscript-' + VERSION + '-sources.jar'],
-                      [classifier: 'javadoc', extension: 'jar', filePath: 'warpscript/build/libs/warpscript-' + VERSION + '-javadoc.jar']
+                      [classifier: 'sources', extension: 'asc', filePath: 'warpscript/build/libs/warpscript-' + VERSION + '-sources.jar.asc'],
+                      [classifier: 'javadoc', extension: 'jar', filePath: 'warpscript/build/libs/warpscript-' + VERSION + '-javadoc.jar'],
+                      [classifier: 'javadoc', extension: 'asc', filePath: 'warpscript/build/libs/warpscript-' + VERSION + '-javadoc.jar.asc'],
+                      [classifier: 'pom'    , extension: 'pom', filePath: 'warpscript/build/warpscript-' + VERSION + '.pom'],
+                      [classifier: 'pom'    , extension: 'asc', filePath: 'warpscript/build/warpscript-' + VERSION + '.pom.asc']
                     ],
                     mavenCoordinate: [artifactId: 'warpscript', groupId: 'io.warp10', packaging: 'jar', version: VERSION ]
                   ],
