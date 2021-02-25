@@ -58,7 +58,6 @@ pipeline {
             }
         }
 
-
         stage('Tar') {
             steps {
                 sh '$GRADLE_CMD createTarArchive -x test'
@@ -66,9 +65,14 @@ pipeline {
             }
         }
 
+        stage('Sign artifacts') {
+            steps {
+                sh '$GRADLE_CMD signMavenPublication -x test'
+            }
+        }
+
         stage('Deploy libs to SenX\' Nexus') {
             steps {
-                sh '$GRADLE_CMD generatePomFileForMavenPublication -x test'
                 nexusPublisher nexusInstanceId: 'nex', nexusRepositoryId: 'maven-releases', packages: [
                   /////////////////////// CRYPTO //////////////////////
                   [

@@ -207,8 +207,19 @@ tasks.withType(Jar) {
     manifest.attributes.put("Implementation-Title", "Warp 10")
 }
 
+//
+// Defines pack as built and published artifact
+//
 artifacts {
     archives pack, javadocJar, sourcesJar
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            artifact pack
+        }
+    }
 }
 
 changelog {

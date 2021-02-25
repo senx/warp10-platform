@@ -185,14 +185,10 @@ subprojects {
         }
     }
 
-    artifacts {
-        archives jar, javadocJar, sourcesJar
-    }
-
     if (project.hasProperty("signing.gnupg.keyName")) {
         signing {
             useGpgCmd()
-            sign configurations.archives
+            sign publishing.publications
         }
     }
 
@@ -208,11 +204,11 @@ subprojects {
     //
     // Customize POM filename
     //
-        model {
-            tasks.generatePomFileForMavenPublication {
-                destination = file("$buildDir/"+ project.name +"-" + version + ".pom")
-            }
+    model {
+        tasks.generatePomFileForMavenPublication {
+            destination = file("$buildDir/"+ project.name +"-" + version + ".pom")
         }
+    }
 
     //
     // Default publishing conf for subprojects publishing on a maven repo
