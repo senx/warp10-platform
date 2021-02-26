@@ -31,9 +31,6 @@ ext {
                         'compiler', 'core', 'curator-x-discovery', 'geoxplib', 'guava', 'hadoop-common', 'hadoop-mapreduce-client-core',\
                         'java-merge-sort','joda-time', 'jtransforms', 'jts', 'oss-client', 'sensision', 'slf4j-api', 'pyrolite',\
                         'jts2geojson', 'jackson-core', 'jackson-databind', 'jackson-annotations' ]
-
-    name = 'WarpScript'
-    description = 'WarpScript'
 }
 
 sourceSets {

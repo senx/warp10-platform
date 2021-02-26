@@ -66,6 +66,12 @@ pipeline {
         }
 
         stage('Deploy libs to SenX\' Nexus') {
+            options {
+                timeout(time: 2, unit: 'HOURS')
+            }
+            input {
+                message "Should we deploy libs?"
+            }
             steps {
                 sh '$GRADLE_CMD publishMavenPublicationToNexusRepository -x test'
             }
@@ -77,6 +83,12 @@ pipeline {
                 // given tag in the given branch. If no such tag exists, it is created from the
                 // HEAD of the branch.
                  expression { return 'github.com' == getParam('gitHost') }
+            }
+            options {
+                timeout(time: 2, unit: 'HOURS')
+            }
+            input {
+                message "Should we release Warp 10?"
             }
             steps {
                 script {
@@ -91,12 +103,12 @@ pipeline {
                 timeout(time: 2, unit: 'HOURS')
             }
             input {
-                message "Should we deploy libs to Maven Central?"
+                message "Should we deploy libs?"
             }
             steps {
                 sh '$GRADLE_CMD publish'
                 sh '$GRADLE_CMD closeRepository'
-//                sh '$GRADLE_CMD releaseRepository'
+                sh '$GRADLE_CMD releaseRepository'
                 notifyBuild('PUBLISHED')
             }
         }
