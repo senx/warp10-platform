@@ -19,9 +19,9 @@
 //
 dependencies {
     testImplementation 'junit:junit:4.6'
-    // UTILS
+    // Utils
     api 'com.google.guava:guava:15.0'
-    // CRYPTO JAVA PROVIDER
+    // Crypto Java provider
     api 'org.bouncycastle:bcprov-jdk16:1.46'
     // OSS
     api 'com.geoxp.oss:oss-client:1.0.1'
@@ -32,4 +32,18 @@ dependencies {
 //
 tasks.withType(Jar) {
     manifest.attributes.put("Implementation-Title", "Warp10-crypto")
+}
+
+//
+// Customize POM name and description.
+//
+publishing {
+    publications {
+        maven(MavenPublication) {
+            pom {
+                name = "Crypto"
+                description = "Warp 10 crypto utilities"
+            }
+        }
+    }
 }

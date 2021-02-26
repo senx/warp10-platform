@@ -25,7 +25,7 @@ pipeline {
     }
     environment {
         THRIFT_HOME = '/opt/thrift-0.11.0'
-        GRADLE_CMD = "./gradlew -Psigning.gnupg.keyName=${getParam('gpgKeyName')} -PossrhUsername=${getParam('ossrhUsername')} -PossrhPassword=${getParam('ossrhPassword')}"
+        GRADLE_CMD = "./gradlew -Psigning.gnupg.keyName=${getParam('gpgKeyName')} -PossrhUsername=${getParam('ossrhUsername')} -PossrhPassword=${getParam('ossrhPassword')} -PnexusHost=${getParam('nexusHost')}  -PnexusUser=${getParam('nexusUser')} -PnexusPassword=${getParam('nexusPassword')}"
     }
     stages {
 
@@ -65,81 +65,17 @@ pipeline {
             }
         }
 
-        stage('Sign artifacts') {
-            steps {
-                sh '$GRADLE_CMD signMavenPublication -x test'
-            }
-        }
-
         stage('Deploy libs to SenX\' Nexus') {
             steps {
-                nexusPublisher nexusInstanceId: 'nex', nexusRepositoryId: 'maven-releases', packages: [
-                  /////////////////////// CRYPTO //////////////////////
-                  [
-                    $class         : 'MavenPackage',
-                    mavenAssetList : [
-                      [classifier: ''       , extension: 'jar'    , filePath: 'crypto/build/libs/crypto-' + VERSION + '.jar'],
-                      [classifier: ''       , extension: 'jar.asc', filePath: 'crypto/build/libs/crypto-' + VERSION + '.jar.asc'],
-                      [classifier: 'sources', extension: 'jar'    , filePath: 'crypto/build/libs/crypto-' + VERSION + '-sources.jar'],
-                      [classifier: 'sources', extension: 'jar.asc', filePath: 'crypto/build/libs/crypto-' + VERSION + '-sources.jar.asc'],
-                      [classifier: 'javadoc', extension: 'jar'    , filePath: 'crypto/build/libs/crypto-' + VERSION + '-javadoc.jar'],
-                      [classifier: 'javadoc', extension: 'jar.asc', filePath: 'crypto/build/libs/crypto-' + VERSION + '-javadoc.jar.asc'],
-                      [classifier: ''       , extension: 'pom'    , filePath: 'crypto/build/crypto-' + VERSION + '.pom'],
-                      [classifier: ''       , extension: 'pom.asc', filePath: 'crypto/build/crypto-' + VERSION + '.pom.asc'],
-                    ],
-                    mavenCoordinate: [artifactId: 'crypto', groupId: 'io.warp10', packaging: 'jar', version: VERSION ]
-                  ],
-                  /////////////////////// TOKEN //////////////////////
-                  [
-                    $class         : 'MavenPackage',
-                    mavenAssetList : [
-                      [classifier: ''       , extension: 'jar'    , filePath: 'token/build/libs/token-' + VERSION + '.jar'],
-                      [classifier: ''       , extension: 'jar.asc', filePath: 'token/build/libs/token-' + VERSION + '.jar.asc'],
-                      [classifier: 'sources', extension: 'jar'    , filePath: 'token/build/libs/token-' + VERSION + '-sources.jar'],
-                      [classifier: 'sources', extension: 'jar.asc', filePath: 'token/build/libs/token-' + VERSION + '-sources.jar.asc'],
-                      [classifier: 'javadoc', extension: 'jar'    , filePath: 'token/build/libs/token-' + VERSION + '-javadoc.jar'],
-                      [classifier: 'javadoc', extension: 'jar.asc', filePath: 'token/build/libs/token-' + VERSION + '-javadoc.jar.asc'],
-                      [classifier: ''       , extension: 'pom'    , filePath: 'token/build/token-' + VERSION + '.pom'],
-                      [classifier: ''       , extension: 'pom.asc', filePath: 'token/build/token-' + VERSION + '.pom.asc'],
-                    ],
-                    mavenCoordinate: [artifactId: 'token', groupId: 'io.warp10', packaging: 'jar', version: VERSION ]
-                  ],
-                  /////////////////////// HBASEFILTER //////////////////////
-                  [
-                    $class         : 'MavenPackage',
-                    mavenAssetList : [
-                      [classifier: ''       , extension: 'jar'    , filePath: 'hbaseFilters/build/libs/hbaseFilters-' + VERSION + '.jar'],
-                      [classifier: ''       , extension: 'jar.asc', filePath: 'hbaseFilters/build/libs/hbaseFilters-' + VERSION + '.jar.asc'],
-                      [classifier: 'sources', extension: 'jar'    , filePath: 'hbaseFilters/build/libs/hbaseFilters-' + VERSION + '-sources.jar'],
-                      [classifier: 'sources', extension: 'jar.asc', filePath: 'hbaseFilters/build/libs/hbaseFilters-' + VERSION + '-sources.jar.asc'],
-                      [classifier: 'javadoc', extension: 'jar'    , filePath: 'hbaseFilters/build/libs/hbaseFilters-' + VERSION + '-javadoc.jar'],
-                      [classifier: 'javadoc', extension: 'jar.asc', filePath: 'hbaseFilters/build/libs/hbaseFilters-' + VERSION + '-javadoc.jar.asc'],
-                      [classifier: ''       , extension: 'pom'    , filePath: 'hbaseFilters/build/hbaseFilters-' + VERSION + '.pom'],
-                      [classifier: ''       , extension: 'pom.asc', filePath: 'hbaseFilters/build/hbaseFilters-' + VERSION + '.pom.asc'],
-                    ],
-                    mavenCoordinate: [artifactId: 'hbaseFilters', groupId: 'io.warp10', packaging: 'jar', version: VERSION ]
-                  ],
-                  /////////////////////// WARPSCRIPT //////////////////////
-                  [
-                    $class         : 'MavenPackage',
-                    mavenAssetList : [
-                      [classifier: ''       , extension: 'jar'    , filePath: 'warpscript/build/libs/warpscript-' + VERSION + '.jar'],
-                      [classifier: ''       , extension: 'jar.asc', filePath: 'warpscript/build/libs/warpscript-' + VERSION + '.jar.asc'],
-                      [classifier: 'sources', extension: 'jar'    , filePath: 'warpscript/build/libs/warpscript-' + VERSION + '-sources.jar'],
-                      [classifier: 'sources', extension: 'jar.asc', filePath: 'warpscript/build/libs/warpscript-' + VERSION + '-sources.jar.asc'],
-                      [classifier: 'javadoc', extension: 'jar'    , filePath: 'warpscript/build/libs/warpscript-' + VERSION + '-javadoc.jar'],
-                      [classifier: 'javadoc', extension: 'jar.asc', filePath: 'warpscript/build/libs/warpscript-' + VERSION + '-javadoc.jar.asc'],
-                      [classifier: ''       , extension: 'pom'    , filePath: 'warpscript/build/warpscript-' + VERSION + '.pom'],
-                      [classifier: ''       , extension: 'pom.asc', filePath: 'warpscript/build/warpscript-' + VERSION + '.pom.asc'],
-                    ],
-                    mavenCoordinate: [artifactId: 'warpscript', groupId: 'io.warp10', packaging: 'jar', version: VERSION ]
-                  ],
-                ]
+                sh '$GRADLE_CMD publishMavenPublicationToNexusRepository -x test'
             }
         }
 
-        stage('Release on GitHub') {
+        stage('Release tar.gz on GitHub') {
             when {
+                // Only possible if code pulled from github because the release will refer to the
+                // given tag in the given branch. If no such tag exists, it is created from the
+                // HEAD of the branch.
                  expression { return 'github.com' == getParam('gitHost') }
             }
             steps {
@@ -150,16 +86,17 @@ pipeline {
             }
         }
 
-        stage('Deploy to Maven Central') {
+        stage('Deploy libs to Maven Central') {
             options {
                 timeout(time: 2, unit: 'HOURS')
             }
             input {
-                message "Should we deploy to Maven Central?"
+                message "Should we deploy libs to Maven Central?"
             }
             steps {
-                sh '$GRADLE_CMD uploadArchives'
-                sh '$GRADLE_CMD closeAndReleaseRepository'
+                sh '$GRADLE_CMD publish'
+                sh '$GRADLE_CMD closeRepository'
+//                sh '$GRADLE_CMD releaseRepository'
                 notifyBuild('PUBLISHED')
             }
         }

@@ -1,3 +1,4 @@
+import org.gradle.api.artifacts.maven.MavenDeployment
 import org.gradle.api.publish.maven.MavenPublication
 
 //
@@ -178,9 +179,9 @@ subprojects {
 
         manifest {
             attributes(
-                    // "Implementation-Title" to be set by each sub-project
-                    "Implementation-Vendor": "Warp 10",
-                    "Implementation-Version": project.version)
+                // "Implementation-Title": to be set by each sub-project
+                "Implementation-Vendor": "Warp 10",
+                "Implementation-Version": project.version)
         }
     }
 
@@ -194,6 +195,61 @@ subprojects {
         }
     }
 
+    //
+    // Default publishing conf for subprojects publishing on a maven repo
+    //
+    publishing {
+        publications {
+            maven(MavenPublication) {
+                from components.java
+                pom {
+                    // name = to be set by each sub-project
+                    // description = to be set by each sub-project
+                    url = 'https://warp10.io/'
+                    licenses {
+                        license {
+                            name = 'The Apache License, Version 2.0'
+                            url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                        }
+                    }
+                    developers {
+                        developer {
+                            id = 'senx'
+                            name = 'SenX'
+                            email = 'contact@senx.io'
+                        }
+                    }
+                    scm {
+                        connection = 'scm:git:git://github.com:senx/warp10-platform.git'
+                        developerConnection = 'scm:git:git://github.com:senx/warp10-platform.git'
+                        url = 'https://github.com/senx/warp10-platform'
+                    }
+                }
+            }
+        }
+        repositories {
+            if (project.hasProperty("ossrhUsername")) {
+                maven {
+                    url "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
+                    credentials {
+                        username ossrhUsername
+                        password ossrhPassword
+                    }
+                }
+            }
+            if (project.hasProperty("nexusUser")) {
+                maven {
+                    name "nexus"
+                    url "$nexusHost/repository/maven-releases/"
+                    credentials {
+                        username nexusUser
+                        password nexusPassword
+                    }
+                }
+            }
+        }
+    }
+
     if (project.hasProperty("ossrhUsername")) {
         nexusStaging {
             packageGroup = "io.warp10"
@@ -203,28 +259,9 @@ subprojects {
         }
     }
 
-    //
-    // Customize POM filename
-    //
-    model {
-        tasks.generatePomFileForMavenPublication {
-            destination = file("$buildDir/"+ project.name +"-" + version + ".pom")
-        }
-    }
-
-    //
-    // Default publishing conf for subprojects publishing on a maven repo
-    //
-    publishing {
-        publications {
-            maven(MavenPublication) {
-                from components.java
-            }
-        }
-    }
-
     build.dependsOn updateRevision
 }
+
 
 // ------------------------------------------------------------------
 //                    AUTO RELEASE MANAGEMENT

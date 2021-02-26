@@ -208,16 +208,15 @@ tasks.withType(Jar) {
 }
 
 //
-// Defines pack as a built and published artifact
+// Customize POM name and description.
 //
-artifacts {
-    archives pack, javadocJar, sourcesJar
-}
-
 publishing {
     publications {
         maven(MavenPublication) {
-            artifact pack
+            pom {
+                name = "Warp 10"
+                description = "Warp 10 platform for time series storage and analysis"
+            }
         }
     }
 }

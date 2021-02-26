@@ -41,6 +41,20 @@ tasks.withType(Jar) {
 }
 
 //
+// Customize POM name and description.
+//
+publishing {
+    publications {
+        maven(MavenPublication) {
+            pom {
+                name = "Token"
+                description = "Warp 10 token utilities"
+            }
+        }
+    }
+}
+
+//
 // Tasks dependencies
 //
 compileJava.dependsOn generateThrift
