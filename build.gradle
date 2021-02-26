@@ -18,11 +18,8 @@ import org.gradle.api.publish.maven.MavenPublication
 //
 
 plugins {
-    id 'io.codearte.nexus-staging' version '0.22.0' apply false
+    id 'io.codearte.nexus-staging' version '0.22.0'
 }
-
-// Allow the application of nexus-staging on subprojects only
-project.ext."gnsp.disableApplyOnlyOnRootProjectEnforcement" = true
 
 //
 // Update REVISION File
@@ -70,7 +67,6 @@ subprojects {
     apply plugin: 'idea'
     apply plugin: 'maven-publish'
     apply plugin: 'signing'
-    apply plugin: 'io.codearte.nexus-staging'
 
 
     version = versionFromGit
@@ -250,16 +246,17 @@ subprojects {
         }
     }
 
-    if (project.hasProperty("ossrhUsername")) {
-        nexusStaging {
-            packageGroup = "io.warp10"
-            stagingProfileId = "io.warp10"
-            username ossrhUsername
-            password ossrhPassword
-        }
-    }
-
     build.dependsOn updateRevision
+}
+
+if (project.hasProperty("ossrhUsername")) {
+    nexusStaging {
+        packageGroup = "io.warp10"
+//        stagingProfileId = "io.warp10"
+//        stagingRepositoryId = "iowarp10-1026"
+        username ossrhUsername
+        password ossrhPassword
+    }
 }
 
 
