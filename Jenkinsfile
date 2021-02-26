@@ -79,10 +79,11 @@ pipeline {
 
         stage('Release tar.gz on GitHub') {
             when {
+                beforeInput true
                 // Only possible if code pulled from github because the release will refer to the
                 // given tag in the given branch. If no such tag exists, it is created from the
                 // HEAD of the branch.
-                 expression { return 'github.com' == getParam('gitHost') }
+                expression { return 'github.com' == getParam('gitHost') }
             }
             options {
                 timeout(time: 2, unit: 'HOURS')
