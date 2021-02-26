@@ -25,14 +25,14 @@ pipeline {
     }
     environment {
         THRIFT_HOME = '/opt/thrift-0.11.0'
-        GRADLE_CMD = "./gradlew -Psigning.gnupg.keyName=${getParam('gpgKeyName')} -PossrhUsername=${getParam('ossrhUsername')} -PossrhPassword=${getParam('ossrhPassword')} -PnexusHost=${getParam('nexusHost')}  -PnexusUser=${getParam('nexusUser')} -PnexusPassword=${getParam('nexusPassword')}"
+        GRADLE_CMD = "./gradlew -Psigning.gnupg.keyName=${getParam('gpgKeyName')} -PossrhUsername=${getParam('ossrhUsername')} -PossrhPassword=${getParam('ossrhPassword')} -PnexusHost=${getParam('nexusHost')}  -PnexusUsername=${getParam('nexusUsername')} -PnexusPassword=${getParam('nexusPassword')}"
     }
     stages {
 
         stage('Checkout') {
             steps {
                 notifyBuild('STARTED')
-                git credentialsId: "${getParam('gitCredentials')}", poll: false, branch: "${getParam('gitBranch')}", url: "git@${getParam('gitHost')}:${getParam('gitUser')}/${getParam('gitRepo')}.git"
+                git poll: false, branch: "${getParam('gitBranch')}", url: "git@${getParam('gitHost')}:${getParam('gitOwner')}/${getParam('gitRepo')}.git"
                 script {
                     VERSION = getVersion()
                     TAG = getTag()
@@ -95,7 +95,7 @@ pipeline {
                 script {
                     releaseID = createGitHubRelease()
                 }
-                sh "curl -f -X POST -H \"Authorization:token ${getParam('githubToken')}\" -H \"Content-Type:application/octet-stream\" -T warp10/build/libs/warp10-${VERSION}.tar.gz https://uploads.github.com/repos/${getParam('gitUser')}/${getParam('gitRepo')}/releases/${releaseID}/assets?name=warp10-${VERSION}.tar.gz"
+                sh "curl -f -X POST -H \"Authorization:token ${getParam('githubToken')}\" -H \"Content-Type:application/octet-stream\" -T warp10/build/libs/warp10-${VERSION}.tar.gz https://uploads.github.com/repos/${getParam('gitOwner')}/${getParam('gitRepo')}/releases/${releaseID}/assets?name=warp10-${VERSION}.tar.gz"
             }
         }
 
@@ -109,7 +109,7 @@ pipeline {
             steps {
                 sh '$GRADLE_CMD publish'
                 sh '$GRADLE_CMD closeRepository'
-                sh '$GRADLE_CMD releaseRepository'
+//                sh '$GRADLE_CMD releaseRepository'
                 notifyBuild('PUBLISHED')
             }
         }
@@ -163,7 +163,7 @@ void notifySlack(color, message, buildStatus) {
 }
 
 String createGitHubRelease() {
-    String githubURL = "https://api.github.com/repos/${getParam('gitUser')}/${getParam('gitRepo')}/releases"
+    String githubURL = "https://api.github.com/repos/${getParam('gitOwner')}/${getParam('gitRepo')}/releases"
     String payload = "{\"tag_name\": \"${VERSION}\", \"name\": \"${VERSION}\", \"body\": \"Release ${VERSION}\", \"target_commitish\": \"${getParam('gitBranch')}\", \"draft\": false, \"prerelease\": false}"
     releaseID = sh (returnStdout: true, script: "curl -f -X POST -H \"Authorization:token ${getParam('githubToken')} \" --data '${payload}' ${githubURL} | sed -n -e 's/\"id\":\\ \\([0-9]\\+\\),/\\1/p' | head -n 1").trim()
     return releaseID

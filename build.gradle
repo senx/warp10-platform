@@ -233,12 +233,12 @@ subprojects {
                     }
                 }
             }
-            if (project.hasProperty("nexusUser")) {
+            if (project.hasProperty("nexusUsername")) {
                 maven {
                     name "nexus"
                     url "$nexusHost/repository/maven-releases/"
                     credentials {
-                        username nexusUser
+                        username nexusUsername
                         password nexusPassword
                     }
                 }
