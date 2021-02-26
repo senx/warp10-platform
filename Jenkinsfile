@@ -109,7 +109,7 @@ pipeline {
             steps {
                 sh '$GRADLE_CMD publish'
                 sh '$GRADLE_CMD closeRepository'
-//                sh '$GRADLE_CMD releaseRepository'
+                sh '$GRADLE_CMD releaseRepository'
                 notifyBuild('PUBLISHED')
             }
         }
