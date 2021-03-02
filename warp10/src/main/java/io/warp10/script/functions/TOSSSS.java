@@ -63,6 +63,10 @@ public class TOSSSS extends NamedWarpScriptFunction implements WarpScriptStackFu
 
     int n = Math.toIntExact(((Long) top).longValue());
 
+    if (n > 255) {
+      throw new WarpScriptException(getName() + " the number of splits must be strictly less than 256.");
+    }
+
     if (n < k) {
       throw new WarpScriptException(getName() + " the number of splits to generate must be at least equal to the number of needed splits.");
     }

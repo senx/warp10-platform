@@ -36,14 +36,14 @@ public class SSSSTO extends NamedWarpScriptFunction implements WarpScriptStackFu
     Object top = stack.pop();
 
     if (!(top instanceof List)) {
-      throw new WarpScriptException(getName() + " operates on a list of byte arrays.");
+      throw new WarpScriptException(getName() + " operates on a " + TYPEOF.TYPE_LIST + " of " + TYPEOF.TYPE_BYTES + " (byte arrays).");
     }
 
     List l = (List) top;
 
     for (Object o: l) {
       if (!(o instanceof byte[])) {
-        throw new WarpScriptException(getName() + " operates on a list of byte arrays.");
+        throw new WarpScriptException(getName() + " operates on a " + TYPEOF.TYPE_LIST + " of " + TYPEOF.TYPE_BYTES + " (byte arrays).");
       }
     }
 
