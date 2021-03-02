@@ -19,16 +19,6 @@ plugins {
 }
 
 //
-// Update REVISION File
-//
-task updateRevision {
-    doLast {
-        File versionFile = new File(rootProject.projectDir, "warp10/src/main/resources/REVISION")
-        versionFile.write(project.version)
-    }
-}
-
-//
 // Check git repo status and used properties to be compatible with publication
 //
 task checkPublicationState {
@@ -166,6 +156,16 @@ subprojects {
     }
 
     //
+    // Update REVISION File
+    //
+    task updateRevision {
+        doLast {
+            File versionFile = new File(rootProject.projectDir, "warp10/src/main/resources/REVISION")
+            versionFile.write(project.version)
+        }
+    }
+
+    //
     // Common jar conf
     //
     tasks.withType(Jar) {
@@ -222,7 +222,7 @@ subprojects {
         }
     }
 
-    build.dependsOn updateRevision
+    classes.dependsOn(updateRevision)
     bintrayUpload.dependsOn checkPublicationState
 }
 
