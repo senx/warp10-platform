@@ -35,7 +35,7 @@ public class NRETURN extends NamedWarpScriptFunction implements WarpScriptStackF
 
   public NRETURN(String name) {
     super(name);
-    ex = new WarpScriptReturnException("name");
+    ex = new WarpScriptReturnException(name);
   }
 
   @Override
@@ -43,7 +43,7 @@ public class NRETURN extends NamedWarpScriptFunction implements WarpScriptStackF
     Object top = stack.pop();
 
     if (!(top instanceof Long)) {
-      throw new WarpScriptException(getName() + " expects a number of levels on top of the stack.");
+      throw new WarpScriptException(getName() + " expects a number of levels.");
     }
 
     stack.getCounter(WarpScriptStack.COUNTER_RETURN_DEPTH).set(((Number) top).longValue());

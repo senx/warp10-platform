@@ -49,7 +49,7 @@ public class RETURN extends NamedWarpScriptFunction implements WarpScriptStackFu
       Object top = stack.pop();
 
       if (!(top instanceof Long)) {
-        throw new WarpScriptException(getName() + " expects a number of levels on top of the stack.");
+        throw new WarpScriptException(getName() + " expects a number of levels.");
       }
 
       levels = ((Number) top).longValue();
