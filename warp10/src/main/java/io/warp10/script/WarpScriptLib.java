@@ -1550,7 +1550,7 @@ public class WarpScriptLib {
     //
 
     addNamedWarpScriptFunction(new RETURN(RETURN));
-    addNamedWarpScriptFunction(new NRETURN(NRETURN));
+    addNamedWarpScriptFunction(new RETURN(NRETURN, true));
 
     //
     // GTS standalone functions
