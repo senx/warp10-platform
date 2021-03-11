@@ -2,7 +2,7 @@
 [![Build Status](https://www.travis-ci.org/senx/warp10-platform.svg?branch=master)](https://www.travis-ci.org/senx/warp10-platform)
 [![Download](https://api.bintray.com/packages/senx/generic/warp10/images/download.svg)](https://bintray.com/senx/generic/warp10/_latestVersion)
 
-<p align="center"><img src="https://blog.senx.io/wp-content/uploads/2018/10/warp10bySenx.png" alt="Warp 10 Logo" width="50%"></p>
+<p align="center"><img src="https://warp10.io/assets/img/warp10_bySenx_dark.png" alt="Warp 10 Logo" width="50%"></p>
 
 ## Introduction
 
