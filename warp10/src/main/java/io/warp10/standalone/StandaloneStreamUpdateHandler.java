@@ -614,7 +614,7 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
           String msg = "ERROR " + ThrowableUtils.getErrorMessage(t);
           session.getRemote().sendString(msg);
         } else {
-          throw t;
+          session.close(HttpServletResponse.SC_BAD_REQUEST, ThrowableUtils.getErrorMessage(t));
         }
       }
     }
