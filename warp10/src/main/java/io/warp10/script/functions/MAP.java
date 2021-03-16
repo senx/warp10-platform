@@ -19,6 +19,7 @@ package io.warp10.script.functions;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptATCException;
 import io.warp10.script.WarpScriptMapperFunction;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStackFunction;
@@ -265,6 +266,9 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
       List<GeoTimeSerie> res;
       try {
         res = GTSHelper.map(gts, mapper, prewindow, postwindow, Math.abs(occurrences), occurrences < 0, step, overrideTick, mapper instanceof Macro ? stack : null, (List<Long>) outputTicks);
+      } catch (WarpScriptATCException wsatce) {
+        // Do not handle WarpScriptATCException (STOP in MACROMAPPER for instance)
+        throw wsatce;
       } catch (WarpScriptException wse) {
         throw new WarpScriptException(getName() + " was given invalid parameters.", wse);
       }
