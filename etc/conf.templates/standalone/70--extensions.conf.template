@@ -59,7 +59,7 @@
 // URLFETCH, MAXURLFETCHCOUNT, MAXURLFETCHSIZE
 #warpscript.extension.urlfetch = io.warp10.script.ext.urlfetch.UrlFetchWarpScriptExtension
 // HTTP, MAXURLCOUNT, MAXDOWNLOADSIZE
-warpscript.extension.http = io.warp10.script.ext.http.HttpWarpScriptExtension
+#warpscript.extension.http = io.warp10.script.ext.http.HttpWarpScriptExtension
 // DEVAL
 #warpscript.extension.sharding = io.warp10.script.ext.sharding.ShardingWarpScriptExtension
 // WSPS WSINFO WSKILL STACKPSSECRET

@@ -30,13 +30,23 @@ import java.util.Map;
 public class HttpWarpScriptExtension extends WarpScriptExtension {
 
   //
-  // CAPABILITIES
+  // AUTHORIZATION
   //
 
   /**
-   * If this configuration is set, then HTTP function will check for this capability.
+   * Authorization type for using HTTP function, can be either:
+   * - none (default: no authorization required)
+   * - authenticated (stack must be authenticated)
+   * - capability (inspect HTTP_CAPABILITY)
+   */
+  public static final String HTTP_AUTHORIZATION_TYPE = "warpscript.http.authorization.type";
+  public static final String HTTP_AUTHORIZATION_TYPE_DEFAULT = "none";
+
+  /**
+   * This capability is inspected if <HTTP_AUTHORIZATION_TYPE>=capability
    */
   public static final String HTTP_CAPABILITY = "warpscript.http.capability";
+  public static final String HTTP_CAPABILITY_DEFAULT = ".cap:HTTP";
 
   //
   // CONFIGURATION

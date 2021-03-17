@@ -74,6 +74,19 @@ public class HTTP extends FormattedWarpScriptFunction {
   private final ReentrantLock stackCountersLock = new ReentrantLock();
   private final WebAccessController webAccessController;
 
+  //
+  // Authorization
+  //
+
+  enum Authorization {
+    none,
+    authenticated,
+    capability
+  }
+
+  private final Authorization auth;
+  private final String capName;
+
   public HTTP(String name) {
     super(name);
 
@@ -98,28 +111,38 @@ public class HTTP extends FormattedWarpScriptFunction {
     output = new ArgumentsBuilder()
       .addArgument(List.class, RESPONSE, "A 4-element list that contains, in this order, a LONG status code, a STRING status message or an empty STRING if not available, a MAP of headers and a STRING representing a bytes array encoded as base 64.")
       .build();
+
+    // define authorization type from conf
+    auth = Authorization.valueOf(WarpConfig.getProperty(HttpWarpScriptExtension.HTTP_AUTHORIZATION_TYPE, HttpWarpScriptExtension.HTTP_AUTHORIZATION_TYPE_DEFAULT));
+    if (Authorization.capability == auth) {
+      capName = WarpConfig.getProperty(HttpWarpScriptExtension.HTTP_CAPABILITY, HttpWarpScriptExtension.HTTP_CAPABILITY_DEFAULT);
+    } else {
+      capName = null;
+    }
   }
 
   @Override
   public WarpScriptStack apply(Map<String, Object> formattedArgs, WarpScriptStack stack) throws WarpScriptException {
 
     //
-    // Check capability if set in configuration, or else check stack authentication
+    // Check authorization
     //
 
-    Properties props = WarpConfig.getProperties();
-
-    if (props.containsKey(HttpWarpScriptExtension.HTTP_CAPABILITY)) {
-      if (stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR) instanceof Capabilities) {
-        Capabilities capabilities = (Capabilities) stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR);
-
-        if (!(capabilities.containsKey(props.getProperty(HttpWarpScriptExtension.HTTP_CAPABILITY)))) {
-          throw new WarpScriptException("Capability " + HttpWarpScriptExtension.HTTP_CAPABILITY + " is required by function " + getName());
+    switch (auth) {
+      case authenticated:
+        if (!stack.isAuthenticated()) {
+          throw new WarpScriptException(getName() + " requires the stack to be authenticated.");
         }
-      }
+        break;
 
-    } else if (!stack.isAuthenticated()) {
-      throw new WarpScriptException(getName() + " requires the stack to be authenticated.");
+      case capability:
+        if (null == Capabilities.get(stack, capName)) {
+          throw new WarpScriptException("Capability " + capName + " is required by function " + getName());
+        }
+        break;
+
+      default:
+        break;
     }
 
     //
@@ -264,7 +287,7 @@ public class HTTP extends FormattedWarpScriptFunction {
       res.add(Base64.encodeBase64String(baos.toByteArray()));
 
     } catch (IOException ioe) {
-      throw new WarpScriptException(getName() + " encountered an error while making an HTTP " + method + " request over '" + url + "'", ioe);
+      throw new WarpScriptException(getName() + " encountered an error while making an HTTP " + method + " request to '" + url + "'", ioe);
     } finally {
       if (null != conn) {
         conn.disconnect();
