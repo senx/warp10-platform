@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -22,6 +22,8 @@ import io.warp10.script.ListRecursiveStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptMapperFunction;
 import io.warp10.script.WarpScriptStack;
+
+import java.util.List;
 
 /**
  * Remove duplicates from GTS instances.
@@ -56,7 +58,13 @@ public class DEDUP extends ListRecursiveStackFunction {
         @Override
         public Object applyOnElement(Object element) throws WarpScriptException {
           if (element instanceof GeoTimeSerie) {
-            return GTSHelper.map((GeoTimeSerie) element, macroOrMapper, 0, 0, 0, false, 1, false, macroOrMapper instanceof WarpScriptStack.Macro ? stack : null, null, true);
+            List<GeoTimeSerie> res = GTSHelper.map((GeoTimeSerie) element, macroOrMapper, 0, 0, 0, false, 1, false, macroOrMapper instanceof WarpScriptStack.Macro ? stack : null, null, true);
+
+            if (1 == res.size()) {
+              return res.get(0);
+            } else {
+              return res;
+            }
           } else {
             return UNHANDLED;
           }

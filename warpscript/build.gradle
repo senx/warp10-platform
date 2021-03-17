@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -14,138 +14,171 @@
 //   limitations under the License.
 //
 
-archivesBaseName = 'warpscript'
-group = 'io.warp10'
-version = updateRevision(getVersionName(warp10Version[archivesBaseName]))
+//
+// Define WarpScript dependencies for the POM file generation
+//
+ext {
+    // List of dependencies for Warpscript
+    mc2DepsList = []
 
-jar {
-    zip64 = true
+    // List of unique dependency names (index)
+    mc2DepsIndex = [] as Set
 
-    manifest {
-        attributes(
-                "Implementation-Title": "WarpScript",
-                "Implementation-Vendor": "Warp 10",
-                "Implementation-Version": version)
+    // List of dependencies required by Warpscript
+    requiredLibsMc2 = [ 'libthrift', 'bcprov-jdk16', 'commons-io', 'commons-codec', 'commons-lang3', 'commons-math3',\
+                        'compiler', 'core', 'curator-x-discovery', 'geoxplib', 'guava', 'hadoop-common', 'hadoop-mapreduce-client-core',\
+                        'java-merge-sort','joda-time', 'jtransforms', 'jts', 'oss-client', 'sensision', 'slf4j-api', 'pyrolite',\
+                        'jts2geojson', 'jackson-core', 'jackson-databind', 'jackson-annotations' ]
+}
+
+//
+// Set jars title and class inclusion/exclusion
+//
+tasks.withType(Jar) {
+    manifest.attributes.put("Implementation-Title", "WarpScript")
+
+    if('sources' == archiveClassifier) {
+        from project(':warp10').sourceSets.main.allSource
+    } else {
+        from project(':warp10').sourceSets.main.output
     }
-
-    from project(":warp10").sourceSets.main.output
     include('REVISION')
-    include 'io/warp10/Py4JEntryPoint.class'
-    include 'io/warp10/SortedPathIterator.class'
+    include 'io/warp10/Py4JEntryPoint.*'
+    include 'io/warp10/SortedPathIterator.*'
     include 'io/warp10/SortedPathIterator$*'
-    include 'io/warp10/WarpClassLoader.class'
+    include 'io/warp10/WarpClassLoader.*'
     include 'io/warp10/json/**'
     include 'io/warp10/script/**'
-    exclude 'io/warp10/script/ScriptRunner*.class'
-    include 'io/warp10/CapacityExtractorOutputStream.class'
+    exclude 'io/warp10/script/ScriptRunner*.*'
+    include 'io/warp10/CapacityExtractorOutputStream.*'
     include 'io/warp10/udf/**'
     include 'io/warp10/thrift/**'
-    include 'io/warp10/WarpConfig.class'
-    include 'io/warp10/WarpConfig$1.class'
-    include 'io/warp10/WarpHexDecoder.class'
-    include 'io/warp10/WarpManager.class'
-    include 'io/warp10/WarpURLEncoder.class'
-    include 'io/warp10/WarpURLDecoder.class'
-    include 'io/warp10/DoubleUtils.class'
-    include 'io/warp10/FloatUtils.class'
-    include 'io/warp10/WrapperList.class'
-    include 'io/warp10/WrapperList$ArrayItr.class'
-    include 'io/warp10/Revision.class'
-    include 'io/warp10/ThrowableUtils.class'
-    include 'io/warp10/continuum/AuthenticationPlugin.class'
-    include 'io/warp10/continuum/MetadataUtils.class'
+    include 'io/warp10/WarpConfig.*'
+    include 'io/warp10/WarpConfig$1.*'
+    include 'io/warp10/WarpHexDecoder.*'
+    include 'io/warp10/WarpManager.*'
+    include 'io/warp10/WarpURLEncoder.*'
+    include 'io/warp10/WarpURLDecoder.*'
+    include 'io/warp10/DoubleUtils.*'
+    include 'io/warp10/FloatUtils.*'
+    include 'io/warp10/WrapperList.*'
+    include 'io/warp10/WrapperList$ArrayItr.*'
+    include 'io/warp10/Revision.*'
+    include 'io/warp10/ThrowableUtils.*'
+    include 'io/warp10/continuum/AuthenticationPlugin.*'
+    include 'io/warp10/continuum/MetadataUtils.*'
     include 'io/warp10/continuum/MetadataUtils$*'
     include 'io/warp10/continuum/index/**'
     include 'io/warp10/continuum/thrift/data/**'
-    include 'io/warp10/continuum/Configuration.class'
-    include 'io/warp10/continuum/TimeSource.class'
+    include 'io/warp10/continuum/Configuration.*'
+    include 'io/warp10/continuum/TimeSource.*'
     include 'io/warp10/continuum/TimeSource$*'
-    include 'io/warp10/continuum/TextFileShuffler.class'
+    include 'io/warp10/continuum/TextFileShuffler.*'
     include 'io/warp10/continuum/TextFileShuffler$*'
-    include 'io/warp10/continuum/SortUtil.class'
+    include 'io/warp10/continuum/SortUtil.*'
     include 'io/warp10/continuum/SortUtil$*'
-    include 'io/warp10/continuum/Tokens.class'
+    include 'io/warp10/continuum/Tokens.*'
     include 'io/warp10/continuum/Tokens$*'
     include 'io/warp10/continuum/gts/**'
-    include 'io/warp10/continuum/store/Constants.class'
-    include 'io/warp10/continuum/store/DirectoryClient.class'
-    include 'io/warp10/continuum/store/GTSDecoderIterator.class'
-    include 'io/warp10/continuum/store/MetadataIterator.class'
+    include 'io/warp10/continuum/store/Constants.*'
+    include 'io/warp10/continuum/store/DirectoryClient.*'
+    include 'io/warp10/continuum/store/GTSDecoderIterator.*'
+    include 'io/warp10/continuum/store/MetadataIterator.*'
     include 'io/warp10/continuum/store/thrift/data/**'
     include 'io/warp10/warp/sdk/**'
-    include 'io/warp10/continuum/sensision/SensisionConstants.class'
-    include 'io/warp10/continuum/store/StoreClient.class'
+    include 'io/warp10/continuum/sensision/SensisionConstants.*'
+    include 'io/warp10/continuum/store/StoreClient.*'
     include 'io/warp10/hadoop/**'
-    include 'io/warp10/standalone/AcceleratorConfig.class'
-    include 'io/warp10/standalone/AcceleratorConfig$*.class'
+    include 'io/warp10/standalone/AcceleratorConfig.*'
+    include 'io/warp10/standalone/AcceleratorConfig$*.*'
 
-    from project(":token").sourceSets.main.output
+    if('sources' == archiveClassifier) {
+        from project(':token').sourceSets.main.allSource
+    } else {
+        from project(':token').sourceSets.main.output
+    }
     include 'io/warp10/quasar/token/thrift/data/**'
-    include 'io/warp10/quasar/filter/QuasarTokenFilter.class'
-    include 'io/warp10/quasar/filter/exception/QuasarTokenException.class'
+    include 'io/warp10/quasar/filter/QuasarTokenFilter.*'
+    include 'io/warp10/quasar/filter/exception/QuasarTokenException.*'
 
-    from project(":crypto").sourceSets.main.output
+    if('sources' == archiveClassifier) {
+        from project(':crypto').sourceSets.main.allSource
+    } else {
+        from project(':crypto').sourceSets.main.output
+    }
     include 'io/warp10/crypto/**'
-
 }
 
+//
+// Customize POM filename
+//
 model {
-    tasks.generatePomFileForWarpscriptPublication {
+    tasks.generatePomFileForMavenPublication {
         destination = file("$buildDir/generated-pom.xml")
     }
 }
 
+//
+// Customize POM file in maven publication
+//
 publishing {
     publications {
-        warpscript(MavenPublication) {
-            from components.java
-            groupId 'io.warp10'
-            artifactId archivesBaseName
-            version version
+        maven(MavenPublication) {
             genPomForWarpscript(pom)
         }
     }
 }
 
-// DEPLOY ON MAVEN REPO WITH SCP
-uploadArchives {
-    repositories {
-        repositories.mavenDeployer {
-            configuration = configurations.deployerJars
-
-            repository(url: "scpexe://${warpScriptPublishURL}") {
-                authentication(userName: "${warpScriptPublishUser}")
-            }
-            genPomForWarpscript(pom)
-        }
-    }
-}
-
+//
+// Configure bintray artifacts, repo and name.
+//
 bintray {
-    dryRun = false
-
-    user = project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER')
-    key = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
-
-    publications = ['warpscript']
-    publish = true
+    publications = ['maven']
 
     pkg {
         repo = 'maven'
-        name = 'warpscript'
-        userOrg = 'senx'
-        licenses = ['Apache-2.0']
-        vcsUrl = 'https://github.com/senx/warp10-platform.git'
-        version {
-            name = getVersionName(warp10Version['warpscript'])
-            released = new Date()
-            vcsTag = getVersionName(warp10Version['warpscript'])
+        name = project.name
+    }
+}
+
+//
+// Generate custom pom for WarpScript with the minimal dependencies
+//
+def genPomForWarpscript(Object pom) {
+    pom.withXml {
+        // compute the list of dependencies
+        project(":warp10").configurations.compileClasspath.resolvedConfiguration.firstLevelModuleDependencies.each {
+            directDep ->
+                addChildsToWarpscriptDeps(directDep)
+        }
+
+        def dependenciesNode = asNode().appendNode('dependencies')
+        mc2DepsList.each {
+            def dependencyNode = dependenciesNode.appendNode('dependency')
+            dependencyNode.appendNode('groupId', it.getModuleGroup())
+            dependencyNode.appendNode('artifactId', it.getModuleName())
+            dependencyNode.appendNode('version', it.getModuleVersion())
         }
     }
 }
 
 //
-// Tasks dependencies
+// Add the root dependency and all its children (transitive dependencies) to the list
 //
-uploadArchives.dependsOn jar
-bintrayUpload.dependsOn jar
+def addChildsToWarpscriptDeps (def pResolvedDependency) {
+
+    pResolvedDependency.children.each {
+        addChildsToWarpscriptDeps(it)
+    }
+
+    // Add the dependency and its children if it has not been seen before and if this dependency is required by Warpscript
+    String depName = pResolvedDependency.getModuleName()
+    if(!mc2DepsIndex.contains(depName) && isDepRequired(depName)) {
+        mc2DepsIndex << depName
+        mc2DepsList << pResolvedDependency
+    }
+}
+
+boolean isDepRequired(String currentDep ) {
+    return ext.requiredLibsMc2.any { currentDep.equalsIgnoreCase(it as String) }
+}

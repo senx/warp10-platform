@@ -1510,8 +1510,6 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   /**
    * Create a 'sub' stack of the current one.
    * A substack will share a certain number of elements with its parent stack.
-   *
-   * @return
    */
   public MemoryWarpScriptStack getSubStack() {
 

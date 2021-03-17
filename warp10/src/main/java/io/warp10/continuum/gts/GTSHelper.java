@@ -305,11 +305,6 @@ public class GTSHelper {
 
   /**
    * Sort an encoder
-   *
-   * @param encoder
-   * @param reversed
-   * @param baseTimestamp
-   * @return
    */
   public static GTSEncoder fullsort(GTSEncoder encoder, boolean reversed, long baseTimestamp) throws IOException {
 
@@ -3186,8 +3181,6 @@ public class GTSHelper {
    * The representation is composed of name=value pairs separated by commas (',').
    * Values are expected to be UTF-8 strings percent-encoded.
    *
-   * @param str
-   * @return
    * @throws ParseException if a label name is incorrect.
    */
   public static Map<String,String> parseLabels(int initialCapacity, String str) throws ParseException {
@@ -3270,10 +3263,6 @@ public class GTSHelper {
    * Compute a gts Id from given classId/labelsId.
    *
    * We compute the palindromic SipHash of 'GTS:' + <classId> + ':' + <labelsId>
-   *
-   * @param classId
-   * @param labelsId
-   * @return
    */
   public static final long gtsId(long[] key, long classId, long labelsId) {
     byte[] buf = new byte[8 + 8 + 2 + 3];
@@ -3301,7 +3290,6 @@ public class GTSHelper {
    *
    * @param key 128 bits SipHash key to use
    * @param gts GeoTimeSerie instance for which to compute the classId
-   * @return
    */
   public static final long classId(byte[] key, GeoTimeSerie gts) {
     return classId(key, gts.getName());
@@ -4209,7 +4197,6 @@ public class GTSHelper {
    * Returns a filled clone of 'gts'. 'gts' is not modified.
    *
    * @param gts GeoTimeSerie to fill
-   * @return
    */
   public static GeoTimeSerie fillprevious(GeoTimeSerie gts) {
 
@@ -5052,9 +5039,6 @@ public class GTSHelper {
    * Produces a GTS instance similar to the original one except
    * that its ticks will have been modified to reflect their index
    * int the sequence, starting at 0.
-   *
-   * @param gts
-   * @return
    */
   public static GeoTimeSerie tickindex(GeoTimeSerie gts) {
     GeoTimeSerie indexed = gts.clone();
@@ -7746,7 +7730,7 @@ public class GTSHelper {
 
     //
     // Apply Bessel's correction
-    // @see http://en.wikipedia.org/wiki/Bessel's_correction
+    // @see <a href="http://en.wikipedia.org/wiki/Bessel's_correction">http://en.wikipedia.org/wiki/Bessel's_correction</a>
     //
 
     if (gts.values > 1) {
@@ -7877,7 +7861,7 @@ public class GTSHelper {
         variance = (sumsq / wordLen) - (sum * sum) / ((double) wordLen * (double) wordLen);
         //
         // Apply Bessel's correction
-        // @see http://en.wikipedia.org/wiki/Bessel's_correction
+        // @see <a href="http://en.wikipedia.org/wiki/Bessel's_correction">http://en.wikipedia.org/wiki/Bessel's_correction</a>
         //
 
         if (wordLen > 1) {
@@ -8224,7 +8208,6 @@ public class GTSHelper {
    *
    * @param metadata Metadata to represent
    * @param forSearch Set to true if the result is for searching, in that case for empty values of labels, '~$' will be produced, otherwise '='
-   * @return
    */
   public static String buildSelector(Metadata metadata, boolean forSearch) {
     StringBuilder sb = new StringBuilder();
@@ -8371,10 +8354,6 @@ public class GTSHelper {
 
   /**
    * Shrink an encoder to at most a given number of values.
-   * @param encoder
-   * @param newsize
-   * @return
-   * @throws IOException
    */
   public static GTSEncoder shrinkTo(GTSEncoder encoder, int newsize) throws IOException {
     GTSEncoder enc = null;
@@ -10131,7 +10110,6 @@ public class GTSHelper {
 
   /**
    * Compute STL i.e. Seasonal-Trend decomposition procedure based on LOWESS
-   * @see <a href="http://www.wessa.net/download/stl.pdf">STL: A Seasonal-Trend Decomposition Procedure Based on Loess</a>
    *
    * Global parameters:
    * @param gts                : Input GTS, must be bucketized
@@ -10157,6 +10135,8 @@ public class GTSHelper {
    * @param jump_p             : (for the post seasonal smoothing step) Jump, i.e. number of bucket to skip to speed up computation. These buckets are interpolated afterward.
    *
    * @return a list of 2 GTS consisting of the seasonal and trend part of the decomposition.
+   *
+   * @see <a href="http://www.wessa.net/download/stl.pdf">STL: A Seasonal-Trend Decomposition Procedure Based on Loess</a>
    */
   public static List<GeoTimeSerie> stl(
       GeoTimeSerie gts,
@@ -11334,7 +11314,7 @@ public class GTSHelper {
 
     //
     // Apply Bessel's correction
-    // @see http://en.wikipedia.org/wiki/Bessel's_correction
+    // @see <a href="http://en.wikipedia.org/wiki/Bessel's_correction">http://en.wikipedia.org/wiki/Bessel's_correction</a>
     //
 
     if (n > 1 && bessel) {

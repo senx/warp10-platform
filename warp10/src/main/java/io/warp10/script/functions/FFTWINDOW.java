@@ -88,7 +88,7 @@ public class FFTWINDOW extends GTSStackFunction {
 
     for (int n = 0; n < N; n++) {
       //    
-      // @see https://en.wikipedia.org/wiki/Window_function
+      // @see <a href="https://en.wikipedia.org/wiki/Window_function">https://en.wikipedia.org/wiki/Window_function</a>
       //
       if (WINDOW_BLACKMAN.equals(algorithm)) {
         // α = 0.16 (a0 = 0.42, a1 = 0.5, a2 = 0.08)

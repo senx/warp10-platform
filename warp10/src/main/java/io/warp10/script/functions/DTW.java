@@ -360,7 +360,7 @@ public class DTW extends NamedWarpScriptFunction implements WarpScriptStackFunct
    * @param offset1 The start index from which to consider the data in values1.
    * @param len1 Number of elements to consider in values1.
    * @param values2 One of the two series to compare to the other. First index is the dimension, second is the element index.
-   * @param offset1 The start index from which to consider the data in values2.
+   * @param offset2 The start index from which to consider the data in values2.
    * @param len2 Number of elements to consider in values2.
    * @param window The window defining th maximum index difference when matching the data. Integer.MAX_VALUE for no window constraint.
    * @param threshold The maximum value of DTW. If the computed pseudo-distance is over this value, it is aborted and returns -1;

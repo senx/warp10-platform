@@ -154,8 +154,6 @@ public class DISCORDS extends GTSStackFunction {
    * @param count Maximum number of discords to identify
    * @param mayOverlap Flag indicating whether or not identified discords may overlap
    * @param distRatio Maximum tolerable ratio between NN distances. Once an NN dist is smaller than 'distRatio' times the previous candidate, exit
-   * @return
-   * @throws WarpScriptException
    */
   public static final GeoTimeSerie discords(GeoTimeSerie gts, int windowLen, int wordLen, int alphabetSize, int count, boolean mayOverlap, double distRatio, boolean standardizePAA) throws WarpScriptException {
     //

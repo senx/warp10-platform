@@ -19,7 +19,7 @@ package io.warp10.script.mapper;
 /**
  * Triangular kernel
  * 
- * @see http://en.wikipedia.org/wiki/Kernel_%28statistics%29
+ * @see <a href="http://en.wikipedia.org/wiki/Kernel_%28statistics%29">http://en.wikipedia.org/wiki/Kernel_%28statistics%29</a>
  */
 public class MapperKernelTriangular extends MapperKernel {
   

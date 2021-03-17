@@ -31,7 +31,7 @@ import java.util.Arrays;
  * - Error Function Algorithm
  * - Complimentary Error Function Algorithm
  *
- * @see http://home.online.no/~pjacklam/notes/invnorm/index.html
+ * @see <a href="http://home.online.no/~pjacklam/notes/invnorm/index.html">http://home.online.no/~pjacklam/notes/invnorm/index.html</a>
  * 
  */
 public class SAXUtils {
@@ -461,7 +461,6 @@ C------------------------------------------------------------------
    * 
    * @param levels Number of levels
    * @param bSAX encoded
-   * @return
    */
   public static String[] indexable(int wordlen, int levels, byte[] bSAX) {
     

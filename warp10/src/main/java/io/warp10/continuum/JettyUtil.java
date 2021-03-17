@@ -25,7 +25,7 @@ public class JettyUtil {
   public static void setSendServerVersion(Server server, boolean send) {
     //
     // Remove display of Server header
-    // @see http://stackoverflow.com/questions/15652902/remove-the-http-server-header-in-jetty-9
+    // @see <a href="http://stackoverflow.com/questions/15652902/remove-the-http-server-header-in-jetty-9">http://stackoverflow.com/questions/15652902/remove-the-http-server-header-in-jetty-9</a>
     //
     
     for(Connector y : server.getConnectors()) {

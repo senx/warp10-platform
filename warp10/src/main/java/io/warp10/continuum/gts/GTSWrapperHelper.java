@@ -383,11 +383,6 @@ public class GTSWrapperHelper {
   
   /**
    * Method used to rewrap a GTSWrapper, typically to change the compression settings.
-   * 
-   * @param wrapper
-   * @param compress
-   * @param compratio
-   * @return
    */
   public static GTSWrapper rewrap(GTSWrapper wrapper, boolean compress, double compratio) {
     byte[] unwrapped = unwrapEncoded(wrapper);
