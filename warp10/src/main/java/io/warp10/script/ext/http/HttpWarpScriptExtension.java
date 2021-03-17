@@ -46,7 +46,7 @@ public class HttpWarpScriptExtension extends WarpScriptExtension {
    * This capability is inspected if <HTTP_AUTHORIZATION_TYPE>=capability
    */
   public static final String HTTP_CAPABILITY = "warpscript.http.capability";
-  public static final String HTTP_CAPABILITY_DEFAULT = ".cap:HTTP";
+  public static final String HTTP_CAPABILITY_DEFAULT = WarpScriptStack.CAPABILITIES_PREFIX + "HTTP";
 
   //
   // CONFIGURATION
