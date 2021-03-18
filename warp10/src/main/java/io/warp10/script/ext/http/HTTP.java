@@ -38,12 +38,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * Apply an HTTP method over an url
+ * Send an HTTP request to an url
  */
 public class HTTP extends FormattedWarpScriptFunction {
 
@@ -53,16 +52,25 @@ public class HTTP extends FormattedWarpScriptFunction {
 
   public static final String METHOD = "method";
   public static final String URL = "url";
-  public static final String HEADER = "header";
+  public static final String HEADERS = "headers";
   public static final String BODY = "body";
-  public static final String RESPONSE = "response";
 
   private final Arguments args;
-  private final Arguments output;
-
   protected Arguments getArguments() {
     return args;
   }
+
+  //
+  // Output
+  //
+
+  public static final String RESPONSE = "response";
+  public static final String STATUS_CODE = "status code";
+  public static final String STATUS_MESSAGE = "status message";
+  public static final String RESPONSE_HEADERS = "headers";
+  public static final String CONTENT = "content";
+
+  private final Arguments output;
   protected Arguments getOutput() {
     return output;
   }
@@ -98,12 +106,12 @@ public class HTTP extends FormattedWarpScriptFunction {
     args = new ArgumentsBuilder()
       .addArgument(String.class, METHOD, "The http method.")
       .addArgument(String.class, URL, "The URL to send the request to. Must begin with http:// or https://.")
-      .addOptionalArgument(Map.class, HEADER, "An optional header.", new HashMap<>())
+      .addOptionalArgument(Map.class, HEADERS, "An optional header.", new HashMap<>())
       .addOptionalArgument(String.class, BODY, "An optional body.", "")
       .build();
 
     output = new ArgumentsBuilder()
-      .addArgument(List.class, RESPONSE, "A 4-element list that contains, in this order, a LONG status code, a STRING status message or an empty STRING if not available, a MAP of headers and a STRING representing a bytes array encoded as base 64.")
+      .addArgument(Map.class, RESPONSE, "A map that contains status code (a LONG), status message (a STRING), headers (a MAP) and content of the response (a BYTES objects).")
       .build();
 
     // retrieve authentication required
@@ -138,7 +146,7 @@ public class HTTP extends FormattedWarpScriptFunction {
     //
 
     String method = (String) formattedArgs.get(METHOD);
-    Map<Object, Object> headers = (Map) formattedArgs.get(HEADER);
+    Map<Object, Object> headers = (Map) formattedArgs.get(HEADERS);
     String body = (String) formattedArgs.get(BODY);
 
     //
@@ -194,7 +202,7 @@ public class HTTP extends FormattedWarpScriptFunction {
 
     HttpURLConnection conn = null;
 
-    List<Object> res = new ArrayList<Object>();
+    Map<String, Object> res = new HashMap<>();
 
     try {
       conn = (HttpURLConnection) url.openConnection();
@@ -250,18 +258,18 @@ public class HTTP extends FormattedWarpScriptFunction {
       // Form response
       //
 
-      res.add(conn.getResponseCode());
+      res.put(STATUS_CODE, conn.getResponseCode());
       Map<String, List<String>> hdrs = conn.getHeaderFields();
 
       if (hdrs.containsKey(null)) {
         List<String> statusMsg = hdrs.get(null);
         if (statusMsg.size() > 0) {
-          res.add(statusMsg.get(0));
+          res.put(STATUS_MESSAGE, statusMsg.get(0));
         } else {
-          res.add("");
+          res.put(STATUS_MESSAGE, "");
         }
       } else {
-        res.add("");
+        res.put(STATUS_MESSAGE, "");
       }
 
       //
@@ -271,8 +279,9 @@ public class HTTP extends FormattedWarpScriptFunction {
       hdrs = new HashMap<String, List<String>>(hdrs);
       hdrs.remove(null);
 
-      res.add(hdrs);
-      res.add(Base64.encodeBase64String(baos.toByteArray()));
+      res.put(RESPONSE_HEADERS, hdrs);
+      //res.add(Base64.encodeBase64String(baos.toByteArray()));
+      res.put(CONTENT, baos.toByteArray());
 
     } catch (IOException ioe) {
       throw new WarpScriptException(getName() + " encountered an error while making an HTTP " + method + " request to '" + url + "'", ioe);
