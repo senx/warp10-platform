@@ -50,7 +50,7 @@ public class HttpWarpScriptExtension extends WarpScriptExtension {
   /**
    * Maximum number of calls to HTTP in a session
    */
-  public static final String WARPSCRIPT_HTTP_LIMIT = "warpscript.http.limit";
+  public static final String WARPSCRIPT_HTTP_LIMIT = "maxrequests";
   public static final String WARPSCRIPT_HTTP_LIMIT_HARD = "warpscript.http.limit.hard";
 
   /**
@@ -71,13 +71,13 @@ public class HttpWarpScriptExtension extends WarpScriptExtension {
   /**
    * Maximum number of calls to HTTP in a session
    */
-  public static final String ATTRIBUTE_HTTP_LIMIT = "http.limit";
+  public static final String ATTRIBUTE_HTTP_LIMIT = "http.maxrequests";
   public static final String ATTRIBUTE_HTTP_LIMIT_HARD = "http.limit.hard";
 
   /**
    * Number of calls to HTTP so far in the sessions
    */
-  public static final String ATTRIBUTE_HTTP_COUNT = "http.count";
+  public static final String ATTRIBUTE_HTTP_COUNT = "http.requests";
 
   /**
    * Maximum cumulative size of content retrieved via calls to HTTP in a session
@@ -94,8 +94,8 @@ public class HttpWarpScriptExtension extends WarpScriptExtension {
   // DEFAULTS
   //
 
-  public static final long DEFAULT_HTTP_LIMIT = 64L;
-  public static final long DEFAULT_HTTP_MAXSIZE = 1000000L;
+  public static final long DEFAULT_HTTP_LIMIT = 1L;
+  public static final long DEFAULT_HTTP_MAXSIZE = 65536L;
 
   //
   // ASSOCIATIONS attributes to either configuration or defaults

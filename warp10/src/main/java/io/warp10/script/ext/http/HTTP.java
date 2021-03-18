@@ -138,7 +138,7 @@ public class HTTP extends FormattedWarpScriptFunction {
     //
 
     String method = (String) formattedArgs.get(METHOD);
-    Map<Object, Object> properties = (Map) formattedArgs.get(HEADER);
+    Map<Object, Object> headers = (Map) formattedArgs.get(HEADER);
     String body = (String) formattedArgs.get(BODY);
 
     //
@@ -201,10 +201,10 @@ public class HTTP extends FormattedWarpScriptFunction {
 
       if (null != url.getUserInfo()) {
         String basicAuth = "Basic " + new String(Base64.encodeBase64String(url.getUserInfo().getBytes(StandardCharsets.UTF_8)));
-        properties.put("Authorization", basicAuth);
+        headers.put("Authorization", basicAuth);
       }
 
-      for (Map.Entry<Object, Object> prop: properties.entrySet()) {
+      for (Map.Entry<Object, Object> prop: headers.entrySet()) {
         conn.setRequestProperty(String.valueOf(prop.getKey()), String.valueOf(prop.getValue()));
       }
 
