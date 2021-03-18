@@ -34,7 +34,6 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -146,6 +145,24 @@ public class HTTP extends FormattedWarpScriptFunction {
     }
 
     //
+    // Retrieve call number limit and download size limit
+    //
+
+    long maxrequests;
+    if (null != Capabilities.get(stack, WarpScriptStack.CAPABILITIES_PREFIX + HttpWarpScriptExtension.ATTRIBUTE_HTTP_COUNT)) {
+      maxrequests = Long.valueOf(Capabilities.get(stack, WarpScriptStack.CAPABILITIES_PREFIX + HttpWarpScriptExtension.ATTRIBUTE_HTTP_COUNT));
+    } else {
+      maxrequests = HttpWarpScriptExtension.DEFAULT_HTTP_LIMIT;
+    }
+
+    long maxsize;
+    if (null != Capabilities.get(stack, WarpScriptStack.CAPABILITIES_PREFIX + HttpWarpScriptExtension.ATTRIBUTE_HTTP_SIZE)) {
+      maxsize = Long.valueOf(Capabilities.get(stack, WarpScriptStack.CAPABILITIES_PREFIX + HttpWarpScriptExtension.ATTRIBUTE_HTTP_SIZE));
+    } else {
+      maxsize = HttpWarpScriptExtension.DEFAULT_HTTP_MAXSIZE;
+    }
+
+    //
     // Retrieve arguments
     //
 
@@ -178,9 +195,6 @@ public class HTTP extends FormattedWarpScriptFunction {
     AtomicLong urlCount;
     AtomicLong downloadSize;
 
-//    try {
-//      stackCountersLock.lockInterruptibly();
-
     Object ufCount = stack.getAttribute(HttpWarpScriptExtension.ATTRIBUTE_HTTP_COUNT);
     Object ufSize = stack.getAttribute(HttpWarpScriptExtension.ATTRIBUTE_HTTP_SIZE);
 
@@ -194,16 +208,8 @@ public class HTTP extends FormattedWarpScriptFunction {
       downloadSize = (AtomicLong) ufSize;
     }
 
-//    } catch (InterruptedException ie) {
-//      throw new WarpScriptException(getName() + " thread has been interrupted", ie);
-//    } finally {
-//      if (stackCountersLock.isHeldByCurrentThread()) {
-//        stackCountersLock.unlock();
-//      }
-//    }
-
-    if (urlCount.addAndGet(1) > (long) HttpWarpScriptExtension.getLongAttribute(stack, HttpWarpScriptExtension.ATTRIBUTE_HTTP_LIMIT)) {
-      throw new WarpScriptException(getName() + " is limited to " + HttpWarpScriptExtension.getLongAttribute(stack, HttpWarpScriptExtension.ATTRIBUTE_HTTP_LIMIT) + " calls.");
+    if (urlCount.addAndGet(1) > maxrequests) {
+      throw new WarpScriptException(getName() + " is limited to " + maxrequests + " calls.");
     }
 
     HttpURLConnection conn = null;
@@ -292,8 +298,8 @@ public class HTTP extends FormattedWarpScriptFunction {
           break;
         }
 
-        if (downloadSize.get() + baos.size() + len > (long) HttpWarpScriptExtension.getLongAttribute(stack, HttpWarpScriptExtension.ATTRIBUTE_HTTP_MAXSIZE)) {
-          throw new WarpScriptException(getName() + " would exceed maximum size of content which can be retrieved via this function (" + HttpWarpScriptExtension.getLongAttribute(stack, HttpWarpScriptExtension.ATTRIBUTE_HTTP_MAXSIZE) + " bytes)");
+        if (downloadSize.get() + baos.size() + len > maxsize) {
+          throw new WarpScriptException(getName() + " would exceed maximum size of content which can be retrieved via this function (" + maxsize + " bytes)");
         }
 
         baos.write(buf, 0, len);
