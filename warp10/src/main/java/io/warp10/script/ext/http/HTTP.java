@@ -107,7 +107,7 @@ public class HTTP extends FormattedWarpScriptFunction {
       .addArgument(String.class, METHOD, "The http method.")
       .addArgument(String.class, URL, "The URL to send the request to. Must begin with http:// or https://.")
       .addOptionalArgument(Map.class, HEADERS, "An optional header.", new HashMap<>())
-      .addOptionalArgument(String.class, BODY, "An optional body.", "")
+      .addOptionalArgument(Object.class, BODY, "An optional body. STRING or BYTES.", "")
       .build();
 
     output = new ArgumentsBuilder()
@@ -147,7 +147,8 @@ public class HTTP extends FormattedWarpScriptFunction {
 
     String method = (String) formattedArgs.get(METHOD);
     Map<Object, Object> headers = (Map) formattedArgs.get(HEADERS);
-    String body = (String) formattedArgs.get(BODY);
+    Object body = formattedArgs.get(BODY);
+
 
     //
     // Check URL
@@ -217,13 +218,28 @@ public class HTTP extends FormattedWarpScriptFunction {
       }
 
       conn.setDoInput(true);
-      conn.setDoOutput(body.length() > 0);
       conn.setRequestMethod(method.toUpperCase());
 
-      if (body.length() > 0) {
-        try (OutputStream os = conn.getOutputStream()) {
-          os.write(body.getBytes());
+      if (body instanceof String) {
+        String bodyS = (String) body;
+        conn.setDoOutput(bodyS.length() > 0);
+        if (bodyS.length() > 0) {
+          try (OutputStream os = conn.getOutputStream()) {
+            os.write(bodyS.getBytes(StandardCharsets.UTF_8));
+          }
         }
+
+      } else if (body instanceof byte[]) {
+        byte[] bodyB = (byte[]) body;
+        conn.setDoOutput(bodyB.length > 0);
+        if (bodyB.length > 0) {
+          try (OutputStream os = conn.getOutputStream()) {
+            os.write(bodyB);
+          }
+        }
+
+      } else {
+        throw new WarpScriptException(getName() + " expects the body of the request to be a STRING or BYTES object.");
       }
 
       byte[] buf = new byte[8192];
