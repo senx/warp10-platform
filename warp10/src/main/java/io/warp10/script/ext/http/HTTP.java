@@ -221,6 +221,10 @@ public class HTTP extends FormattedWarpScriptFunction {
     try {
       conn = (HttpURLConnection) url.openConnection();
 
+      //
+      // Encode userinfo and set headers
+      //
+
       if (null != authInfo) {
 
         Map additionalHeaders;
@@ -244,7 +248,7 @@ public class HTTP extends FormattedWarpScriptFunction {
           }
 
           String userInfo = authInfo.get(0) + ":" + authInfo.get(1);
-          String basicAuth = "Basic " + new String(Base64.encodeBase64String(userInfo.getBytes(StandardCharsets.UTF_8)));
+          String basicAuth = "Basic " + Base64.encodeBase64String(userInfo.getBytes(StandardCharsets.UTF_8));
           additionalHeaders =  new HashMap<Object, Object>();
           additionalHeaders.put("Authorization", basicAuth);
         }
@@ -258,6 +262,10 @@ public class HTTP extends FormattedWarpScriptFunction {
 
       conn.setDoInput(true);
       conn.setRequestMethod(method.toUpperCase());
+
+      //
+      // Set body
+      //
 
       if (body instanceof String) {
         String bodyS = (String) body;
@@ -280,6 +288,10 @@ public class HTTP extends FormattedWarpScriptFunction {
       } else {
         throw new WarpScriptException(getName() + " expects the body of the request to be a STRING or BYTES object.");
       }
+
+      //
+      // Read response
+      //
 
       byte[] buf = new byte[8192];
 
