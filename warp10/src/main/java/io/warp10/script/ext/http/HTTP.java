@@ -161,6 +161,10 @@ public class HTTP extends FormattedWarpScriptFunction {
       throw new WarpScriptException(getName() + " encountered an invalid URL.", mue);
     }
 
+    if (!"http".equals(url.getProtocol()) && !"https".equals(url.getProtocol())) {
+      throw new WarpScriptException(getName() + " only supports http and https protocols.");
+    }
+
     //
     // Check that we do not exceed the limits
     //
