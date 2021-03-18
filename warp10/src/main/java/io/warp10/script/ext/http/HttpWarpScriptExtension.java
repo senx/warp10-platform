@@ -27,21 +27,21 @@ import java.util.Map;
 public class HttpWarpScriptExtension extends WarpScriptExtension {
 
   //
-  // AUTHORIZATION
+  // Authorization
   //
 
   /**
    * If set to true, HTTP requires the stack to be authenticated
    */
-  public static final String HTTP_AUTHENTICATION_REQUIRED = "warpscript.http.authentication.required";
+  public static final String WARPSCRIPT_HTTP_AUTHENTICATION_REQUIRED = "warpscript.http.authentication.required";
 
   /**
    * If set, this capability is inspected
    */
-  public static final String HTTP_CAPABILITY = "warpscript.http.capability";
+  public static final String WARPSCRIPT_HTTP_CAPABILITY = "warpscript.http.capability";
 
   //
-  // CONFIGURATION
+  // Web control
   //
 
   /**
@@ -50,7 +50,7 @@ public class HttpWarpScriptExtension extends WarpScriptExtension {
   public static final String WARPSCRIPT_HTTP_HOST_PATTERNS = "warpscript.http.host.patterns";
 
   //
-  // STACK
+  // Stack attributes (configurable via capabilities)
   //
 
   /**
@@ -64,7 +64,7 @@ public class HttpWarpScriptExtension extends WarpScriptExtension {
   public static final String ATTRIBUTE_HTTP_SIZE = "http.size";
 
   //
-  // DEFAULTS
+  // Defaults
   //
 
   public static final long DEFAULT_HTTP_LIMIT = 1L;

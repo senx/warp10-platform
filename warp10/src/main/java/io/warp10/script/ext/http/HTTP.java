@@ -38,7 +38,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Send an HTTP request to an url
@@ -80,7 +79,6 @@ public class HTTP extends FormattedWarpScriptFunction {
   // Control
   //
 
-  private final ReentrantLock stackCountersLock = new ReentrantLock();
   private final WebAccessController webAccessController;
 
   //
@@ -118,10 +116,10 @@ public class HTTP extends FormattedWarpScriptFunction {
       .build();
 
     // retrieve authentication required
-    auth = "true".equals(WarpConfig.getProperty(HttpWarpScriptExtension.HTTP_AUTHENTICATION_REQUIRED));
+    auth = "true".equals(WarpConfig.getProperty(HttpWarpScriptExtension.WARPSCRIPT_HTTP_AUTHENTICATION_REQUIRED));
 
     // retrieve capName
-    String capNameSuffix = WarpConfig.getProperty(HttpWarpScriptExtension.HTTP_CAPABILITY);
+    String capNameSuffix = WarpConfig.getProperty(HttpWarpScriptExtension.WARPSCRIPT_HTTP_CAPABILITY);
     if (null != capNameSuffix) {
       capName = WarpScriptStack.CAPABILITIES_PREFIX + capNameSuffix;
     } else {
@@ -181,6 +179,10 @@ public class HTTP extends FormattedWarpScriptFunction {
       url = new URL((String) formattedArgs.get(URL));
     } catch (MalformedURLException mue) {
       throw new WarpScriptException(getName() + " encountered an invalid URL.", mue);
+    }
+
+    if (!webAccessController.checkURL(url)) {
+      throw new WarpScriptException(getName() + " invalid host or scheme in URL.");
     }
 
     if (!"http".equals(url.getProtocol()) && !"https".equals(url.getProtocol())) {
