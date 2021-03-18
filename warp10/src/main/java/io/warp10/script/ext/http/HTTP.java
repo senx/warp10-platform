@@ -169,34 +169,30 @@ public class HTTP extends FormattedWarpScriptFunction {
     AtomicLong urlCount;
     AtomicLong downloadSize;
 
-    try {
-      stackCountersLock.lockInterruptibly();
+//    try {
+//      stackCountersLock.lockInterruptibly();
 
-      Object ufCount = stack.getAttribute(HttpWarpScriptExtension.ATTRIBUTE_HTTP_COUNT);
-      Object ufSize = stack.getAttribute(HttpWarpScriptExtension.ATTRIBUTE_HTTP_SIZE);
+    Object ufCount = stack.getAttribute(HttpWarpScriptExtension.ATTRIBUTE_HTTP_COUNT);
+    Object ufSize = stack.getAttribute(HttpWarpScriptExtension.ATTRIBUTE_HTTP_SIZE);
 
-      if (null == ufCount || null == ufSize) {
-        urlCount = new AtomicLong();
-        downloadSize = new AtomicLong();
-        stack.setAttribute(HttpWarpScriptExtension.ATTRIBUTE_HTTP_COUNT, urlCount);
-        stack.setAttribute(HttpWarpScriptExtension.ATTRIBUTE_HTTP_SIZE, downloadSize);
-      } else {
-        urlCount = (AtomicLong) ufCount;
-        downloadSize = (AtomicLong) ufSize;
-      }
-    } catch (InterruptedException ie) {
-      throw new WarpScriptException(getName() + " thread has been interrupted", ie);
-    } finally {
-      if (stackCountersLock.isHeldByCurrentThread()) {
-        stackCountersLock.unlock();
-      }
+    if (null == ufCount || null == ufSize) {
+      urlCount = new AtomicLong();
+      downloadSize = new AtomicLong();
+      stack.setAttribute(HttpWarpScriptExtension.ATTRIBUTE_HTTP_COUNT, urlCount);
+      stack.setAttribute(HttpWarpScriptExtension.ATTRIBUTE_HTTP_SIZE, downloadSize);
+    } else {
+      urlCount = (AtomicLong) ufCount;
+      downloadSize = (AtomicLong) ufSize;
     }
 
-    if (urlCount.get() + 1 > (long) HttpWarpScriptExtension.getLongAttribute(stack, HttpWarpScriptExtension.ATTRIBUTE_HTTP_LIMIT)) {
-      throw new WarpScriptException(getName() + " is limited to " + HttpWarpScriptExtension.getLongAttribute(stack, HttpWarpScriptExtension.ATTRIBUTE_HTTP_LIMIT) + " calls.");
-    }
+//    } catch (InterruptedException ie) {
+//      throw new WarpScriptException(getName() + " thread has been interrupted", ie);
+//    } finally {
+//      if (stackCountersLock.isHeldByCurrentThread()) {
+//        stackCountersLock.unlock();
+//      }
+//    }
 
-    // Recheck the count here in case of concurrent runs
     if (urlCount.addAndGet(1) > (long) HttpWarpScriptExtension.getLongAttribute(stack, HttpWarpScriptExtension.ATTRIBUTE_HTTP_LIMIT)) {
       throw new WarpScriptException(getName() + " is limited to " + HttpWarpScriptExtension.getLongAttribute(stack, HttpWarpScriptExtension.ATTRIBUTE_HTTP_LIMIT) + " calls.");
     }
@@ -296,7 +292,6 @@ public class HTTP extends FormattedWarpScriptFunction {
       hdrs.remove(null);
 
       res.put(RESPONSE_HEADERS, hdrs);
-      //res.add(Base64.encodeBase64String(baos.toByteArray()));
       res.put(CONTENT, baos.toByteArray());
 
     } catch (IOException ioe) {
