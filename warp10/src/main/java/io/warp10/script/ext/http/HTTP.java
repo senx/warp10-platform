@@ -78,13 +78,7 @@ public class HTTP extends FormattedWarpScriptFunction {
   // Authorization
   //
 
-  enum Authorization {
-    none,
-    authenticated,
-    capability
-  }
-
-  private final Authorization auth;
+  private final boolean auth;
   private final String capName;
 
   public HTTP(String name) {
@@ -112,10 +106,13 @@ public class HTTP extends FormattedWarpScriptFunction {
       .addArgument(List.class, RESPONSE, "A 4-element list that contains, in this order, a LONG status code, a STRING status message or an empty STRING if not available, a MAP of headers and a STRING representing a bytes array encoded as base 64.")
       .build();
 
-    // define authorization type from conf
-    auth = Authorization.valueOf(WarpConfig.getProperty(HttpWarpScriptExtension.HTTP_AUTHORIZATION_TYPE, HttpWarpScriptExtension.HTTP_AUTHORIZATION_TYPE_DEFAULT));
-    if (Authorization.capability == auth) {
-      capName = WarpConfig.getProperty(HttpWarpScriptExtension.HTTP_CAPABILITY, HttpWarpScriptExtension.HTTP_CAPABILITY_DEFAULT);
+    // retrieve authentication required
+    auth = "true".equals(WarpConfig.getProperty(HttpWarpScriptExtension.HTTP_AUTHENTICATION_REQUIRED));
+
+    // retrieve capName
+    String capNameSuffix = WarpConfig.getProperty(HttpWarpScriptExtension.HTTP_CAPABILITY);
+    if (null != capNameSuffix) {
+      capName = WarpScriptStack.CAPABILITIES_PREFIX + capNameSuffix;
     } else {
       capName = null;
     }
@@ -128,21 +125,12 @@ public class HTTP extends FormattedWarpScriptFunction {
     // Check authorization
     //
 
-    switch (auth) {
-      case authenticated:
-        if (!stack.isAuthenticated()) {
-          throw new WarpScriptException(getName() + " requires the stack to be authenticated.");
-        }
-        break;
+    if (auth && !stack.isAuthenticated()) {
+      throw new WarpScriptException(getName() + " requires the stack to be authenticated.");
+    }
 
-      case capability:
-        if (null == Capabilities.get(stack, capName)) {
-          throw new WarpScriptException("Capability " + capName + " is required by function " + getName());
-        }
-        break;
-
-      default:
-        break;
+    if (null != capName && null == Capabilities.get(stack, capName)) {
+      throw new WarpScriptException("Capability " + capName + " is required by function " + getName());
     }
 
     //

@@ -34,19 +34,14 @@ public class HttpWarpScriptExtension extends WarpScriptExtension {
   //
 
   /**
-   * Authorization type for using HTTP function, can be either:
-   * - none (default: no authorization required)
-   * - authenticated (stack must be authenticated)
-   * - capability (inspect HTTP_CAPABILITY)
+   * If set to true, HTTP requires the stack to be authenticated
    */
-  public static final String HTTP_AUTHORIZATION_TYPE = "warpscript.http.authorization.type";
-  public static final String HTTP_AUTHORIZATION_TYPE_DEFAULT = "none";
+  public static final String HTTP_AUTHENTICATION_REQUIRED = "warpscript.http.authentication.required";
 
   /**
-   * This capability is inspected if <HTTP_AUTHORIZATION_TYPE>=capability
+   * If set, this capability is inspected
    */
   public static final String HTTP_CAPABILITY = "warpscript.http.capability";
-  public static final String HTTP_CAPABILITY_DEFAULT = WarpScriptStack.CAPABILITIES_PREFIX + "HTTP";
 
   //
   // CONFIGURATION
