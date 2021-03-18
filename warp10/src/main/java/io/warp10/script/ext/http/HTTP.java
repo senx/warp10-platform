@@ -54,6 +54,8 @@ public class HTTP extends FormattedWarpScriptFunction {
   public static final String URL = "url";
   public static final String HEADERS = "headers";
   public static final String BODY = "body";
+  public static final String AUTH_INFO = "auth info";
+  public static final String AUTH_MACRO = "auth macro";
 
   private final Arguments args;
   protected Arguments getArguments() {
@@ -108,6 +110,8 @@ public class HTTP extends FormattedWarpScriptFunction {
       .addArgument(String.class, URL, "The URL to send the request to. Must begin with http:// or https://.")
       .addOptionalArgument(Map.class, HEADERS, "An optional header.", new HashMap<>())
       .addOptionalArgument(Object.class, BODY, "An optional body. STRING or BYTES.", "")
+      .addOptionalArgument(List.class, AUTH_INFO, "Authentication arguments. For example for basic authentication, provide [username, password].", null)
+      .addOptionalArgument(WarpScriptStack.Macro.class, AUTH_MACRO, "A macro that expects " + AUTH_INFO + " on the stack, and returns a map to be appended with the headers. Default to basic authentication.", null)
       .build();
 
     output = new ArgumentsBuilder()
@@ -148,7 +152,8 @@ public class HTTP extends FormattedWarpScriptFunction {
     String method = (String) formattedArgs.get(METHOD);
     Map<Object, Object> headers = (Map) formattedArgs.get(HEADERS);
     Object body = formattedArgs.get(BODY);
-
+    List authInfo = (List) formattedArgs.get(AUTH_INFO);
+    WarpScriptStack.Macro authMacro = (WarpScriptStack.Macro) formattedArgs.get(AUTH_MACRO);
 
     //
     // Check URL
@@ -208,9 +213,35 @@ public class HTTP extends FormattedWarpScriptFunction {
     try {
       conn = (HttpURLConnection) url.openConnection();
 
-      if (null != url.getUserInfo()) {
-        String basicAuth = "Basic " + new String(Base64.encodeBase64String(url.getUserInfo().getBytes(StandardCharsets.UTF_8)));
-        headers.put("Authorization", basicAuth);
+      if (null != authInfo) {
+
+        Map additionalHeaders;
+        if (null != authMacro) {
+          stack.push(authInfo);
+          stack.exec(authMacro);
+          additionalHeaders = (Map) stack.pop();
+
+        } else {
+          // doing basic auth
+          if (authInfo.size() != 2) {
+            throw new WarpScriptException(getName() + " expects a list with two items, username and password, in argument " + authInfo + ".");
+          }
+
+          if (!(authInfo.get(0) instanceof String)) {
+            throw new WarpScriptException(getName() + " expects a STRING username when using basic authentication.");
+          }
+
+          if (!(authInfo.get(1) instanceof String)) {
+            throw new WarpScriptException(getName() + " expects a STRING password when using basic authentication.");
+          }
+
+          String userInfo = authInfo.get(0) + ":" + authInfo.get(1);
+          String basicAuth = "Basic " + new String(Base64.encodeBase64String(userInfo.getBytes(StandardCharsets.UTF_8)));
+          additionalHeaders =  new HashMap<Object, Object>();
+          additionalHeaders.put("Authorization", basicAuth);
+        }
+
+        headers.putAll(additionalHeaders);
       }
 
       for (Map.Entry<Object, Object> prop: headers.entrySet()) {
