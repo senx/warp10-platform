@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -78,7 +78,7 @@ public class PcreateFont extends NamedWarpScriptFunction implements WarpScriptSt
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     
-    List<Object> params = ProcessingUtil.parseParams(stack, 2, 3, 4);
+    List<Object> params = ProcessingUtil.parseParams(stack, 1, 2, 3, 4);
         
     PGraphics pg = (PGraphics) params.get(0);
 
@@ -134,7 +134,9 @@ public class PcreateFont extends NamedWarpScriptFunction implements WarpScriptSt
         if (null != in) { try { in.close(); } catch (Exception e) {} }
       }      
     } else {
-      if (3 == params.size()) {      
+      if (2 == params.size()) {
+        font = pg.parent.createFont(params.get(1).toString(), 12.0F);
+      } else if (3 == params.size()) {
         font = pg.parent.createFont(params.get(1).toString(), ((Number) params.get(2)).floatValue());
       } else if (4 == params.size()) {
         font = pg.parent.createFont(
