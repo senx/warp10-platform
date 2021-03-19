@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,46 +16,39 @@
 
 package io.warp10.script.functions;
 
+import java.util.List;
+
+import com.geoxp.oss.CryptoHelper;
+
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
-import io.warp10.script.WarpScriptReturnException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
-/**
- * Immediately exit the currently executing macro.
- */
-public class RETURN extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class SSSSTO extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  // The stack trace is not used so it can be instantiated once.
-  private final WarpScriptReturnException ex;
-  private final boolean multi;
-
-  public RETURN(String name) {
-    this(name, false);
-  }
-
-  public RETURN(String name, boolean multi) {
+  public SSSSTO(String name) {
     super(name);
-    this.multi = multi;
-    ex = new WarpScriptReturnException(name);
   }
 
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    long levels = 1L;
+    Object top = stack.pop();
 
-    if (multi) {
-      Object top = stack.pop();
-
-      if (!(top instanceof Long)) {
-        throw new WarpScriptException(getName() + " expects a number of levels.");
-      }
-
-      levels = ((Number) top).longValue();
+    if (!(top instanceof List)) {
+      throw new WarpScriptException(getName() + " operates on a " + TYPEOF.TYPE_LIST + " of " + TYPEOF.TYPE_BYTES + " (byte arrays).");
     }
 
-    stack.getCounter(WarpScriptStack.COUNTER_RETURN_DEPTH).set(levels);
-    throw ex;
+    List l = (List) top;
+
+    for (Object o: l) {
+      if (!(o instanceof byte[])) {
+        throw new WarpScriptException(getName() + " operates on a " + TYPEOF.TYPE_LIST + " of " + TYPEOF.TYPE_BYTES + " (byte arrays).");
+      }
+    }
+
+    stack.push(CryptoHelper.SSSSRecover((List<byte[]>) l));
+
+    return stack;
   }
 }

@@ -577,7 +577,7 @@ repair() {
 }
 
 # See how we were called.
-case "$1" in
+case "${1:-}" in
   bootstrap)
   bootstrap
   ;;

@@ -197,7 +197,9 @@ public class Warp extends WarpDist implements Runnable {
 
     Options options = new Options();
 
-    options.createIfMissing(false);
+    options.createIfMissing("true".equals(properties.getProperty(Configuration.LEVELDB_CREATE_IF_MISSING)));
+
+    options.errorIfExists("true".equals(properties.getProperty(Configuration.LEVELDB_ERROR_IF_EXISTS)));
 
     if (properties.containsKey(Configuration.LEVELDB_MAXOPENFILES)) {
       int maxOpenFiles = Integer.parseInt(properties.getProperty(Configuration.LEVELDB_MAXOPENFILES));
@@ -208,12 +210,32 @@ public class Warp extends WarpDist implements Runnable {
       options.cacheSize(Long.parseLong(properties.getProperty(Configuration.LEVELDB_CACHE_SIZE)));
     }
 
+    if (null != properties.getProperty(Configuration.LEVELDB_WRITEBUFFER_SIZE)) {
+      options.writeBufferSize(Integer.parseInt(properties.getProperty(Configuration.LEVELDB_WRITEBUFFER_SIZE)));
+    }
+
     if (null != properties.getProperty(Configuration.LEVELDB_COMPRESSION_TYPE)) {
       if ("snappy".equalsIgnoreCase(properties.getProperty(Configuration.LEVELDB_COMPRESSION_TYPE))) {
         options.compressionType(CompressionType.SNAPPY);
       } else {
         options.compressionType(CompressionType.NONE);
       }
+    }
+
+    if (null != properties.getProperty(Configuration.LEVELDB_BLOCK_SIZE)) {
+      options.blockSize(Integer.parseInt(properties.getProperty(Configuration.LEVELDB_BLOCK_SIZE)));
+    }
+
+    if (null != properties.getProperty(Configuration.LEVELDB_BLOCK_RESTART_INTERVAL)) {
+      options.blockRestartInterval(Integer.parseInt(properties.getProperty(Configuration.LEVELDB_BLOCK_RESTART_INTERVAL)));
+    }
+
+    if (null != properties.getProperty(Configuration.LEVELDB_VERIFY_CHECKSUMS)) {
+      options.verifyChecksums("true".equals(properties.getProperty(Configuration.LEVELDB_VERIFY_CHECKSUMS)));
+    }
+
+    if (null != properties.getProperty(Configuration.LEVELDB_PARANOID_CHECKS)) {
+      options.paranoidChecks("true".equals(properties.getProperty(Configuration.LEVELDB_PARANOID_CHECKS)));
     }
 
     //

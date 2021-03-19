@@ -27,7 +27,7 @@ import java.util.Map;
 
 /**
  * Downsamples a GTS using LTTB (Largest Triangle Three Bucket)
- * @see http://skemman.is/stream/get/1946/15343/37285/3/SS_MSthesis.pdf
+ * @see <a href="http://skemman.is/stream/get/1946/15343/37285/3/SS_MSthesis.pdf">http://skemman.is/stream/get/1946/15343/37285/3/SS_MSthesis.pdf</a>
  */
 public class LTTB extends GTSStackFunction {
   

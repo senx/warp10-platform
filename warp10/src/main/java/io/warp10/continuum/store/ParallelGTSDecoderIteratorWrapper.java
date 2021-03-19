@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -21,8 +21,10 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -45,18 +47,18 @@ import io.warp10.sensision.Sensision;
 import io.warp10.standalone.Warp;
 
 public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
-  
+
   private static final boolean standalone;
-  
+
   //
   // Have a semaphore which gets picked up by a thread having
   // GTSDecoders to provide until it changes GTS, wat which time it
   // releases the sem so another thread can pick it up
   //
-  
+
   // Have a fixed pool of threads and allow a maximum number of threads per request
   // Divide the metadatas according to this limit
-  
+
   private static class GTSDecoderIteratorRunnable implements Runnable, AutoCloseable {
 
     private final AtomicInteger pendingCounter;
@@ -67,11 +69,11 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
     private final LinkedBlockingQueue<GTSDecoder> queue;
     private final Semaphore sem;
     private boolean done = false;
-    private Thread thread = null;    
+    private Thread thread = null;
     private final long creation;
-    
+
     private static volatile boolean foo = false;
-    
+
     public GTSDecoderIteratorRunnable(GTSDecoderIterator iterator, LinkedBlockingQueue<GTSDecoder> queue, Semaphore sem, AtomicInteger pendingCounter, AtomicInteger inflightCounter, AtomicBoolean errorFlag, AtomicReference<Throwable> errorThrowable) {
       this.pendingCounter = pendingCounter;
       this.inflightCounter = inflightCounter;
@@ -82,12 +84,12 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
       this.sem = sem;
       this.creation = System.nanoTime();
     }
-    
+
     @Override
     public void run() {
-      
+
       long waitnanos = System.nanoTime() - this.creation;
-      
+
       if (standalone) {
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_CLIENT_PARALLEL_SCANNERS_WAITNANOS, Sensision.EMPTY_LABELS, waitnanos);
       } else {
@@ -101,7 +103,7 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
        */
       int held = 0;
       String name = null;
-      
+
       try {
         this.thread = Thread.currentThread();
         name = this.thread.getName();
@@ -112,17 +114,17 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
           Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_PARALLEL_SCANNERS, Sensision.EMPTY_LABELS, 1);
         }
 
-        // Increment inflight BEFORE decrementing pending        
+        // Increment inflight BEFORE decrementing pending
         this.inflightCounter.addAndGet(1);
         this.pendingCounter.addAndGet(-1);
 
         //
         // Iterate over the GTSDecoders
         //
-        
+
         while(!done && !Thread.currentThread().isInterrupted() && !this.errorFlag.get() && iterator.hasNext()) {
           GTSDecoder decoder = iterator.next();
-          
+
           //
           // If this is the first decoder, save it for later
           //
@@ -131,19 +133,19 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
             lastdecoder = decoder;
             continue;
           }
-          
+
           //
           // If the current decoder differs from the previous one, we can safely put it in the queue
           // We attempt to acquire 1 permit from the semaphore. If we manage to do so it means that
           // no other thread has encountered a block of GTS and is holding the queue for itself
           //
-          
+
           if (!decoder.getMetadata().getName().equals(lastdecoder.getMetadata().getName()) || !decoder.getMetadata().getLabels().equals(lastdecoder.getMetadata().getLabels())) {
             if (0 == held) {
               this.sem.acquire(1);
               held = 1;
             }
-                        
+
             queue.put(lastdecoder);
             lastdecoder = decoder;
 
@@ -157,22 +159,22 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
             // Decoder is identical to the previous one, we need to acquire all the permits to
             // be the sole thread accessing the queue while the decoders we read belong to the same GTS
             //
-            
+
             if (0 == held) {
               this.sem.acquire(POOLSIZE);
               held = POOLSIZE;
               if (standalone) {
-                Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_CLIENT_PARALLEL_SCANNERS_MUTEX, Sensision.EMPTY_LABELS, 1);                
+                Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_CLIENT_PARALLEL_SCANNERS_MUTEX, Sensision.EMPTY_LABELS, 1);
               } else {
                 Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_PARALLEL_SCANNERS_MUTEX, Sensision.EMPTY_LABELS, 1);
               }
             }
-            
+
             queue.put(lastdecoder);
             lastdecoder = decoder;
           }
         }
-        
+
         if (null != lastdecoder) {
           if (0 == held) {
             this.sem.acquire(1);
@@ -180,7 +182,7 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
           }
           queue.put(lastdecoder);
         }
-        
+
       } catch (Throwable t) {
         // Only set the error if we are not done, this is to prevent
         // the call to close to trigger an error if the thread is
@@ -194,19 +196,21 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
           this.sem.release(held);
           held = 0;
         }
-        
+
         try { this.iterator.close(); } catch (Exception e) {}
-        
-        this.inflightCounter.addAndGet(-1);
-        
+
         if (null != name) {
           this.thread.setName(name);
         }
-        
+
         this.thread = null;
+
+        // Inflight decrement MUST be done last because close can be called just after this call.
+        // This can result in another GTSDecoderIteratorRunnable being interrupted because it uses the same thread.
+        this.inflightCounter.addAndGet(-1);
       }
     }
-    
+
     @Override
     public void close() throws Exception {
       this.done = true;
@@ -217,55 +221,64 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
       }
     }
   }
-  
+
   private static final ExecutorService executor;
-  
+
   private static final int MAX_INFLIGHT;
   private static final int POOLSIZE;
-  
+
   static {
     standalone = Warp.isStandaloneMode();
-    
+
     if (standalone) {
       MAX_INFLIGHT = Integer.parseInt(WarpConfig.getProperty(Configuration.STANDALONE_PARALLELSCANNERS_MAXINFLIGHTPERREQUEST, "0"));
       POOLSIZE = Integer.parseInt(WarpConfig.getProperty(Configuration.STANDALONE_PARALLELSCANNERS_POOLSIZE, "0"));
-            
+
       MIN_GTS_PERSCANNER = Integer.parseInt(WarpConfig.getProperty(Configuration.STANDALONE_PARALLELSCANNERS_MIN_GTS_PERSCANNER, "4"));
       MAX_PARALLEL_SCANNERS = Integer.parseInt(WarpConfig.getProperty(Configuration.STANDALONE_PARALLELSCANNERS_MAX_PARALLEL_SCANNERS, "16"));
     } else {
       MAX_INFLIGHT = Integer.parseInt(WarpConfig.getProperty(Configuration.EGRESS_HBASE_PARALLELSCANNERS_MAXINFLIGHTPERREQUEST, "0"));
       POOLSIZE = Integer.parseInt(WarpConfig.getProperty(Configuration.EGRESS_HBASE_PARALLELSCANNERS_POOLSIZE, "0"));
-            
+
       MIN_GTS_PERSCANNER = Integer.parseInt(WarpConfig.getProperty(Configuration.EGRESS_HBASE_PARALLELSCANNERS_MIN_GTS_PERSCANNER, "4"));
       MAX_PARALLEL_SCANNERS = Integer.parseInt(WarpConfig.getProperty(Configuration.EGRESS_HBASE_PARALLELSCANNERS_MAX_PARALLEL_SCANNERS, "16"));
     }
-    
+
     if (MAX_INFLIGHT> 0 && POOLSIZE > 0) {
-      executor = new ThreadPoolExecutor(POOLSIZE, POOLSIZE, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(POOLSIZE));
+      // We create a single instance of RejectedExecutionException since we are not interested in the
+      // details of where the exception was thrown. This saves a lot of CPU otherwise spent filling in the
+      // stack trace.
+      final RejectedExecutionException ree = new RejectedExecutionException();
+      executor = new ThreadPoolExecutor(POOLSIZE, POOLSIZE, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(POOLSIZE), Executors.defaultThreadFactory(), new RejectedExecutionHandler() {
+        @Override
+        public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
+          throw ree;
+        }
+      });
     } else {
       executor = null;
     }
   }
-  
+
   private LinkedList<GTSDecoderIteratorRunnable> runnables = new LinkedList<GTSDecoderIteratorRunnable>();
-  
+
   private final AtomicInteger pending = new AtomicInteger(0);
   private final AtomicInteger inflight = new AtomicInteger(0);
   private final AtomicBoolean errorFlag = new AtomicBoolean(false);
   private final AtomicReference<Throwable> errorThrowable = new AtomicReference<Throwable>();
-  
+
   /**
    * Semaphore for synchronizing the various runnables. Fairness should be enforced.
    */
   private final Semaphore sem = new Semaphore(POOLSIZE, true);
-  
+
   private final LinkedBlockingQueue<GTSDecoder> queue;
-  
+
   private int idx = 0;
-  
+
   private static final int MIN_GTS_PERSCANNER;
   private static final int MAX_PARALLEL_SCANNERS;
-  
+
   public ParallelGTSDecoderIteratorWrapper(FetchRequest req, boolean optimized, KeyStore keystore, Connection conn, TableName tableName, byte[] colfam, boolean useBlockCache) throws IOException {
     if (standalone) {
       throw new IOException("Incompatible parallel scanner instantiated.");
@@ -276,7 +289,7 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
     //
 
     this.queue = new LinkedBlockingQueue<GTSDecoder>(MAX_INFLIGHT * 4);
-        
+
     //
     // Split the Metadata list in chunks which will be retrieved separately
     // according to 'mingts', the minimum number of GTS per parallel scanner
@@ -284,111 +297,111 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
     //
 
     List<Metadata> metadatas = req.getMetadatas();
-    
+
     int gtsPerScanner = (int) Math.max(MIN_GTS_PERSCANNER, metadatas.size() / MAX_PARALLEL_SCANNERS);
-    
+
     int metaidx = 0;
-    
+
     List<Metadata> metas = null;
-    
+
     while (metaidx < metadatas.size()) {
       if (null == metas) {
         metas = new ArrayList<Metadata>();
       }
-      
+
       metas.add(metadatas.get(metaidx++));
-      
+
       if (gtsPerScanner == metas.size()) {
         GTSDecoderIterator iterator = null;
-        
+
         // Remove Metadatas from FetchRequest otherwise new FetchRequest(req) will do a deep copy
-        List<Metadata> lm = req.getMetadatas();          
+        List<Metadata> lm = req.getMetadatas();
         req.unsetMetadatas();
         FetchRequest freq = new FetchRequest(req);
         // Restore Metadatas
         req.setMetadatas(lm);
         freq.setMetadatas(metas);
-        
+
         if (optimized) {
           iterator = new OptimizedSlicedRowFilterGTSDecoderIterator(freq, conn, tableName, colfam, keystore, useBlockCache);
         } else {
-          iterator = new MultiScanGTSDecoderIterator(freq, conn, tableName, colfam, keystore, useBlockCache);      
-        }      
+          iterator = new MultiScanGTSDecoderIterator(freq, conn, tableName, colfam, keystore, useBlockCache);
+        }
 
         GTSDecoderIteratorRunnable runnable = new GTSDecoderIteratorRunnable(iterator, queue, sem, this.pending, this.inflight, this.errorFlag, this.errorThrowable);
         runnables.add(runnable);
         metas = null;
-      }      
+      }
     }
-    
+
     if (null != metas) {
       GTSDecoderIterator iterator = null;
-      
+
       // Remove Metadatas from FetchRequest otherwise new FetchRequest(req) will do a deep copy
-      List<Metadata> lm = req.getMetadatas();          
+      List<Metadata> lm = req.getMetadatas();
       req.unsetMetadatas();
       FetchRequest freq = new FetchRequest(req);
       // Restore Metadatas
-      req.setMetadatas(lm);        
+      req.setMetadatas(lm);
       freq.setMetadatas(metas);
 
       if (optimized) {
         iterator = new OptimizedSlicedRowFilterGTSDecoderIterator(freq, conn, tableName, colfam, keystore, useBlockCache);
       } else {
-        iterator = new MultiScanGTSDecoderIterator(freq, conn, tableName, colfam, keystore, useBlockCache);      
-      }      
+        iterator = new MultiScanGTSDecoderIterator(freq, conn, tableName, colfam, keystore, useBlockCache);
+      }
 
       GTSDecoderIteratorRunnable runnable = new GTSDecoderIteratorRunnable(iterator, queue, sem, this.pending, this.inflight, this.errorFlag, this.errorThrowable);
       runnables.add(runnable);
     }
-    
+
     //
     // Now shuffle the runnables so we reduce the probability of accessing the same region from parallel scanners
     //
-    
+
     Collections.shuffle(runnables);
 
     this.pending.set(runnables.size());
   }
-  
+
   public ParallelGTSDecoderIteratorWrapper(StoreClient client, FetchRequest req) throws IOException {
     //ReadToken token, long now, long then, long count, long skip, long step, long timestep, double sample, List<Metadata> metadatas, long preBoundary, long postBoundary
     List<Metadata> metadatas = req.getMetadatas();
-    
+
     if (!standalone) {
       throw new IOException("Incompatible parallel scanner instantiated.");
     }
-    
+
     //
     // Allocate a queue for the GTSDecoders
     //
 
     this.queue = new LinkedBlockingQueue<GTSDecoder>(MAX_INFLIGHT * 4);
-        
+
     //
     // Split the Metadata list in chunks which will be retrieved separately
     // according to 'mingts', the minimum number of GTS per parallel scanner
     // and 'maxscanners', the maximum number of parallel scanners to create
     //
-    
+
     int gtsPerScanner = (int) Math.max(MIN_GTS_PERSCANNER, metadatas.size() / MAX_PARALLEL_SCANNERS);
-    
+
     int metaidx = 0;
-    
+
     List<Metadata> metas = null;
-    
+
     while (metaidx < metadatas.size()) {
       if (null == metas) {
         metas = new ArrayList<Metadata>();
       }
-      
+
       metas.add(metadatas.get(metaidx++));
-      
+
       if (gtsPerScanner == metas.size()) {
         GTSDecoderIterator iterator = null;
 
         // Remove Metadatas from FetchRequest otherwise new FetchRequest(req) will do a deep copy
-        List<Metadata> lm = req.getMetadatas();          
+        List<Metadata> lm = req.getMetadatas();
         req.unsetMetadatas();
         FetchRequest freq = new FetchRequest(req);
         // Restore Metadatas
@@ -402,14 +415,14 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
         GTSDecoderIteratorRunnable runnable = new GTSDecoderIteratorRunnable(iterator, queue, sem, this.pending, this.inflight, this.errorFlag, this.errorThrowable);
         runnables.add(runnable);
         metas = null;
-      }      
+      }
     }
-    
+
     if (null != metas) {
       GTSDecoderIterator iterator = null;
-      
+
       // Remove Metadatas from FetchRequest otherwise new FetchRequest(req) will do a deep copy
-      List<Metadata> lm = req.getMetadatas();          
+      List<Metadata> lm = req.getMetadatas();
       req.unsetMetadatas();
       FetchRequest freq = new FetchRequest(req);
       // Restore Metadatas
@@ -421,48 +434,48 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
       GTSDecoderIteratorRunnable runnable = new GTSDecoderIteratorRunnable(iterator, queue, sem, this.pending, this.inflight, this.errorFlag, this.errorThrowable);
       runnables.add(runnable);
     }
-    
+
     this.pending.set(runnables.size());
   }
-  
+
   public static int getMinGTSPerScanner() {
     return MIN_GTS_PERSCANNER;
   }
-  
+
   @Override
   public void close() throws Exception {
     //
     // Close all known iterators, starting from the end since they are not yet scheduled
     //
-    
+
     for (int i = runnables.size() - 1; i >= 0; i--) {
       runnables.get(i).close();
-    }    
+    }
   }
-  
+
   @Override
   public boolean hasNext() {
-    
+
     //
     // Wait until the queue has something to offer or there are no more runnables to
     // run or running.
     //
-    
+
     while(!this.errorFlag.get() && this.queue.isEmpty() && !(0 == this.pending.get() &&  0 == this.inflight.get())) {
       schedule();
       LockSupport.parkNanos(50000L);
     }
-    
+
     if (this.errorFlag.get()) {
       throw new RuntimeException("Error in an underlying parallel scanner.", (Throwable) this.errorThrowable.get());
     }
-    
+
     return !this.queue.isEmpty();
   }
-  
+
   @Override
   public GTSDecoder next() {
-    
+
     if (this.errorFlag.get()) {
       throw new RuntimeException("Error in an underlying parallel scanner.", (Throwable) this.errorThrowable.get());
     }
@@ -473,34 +486,35 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
       return null;
     }
   }
-  
+
   /**
    * Attempt to schedule one of the runnables
-   */  
+   */
   private synchronized void schedule() {
     //
     // If we have already too many inflight requests
     // or if we don't have any left, return
     //
-    
+
     if (this.inflight.get() >= MAX_INFLIGHT) {
       return;
     }
-    
+
     if (0 == this.pending.get()) {
       return;
     }
-    
+
     if (idx >= runnables.size()) {
       return;
     }
-    
+
     GTSDecoderIteratorRunnable runnable = runnables.get(idx);
-    
+
     try {
       executor.execute(runnable);
       idx++;
     } catch (RejectedExecutionException ree) {
+      // WARN(hbs): the exception caught here is a singleton for the Executor (see initialization of the executor)
       if (standalone) {
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_CLIENT_PARALLEL_SCANNERS_REJECTIONS, Sensision.EMPTY_LABELS, 1);
       } else {
@@ -508,7 +522,7 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
       }
     }
   }
-  
+
   public static boolean useParallelScanners() {
     return null != executor;
   }

@@ -94,7 +94,7 @@ public class MUSIGMA extends NamedWarpScriptFunction implements WarpScriptStackF
 
     //
     // Apply Bessel's correction
-    // @see http://en.wikipedia.org/wiki/Bessel's_correction
+    // @see <a href="http://en.wikipedia.org/wiki/Bessel's_correction">http://en.wikipedia.org/wiki/Bessel's_correction</a>
     //
         
     if (applyBessel && n > 1) {

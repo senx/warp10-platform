@@ -613,6 +613,8 @@ public class WarpScriptLib {
   public static final String NS = "ns";
   public static final String PS = "ps";
   public static final String HASH = "HASH";
+  public static final String TOSSSS = "->SSSS";
+  public static final String SSSSTO = "SSSS->";
   public static final String MD5 = "MD5";
   public static final String SHA1 = "SHA1";
   public static final String SHA256 = "SHA256";
@@ -1477,6 +1479,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new ECPUBLIC(ECPUBLIC));
     addNamedWarpScriptFunction(new ECSIGN(ECSIGN));
     addNamedWarpScriptFunction(new ECVERIFY(ECVERIFY));
+    addNamedWarpScriptFunction(new TOSSSS(TOSSSS));
+    addNamedWarpScriptFunction(new SSSSTO(SSSSTO));
     addNamedWarpScriptFunction(new RSAGEN(RSAGEN));
     addNamedWarpScriptFunction(new RSAPUBLIC(RSAPUBLIC));
     addNamedWarpScriptFunction(new RSAPRIVATE(RSAPRIVATE));
@@ -1546,7 +1550,7 @@ public class WarpScriptLib {
     //
 
     addNamedWarpScriptFunction(new RETURN(RETURN));
-    addNamedWarpScriptFunction(new NRETURN(NRETURN));
+    addNamedWarpScriptFunction(new RETURN(NRETURN, true));
 
     //
     // GTS standalone functions

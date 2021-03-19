@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -126,6 +126,16 @@ public class Configuration {
   public static final String CONFIG_WARPSCRIPT_NAMESPACE_PREFIX = "warpscript.namespace.";
 
   public static final String CONFIG_WARPSCRIPT_DEFAULTCL_PREFIX = "warpscript.defaultcl.";
+
+  /**
+   * Prefix for loading a plugin using the default ClassLoader.
+   * For loading plugin class foo.Bar with the default ClassLoader, add
+   *
+   * plugin.defaultcl.foo.Bar = true
+   *
+   * in the configuration
+   */
+  public static final String CONFIG_PLUGIN_DEFAULTCL_PREFIX = "plugin.defaultcl.";
 
   /**
    * This configuration parameter determines if undefining a function (via NULL 'XXX' DEF)
@@ -1463,6 +1473,11 @@ public class Configuration {
   public static final String LEVELDB_HOME = "leveldb.home";
 
   /**
+   * Create LevelDB if not already initialized
+   */
+  public static final String LEVELDB_CREATE_IF_MISSING = "leveldb.create.if.missing";
+
+  /**
    * Maximum number of open files to use for LevelDB
    */
   public static final String LEVELDB_MAXOPENFILES = "leveldb.maxopenfiles";
@@ -1483,9 +1498,24 @@ public class Configuration {
   public static final String LEVELDB_CACHE_SIZE = "leveldb.cache.size";
 
   /**
-   * LevelDB block size to use when compacting ranges
+   * LevelDB block size to use
    */
   public static final String LEVELDB_BLOCK_SIZE = "leveldb.block.size";
+
+  /**
+   * LevelDB block restart interval
+   */
+  public static final String LEVELDB_BLOCK_RESTART_INTERVAL = "leveldb.block.restart.interval";
+
+  /**
+   * Flag indicating whether or not to verify block checksums
+   */
+  public static final String LEVELDB_VERIFY_CHECKSUMS = "leveldb.verify.checksums";
+
+  /**
+   * Flag indicating whether or not to perform paranoid checks
+   */
+  public static final String LEVELDB_PARANOID_CHECKS = "leveldb.paranoid.checks";
 
   /**
    * Compression type to use for leveldb (SNAPPY/NONE)
@@ -1507,6 +1537,16 @@ public class Configuration {
    */
   public static final String DATALOG_CONSUMER_CLASS = "datalog.consumer.class";
   
+  /**
+   * Size of write buffer (in bytes) - defaults to 4194304
+   */
+  public static final String LEVELDB_WRITEBUFFER_SIZE = "leveldb.writebuffer.size";
+
+  /**
+   * Flag indicating whether or not we tolerate pre-existing LevelDB directory
+   */
+  public static final String LEVELDB_ERROR_IF_EXISTS = "leveldb.error.if.exists";
+
   /**
    * Set to true to disable the delete endpoint in the standalone version of Warp 10.
    */

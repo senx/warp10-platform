@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -17,30 +17,35 @@
 package io.warp10.script.functions;
 
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptReturnException;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
 
 /**
  * Exit up to N levels of macros
+ *
+ * @deprecated Use RETURN with multi parameter to true.
  */
+@Deprecated
 public class NRETURN extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
+  // The stack trace is not used so it can be instantiated once.
+  private final WarpScriptReturnException ex;
+
   public NRETURN(String name) {
     super(name);
+    ex = new WarpScriptReturnException(name);
   }
-  
-  private final WarpScriptReturnException ex = new WarpScriptReturnException("NRETURN");
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
-    
+
     if (!(top instanceof Long)) {
-      throw new WarpScriptException(getName() + " expects a number of levels on top of the stack.");
+      throw new WarpScriptException(getName() + " expects a number of levels.");
     }
-    
+
     stack.getCounter(WarpScriptStack.COUNTER_RETURN_DEPTH).set(((Number) top).longValue());
     throw ex;
   }

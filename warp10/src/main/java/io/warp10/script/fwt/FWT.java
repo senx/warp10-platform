@@ -23,7 +23,7 @@ import com.google.common.base.Preconditions;
 /**
  * Class which implements a fast wavelet transform. Inspired by the JWave code.
  * 
- * @see https://github.com/cscheiblich/JWave
+ * @see <a href="https://github.com/cscheiblich/JWave">https://github.com/cscheiblich/JWave</a>
  */
 public class FWT {
   

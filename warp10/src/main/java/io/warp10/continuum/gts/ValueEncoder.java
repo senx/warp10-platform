@@ -43,10 +43,6 @@ public abstract class ValueEncoder {
    * until one returns a non null result.
    * 
    * If none of the ValueEncoder could parse the provided value, a ParseException is raised.
-   * 
-   * @param value
-   * @return
-   * @throws Exception
    */
   public static Object parse(String value) throws Exception {    
     for (ValueEncoder encoder: encoders) {

@@ -201,15 +201,42 @@ public class StandaloneStoreClient implements StoreClient {
      
     return new GTSDecoderIterator() {
     
-      Random prng = fsample < 1.0D ? new Random() : null;
-      
-      long skip = fskip;
-      long preBoundary = preB;
-      long postBoundary = postB;
-      long step = fstep;
-      long timestep = ftimestep;
-      long nextTimestamp = Long.MAX_VALUE;
-      long steps = 0L;
+      final Random prng = fsample < 1.0D ? new Random() : null;
+
+      //
+      // The following nvalues, skip, preBoundary, postBoundary and nextTimestamp fields
+      // are initialized by hasNext() when handling a new GTS.
+      //
+
+      /**
+       * Number of points yet to retrieve for the current GTS.
+       */
+      long nvalues;
+
+      /**
+       * Number of points yet to skip because of the 'skip' parameter.
+       */
+      long skip;
+
+      /**
+       * Number of points before the time boundary yet to fetch.
+       */
+      long preBoundary;
+
+      /**
+       * Number of points after the time boundary yet to fetch.
+       */
+      long postBoundary;
+
+      /**
+       * Most recent timestamp to be accepted because of the 'timestep' parameter.
+       */
+      long nextTimestamp;
+
+      /**
+       * Number of points yet to skip because of the 'step' parameter.
+       */
+      long steps;
       
       int idx = -1;
        
@@ -217,11 +244,6 @@ public class StandaloneStoreClient implements StoreClient {
       byte[] startrow = null;
       // Last raw (included) of current scan
       byte[] stoprow = null;
-      
-      /**
-       * Number of values yet to retrieve for the current GTS
-       */ 
-      long nvalues = Long.MAX_VALUE;
       
       @Override
       public void close() throws Exception {
@@ -381,7 +403,7 @@ public class StandaloneStoreClient implements StoreClient {
             //
             if (hasTimestep) {
               try {
-                nextTimestamp = Math.subtractExact(basets, timestep);
+                nextTimestamp = Math.subtractExact(basets, ftimestep);
               } catch (ArithmeticException ae) {
                 nextTimestamp = Long.MIN_VALUE;
                 nvalues = 0L;
@@ -421,7 +443,7 @@ public class StandaloneStoreClient implements StoreClient {
             }
             
             if (hasStep) {
-              steps = step - 1L;
+              steps = fstep - 1L;
             }
 
             //
@@ -566,9 +588,12 @@ public class StandaloneStoreClient implements StoreClient {
           //
           
           nvalues = fcount >= 0L ? fcount : Long.MAX_VALUE;
-          
+
+          skip = fskip;
           preBoundary = preB;
           postBoundary = postB;
+          nextTimestamp = Long.MAX_VALUE;
+          steps = 0L;
 
           // If we are not fetching a post boundary and not fetching data from the
           // defined time range, seek to stoprow to speed up possible pre boundary
