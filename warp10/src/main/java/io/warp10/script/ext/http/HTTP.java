@@ -41,6 +41,10 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Send an HTTP request to an url
+ * 
+ * To raise maximum number of calls and download size limit, use these capabilities:
+ * .cap:http.requests
+ * .cap:http.size
  */
 public class HTTP extends FormattedWarpScriptFunction {
 
