@@ -52,6 +52,7 @@ import java.util.UUID;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Matcher;
 
 /**
  * Replaces the stack so far with a WarpScript snippet which will regenerate
@@ -467,6 +468,11 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         }
         sb.append(WarpScriptLib.TOMAT);
         sb.append(" ");
+      } else if (o instanceof Matcher) {
+        sb.append(((Matcher) o).pattern());
+        sb.append(" ");
+        sb.append(WarpScriptLib.MATCHER);
+        sb.append(" ");
       } else {
         // Check if any of the defined encoders can encode the current element
         // loops will be caught by the recursion level check
@@ -481,7 +487,6 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         }
 
         // Some types are not supported
-        // functions, PImage...
         // Nevertheless we need to have the correct levels of the stack preserved, so
         // we push an informative string onto the stack there
         if (!encoded) {
