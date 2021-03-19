@@ -35,9 +35,11 @@ import org.apache.commons.math3.linear.RealVector;
 import processing.awt.PGraphicsJava2D;
 import processing.core.PGraphics;
 import processing.core.PImage;
+import processing.core.PShapeSVG;
 import processing.opengl.PGraphics3D;
 
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
@@ -415,37 +417,62 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         sb.append(o.toString());
         sb.append(" ");
       } else if (o instanceof PGraphics) {
-        PGraphics pg = (PGraphics) o;
-        sb.append("'");
-        sb.append(Pencode.PImageToString(pg, null));
-        sb.append("' ");
-        sb.append(WarpScriptLib.PDECODE);
-        sb.append(" ");
-        sb.append(WarpScriptLib.DUP);
-        sb.append(" ");
-        sb.append(WarpScriptLib.PSIZE);
-        sb.append(" '");
-        if (pg instanceof PGraphicsJava2D) {
-          sb.append("2D");
-        } else if (pg instanceof PGraphics3D) {
-          sb.append("3D");
+        if(o instanceof PGraphicsJava2D || o instanceof PGraphics3D) {
+          PGraphics pg = (PGraphics) o;
+          sb.append("'");
+          sb.append(Pencode.PImageToString(pg, null));
+          sb.append("' ");
+          sb.append(WarpScriptLib.PDECODE);
+          sb.append(" ");
+          sb.append(WarpScriptLib.DUP);
+          sb.append(" ");
+          sb.append(WarpScriptLib.PSIZE);
+          sb.append(" '");
+          if (pg instanceof PGraphicsJava2D) {
+            sb.append("2D");
+          } else {
+            sb.append("3D");
+          }
+          sb.append(pg.smooth);
+          sb.append("' ");
+          sb.append(WarpScriptLib.PGRAPHICS);
+          sb.append(" ");
+          sb.append(WarpScriptLib.SWAP);
+          sb.append(" ");
+          sb.append(WarpScriptLib.PBACKGROUND);
+          sb.append(" ");
         } else {
-          throw new WarpScriptException("Neither 2D or 3D PGraphics encounter.");
+          try {
+            sb.append("'UNSUPPORTED:" + WarpURLEncoder.encode(o.getClass().toString(), StandardCharsets.UTF_8) + "' ");
+          } catch (UnsupportedEncodingException uee) {
+            throw new WarpScriptException(uee);
+          }
         }
-        sb.append(pg.smooth);
-        sb.append("' ");
-        sb.append(WarpScriptLib.PGRAPHICS);
-        sb.append(" ");
-        sb.append(WarpScriptLib.SWAP);
-        sb.append(" ");
-        sb.append(WarpScriptLib.PBACKGROUND);
-        sb.append(" ");
       } else if (o instanceof PImage) {
         sb.append("'");
         sb.append(Pencode.PImageToString((PImage) o, null));
         sb.append("' ");
         sb.append(WarpScriptLib.PDECODE);
         sb.append(" ");
+      } else if (o instanceof PShapeSVG) {
+        PShapeSVG pshape = (PShapeSVG) o;
+        // The source SVG is package-protected, so use reflection on the PShapeSVG to get it.
+        try {
+          Field elementField = PShapeSVG.class.getDeclaredField("element");
+          elementField.setAccessible(true);
+          Object element = elementField.get(pshape);
+          sb.append("'");
+          sb.append(element.toString());
+          sb.append("' ");
+          sb.append(WarpScriptLib.PLOADSHAPE);
+          sb.append(" ");
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+          try {
+            sb.append("'UNSUPPORTED:" + WarpURLEncoder.encode(o.getClass().toString(), StandardCharsets.UTF_8) + "' ");
+          } catch (UnsupportedEncodingException uee) {
+            throw new WarpScriptException(uee);
+          }
+        }
       } else if (o instanceof RealVector) {
         RealVector vector = (RealVector) o;
         sb.append("[] ");
