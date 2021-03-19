@@ -41,7 +41,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Send an HTTP request to an url
- * 
+ *
  * To raise maximum number of calls and download size limit, use these capabilities:
  * .cap:http.requests
  * .cap:http.size
@@ -58,6 +58,8 @@ public class HTTP extends FormattedWarpScriptFunction {
   public static final String BODY = "body";
   public static final String AUTH_INFO = "auth info";
   public static final String AUTH_MACRO = "auth macro";
+  public static final String CHUNK_SIZE = "chunk size";
+  public static final String CHUNK_MACRO = "chunk macro";
 
   private final Arguments args;
   protected Arguments getArguments() {
@@ -73,6 +75,7 @@ public class HTTP extends FormattedWarpScriptFunction {
   public static final String STATUS_MESSAGE = "status message";
   public static final String RESPONSE_HEADERS = "headers";
   public static final String CONTENT = "content";
+  public static final String CHUNK_NUMBER = "chunk number";
 
   private final Arguments output;
   protected Arguments getOutput() {
@@ -113,10 +116,12 @@ public class HTTP extends FormattedWarpScriptFunction {
       .addOptionalArgument(Object.class, BODY, "An optional body. STRING or BYTES.", "")
       .addOptionalArgument(List.class, AUTH_INFO, "Authentication arguments. For example for basic authentication, provide [username, password].", null)
       .addOptionalArgument(WarpScriptStack.Macro.class, AUTH_MACRO, "A macro that expects " + AUTH_INFO + " on the stack, and returns a map to be appended with the headers. Default to basic authentication.", null)
+      .addOptionalArgument(Long.class, CHUNK_SIZE, "Chunk size", -1L)
+      .addOptionalArgument(WarpScriptStack.Macro.class, CHUNK_MACRO, "A macro that is executed whenever a chunk has been downloaded. It expects a MAP that contains chunk number (a LONG), status code (a LONG), status message (a STRING), headers (a MAP), and chunk content (a BYTES objects).", new WarpScriptStack.Macro())
       .build();
 
     output = new ArgumentsBuilder()
-      .addArgument(Map.class, RESPONSE, "A map that contains status code (a LONG), status message (a STRING), headers (a MAP) and content of the response (a BYTES objects).")
+      .addArgument(Map.class, RESPONSE, "A map that contains status code (a LONG), status message (a STRING), headers (a MAP) and full content of the response (a BYTES objects). The content is empty if chunk option is used.")
       .build();
 
     // retrieve authentication required
@@ -173,6 +178,8 @@ public class HTTP extends FormattedWarpScriptFunction {
     Object body = formattedArgs.get(BODY);
     List authInfo = (List) formattedArgs.get(AUTH_INFO);
     WarpScriptStack.Macro authMacro = (WarpScriptStack.Macro) formattedArgs.get(AUTH_MACRO);
+    Long chunkSize = (Long) formattedArgs.get(CHUNK_SIZE);
+    WarpScriptStack.Macro chunkMacro = (WarpScriptStack.Macro) formattedArgs.get(CHUNK_MACRO);
 
     //
     // Check URL
@@ -218,9 +225,8 @@ public class HTTP extends FormattedWarpScriptFunction {
       throw new WarpScriptException(getName() + " is limited to " + maxrequests + " calls.");
     }
 
-    HttpURLConnection conn = null;
-
     Map<String, Object> res = new HashMap<>();
+    HttpURLConnection conn = null;
 
     try {
       conn = (HttpURLConnection) url.openConnection();
@@ -294,38 +300,6 @@ public class HTTP extends FormattedWarpScriptFunction {
       }
 
       //
-      // Read response
-      //
-
-      byte[] buf = new byte[8192];
-
-      ByteArrayOutputStream baos = new ByteArrayOutputStream();
-
-      InputStream in = null;
-      // When there is an error (response code is 404 for instance), body is in the error stream.
-      try {
-        in = conn.getInputStream();
-      } catch (IOException ioe) {
-        in = conn.getErrorStream();
-      }
-
-      while (true) {
-        int len = in.read(buf);
-
-        if (len < 0) {
-          break;
-        }
-
-        if (downloadSize.get() + baos.size() + len > maxsize) {
-          throw new WarpScriptException(getName() + " would exceed maximum size of content which can be retrieved via this function (" + maxsize + " bytes)");
-        }
-
-        baos.write(buf, 0, len);
-      }
-
-      downloadSize.addAndGet(baos.size());
-
-      //
       // Form response
       //
 
@@ -351,7 +325,65 @@ public class HTTP extends FormattedWarpScriptFunction {
       hdrs.remove(null);
 
       res.put(RESPONSE_HEADERS, hdrs);
-      res.put(CONTENT, baos.toByteArray());
+
+      //
+      // Read response
+      //
+
+      InputStream in = null;
+
+      // When there is an error (response code is 404 for instance), body is in the error stream.
+      try {
+        in = conn.getInputStream();
+      } catch (IOException ioe) {
+        in = conn.getErrorStream();
+      }
+
+      if (chunkSize <= 0) {
+        byte[] buf = new byte[8192];
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        while (true) {
+          int len = in.read(buf);
+          if (len < 0) {
+            break;
+          }
+
+          if (downloadSize.get() + baos.size() + len > maxsize) {
+            throw new WarpScriptException(getName() + " would exceed maximum size of content which can be retrieved via this function (" + maxsize + " bytes)");
+          }
+
+          baos.write(buf, 0, len);
+        }
+
+        downloadSize.addAndGet(baos.size());
+        res.put(CONTENT, baos.toByteArray());
+
+      } else {
+        byte[] buf = new byte[chunkSize.intValue()];
+
+        int chunkNumber = 0;
+        while (true) {
+          chunkNumber++;
+
+          int len = in.read(buf);
+          if (len < 0) {
+            break;
+          }
+
+          if (downloadSize.addAndGet(len) > maxsize) {
+            throw new WarpScriptException(getName() + " would exceed maximum size of content which can be retrieved via this function (" + maxsize + " bytes)");
+          }
+
+          Map<String, Object> chunkRes = new HashMap<>(res);
+          chunkRes.put(CONTENT, buf);
+          chunkRes.put(CHUNK_NUMBER, new Long(chunkNumber));
+          stack.push(chunkRes);
+          stack.exec(CHUNK_MACRO);
+        }
+
+        res.put(CONTENT, new byte[0]);
+      }
 
     } catch (IOException ioe) {
       throw new WarpScriptException(getName() + " encountered an error while making an HTTP " + method + " request to '" + url + "'", ioe);
