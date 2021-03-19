@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -18,13 +18,11 @@ package io.warp10.script.functions.shape;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
-import io.warp10.script.formatted.FormattedWarpScriptFunction;
 
 /**
  * Return a BOOLEAN indicating whether an input list and its nested lists sizes are coherent together to form a tensor (or multidimensional array).
@@ -37,7 +35,7 @@ public class CHECKSHAPE extends NamedWarpScriptFunction implements WarpScriptSta
 
   @Override
   public WarpScriptStack apply(WarpScriptStack stack) throws WarpScriptException {
-    //List list = (List) formattedArgs.get(LIST);
+
     Object o = stack.pop();
     if (!(o instanceof List)) {
       throw new WarpScriptException(getName() + " expects a LIST.");
