@@ -1,5 +1,5 @@
 //
-//   Copyright 2020  SenX S.A.S.
+//   Copyright 2020-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -20,32 +20,28 @@ import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
-import processing.core.PGraphics;
+import io.warp10.script.functions.TYPEOF;
 import processing.core.PImage;
 
 public class Psize extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   public Psize(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    
+
     Object top = stack.pop();
-    
-    if (top instanceof PGraphics) {
-      PGraphics pg = (PGraphics) top;
-      stack.push((long) pg.pixelWidth);
-      stack.push((long) pg.pixelHeight);
-    } else if (top instanceof PImage) {
-      PImage pi = (PImage) top;      
+
+    if (top instanceof PImage) { // PGraphics extends PImage
+      PImage pi = (PImage) top;
       stack.push((long) pi.pixelWidth);
       stack.push((long) pi.pixelHeight);
     } else {
-      throw new WarpScriptException(getName() + " expects an image or a PGraphics instance.");
+      throw new WarpScriptException(getName() + " expects a " + TYPEOF.TYPE_PIMAGE + " or a " + TYPEOF.TYPE_PGRAPHICSIMAGE + " instance.");
     }
-        
+
     return stack;
   }
 }

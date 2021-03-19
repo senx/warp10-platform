@@ -451,16 +451,17 @@ public interface WarpScriptStack {
       this.statements = Arrays.copyOf(this.statements, newlen);
     }
   }
+
+  String CAPABILITIES_PREFIX = ".cap:";
+  String CAPABILITIES_ATTR = "stack.capabilities";
   
   /**
    * Retrieve the StoreClient instance associated with this stack.
-   * @return 
    */
   public StoreClient getStoreClient();
 
   /**
    * Retrieve the DirectoryClient instance associated with this stack
-   * @return
    */
   public DirectoryClient getDirectoryClient();
   
@@ -648,8 +649,6 @@ public interface WarpScriptStack {
    * Execute a serie of statements against the stack.
    * 
    * @param line String containing a space separated list of statements to execute
-   * @return
-   * @throws Exception
    */
   public void exec(String line) throws WarpScriptException;
   
@@ -663,16 +662,11 @@ public interface WarpScriptStack {
    * Execute a macro against the stack.
    * 
    * @param macro Macro instance to execute
-   * @return
-   * @throws WarpScriptException
    */
   public void exec(Macro macro) throws WarpScriptException;
 
   /**
    * Execute a WarpScriptJavaFunction against the stack
-   * 
-   * @param function
-   * @throws WarpScriptException
    */
   public void exec(WarpScriptJavaFunction function) throws WarpScriptException;
 
@@ -686,16 +680,12 @@ public interface WarpScriptStack {
   
   /**
    * Execute a macro known by name.
-
-   * @param macroName
-   * @throws WarpScriptException
    */
   public void run(String macroName) throws WarpScriptException;
     
   /**
    * Produces a String representation of the top 'n' levels of the stack
    * @param n Number of stack levels to display at most
-   * @return
    */
   public String dump(int n);
   
@@ -725,9 +715,6 @@ public interface WarpScriptStack {
   
   /**
    * Stores the given value in register 'regidx'
-   * @param regidx
-   * @param value
-   * @throws WarpScriptException
    */
   public void store(int regidx, Object value) throws WarpScriptException;
   
@@ -740,27 +727,21 @@ public interface WarpScriptStack {
   
   /**
    * Return the current symbol table.
-   * 
-   * @return
    */
   public Map<String,Object> getSymbolTable();
   
   /**
    * Return the current registers.
-   * 
-   * @return
    */
   public Object[] getRegisters();
   
   /**
    * Return the current map of redefined functions
-   * @return
    */
   public Map<String,WarpScriptStackFunction> getDefined();
   
   /**
    * Return a UUID for the instance of WarpScriptStack
-   * @return
    */
   public String getUUID();
   
@@ -794,8 +775,6 @@ public interface WarpScriptStack {
   
   /**
    * Return the ith counter associated with the stack
-   * @param i
-   * @return
    */
   public AtomicLong getCounter(int i) throws WarpScriptException;
   
@@ -816,9 +795,6 @@ public interface WarpScriptStack {
   /**
    * (re)define 'stmt' as a valid statement executing 'macro'
    * This allows for the overriding of built-in statements
-   * 
-   * @param stmt
-   * @param macro
    */
   public void define(String stmt, Macro macro);
   
@@ -833,5 +809,29 @@ public interface WarpScriptStack {
    */
   public void restore() throws WarpScriptException;
   
+  /**
+   * Hide all stack levels
+   * @return The number of levels actually hidden
+   */
+  public int hide();
   
+  /**
+   * Hide the deepest 'count' stack levels
+   * @param count Number of levels to hide
+   * @return The number of levels actually hidden
+   */
+  public int hide(int count);  
+  
+  /**
+   * Show all previously hidden stack levels.
+   */
+  public void show();
+  
+  /**
+   * Show some stack levels previously hidden. Up to 'count'
+   * levels previously hidden will be made visible. Those
+   * 'count' levels are the less deep of the hidden ones.
+   * @param count Number of levels to show
+   */
+  public void show(int count);
 }

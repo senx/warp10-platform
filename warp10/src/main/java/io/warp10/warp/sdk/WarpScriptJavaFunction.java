@@ -33,8 +33,6 @@ public interface WarpScriptJavaFunction {
   /**
    * Apply the function to the given arguments. The return value
    * is a list of elements to be put onto the stack.
-   * @param args
-   * @return
    */
   public List<Object> apply(List<Object> args) throws WarpScriptJavaFunctionException;
 }

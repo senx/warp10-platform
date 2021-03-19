@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -34,6 +34,8 @@ import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.handler.HandlerList;
 import org.eclipse.jetty.server.handler.gzip.GzipHandler;
+import org.eclipse.jetty.util.BlockingArrayQueue;
+import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
 import com.google.common.base.Preconditions;
 
@@ -42,6 +44,7 @@ import com.google.common.base.Preconditions;
  */
 public class Egress {
 
+  private static final String DEFAULT_THREADPOOL_SIZE = "200";
   
   /**
    * Set of required parameters, those MUST be set
@@ -103,7 +106,15 @@ public class Egress {
 
     List<Connector> connectors = new ArrayList<Connector>();
     
-    server = new Server();
+    int maxThreads = Integer.parseInt(props.getProperty(Configuration.EGRESS_JETTY_THREADPOOL, DEFAULT_THREADPOOL_SIZE));
+    BlockingArrayQueue<Runnable> queue = null;
+    
+    if (props.containsKey(Configuration.EGRESS_JETTY_MAXQUEUESIZE)) {
+      int queuesize = Integer.parseInt(props.getProperty(Configuration.EGRESS_JETTY_MAXQUEUESIZE));
+      queue = new BlockingArrayQueue<Runnable>(queuesize);
+    }
+    
+    server = new Server(new QueuedThreadPool(maxThreads, 8, 60000, queue));   
 
     if (useHttp) {
       int port = Integer.valueOf(props.getProperty(Configuration.EGRESS_PORT));
@@ -210,30 +221,10 @@ public class Egress {
    * @param props Properties from which to extract the key specs
    */
   private void extractKeys(Properties props) {
-    String keyspec = props.getProperty(Configuration.EGRESS_HBASE_DATA_AES);
-    
-    if (null != keyspec) {
-      byte[] key = this.keystore.decodeKey(keyspec);
-      Preconditions.checkArgument(16 == key.length || 24 == key.length || 32 == key.length, "Key " + Configuration.EGRESS_HBASE_DATA_AES + " MUST be 128, 192 or 256 bits long.");
-      this.keystore.setKey(KeyStore.AES_HBASE_DATA, key);
-    }
+    KeyStore.checkAndSetKey(keystore, KeyStore.AES_HBASE_DATA, props, Configuration.EGRESS_HBASE_DATA_AES, 128, 192, 256);
+    KeyStore.checkAndSetKey(keystore, KeyStore.AES_FETCHER, props, Configuration.EGRESS_FETCHER_AES, 128, 192, 256);
+    KeyStore.checkAndSetKey(keystore, KeyStore.SIPHASH_DIRECTORY_PSK, props, Configuration.DIRECTORY_PSK, 128);
 
-    keyspec = props.getProperty(Configuration.EGRESS_FETCHER_AES);
-    
-    if (null != keyspec) {
-      byte[] key = this.keystore.decodeKey(keyspec);
-      Preconditions.checkArgument(16 == key.length || 24 == key.length || 32 == key.length, "Key " + Configuration.EGRESS_FETCHER_AES + " MUST be 128, 192 or 256 bits long.");
-      this.keystore.setKey(KeyStore.AES_FETCHER, key);
-    }
-
-    keyspec = props.getProperty(Configuration.DIRECTORY_PSK);
-    
-    if (null != keyspec) {
-      byte[] key = this.keystore.decodeKey(keyspec);
-      Preconditions.checkArgument(16 == key.length, "Key " + Configuration.DIRECTORY_PSK + " MUST be 128 bits long.");
-      this.keystore.setKey(KeyStore.SIPHASH_DIRECTORY_PSK, key);
-    }
-    
     this.keystore.forget();
   }
 }

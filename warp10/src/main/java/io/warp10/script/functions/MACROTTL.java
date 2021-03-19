@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,47 +16,34 @@
 
 package io.warp10.script.functions;
 
-import io.warp10.WarpConfig;
-import io.warp10.continuum.Configuration;
 import io.warp10.continuum.store.Constants;
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
 
 /**
  * Sets the TTL for a macro which is loaded from disk or http
  */
 public class MACROTTL extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
-  private long hardTTL = Long.MAX_VALUE >>> 1;
-  
+
   public MACROTTL(String name) {
     super(name);
-    hardTTL = Long.parseLong(WarpConfig.getProperty(Configuration.REPOSITORY_TTL_HARD, Long.toString(hardTTL)));
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
-    
+
     if (!(top instanceof Long)) {
       throw new WarpScriptException(getName() + " expects a ttl on top of the stack.");
     }
-    
+
+    // Convert TTL to milliseconds
     long ttl = ((long) top) / Constants.TIME_UNITS_PER_MS;
-    
-    //
-    // Limit the TTL to the hard value, we do not throw an exception because MACROTTL is used in server
-    // side macros and the value might not be easily modifiable
-    //
-    
-    if (ttl > hardTTL) {
-      ttl = hardTTL;
-    }
-    
+
     stack.setAttribute(WarpScriptStack.ATTRIBUTE_MACRO_TTL, ttl);
-    
+
     return stack;
   }
 

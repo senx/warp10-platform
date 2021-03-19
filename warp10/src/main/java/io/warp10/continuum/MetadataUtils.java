@@ -116,9 +116,6 @@ public class MetadataUtils {
    * hides a label with the same name.
    * It also controls that no reserved labels exist as attributes.
    * It also checks that attribute and label sizes do not exceed a threshold.
-   * 
-   * @param metadata
-   * @return
    */
   public static boolean validateMetadata(Metadata metadata) {
     if (null == metadata) {

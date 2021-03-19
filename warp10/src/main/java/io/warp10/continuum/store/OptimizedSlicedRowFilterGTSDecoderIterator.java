@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -15,32 +15,21 @@
 //
 package io.warp10.continuum.store;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.Connection;
+import org.apache.hadoop.hbase.util.Bytes;
+
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.MetadataIdComparator;
 import io.warp10.continuum.sensision.SensisionConstants;
+import io.warp10.continuum.store.thrift.data.FetchRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.KeyStore;
 import io.warp10.sensision.Sensision;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.atomic.AtomicLong;
-
-import org.apache.hadoop.hbase.HRegionLocation;
-import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.Connection;
-import org.apache.hadoop.hbase.client.RegionLocator;
-import org.apache.hadoop.hbase.filter.SlicedRowFilter;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.util.Pair;
-
-import com.google.common.primitives.Longs;
 
 public class OptimizedSlicedRowFilterGTSDecoderIterator extends GTSDecoderIterator implements AutoCloseable {
   
@@ -50,24 +39,31 @@ public class OptimizedSlicedRowFilterGTSDecoderIterator extends GTSDecoderIterat
   private SlicedRowFilterGTSDecoderIterator iterator = null;
   
   private final long now;
-  private final long timespan;
+  private final long then;
   private final Connection conn;
   private final TableName tableName;
   private final byte[] colfam;
   private final boolean useBlockCache;
   private final KeyStore keystore;
-  private final boolean writeTimestamp;
+  private final FetchRequest request;
   
-  public OptimizedSlicedRowFilterGTSDecoderIterator(long now, long timespan, List<Metadata> metadatas, Connection conn, TableName tableName, byte[] colfam, boolean writeTimestamp, KeyStore keystore, boolean useBlockCache) {
+  public OptimizedSlicedRowFilterGTSDecoderIterator(FetchRequest req, Connection conn, TableName tableName, byte[] colfam, KeyStore keystore, boolean useBlockCache) {
     
-    this.now = now;
-    this.timespan = timespan;
+    // We allocate a new one so the parameters are preserved, the metadatas will vary anyway
+    // Remove Metadatas from FetchRequest otherwise new FetchRequest(req) will do a deep copy
+    List<Metadata> lm = req.getMetadatas();          
+    req.unsetMetadatas();
+    this.request = new FetchRequest(req);
+    req.setMetadatas(lm);
+    this.now = req.getNow();
+    this.then = req.getThents();
     this.conn = conn;
     this.tableName = tableName;
     this.colfam = colfam;
-    this.writeTimestamp = writeTimestamp;
     this.useBlockCache = useBlockCache;
     this.keystore = keystore;
+    
+    List<Metadata> metadatas = req.getMetadatas();
     
     //
     // Sort the Metadata
@@ -82,7 +78,7 @@ public class OptimizedSlicedRowFilterGTSDecoderIterator extends GTSDecoderIterat
     List<byte[]> keys = new ArrayList<byte[]>(metadatas.size() * 2);
     
     for (Metadata meta: metadatas) {
-      byte[][] metakeys = SlicedRowFilterGTSDecoderIterator.getKeys(meta, now, timespan);
+      byte[][] metakeys = SlicedRowFilterGTSDecoderIterator.getKeys(meta, now, then);
       keys.add(metakeys[0]);
       keys.add(metakeys[1]);
     }
@@ -106,17 +102,12 @@ public class OptimizedSlicedRowFilterGTSDecoderIterator extends GTSDecoderIterat
     
     List<byte[]> regionKeys = HBaseRegionKeys.getRegionKeys(conn, tableName);
 
-    int previousStartKeyIndex = Collections.binarySearch(regionKeys, keys.get(0), Bytes.BYTES_COMPARATOR);
     int previousEndKeyIndex = Collections.binarySearch(regionKeys, keys.get(1), Bytes.BYTES_COMPARATOR);
 
-    if (previousStartKeyIndex < 0) {
-      previousStartKeyIndex = -1 - previousStartKeyIndex;
-    }
     if (previousEndKeyIndex < 0) {
       previousEndKeyIndex = -1 - previousEndKeyIndex;
     }
 
-    previousStartKeyIndex >>>= 1;
     previousEndKeyIndex >>>= 1;
     
     for (int i = 1; i < metadatas.size(); i++) {
@@ -144,19 +135,6 @@ public class OptimizedSlicedRowFilterGTSDecoderIterator extends GTSDecoderIterat
         currentEndKeyIndex = -1 - currentEndKeyIndex;
         //currentEndKeyIndex = currentEndKeyIndex >>> 1;
       }
-
-      // If both values are even and equal, it means that they are outside a region, so notify HBaseKeys that it should
-      // reload the regions. We could also ignore the metadata, but that could lead to weird behavior as seen by the
-      // requesting client.
-      if (neg && 0 == currentStartKeyIndex % 2 && 0 == currentEndKeyIndex % 2 && currentStartKeyIndex == currentEndKeyIndex) {
-        /*
-        // Remove the current Metadata from the list
-        metadatas.remove(i);
-        // Decrement i so we leave i to the same index after it's incremented
-        i--;
-        continue;
-        */
-      }
               
       //
       // Change the indices so they represent region index and not bound index
@@ -178,7 +156,6 @@ public class OptimizedSlicedRowFilterGTSDecoderIterator extends GTSDecoderIterat
       
       group.add(metadatas.get(i));
       
-      previousStartKeyIndex = currentStartKeyIndex;
       previousEndKeyIndex = currentEndKeyIndex;
     }          
     
@@ -201,7 +178,9 @@ public class OptimizedSlicedRowFilterGTSDecoderIterator extends GTSDecoderIterat
       if (null != iterator) {
         try { iterator.close(); } catch (Exception e) {}
       }
-      iterator = new SlicedRowFilterGTSDecoderIterator(now, timespan, groups.get(groupidx), conn, tableName, colfam, writeTimestamp, keystore, useBlockCache);
+      FetchRequest req = new FetchRequest(this.request);
+      req.setMetadatas(groups.get(groupidx));
+      iterator = new SlicedRowFilterGTSDecoderIterator(req, conn, tableName, colfam, keystore, useBlockCache);
       groupidx++;
       hasNext = iterator.hasNext();
     }

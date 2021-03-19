@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,33 +16,32 @@
 
 package io.warp10.continuum.store;
 
+import java.io.IOException;
+
 import io.warp10.continuum.gts.GTSEncoder;
+import io.warp10.continuum.store.thrift.data.FetchRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
-import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.standalone.StandalonePlasmaHandlerInterface;
-
-import java.io.IOException;
-import java.util.List;
 
 public interface StoreClient {
   public void store(GTSEncoder encoder) throws IOException;
   public long delete(WriteToken token, Metadata metadata, long start, long end) throws IOException;
   /**
-   * 
-   * @param token Read token to use for reading data
-   * @param metadatas List of Metadata for the GTS to fetch
-   * @param now End timestamp (included)
-   * @param then Start timestamp (included)
-   * @param count Number of datapoints to fetch. 0 is a valid value if you want to fetch only boundaries. Use -1 to specify you are not fetching by count.
-   * @param skip Number of datapoints to skip before returning values
-   * @param sample Double value representing the sampling rate. Use 1.0D for returning all values. Valid values are ] 0.0D, 1.0D ]
-   * @param writeTimestamp Flag indicating we are interested in the HBase cell timestamp
-   * @param preBoundary Size of the pre boundary in number of values
-   * @param postBoundary Size of the post boundary in number of values
-   * @return
-   * @throws IOException
+   * @param req FetchRequest instance containing the following elements:
+   *   token Read token to use for reading data
+   *   metadatas List of Metadata for the GTS to fetch
+   *   now End timestamp (included)
+   *   thents Start timestamp (included)
+   *   count Number of datapoints to fetch. 0 is a valid value if you want to fetch only boundaries. Use -1 to specify you are not fetching by count.
+   *   skip Number of datapoints to skip before returning values
+   *   step Index offset between two datapoints, defaults to 1, i.e. return every data point
+   *   timestep Minimum time offset between datapoints, defaults to 1 time unit
+   *   sample Double value representing the sampling rate. Use 1.0D for returning all values. Valid values are ] 0.0D, 1.0D ]
+   *   writeTimestamp Flag indicating we are interested in the HBase cell timestamp
+   *   preBoundary Size of the pre boundary in number of values
+   *   postBoundary Size of the post boundary in number of values
    */
-  public GTSDecoderIterator fetch(ReadToken token, final List<Metadata> metadatas, final long now, final long then, long count, long skip, double sample, boolean writeTimestamp, final long preBoundary, final long postBoundary) throws IOException;
+  public GTSDecoderIterator fetch(FetchRequest req) throws IOException;
   public void addPlasmaHandler(StandalonePlasmaHandlerInterface handler);
 }

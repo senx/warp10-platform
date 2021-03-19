@@ -43,7 +43,7 @@ pipeline {
         stage('Build') {
             steps {
                 sh './gradlew clean build -x test'
-                sh 'node changelog.js > CHANGELOG.md'
+                sh './gradlew generateChangelog'
             }
         }
 

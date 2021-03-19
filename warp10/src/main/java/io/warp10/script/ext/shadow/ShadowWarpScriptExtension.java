@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -114,8 +114,10 @@ public class ShadowWarpScriptExtension extends WarpScriptExtension {
         WarpScriptStackFunction function = new ShadowFunction(f) {        
           @Override
           public Object apply(WarpScriptStack stack) throws WarpScriptException {
+            Object stackContext = null;
             if (!finalUnsafe) {
               stack.save();
+              stackContext = stack.pop();
             }
             try {
               if (!finalUnsafe) {
@@ -125,6 +127,7 @@ public class ShadowWarpScriptExtension extends WarpScriptExtension {
               stack.exec(m);
             } finally {
               if (!finalUnsafe) {
+                stack.push(stackContext);
                 stack.restore();
               }
             }

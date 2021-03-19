@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -30,9 +30,7 @@ import kafka.producer.ProducerConfig;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
 
-import com.google.common.base.Preconditions;
-
-public class KafkaWebCallService {  
+public class KafkaWebCallService {
   
   private static boolean initialized = false;
   
@@ -90,18 +88,10 @@ public class KafkaWebCallService {
    * @param keystore
    */
   public static void initKeys(KeyStore keystore, Properties props) {
-    if (props.containsKey(Configuration.WEBCALL_KAFKA_AES)) {
-      byte[] key = keystore.decodeKey(props.getProperty(Configuration.WEBCALL_KAFKA_AES));
-      Preconditions.checkArgument((16 == key.length || 24 == key.length || 32 == key.length), Configuration.WEBCALL_KAFKA_AES + " MUST be 128, 192 or 256 bits long.");
-      keystore.setKey(KeyStore.AES_KAFKA_WEBCALL, key);
-      aesKey = key;
-    }
-    if (props.containsKey(Configuration.WEBCALL_KAFKA_MAC)) {
-      byte[] key = keystore.decodeKey(props.getProperty(Configuration.WEBCALL_KAFKA_MAC));
-      Preconditions.checkArgument((16 == key.length), Configuration.WEBCALL_KAFKA_MAC + " MUST be 128 bits long.");
-      keystore.setKey(KeyStore.SIPHASH_KAFKA_WEBCALL, key);
-      siphashKey = key;
-    }    
+    aesKey = KeyStore.checkAndSetKey(keystore, KeyStore.AES_KAFKA_WEBCALL, props, Configuration.WEBCALL_KAFKA_AES, 128, 192, 256);
+    siphashKey = KeyStore.checkAndSetKey(keystore, KeyStore.SIPHASH_KAFKA_WEBCALL, props, Configuration.WEBCALL_KAFKA_MAC, 128);
+
+    // the keystore.forget() call is the responsability of the caller.
   }
   
   private static void initialize() {
@@ -120,7 +110,7 @@ public class KafkaWebCallService {
     }
 
     Properties properties = new Properties();
-    // @see http://kafka.apache.org/documentation.html#producerconfigs
+    // @see <a href="http://kafka.apache.org/documentation.html#producerconfigs">http://kafka.apache.org/documentation.html#producerconfigs</a>
     properties.setProperty("metadata.broker.list", brokerListProp);
 
     String producerClientIdProp = WarpConfig.getProperty(Configuration.WEBCALL_KAFKA_PRODUCER_CLIENTID);

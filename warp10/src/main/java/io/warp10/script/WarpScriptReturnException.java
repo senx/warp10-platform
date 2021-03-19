@@ -18,8 +18,6 @@ package io.warp10.script;
 
 public class WarpScriptReturnException extends WarpScriptStopException {
   
-  private int n;
-  
   public WarpScriptReturnException(String message) {
     super(message);
   }

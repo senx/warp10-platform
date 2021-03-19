@@ -1,5 +1,5 @@
 //
-//   Copyright 2020  SenX S.A.S.
+//   Copyright 2020-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -72,6 +72,7 @@ public class ADD extends NamedWarpScriptFunction implements WarpScriptStackFunct
       Macro macro = new Macro();
       macro.addAll((Macro) op1);
       macro.addAll((Macro) op2);
+      macro.setSecure(((Macro) op1).isSecure() || ((Macro) op2).isSecure());
       stack.push(macro);
     } else if (op1 instanceof RealMatrix && op2 instanceof RealMatrix) {
       stack.push(((RealMatrix) op1).add((RealMatrix) op2));
@@ -188,36 +189,24 @@ public class ADD extends NamedWarpScriptFunction implements WarpScriptStackFunct
       
       for (int i = 0; i < n; i++) {
         Object value;
-        if (op1gts) {
-          switch (type) {
-            case STRING:
+        switch (type) {
+          case STRING:
+            // Only in the case of a String the + operation is not permutative.
+            if (op1gts) {
               value = GTSHelper.valueAtIndex(gts, i).toString() + op.toString();
-              break;
-            case DOUBLE:
-              value = ((Number) GTSHelper.valueAtIndex(gts, i)).doubleValue() + ((Number) op).doubleValue();
-              break;
-            case LONG:
-              value = ((Number) GTSHelper.valueAtIndex(gts, i)).longValue() + ((Number) op).longValue();
-              break;
-            default:
-              // Cannot happen, type is in [STRING, DOUBLE, LONG]
-              throw new WarpScriptException(getName() + " Invalid operand type.");
-          }          
-        } else {
-          switch (type) {
-            case STRING:
+            } else {
               value = op.toString() + GTSHelper.valueAtIndex(gts, i).toString();
-              break;
-            case DOUBLE:
-              value = ((Number) GTSHelper.valueAtIndex(gts, i)).doubleValue() + ((Number) op).doubleValue();
-              break;
-            case LONG:
-              value = ((Number) GTSHelper.valueAtIndex(gts, i)).longValue() + ((Number) op).longValue();
-              break;
-            default:
-              // Cannot happen, type is in [STRING, DOUBLE, LONG]
-              throw new WarpScriptException(getName() + " Invalid operator type.");
-          }                    
+            }
+            break;
+          case DOUBLE:
+            value = ((Number) GTSHelper.valueAtIndex(gts, i)).doubleValue() + ((Number) op).doubleValue();
+            break;
+          case LONG:
+            value = ((Number) GTSHelper.valueAtIndex(gts, i)).longValue() + ((Number) op).longValue();
+            break;
+          default:
+            // Cannot happen, type is in [STRING, DOUBLE, LONG]
+            throw new WarpScriptException(getName() + " Invalid operand type.");
         }
         GTSHelper.setValue(result, GTSHelper.tickAtIndex(gts, i), GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i), value, false);
       }      

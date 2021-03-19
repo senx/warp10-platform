@@ -36,7 +36,7 @@ import org.joda.time.format.ISOPeriodFormat;
  * Pushes onto the stack the number of time units described by the ISO8601 duration
  * on top of the stack (String).
  *
- * @see http://en.wikipedia.org/wiki/ISO_8601#Durations
+ * @see <a href="http://en.wikipedia.org/wiki/ISO_8601#Durations">http://en.wikipedia.org/wiki/ISO_8601#Durations</a>
  */
 public class DURATION extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 

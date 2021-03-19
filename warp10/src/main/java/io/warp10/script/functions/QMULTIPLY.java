@@ -24,7 +24,7 @@ import io.warp10.script.WarpScriptStack;
 /**
  * Multiply a quaternion q by a quaternion r
  * 
- * @see http://fr.mathworks.com/help/aeroblks/quaternionmultiplication.html
+ * @see <a href="http://fr.mathworks.com/help/aeroblks/quaternionmultiplication.html">http://fr.mathworks.com/help/aeroblks/quaternionmultiplication.html</a>
  */
 public class QMULTIPLY extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   

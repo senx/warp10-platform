@@ -58,7 +58,7 @@ max.encoder.size = 100000
 
 //
 // Comma separated list of components to run in distributed mode
-// Valid values are 'ingress', 'directory', 'store', 'egress', 'fetch', 'plasmaFE', 'plasmaBE', 'runner'
+// Valid values are 'ingress', 'directory', 'store', 'egress', 'fetcher', 'plasmaFE', 'plasmaBE', 'runner', 'webcall'
 //
 warp.components =
 
@@ -123,7 +123,7 @@ warp.components =
 //
 // root directory where trl files are stored.
 //
-# warp.trl.dir = ${standalone.home}/etc/trl
+# warp.trl.dir =
 
 //
 // Period (in ms) between two scans of the trl directory
@@ -144,7 +144,7 @@ warp.components =
 // Maximum length of labels (names + values) - Defaults to 2048
 //
 #warp.labels.maxsize = 2048
-  
+
 //
 // Maximum length of attributes (names + values) - Defaults to 8192
 //

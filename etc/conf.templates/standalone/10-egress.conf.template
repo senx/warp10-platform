@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -21,9 +21,10 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 
 //
-// Key to use for encrypting GTSSplit instances
+// 128/192/256 bits AES key for encrypting GTSSplit instances.
+// Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
-#egress.fetcher.aes =
+#egress.fetcher.aes = hex:hhhhhh...
 
 //
 // Maximum age of a valid GTSSplit (in ms)
@@ -37,3 +38,8 @@
 // of the class StandardAcceleratedStoreClient should be called prior to calling fetch
 //
 egress.clients.expose = false
+
+//
+// Number of GTS to batch when retrieving datapoints (to mitigate responseTooSlow errors)
+//
+#egress.fetch.batchsize = 100000

@@ -37,25 +37,25 @@ throttling.manager.period = 1000
 // are updated, so we get a chance to have a merged estimator pushed to us even when
 // we just restarted.
 //
-//throttling.manager.rampup = 120000
+#throttling.manager.rampup = 120000
 
 //
 // Maximum number of estimators we cache in memory
 //
-//throttling.manager.estimator.cache.size = 10000
+#throttling.manager.estimator.cache.size = 10000
 
 //
 // Default value for the rate when not configured through a file
 //
-//throttling.manager.rate.default = 0.0
+#throttling.manager.rate.default = 0.0
 
 //
 // Default value for the mads when not configured through a file
 //
-//throttling.manager.mads.default = 0
+#throttling.manager.mads.default = 0
 
 //
 // Default value for the maxwait timeout
 //
-//throttling.manager.maxwait.default = 
+#throttling.manager.maxwait.default =
 

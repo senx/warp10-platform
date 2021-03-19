@@ -17,10 +17,38 @@
 package io.warp10.continuum.gts;
 
 public class GTSOpsHelper {
+
+  public static interface GTSUnaryOp {
+    public Object op(GeoTimeSerie gts, int idx);
+  }
+
   public static interface GTSBinaryOp {
     public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb);
   }
 
+  /**
+   * Apply a unary operator to the values of a GTS, resulting in another GTS. Location and elevation info are copied to the result GTS.
+   * @param result The resulting GTS, for each tick of gts, result[tick]=op(gts[tick]).
+   * @param gts The GTS from where to take the values from.
+   * @param op The operator to apply to the values.
+   */
+  public static void applyUnaryOp(GeoTimeSerie result, GeoTimeSerie gts, GTSUnaryOp op) {
+    int n = GTSHelper.nvalues(gts);
+
+    for (int i = 0; i < n; i++) {
+      Object value = op.op(gts, i);
+      GTSHelper.setValue(result, GTSHelper.tickAtIndex(gts, i), GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i), value, false);
+    }
+  }
+
+  /**
+   * Set the bucketize parameters of the result GTS according to those of gts1 and gts2.
+   * If both GTSs have the same bucket span and buckets are aligned, the result covers the common buckets of gts1 and gts2.
+   * In all the other case, the result is not bucketized.
+   * @param result The GTS whose bucketize parameters must be set (or not).
+   * @param gts1 One of the two GTSs to get the bucketize parameters from.
+   * @param gts2 One of the two GTSs to get the bucketize parameters from.
+   */
   public static void handleBucketization(GeoTimeSerie result, GeoTimeSerie gts1, GeoTimeSerie gts2) {
     if (GTSHelper.isBucketized(gts1) && GTSHelper.isBucketized(gts2)) {
       if (GTSHelper.getBucketSpan(gts1) == GTSHelper.getBucketSpan(gts2)) {
@@ -40,8 +68,17 @@ public class GTSOpsHelper {
   }
 
   public static void applyBinaryOp(GeoTimeSerie result, GeoTimeSerie gts1, GeoTimeSerie gts2, GTSBinaryOp op) {
-    applyBinaryOp(result, gts1, gts2, op,false);
+    applyBinaryOp(result, gts1, gts2, op, false);
   }
+
+  /**
+   * Apply a binary operator to the values of two GTSs, resulting in a single GTS. Only common ticks are considered.
+   * @param result GTS containing all the results. ie for each common tick to gts1 and gts2, result[tick]=op(gts1[tick], gts2[tick]).
+   * @param gts1 First GTS to take values from.
+   * @param gts2 Second GTS to take values from.
+   * @param op Operator which will compute the value to be put in result.
+   * @param copyGts1Location Whether to copy the location and elevation of gts1 to result. If false, points in result have no location and no elevation.
+   */
   public static void applyBinaryOp(GeoTimeSerie result, GeoTimeSerie gts1, GeoTimeSerie gts2, GTSBinaryOp op, boolean copyGts1Location) {
     // Determine if result should be bucketized or not
     handleBucketization(result, gts1, gts2);
@@ -67,7 +104,7 @@ public class GTSOpsHelper {
       tsb = GTSHelper.tickAtIndex(gts2, idxb);
     }
     
-    while(idxa < na || idxb < nb) {
+    while (idxa < na || idxb < nb) {
       if (idxa >= na) {
         tsa = null;
       }
@@ -79,7 +116,7 @@ public class GTSOpsHelper {
         if (0 == tsa.compareTo(tsb)) {
           // Both indices indicate the same timestamp
           if (copyGts1Location) {
-            GTSHelper.setValue(result, tsa,GTSHelper.locationAtIndex(gts1,idxa),GTSHelper.elevationAtIndex(gts1,idxa),op.op(gts1, gts2, idxa, idxb),false);
+            GTSHelper.setValue(result, tsa, GTSHelper.locationAtIndex(gts1, idxa), GTSHelper.elevationAtIndex(gts1, idxa), op.op(gts1, gts2, idxa, idxb), false);
           } else {
             GTSHelper.setValue(result, tsa, op.op(gts1, gts2, idxa, idxb));
           }

@@ -43,8 +43,8 @@ import io.warp10.continuum.store.GTSDecoderIterator;
 import io.warp10.continuum.store.MetadataIterator;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.continuum.store.thrift.data.DirectoryRequest;
+import io.warp10.continuum.store.thrift.data.FetchRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
-import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 
 public class StandaloneAcceleratedStoreClient implements StoreClient {
@@ -199,7 +199,12 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
               @Override
               public void run() {
                 try {
-                  GTSDecoderIterator decoders = persistent.fetch(null, fbatch, now, then, count, 0, 1.0D, false, 0, 0);
+                  FetchRequest req = new FetchRequest();
+                  req.setMetadatas(fbatch);
+                  req.setCount(count);
+                  req.setNow(now);
+                  req.setThents(then);
+                  GTSDecoderIterator decoders = persistent.fetch(req);
                   
                   while(decoders.hasNext()) {
                     GTSDecoder decoder = decoders.next();
@@ -271,7 +276,7 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
   }
   
   @Override
-  public GTSDecoderIterator fetch(ReadToken token, List<Metadata> metadatas, long now, long then, long count, long skip, double sample, boolean writeTimestamp, long preBoundary, long postBoundary) throws IOException {
+  public GTSDecoderIterator fetch(FetchRequest req) throws IOException {
     //
     // If the fetch has both a time range that is larger than the cache range, we will only use
     // the persistent backend to ensure a correct fetch. Same goes with boundaries which could extend outside the
@@ -290,17 +295,17 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
     // unless ACCEL.NOCACHE was called.
     //
     
-    if (this.ephemeral && 1 == count && Long.MAX_VALUE == now && !AcceleratorConfig.nocache.get()) {
+    if (this.ephemeral && 1L == req.getCount() && Long.MAX_VALUE == req.getNow() && !AcceleratorConfig.nocache.get()) {
       AcceleratorConfig.accelerated.set(Boolean.TRUE);
-      return this.cache.fetch(token, metadatas, now, then, count, skip, sample, writeTimestamp, preBoundary, postBoundary);      
+      return this.cache.fetch(req);      
     }
-    
+        
     // Use the persistent store if the accelerator is in ephemeral mode,
     // if the requested time range is larger than the accelerated range or
     // if boundaries were requested, unless ACCEL.NOPERSIST was called 
-    if ((this.ephemeral || (now > cacheend || then < cachestart) || preBoundary > 0 || postBoundary > 0 || AcceleratorConfig.nocache.get()) && !AcceleratorConfig.nopersist.get()) {
+    if ((this.ephemeral || (req.getNow() > cacheend || req.getThents() < cachestart) || req.getPreBoundary() > 0 || req.getPostBoundary() > 0 || AcceleratorConfig.nocache.get()) && !AcceleratorConfig.nopersist.get()) {
       AcceleratorConfig.accelerated.set(Boolean.FALSE);
-      return this.persistent.fetch(token, metadatas, now, then, count, skip, sample, writeTimestamp, preBoundary, postBoundary);
+      return this.persistent.fetch(req);
     }
     
     // Last resort, use the cache, unless it is disabled in which case an exception is thrown
@@ -309,7 +314,7 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
     }
     
     AcceleratorConfig.accelerated.set(Boolean.TRUE);
-    return this.cache.fetch(token, metadatas, now, then, count, skip, sample, writeTimestamp, preBoundary, postBoundary);
+    return this.cache.fetch(req);
   }
   
   @Override

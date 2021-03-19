@@ -55,22 +55,22 @@ public class WarpScriptInputFormat extends InputFormat<Object, Object> {
    * to the executing script.
    */
   private static final String CONFIG_SYMBOL = ".conf";
-  
+
   /**
    * Configuration key we will set to the current path if the split if a FileSplit
    */
   public static final String PATH_CONFIG_KEY = ".path";
-  
+
   /**
    * Suffix to use for the configuration
    */
   public static final String WARPSCRIPT_INPUTFORMAT_SUFFIX = "warpscript.inputformat.suffix";
-  
+
   /**
    * Class of the wrapped InputFormat
    */
   public static final String WARPSCRIPT_INPUTFORMAT_CLASS = "warpscript.inputformat.class";
-  
+
   /**
    * WarpScript™ code fragment to apply
    */
@@ -80,51 +80,40 @@ public class WarpScriptInputFormat extends InputFormat<Object, Object> {
    * Suffix to remove from configuration keys to override or create specific configuration entries
    */
   public static final String WARPSCRIPT_INPUTFORMAT_CONF_SUFFIX = "warpscript.inputformat.conf.suffix";
-  
+
   private InputFormat wrappedInputFormat;
   private RecordReader wrappedRecordReader;
-    
+
   private String suffix = "";
-  
+
   @Override
   public List<InputSplit> getSplits(JobContext context) throws IOException,InterruptedException {
-    String sfx = Warp10InputFormat.getProperty(context.getConfiguration(), this.suffix, WARPSCRIPT_INPUTFORMAT_SUFFIX, "");
-    if (null != sfx) {
-      if (!"".equals(sfx)) {
-        this.suffix = "." + sfx;
-      } else {
-        this.suffix = "";
-      }
-    }
-
+    init(context.getConfiguration());
     ensureInnerFormat(context.getConfiguration());
 
-    return this.wrappedInputFormat.getSplits(context); 
+    return this.wrappedInputFormat.getSplits(context);
   }
-  
+
   private void ensureInnerFormat(Configuration conf) throws IOException {
     if (null == this.wrappedInputFormat) {
       try {
-        String cls = Warp10InputFormat.getProperty(conf, this.suffix, WARPSCRIPT_INPUTFORMAT_CLASS, null);
-        
         //
         // Tweak the configuration if a conf suffix was specified
         //
-        
+
         String confsfx = Warp10InputFormat.getProperty(conf, this.suffix, WARPSCRIPT_INPUTFORMAT_CONF_SUFFIX, "");
-        
+
         if (!"".equals(confsfx)) {
           confsfx = "." + confsfx;
           List<Entry<String,String>> keys = new ArrayList<Entry<String,String>>();
           Iterator<Entry<String,String>> iter = conf.iterator();
           while(iter.hasNext()) {
             Entry<String,String> entry = iter.next();
-            
             if (entry.getKey().endsWith(confsfx)) {
               keys.add(entry);
             }
           }
-          
+
           // Override or create the unsuffixed configuration parameters
           for (Entry<String,String> entry: keys) {
             String key = entry.getKey().substring(0, entry.getKey().length() - confsfx.length());
@@ -132,14 +121,15 @@ public class WarpScriptInputFormat extends InputFormat<Object, Object> {
           }
         }
 
+        String cls = Warp10InputFormat.getProperty(conf, this.suffix, WARPSCRIPT_INPUTFORMAT_CLASS, null);
         Class innerClass = Class.forName(cls);
-        this.wrappedInputFormat = (InputFormat) innerClass.newInstance();        
+        this.wrappedInputFormat = (InputFormat) innerClass.newInstance();
       } catch (Throwable t) {
         throw new IOException(t);
       }
     }
   }
-  
+
   @Override
   public RecordReader<Object, Object> createRecordReader(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
     if (null == this.wrappedRecordReader) {
@@ -149,7 +139,7 @@ public class WarpScriptInputFormat extends InputFormat<Object, Object> {
 
     return new WarpScriptRecordReader(this);
   }
-  
+
   /**
    * Return the actual WarpScript code executor given the script
    * which was passed as parameter.
@@ -164,12 +154,12 @@ public class WarpScriptInputFormat extends InputFormat<Object, Object> {
       String originalfilePath = code.substring(1);
 
       String mc2 = parseWarpScript(originalfilePath);
-      
+
       Map<String,Object> symbols = new HashMap<String,Object>();
       Map<String, List<String>> config = new HashMap<String,List<String>>();
-      
+
       Iterator<Entry<String,String>> iter = conf.iterator();
-      
+
       while(iter.hasNext()) {
         Entry<String,String> entry = iter.next();
         List<String> target = config.get(entry.getKey());
@@ -179,9 +169,9 @@ public class WarpScriptInputFormat extends InputFormat<Object, Object> {
         }
         target.add(entry.getValue());
       }
-      
+
       symbols.put(CONFIG_SYMBOL, config);
-      
+
       WarpScriptExecutor executor = new WarpScriptExecutor(StackSemantics.PERTHREAD, mc2, symbols, null, code.startsWith("@"));
       return executor;
     } else {
@@ -199,7 +189,7 @@ public class WarpScriptInputFormat extends InputFormat<Object, Object> {
     }
 
   }
-  
+
   public String parseWarpScript(String filepath) throws IOException {
     //
     // Load the WarpsScript file
@@ -208,9 +198,9 @@ public class WarpScriptInputFormat extends InputFormat<Object, Object> {
     StringBuffer scriptSB = new StringBuffer();
     InputStream fis = null;
     BufferedReader br = null;
-    try {      
+    try {
       fis = getWarpScriptInputStream(filepath);
-      
+
       br = new BufferedReader(new InputStreamReader(fis, StandardCharsets.UTF_8));
 
       while (true) {
@@ -229,10 +219,10 @@ public class WarpScriptInputFormat extends InputFormat<Object, Object> {
 
     return scriptSB.toString();
   }
-  
+
   /**
    * Create an InputStream from a file path.
-   * 
+   *
    * This method can be overridden if custom loading is needed. In Spark for
    * example SparkFiles#get could be called.
    */
@@ -244,14 +234,25 @@ public class WarpScriptInputFormat extends InputFormat<Object, Object> {
     if (null == fis) {
       fis = new FileInputStream(filepath);
     }
-    
+
     return fis;
   }
-  
+
   public String getSuffix() {
     return this.suffix;
   }
-  
+
+  public void init(Configuration conf) {
+    String sfx = Warp10InputFormat.getProperty(conf, this.suffix, WARPSCRIPT_INPUTFORMAT_SUFFIX, "");
+    if (null != sfx) {
+      if (!"".equals(sfx)) {
+        this.suffix = "." + sfx;
+      } else {
+        this.suffix = "";
+      }
+    }
+  }
+
   public RecordReader getWrappedRecordReader() {
     return this.wrappedRecordReader;
   }

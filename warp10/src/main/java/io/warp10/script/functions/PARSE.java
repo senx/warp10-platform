@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -60,21 +60,20 @@ public class PARSE extends NamedWarpScriptFunction implements WarpScriptStackFun
     try {
       AtomicBoolean hadAttributes = new AtomicBoolean(false);
 
-      while(true) {
-        String line = br.readLine();
-        
-        if (null == line) {
-          break;
-        }
-        
+      String line;
+      while (null != (line = br.readLine())) {
         line = line.trim();
-        
+
         // Ignore empty lines and comments
         if (0 == line.length() || '#' == line.charAt(0)) {
           continue;
         }
-        
-        encoder = GTSHelper.parse(lastencoder, line, null, null, Long.MAX_VALUE, hadAttributes);
+
+        try {
+          encoder = GTSHelper.parse(lastencoder, line, null, null, Long.MAX_VALUE, hadAttributes);
+        } catch (ParseException pe) {
+          throw new WarpScriptException(getName() + " could not parse at index " + pe.getErrorOffset() + " in '" + line + "'", pe);
+        }
 
         if (null != lastencoder && lastencoder != encoder) {
           series.add(lastencoder.getDecoder(true).decode());
@@ -85,9 +84,7 @@ public class PARSE extends NamedWarpScriptFunction implements WarpScriptStackFun
       }
       br.close();
     } catch (IOException ioe) {
-      throw new WarpScriptException(ioe);
-    } catch (ParseException pe) {
-      throw new WarpScriptException(pe);
+      throw new WarpScriptException(getName() + " encountered an error.", ioe);
     }
     
     

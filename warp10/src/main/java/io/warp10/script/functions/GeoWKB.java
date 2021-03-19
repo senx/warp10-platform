@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,10 +16,14 @@
 
 package io.warp10.script.functions;
 
+import java.util.Map;
+
 import com.geoxp.GeoXPLib;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKBReader;
+import com.vividsolutions.jts.operation.buffer.BufferOp;
+import com.vividsolutions.jts.operation.buffer.BufferParameters;
 
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
@@ -71,6 +75,19 @@ public class GeoWKB extends NamedWarpScriptFunction implements WarpScriptStackFu
       throw new WarpScriptException(pe);
     }
 
+    //
+    // Apply buffer if defined
+    //
+    Map<Object,Object> buffer = (Map<Object,Object>) stack.getAttribute(GEOBUFFER.ATTR_GEOBUFFER);
+    
+    if (null != buffer) {
+      // Clear the buffer
+      stack.setAttribute(GEOBUFFER.ATTR_GEOBUFFER, null);
+      // Apply the buffer operation
+      BufferOp bop = new BufferOp(geometry, (BufferParameters) buffer.get(GEOBUFFER.KEY_PARAMS));
+      geometry = bop.getResultGeometry(((Double) buffer.get(GEOBUFFER.KEY_DIST)).doubleValue());
+    }
+    
     //
     // Convert Geometry to a GeoXPShape
     //

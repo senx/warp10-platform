@@ -43,6 +43,7 @@ import org.apache.hadoop.hbase.util.Pair;
  * This filter is handy to select rows whose key is a compound one and which must have
  * some parts of the key in specific ranges.
  * 
+ * TODO(hbs): add support for timestep with intelligent hinting
  */
 public class SlicedRowFilter extends FilterBase {
   
@@ -343,7 +344,7 @@ public class SlicedRowFilter extends FilterBase {
   
   
   /**
-   * @see HBASE-9717 for an API change suggestion that would speed up scanning.
+   * @see "HBASE-9717 for an API change suggestion that would speed up scanning."
    */
       
   @Override

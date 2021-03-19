@@ -52,9 +52,10 @@ plasma.frontend.kafka.commitperiod = 1000
 plasma.frontend.kafka.nthreads = 2
 
 //
-// Optional AES key for messages in Kafka
+// 128/192/256 bits AES key for encrypting frontend messages in Kafka.
+// Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
-#plasma.frontend.kafka.aes = 
+#plasma.frontend.kafka.aes = hex:hhhhhh...
 
 //
 // ZooKeeper connect String for subscription
@@ -82,6 +83,16 @@ plasma.frontend.host = 127.0.0.1
 plasma.frontend.port = 8884
 
 //
+// Number of threads in Jetty's Thread Pool - defaults to 200
+//
+#plasma.frontend.jetty.threadpool = 200
+  
+//
+// Maximum size of Jetty ThreadPool queue size (unbounded by default)
+//
+#plasma.frontend.jetty.maxqueuesize = 
+
+//
 // TCP Backlog applied to the ingress server listener
 //
 #plasma.frontend.tcp.backlog =
@@ -107,9 +118,9 @@ plasma.frontend.websocket.maxmessagesize = 1048576
 plasma.frontend.idle.timout = 300000
 
 //
-// SipHash key for computing MACs of Kafka messages
+// 128 bits SipHash key for computing MACs. Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
-plasma.frontend.kafka.mac = hex:hhhh...
+plasma.frontend.kafka.mac = hex:hhhhhh...
 
 plasma.frontend.subscribe.delay = 5000
 
@@ -124,14 +135,15 @@ plasma.backend.kafka.in.zkconnect = 127.0.0.1:2181/zk/kafka/localhost
 plasma.backend.kafka.in.topic = data
 
 //
-// Key to use for computing MACs (128 bits in hex or OSS reference)
+// 128 bits SipHash key for computing MACs. Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
 plasma.backend.kafka.in.mac = hex:hhhhhh...
 
 //
-// Key to use for encrypting payloads (128/192/256 bits in hex or OSS reference) 
+// 128/192/256 bits AES key for encrypting backend messages in Kafka.
+// Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
-#plasma.backend.kafka.in.aes = 
+#plasma.backend.kafka.in.aes = hex:hhhhhh...
 
 //
 // Kafka group id with which to consume the in topic
@@ -159,14 +171,15 @@ plasma.backend.kafka.out.brokerlist = 127.0.0.1:9092
 plasma.backend.kafka.out.maxsize = 500000
 
 //
-// Key to use for computing MACs (128 bits in hex or OSS reference)
+// 128 bits SipHash key for computing MACs. Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
 plasma.backend.kafka.out.mac = hex:hhhhhh...
 
 //
-// Key to use for encrypting payloads (128/192/256 bits in hex or OSS reference) 
+// 128/192/256 bits AES key for encrypting backend messages in Kafka.
+// Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
-#plasma.backend.kafka.out.aes = 
+#plasma.backend.kafka.out.aes = hex:hhhhhh...
 
 //
 // ZooKeeper Quorum for the ZK ensemble to use for retrieving subscriptions
@@ -181,24 +194,24 @@ plasma.backend.subscriptions.znode = /zk/warp/localhost/plasma
 //
 // Kafka client id to use for the data consumer
 //
-//plasma.frontend.kafka.consumer.clientid =
+#plasma.frontend.kafka.consumer.clientid =
 
 //
 // Kafka client id to use for the data consumer
 //
-//plasma.backend.kafka.in.consumer.clientid =
+#plasma.backend.kafka.in.consumer.clientid =
 
 //
 // Kafka client id to use for the data producer towards the frontends
 //
-//plasma.backend.kafka.out.producer.clientid =
+#plasma.backend.kafka.out.producer.clientid =
 
 //
 // Name of partition assignment strategy to use
 //
-//plasma.backend.kafka.in.consumer.partition.assignment.strategy = 
+#plasma.backend.kafka.in.consumer.partition.assignment.strategy =
 
 //
 // Name of partition assignment strategy to use
 //
-//plasma.frontend.kafka.consumer.partition.assignment.strategy = 
+#plasma.frontend.kafka.consumer.partition.assignment.strategy =

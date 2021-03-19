@@ -49,6 +49,16 @@ egress.port = 8881
 egress.host = 127.0.0.1
 
 //
+// Number of threads in Jetty's Thread Pool - defaults to 200
+//
+#egress.jetty.threadpool = 200
+  
+//
+// Maximum size of Jetty ThreadPool queue size (unbounded by default)
+//
+#egress.jetty.maxqueuesize = 
+
+//
 // Number of acceptors
 //
 egress.acceptors = 2
@@ -69,9 +79,10 @@ egress.idle.timeout = 300000
 egress.zk.quorum = 127.0.0.1:2181
 
 //
-// Key to use for encrypting data in HBase (128/192/256 bits in hex or OSS reference) 
+// 128/192/256 bits AES key for encrypting data in HBase.
+// Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
-#egress.hbase.data.aes = 
+#egress.hbase.data.aes = hex:hhhhhh...
 
 //
 // Columns family under which data should be stored
@@ -109,9 +120,10 @@ egress.fetch.batchsize = 10000
 egress.hbase.filter = true
 
 //
-// Key to use for encrypting GTSSplit instances
+// 128/192/256 bits AES key for encrypting GTSSplit instances.
+// Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
-#egress.fetcher.aes = 
+#egress.fetcher.aes = hex:hhhhhh...
 
 //
 // Maximum age of a valid GTSSplit (in ms)
@@ -130,6 +142,7 @@ egress.hbase.filter = true
 
 //
 // GTS count threshold above which the filter will be used
+// Defaults to 16.
 //
 #egress.hbase.filter.threshold = 
 

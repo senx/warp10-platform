@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -307,7 +307,7 @@ public class ScriptRunner extends Thread {
       this.topic = config.getProperty(Configuration.RUNNER_KAFKA_TOPIC);
 
       Properties props = new Properties();
-      // @see http://kafka.apache.org/documentation.html#producerconfigs
+      // @see <a href="http://kafka.apache.org/documentation.html#producerconfigs">http://kafka.apache.org/documentation.html#producerconfigs</a>
       props.setProperty("metadata.broker.list", props.getProperty(Configuration.RUNNER_KAFKA_BROKERLIST));
       if (null != props.getProperty(Configuration.RUNNER_KAFKA_PRODUCER_CLIENTID)) {
         props.setProperty("client.id", props.getProperty(Configuration.RUNNER_KAFKA_PRODUCER_CLIENTID));
@@ -845,21 +845,7 @@ public class ScriptRunner extends Thread {
   }
 
   private void extractKeys(Properties props) {
-    String keyspec = props.getProperty(Configuration.RUNNER_KAFKA_AES);
-
-    if (null != keyspec) {
-      byte[] key = this.keystore.decodeKey(keyspec);
-      Preconditions.checkArgument(16 == key.length || 24 == key.length || 32 == key.length, "Key " + Configuration.RUNNER_KAFKA_AES + " MUST be 128, 192 or 256 bits long.");
-      this.keystore.setKey(KeyStore.AES_KAFKA_RUNNER, key);
-    }
-
-    keyspec = props.getProperty(Configuration.RUNNER_KAFKA_MAC);
-
-    if (null != keyspec) {
-      byte[] key = this.keystore.decodeKey(keyspec);
-      Preconditions.checkArgument(16 == key.length, "Key " + Configuration.RUNNER_KAFKA_MAC + " MUST be 128 bits long.");
-      this.keystore.setKey(KeyStore.SIPHASH_KAFKA_RUNNER, key);
-    }
+    KeyStore.checkAndSetKey(keystore, KeyStore.SIPHASH_KAFKA_RUNNER, props, Configuration.RUNNER_KAFKA_MAC, 128);
 
     this.keystore.forget();
   }

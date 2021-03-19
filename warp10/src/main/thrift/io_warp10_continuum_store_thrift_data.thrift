@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 //
 
 namespace java io.warp10.continuum.store.thrift.data
+include "token/src/main/thrift/io_warp10_quasar_token_thrift_data.thrift"
 
 /**
  * Metadata describing a Geo Time Serie
@@ -458,4 +459,83 @@ struct MetaSet {
    * be <= notafter.
    */
   6: optional i64 notafter,
+}
+
+struct FetchRequest {
+  /**
+   * Read token to use for fetching data
+   */
+  1: optional io_warp10_quasar_token_thrift_data.ReadToken token,
+  /**
+   * List of Metadata describing the Geo Time Series to fetch
+   */
+  2: optional list<Metadata> metadatas,
+  /**
+   * End timestamp (included)
+   */
+  3: optional i64 now,
+  /**
+   * Start timestamp (included). We cannot use 'then' which is a reserved word.
+   */
+  4: optional i64 thents,
+  /**
+   * Number of data points to fetch.
+   * 0 is a valid value if you want to fetch only boundaries.
+   * Use -1 to specify you are not fetching by count.
+   */
+  5: optional i64 count = -1,
+  /**
+   * Number of data points to skip before starting to return values.
+   */
+  6: optional i64 skip = 0,
+  /**
+   * Index offset between two data points, defaults to 1, i.e. return every data point.
+   */
+  7: optional i64 step = 1,
+  /**
+   * Minimum time offset between data points, expressed in time units. Defaults to 1.
+   */
+  8: optional i64 timestep = 1,
+  /**
+   * Sampling rate.
+   * Use 1.0D for returning all values.
+   * Valid values are ( 0.0D, 1.0D ]
+   */
+  9: optional double sample = 1.0,
+  /**
+   * Flag indicating to return the HBase cell timestamp instead of the value.
+   */
+  10: optional bool writeTimestamp = false,
+  /**
+   * Size of the pre boundary in number of data points.
+   */
+  11: optional i64 preBoundary = 0,
+  /**
+   * Size of the post boundary in number of data points.
+   */
+  12: optional i64 postBoundary = 0,
+  /**
+   * Flag indicating we want to return the HBase cells TTL instead of the value
+   *
+   * This only works if the HBase client is configured with:
+   *
+   *    hbase.client.rpc.codec = org.apache.hadoop.hbase.codec.KeyValueCodecWithTags
+   *
+   * This can be achieved in Warp 10 using the following egress config:
+   *
+   *    egress.hbase.config = hbase.client.rpc.codec
+   *    egress.hbase.client.rpc.codec = org.apache.hadoop.hbase.codec.KeyValueCodecWithTags
+   *
+   * Beware that changing the RPC Codec will change it for all calls to HBase, meaning that tags will
+   * be transfered between the RegionServer and the Client for each cell, even if there is no interest
+   * in the tags. Overall performance may therefore degrade.
+   */
+  13: optional bool TTL = false,
+  /**
+   * Flag indicating whether or not to use parallel scanners if available. This may be
+   * needed when the order of the returned GTS is important. Performing parallel
+   * scans will mix the results of all of them thus altering the order of the original
+   * GTS list.
+   */
+  14: optional bool parallelScanners = true,
 }

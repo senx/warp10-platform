@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -17,25 +17,45 @@
 package io.warp10.script.functions;
 
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptReturnException;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
 
 /**
  * Immediately exit the currently executing macro.
  */
 public class RETURN extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
-  private final WarpScriptReturnException ex = new WarpScriptReturnException("RETURN");
-  
+
+  // The stack trace is not used so it can be instantiated once.
+  private final WarpScriptReturnException ex;
+  private final boolean multi;
+
   public RETURN(String name) {
-    super(name);
+    this(name, false);
   }
-  
+
+  public RETURN(String name, boolean multi) {
+    super(name);
+    this.multi = multi;
+    ex = new WarpScriptReturnException(name);
+  }
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    stack.getCounter(WarpScriptStack.COUNTER_RETURN_DEPTH).set(1L);
+    long levels = 1L;
+
+    if (multi) {
+      Object top = stack.pop();
+
+      if (!(top instanceof Long)) {
+        throw new WarpScriptException(getName() + " expects a number of levels.");
+      }
+
+      levels = ((Number) top).longValue();
+    }
+
+    stack.getCounter(WarpScriptStack.COUNTER_RETURN_DEPTH).set(levels);
     throw ex;
   }
 }

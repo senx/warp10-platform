@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -38,6 +38,8 @@ import io.warp10.sensision.Sensision;
 import io.warp10.warp.sdk.AbstractWarp10Plugin;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -94,15 +96,25 @@ public class WarpDist {
   }
  
   public static void setProperties(String[] files) throws IOException {
-    WarpConfig.setProperties(files);
-    
-    properties = WarpConfig.getProperties();    
+    try {
+      WarpConfig.setProperties(false, files);
+
+      properties = WarpConfig.getProperties();
+    } catch (Throwable t) {
+      System.err.println(ThrowableUtils.getErrorMessage(t));
+      System.exit(-1);
+    }
   }
   
   public static void setProperties(String file) throws IOException {
-    WarpConfig.setProperties(file);
-    
-    properties = WarpConfig.getProperties();
+    try {
+      WarpConfig.setProperties(false, file);
+
+      properties = WarpConfig.getProperties();
+    } catch (Throwable t) {
+      System.err.println(ThrowableUtils.getErrorMessage(t));
+      System.exit(-1);
+    }
   }
   
   public static void setKeyStore(KeyStore ks) {
@@ -120,6 +132,10 @@ public class WarpDist {
     System.out.println();
     
     System.setProperty("java.awt.headless", "true");
+
+    if (StandardCharsets.UTF_8 != Charset.defaultCharset()) {
+      throw new RuntimeException("Default encoding MUST be UTF-8 but it is " + Charset.defaultCharset() + ". Aborting.");
+    }
     
     if (args.length > 0) {
       setProperties(args);
@@ -173,48 +189,10 @@ public class WarpDist {
       }
     }
 
+    extractKeys(keystore, properties);
 
-    keystore.setKey(KeyStore.SIPHASH_CLASS, keystore.decodeKey(properties.getProperty(Configuration.WARP_HASH_CLASS)));
-    Preconditions.checkArgument(16 == keystore.getKey(KeyStore.SIPHASH_CLASS).length, Configuration.WARP_HASH_CLASS + " MUST be 128 bits long.");
-    keystore.setKey(KeyStore.SIPHASH_LABELS, keystore.decodeKey(properties.getProperty(Configuration.WARP_HASH_LABELS)));
-    Preconditions.checkArgument(16 == keystore.getKey(KeyStore.SIPHASH_LABELS).length, Configuration.WARP_HASH_LABELS + " MUST be 128 bits long.");
-
-    //
-    // Generate secondary keys. We use the ones' complement of the primary keys
-    //
-    
-    keystore.setKey(KeyStore.SIPHASH_CLASS_SECONDARY, CryptoUtils.invert(keystore.getKey(KeyStore.SIPHASH_CLASS)));
-    keystore.setKey(KeyStore.SIPHASH_LABELS_SECONDARY, CryptoUtils.invert(keystore.getKey(KeyStore.SIPHASH_LABELS)));    
-    
-    keystore.setKey(KeyStore.SIPHASH_TOKEN, keystore.decodeKey(properties.getProperty(Configuration.WARP_HASH_TOKEN)));
-    Preconditions.checkArgument(16 == keystore.getKey(KeyStore.SIPHASH_TOKEN).length, Configuration.WARP_HASH_TOKEN + " MUST be 128 bits long.");
-    keystore.setKey(KeyStore.SIPHASH_APPID, keystore.decodeKey(properties.getProperty(Configuration.WARP_HASH_APP)));
-    Preconditions.checkArgument(16 == keystore.getKey(KeyStore.SIPHASH_APPID).length, Configuration.WARP_HASH_APP + " MUST be 128 bits long.");
-    keystore.setKey(KeyStore.AES_TOKEN, keystore.decodeKey(properties.getProperty(Configuration.WARP_AES_TOKEN)));
-    Preconditions.checkArgument((16 == keystore.getKey(KeyStore.AES_TOKEN).length) || (24 == keystore.getKey(KeyStore.AES_TOKEN).length) || (32 == keystore.getKey(KeyStore.AES_TOKEN).length), Configuration.WARP_AES_TOKEN + " MUST be 128, 192 or 256 bits long.");
-    keystore.setKey(KeyStore.AES_SECURESCRIPTS, keystore.decodeKey(properties.getProperty(Configuration.WARP_AES_SCRIPTS)));
-    Preconditions.checkArgument((16 == keystore.getKey(KeyStore.AES_SECURESCRIPTS).length) || (24 == keystore.getKey(KeyStore.AES_SECURESCRIPTS).length) || (32 == keystore.getKey(KeyStore.AES_SECURESCRIPTS).length), Configuration.WARP_AES_SCRIPTS + " MUST be 128, 192 or 256 bits long.");
-    
-    if (properties.containsKey(Configuration.WARP_AES_METASETS)) {
-      keystore.setKey(KeyStore.AES_METASETS, keystore.decodeKey(properties.getProperty(Configuration.WARP_AES_METASETS)));
-      Preconditions.checkArgument((16 == keystore.getKey(KeyStore.AES_METASETS).length) || (24 == keystore.getKey(KeyStore.AES_METASETS).length) || (32 == keystore.getKey(KeyStore.AES_METASETS).length), Configuration.WARP_AES_METASETS + " MUST be 128, 192 or 256 bits long.");
-    }
-    
-    if (null != properties.getProperty(Configuration.WARP_AES_LOGGING, Configuration.WARP_DEFAULT_AES_LOGGING)) {
-      keystore.setKey(KeyStore.AES_LOGGING, keystore.decodeKey(properties.getProperty(Configuration.WARP_AES_LOGGING, Configuration.WARP_DEFAULT_AES_LOGGING)));
-      Preconditions.checkArgument((16 == keystore.getKey(KeyStore.AES_LOGGING).length) || (24 == keystore.getKey(KeyStore.AES_LOGGING).length) || (32 == keystore.getKey(KeyStore.AES_LOGGING).length), Configuration.WARP_AES_LOGGING + " MUST be 128, 192 or 256 bits long.");      
-    }
-    
-    if (null != properties.getProperty(Configuration.CONFIG_FETCH_PSK)) {
-      keystore.setKey(KeyStore.SIPHASH_FETCH_PSK, keystore.decodeKey(properties.getProperty(Configuration.CONFIG_FETCH_PSK)));
-      Preconditions.checkArgument((16 == keystore.getKey(KeyStore.SIPHASH_FETCH_PSK).length), Configuration.CONFIG_FETCH_PSK + " MUST be 128 bits long.");            
-    }
-    
-    if (null != properties.getProperty(Configuration.RUNNER_PSK)) {
-      byte[] key = keystore.decodeKey(properties.getProperty(Configuration.RUNNER_PSK));
-      Preconditions.checkArgument(16 == key.length || 24 == key.length || 32 == key.length, "Key " + Configuration.RUNNER_PSK + " MUST be 128, 192 or 256 bits long.");
-      keystore.setKey(KeyStore.AES_RUNNER_PSK, key);
-    }
+    KeyStore.checkAndSetKey(keystore, KeyStore.SIPHASH_FETCH_PSK, properties, Configuration.CONFIG_FETCH_PSK, 128);
+    KeyStore.checkAndSetKey(keystore, KeyStore.AES_RUNNER_PSK, properties, Configuration.RUNNER_PSK, 128, 192, 256);
 
     WarpScriptLib.registerExtensions();
     
@@ -344,5 +322,20 @@ public class WarpDist {
   
   public static void setEgress(boolean egress) {
     hasEgress = egress;
+  }
+
+  public static void extractKeys(KeyStore keystore, Properties properties) {
+    KeyStore.checkAndSetKey(keystore, KeyStore.SIPHASH_CLASS, properties, Configuration.WARP_HASH_CLASS, 128);
+    KeyStore.checkAndSetKey(keystore, KeyStore.SIPHASH_LABELS, properties, Configuration.WARP_HASH_LABELS, 128);
+    KeyStore.checkAndSetKey(keystore, KeyStore.SIPHASH_TOKEN, properties, Configuration.WARP_HASH_TOKEN, 128);
+    KeyStore.checkAndSetKey(keystore, KeyStore.SIPHASH_APPID, properties, Configuration.WARP_HASH_APP, 128);
+    KeyStore.checkAndSetKey(keystore, KeyStore.AES_TOKEN, properties, Configuration.WARP_AES_TOKEN, 128, 192, 256);
+    KeyStore.checkAndSetKey(keystore, KeyStore.AES_SECURESCRIPTS, properties, Configuration.WARP_AES_SCRIPTS, 128, 192, 256);
+    KeyStore.checkAndSetKey(keystore, KeyStore.AES_METASETS, properties, Configuration.WARP_AES_METASETS, 128, 192, 256);
+    KeyStore.checkAndSetKey(keystore, KeyStore.AES_LOGGING, properties, Configuration.WARP_AES_LOGGING, Configuration.WARP_DEFAULT_AES_LOGGING, 128, 192, 256);
+
+    // Generate secondary keys. We use the ones' complement of the primary keys
+    keystore.setKey(KeyStore.SIPHASH_CLASS_SECONDARY, CryptoUtils.invert(keystore.getKey(KeyStore.SIPHASH_CLASS)));
+    keystore.setKey(KeyStore.SIPHASH_LABELS_SECONDARY, CryptoUtils.invert(keystore.getKey(KeyStore.SIPHASH_LABELS)));
   }
 }

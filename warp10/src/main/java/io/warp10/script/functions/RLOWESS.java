@@ -28,11 +28,11 @@ import java.util.Map;
 
 /**
  * Apply fast and robust LOWESS smoothing
- * @see http://en.wikipedia.org/wiki/Local_regression
- * @see http://www.stat.washington.edu/courses/stat527/s14/readings/Cleveland_JASA_1979.pdf
- * @see http://streaming.stat.iastate.edu/~stat416/LectureNotes/handout_LOWESS.pdf
- * @see http://slendermeans.org/lowess-speed.html
- * @see http://www.itl.nist.gov/div898/handbook/pmd/section1/pmd144.htm
+ * @see <a href="http://en.wikipedia.org/wiki/Local_regression">http://en.wikipedia.org/wiki/Local_regression</a>
+ * @see <a href="http://www.stat.washington.edu/courses/stat527/s14/readings/Cleveland_JASA_1979.pdf">http://www.stat.washington.edu/courses/stat527/s14/readings/Cleveland_JASA_1979.pdf</a>
+ * @see <a href="http://streaming.stat.iastate.edu/~stat416/LectureNotes/handout_LOWESS.pdf">http://streaming.stat.iastate.edu/~stat416/LectureNotes/handout_LOWESS.pdf</a>
+ * @see <a href="http://slendermeans.org/lowess-speed.html">http://slendermeans.org/lowess-speed.html</a>
+ * @see <a href="http://www.itl.nist.gov/div898/handbook/pmd/section1/pmd144.htm">http://www.itl.nist.gov/div898/handbook/pmd/section1/pmd144.htm</a>
  */
 public class RLOWESS extends GTSStackFunction {
   

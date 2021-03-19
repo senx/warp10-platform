@@ -24,8 +24,8 @@ import java.nio.charset.StandardCharsets;
  * Utility class to convert back and forth between DNA sequences
  * and Time Series.
  *
- * Same representation as the one used by Eamonn Keogh @see http://www.cs.ucr.edu/~eamonn/iSAX/DNA2TimeSeries.m
- * and @see http://www.cs.ucr.edu/~eamonn/iSAX.pdf
+ * Same representation as the one used by Eamonn Keogh @see <a href="http://www.cs.ucr.edu/~eamonn/iSAX/DNA2TimeSeries.m">http://www.cs.ucr.edu/~eamonn/iSAX/DNA2TimeSeries.m</a>
+ * and @see <a href="http://www.cs.ucr.edu/~eamonn/iSAX.pdf">http://www.cs.ucr.edu/~eamonn/iSAX.pdf</a>
  */
 public class DNAUtils {
   

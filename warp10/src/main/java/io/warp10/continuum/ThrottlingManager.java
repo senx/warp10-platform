@@ -616,7 +616,7 @@ public class ThrottlingManager {
     String brokerlistProp = WarpConfig.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_BROKERLIST);
     if (null != brokerlistProp) {
       Properties dataProps = new Properties();
-      // @see http://kafka.apache.org/documentation.html#producerconfigs
+      // @see <a href="http://kafka.apache.org/documentation.html#producerconfigs">http://kafka.apache.org/documentation.html#producerconfigs</a>
       dataProps.setProperty("metadata.broker.list", brokerlistProp);
       String producerClientId = WarpConfig.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_PRODUCER_CLIENTID);
       if (null != producerClientId) {

@@ -70,17 +70,19 @@ directory.kafka.metadata.zkconnect = 127.0.0.1:2181/zk/kafka/localhost
 directory.kafka.metadata.topic = metadata
 
 //
-// Key to use for computing MACs (128 bits in hex or OSS reference)
+// 128 bits SipHash key for computing MACs. Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
 directory.kafka.metadata.mac = hex:hhhhhh...
 
 //
-// Key to use for encrypting payloads (128/192/256 bits in hex or OSS reference) 
+// 128/192/256 bits AES key for encrypting metadata in Kafka.
+// Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
 directory.kafka.metadata.aes = hex:hhhhhh...
 
 //
-// Key to use for encrypting metadata in HBase (128/192/256 bits in hex or OSS reference) 
+// 128/192/256 bits AES key for encrypting metadata in HBase.
+// Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
 directory.hbase.metadata.aes = hex:hhhhhh...
 
@@ -202,12 +204,13 @@ directory.streaming.maxqueuesize = 400
 directory.host = 127.0.0.1
 
 //
-// Pre-Shared Key (128 bits) for request fingerprinting
+// 128 bits SipHash key for request fingerprinting.
+// Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
 directory.psk = hex:hhhhhh...
 
 //
-// Max age of Find requests
+// Max age of Find requests in milliseconds
 //
 directory.maxage = 1800000
 
@@ -255,7 +258,7 @@ directory.hbase.filter = false
 //
 // Kafka client id to use for consuming the metadata topic
 //
-//directory.kafka.metadata.consumer.clientid =
+#directory.kafka.metadata.consumer.clientid =
 
 //
 // ZooKeeper port for HBase client

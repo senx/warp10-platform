@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-#   Copyright 2018  SenX S.A.S.
+#   Copyright 2018-2021  SenX S.A.S.
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -65,7 +65,6 @@ cp ../../etc/warpscripts/*.mc2* ${WARP10_HOME}/warpscripts/test/60000
 cp ../../etc/calls/*.sh ${WARP10_HOME}/calls
 cp ../../etc/calls/*.py ${WARP10_HOME}/calls
 cp ../../etc/macros/* ${WARP10_HOME}/macros
-cp ../../etc/generate_crypto_key.py ${WARP10_HOME}/etc
 sed -e "s/@VERSION@/${VERSION}/g" ../../etc/log4j.properties >> ${WARP10_HOME}/etc/log4j.properties
 
 # Copy template configuration
@@ -82,3 +81,6 @@ find ${WARP10_HOME} -type f \( -name "*.sh" -o -name "*.py" -o -name "*.init" \)
 
 # Build tar
 tar czpf ../build/libs/warp10-${VERSION}.tar.gz ${WARP10_HOME}
+
+# Delete ARCHIVE
+rm -rf ${ARCHIVE}

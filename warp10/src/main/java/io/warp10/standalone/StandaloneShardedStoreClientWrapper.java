@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@
 package io.warp10.standalone;
 
 import java.io.IOException;
-import java.util.List;
 
 import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
@@ -25,10 +24,10 @@ import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.store.GTSDecoderIterator;
 import io.warp10.continuum.store.StoreClient;
+import io.warp10.continuum.store.thrift.data.FetchRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.SipHashInline;
-import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 
 public class StandaloneShardedStoreClientWrapper implements StoreClient {
@@ -103,8 +102,8 @@ public class StandaloneShardedStoreClientWrapper implements StoreClient {
   }
   
   @Override
-  public GTSDecoderIterator fetch(ReadToken token, List<Metadata> metadatas, long now, long then, long count, long skip, double sample, boolean writeTimestamp, final long preBoundary, final long postBoundary) throws IOException {
-    return this.client.fetch(token, metadatas, now, then, count, skip, sample, writeTimestamp, preBoundary, postBoundary);
+  public GTSDecoderIterator fetch(FetchRequest req) throws IOException {
+    return this.client.fetch(req);
   }
   
   @Override

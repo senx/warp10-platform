@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -138,15 +138,16 @@ ingress.kafka.metadata.brokerlist = 127.0.0.1:9092
 //
 // Actual 'meta' topic
 //
-ingress.kafka.metadata.topic =  metadata   
+ingress.kafka.metadata.topic = metadata
 
 //
-// Key to use for computing MACs (128 bits in hex or OSS reference)
+// 128 bits SipHash key for computing MACs. Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
 ingress.kafka.metadata.mac = hex:hhhhhh...
 
 //
-// Key to use for encrypting payloads (128/192/256 bits in hex or OSS reference)
+// 128/192/256 bits AES key for encrypting metadata in Kafka.
+// Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
 ingress.kafka.metadata.aes = hex:hhhhhh...
 
@@ -193,14 +194,15 @@ ingress.kafka.data.poolsize = 2
 ingress.kafka.metadata.poolsize = 2
 
 //
-// Key to use for computing MACs (128 bits in hex or OSS reference)
+// 128 bits SipHash key for computing MACs. Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
 ingress.kafka.data.mac = hex:hhhhhh...
 
 //
-// Key to use for encrypting payloads (128/192/256 bits in hex or OSS reference) 
+// 128/192/256 bits AES key for encrypting data in Kafka.
+// Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
-#ingress.kafka.data.aes = 
+#ingress.kafka.data.aes = hex:hhhhhh...
 
 //
 // Maximum message size for the 'data' topic
@@ -215,7 +217,7 @@ ingress.kafka.metadata.maxsize = 900000
 //
 // Kafka broker list for the throttling topic
 //
-#ingress.kafka.throttling.brokerlist = 
+#ingress.kafka.throttling.brokerlist = 127.0.0.1:9092
   
 //
 // Optional client id to use when producing messages in the throttling topic
@@ -235,7 +237,7 @@ ingress.kafka.metadata.maxsize = 900000
 //
 // ZK connect string for the throttling kafka cluster
 //
-#ingress.kafka.throttling.zkconnect = 
+#ingress.kafka.throttling.zkconnect = 127.0.0.1:2181/zk/kafka/localhost
   
 //
 // Client id to use when consuming the throttling topic
@@ -287,11 +289,6 @@ ingress.kafka.metadata.maxsize = 900000
 // Name of partition assignment strategy to use
 //
 #ingress.kafka.metadata.consumer.partition.assignment.strategy = 
-
-//
-// Identification of Ingress Metadata Update endpoint source
-//
-#ingress.metadata.update = 
 
 //
 // Default maximum age of datapoints pushed to Warp 10, in ms. Any timestamp older than
