@@ -30,6 +30,8 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Mark;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.processing.Pencode;
+import org.apache.commons.math3.linear.RealMatrix;
+import org.apache.commons.math3.linear.RealVector;
 import processing.awt.PGraphicsJava2D;
 import processing.core.PGraphics;
 import processing.core.PImage;
@@ -442,6 +444,28 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         sb.append(Pencode.PImageToString((PImage) o, null));
         sb.append("' ");
         sb.append(WarpScriptLib.PDECODE);
+        sb.append(" ");
+      } else if (o instanceof RealVector) {
+        RealVector vector = (RealVector) o;
+        sb.append("[] ");
+        for (int i = 0; i < vector.getDimension(); i++) {
+          sb.append(vector.getEntry(i));
+          sb.append(" +! ");
+        }
+        sb.append(WarpScriptLib.TOVEC);
+        sb.append(" ");
+      } else if (o instanceof RealMatrix) {
+        RealMatrix matrix = (RealMatrix) o;
+        sb.append("[] ");
+        for (int i = 0; i < matrix.getColumnDimension(); i++) {
+          sb.append("[] ");
+          for (int j = 0; j < matrix.getRowDimension(); j++) {
+            sb.append(matrix.getEntry(i, j));
+            sb.append(" +! ");
+          }
+          sb.append(" +! ");
+        }
+        sb.append(WarpScriptLib.TOMAT);
         sb.append(" ");
       } else {
         // Check if any of the defined encoders can encode the current element
