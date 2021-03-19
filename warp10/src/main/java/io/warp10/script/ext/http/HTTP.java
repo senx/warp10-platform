@@ -376,10 +376,18 @@ public class HTTP extends FormattedWarpScriptFunction {
           }
 
           Map<String, Object> chunkRes = new HashMap<>(res);
-          chunkRes.put(CONTENT, buf);
+          if (len == chunkSize) {
+            chunkRes.put(CONTENT, buf);
+          } else {
+            byte[] buf2 = new byte[len];
+            for (int i = 0; i < buf2.length; i++) {
+              buf2[i] = buf[i];
+            }
+            chunkRes.put(CONTENT, buf2);
+          }
           chunkRes.put(CHUNK_NUMBER, new Long(chunkNumber));
           stack.push(chunkRes);
-          stack.exec(CHUNK_MACRO);
+          stack.exec(chunkMacro);
         }
 
         res.put(CONTENT, new byte[0]);
