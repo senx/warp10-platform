@@ -36,7 +36,7 @@ public class ArgumentSpecification {
   }
 
   public ArgumentSpecification(Class clazz, String name, Object default_value, String doc) {
-    if (!(clazz.isInstance(default_value))) {
+    if (!(clazz.isInstance(default_value)) && null != default_value) {
       throw new ExceptionInInitializerError("Default value is not of the correct class");
     }
 
@@ -54,7 +54,7 @@ public class ArgumentSpecification {
   }
 
   public ArgumentSpecification(Class clazz, String name, Object default_value) {
-    if (!(clazz.isInstance(default_value))) {
+    if (!(clazz.isInstance(default_value)) && null != default_value) {
       throw new ExceptionInInitializerError("Default value is not of the correct class");
     }
 
