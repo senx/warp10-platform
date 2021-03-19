@@ -36,6 +36,7 @@ import java.util.*;
  *
  * Can be extended by WarpScript extensions
  */
+@Deprecated
 public class RunAndGenerateDocumentationWithUnitTests {
 
   protected static final String OUTPUT_FOLDER_KEY = "generated.documentation.output.folder";
