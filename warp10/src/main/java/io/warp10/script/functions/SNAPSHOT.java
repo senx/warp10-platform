@@ -1,5 +1,5 @@
 //
-//   Copyright 2020  SenX S.A.S.
+//   Copyright 2020-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -27,9 +27,13 @@ import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStack;
-import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStack.Mark;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.processing.Pencode;
+import processing.awt.PGraphicsJava2D;
+import processing.core.PGraphics;
+import processing.core.PImage;
+import processing.opengl.PGraphics3D;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
@@ -406,6 +410,38 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         sb.append(" ");
       } else if (o instanceof NamedWarpScriptFunction) {
         sb.append(o.toString());
+        sb.append(" ");
+      } else if (o instanceof PGraphics) {
+        PGraphics pg = (PGraphics) o;
+        sb.append("'");
+        sb.append(Pencode.PImageToString(pg, null));
+        sb.append("' ");
+        sb.append(WarpScriptLib.PDECODE);
+        sb.append(" ");
+        sb.append(WarpScriptLib.DUP);
+        sb.append(" ");
+        sb.append(WarpScriptLib.PSIZE);
+        sb.append(" '");
+        if (pg instanceof PGraphicsJava2D) {
+          sb.append("2D");
+        } else if (pg instanceof PGraphics3D) {
+          sb.append("3D");
+        } else {
+          throw new WarpScriptException("Neither 2D or 3D PGraphics encounter.");
+        }
+        sb.append(pg.smooth);
+        sb.append("' ");
+        sb.append(WarpScriptLib.PGRAPHICS);
+        sb.append(" ");
+        sb.append(WarpScriptLib.SWAP);
+        sb.append(" ");
+        sb.append(WarpScriptLib.PBACKGROUND);
+        sb.append(" ");
+      } else if (o instanceof PImage) {
+        sb.append("'");
+        sb.append(Pencode.PImageToString((PImage) o, null));
+        sb.append("' ");
+        sb.append(WarpScriptLib.PDECODE);
         sb.append(" ");
       } else {
         // Check if any of the defined encoders can encode the current element
