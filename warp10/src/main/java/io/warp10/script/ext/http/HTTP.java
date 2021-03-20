@@ -361,6 +361,7 @@ public class HTTP extends FormattedWarpScriptFunction {
 
       } else {
         byte[] buf = new byte[chunkSize.intValue()];
+        Map<String, Object> chunkRes = new HashMap<>(res);
 
         int chunkNumber = 0;
         while (true) {
@@ -375,7 +376,6 @@ public class HTTP extends FormattedWarpScriptFunction {
             throw new WarpScriptException(getName() + " would exceed maximum size of content which can be retrieved via this function (" + maxsize + " bytes)");
           }
 
-          Map<String, Object> chunkRes = new HashMap<>(res);
           if (len == chunkSize) {
             chunkRes.put(CONTENT, buf);
           } else {
