@@ -95,6 +95,13 @@ public class HTTP extends FormattedWarpScriptFunction {
   private final boolean auth;
   private final String capName;
 
+  //
+  // Limits
+  //
+
+  private final long base_maxrequests;
+  private final long base_maxsize;
+
   public HTTP(String name) {
     super(name);
 
@@ -134,6 +141,21 @@ public class HTTP extends FormattedWarpScriptFunction {
     } else {
       capName = null;
     }
+
+    // retrieve limits
+    Object conf_maxrequests = WarpConfig.getProperty(HttpWarpScriptExtension.WARPSCRIPT_HTTP_COUNT);
+    if (null == conf_maxrequests) {
+      base_maxrequests = HttpWarpScriptExtension.DEFAULT_HTTP_LIMIT;
+    } else {
+      base_maxrequests = Long.valueOf((String) conf_maxrequests);
+    }
+
+    Object conf_maxsize = WarpConfig.getProperty(HttpWarpScriptExtension.WARPSCRIPT_HTTP_SIZE);
+    if (null == conf_maxsize) {
+      base_maxsize = HttpWarpScriptExtension.DEFAULT_HTTP_MAXSIZE;
+    } else {
+      base_maxsize = Long.valueOf((String) conf_maxsize);
+    }
   }
 
   @Override
@@ -159,14 +181,14 @@ public class HTTP extends FormattedWarpScriptFunction {
     if (null != Capabilities.get(stack, WarpScriptStack.CAPABILITIES_PREFIX + HttpWarpScriptExtension.ATTRIBUTE_HTTP_COUNT)) {
       maxrequests = Long.valueOf(Capabilities.get(stack, WarpScriptStack.CAPABILITIES_PREFIX + HttpWarpScriptExtension.ATTRIBUTE_HTTP_COUNT));
     } else {
-      maxrequests = HttpWarpScriptExtension.DEFAULT_HTTP_LIMIT;
+      maxrequests = base_maxrequests;
     }
 
     long maxsize;
     if (null != Capabilities.get(stack, WarpScriptStack.CAPABILITIES_PREFIX + HttpWarpScriptExtension.ATTRIBUTE_HTTP_SIZE)) {
       maxsize = Long.valueOf(Capabilities.get(stack, WarpScriptStack.CAPABILITIES_PREFIX + HttpWarpScriptExtension.ATTRIBUTE_HTTP_SIZE));
     } else {
-      maxsize = HttpWarpScriptExtension.DEFAULT_HTTP_MAXSIZE;
+      maxsize = base_maxsize;
     }
 
     //

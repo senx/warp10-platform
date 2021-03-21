@@ -50,7 +50,7 @@ public class HttpWarpScriptExtension extends WarpScriptExtension {
   public static final String WARPSCRIPT_HTTP_HOST_PATTERNS = "warpscript.http.host.patterns";
 
   //
-  // Stack attributes (configurable via capabilities)
+  // Stack attributes
   //
 
   /**
@@ -64,7 +64,22 @@ public class HttpWarpScriptExtension extends WarpScriptExtension {
   public static final String ATTRIBUTE_HTTP_SIZE = "http.size";
 
   //
-  // Defaults
+  // Configurable limits (can be raised with capabilities)
+  //
+
+  /**
+   * Maximum number of calls to HTTP
+   */
+  public static final String WARPSCRIPT_HTTP_COUNT = "warpscript.http.requests";
+
+
+  /**
+   * Maximum cumulative size allowed to be downloaded by HTTP
+   */
+  public static final String WARPSCRIPT_HTTP_SIZE = "warpscript.http.size";
+
+  //
+  // Defaults limits if configuration not present
   //
 
   public static final long DEFAULT_HTTP_LIMIT = 1L;
