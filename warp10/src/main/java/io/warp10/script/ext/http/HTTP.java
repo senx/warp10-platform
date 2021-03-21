@@ -143,9 +143,9 @@ public class HTTP extends FormattedWarpScriptFunction {
     }
 
     // retrieve limits
-    Object conf_maxrequests = WarpConfig.getProperty(HttpWarpScriptExtension.WARPSCRIPT_HTTP_COUNT);
+    Object conf_maxrequests = WarpConfig.getProperty(HttpWarpScriptExtension.WARPSCRIPT_HTTP_REQUESTS);
     if (null == conf_maxrequests) {
-      base_maxrequests = HttpWarpScriptExtension.DEFAULT_HTTP_LIMIT;
+      base_maxrequests = HttpWarpScriptExtension.DEFAULT_HTTP_REQUESTS;
     } else {
       base_maxrequests = Long.valueOf((String) conf_maxrequests);
     }
@@ -178,8 +178,8 @@ public class HTTP extends FormattedWarpScriptFunction {
     //
 
     long maxrequests;
-    if (null != Capabilities.get(stack, WarpScriptStack.CAPABILITIES_PREFIX + HttpWarpScriptExtension.ATTRIBUTE_HTTP_COUNT)) {
-      maxrequests = Long.valueOf(Capabilities.get(stack, WarpScriptStack.CAPABILITIES_PREFIX + HttpWarpScriptExtension.ATTRIBUTE_HTTP_COUNT));
+    if (null != Capabilities.get(stack, WarpScriptStack.CAPABILITIES_PREFIX + HttpWarpScriptExtension.ATTRIBUTE_HTTP_REQUESTS)) {
+      maxrequests = Long.valueOf(Capabilities.get(stack, WarpScriptStack.CAPABILITIES_PREFIX + HttpWarpScriptExtension.ATTRIBUTE_HTTP_REQUESTS));
     } else {
       maxrequests = base_maxrequests;
     }
@@ -230,13 +230,13 @@ public class HTTP extends FormattedWarpScriptFunction {
     AtomicLong urlCount;
     AtomicLong downloadSize;
 
-    Object ufCount = stack.getAttribute(HttpWarpScriptExtension.ATTRIBUTE_HTTP_COUNT);
+    Object ufCount = stack.getAttribute(HttpWarpScriptExtension.ATTRIBUTE_HTTP_REQUESTS);
     Object ufSize = stack.getAttribute(HttpWarpScriptExtension.ATTRIBUTE_HTTP_SIZE);
 
     if (null == ufCount || null == ufSize) {
       urlCount = new AtomicLong();
       downloadSize = new AtomicLong();
-      stack.setAttribute(HttpWarpScriptExtension.ATTRIBUTE_HTTP_COUNT, urlCount);
+      stack.setAttribute(HttpWarpScriptExtension.ATTRIBUTE_HTTP_REQUESTS, urlCount);
       stack.setAttribute(HttpWarpScriptExtension.ATTRIBUTE_HTTP_SIZE, downloadSize);
     } else {
       urlCount = (AtomicLong) ufCount;
