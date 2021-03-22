@@ -104,7 +104,7 @@ public class MVERIFY extends NamedWarpScriptFunction implements WarpScriptStackF
     byte[] sig = Hex.decode((String) signature.get(2));
 
     //
-    // Create a copy of the macro without the last 3 statements
+    // Create a copy of the macro without the statements from the signature
     //
 
     Macro m = new Macro();
