@@ -20,6 +20,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.bouncycastle.jce.ECNamedCurveTable;
+import org.bouncycastle.jce.interfaces.ECPrivateKey;
 import org.bouncycastle.jce.interfaces.ECPublicKey;
 import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec;
 import org.bouncycastle.jce.spec.ECParameterSpec;
@@ -53,8 +54,28 @@ public class ECPUBLIC extends NamedWarpScriptFunction implements WarpScriptStack
       return stack;
     }
 
-    if (!(top instanceof Map)) {
-      throw new WarpScriptException(getName() + " expects a parameter map.");
+    if (!(top instanceof Map) && !(top instanceof ECPrivateKey)) {
+      throw new WarpScriptException(getName() + " expects a parameter map, or a public or private key.");
+    }
+
+    if (top instanceof ECPrivateKey) {
+
+      ECPrivateKey privateKey = (ECPrivateKey) top;
+
+      final ECParameterSpec bcSpec = privateKey.getParameters();
+      ECPoint q = bcSpec.getG().multiply(privateKey.getD());
+
+      ECPublicKey publicKey = new ECPublicKey() {
+        public String getFormat() { return "PKCS#8"; }
+        public byte[] getEncoded() { return q.getEncoded(); }
+        public String getAlgorithm() { return "EC"; }
+        public ECParameterSpec getParameters() { return bcSpec; }
+        public ECPoint getQ() { return q; }
+      };
+
+      stack.push(publicKey);
+
+      return stack;
     }
 
     Map<Object,Object> params = (Map<Object,Object>) top;
