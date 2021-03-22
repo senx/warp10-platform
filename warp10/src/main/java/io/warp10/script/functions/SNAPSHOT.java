@@ -416,39 +416,8 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
       } else if (o instanceof NamedWarpScriptFunction) {
         sb.append(o.toString());
         sb.append(" ");
-      } else if (o instanceof PGraphics) {
-        if(o instanceof PGraphicsJava2D || o instanceof PGraphics3D) {
-          PGraphics pg = (PGraphics) o;
-          sb.append("'");
-          sb.append(Pencode.PImageToString(pg, null));
-          sb.append("' ");
-          sb.append(WarpScriptLib.PDECODE);
-          sb.append(" ");
-          sb.append(WarpScriptLib.DUP);
-          sb.append(" ");
-          sb.append(WarpScriptLib.PSIZE);
-          sb.append(" '");
-          if (pg instanceof PGraphicsJava2D) {
-            sb.append("2D");
-          } else {
-            sb.append("3D");
-          }
-          sb.append(pg.smooth);
-          sb.append("' ");
-          sb.append(WarpScriptLib.PGRAPHICS);
-          sb.append(" ");
-          sb.append(WarpScriptLib.SWAP);
-          sb.append(" ");
-          sb.append(WarpScriptLib.PBACKGROUND);
-          sb.append(" ");
-        } else {
-          try {
-            sb.append("'UNSUPPORTED:" + WarpURLEncoder.encode(o.getClass().toString(), StandardCharsets.UTF_8) + "' ");
-          } catch (UnsupportedEncodingException uee) {
-            throw new WarpScriptException(uee);
-          }
-        }
-      } else if (o instanceof PImage) {
+      } else if (o instanceof PImage && !(o instanceof PGraphics)) {
+        // PGraphics cannot be snapshot properly because it would require PFont to be snapshotable, which is not.
         sb.append("'");
         sb.append(Pencode.PImageToString((PImage) o, null));
         sb.append("' ");
@@ -467,11 +436,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
           sb.append(WarpScriptLib.PLOADSHAPE);
           sb.append(" ");
         } catch (NoSuchFieldException | IllegalAccessException e) {
-          try {
-            sb.append("'UNSUPPORTED:" + WarpURLEncoder.encode(o.getClass().toString(), StandardCharsets.UTF_8) + "' ");
-          } catch (UnsupportedEncodingException uee) {
-            throw new WarpScriptException(uee);
-          }
+          sb.append("'UNSUPPORTED:" + WarpURLEncoder.encode(o.getClass().toString(), StandardCharsets.UTF_8) + "' ");
         }
       } else if (o instanceof RealVector) {
         RealVector vector = (RealVector) o;
@@ -496,8 +461,9 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         sb.append(WarpScriptLib.TOMAT);
         sb.append(" ");
       } else if (o instanceof Matcher) {
+        sb.append("'");
         sb.append(((Matcher) o).pattern());
-        sb.append(" ");
+        sb.append("' ");
         sb.append(WarpScriptLib.MATCHER);
         sb.append(" ");
       } else {
@@ -517,13 +483,11 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         // Nevertheless we need to have the correct levels of the stack preserved, so
         // we push an informative string onto the stack there
         if (!encoded) {
-          try {
-            sb.append("'UNSUPPORTED:" + WarpURLEncoder.encode(o.getClass().toString(), StandardCharsets.UTF_8) + "' ");
-          } catch (UnsupportedEncodingException uee) {
-            throw new WarpScriptException(uee);
-          }
+          sb.append("'UNSUPPORTED:" + WarpURLEncoder.encode(o.getClass().toString(), StandardCharsets.UTF_8) + "' ");
         }
       }
+    } catch (UnsupportedEncodingException uee) {
+      throw new WarpScriptException(uee);
     } finally {
       if (null != depth && 0 == depth.addAndGet(-1)) {
         recursionDepth.remove();
