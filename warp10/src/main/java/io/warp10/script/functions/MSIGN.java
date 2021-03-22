@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2021  SenX S.A.S.
+//   Copyright 2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -35,7 +35,6 @@ public class MSIGN extends NamedWarpScriptFunction implements WarpScriptStackFun
 
   private static final ECSIGN ECSIGN = new ECSIGN(WarpScriptLib.ECSIGN);
   private static final ECPUBLIC ECPUBLIC = new ECPUBLIC(WarpScriptLib.ECPUBLIC);
-  private static final EVAL EVAL = new EVAL(WarpScriptLib.EVAL);
   private static final MSIG MSIG = new MSIG(WarpScriptLib.MSIG);
 
   public MSIGN(String name) {
