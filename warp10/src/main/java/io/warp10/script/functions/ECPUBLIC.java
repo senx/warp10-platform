@@ -1,5 +1,5 @@
 //
-//   Copyright 2020  SenX S.A.S.
+//   Copyright 2020-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ package io.warp10.script.functions;
 import java.util.Map;
 
 import org.bouncycastle.jce.ECNamedCurveTable;
+import org.bouncycastle.jce.interfaces.ECPrivateKey;
 import org.bouncycastle.jce.interfaces.ECPublicKey;
 import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec;
 import org.bouncycastle.jce.spec.ECParameterSpec;
@@ -33,38 +34,58 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
 public class ECPUBLIC extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   public ECPUBLIC(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    
+
     Object top = stack.pop();
-    
-    if (!(top instanceof Map)) {
-      throw new WarpScriptException(getName() + " expects a parameter map.");
+
+    if (!(top instanceof Map) && !(top instanceof ECPrivateKey)) {
+      throw new WarpScriptException(getName() + " expects a parameter map or a private key.");
     }
-    
+
+    if (top instanceof ECPrivateKey) {
+
+      ECPrivateKey privateKey = (ECPrivateKey) top;
+
+      final ECParameterSpec bcSpec = privateKey.getParameters();
+      ECPoint q = bcSpec.getG().multiply(privateKey.getD());
+
+      ECPublicKey publicKey = new ECPublicKey() {
+        public String getFormat() { return "PKCS#8"; }
+        public byte[] getEncoded() { return q.getEncoded(); }
+        public String getAlgorithm() { return "EC"; }
+        public ECParameterSpec getParameters() { return bcSpec; }
+        public ECPoint getQ() { return q; }
+      };
+
+      stack.push(publicKey);
+
+      return stack;
+    }
+
     Map<Object,Object> params = (Map<Object,Object>) top;
-    
+
     String name = String.valueOf(params.get(Constants.KEY_CURVE));
-    
+
     final ECNamedCurveParameterSpec curve = ECNamedCurveTable.getParameterSpec(name);
 
     if (null == curve) {
       throw new WarpScriptException(getName() + " curve name not in " + ECGEN.getCurves() + ".");
     }
-    
+
     if (!(params.get(Constants.KEY_Q) instanceof String)) {
       throw new WarpScriptException(getName() + " missing or non-String parameter '" + Constants.KEY_Q + "'.");
     }
-    
+
     final byte[] encoded = Hex.decode((String) params.get(Constants.KEY_Q));
-    
+
     final ECPoint q = curve.getCurve().decodePoint(encoded);
-        
+
     ECPublicKey publicKey = new ECPublicKey() {
       public String getFormat() { return "PKCS#8"; }
       public byte[] getEncoded() { return encoded; }
@@ -72,9 +93,9 @@ public class ECPUBLIC extends NamedWarpScriptFunction implements WarpScriptStack
       public ECParameterSpec getParameters() { return curve; }
       public ECPoint getQ() { return q; }
     };
-      
+
     stack.push(publicKey);
-    
+
     return stack;
   }
 
