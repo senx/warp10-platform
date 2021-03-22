@@ -40,6 +40,8 @@ import org.bouncycastle.crypto.digests.SHA224Digest;
 import org.bouncycastle.crypto.digests.SHA256Digest;
 import org.bouncycastle.crypto.digests.SHA384Digest;
 import org.bouncycastle.crypto.digests.SHA512Digest;
+import org.bouncycastle.crypto.digests.TigerDigest;
+import org.bouncycastle.crypto.digests.WhirlpoolDigest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -629,8 +631,8 @@ public class WarpScriptLib {
   public static final String MD4 = "MD4";
   public static final String MD5 = "MD5";
   public static final String SHA1 = "SHA1";
-  public static final String SHA256 = "SHA256";
   public static final String SHA224 = "SHA224";
+  public static final String SHA256 = "SHA256";
   public static final String SHA384 = "SHA384";
   public static final String SHA512 = "SHA512";
   public static final String RIPEMD128 = "RIPEMD128";
@@ -638,6 +640,8 @@ public class WarpScriptLib {
   public static final String RIPEMD256 = "RIPEMD256";
   public static final String RIPEMD320 = "RIPEMD320";
   public static final String GOST = "GOST";
+  public static final String TIGER = "TIGER";
+  public static final String WHIRLPOOL = "WHIRLPOOL";
   public static final String SHA256HMAC = "SHA256HMAC";
   public static final String SHA1HMAC = "SHA1HMAC";
   public static final String AESWRAP = "AESWRAP";
@@ -1485,14 +1489,16 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new DIGEST(MD4, MD4Digest.class));
     addNamedWarpScriptFunction(new DIGEST(MD5, MD5Digest.class));
     addNamedWarpScriptFunction(new DIGEST(SHA1, SHA1Digest.class));
-    addNamedWarpScriptFunction(new DIGEST(SHA256, SHA256Digest.class));
     addNamedWarpScriptFunction(new DIGEST(SHA224, SHA224Digest.class));
+    addNamedWarpScriptFunction(new DIGEST(SHA256, SHA256Digest.class));
     addNamedWarpScriptFunction(new DIGEST(SHA384, SHA384Digest.class));
     addNamedWarpScriptFunction(new DIGEST(SHA512, SHA512Digest.class));
     addNamedWarpScriptFunction(new DIGEST(RIPEMD128, RIPEMD128Digest.class));
     addNamedWarpScriptFunction(new DIGEST(RIPEMD160, RIPEMD160Digest.class));
     addNamedWarpScriptFunction(new DIGEST(RIPEMD256, RIPEMD256Digest.class));
     addNamedWarpScriptFunction(new DIGEST(RIPEMD320, RIPEMD320Digest.class));
+    addNamedWarpScriptFunction(new DIGEST(TIGER, TigerDigest.class));
+    addNamedWarpScriptFunction(new DIGEST(WHIRLPOOL, WhirlpoolDigest.class));
     addNamedWarpScriptFunction(new DIGEST(GOST, GOST3411Digest.class));
 
     addNamedWarpScriptFunction(new HMAC(SHA256HMAC, SHA256Digest.class));
