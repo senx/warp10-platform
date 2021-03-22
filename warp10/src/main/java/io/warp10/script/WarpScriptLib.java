@@ -633,6 +633,12 @@ public class WarpScriptLib {
   public static final String ECPUBLIC = "ECPUBLIC";
   public static final String ECSIGN = "ECSIGN";
   public static final String ECVERIFY = "ECVERIFY";
+  public static final String MSIGN = "MSIGN";
+  public static final String MSIG = "MSIG";
+  public static final String MSIGINFO = "MSIGINFO";
+  public static final String MVERIFY = "MVERIFY";
+  public static final String MCHECKSIG = "MCHECKSIG";
+  public static final String MDETACH = "MDETACH";
   public static final String RSAGEN = "RSAGEN";
   public static final String RSAENCRYPT = "RSAENCRYPT";
   public static final String RSADECRYPT = "RSADECRYPT";
@@ -1479,6 +1485,12 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new ECPUBLIC(ECPUBLIC));
     addNamedWarpScriptFunction(new ECSIGN(ECSIGN));
     addNamedWarpScriptFunction(new ECVERIFY(ECVERIFY));
+    addNamedWarpScriptFunction(new MSIGN(MSIGN));
+    addNamedWarpScriptFunction(new MSIG(MSIG));
+    addNamedWarpScriptFunction(new MSIGINFO(MSIGINFO));
+    addNamedWarpScriptFunction(new MVERIFY(MVERIFY, true));
+    addNamedWarpScriptFunction(new MVERIFY(MCHECKSIG, false));
+    addNamedWarpScriptFunction(new MDETACH(MDETACH));
     addNamedWarpScriptFunction(new TOSSSS(TOSSSS));
     addNamedWarpScriptFunction(new SSSSTO(SSSSTO));
     addNamedWarpScriptFunction(new RSAGEN(RSAGEN));
