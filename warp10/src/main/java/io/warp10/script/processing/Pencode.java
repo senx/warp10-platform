@@ -30,7 +30,6 @@ import javax.imageio.ImageIO;
 import javax.imageio.ImageWriteParam;
 import javax.imageio.ImageWriter;
 
-import io.warp10.script.processing.image.Pimage;
 import org.apache.commons.codec.binary.Base64;
 
 import com.sun.imageio.plugins.png.PNGMetadata;
@@ -170,7 +169,7 @@ public class Pencode extends NamedWarpScriptFunction implements WarpScriptStackF
 
       writer.write(null, iioimage, param);
     } catch (IOException ioe) {
-      throw new WarpScriptException("Error while encoding PGraphics.", ioe);
+      throw new WarpScriptException("Error while encoding PGraphics or PImage.", ioe);
     }
 
     writer.dispose();
