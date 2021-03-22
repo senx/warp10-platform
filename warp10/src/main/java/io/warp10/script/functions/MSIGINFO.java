@@ -21,7 +21,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.bouncycastle.jce.ECNamedCurveTable;
 import org.bouncycastle.jce.interfaces.ECPublicKey;
+import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec;
+import org.bouncycastle.jce.spec.ECParameterSpec;
+import org.bouncycastle.math.ec.ECCurve;
+import org.bouncycastle.math.ec.ECPoint;
+import org.bouncycastle.util.encoders.Hex;
 
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
@@ -43,23 +49,39 @@ public class MSIGINFO extends NamedWarpScriptFunction implements WarpScriptStack
     Object top = stack.pop();
 
     if (!(top instanceof Macro)) {
-      throw new WarpScriptException(getName() + " expects a signature macro.");
+      throw new WarpScriptException(getName() + " expects a macro.");
     }
 
-    Macro macro = (Macro) top;
+    Macro macro = MSIG.getSignature((Macro) top);
 
     int size = macro.size();
 
     Map<Object,Object> siginfo = new LinkedHashMap<Object,Object>();
 
-    if (size < 3
-        || !(macro.get(size - 1) instanceof MSIG)
-        || !(macro.get(size - 2) instanceof ECPublicKey)
-        || !(macro.get(size - 3) instanceof byte[])) {
+    if (4 != size) {
+      return false;
     }
 
-    siginfo.put(KEY_SIG, Arrays.copyOf((byte[]) macro.get(size - 3), ((byte[]) macro.get(size - 3)).length));
-    siginfo.put(KEY_KEY, (ECPublicKey) macro.get(size - 2));
+    ECNamedCurveParameterSpec spec = ECNamedCurveTable.getParameterSpec((String) macro.get(0));
+    ECCurve curve = spec.getCurve();
+    byte[] encoded = Hex.decode((String) macro.get(1));
+    final ECPoint q = curve.decodePoint(encoded);
+
+    ECPublicKey pubkey = new ECPublicKey() {
+      public String getFormat() { return "PKCS#8"; }
+      public byte[] getEncoded() { return encoded; }
+      public String getAlgorithm() { return "EC"; }
+      public ECParameterSpec getParameters() { return spec; }
+      public ECPoint getQ() { return q; }
+    };
+
+    byte[] sig = Hex.decode((String) macro.get(2));
+
+    siginfo.put(KEY_SIG, sig);
+    siginfo.put(KEY_KEY, pubkey);
+
+    stack.push(top);
+    stack.push(siginfo);
 
     return stack;
   }
