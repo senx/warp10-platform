@@ -22,7 +22,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Extension for HTTP and the associated function to change limits: MAXURLCOUNT and MAXDOWNLOADSIZE
+ * Extension for HTTP function
  */
 public class HttpWarpScriptExtension extends WarpScriptExtension {
 
