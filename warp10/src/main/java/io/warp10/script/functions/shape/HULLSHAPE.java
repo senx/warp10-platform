@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -18,39 +18,29 @@ package io.warp10.script.functions.shape;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
+import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
-import io.warp10.script.formatted.FormattedWarpScriptFunction;
+import io.warp10.script.WarpScriptStackFunction;
 
-public class HULLSHAPE extends FormattedWarpScriptFunction {
-
-  public static final String LIST = "list";
-  public static final String SHAPE = "shape";
-
-  private final Arguments args;
-  private final Arguments output;
-  protected Arguments getArguments() { return args; }
-  protected Arguments getOutput() { return output; }
+/**
+ * Return the shape of a tensor (or multidimensional array) that would be able to contain all the values of an input nested list. The size of the returned shape is equal to the deepest level of nesting plus one. Its i-th value is equal to the size of the largest list that is nested i levels deep.
+ */
+public class HULLSHAPE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
   public HULLSHAPE(String name) {
     super(name);
-
-    getDocstring().append("Return the shape of a tensor (or multidimensional array) that would be able to contain all the values of an input nested list. The size of the returned shape is equal to the deepest level of nesting plus one. Its i-th value is equal to the size of the largest list that is nested i levels deep.");
-
-    args = new ArgumentsBuilder()
-      .addArgument(List.class, LIST, "The input list.")
-      .build();
-
-    output = new ArgumentsBuilder()
-      .addListArgument(Long.class, SHAPE, "The hull shape of the input list.")
-      .build();
   }
 
   @Override
-  protected WarpScriptStack apply(Map<String, Object> formattedArgs, WarpScriptStack stack) throws WarpScriptException {
-    List list = (List) formattedArgs.get(LIST);
+  public WarpScriptStack apply(WarpScriptStack stack) throws WarpScriptException {
+
+    Object o = stack.pop();
+    if (!(o instanceof List)) {
+      throw new WarpScriptException(getName() + " expects a LIST.");
+    }
+    List list = (List) o;
     stack.push(recHullShape(list));
     return stack;
   }

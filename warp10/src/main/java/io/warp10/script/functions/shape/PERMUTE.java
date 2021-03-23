@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,55 +16,71 @@
 
 package io.warp10.script.functions.shape;
 
+import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
-import io.warp10.script.formatted.FormattedWarpScriptFunction;
+import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.functions.GET;
-import io.warp10.script.functions.shape.CHECKSHAPE;
-import io.warp10.script.functions.shape.SHAPE;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 
-public class PERMUTE extends FormattedWarpScriptFunction {
-
-  public static final String TENSOR = "tensor";
-  public static final String PATTERN = "pattern";
-  public static final String FAST = "fast";
-
-  private final Arguments args;
-  private final Arguments output;
-
-  protected Arguments getArguments() {
-    return args;
-  }
-
-  protected Arguments getOutput() {
-    return output;
-  }
+/**
+ * Permute the dimensions of a nested LIST as if it were a tensor or a multidimensional array.
+ * - param TENSOR The nested LIST for which dimensions will be permuted as if it were a tensor.
+ * - param PATTERN The permutation pattern (a LIST of LONG)
+ * - param FAST If true, it does not check if the sizes of the nested lists are coherent before operating. Defaults to false.
+ */
+public class PERMUTE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
   public PERMUTE(String name) {
     super(name);
-
-    getDocstring().append("Permute the dimensions of a nested LIST as if it were a tensor or a multidimensional array.");
-
-    args = new ArgumentsBuilder()
-      .addArgument(List.class, TENSOR, "The nested LIST for which dimensions will be permuted as if it were a tensor.")
-      .addListArgument(Long.class, PATTERN, "The permutation pattern (a LIST of LONG).")
-      .addOptionalArgument(Boolean.class, FAST, "If true, it does not check if the sizes of the nested lists are coherent before operating. Default to false.", false)
-      .build();
-
-    output = new ArgumentsBuilder()
-      .addArgument(List.class, TENSOR, "The resulting nested LIST.")
-      .build();
   }
 
-  protected WarpScriptStack apply(Map<String, Object> formattedArgs, WarpScriptStack stack) throws WarpScriptException {
-    List<Object> tensor = (List) formattedArgs.get(TENSOR);
-    List<Long> pattern = (List) formattedArgs.get(PATTERN);
-    boolean fast = Boolean.TRUE.equals(formattedArgs.get(FAST));
+  @Override
+  public WarpScriptStack apply(WarpScriptStack stack) throws WarpScriptException {
+
+    Object o = stack.pop();
+
+    //
+    // 3rd optional argument
+    //
+
+    boolean fast = false;
+    if (o instanceof Boolean) {
+      fast = Boolean.TRUE.equals(o);
+      o = stack.pop();
+    }
+
+    //
+    // 2nd argument
+    //
+
+    if (!(o instanceof List)) {
+      throw new WarpScriptException(getName() + " expects a LIST of LONG as second argument.");
+    }
+
+    for (Object oo: (List) o) {
+      if (!(oo instanceof Long)) {
+        throw new WarpScriptException(getName() + " expects a LIST of LONG as second argument.");
+      }
+    }
+    List<Long> pattern = (List<Long>) o;
+    o = stack.pop();
+
+    //
+    // 1st argument
+    //
+
+    if (!(o instanceof List)) {
+      throw new WarpScriptException(getName() + " expects a LIST as first argument.");
+    }
+    List tensor = (List) o;
+
+    //
+    // Logic
+    //
 
     if (pattern.size() > (new HashSet<Object>(pattern)).size()){
       throw new WarpScriptException(getName() + " error: duplicate axis in permutation pattern.");

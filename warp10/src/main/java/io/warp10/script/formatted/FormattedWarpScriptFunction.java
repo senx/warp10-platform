@@ -35,6 +35,7 @@ import java.util.Arrays;
  *
  * See FormattedWarpScriptFunctionTest for an example of child class.
  */
+@Deprecated
 public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
   private final StringBuilder docstring;
@@ -44,6 +45,7 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
   // Argument of formatted WarpScript functions are instances of Arguments, which are built by ArgumentsBuilder
   //
 
+  @Deprecated
   public static class Arguments {
 
     //
@@ -80,6 +82,7 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
     }
   }
 
+  @Deprecated
   public static class ArgumentsBuilder {
     private final List<ArgumentSpecification> args;
     private final List<ArgumentSpecification> optArgs;

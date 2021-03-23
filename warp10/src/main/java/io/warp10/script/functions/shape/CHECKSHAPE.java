@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -18,39 +18,30 @@ package io.warp10.script.functions.shape;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
+import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
-import io.warp10.script.formatted.FormattedWarpScriptFunction;
+import io.warp10.script.WarpScriptStackFunction;
 
-public class CHECKSHAPE extends FormattedWarpScriptFunction {
-
-  public static final String LIST = "list";
-  public static final String RES = "result";
-
-  private final Arguments args;
-  private final Arguments output;
-  protected Arguments getArguments() { return args; }
-  protected Arguments getOutput() { return output; }
+/**
+ * Return a BOOLEAN indicating whether an input list and its nested lists sizes are coherent together to form a tensor (or multidimensional array).
+ */
+public class CHECKSHAPE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
   public CHECKSHAPE(String name) {
     super(name);
-
-    getDocstring().append("Return a BOOLEAN indicating whether an input list and its nested lists sizes are coherent together to form a tensor (or multidimensional array).");
-
-    args = new ArgumentsBuilder()
-      .addArgument(List.class, LIST, "The input list.")
-      .build();
-
-    output = new ArgumentsBuilder()
-      .addListArgument(Long.class, RES, "true or false.")
-      .build();
   }
 
   @Override
-  protected WarpScriptStack apply(Map<String, Object> formattedArgs, WarpScriptStack stack) throws WarpScriptException {
-    List list = (List) formattedArgs.get(LIST);
+  public Object apply(WarpScriptStack stack) throws WarpScriptException {
+
+    Object o = stack.pop();
+    if (!(o instanceof List)) {
+      throw new WarpScriptException(getName() + " expects a LIST.");
+    }
+    List list = (List) o;
+
     List<Long> candidateShape = SHAPE.candidate_shape(list);
     stack.push(recValidateShape(list, candidateShape));
     return stack;

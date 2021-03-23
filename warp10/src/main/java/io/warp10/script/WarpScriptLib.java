@@ -27,9 +27,21 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 
+import org.bouncycastle.crypto.digests.GOST3411Digest;
+import org.bouncycastle.crypto.digests.MD2Digest;
+import org.bouncycastle.crypto.digests.MD4Digest;
 import org.bouncycastle.crypto.digests.MD5Digest;
+import org.bouncycastle.crypto.digests.RIPEMD128Digest;
+import org.bouncycastle.crypto.digests.RIPEMD160Digest;
+import org.bouncycastle.crypto.digests.RIPEMD256Digest;
+import org.bouncycastle.crypto.digests.RIPEMD320Digest;
 import org.bouncycastle.crypto.digests.SHA1Digest;
+import org.bouncycastle.crypto.digests.SHA224Digest;
 import org.bouncycastle.crypto.digests.SHA256Digest;
+import org.bouncycastle.crypto.digests.SHA384Digest;
+import org.bouncycastle.crypto.digests.SHA512Digest;
+import org.bouncycastle.crypto.digests.TigerDigest;
+import org.bouncycastle.crypto.digests.WhirlpoolDigest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -346,15 +358,19 @@ public class WarpScriptLib {
   public static final String NOOP = "NOOP";
   public static final String JSONTO = "JSON->";
 
+  public static final String EMPTY_MAP = "{}";
   public static final String MAP_START = "{";
   public static final String MAP_END = "}";
 
+  public static final String EMPTY_LIST = "[]";
   public static final String LIST_START = "[";
   public static final String LIST_END = "]";
 
+  public static final String EMPTY_SET = "()";
   public static final String SET_START = "(";
   public static final String SET_END = ")";
 
+  public static final String EMPTY_VECTOR = "[[]]";
   public static final String VECTOR_START = "[[";
   public static final String VECTOR_END = "]]";
 
@@ -615,9 +631,21 @@ public class WarpScriptLib {
   public static final String HASH = "HASH";
   public static final String TOSSSS = "->SSSS";
   public static final String SSSSTO = "SSSS->";
+  public static final String MD2 = "MD2";
+  public static final String MD4 = "MD4";
   public static final String MD5 = "MD5";
   public static final String SHA1 = "SHA1";
+  public static final String SHA224 = "SHA224";
   public static final String SHA256 = "SHA256";
+  public static final String SHA384 = "SHA384";
+  public static final String SHA512 = "SHA512";
+  public static final String RIPEMD128 = "RIPEMD128";
+  public static final String RIPEMD160 = "RIPEMD160";
+  public static final String RIPEMD256 = "RIPEMD256";
+  public static final String RIPEMD320 = "RIPEMD320";
+  public static final String GOST = "GOST";
+  public static final String TIGER = "TIGER";
+  public static final String WHIRLPOOL = "WHIRLPOOL";
   public static final String SHA256HMAC = "SHA256HMAC";
   public static final String SHA1HMAC = "SHA1HMAC";
   public static final String AESWRAP = "AESWRAP";
@@ -1313,17 +1341,17 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new MMAP(MMAP));
     addNamedWarpScriptFunction(new NONNULL(NONNULL));
     addNamedWarpScriptFunction(new LMAP(LFLATMAP, true));
-    addNamedWarpScriptFunction(new EMPTYLIST("[]"));
+    addNamedWarpScriptFunction(new EMPTYLIST(EMPTY_LIST));
     addNamedWarpScriptFunction(new MARK(LIST_START));
     addNamedWarpScriptFunction(new ENDLIST(LIST_END));
     addNamedWarpScriptFunction(new STACKTOLIST(STACKTOLIST));
     addNamedWarpScriptFunction(new MARK(SET_START));
     addNamedWarpScriptFunction(new ENDSET(SET_END));
-    addNamedWarpScriptFunction(new EMPTYSET("()"));
+    addNamedWarpScriptFunction(new EMPTYSET(EMPTY_SET));
     addNamedWarpScriptFunction(new MARK(VECTOR_START));
     addNamedWarpScriptFunction(new ENDVECTOR(VECTOR_END));
-    addNamedWarpScriptFunction(new EMPTYVECTOR("[[]]"));
-    addNamedWarpScriptFunction(new EMPTYMAP("{}"));
+    addNamedWarpScriptFunction(new EMPTYVECTOR(EMPTY_VECTOR));
+    addNamedWarpScriptFunction(new EMPTYMAP(EMPTY_MAP));
     addNamedWarpScriptFunction(new IMMUTABLE(IMMUTABLE));
     addNamedWarpScriptFunction(new MARK(MAP_START));
     addNamedWarpScriptFunction(new ENDMAP(MAP_END));
@@ -1339,6 +1367,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new SECTION(SECTION));
     addNamedWarpScriptFunction(new GETSECTION(GETSECTION));
     addNamedWarpScriptFunction(new SNAPSHOT(SNAPSHOT, false, false, true, false));
+    addNamedWarpScriptFunction(new SNAPSHOT("SNAPSHOTREADABLE", false, false, true, false, true, true));
     addNamedWarpScriptFunction(new SNAPSHOT(SNAPSHOTALL, true, false, true, false));
     addNamedWarpScriptFunction(new SNAPSHOT(SNAPSHOTTOMARK, false, true, true, false));
     addNamedWarpScriptFunction(new SNAPSHOT(SNAPSHOTALLTOMARK, true, true, true, false));
@@ -1461,9 +1490,22 @@ public class WarpScriptLib {
 
     // Crypto functions
     addNamedWarpScriptFunction(new HASH(HASH));
+    addNamedWarpScriptFunction(new DIGEST(MD2, MD2Digest.class));
+    addNamedWarpScriptFunction(new DIGEST(MD4, MD4Digest.class));
     addNamedWarpScriptFunction(new DIGEST(MD5, MD5Digest.class));
     addNamedWarpScriptFunction(new DIGEST(SHA1, SHA1Digest.class));
+    addNamedWarpScriptFunction(new DIGEST(SHA224, SHA224Digest.class));
     addNamedWarpScriptFunction(new DIGEST(SHA256, SHA256Digest.class));
+    addNamedWarpScriptFunction(new DIGEST(SHA384, SHA384Digest.class));
+    addNamedWarpScriptFunction(new DIGEST(SHA512, SHA512Digest.class));
+    addNamedWarpScriptFunction(new DIGEST(RIPEMD128, RIPEMD128Digest.class));
+    addNamedWarpScriptFunction(new DIGEST(RIPEMD160, RIPEMD160Digest.class));
+    addNamedWarpScriptFunction(new DIGEST(RIPEMD256, RIPEMD256Digest.class));
+    addNamedWarpScriptFunction(new DIGEST(RIPEMD320, RIPEMD320Digest.class));
+    addNamedWarpScriptFunction(new DIGEST(TIGER, TigerDigest.class));
+    addNamedWarpScriptFunction(new DIGEST(WHIRLPOOL, WhirlpoolDigest.class));
+    addNamedWarpScriptFunction(new DIGEST(GOST, GOST3411Digest.class));
+
     addNamedWarpScriptFunction(new HMAC(SHA256HMAC, SHA256Digest.class));
     addNamedWarpScriptFunction(new HMAC(SHA1HMAC, SHA1Digest.class));
     addNamedWarpScriptFunction(new AESWRAP(AESWRAP));
