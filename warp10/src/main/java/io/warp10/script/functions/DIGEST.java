@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,18 +16,18 @@
 
 package io.warp10.script.functions;
 
+import org.bouncycastle.crypto.Digest;
+
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
-import org.bouncycastle.crypto.Digest;
-import org.bouncycastle.crypto.digests.GeneralDigest;
 
 public class DIGEST extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
   private Class digestAlgo;
 
-  public DIGEST(String name, Class<? extends GeneralDigest> digestAlgo) {
+  public DIGEST(String name, Class<? extends Digest> digestAlgo) {
     super(name);
     this.digestAlgo = digestAlgo;
   }
