@@ -32,11 +32,9 @@ import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.processing.Pencode;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.RealVector;
-import processing.awt.PGraphicsJava2D;
 import processing.core.PGraphics;
 import processing.core.PImage;
 import processing.core.PShapeSVG;
-import processing.opengl.PGraphics3D;
 
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
@@ -105,11 +103,20 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
    */
   private final boolean pop;
 
+  /**
+   * Should we generate a snapshot easier for humans to read.
+   */
+  private final boolean readable;
+
   public SNAPSHOT(String name, boolean snapshotSymbols, boolean toMark, boolean pop, boolean countbased) {
     this(name, snapshotSymbols, toMark, pop, countbased, true);
   }
 
   public SNAPSHOT(String name, boolean snapshotSymbols, boolean toMark, boolean pop, boolean countbased, boolean compresswrappers) {
+    this(name, snapshotSymbols, toMark, pop, countbased, compresswrappers, false);
+  }
+
+  public SNAPSHOT(String name, boolean snapshotSymbols, boolean toMark, boolean pop, boolean countbased, boolean compresswrappers, boolean readable) {
     super(name);
     this.snapshotSymbols = snapshotSymbols;
     this.toMark = toMark;
@@ -117,6 +124,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
 
     this.countbased = countbased;
     this.compresswrappers = compresswrappers;
+    this.readable = readable;
   }
 
   @Override
@@ -160,7 +168,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
 
       Object o = stack.get(i);
 
-      addElement(this, sb, o);
+      addElement(this, sb, o, readable);
     }
 
     //
@@ -168,8 +176,8 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
     //
     if (this.snapshotSymbols) {
       for (Entry<String, Object> entry : stack.getSymbolTable().entrySet()) {
-        addElement(this, sb, entry.getValue());
-        addElement(this, sb, entry.getKey());
+        addElement(this, sb, entry.getValue(), readable);
+        addElement(this, sb, entry.getKey(), readable);
         sb.append(WarpScriptLib.STORE);
         sb.append(" ");
       }
@@ -184,7 +192,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
       sb.append(" ");
       for (int i = 0; i < regs.length; i++) {
         if (null != regs[i]) {
-          addElement(this, sb, regs[i]);
+          addElement(this, sb, regs[i], readable);
           sb.append(WarpScriptLib.POPR);
           sb.append(i);
           sb.append(" ");
@@ -290,16 +298,15 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         sb.append(" ");
       } else if (o instanceof Vector) {
         if (readable) {
-          sb.append(WarpScriptLib.LIST_START);
+          sb.append(WarpScriptLib.VECTOR_START);
           sb.append(" ");
           for (Object oo : (Vector) o) {
             addElement(snapshot, sb, oo, true);
           }
-          sb.append(WarpScriptLib.LIST_END);
+          sb.append(WarpScriptLib.VECTOR_END);
           sb.append(" ");          
         } else {
-          sb.append(WarpScriptLib.LIST_START);
-          sb.append(WarpScriptLib.LIST_END);
+          sb.append(WarpScriptLib.EMPTY_VECTOR);
           sb.append(" ");
           for (Object oo : (Vector) o) {
             addElement(snapshot, sb, oo, false);
@@ -307,8 +314,6 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
             sb.append(" ");
           }
         }
-        sb.append(WarpScriptLib.TO_VECTOR);
-        sb.append(" ");          
       } else if (o instanceof List) {
         if (readable) {
           sb.append(WarpScriptLib.LIST_START);
@@ -319,8 +324,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
           sb.append(WarpScriptLib.LIST_END);
           sb.append(" ");          
         } else {
-          sb.append(WarpScriptLib.LIST_START);
-          sb.append(WarpScriptLib.LIST_END);
+          sb.append(WarpScriptLib.EMPTY_LIST);
           sb.append(" ");
           for (Object oo : (List) o) {
             addElement(snapshot, sb, oo, false);
@@ -330,16 +334,15 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         }
       } else if (o instanceof Set) {
         if (readable) {
-          sb.append(WarpScriptLib.LIST_START);
+          sb.append(WarpScriptLib.SET_START);
           sb.append(" ");
           for (Object oo : (Set) o) {
             addElement(snapshot, sb, oo, true);
           }
-          sb.append(WarpScriptLib.LIST_END);
+          sb.append(WarpScriptLib.SET_END);
           sb.append(" ");          
         } else {
-          sb.append(WarpScriptLib.LIST_START);
-          sb.append(WarpScriptLib.LIST_END);
+          sb.append(WarpScriptLib.EMPTY_SET);
           sb.append(" ");
           for (Object oo : (Set) o) {
             addElement(snapshot, sb, oo, false);
@@ -347,8 +350,6 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
             sb.append(" ");
           }
         }
-        sb.append(WarpScriptLib.TO_SET);
-        sb.append(" ");          
       } else if (o instanceof Map) {
         if (readable) {
           sb.append(WarpScriptLib.MAP_START);
@@ -361,8 +362,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
           sb.append(WarpScriptLib.MAP_END);
           sb.append(" ");
         } else {
-          sb.append(WarpScriptLib.MAP_START);
-          sb.append(WarpScriptLib.MAP_END);
+          sb.append(WarpScriptLib.EMPTY_MAP);
           sb.append(" ");
           for (Entry<Object, Object> entry: ((Map<Object, Object>) o).entrySet()) {
             addElement(snapshot, sb, entry.getValue(), false);
@@ -440,23 +440,59 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         }
       } else if (o instanceof RealVector) {
         RealVector vector = (RealVector) o;
-        sb.append("[] ");
-        for (int i = 0; i < vector.getDimension(); i++) {
-          sb.append(vector.getEntry(i));
-          sb.append(" +! ");
+        if (readable) {
+          sb.append(WarpScriptLib.LIST_START);
+          sb.append(" ");
+          for (int i = 0; i < vector.getDimension(); i++) {
+            sb.append(vector.getEntry(i));
+            sb.append(" ");
+          }
+          sb.append(WarpScriptLib.LIST_END);
+          sb.append(" ");
+        } else {
+          sb.append(WarpScriptLib.EMPTY_LIST);
+          sb.append(" ");
+          for (int i = 0; i < vector.getDimension(); i++) {
+            sb.append(vector.getEntry(i));
+            sb.append(" ");
+            sb.append(WarpScriptLib.INPLACEADD);
+            sb.append(" ");
+          }
         }
         sb.append(WarpScriptLib.TOVEC);
         sb.append(" ");
       } else if (o instanceof RealMatrix) {
         RealMatrix matrix = (RealMatrix) o;
-        sb.append("[] ");
-        for (int i = 0; i < matrix.getColumnDimension(); i++) {
-          sb.append("[] ");
-          for (int j = 0; j < matrix.getRowDimension(); j++) {
-            sb.append(matrix.getEntry(i, j));
-            sb.append(" +! ");
+        if (readable) {
+          sb.append(WarpScriptLib.LIST_START);
+          sb.append(System.lineSeparator());
+          for (int i = 0; i < matrix.getColumnDimension(); i++) {
+            sb.append(WarpScriptLib.LIST_START);
+            sb.append(" ");
+            for (int j = 0; j < matrix.getRowDimension(); j++) {
+              sb.append(matrix.getEntry(i, j));
+              sb.append(" ");
+            }
+            sb.append(WarpScriptLib.LIST_END);
+            sb.append(System.lineSeparator());
           }
-          sb.append(" +! ");
+          sb.append(WarpScriptLib.LIST_END);
+          sb.append(" ");
+        } else {
+          sb.append(WarpScriptLib.EMPTY_LIST);
+          sb.append(" ");
+          for (int i = 0; i < matrix.getColumnDimension(); i++) {
+            sb.append(WarpScriptLib.EMPTY_LIST);
+            sb.append(" ");
+            for (int j = 0; j < matrix.getRowDimension(); j++) {
+              sb.append(matrix.getEntry(i, j));
+              sb.append(" ");
+              sb.append(WarpScriptLib.INPLACEADD);
+              sb.append(" ");
+            }
+            sb.append(WarpScriptLib.INPLACEADD);
+            sb.append(" ");
+          }
         }
         sb.append(WarpScriptLib.TOMAT);
         sb.append(" ");
