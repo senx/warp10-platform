@@ -32,6 +32,23 @@ public class MSIG extends NamedWarpScriptFunction implements WarpScriptStackFunc
 
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
+
+    //  If the function is called with a macro parameter, it will attempt to extract a signature.
+    //  A macro signature is a sequence of 4 elements appearing as the last 4 statements of the macro.
+    //  Those statements must be in order:
+    //
+    //    - a STRING with the name of the ECC curve used for the signature
+    //    - a STRING containing the hex encoded public key associated with the private key which generated the signature
+    //    - a STRING containing the hex encoded signature
+    //    - an instance of the statement MSIG
+    //
+    //   If the macro does contain a signature, the call to MSIG will groups the 4 statements described above in a macro
+    //   of their own which will be the result of MSIG.
+    //   If the macro does not contain a signature, MSIG will produce an empty macro.
+    //
+    //   If the function is not called with a macro parameter, it will check that it is called with 3 parameters which
+    //   are STRINGs and will simply consume those 3 parameters, producing no output.
+
     Object top = stack.pop();
 
     if (top instanceof Macro) {
@@ -60,12 +77,11 @@ public class MSIG extends NamedWarpScriptFunction implements WarpScriptStackFunc
 
     Macro sigmacro = new Macro();
 
-    if (size < 4
-        || !(macro.get(size - 1) instanceof MSIG)
-        || !(macro.get(size - 2) instanceof String)
-        || !(macro.get(size - 3) instanceof String)
-        || !(macro.get(size - 4) instanceof String)) {
-    } else {
+    if (size >= 4
+        && macro.get(size - 1) instanceof MSIG
+        && macro.get(size - 2) instanceof String
+        && macro.get(size - 3) instanceof String
+        && macro.get(size - 4) instanceof String) {
       sigmacro.add(macro.get(size - 4));
       sigmacro.add(macro.get(size - 3));
       sigmacro.add(macro.get(size - 2));

@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2021  SenX S.A.S.
+//   Copyright 2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -36,10 +36,6 @@ import io.warp10.script.WarpScriptStackFunction;
 
 public class MVERIFY extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  private static final ECSIGN ECSIGN = new ECSIGN(WarpScriptLib.ECSIGN);
-  private static final ECPUBLIC ECPUBLIC = new ECPUBLIC(WarpScriptLib.ECPUBLIC);
-  private static final EVAL EVAL = new EVAL(WarpScriptLib.EVAL);
-  private static final MSIG MSIG = new MSIG(WarpScriptLib.MSIG);
   private static final ECVERIFY ECVERIFY = new ECVERIFY(WarpScriptLib.ECVERIFY);
 
   private final boolean verify;

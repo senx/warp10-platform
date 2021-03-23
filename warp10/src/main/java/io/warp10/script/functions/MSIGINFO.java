@@ -57,7 +57,8 @@ public class MSIGINFO extends NamedWarpScriptFunction implements WarpScriptStack
     Map<Object,Object> siginfo = new LinkedHashMap<Object,Object>();
 
     if (4 != size) {
-      return false;
+      stack.push(false);
+      return stack;
     }
 
     ECNamedCurveParameterSpec spec = ECNamedCurveTable.getParameterSpec((String) macro.get(0));

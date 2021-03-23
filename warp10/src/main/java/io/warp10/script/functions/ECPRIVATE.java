@@ -53,7 +53,7 @@ public class ECPRIVATE extends NamedWarpScriptFunction implements WarpScriptStac
     }
 
     if (!(top instanceof Map)) {
-      throw new WarpScriptException(getName() + " expects a parameter map.");
+      throw new WarpScriptException(getName() + " expects a parameter map or an ECC private key instance.");
     }
 
     Map<Object,Object> params = (Map<Object,Object>) top;

@@ -64,8 +64,6 @@ public class MSIGN extends NamedWarpScriptFunction implements WarpScriptStackFun
     // We first snapshot the macro, then convert the snapshot
     // to its UTF-8 byte representation. We then sign it with
     // SHA256WITHECDSA using the provided private key.
-    // We then 'eval' the snapshot with REDEFS set to false and
-    // we add the signature, public key and MVERIFY at the end of the macro
     //
 
     String snapshot = macro.snapshot(false);
