@@ -222,8 +222,12 @@ warpscript.runner.bootstrap.period = 120000
 
 // If set to true, HTTP requires the stack to be authenticated
 #warpscript.http.authentication.required =
-// If set, this capability is inspected to grant access to HTTP function
+// If set, the capability .cap:<warpscript.http.capability> is inspected to grant access to HTTP function
 #warpscript.http.capability =
+// Maximum number of HTTP calls, 1 by default, can be raised with capability .cap:http.requests
+#warpscript.urlfetch.limit =
+// Maximum downloaded bytes by HTTP, 65536 by default, can be raised with capability .cap:http.size
+#warpscript.urlfetch.maxsize =
 // List of patterns to include/exclude for hosts, works the same way as webcall.host.patterns. Defaults to the value of webcall.host.patterns.
 #warpscript.http.host.patterns =
 
