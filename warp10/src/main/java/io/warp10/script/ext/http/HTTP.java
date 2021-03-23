@@ -17,10 +17,11 @@
 package io.warp10.script.ext.http;
 
 import io.warp10.WarpConfig;
+import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WebAccessController;
-import io.warp10.script.formatted.FormattedWarpScriptFunction;
 import io.warp10.standalone.StandaloneWebCallService;
 import io.warp10.warp.sdk.Capabilities;
 
@@ -45,8 +46,22 @@ import java.util.concurrent.atomic.AtomicLong;
  * To raise maximum number of calls and download size limit, use these capabilities:
  * .cap:http.requests
  * .cap:http.size
+ *
+ * Params:
+ * METHOD The http method
+ * URL The URL to send the request to. Must begin with http:// or https://
+ * HEADERS An optional header
+ * BODY An optional body. STRING or BYTES
+ * AUTH_INFO Authentication arguments. For example for basic authentication, provide [username, password]
+ * AUTH_MACRO A macro that expects " + AUTH_INFO + " on the stack, and returns a map to be appended with the headers. Default to basic authentication
+ * CHUNK_SIZE Chunk size
+ * CHUNK_MACRO A macro that is executed whenever a chunk has been downloaded. It expects a MAP that contains chunk number (a LONG), status code (a LONG), status message (a STRING), headers (a MAP), and chunk content (a BYTES objects)
+ *
+ * Output:
+ * RESPONSE A map that contains status code (a LONG), status message (a STRING), headers (a MAP) and full content of the response (a BYTES objects). The content is empty if chunk option is used
+ *
  */
-public class HTTP extends FormattedWarpScriptFunction {
+public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
   //
   // Arguments
@@ -61,11 +76,6 @@ public class HTTP extends FormattedWarpScriptFunction {
   public static final String CHUNK_SIZE = "chunk size";
   public static final String CHUNK_MACRO = "chunk macro";
 
-  private final Arguments args;
-  protected Arguments getArguments() {
-    return args;
-  }
-
   //
   // Output
   //
@@ -76,11 +86,6 @@ public class HTTP extends FormattedWarpScriptFunction {
   public static final String RESPONSE_HEADERS = "headers";
   public static final String CONTENT = "content";
   public static final String CHUNK_NUMBER = "chunk number";
-
-  private final Arguments output;
-  protected Arguments getOutput() {
-    return output;
-  }
 
   //
   // Control
@@ -114,23 +119,6 @@ public class HTTP extends FormattedWarpScriptFunction {
       webAccessController = new WebAccessController(patternConf);
     }
 
-    getDocstring().append("Apply an HTTP method over an url and fetch response.");
-
-    args = new ArgumentsBuilder()
-      .addArgument(String.class, METHOD, "The http method.")
-      .addArgument(String.class, URL, "The URL to send the request to. Must begin with http:// or https://.")
-      .addOptionalArgument(Map.class, HEADERS, "An optional header.", new HashMap<>())
-      .addOptionalArgument(Object.class, BODY, "An optional body. STRING or BYTES.", "")
-      .addOptionalArgument(List.class, AUTH_INFO, "Authentication arguments. For example for basic authentication, provide [username, password].", null)
-      .addOptionalArgument(WarpScriptStack.Macro.class, AUTH_MACRO, "A macro that expects " + AUTH_INFO + " on the stack, and returns a map to be appended with the headers. Default to basic authentication.", null)
-      .addOptionalArgument(Long.class, CHUNK_SIZE, "Chunk size", -1L)
-      .addOptionalArgument(WarpScriptStack.Macro.class, CHUNK_MACRO, "A macro that is executed whenever a chunk has been downloaded. It expects a MAP that contains chunk number (a LONG), status code (a LONG), status message (a STRING), headers (a MAP), and chunk content (a BYTES objects).", new WarpScriptStack.Macro())
-      .build();
-
-    output = new ArgumentsBuilder()
-      .addArgument(Map.class, RESPONSE, "A map that contains status code (a LONG), status message (a STRING), headers (a MAP) and full content of the response (a BYTES objects). The content is empty if chunk option is used.")
-      .build();
-
     // retrieve authentication required
     auth = "true".equals(WarpConfig.getProperty(HttpWarpScriptExtension.WARPSCRIPT_HTTP_AUTHENTICATION_REQUIRED));
 
@@ -159,7 +147,14 @@ public class HTTP extends FormattedWarpScriptFunction {
   }
 
   @Override
-  public WarpScriptStack apply(Map<String, Object> formattedArgs, WarpScriptStack stack) throws WarpScriptException {
+  public Object apply(WarpScriptStack stack) throws WarpScriptException {
+
+    Object o = stack.pop();
+    if (!(o instanceof Map)) {
+      throw new WarpScriptException(getName() + " expects a MAP as input.");
+    }
+
+    Map params = (Map) o;
 
     //
     // Check authorization
@@ -195,21 +190,31 @@ public class HTTP extends FormattedWarpScriptFunction {
     // Retrieve arguments
     //
 
-    String method = (String) formattedArgs.get(METHOD);
-    Map<Object, Object> headers = (Map) formattedArgs.get(HEADERS);
-    Object body = formattedArgs.get(BODY);
-    List authInfo = (List) formattedArgs.get(AUTH_INFO);
-    WarpScriptStack.Macro authMacro = (WarpScriptStack.Macro) formattedArgs.get(AUTH_MACRO);
-    Long chunkSize = (Long) formattedArgs.get(CHUNK_SIZE);
-    WarpScriptStack.Macro chunkMacro = (WarpScriptStack.Macro) formattedArgs.get(CHUNK_MACRO);
+    String method = (String) params.get(METHOD);
+    if (null == method) {
+      throw new WarpScriptException(getName() + " expects an http method.");
+    }
+
+    Map<Object, Object> headers = (Map) params.getOrDefault(HEADERS, new HashMap<>());
+    Object body = params.getOrDefault(BODY,"");
+
+    List authInfo = (List) params.get(AUTH_INFO);
+    WarpScriptStack.Macro authMacro = (WarpScriptStack.Macro) params.get(AUTH_MACRO);
+    Long chunkSize = (Long) params.getOrDefault(CHUNK_SIZE, -1L);
+    WarpScriptStack.Macro chunkMacro = (WarpScriptStack.Macro) params.get(CHUNK_MACRO);
 
     //
     // Check URL
     //
 
+    Object urlParam = params.get(URL);
+    if (null == urlParam) {
+      throw new WarpScriptException(getName() + " expects an url.");
+    }
+
     URL url = null;
     try {
-      url = new URL((String) formattedArgs.get(URL));
+      url = new URL((String) urlParam);
     } catch (MalformedURLException mue) {
       throw new WarpScriptException(getName() + " encountered an invalid URL.", mue);
     }
@@ -409,7 +414,9 @@ public class HTTP extends FormattedWarpScriptFunction {
           }
           chunkRes.put(CHUNK_NUMBER, new Long(chunkNumber));
           stack.push(chunkRes);
-          stack.exec(chunkMacro);
+          if (null != chunkMacro) {
+            stack.exec(chunkMacro);
+          }
         }
 
         res.put(CONTENT, new byte[0]);
