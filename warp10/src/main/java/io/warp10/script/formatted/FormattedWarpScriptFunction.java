@@ -130,9 +130,9 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
     }
 
     public ArgumentsBuilder addOptionalArgument(ArgumentSpecification spec) {
-//      if (!spec.isOptional()) {
-//        throw new IllegalStateException("Argument is added as an optional argument to the function but that is not coherent with its specification.");
-//      }
+      if (!spec.isOptional()) {
+        throw new IllegalStateException("Argument is added as an optional argument to the function but that is not coherent with its specification.");
+      }
 
       optArgs.add(spec);
       return this;
@@ -224,12 +224,12 @@ public abstract class FormattedWarpScriptFunction extends NamedWarpScriptFunctio
       }
     }
 
-//    for (ArgumentSpecification arg: optArgs) {
-//      if (!arg.isOptional()) {
-//        throw new WarpScriptException("Output of " + getClass().getSimpleName() + "'s method getArguments() must" +
-//          " only contain arguments with a default value.");
-//      }
-//    }
+    for (ArgumentSpecification arg: optArgs) {
+      if (!arg.isOptional()) {
+        throw new WarpScriptException("Output of " + getClass().getSimpleName() + "'s method getArguments() must" +
+          " only contain arguments with a default value.");
+      }
+    }
 
     if (getArguments().isListExpandable() && ((ListSpecification) args.get(0)).getSubClazz() == List.class) {
       throw new WarpScriptException(getClass().getSimpleName() + " implementation error: a list argument can not be list-expandable.");
