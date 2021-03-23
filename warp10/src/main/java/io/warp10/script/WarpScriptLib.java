@@ -358,15 +358,19 @@ public class WarpScriptLib {
   public static final String NOOP = "NOOP";
   public static final String JSONTO = "JSON->";
 
+  public static final String EMPTY_MAP = "{}";
   public static final String MAP_START = "{";
   public static final String MAP_END = "}";
 
+  public static final String EMPTY_LIST = "[]";
   public static final String LIST_START = "[";
   public static final String LIST_END = "]";
 
+  public static final String EMPTY_SET = "()";
   public static final String SET_START = "(";
   public static final String SET_END = ")";
 
+  public static final String EMPTY_VECTOR = "[[]]";
   public static final String VECTOR_START = "[[";
   public static final String VECTOR_END = "]]";
 
@@ -1337,17 +1341,17 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new MMAP(MMAP));
     addNamedWarpScriptFunction(new NONNULL(NONNULL));
     addNamedWarpScriptFunction(new LMAP(LFLATMAP, true));
-    addNamedWarpScriptFunction(new EMPTYLIST("[]"));
+    addNamedWarpScriptFunction(new EMPTYLIST(EMPTY_LIST));
     addNamedWarpScriptFunction(new MARK(LIST_START));
     addNamedWarpScriptFunction(new ENDLIST(LIST_END));
     addNamedWarpScriptFunction(new STACKTOLIST(STACKTOLIST));
     addNamedWarpScriptFunction(new MARK(SET_START));
     addNamedWarpScriptFunction(new ENDSET(SET_END));
-    addNamedWarpScriptFunction(new EMPTYSET("()"));
+    addNamedWarpScriptFunction(new EMPTYSET(EMPTY_SET));
     addNamedWarpScriptFunction(new MARK(VECTOR_START));
     addNamedWarpScriptFunction(new ENDVECTOR(VECTOR_END));
-    addNamedWarpScriptFunction(new EMPTYVECTOR("[[]]"));
-    addNamedWarpScriptFunction(new EMPTYMAP("{}"));
+    addNamedWarpScriptFunction(new EMPTYVECTOR(EMPTY_VECTOR));
+    addNamedWarpScriptFunction(new EMPTYMAP(EMPTY_MAP));
     addNamedWarpScriptFunction(new IMMUTABLE(IMMUTABLE));
     addNamedWarpScriptFunction(new MARK(MAP_START));
     addNamedWarpScriptFunction(new ENDMAP(MAP_END));
@@ -1363,6 +1367,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new SECTION(SECTION));
     addNamedWarpScriptFunction(new GETSECTION(GETSECTION));
     addNamedWarpScriptFunction(new SNAPSHOT(SNAPSHOT, false, false, true, false));
+    addNamedWarpScriptFunction(new SNAPSHOT("SNAPSHOTREADABLE", false, false, true, false, true, true));
     addNamedWarpScriptFunction(new SNAPSHOT(SNAPSHOTALL, true, false, true, false));
     addNamedWarpScriptFunction(new SNAPSHOT(SNAPSHOTTOMARK, false, true, true, false));
     addNamedWarpScriptFunction(new SNAPSHOT(SNAPSHOTALLTOMARK, true, true, true, false));
