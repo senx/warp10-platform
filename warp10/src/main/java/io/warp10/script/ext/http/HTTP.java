@@ -214,12 +214,12 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
       throw new WarpScriptException(getName() + " encountered an invalid URL.", mue);
     }
 
-    if (!webAccessController.checkURL(url)) {
-      throw new WarpScriptException(getName() + " invalid host or scheme in URL.");
-    }
-
     if (!"http".equals(url.getProtocol()) && !"https".equals(url.getProtocol())) {
       throw new WarpScriptException(getName() + " only supports http and https protocols.");
+    }
+
+    if (!webAccessController.checkURL(url)) {
+      throw new WarpScriptException(getName() + " invalid host or scheme in URL.");
     }
 
     //
@@ -362,56 +362,66 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
       }
 
       if (chunkSize <= 0) {
-        byte[] buf = new byte[8192];
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-        while (true) {
-          int len = in.read(buf);
-          if (len < 0) {
-            break;
+        if (null != in) {
+          byte[] buf = new byte[8192];
+          ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+          while (true) {
+            int len = in.read(buf);
+            if (len < 0) {
+              break;
+            }
+
+            if (downloadSize.get() + baos.size() + len > maxsize) {
+              throw new WarpScriptException(getName() + " would exceed maximum size of content which can be retrieved via this function (" + maxsize + " bytes)");
+            }
+
+            baos.write(buf, 0, len);
           }
 
-          if (downloadSize.get() + baos.size() + len > maxsize) {
-            throw new WarpScriptException(getName() + " would exceed maximum size of content which can be retrieved via this function (" + maxsize + " bytes)");
-          }
+          downloadSize.addAndGet(baos.size());
+          res.put(CONTENT, baos.toByteArray());
 
-          baos.write(buf, 0, len);
+        } else {
+          res.put(CONTENT, new byte[0]);
         }
 
-        downloadSize.addAndGet(baos.size());
-        res.put(CONTENT, baos.toByteArray());
-
       } else {
-        byte[] buf = new byte[chunkSize.intValue()];
-        Map<String, Object> chunkRes = new HashMap<>(res);
 
-        int chunkNumber = 0;
-        while (true) {
-          chunkNumber++;
+        if (null != in) {
+          byte[] buf = new byte[chunkSize.intValue()];
+          Map<String, Object> chunkRes = new HashMap<>(res);
 
-          int len = in.read(buf);
-          if (len < 0) {
-            break;
-          }
+          int chunkNumber = 0;
+          while (true) {
+            chunkNumber++;
 
-          if (downloadSize.addAndGet(len) > maxsize) {
-            throw new WarpScriptException(getName() + " would exceed maximum size of content which can be retrieved via this function (" + maxsize + " bytes)");
-          }
-
-          if (len == chunkSize) {
-            chunkRes.put(CONTENT, buf);
-          } else {
-            byte[] buf2 = new byte[len];
-            for (int i = 0; i < buf2.length; i++) {
-              buf2[i] = buf[i];
+            int len = in.read(buf);
+            if (len < 0) {
+              break;
             }
-            chunkRes.put(CONTENT, buf2);
+
+            if (downloadSize.addAndGet(len) > maxsize) {
+              throw new WarpScriptException(getName() + " would exceed maximum size of content which can be retrieved via this function (" + maxsize + " bytes)");
+            }
+
+            if (len == chunkSize) {
+              chunkRes.put(CONTENT, buf);
+            } else {
+              byte[] buf2 = new byte[len];
+              System.arraycopy(buf, 0, buf2, 0, buf2.length);
+              chunkRes.put(CONTENT, buf2);
+            }
+            chunkRes.put(CHUNK_NUMBER, new Long(chunkNumber));
+            stack.push(chunkRes);
+            if (null != chunkMacro) {
+              stack.exec(chunkMacro);
+            }
           }
-          chunkRes.put(CHUNK_NUMBER, new Long(chunkNumber));
-          stack.push(chunkRes);
-          if (null != chunkMacro) {
-            stack.exec(chunkMacro);
-          }
+
+        } else {
+          throw new WarpScriptException(getName() + " expects a stream to be chunked, but input stream is empty.");
         }
 
         res.put(CONTENT, new byte[0]);
