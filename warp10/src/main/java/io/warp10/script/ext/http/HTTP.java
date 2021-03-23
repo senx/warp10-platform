@@ -390,12 +390,12 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
       } else {
 
         if (null != in) {
-          Map<String, Object> chunkRes = new HashMap<>(res);
 
           int chunkNumber = 0;
           while (true) {
             chunkNumber++;
 
+            Map<String, Object> chunkRes = new HashMap<>(res);
             byte[] buf = new byte[chunkSize.intValue()];
             int len = in.read(buf);
             if (len < 0) {
