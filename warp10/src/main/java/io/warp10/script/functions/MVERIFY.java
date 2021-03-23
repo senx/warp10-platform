@@ -17,10 +17,8 @@
 package io.warp10.script.functions;
 
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 
 import org.bouncycastle.jce.ECNamedCurveTable;
-import org.bouncycastle.jce.interfaces.ECPrivateKey;
 import org.bouncycastle.jce.interfaces.ECPublicKey;
 import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec;
 import org.bouncycastle.jce.spec.ECParameterSpec;
@@ -117,9 +115,8 @@ public class MVERIFY extends NamedWarpScriptFunction implements WarpScriptStackF
     // SNAPSHOT the macro
     //
 
-    StringBuilder sb = new StringBuilder();
-    SNAPSHOT.addElement(sb, m);
-    byte[] data = sb.toString().getBytes(StandardCharsets.UTF_8);
+    String snapshot = m.snapshot(false);
+    byte[] data = snapshot.getBytes(StandardCharsets.UTF_8);
 
     MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null);
     stack.push(data);

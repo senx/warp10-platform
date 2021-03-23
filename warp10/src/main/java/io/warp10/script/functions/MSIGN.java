@@ -68,10 +68,9 @@ public class MSIGN extends NamedWarpScriptFunction implements WarpScriptStackFun
     // we add the signature, public key and MVERIFY at the end of the macro
     //
 
-    StringBuilder sb = new StringBuilder();
-    SNAPSHOT.addElement(sb, macro);
+    String snapshot = macro.snapshot(false);
 
-    byte[] data = sb.toString().getBytes(StandardCharsets.UTF_8);
+    byte[] data = snapshot.getBytes(StandardCharsets.UTF_8);
 
     MemoryWarpScriptStack stck = new MemoryWarpScriptStack(null, null);
     stck.push(data);
