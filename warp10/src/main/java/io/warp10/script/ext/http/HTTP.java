@@ -44,8 +44,8 @@ import java.util.concurrent.atomic.AtomicLong;
  * Send an HTTP request to an url
  *
  * To raise maximum number of calls and download size limit, use these capabilities:
- * .cap:http.requests
- * .cap:http.size
+ * http.requests
+ * http.size
  *
  * Params:
  * METHOD The http method
@@ -123,12 +123,7 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
     auth = "true".equals(WarpConfig.getProperty(HttpWarpScriptExtension.WARPSCRIPT_HTTP_AUTHENTICATION_REQUIRED));
 
     // retrieve capName
-    String capNameSuffix = WarpConfig.getProperty(HttpWarpScriptExtension.WARPSCRIPT_HTTP_CAPABILITY);
-    if (null != capNameSuffix) {
-      capName = WarpScriptStack.CAPABILITIES_PREFIX + capNameSuffix;
-    } else {
-      capName = null;
-    }
+    capName = WarpConfig.getProperty(HttpWarpScriptExtension.WARPSCRIPT_HTTP_CAPABILITY);
 
     // retrieve limits
     Object conf_maxrequests = WarpConfig.getProperty(HttpWarpScriptExtension.WARPSCRIPT_HTTP_REQUESTS);
@@ -173,15 +168,15 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
     //
 
     long maxrequests;
-    if (null != Capabilities.get(stack, WarpScriptStack.CAPABILITIES_PREFIX + HttpWarpScriptExtension.ATTRIBUTE_HTTP_REQUESTS)) {
-      maxrequests = Long.valueOf(Capabilities.get(stack, WarpScriptStack.CAPABILITIES_PREFIX + HttpWarpScriptExtension.ATTRIBUTE_HTTP_REQUESTS));
+    if (null != Capabilities.get(stack, HttpWarpScriptExtension.ATTRIBUTE_HTTP_REQUESTS)) {
+      maxrequests = Long.valueOf(Capabilities.get(stack, HttpWarpScriptExtension.ATTRIBUTE_HTTP_REQUESTS));
     } else {
       maxrequests = base_maxrequests;
     }
 
     long maxsize;
-    if (null != Capabilities.get(stack, WarpScriptStack.CAPABILITIES_PREFIX + HttpWarpScriptExtension.ATTRIBUTE_HTTP_SIZE)) {
-      maxsize = Long.valueOf(Capabilities.get(stack, WarpScriptStack.CAPABILITIES_PREFIX + HttpWarpScriptExtension.ATTRIBUTE_HTTP_SIZE));
+    if (null != Capabilities.get(stack, HttpWarpScriptExtension.ATTRIBUTE_HTTP_SIZE)) {
+      maxsize = Long.valueOf(Capabilities.get(stack, HttpWarpScriptExtension.ATTRIBUTE_HTTP_SIZE));
     } else {
       maxsize = base_maxsize;
     }
