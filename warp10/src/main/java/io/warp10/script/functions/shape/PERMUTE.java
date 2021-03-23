@@ -28,9 +28,9 @@ import java.util.List;
 
 /**
  * Permute the dimensions of a nested LIST as if it were a tensor or a multidimensional array.
- * .addArgument(List.class, TENSOR, "The nested LIST for which dimensions will be permuted as if it were a tensor.")
- * .addListArgument(Long.class, PATTERN, "The permutation pattern (a LIST of LONG).")
- * .addOptionalArgument(Boolean.class, FAST, "If true, it does not check if the sizes of the nested lists are coherent before operating. Default to false.", false)
+ * - param TENSOR The nested LIST for which dimensions will be permuted as if it were a tensor.
+ * - param PATTERN The permutation pattern (a LIST of LONG)
+ * - param FAST If true, it does not check if the sizes of the nested lists are coherent before operating. Default to false.
  */
 public class PERMUTE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
@@ -66,7 +66,7 @@ public class PERMUTE extends NamedWarpScriptFunction implements WarpScriptStackF
         throw new WarpScriptException(getName() + " expects a LIST of LONG as second argument.");
       }
     }
-    List<Long> pattern = (List) o;
+    List<Long> pattern = (List<Long>) o;
     o = stack.pop();
 
     //

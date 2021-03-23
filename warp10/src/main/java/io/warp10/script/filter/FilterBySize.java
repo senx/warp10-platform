@@ -29,8 +29,6 @@ import java.util.List;
 import java.util.Map;
 
 public class FilterBySize extends NamedWarpScriptFunction implements WarpScriptFilterFunction {
-  static private final String MIN = "min";
-  static private final String MAX = "max";
 
   private final int min;
   private final int max;
@@ -47,8 +45,8 @@ public class FilterBySize extends NamedWarpScriptFunction implements WarpScriptF
       Object o2 = stack.pop();
       Object o1 = stack.pop();
 
-      if (!(o1 instanceof Long) && !(o2 instanceof Long)) {
-        throw new WarpScriptException(getName() + " expects two longs as arguments.");
+      if (!(o1 instanceof Long) || !(o2 instanceof Long)) {
+        throw new WarpScriptException(getName() + " expects two LONG objects as arguments.");
       }
 
       stack.push(new FilterBySize(getName(), ((Long) o1).intValue(), ((Long) o2).intValue()));
