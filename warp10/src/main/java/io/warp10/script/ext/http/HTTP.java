@@ -71,21 +71,21 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
   public static final String URL = "url";
   public static final String HEADERS = "headers";
   public static final String BODY = "body";
-  public static final String AUTH_INFO = "auth info";
-  public static final String AUTH_MACRO = "auth macro";
-  public static final String CHUNK_SIZE = "chunk size";
-  public static final String CHUNK_MACRO = "chunk macro";
+  public static final String AUTH_INFO = "auth.info";
+  public static final String AUTH_MACRO = "auth.macro";
+  public static final String CHUNK_SIZE = "chunk.size";
+  public static final String CHUNK_MACRO = "chunk.macro";
 
   //
   // Output
   //
 
   public static final String RESPONSE = "response";
-  public static final String STATUS_CODE = "status code";
-  public static final String STATUS_MESSAGE = "status message";
+  public static final String STATUS_CODE = "status.code";
+  public static final String STATUS_MESSAGE = "status.message";
   public static final String RESPONSE_HEADERS = "headers";
   public static final String CONTENT = "content";
-  public static final String CHUNK_NUMBER = "chunk number";
+  public static final String CHUNK_NUMBER = "chunk.number";
 
   //
   // Control
@@ -104,8 +104,8 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
   // Limits
   //
 
-  private final long base_maxrequests;
-  private final long base_maxsize;
+  private final long baseMaxRequests;
+  private final long baseMaxSize;
 
   public HTTP(String name) {
     super(name);
@@ -126,18 +126,18 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
     capName = WarpConfig.getProperty(HttpWarpScriptExtension.WARPSCRIPT_HTTP_CAPABILITY);
 
     // retrieve limits
-    Object conf_maxrequests = WarpConfig.getProperty(HttpWarpScriptExtension.WARPSCRIPT_HTTP_REQUESTS);
-    if (null == conf_maxrequests) {
-      base_maxrequests = HttpWarpScriptExtension.DEFAULT_HTTP_REQUESTS;
+    Object confMaxRequests = WarpConfig.getProperty(HttpWarpScriptExtension.WARPSCRIPT_HTTP_REQUESTS);
+    if (null == confMaxRequests) {
+      baseMaxRequests = HttpWarpScriptExtension.DEFAULT_HTTP_REQUESTS;
     } else {
-      base_maxrequests = Long.valueOf((String) conf_maxrequests);
+      baseMaxRequests = Long.parseLong((String) confMaxRequests);
     }
 
-    Object conf_maxsize = WarpConfig.getProperty(HttpWarpScriptExtension.WARPSCRIPT_HTTP_SIZE);
-    if (null == conf_maxsize) {
-      base_maxsize = HttpWarpScriptExtension.DEFAULT_HTTP_MAXSIZE;
+    Object confMaxSize = WarpConfig.getProperty(HttpWarpScriptExtension.WARPSCRIPT_HTTP_SIZE);
+    if (null == confMaxSize) {
+      baseMaxSize = HttpWarpScriptExtension.DEFAULT_HTTP_MAXSIZE;
     } else {
-      base_maxsize = Long.valueOf((String) conf_maxsize);
+      baseMaxSize = Long.parseLong((String) confMaxSize);
     }
   }
 
@@ -171,14 +171,14 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
     if (null != Capabilities.get(stack, HttpWarpScriptExtension.ATTRIBUTE_HTTP_REQUESTS)) {
       maxrequests = Long.valueOf(Capabilities.get(stack, HttpWarpScriptExtension.ATTRIBUTE_HTTP_REQUESTS));
     } else {
-      maxrequests = base_maxrequests;
+      maxrequests = baseMaxRequests;
     }
 
     long maxsize;
     if (null != Capabilities.get(stack, HttpWarpScriptExtension.ATTRIBUTE_HTTP_SIZE)) {
       maxsize = Long.valueOf(Capabilities.get(stack, HttpWarpScriptExtension.ATTRIBUTE_HTTP_SIZE));
     } else {
-      maxsize = base_maxsize;
+      maxsize = baseMaxSize;
     }
 
     //

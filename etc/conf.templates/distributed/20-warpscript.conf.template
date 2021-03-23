@@ -227,7 +227,7 @@ warpscript.mobius.pool = 16
 // If set, the capability <warpscript.http.capability> is checked to grant access to HTTP function
 #warpscript.http.capability =
 // Maximum number of HTTP calls, 1 by default, can be raised with capability http.requests
-#warpscript.http.requests =
+#warpscript.http.maxrequests =
 // Maximum downloaded bytes by HTTP, 65536 by default, can be raised with capability http.size
 #warpscript.http.size =
 // List of patterns to include/exclude for hosts, works the same way as webcall.host.patterns. Defaults to the value of webcall.host.patterns.
