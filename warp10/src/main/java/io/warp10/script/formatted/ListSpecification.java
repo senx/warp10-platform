@@ -20,6 +20,7 @@ import io.warp10.script.functions.TYPEOF;
 
 import java.util.List;
 
+@Deprecated
 public class ListSpecification extends ArgumentSpecification {
 
   private Class<?> subClazz;

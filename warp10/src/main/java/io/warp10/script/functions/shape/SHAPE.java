@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2020  SenX S.A.S.
+//   Copyright 2019-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -18,42 +18,50 @@ package io.warp10.script.functions.shape;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
+import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
-import io.warp10.script.formatted.FormattedWarpScriptFunction;
+import io.warp10.script.WarpScriptStackFunction;
 
-public class SHAPE extends FormattedWarpScriptFunction {
-
-  public static final String LIST = "list";
-  public static final String FAST = "fast";
-  public static final String SHAPE = "shape";
-
-  private final Arguments args;
-  private final Arguments output;
-  protected Arguments getArguments() { return args; }
-  protected Arguments getOutput() { return output; }
+/**
+ * Return the shape of an input list if it could be a tensor (or multidimensional array), or raise an Exception.
+ * - param LIST The input list
+ * - param FAST If true, it does not check if the sizes of the nested lists are coherent and it returns a shape based on the first nested lists at each level. Defaults to false
+ */
+public class SHAPE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
   public SHAPE(String name) {
     super(name);
-
-    getDocstring().append("Return the shape of an input list if it could be a tensor (or multidimensional array), or raise an Exception.");
-
-    args = new ArgumentsBuilder()
-      .addArgument(List.class, LIST, "The input list.")
-      .addOptionalArgument(Boolean.class, FAST, "If true, it does not check if the sizes of the nested lists are coherent and it returns a shape based on the first nested lists at each level. Default to false.", false)
-      .build();
-
-    output = new ArgumentsBuilder()
-      .addListArgument(Long.class, SHAPE, "The shape of the input list.")
-      .build();
   }
 
   @Override
-  protected WarpScriptStack apply(Map<String, Object> formattedArgs, WarpScriptStack stack) throws WarpScriptException {
-    List list = (List) formattedArgs.get(LIST);
-    boolean fast = Boolean.TRUE.equals(formattedArgs.get(FAST));
+  public WarpScriptStack apply(WarpScriptStack stack) throws WarpScriptException {
+
+    Object o = stack.pop();
+
+    //
+    // 2nd optional argument
+    //
+
+    boolean fast = false;
+    if (o instanceof Boolean) {
+      fast = Boolean.TRUE.equals(o);
+      o = stack.pop();
+    }
+
+    //
+    // 1st argument
+    //
+
+    if (!(o instanceof List)) {
+      throw new WarpScriptException(getName() + " expects a LIST.");
+    }
+    List list = (List) o;
+
+    //
+    // Logic
+    //
 
     List<Long> candidateShape = candidate_shape(list);
 
