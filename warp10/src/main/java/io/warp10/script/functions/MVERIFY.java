@@ -72,8 +72,8 @@ public class MVERIFY extends NamedWarpScriptFunction implements WarpScriptStackF
 
   public static boolean verify(Macro macro) throws WarpScriptException {
     //
-    // A Macro can be verified if its last 3 statements are a signature, a public key and
-    // an instance of MSIG
+    // A Macro can be verified if its last 4 statements are a curve name, a public key, a signature
+    // and an instance of MSIG
     //
 
     Macro signature = MSIG.getSignature(macro);
