@@ -659,6 +659,7 @@ public class WarpScriptLib {
   public static final String ECVERIFY = "ECVERIFY";
   public static final String MSIGN = "MSIGN";
   public static final String MSIG = "MSIG";
+  public static final String MSIGCOUNT = "MSIGCOUNT";
   public static final String MSIGINFO = "MSIGINFO";
   public static final String MVERIFY = "MVERIFY";
   public static final String MCHECKSIG = "MCHECKSIG";
@@ -1524,6 +1525,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new ECVERIFY(ECVERIFY));
     addNamedWarpScriptFunction(new MSIGN(MSIGN));
     addNamedWarpScriptFunction(new MSIG(MSIG));
+    addNamedWarpScriptFunction(new MSIGCOUNT(MSIGCOUNT));
     addNamedWarpScriptFunction(new MSIGINFO(MSIGINFO));
     addNamedWarpScriptFunction(new MVERIFY(MVERIFY, true));
     addNamedWarpScriptFunction(new MVERIFY(MCHECKSIG, false));
