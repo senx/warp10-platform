@@ -36,6 +36,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
@@ -191,7 +192,7 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
     }
 
     Map<Object, Object> headers = (Map) params.getOrDefault(HEADERS, new HashMap<>());
-    Object body = params.getOrDefault(BODY,"");
+    Object body = params.get(BODY);
 
     List authInfo = (List) params.get(AUTH_INFO);
     WarpScriptStack.Macro authMacro = (WarpScriptStack.Macro) params.get(AUTH_MACRO);
@@ -317,7 +318,7 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
           }
         }
 
-      } else {
+      } else if (null != body) {
         throw new WarpScriptException(getName() + " expects the body of the request to be a STRING or BYTES object.");
       }
 
@@ -343,7 +344,7 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
       // Make the headers map modifiable
       //
 
-      hdrs = new HashMap<String, List<String>>(hdrs);
+      hdrs = new LinkedHashMap<String, List<String>>(hdrs);
       hdrs.remove(null);
 
       res.put(RESPONSE_HEADERS, hdrs);
@@ -395,7 +396,7 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
           while (true) {
             chunkNumber++;
 
-            Map<String, Object> chunkRes = new HashMap<>(res);
+            Map<String, Object> chunkRes = new LinkedHashMap<>(res);
             byte[] buf = new byte[chunkSize.intValue()];
             int len = in.read(buf);
             if (len < 0) {
