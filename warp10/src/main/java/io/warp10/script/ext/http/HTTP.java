@@ -422,7 +422,13 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
           }
 
         } else {
-          throw new WarpScriptException(getName() + " expects a stream to be chunked, but input stream is empty.");
+          Map<String, Object> chunkRes = new LinkedHashMap<>(res);
+          chunkRes.put(CHUNK_NUMBER, 1L);
+          chunkRes.put(CONTENT, new byte[0]);
+          stack.push(chunkRes);
+          if (null != chunkMacro) {
+            stack.exec(chunkMacro);
+          }
         }
 
         res.put(CONTENT, new byte[0]);
