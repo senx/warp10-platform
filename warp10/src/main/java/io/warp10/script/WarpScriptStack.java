@@ -436,7 +436,6 @@ public interface WarpScriptStack {
             sb.append(" Error while snapshoting element of type '" + o.getClass() + "' ");
             sb.append(WarpScriptStack.COMMENT_END);
           }
-          sb.append(" ");
         }
       } else {
         sb.append(WarpScriptStack.COMMENT_START);
