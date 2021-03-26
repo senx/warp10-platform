@@ -431,6 +431,18 @@ public interface WarpScriptStack {
             } else {
               SNAPSHOT.addElement(sb, o);
             }
+            int idx = sb.length() - 1;
+            if (' ' != sb.charAt(idx)) {
+              // The last element does not end with a space, add one
+              sb.append(" ");
+            } else {
+              // Check if we only have a single space
+              idx--;
+              while (idx >= 0 && ' ' == sb.charAt(idx)) {
+                idx--;
+              }
+              sb.setLength(idx + 2);
+            }
           } catch (WarpScriptException wse) {
             sb.append(WarpScriptStack.COMMENT_START);
             sb.append(" Error while snapshoting element of type '" + o.getClass() + "' ");
