@@ -16,6 +16,8 @@
 
 package io.warp10.script.functions;
 
+import java.lang.reflect.Constructor;
+
 import org.bouncycastle.crypto.Digest;
 
 import io.warp10.script.NamedWarpScriptFunction;
@@ -27,9 +29,17 @@ public class DIGEST extends NamedWarpScriptFunction implements WarpScriptStackFu
 
   private Class digestAlgo;
 
+  private Integer size = null;
+
   public DIGEST(String name, Class<? extends Digest> digestAlgo) {
     super(name);
     this.digestAlgo = digestAlgo;
+  }
+
+  public DIGEST(String name, Class<? extends Digest> digestAlgo, int size) {
+    super(name);
+    this.digestAlgo = digestAlgo;
+    this.size = size;
   }
 
   @Override
@@ -43,7 +53,14 @@ public class DIGEST extends NamedWarpScriptFunction implements WarpScriptStackFu
     byte[] bytes = (byte[]) o;
 
     try {
-      Digest digest = (Digest) digestAlgo.newInstance();
+      Digest digest;
+
+      if (null == this.size) {
+        digest = (Digest) digestAlgo.newInstance();
+      } else {
+        Constructor c = digestAlgo.getConstructor(new Class[] { int.class });
+        digest = (Digest) c.newInstance(this.size);
+      }
 
       byte[] digestOctets = new byte[digest.getDigestSize()];
 

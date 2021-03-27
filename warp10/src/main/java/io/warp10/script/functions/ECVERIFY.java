@@ -24,8 +24,8 @@ import java.security.spec.ECParameterSpec;
 import java.security.spec.ECPoint;
 import java.security.spec.EllipticCurve;
 
+import org.bouncycastle.jcajce.provider.asymmetric.util.EC5Util;
 import org.bouncycastle.jce.interfaces.ECPublicKey;
-import org.bouncycastle.jce.provider.asymmetric.ec.EC5Util;
 
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
@@ -36,11 +36,11 @@ import io.warp10.script.WarpScriptStackFunction;
  * Verify an ECC signature
  */
 public class ECVERIFY extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   public ECVERIFY(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
@@ -49,18 +49,18 @@ public class ECVERIFY extends NamedWarpScriptFunction implements WarpScriptStack
       throw new WarpScriptException(getName() + " expects an ECC public key.");
     }
 
-    byte[] encoded = ((ECPublicKey) top).getQ().getEncoded();
+    byte[] encoded = ((ECPublicKey) top).getQ().getEncoded(false);
     org.bouncycastle.math.ec.ECPoint q = ((ECPublicKey) top).getQ();
-    ECPoint w = new ECPoint(q.getX().toBigInteger(), q.getY().toBigInteger());
+    ECPoint w = new ECPoint(q.getXCoord().toBigInteger(), q.getYCoord().toBigInteger());
     org.bouncycastle.jce.spec.ECParameterSpec curve = ((ECPublicKey) top).getParameters();
     EllipticCurve ec = EC5Util.convertCurve(curve.getCurve(),  curve.getSeed());
 
     final ECParameterSpec spec = new ECParameterSpec(
         ec,
-        new ECPoint(curve.getG().getX().toBigInteger(), curve.getG().getY().toBigInteger()),
+        new ECPoint(curve.getG().getXCoord().toBigInteger(), curve.getG().getYCoord().toBigInteger()),
         curve.getN(),
         curve.getH().intValue());
-        
+
     java.security.interfaces.ECPublicKey key = new java.security.interfaces.ECPublicKey() {
       public String getFormat() { return "PKCS#8"; }
       public byte[] getEncoded() { return encoded; }
@@ -70,23 +70,23 @@ public class ECVERIFY extends NamedWarpScriptFunction implements WarpScriptStack
     };
 
     top = stack.pop();
-    
+
     if (!(top instanceof String)) {
       throw new WarpScriptException(getName() + " expects an algorithm name.");
     }
-    
+
     String alg = top.toString();
-    
+
     top = stack.pop();
-    
+
     if (!(top instanceof byte[])) {
       throw new WarpScriptException(getName() + " expects a signature.");
     }
 
     byte[] sig = (byte[]) top;
-    
+
     top = stack.pop();
-    
+
     if (!(top instanceof byte[])) {
       throw new WarpScriptException(getName() + " operates on a byte array.");
     }
@@ -104,7 +104,7 @@ public class ECVERIFY extends NamedWarpScriptFunction implements WarpScriptStack
       throw new WarpScriptException(getName() + " error while verifying signature.", ike);
     } catch (NoSuchAlgorithmException nsae) {
       throw new WarpScriptException(getName() + " error while verifying signature.", nsae);
-    }    
+    }
 
     return stack;
   }
