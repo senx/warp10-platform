@@ -432,15 +432,17 @@ public interface WarpScriptStack {
               SNAPSHOT.addElement(sb, o);
             }
             int idx = sb.length() - 1;
+            if (0 == sb.length()) {
+              continue;
+            }
             if (' ' != sb.charAt(idx)) {
               // The last element does not end with a space, add one
               sb.append(" ");
             } else {
               // Check if we only have a single space
-              idx--;
-              while (idx >= 0 && ' ' == sb.charAt(idx)) {
+              do {
                 idx--;
-              }
+              } while(idx >= 0 && ' ' == sb.charAt(idx));
               sb.setLength(idx + 2);
             }
           } catch (WarpScriptException wse) {
