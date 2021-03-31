@@ -92,7 +92,17 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
   // Control
   //
 
-  private final WebAccessController webAccessController;
+  private static final WebAccessController webAccessController;
+  static {
+    String patternConf = WarpConfig.getProperty(HttpWarpScriptExtension.WARPSCRIPT_HTTP_HOST_PATTERNS);
+
+    // If not defined, use already existing StandaloneWebCallService webAccessController which uses Configuration.WEBCALL_HOST_PATTERNS
+    if (null == patternConf) {
+      webAccessController = StandaloneWebCallService.getWebAccessController();
+    } else {
+      webAccessController = new WebAccessController(patternConf);
+    }
+  }
 
   //
   // Authorization
@@ -110,15 +120,6 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
 
   public HTTP(String name) {
     super(name);
-
-    String patternConf = WarpConfig.getProperty(HttpWarpScriptExtension.WARPSCRIPT_HTTP_HOST_PATTERNS);
-
-    // If not defined, use already existing StandaloneWebCallService webAccessController which uses Configuration.WEBCALL_HOST_PATTERNS
-    if (null == patternConf) {
-      webAccessController = StandaloneWebCallService.getWebAccessController();
-    } else {
-      webAccessController = new WebAccessController(patternConf);
-    }
 
     // retrieve authentication required
     auth = "true".equals(WarpConfig.getProperty(HttpWarpScriptExtension.WARPSCRIPT_HTTP_AUTHENTICATION_REQUIRED));
