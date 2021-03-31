@@ -206,7 +206,7 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
 
     Object urlParam = params.get(URL);
     if (null == urlParam) {
-      throw new WarpScriptException(getName() + " expects an url.");
+      throw new WarpScriptException(getName() + " expects a url.");
     }
 
     URL url = null;
@@ -246,7 +246,7 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
     }
 
     if (urlCount.addAndGet(1) > maxrequests) {
-      throw new WarpScriptException(getName() + " is limited to " + maxrequests + " calls.");
+      throw new WarpScriptException(getName() + " is limited to " + maxrequests + " calls per script execution.");
     }
 
     Map<String, Object> res = new HashMap<>();
@@ -376,7 +376,7 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
             }
 
             if (downloadSize.get() + baos.size() + len > maxsize) {
-              throw new WarpScriptException(getName() + " would exceed maximum size of content which can be retrieved via this function (" + maxsize + " bytes)");
+              throw new WarpScriptException(getName() + " would exceed maximum size of content which can be retrieved via this function (" + maxsize + " bytes) per script execution.");
             }
 
             baos.write(buf, 0, len);
