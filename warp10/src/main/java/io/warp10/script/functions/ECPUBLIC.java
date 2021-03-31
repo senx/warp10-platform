@@ -67,7 +67,7 @@ public class ECPUBLIC extends NamedWarpScriptFunction implements WarpScriptStack
 
       ECPublicKey publicKey = new ECPublicKey() {
         public String getFormat() { return "PKCS#8"; }
-        public byte[] getEncoded() { return q.getEncoded(); }
+        public byte[] getEncoded() { return q.getEncoded(false); }
         public String getAlgorithm() { return "EC"; }
         public ECParameterSpec getParameters() { return bcSpec; }
         public ECPoint getQ() { return q; }
