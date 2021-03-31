@@ -49,8 +49,8 @@ import java.util.concurrent.atomic.AtomicLong;
  * http.size
  *
  * Params:
- * method The http method
  * url The URL to send the request to. Must begin with http:// or https://
+ * method The optional http method. Default to GET.
  * headers An optional header map
  * body An optional body. UTF-8 STRING or BYTES
  * auth.info Authentication arguments. For example for basic authentication, provide [username, password]
@@ -189,7 +189,7 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
 
     String method = (String) params.get(METHOD);
     if (null == method) {
-      throw new WarpScriptException(getName() + " expects an http method.");
+      method = "GET";
     }
 
     Map<Object, Object> headers = (Map) params.getOrDefault(HEADERS, new HashMap<>());
