@@ -314,26 +314,29 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
       // Set body
       //
 
-      if (body instanceof String) {
-        String bodyS = (String) body;
-        conn.setDoOutput(bodyS.length() > 0);
-        if (bodyS.length() > 0) {
-          try (OutputStream os = conn.getOutputStream()) {
-            os.write(bodyS.getBytes(StandardCharsets.UTF_8));
-          }
-        }
+      if ("GET" != method && "DELETE" != method && "TRACE" != method && "OPTIONS" != method && "HEAD" != method) {
 
-      } else if (body instanceof byte[]) {
-        byte[] bodyB = (byte[]) body;
-        conn.setDoOutput(bodyB.length > 0);
-        if (bodyB.length > 0) {
-          try (OutputStream os = conn.getOutputStream()) {
-            os.write(bodyB);
+        if (body instanceof String) {
+          String bodyS = (String) body;
+          conn.setDoOutput(bodyS.length() > 0);
+          if (bodyS.length() > 0) {
+            try (OutputStream os = conn.getOutputStream()) {
+              os.write(bodyS.getBytes(StandardCharsets.UTF_8));
+            }
           }
-        }
 
-      } else if (null != body) {
-        throw new WarpScriptException(getName() + " expects the body of the request to be a STRING or BYTES object.");
+        } else if (body instanceof byte[]) {
+          byte[] bodyB = (byte[]) body;
+          conn.setDoOutput(bodyB.length > 0);
+          if (bodyB.length > 0) {
+            try (OutputStream os = conn.getOutputStream()) {
+              os.write(bodyB);
+            }
+          }
+
+        } else if (null != body) {
+          throw new WarpScriptException(getName() + " expects the body of the request to be a STRING or BYTES object.");
+        }
       }
 
       //
