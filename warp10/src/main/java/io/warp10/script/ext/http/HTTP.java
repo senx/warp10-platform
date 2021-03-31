@@ -26,7 +26,6 @@ import io.warp10.standalone.StandaloneWebCallService;
 import io.warp10.warp.sdk.Capabilities;
 
 import org.apache.commons.codec.binary.Base64;
-import scala.collection.immutable.PagedSeq$;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
