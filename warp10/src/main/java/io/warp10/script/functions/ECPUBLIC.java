@@ -16,6 +16,7 @@
 
 package io.warp10.script.functions;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.bouncycastle.jce.ECNamedCurveTable;
@@ -24,8 +25,7 @@ import org.bouncycastle.jce.interfaces.ECPublicKey;
 import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec;
 import org.bouncycastle.jce.spec.ECParameterSpec;
 import org.bouncycastle.math.ec.ECPoint;
-
-import com.geoxp.oss.jarjar.org.bouncycastle.util.encoders.Hex;
+import org.bouncycastle.util.encoders.Hex;
 
 import io.warp10.continuum.store.Constants;
 import io.warp10.script.NamedWarpScriptFunction;
@@ -44,8 +44,18 @@ public class ECPUBLIC extends NamedWarpScriptFunction implements WarpScriptStack
 
     Object top = stack.pop();
 
+    if (top instanceof ECPublicKey) {
+      ECPublicKey pubkey = (ECPublicKey) top;
+      Map<Object,Object> params = new LinkedHashMap<Object,Object>();
+      ECNamedCurveParameterSpec curve = (ECNamedCurveParameterSpec) pubkey.getParameters();
+      params.put(Constants.KEY_CURVE, curve.getName());
+      params.put(Constants.KEY_Q, org.apache.commons.codec.binary.Hex.encodeHexString(pubkey.getEncoded()));
+      stack.push(params);
+      return stack;
+    }
+
     if (!(top instanceof Map) && !(top instanceof ECPrivateKey)) {
-      throw new WarpScriptException(getName() + " expects a parameter map or a private key.");
+      throw new WarpScriptException(getName() + " expects a parameter map, or a public or private key.");
     }
 
     if (top instanceof ECPrivateKey) {

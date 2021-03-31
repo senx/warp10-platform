@@ -5221,6 +5221,7 @@ public class GTSHelper {
     boolean hasSingleResult = true;
 
     long lastTick = 0;
+    long numbOfMappedDupTick = 0;
 
     while (idx < nticks) {
 
@@ -5253,19 +5254,23 @@ public class GTSHelper {
         }
       }
 
-      //
-      // Skip tick if same as last one and must deduplicate
-      // dedup will behave strangely with step>1, pre>0, post>0 or non-null outputTicks, avoid these configurations.
-      //
-      if (dedup && 0 != idx && tick == lastTick) {
-        idx += step;
-        // Do not decrease occurences as duplicate ticks are considered one occurence in dedup mode.
-        continue;
+      if (0 != idx && lastTick == tick) {
+        // Skip tick if same as last one and must deduplicate
+        // dedup will behave strangely with step>1, pre>0, post>0 or non-null outputTicks, avoid these configurations.
+        if (dedup) {
+          idx += step;
+          // Do not decrease occurrences as duplicate ticks are considered one occurrence in dedup mode.
+          continue;
+        }
+        numbOfMappedDupTick++;
+      } else {
+        numbOfMappedDupTick = 0;
       }
+
       lastTick = tick;
 
       //
-      // Determine start/stop timestamp for extracting subserie
+      // Determine start/stop timestamp for extracting subseries
       //
 
       long start = tick;
@@ -5276,12 +5281,14 @@ public class GTSHelper {
       } else if (prewindow > 0) {
         // window is a number of ticks
         if (null == ticks) {
+          // GTS is bucketized.
           if (null == outputTicks || !reversed) {
             start = prewindow <= mapped.bucketcount ? tick - prewindow * mapped.bucketspan : Long.MIN_VALUE;
           } else {
             start = prewindow - 1 <= mapped.bucketcount ? tick - (prewindow - 1) * mapped.bucketspan : Long.MIN_VALUE;
           }
         } else {
+          // GTS is not bucketized.
           if (null == outputTicks) {
             if (reversed) {
               start = idx + prewindow < ticks.length ? (ticks[idx + (int) prewindow]) : Long.MIN_VALUE;
@@ -5316,12 +5323,14 @@ public class GTSHelper {
       } else if (postwindow > 0) {
         // window is a number of ticks
         if (null == ticks) {
+          // GTS is bucketized.
           if (null == outputTicks || reversed) {
             stop = postwindow <= mapped.bucketcount ? tick + postwindow * mapped.bucketspan : Long.MAX_VALUE;
           } else {
             stop = postwindow - 1 <= mapped.bucketcount ? tick + (postwindow - 1) * mapped.bucketspan : Long.MAX_VALUE;
           }
         } else {
+          // GTS is not bucketized.
           if (null == outputTicks) {
             if (reversed) {
               stop = idx - postwindow >= 0 ? (ticks[idx - (int) postwindow]) : Long.MAX_VALUE;
@@ -5453,9 +5462,17 @@ public class GTSHelper {
 
         for (int j = 0; j < subgts.values; j++) {
           ((Object[]) parms[6])[j] = valueAtIndex(subgts, j);
-          if (-1 == tickidx && tick == tickAtIndex(subgts, j)) {
+          // Find the first index of the current tick or the last one in case we map in reverse.
+          // This is because subgts is always sorted but never in reverse.
+          if ((-1 == tickidx || reversed) && tick == tickAtIndex(subgts, j)) {
             tickidx = j;
           }
+        }
+
+        if(reversed) {
+          tickidx -= numbOfMappedDupTick;
+        } else {
+          tickidx += numbOfMappedDupTick;
         }
 
         parms[i++] = new long[] {prewindow, postwindow, start, stop, tickidx};
@@ -5488,9 +5505,6 @@ public class GTSHelper {
         //
         // Set value if it was not null. Don't overwrite, we scan ticks only once
         //
-
-
-
         if (null != result[3]) {
           GTSHelper.setValue(mapped, overrideTick ? (long) result[0] : tick, (long) result[1], (long) result[2], result[3], false);
         }
