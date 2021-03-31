@@ -42,21 +42,21 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Send an HTTP request to an url
+ * Send an HTTP request to a url
  *
  * To raise maximum number of calls and download size limit, use these capabilities:
  * http.requests
  * http.size
  *
  * Params:
- * METHOD The http method
- * URL The URL to send the request to. Must begin with http:// or https://
- * HEADERS An optional header
- * BODY An optional body. STRING or BYTES
- * AUTH_INFO Authentication arguments. For example for basic authentication, provide [username, password]
- * AUTH_MACRO A macro that expects " + AUTH_INFO + " on the stack, and returns a map to be appended with the headers. Default to basic authentication
- * CHUNK_SIZE Chunk size
- * CHUNK_MACRO A macro that is executed whenever a chunk has been downloaded. It expects a MAP that contains chunk number (a LONG), status code (a LONG), status message (a STRING), headers (a MAP), and chunk content (a BYTES objects)
+ * method The http method
+ * url The URL to send the request to. Must begin with http:// or https://
+ * headers An optional header map
+ * body An optional body. UTF-8 STRING or BYTES
+ * auth.info Authentication arguments. For example for basic authentication, provide [username, password]
+ * auth.macro A macro that expects " + AUTH_INFO + " on the stack, and returns a map to be appended with the headers. Default to basic authentication
+ * chunk.size Chunk size
+ * chunk.macro A macro that is executed whenever a chunk has been downloaded. It expects a MAP that contains chunk number (a LONG), status code (a LONG), status message (a STRING), headers (a MAP), and chunk content (a BYTES objects)
  *
  * Output:
  * RESPONSE A map that contains status code (a LONG), status message (a STRING), headers (a MAP) and full content of the response (a BYTES objects). The content is empty if chunk option is used
