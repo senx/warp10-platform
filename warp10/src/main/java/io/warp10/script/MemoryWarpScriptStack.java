@@ -945,7 +945,6 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
 
     int i = 0;
 
-    List<Object> stmts = macro.statements();
     int n = macro.size();
 
     String macroname = this.macroName;
@@ -961,7 +960,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       for (i = 0; i < n; i++) {
         handleSignal();
 
-        Object stmt = stmts.get(i);
+        Object stmt = macro.get(i);
 
         incOps();
 
