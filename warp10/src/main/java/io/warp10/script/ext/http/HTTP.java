@@ -230,7 +230,14 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
       throw new WarpScriptException(getName() + " expects a chunk size in number of bytes that do not exceed " + chunkSize + ".");
     }
 
-    WarpScriptStack.Macro chunkMacro = (WarpScriptStack.Macro) params.get(CHUNK_MACRO);
+    WarpScriptStack.Macro chunkMacro = null;
+    o = params.get(CHUNK_MACRO);
+    if (null != o) {
+      if (!(o instanceof WarpScriptStack.Macro)) {
+        throw new WarpScriptException(getName() + " expects a macro in the input parameters map as value of " + CHUNK_MACRO);
+      }
+      chunkMacro = (WarpScriptStack.Macro) o;
+    }
 
     //
     // Check URL
