@@ -95,6 +95,25 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
   //
 
   private static final WebAccessController webAccessController;
+
+  //
+  // Authorization
+  //
+
+  private static final boolean auth;
+  private static final String capName;
+
+  //
+  // Limits
+  //
+
+  private static final long baseMaxRequests;
+  private static final long baseMaxSize;
+
+  //
+  // Parameter extraction
+  //
+
   static {
     String patternConf = WarpConfig.getProperty(HttpWarpScriptExtension.WARPSCRIPT_HTTP_HOST_PATTERNS);
 
@@ -104,24 +123,6 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
     } else {
       webAccessController = new WebAccessController(patternConf);
     }
-  }
-
-  //
-  // Authorization
-  //
-
-  private final boolean auth;
-  private final String capName;
-
-  //
-  // Limits
-  //
-
-  private final long baseMaxRequests;
-  private final long baseMaxSize;
-
-  public HTTP(String name) {
-    super(name);
 
     // retrieve authentication required
     auth = "true".equals(WarpConfig.getProperty(HttpWarpScriptExtension.WARPSCRIPT_HTTP_AUTHENTICATION_REQUIRED));
@@ -143,6 +144,10 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
     } else {
       baseMaxSize = Long.parseLong((String) confMaxSize);
     }
+  }
+
+  public HTTP(String name) {
+    super(name);
   }
 
   @Override
