@@ -428,6 +428,9 @@ public interface WarpScriptStack {
             if (o instanceof Macro) {
               sb.append(((Macro) o).snapshot(hideSecure));
               sb.append(" ");
+            } else if (o instanceof NamedWarpScriptFunction) {
+              sb.append(o.toString());
+              sb.append(" ");
             } else {
               SNAPSHOT.addElement(sb, o);
             }
