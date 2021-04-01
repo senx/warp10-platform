@@ -109,6 +109,7 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
 
   private static final long baseMaxRequests;
   private static final long baseMaxSize;
+  private static final long baseMaxChunkSize;
 
   //
   // Parameter extraction
@@ -143,6 +144,13 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
       baseMaxSize = HttpWarpScriptExtension.DEFAULT_HTTP_MAXSIZE;
     } else {
       baseMaxSize = Long.parseLong((String) confMaxSize);
+    }
+
+    Object confMaxChunkSize = WarpConfig.getProperty(HttpWarpScriptExtension.WARPSCRIPT_CHUNK_SIZE);
+    if (null == confMaxChunkSize) {
+      baseMaxChunkSize = HttpWarpScriptExtension.DEFAULT_HTTP_CHUNK_SIZE;
+    } else {
+      baseMaxChunkSize = Long.parseLong((String) confMaxChunkSize);
     }
   }
 
@@ -209,6 +217,16 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
     WarpScriptStack.Macro headersMacro = (WarpScriptStack.Macro) o;
 
     Long chunkSize = (Long) params.getOrDefault(CHUNK_SIZE, -1L);
+    long maxchunksize;
+    if (null != Capabilities.get(stack, HttpWarpScriptExtension.ATTRIBUTE_CHUNK_SIZE)) {
+      maxchunksize = Long.valueOf(Capabilities.get(stack, HttpWarpScriptExtension.ATTRIBUTE_CHUNK_SIZE));
+    } else {
+      maxchunksize = baseMaxChunkSize;
+    }
+    if (chunkSize > maxchunksize) {
+      throw new WarpScriptException(getName() + " expects a chunk size in number of bytes that do not exceed " + chunkSize + ".");
+    }
+
     WarpScriptStack.Macro chunkMacro = (WarpScriptStack.Macro) params.get(CHUNK_MACRO);
 
     //

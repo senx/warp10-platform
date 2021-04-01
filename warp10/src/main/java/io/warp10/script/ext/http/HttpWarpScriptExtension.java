@@ -54,14 +54,19 @@ public class HttpWarpScriptExtension extends WarpScriptExtension {
   //
 
   /**
-   * Number of calls to HTTP so far in the sessions
+   * Number of calls to HTTP so far in the sessions and cap name for raising related limit
    */
   public static final String ATTRIBUTE_HTTP_REQUESTS = "http.requests";
 
   /**
-   * Current  HTTP so far in the sessions
+   * Current HTTP so far in the sessions and cap name for raising related limit
    */
   public static final String ATTRIBUTE_HTTP_SIZE = "http.size";
+
+  /**
+   * Cap name for raising max chunk size
+   */
+  public static final String ATTRIBUTE_CHUNK_SIZE = "http.chunksize";
 
   //
   // Configurable limits (can be raised with capabilities)
@@ -75,7 +80,12 @@ public class HttpWarpScriptExtension extends WarpScriptExtension {
   /**
    * Maximum cumulative size allowed to be downloaded by HTTP
    */
-  public static final String WARPSCRIPT_HTTP_SIZE = "warpscript.http.size";
+  public static final String WARPSCRIPT_HTTP_SIZE = "warpscript.http.maxsize";
+
+  /**
+   * Maximum chunk size allowed when downloading per chunk using HTTP
+   */
+  public static final String WARPSCRIPT_CHUNK_SIZE = "warpscript.http.maxchunksize";
 
   //
   // Defaults limits if configuration not present
@@ -83,6 +93,7 @@ public class HttpWarpScriptExtension extends WarpScriptExtension {
 
   public static final long DEFAULT_HTTP_REQUESTS = 1L;
   public static final long DEFAULT_HTTP_MAXSIZE = 65536L;
+  public static final long DEFAULT_HTTP_CHUNK_SIZE = 65536L;
 
   //
   // Init extension
