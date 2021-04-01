@@ -82,7 +82,7 @@ public class ECGEN extends NamedWarpScriptFunction implements WarpScriptStackFun
         sb.append("' '");
         sb.append(Constants.KEY_Q);
         sb.append("' '");
-        sb.append(Hex.encodeHex(((ECPublicKey) o).getQ().getEncoded()));
+        sb.append(Hex.encodeHex(((ECPublicKey) o).getQ().getEncoded(false)));
         sb.append("' } ");
         sb.append(WarpScriptLib.ECPUBLIC);
         sb.append(" ");
@@ -136,7 +136,7 @@ public class ECGEN extends NamedWarpScriptFunction implements WarpScriptStackFun
     keyparams = new LinkedHashMap<String,String>();
 
     keyparams.put(Constants.KEY_CURVE, name);
-    keyparams.put(Constants.KEY_Q, Hex.encodeHexString(publicKey.getQ().getEncoded()));
+    keyparams.put(Constants.KEY_Q, Hex.encodeHexString(publicKey.getQ().getEncoded(false)));
 
     stack.push(keyparams);
 
