@@ -227,7 +227,7 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
       maxChunkSize = baseMaxChunkSize;
     }
     if (chunkSize > maxChunkSize) {
-      throw new WarpScriptException(getName() + " expects a chunk size in number of bytes that do not exceed " + chunkSize + ".");
+      throw new WarpScriptException(getName() + " expects a chunk size in number of bytes that do not exceed " + maxChunkSize + ".");
     }
 
     WarpScriptStack.Macro chunkMacro = null;
