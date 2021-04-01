@@ -442,13 +442,14 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
         if (null != in) {
 
           int chunkNumber = 0;
-          while (true) {
+          boolean eof = false;
+          
+          while (!eof) {
             chunkNumber++;
 
             Map<String, Object> chunkRes = new LinkedHashMap<>(res);
             byte[] buf = new byte[chunkSize.intValue()];
             int len = 0;
-            boolean eof = false;
             while (len < chunkSize.intValue()) {
               int read = in.read(buf, len,chunkSize.intValue() - len);
               if (read <= 0) {
@@ -477,10 +478,6 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
             stack.push(chunkRes);
             if (null != chunkMacro) {
               stack.exec(chunkMacro);
-            }
-            
-            if (eof) {
-              break;
             }
           }
 
