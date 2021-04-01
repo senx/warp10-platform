@@ -210,20 +210,23 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
     Map<Object, Object> headers = (Map) params.getOrDefault(HEADERS, new HashMap<>());
     Object body = params.get(BODY);
 
+    WarpScriptStack.Macro headersMacro = null;
     o = params.get(HEADERS_MACRO);
-    if (!(o instanceof WarpScriptStack.Macro)) {
-      throw new WarpScriptException(getName() + " expects a macro in the input parameters map as value of " + HEADERS_MACRO);
+    if (null != o) {
+      if (!(o instanceof WarpScriptStack.Macro)) {
+        throw new WarpScriptException(getName() + " expects a macro in the input parameters map as value of " + HEADERS_MACRO);
+      }
+       headersMacro = (WarpScriptStack.Macro) o;
     }
-    WarpScriptStack.Macro headersMacro = (WarpScriptStack.Macro) o;
 
     Long chunkSize = (Long) params.getOrDefault(CHUNK_SIZE, -1L);
-    long maxchunksize;
+    long maxChunkSize;
     if (null != Capabilities.get(stack, HttpWarpScriptExtension.ATTRIBUTE_CHUNK_SIZE)) {
-      maxchunksize = Long.valueOf(Capabilities.get(stack, HttpWarpScriptExtension.ATTRIBUTE_CHUNK_SIZE));
+      maxChunkSize = Long.valueOf(Capabilities.get(stack, HttpWarpScriptExtension.ATTRIBUTE_CHUNK_SIZE));
     } else {
-      maxchunksize = baseMaxChunkSize;
+      maxChunkSize = baseMaxChunkSize;
     }
-    if (chunkSize > maxchunksize) {
+    if (chunkSize > maxChunkSize) {
       throw new WarpScriptException(getName() + " expects a chunk size in number of bytes that do not exceed " + chunkSize + ".");
     }
 
