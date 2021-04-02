@@ -21,6 +21,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.bouncycastle.util.encoders.Hex;
+
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
@@ -58,7 +60,7 @@ public class RLPTO extends NamedWarpScriptFunction implements WarpScriptStackFun
     int idx = offset.get();
 
     if ((int) (data[idx] & 0xFF) > 0xf7) { // List with explicit size
-      int sizebytes = (data[idx] & 0xFF) - 0x80;
+      int sizebytes = (data[idx] & 0xFF) - 0xf7;
       idx++;
       long size = 0;
       if (sizebytes > 4) {
@@ -68,6 +70,7 @@ public class RLPTO extends NamedWarpScriptFunction implements WarpScriptStackFun
       while(sizebytes > 0) {
         size <<= 8;
         size |= data[idx++] & 0xFF;
+        sizebytes--;
         offset.addAndGet(1);
       }
 
@@ -75,7 +78,7 @@ public class RLPTO extends NamedWarpScriptFunction implements WarpScriptStackFun
       List<Object> list = new ArrayList<Object>();
 
       while(offset.get() < end) {
-        list.add(decode(data, offset, end - offset.get() + 1));
+        list.add(decode(data, offset, end - offset.get()));
       }
 
       return list;
@@ -87,7 +90,7 @@ public class RLPTO extends NamedWarpScriptFunction implements WarpScriptStackFun
       int end = offset.get() + size;
 
       while(offset.get() < end) {
-        list.add(decode(data, offset, end - offset.get() + 1));
+        list.add(decode(data, offset, end - offset.get()));
       }
 
       return list;
@@ -102,6 +105,7 @@ public class RLPTO extends NamedWarpScriptFunction implements WarpScriptStackFun
       while(sizebytes > 0) {
         size <<= 8;
         size |= data[idx++] & 0xFF;
+        sizebytes--;
         offset.addAndGet(1);
       }
       offset.addAndGet((int) size);

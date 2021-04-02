@@ -21,6 +21,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.commons.codec.binary.Hex;
 import org.iq80.leveldb.shaded.guava.primitives.Bytes;
 
 import com.google.common.primitives.Longs;
@@ -69,9 +70,8 @@ public class TORLP extends NamedWarpScriptFunction implements WarpScriptStackFun
         while(0x00 == len[idx]) {
           idx++;
         }
-
         return Bytes.concat(
-            Bytes.concat(new byte[] { (byte) (0xf7 + 8 - idx) }, Arrays.copyOfRange(len, idx, 8 - idx)),
+            Bytes.concat(new byte[] { (byte) (0xf7 + 8 - idx) }, Arrays.copyOfRange(len, idx, 8)),
             out.toByteArray()
             );
       }
@@ -96,12 +96,17 @@ public class TORLP extends NamedWarpScriptFunction implements WarpScriptStackFun
         }
 
         return Bytes.concat(
-            Bytes.concat(new byte[] { (byte) (0xb7 + 8 - idx) }, Arrays.copyOfRange(len, idx, 8 - idx)),
+            Bytes.concat(new byte[] { (byte) (0xb7 + 8 - idx) }, Arrays.copyOfRange(len, idx, 8)),
             data
             );
       }
     } else if (o instanceof Long) {
       long l = ((Long) o).longValue();
+
+      if (0L == l) {
+        return encode(new byte[0]);
+      }
+
       byte[] data = Longs.toByteArray(l);
 
       if (l > 0) {
