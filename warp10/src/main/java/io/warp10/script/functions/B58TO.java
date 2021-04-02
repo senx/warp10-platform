@@ -36,7 +36,7 @@ public class B58TO extends NamedWarpScriptFunction implements WarpScriptStackFun
   private static final BigInteger[] TEBAHPLA;
 
   static {
-    TEBAHPLA = new BigInteger[128];
+    TEBAHPLA = new BigInteger[123];
     for (int i = 0; i < TOB58.ALPHABET.length(); i++) {
       TEBAHPLA[TOB58.ALPHABET.charAt(i)] = BigInteger.valueOf(i);
     }
