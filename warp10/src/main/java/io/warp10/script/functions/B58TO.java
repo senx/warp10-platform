@@ -29,22 +29,18 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
 /**
- * Encode a String into Base58 or Base58Check
+ * Decode a Base58 or Base58Check encoded String
  */
 public class B58TO extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-
-  private static final String ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
   private static final BigInteger[] TEBAHPLA;
 
   static {
     TEBAHPLA = new BigInteger[128];
-    for (int i = 0; i < ALPHABET.length(); i++) {
-      TEBAHPLA[ALPHABET.charAt(i)] = BigInteger.valueOf(i);
+    for (int i = 0; i < TOB58.ALPHABET.length(); i++) {
+      TEBAHPLA[TOB58.ALPHABET.charAt(i)] = BigInteger.valueOf(i);
     }
   }
-
-  private static final BigInteger FIFTY_EIGHT = new BigInteger("58");
 
   private final boolean check;
 
@@ -59,9 +55,10 @@ public class B58TO extends NamedWarpScriptFunction implements WarpScriptStackFun
 
     byte[] prefix = null;
 
-    if (this.check && !(top instanceof byte[])) {
-      throw new WarpScriptException(getName() + " expects a byte array prefix.");
-    } else if (this.check) {
+    if (this.check) {
+      if(!(top instanceof byte[])) {
+        throw new WarpScriptException(getName() + " expects a byte array prefix.");
+      }
       prefix = (byte[]) top;
       top = stack.pop();
     }
@@ -70,16 +67,22 @@ public class B58TO extends NamedWarpScriptFunction implements WarpScriptStackFun
       throw new WarpScriptException(getName() + " operates on a STRING.");
     }
 
-    byte[] decoded = decode((String) top);
+    byte[] decoded;
+
+    try {
+      decoded = decode((String) top);
+    } catch (WarpScriptException wse) {
+      throw new WarpScriptException(getName() + " encountered an error while decoding Base58.", wse);
+    }
 
     if (check) {
       if (decoded.length < prefix.length + 4) {
-        throw new WarpScriptException("Invalid length.");
+        throw new WarpScriptException(getName() + " Base58 STRING too short.");
       }
 
       for (int i = 0; i < prefix.length; i++) {
         if (i > decoded.length || decoded[i] != prefix[i]) {
-          throw new WarpScriptException("Invalid prefix.");
+          throw new WarpScriptException(getName() + " invalid prefix.");
         }
       }
 
@@ -97,7 +100,7 @@ public class B58TO extends NamedWarpScriptFunction implements WarpScriptStackFun
 
       for (int i = 0; i < 4; i++) {
         if (hash[i] != decoded[decoded.length - 4 + i]) {
-          throw new WarpScriptException("Invalid checksum.");
+          throw new WarpScriptException(getName() + " invalid checksum.");
         }
       }
 
@@ -129,7 +132,7 @@ public class B58TO extends NamedWarpScriptFunction implements WarpScriptStackFun
       if (c > 127 || null == TEBAHPLA[c]) {
         throw new WarpScriptException("Invalid input '" + encoded.charAt(i) + "' at position " + i + ".");
       }
-      n = n.multiply(FIFTY_EIGHT).add(TEBAHPLA[c]);
+      n = n.multiply(TOB58.FIFTY_EIGHT).add(TEBAHPLA[c]);
     }
     byte[] nbytes = n.toByteArray();
     // If the number is positive but would lead to an hexadecimal notation starting with a byte over 0x7F,

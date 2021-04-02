@@ -33,9 +33,9 @@ import io.warp10.script.WarpScriptStackFunction;
  */
 public class TOB58 extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  private static final String ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+  public static final String ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
-  private static final BigInteger FIFTY_EIGHT = new BigInteger("58");
+  public static final BigInteger FIFTY_EIGHT = new BigInteger("58");
 
   private final boolean check;
 
@@ -51,9 +51,10 @@ public class TOB58 extends NamedWarpScriptFunction implements WarpScriptStackFun
     byte[] payload = null;
     byte[] prefix = null;
 
-    if (check && !(top instanceof byte[])) {
-      throw new WarpScriptException(getName() + " expects a byte array prefix.");
-    } else if (check) {
+    if (check) {
+      if (!(top instanceof byte[])) {
+        throw new WarpScriptException(getName() + " expects a byte array prefix.");
+      }
       prefix = (byte[]) top;
       top = stack.pop();
     }
@@ -100,7 +101,13 @@ public class TOB58 extends NamedWarpScriptFunction implements WarpScriptStackFun
       zero_counter++;
     }
 
-    BigInteger n = 0x00 != (data[0] & 0x80) ? new BigInteger(Bytes.concat(new byte[] { 0x00 }, data)) : new BigInteger(data);
+    // Add a leading 0x00 byte if the first byte is above 128 as otherwise
+    // the number would be considered a negative one
+    if (0x00 != (data[0] & 0x80)) {
+      data = Bytes.concat(new byte[] { 0x00 }, data);
+    }
+
+    BigInteger n = new BigInteger(data);
 
     while(!BigInteger.ZERO.equals(n)) {
       int r = n.mod(FIFTY_EIGHT).intValue();
