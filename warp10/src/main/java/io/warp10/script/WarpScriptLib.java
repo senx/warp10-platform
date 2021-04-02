@@ -671,6 +671,7 @@ public class WarpScriptLib {
   public static final String ECDH = "ECDH";
   public static final String ECPRIVATE = "ECPRIVATE";
   public static final String ECPUBLIC = "ECPUBLIC";
+  public static final String ECRECOVER = "ECRECOVER";
   public static final String ECSIGN = "ECSIGN";
   public static final String ECVERIFY = "ECVERIFY";
   public static final String MSIGN = "MSIGN";
@@ -1553,6 +1554,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new ECDH(ECDH));
     addNamedWarpScriptFunction(new ECPRIVATE(ECPRIVATE));
     addNamedWarpScriptFunction(new ECPUBLIC(ECPUBLIC));
+    addNamedWarpScriptFunction(new ECRECOVER(ECRECOVER));
     addNamedWarpScriptFunction(new ECSIGN(ECSIGN));
     addNamedWarpScriptFunction(new ECVERIFY(ECVERIFY));
     addNamedWarpScriptFunction(new MSIGN(MSIGN));
