@@ -30,6 +30,7 @@ import io.warp10.script.WarpScriptStackFunction;
 
 /**
  * Encode a String into Base58 or Base58Check
+ * See https://tools.ietf.org/html/draft-msporny-base58-03
  */
 public class TOB58 extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
