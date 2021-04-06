@@ -35,6 +35,7 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -294,7 +295,7 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
       throw new WarpScriptException(getName() + " is limited to " + maxrequests + " calls per script execution.");
     }
 
-    Map<String, Object> res = new HashMap<>();
+    Map<String, Object> res = new LinkedHashMap<>();
     HttpURLConnection conn = null;
 
     try {
@@ -384,6 +385,10 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
       res.put(STATUS_CODE, conn.getResponseCode());
       Map<String, List<String>> hdrs = conn.getHeaderFields();
 
+      // headers map is immutable
+      res.put(RESPONSE_HEADERS, hdrs);
+
+      // also put status_message in a separate field
       if (hdrs.containsKey(null)) {
         List<String> statusMsg = hdrs.get(null);
         if (statusMsg.size() > 0) {
@@ -394,15 +399,6 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
       } else {
         res.put(STATUS_MESSAGE, "");
       }
-
-      //
-      // Make the headers map modifiable
-      //
-
-      hdrs = new LinkedHashMap<String, List<String>>(hdrs);
-      hdrs.remove(null);
-
-      res.put(RESPONSE_HEADERS, hdrs);
 
       //
       // Read response
@@ -445,6 +441,10 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
 
       } else {
 
+        //
+        // Chunk processing
+        //
+
         if (null != in) {
 
           int chunkNumber = 0;
@@ -453,7 +453,6 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
           while (!eof) {
             chunkNumber++;
 
-            Map<String, Object> chunkRes = new LinkedHashMap<>(res);
             byte[] buf = new byte[chunkSize.intValue()];
             int len = 0;
             while (len < chunkSize.intValue()) {
@@ -473,31 +472,40 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
             }
 
             if (len == chunkSize) {
-              chunkRes.put(CONTENT, buf);
+              res.put(CONTENT, buf);
             } else {
               byte[] buf2 = new byte[len];
               System.arraycopy(buf, 0, buf2, 0, buf2.length);
-              chunkRes.put(CONTENT, buf2);
+              res.put(CONTENT, buf2);
             }
-            chunkRes.put(CHUNK_NUMBER, new Long(chunkNumber));
+            res.put(CHUNK_NUMBER, new Long(chunkNumber));
 
+            Map<String, Object> chunkRes = Collections.unmodifiableMap(res);
             stack.push(chunkRes);
             if (null != chunkMacro) {
               stack.exec(chunkMacro);
             }
           }
-
-        } else {
-          Map<String, Object> chunkRes = new LinkedHashMap<>(res);
-          chunkRes.put(CHUNK_NUMBER, 1L);
-          chunkRes.put(CONTENT, new byte[0]);
-          stack.push(chunkRes);
-          if (null != chunkMacro) {
-            stack.exec(chunkMacro);
-          }
         }
 
+        //
+        // Finalize chunk processing with a last execution of the chunk.macro
+        // buffer is empty and chunk.number is set to -1 for this one
+        //
+
+        res.put(CHUNK_NUMBER, -1L);
         res.put(CONTENT, new byte[0]);
+        Map<String, Object> chunkRes = Collections.unmodifiableMap(res);
+        stack.push(chunkRes);
+        if (null != chunkMacro) {
+          stack.exec(chunkMacro);
+        }
+
+        //
+        // End chunk processing
+        //
+
+        res.remove(CHUNK_NUMBER);
       }
 
     } catch (IOException ioe) {
