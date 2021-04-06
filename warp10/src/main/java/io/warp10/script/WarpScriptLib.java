@@ -1108,6 +1108,10 @@ public class WarpScriptLib {
   public static final String TOBIN_ = "->BIN";
   public static final String TOHEX_ = "->HEX";
   public static final String TOB64 = "->B64";
+  public static final String TOB58 = "->B58";
+  public static final String TOB58C = "->B58C";
+  public static final String B58TO = "B58->";
+  public static final String B58CTO = "B58C->";
   public static final String TOB64URL = "->B64URL";
   public static final String TOENCODER = "->ENCODER";
   public static final String TOENCODERS = "->ENCODERS";
@@ -1606,6 +1610,10 @@ public class WarpScriptLib {
 
     addNamedWarpScriptFunction(new TORLP(TORLP));
     addNamedWarpScriptFunction(new RLPTO(RLPTO));
+    addNamedWarpScriptFunction(new TOB58(TOB58, false));
+    addNamedWarpScriptFunction(new TOB58(TOB58C, true));
+    addNamedWarpScriptFunction(new B58TO(B58TO, false));
+    addNamedWarpScriptFunction(new B58TO(B58CTO, true));
 
     //
     // Conditionals
