@@ -1,5 +1,5 @@
 //
-//   Copyright 2020  SenX S.A.S.
+//   Copyright 2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,23 +16,19 @@
 
 package io.warp10.script.functions;
 
-import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.security.Signature;
-import java.security.SignatureException;
-import java.security.spec.ECParameterSpec;
-import java.security.spec.ECPoint;
-import java.security.spec.EllipticCurve;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
-import org.bouncycastle.jcajce.provider.asymmetric.util.EC5Util;
+import org.apache.commons.codec.binary.Hex;
 import org.bouncycastle.jce.ECNamedCurveTable;
 import org.bouncycastle.jce.interfaces.ECPublicKey;
 import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec;
+import org.bouncycastle.jce.spec.ECParameterSpec;
 import org.bouncycastle.math.ec.ECFieldElement;
-import org.bouncycastle.math.ec.custom.sec.SecP256R1Curve;
+import org.bouncycastle.math.ec.ECPoint;
+import org.bouncycastle.util.Arrays;
 
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
@@ -40,7 +36,7 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
 /**
- * Recover an ECC public key from signature (r,s), curve and hash
+ * Recover possible ECC public keys from an ECDSA signature (r,s), curve and hash
  */
 public class ECRECOVER extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
@@ -66,171 +62,154 @@ public class ECRECOVER extends NamedWarpScriptFunction implements WarpScriptStac
 
     Map<Object,Object> params = (Map<Object,Object>) top;
 
-    ECNamedCurveParameterSpec spec = ECNamedCurveTable.getParameterSpec(String.valueOf(params.get("curve")));
+    final ECNamedCurveParameterSpec spec = ECNamedCurveTable.getParameterSpec(String.valueOf(params.get("curve")));
 
-    System.out.println(spec.getCurve().getClass());
-
-    org.bouncycastle.math.ec.ECPoint G = spec.getG();
     ECFieldElement N = spec.getCurve().fromBigInteger(spec.getN());
     BigInteger H = spec.getH();
     ECFieldElement A = spec.getCurve().getA();
     ECFieldElement B = spec.getCurve().getB();
-    BigInteger P = spec.getCurve().getField().getCharacteristic();
     BigInteger r;
     BigInteger s;
     BigInteger z;
-
-    if (!(params.get(KEY_R) instanceof String)) {
-      throw new WarpScriptException(getName() + " invalid '" + KEY_R + "', expected STRING.");
-    }
-
-    if (!(params.get(KEY_S) instanceof String)) {
-      throw new WarpScriptException(getName() + " invalid '" + KEY_R + "', expected STRING.");
-    }
 
     if (!(params.get(KEY_HASH) instanceof byte[])) {
       throw new WarpScriptException(getName() + " invalid '" + KEY_HASH + "', expected BYTES.");
     }
 
-    if (!(params.get(KEY_SIG) instanceof byte[])) {
-      throw new WarpScriptException(getName() + " invalid '" + KEY_SIG + "', expected BYTES.");
-    }
+    if (null != params.get(KEY_SIG)) {
+      // Decode DER encoded signature (sequence of 2 integers)
+      // Example:
+      // 3044 Sequence of 0x44 bytes
+      // 0220 Integer on 0x20 bytes
+      //      7d97908b4472fd28d9381d795e9da95e07c5fd3eaea532d20a495ef543d51135
+      // 0220 Integer on 0x20 bytes
+      //      6db3861916bcd7096b9d701b44ef3cd2a74d087405ee36f01a857c1363ccb383
+      if (!(params.get(KEY_SIG) instanceof byte[])) {
+        throw new WarpScriptException(getName() + " invalid '" + KEY_SIG + "', expected BYTES.");
+      }
 
-    String str = ((String) params.get(KEY_R)).toLowerCase();
+      byte[] sig = (byte[]) params.get(KEY_SIG);
 
-    if (str.startsWith("0x")) {
-      r = new BigInteger("00" + str.substring(2), 16);
+      int rlen = (int) sig[3];
+
+      int offset = 4;
+      r = new BigInteger("00" + Hex.encodeHexString(Arrays.copyOfRange(sig, offset, offset + rlen)), 16);
+      offset += rlen;
+      offset += 2;
+      s = new BigInteger("00" + Hex.encodeHexString(Arrays.copyOfRange(sig, offset, sig.length)), 16);
+      if (r.compareTo(spec.getN()) > 0 || r.compareTo(BigInteger.ONE) < 0) {
+        throw new WarpScriptException(getName() + " invalid value for r, should be in [1, 0x00" + spec.getN().toString(16) + "] but as 0x" + r.toString(16) + ".");
+      }
+      if (s.compareTo(spec.getN()) > 0 || s.compareTo(BigInteger.ONE) < 0) {
+        throw new WarpScriptException(getName() + " invalid value for s, should be in [1, 0x00" + spec.getN().toString(16) + "] but as 0x" + s.toString(16) + ".");
+      }
+    } else if (null != params.get(KEY_R) && null != params.get(KEY_S)) {
+      if (!(params.get(KEY_R) instanceof String)) {
+        throw new WarpScriptException(getName() + " invalid '" + KEY_R + "', expected STRING.");
+      }
+
+      if (!(params.get(KEY_S) instanceof String)) {
+        throw new WarpScriptException(getName() + " invalid '" + KEY_S + "', expected STRING.");
+      }
+
+      String str = ((String) params.get(KEY_R)).toLowerCase();
+
+      if (str.startsWith("0x")) {
+        r = new BigInteger("00" + str.substring(2), 16);
+      } else {
+        r = new BigInteger(str);
+      }
+
+      str = ((String) params.get(KEY_S)).toLowerCase();
+
+      if (str.startsWith("0x")) {
+        s = new BigInteger("00" + str.substring(2), 16);
+      } else {
+        s = new BigInteger(str);
+      }
     } else {
-      r = new BigInteger(str);
+      throw new WarpScriptException(getName() + " expects '" + KEY_SIG + "' or '" + KEY_R + "' and '" + KEY_S + "' to be provided.");
     }
 
-    str = ((String) params.get(KEY_S)).toLowerCase();
+    int nbits = spec.getN().bitLength();
 
-    if (str.startsWith("0x")) {
-      s = new BigInteger("00" + str.substring(2), 16);
-    } else {
-      s = new BigInteger(str);
+    if (nbits % 8 != 0) {
+      throw new WarpScriptException(getName() + " only supports ECC curves with a bit length which is a multiple of 8.");
     }
 
-    SecP256R1Curve
     byte[] hash = (byte[]) params.get(KEY_HASH);
-    byte[] sig = (byte[]) params.get(KEY_SIG);
+
+    if (hash.length > nbits / 8) {
+      hash = Arrays.copyOf(hash, nbits / 8);
+    } else if (hash.length < nbits / 8) {
+      throw new WarpScriptException(getName() + " invalid hash length, should be >= " + (nbits / 8) + " bytes.");
+    }
+
+    z = new BigInteger("00" + Hex.encodeHexString(hash), 16);
+
+    List<Object> candidates = new ArrayList<Object>();
 
     for (int j = 0; j < H.intValue(); j++) {
+
+      //
+      // Compute y = sqrt(x^3  + ax + b)
+      //
+
       ECFieldElement je = spec.getCurve().fromBigInteger(BigInteger.valueOf(j));
       ECFieldElement x = spec.getCurve().fromBigInteger(r).add(N.multiply(je));
       ECFieldElement rhs = x.square().add(A).multiply(x).add(B);
       ECFieldElement y = rhs.sqrt();
 
+      // No square root, continue with next value of j
       if (null == y) {
-        throw new IllegalArgumentException("Invalid point compression");
+        continue;
       }
 
-      org.bouncycastle.math.ec.ECPoint R = spec.getCurve().createPoint(x.toBigInteger(), y.toBigInteger());
-      org.bouncycastle.math.ec.ECPoint Rprime = spec.getCurve().createPoint(x.toBigInteger(), y.negate().toBigInteger());
+      ECPoint R = spec.getCurve().createPoint(x.toBigInteger(), y.toBigInteger());
 
-      𝑟−1(𝑠𝑅−𝑧𝐺)  and 𝑟−1(𝑠𝑅′−𝑧𝐺)
+      //
+      // if R is not a multiple of G then we skip to the next iteration of the loop
+      //
 
-      ECFieldElement rinv = spec.getCurve().fromBigInteger(r).invert();
-      ECFieldElement z = spec.getCurve().fromBigInteger(biz);
-      org.bouncycastle.math.ec.ECPoint ecx = spec.getCurve().createPoint(r, BigInteger.ZERO);
-      org.bouncycastle.math.ec.ECPoint ecx2 = ecx.multiply(r);
-      org.bouncycastle.math.ec.ECPoint ecx3 = ecx2.multiply(r);
+      if (!R.multiply(spec.getN()).isInfinity()) {
+        continue;
+      }
 
-      ecx = ecx.multiply(r);
+      ECPoint Rprime = spec.getCurve().createPoint(x.toBigInteger(), y.negate().toBigInteger());
 
-      BigInteger x = r.add(N.multiply(BigInteger.valueOf(j)));
-      // Compute y^2 = x^3 + ax + b
-      BigInteger y2 = x.pow(3).add(x.multiply(A)).add(B);
-      BigDecimal y = new BigDecimal(y2);
+      //𝑟−1(𝑠𝑅−𝑧𝐺)  and 𝑟−1(𝑠𝑅′−𝑧𝐺)
 
+      BigInteger rinv = spec.getCurve().fromBigInteger(r.modInverse(spec.getN())).toBigInteger(); //.invert().toBigInteger();
 
+      // Points MUST be normalized
+
+      // r^(-1) x (sR - zG)
+      final ECPoint Q1 = R.multiply(s).subtract(spec.getG().multiply(z)).multiply(rinv).normalize();
+      ECPublicKey K1 = new ECPublicKey() {
+        public String getFormat() { return "PKCS#8"; }
+        public byte[] getEncoded() { return Q1.getEncoded(false); }
+        public String getAlgorithm() { return "EC"; }
+        public ECPoint getQ() { return Q1; }
+        public ECParameterSpec getParameters() { return spec; }
+      };
+
+      candidates.add(K1);
+
+      // r^(-1) x (sR' - zG)
+      final ECPoint Q2 = Rprime.multiply(s).subtract(spec.getG().multiply(z)).multiply(rinv).normalize();
+      ECPublicKey K2 = new ECPublicKey() {
+        public String getFormat() { return "PKCS#8"; }
+        public byte[] getEncoded() { return Q2.getEncoded(false); }
+        public String getAlgorithm() { return "EC"; }
+        public ECPoint getQ() { return Q2; }
+        public ECParameterSpec getParameters() { return spec; }
+      };
+
+      candidates.add(K2);
     }
 
-    if (params.containsKey("r") && params.containsKey("s")) {
-      BigInteger rinv = r.modInverse(N);
-    } else if (params.containsKey("rs")) {
+    stack.push(candidates);
 
-    }
-
-    BigInteger rinv = r.modInverse(N);
-
-    if (!(top instanceof ECPublicKey)) {
-      throw new WarpScriptException(getName() + " expects an ECC public key.");
-    }
-/*
-    byte[] encoded = ((ECPublicKey) top).getQ().getEncoded(false);
-    org.bouncycastle.math.ec.ECPoint q = ((ECPublicKey) top).getQ();
-    ECPoint w = new ECPoint(q.getXCoord().toBigInteger(), q.getYCoord().toBigInteger());
-    org.bouncycastle.jce.spec.ECParameterSpec curve = ((ECPublicKey) top).getParameters();
-    EllipticCurve ec = EC5Util.convertCurve(curve.getCurve(),  curve.getSeed());
-
-    final ECParameterSpec spec = new ECParameterSpec(
-        ec,
-        new ECPoint(curve.getG().getXCoord().toBigInteger(), curve.getG().getYCoord().toBigInteger()),
-        curve.getN(),
-        curve.getH().intValue());
-
-    java.security.interfaces.ECPublicKey key = new java.security.interfaces.ECPublicKey() {
-      public String getFormat() { return "PKCS#8"; }
-      public byte[] getEncoded() { return encoded; }
-      public String getAlgorithm() { return "EC"; }
-      public ECPoint getW() { return w; }
-      public ECParameterSpec getParams() { return spec; }
-    };
-
-    top = stack.pop();
-
-    if (!(top instanceof String)) {
-      throw new WarpScriptException(getName() + " expects an algorithm name.");
-    }
-
-    String alg = top.toString();
-
-    top = stack.pop();
-
-    if (!(top instanceof byte[])) {
-      throw new WarpScriptException(getName() + " expects a signature.");
-    }
-
-    byte[] sig = (byte[]) top;
-
-    top = stack.pop();
-
-    if (!(top instanceof byte[])) {
-      throw new WarpScriptException(getName() + " operates on a byte array.");
-    }
-
-    byte[] data = (byte[]) top;
-
-    try {
-      Signature signature = Signature.getInstance(alg, ECGEN.BCProvider);
-      signature.initVerify(key);
-      signature.update(data);
-      stack.push(signature.verify(sig));
-    } catch (SignatureException se) {
-      throw new WarpScriptException(getName() + " error while verifying signature.", se);
-    } catch (InvalidKeyException ike) {
-      throw new WarpScriptException(getName() + " error while verifying signature.", ike);
-    } catch (NoSuchAlgorithmException nsae) {
-      throw new WarpScriptException(getName() + " error while verifying signature.", nsae);
-    }
-*/
     return stack;
-  }
-
-  private static BigInteger sqrt(BigInteger val) {
-    BigInteger half = BigInteger.ZERO.setBit(val.bitLength() / 2);
-    BigInteger cur = half;
-
-    while (true) {
-      BigInteger tmp = half.add(val.divide(half)).shiftRight(1);
-
-      if (tmp.equals(half) || tmp.equals(cur)) {
-        return tmp;
-      }
-      cur = half;
-      half = tmp;
-    }
   }
 }
