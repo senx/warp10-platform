@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -89,9 +89,9 @@ public class NPDF extends NamedWarpScriptFunction implements WarpScriptStackFunc
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append(this.sigma);
-    sb.append(" ");
     sb.append(this.mu);
+    sb.append(" ");
+    sb.append(this.sigma);
     sb.append(" ");
     sb.append(this.getName());
     return sb.toString();
