@@ -219,7 +219,13 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
        headersMacro = (WarpScriptStack.Macro) o;
     }
 
-    Long chunkSize = (Long) params.getOrDefault(CHUNK_SIZE, -1L);
+    Long chunkSize = (Long) params.get(CHUNK_SIZE);
+    if (null != chunkSize) {
+      if (0 >= chunkSize) {
+        throw new WarpScriptException(getName() + " expects " + CHUNK_SIZE + " value to be greater than 0.");
+      }
+    }
+
     long maxChunkSize;
     if (null != Capabilities.get(stack, HttpWarpScriptExtension.ATTRIBUTE_CHUNK_SIZE)) {
       maxChunkSize = Long.valueOf(Capabilities.get(stack, HttpWarpScriptExtension.ATTRIBUTE_CHUNK_SIZE));
@@ -411,7 +417,7 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
         in = conn.getErrorStream();
       }
 
-      if (chunkSize <= 0) {
+      if (null == chunkSize) {
 
         if (null != in) {
           byte[] buf = new byte[8192];
@@ -443,7 +449,7 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
 
           int chunkNumber = 0;
           boolean eof = false;
-          
+
           while (!eof) {
             chunkNumber++;
 
