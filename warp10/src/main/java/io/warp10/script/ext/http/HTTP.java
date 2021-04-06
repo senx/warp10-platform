@@ -177,7 +177,7 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
     }
 
     if (null != capName && null == Capabilities.get(stack, capName)) {
-      throw new WarpScriptException("Capability " + capName + " is required by function " + getName());
+      throw new WarpScriptException(getName() + " requires capability " + capName + ".");
     }
 
     //
