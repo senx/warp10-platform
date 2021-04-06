@@ -205,7 +205,7 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
 
     Object body = params.get(BODY);
     String method = (String) params.get(METHOD);
-    
+
     if (null == method) {
 
       if (null == body) {
