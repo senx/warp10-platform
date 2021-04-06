@@ -203,13 +203,20 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
     // Retrieve arguments
     //
 
+    Object body = params.get(BODY);
     String method = (String) params.get(METHOD);
+    
     if (null == method) {
-      method = "GET";
+
+      if (null == body) {
+        method = "GET";
+
+      } else {
+        method = "POST";
+      }
     }
 
     Map<Object, Object> headers = (Map) params.getOrDefault(HEADERS, new HashMap<>());
-    Object body = params.get(BODY);
 
     WarpScriptStack.Macro headersMacro = null;
     o = params.get(HEADERS_MACRO);
