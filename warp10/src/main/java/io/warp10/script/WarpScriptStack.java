@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -427,6 +427,20 @@ public interface WarpScriptStack {
           try {
             if (o instanceof Macro) {
               sb.append(((Macro) o).snapshot(hideSecure));
+              sb.append(" ");
+            } else if (o instanceof WarpScriptStackFunction) {
+              String funcSnapshot = o.toString();
+              // In the case the snapshot of the function is 'MYFUNC' FUNCREF, instead of adding
+              // 'MYFUNC' FUNCREF EVAL to the snapshot, MYFUNC can simply be added.
+              if (o instanceof NamedWarpScriptFunction
+                  && null != funcSnapshot
+                  && funcSnapshot.equals("'" + ((NamedWarpScriptFunction) o).getName() + "' " + WarpScriptLib.FUNCREF)) {
+                sb.append(((NamedWarpScriptFunction) o).getName());
+              } else {
+                sb.append(funcSnapshot);
+                sb.append(" ");
+                sb.append(WarpScriptLib.EVAL);
+              }
               sb.append(" ");
             } else {
               SNAPSHOT.addElement(sb, o);
