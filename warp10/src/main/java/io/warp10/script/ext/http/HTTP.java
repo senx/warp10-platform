@@ -383,6 +383,9 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
         } else if (null != body) {
           throw new WarpScriptException(getName() + " expects the body of the request to be a STRING or BYTES object.");
         }
+
+      } else if (null != body) {
+        throw new WarpScriptException(getName() + " " + method + " cannot be used with a body.");
       }
 
       //
