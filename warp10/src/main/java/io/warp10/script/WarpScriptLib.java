@@ -28,6 +28,7 @@ import java.util.Properties;
 import java.util.Set;
 
 import org.bouncycastle.crypto.digests.GOST3411Digest;
+import org.bouncycastle.crypto.digests.KeccakDigest;
 import org.bouncycastle.crypto.digests.MD2Digest;
 import org.bouncycastle.crypto.digests.MD4Digest;
 import org.bouncycastle.crypto.digests.MD5Digest;
@@ -39,6 +40,7 @@ import org.bouncycastle.crypto.digests.SHA1Digest;
 import org.bouncycastle.crypto.digests.SHA224Digest;
 import org.bouncycastle.crypto.digests.SHA256Digest;
 import org.bouncycastle.crypto.digests.SHA384Digest;
+import org.bouncycastle.crypto.digests.SHA3Digest;
 import org.bouncycastle.crypto.digests.SHA512Digest;
 import org.bouncycastle.crypto.digests.TigerDigest;
 import org.bouncycastle.crypto.digests.WhirlpoolDigest;
@@ -631,6 +633,12 @@ public class WarpScriptLib {
   public static final String NS = "ns";
   public static final String PS = "ps";
   public static final String HASH = "HASH";
+  public static final String KECCAK_128 = "KECCAK.128";
+  public static final String KECCAK_224 = "KECCAK.224";
+  public static final String KECCAK_256 = "KECCAK.256";
+  public static final String KECCAK_288 = "KECCAK.288";
+  public static final String KECCAK_384 = "KECCAK.384";
+  public static final String KECCAK_512 = "KECCAK.512";
   public static final String TOSSSS = "->SSSS";
   public static final String SSSSTO = "SSSS->";
   public static final String MD2 = "MD2";
@@ -641,6 +649,10 @@ public class WarpScriptLib {
   public static final String SHA256 = "SHA256";
   public static final String SHA384 = "SHA384";
   public static final String SHA512 = "SHA512";
+  public static final String SHA3_224 = "SHA3.224";
+  public static final String SHA3_256 = "SHA3.256";
+  public static final String SHA3_384 = "SHA3.384";
+  public static final String SHA3_512 = "SHA3.512";
   public static final String RIPEMD128 = "RIPEMD128";
   public static final String RIPEMD160 = "RIPEMD160";
   public static final String RIPEMD256 = "RIPEMD256";
@@ -1096,6 +1108,10 @@ public class WarpScriptLib {
   public static final String TOBIN_ = "->BIN";
   public static final String TOHEX_ = "->HEX";
   public static final String TOB64 = "->B64";
+  public static final String TOB58 = "->B58";
+  public static final String TOB58C = "->B58C";
+  public static final String B58TO = "B58->";
+  public static final String B58CTO = "B58C->";
   public static final String TOB64URL = "->B64URL";
   public static final String TOENCODER = "->ENCODER";
   public static final String TOENCODERS = "->ENCODERS";
@@ -1502,6 +1518,12 @@ public class WarpScriptLib {
 
     // Crypto functions
     addNamedWarpScriptFunction(new HASH(HASH));
+    addNamedWarpScriptFunction(new DIGEST(KECCAK_128, KeccakDigest.class, 128));
+    addNamedWarpScriptFunction(new DIGEST(KECCAK_224, KeccakDigest.class, 224));
+    addNamedWarpScriptFunction(new DIGEST(KECCAK_256, KeccakDigest.class, 256));
+    addNamedWarpScriptFunction(new DIGEST(KECCAK_288, KeccakDigest.class, 288));
+    addNamedWarpScriptFunction(new DIGEST(KECCAK_384, KeccakDigest.class, 384));
+    addNamedWarpScriptFunction(new DIGEST(KECCAK_512, KeccakDigest.class, 512));
     addNamedWarpScriptFunction(new DIGEST(MD2, MD2Digest.class));
     addNamedWarpScriptFunction(new DIGEST(MD4, MD4Digest.class));
     addNamedWarpScriptFunction(new DIGEST(MD5, MD5Digest.class));
@@ -1510,6 +1532,11 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new DIGEST(SHA256, SHA256Digest.class));
     addNamedWarpScriptFunction(new DIGEST(SHA384, SHA384Digest.class));
     addNamedWarpScriptFunction(new DIGEST(SHA512, SHA512Digest.class));
+    addNamedWarpScriptFunction(new DIGEST(SHA3_224, SHA3Digest.class, 224));
+    addNamedWarpScriptFunction(new DIGEST(SHA3_256, SHA3Digest.class, 256));
+    addNamedWarpScriptFunction(new DIGEST(SHA3_384, SHA3Digest.class, 384));
+    addNamedWarpScriptFunction(new DIGEST(SHA3_512, SHA3Digest.class, 512));
+
     addNamedWarpScriptFunction(new DIGEST(RIPEMD128, RIPEMD128Digest.class));
     addNamedWarpScriptFunction(new DIGEST(RIPEMD160, RIPEMD160Digest.class));
     addNamedWarpScriptFunction(new DIGEST(RIPEMD256, RIPEMD256Digest.class));
@@ -1583,6 +1610,11 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new TOOPB64(TOOPB64));
     addNamedWarpScriptFunction(new OPB64TO(OPB64TO));
     addNamedWarpScriptFunction(new OPB64TOHEX(OPB64TOHEX));
+
+    addNamedWarpScriptFunction(new TOB58(TOB58, false));
+    addNamedWarpScriptFunction(new TOB58(TOB58C, true));
+    addNamedWarpScriptFunction(new B58TO(B58TO, false));
+    addNamedWarpScriptFunction(new B58TO(B58CTO, true));
 
     //
     // Conditionals
