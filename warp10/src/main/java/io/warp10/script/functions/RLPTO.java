@@ -95,7 +95,7 @@ public class RLPTO extends NamedWarpScriptFunction implements WarpScriptStackFun
 
       return list;
     } else if ((int) (data[idx] & 0xFF) > 0xb7) { // String with explicit size
-      int sizebytes = (data[idx] & 0xFF) - 0x80;
+      int sizebytes = (data[idx] & 0xFF) - 0xb7;
       idx++;
       long size = 0;
       if (sizebytes > 4) {
