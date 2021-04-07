@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.codec.binary.BinaryCodec;
 import org.apache.commons.codec.binary.Hex;
 import org.bouncycastle.jce.ECNamedCurveTable;
 import org.bouncycastle.jce.interfaces.ECPublicKey;
@@ -90,18 +91,36 @@ public class ECRECOVER extends NamedWarpScriptFunction implements WarpScriptStac
 
       byte[] sig = (byte[]) params.get(KEY_SIG);
 
-      int rlen = (int) sig[3];
+      int offset = 0;
 
-      int offset = 4;
+      if (0 != (sig[1] & 0x80)) { // Length is encoded by sig[1] - 1 bytes
+        offset = 2;
+        int sbytes = (sig[1] & 0xFF) - 0x80;
+        int len = 0;
+        while(sbytes > 0) {
+          len = len << 8;
+          len |= sig[offset++] & 0xFF;
+          sbytes--;
+        }
+      } else {
+        offset = 2;
+      }
+
+      offset++; // Skip over '0x02'
+
+      // We assume that the size of r and s is less than 128 bytes (1024 bits)
+
+      int rlen = (int) sig[offset++];
+
       r = new BigInteger("00" + Hex.encodeHexString(Arrays.copyOfRange(sig, offset, offset + rlen)), 16);
       offset += rlen;
       offset += 2;
       s = new BigInteger("00" + Hex.encodeHexString(Arrays.copyOfRange(sig, offset, sig.length)), 16);
       if (r.compareTo(spec.getN()) > 0 || r.compareTo(BigInteger.ONE) < 0) {
-        throw new WarpScriptException(getName() + " invalid value for r, should be in [1, 0x00" + spec.getN().toString(16) + "] but as 0x" + r.toString(16) + ".");
+        throw new WarpScriptException(getName() + " invalid value for r, should be in [1, 0x00" + spec.getN().toString(16) + "] but was 0x" + r.toString(16) + ".");
       }
       if (s.compareTo(spec.getN()) > 0 || s.compareTo(BigInteger.ONE) < 0) {
-        throw new WarpScriptException(getName() + " invalid value for s, should be in [1, 0x00" + spec.getN().toString(16) + "] but as 0x" + s.toString(16) + ".");
+        throw new WarpScriptException(getName() + " invalid value for s, should be in [1, 0x00" + spec.getN().toString(16) + "] but was 0x" + s.toString(16) + ".");
       }
     } else if (null != params.get(KEY_R) && null != params.get(KEY_S)) {
       if (!(params.get(KEY_R) instanceof String)) {
@@ -132,20 +151,22 @@ public class ECRECOVER extends NamedWarpScriptFunction implements WarpScriptStac
     }
 
     int nbits = spec.getN().bitLength();
-
-    if (nbits % 8 != 0) {
-      throw new WarpScriptException(getName() + " only supports ECC curves with a bit length which is a multiple of 8.");
-    }
-
     byte[] hash = (byte[]) params.get(KEY_HASH);
 
-    if (hash.length > nbits / 8) {
-      hash = Arrays.copyOf(hash, nbits / 8);
-    } else if (hash.length < nbits / 8) {
-      throw new WarpScriptException(getName() + " invalid hash length, should be >= " + (nbits / 8) + " bytes.");
-    }
+    if (0 == nbits % 8) {
+      if (hash.length * 8 > nbits) {
+        hash = Arrays.copyOf(hash, nbits / 8);
+      }
 
-    z = new BigInteger("00" + Hex.encodeHexString(hash), 16);
+      z = new BigInteger("00" + Hex.encodeHexString(hash), 16);
+    } else {
+      String bin = BinaryCodec.toAsciiString(hash);
+      if (hash.length * 8 > nbits) {
+        z = new BigInteger("0" + bin.substring(0, nbits), 2);
+      } else {
+        z = new BigInteger("0" + bin, 2);
+      }
+    }
 
     List<Object> candidates = new ArrayList<Object>();
 
