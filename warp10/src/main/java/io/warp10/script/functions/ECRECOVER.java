@@ -65,7 +65,7 @@ public class ECRECOVER extends NamedWarpScriptFunction implements WarpScriptStac
 
     final ECNamedCurveParameterSpec spec = ECNamedCurveTable.getParameterSpec(String.valueOf(params.get("curve")));
 
-    ECFieldElement N = spec.getCurve().fromBigInteger(spec.getN());
+    ECFieldElement N = spec.getCurve().fromBigInteger(spec.getN().mod(spec.getCurve().getField().getCharacteristic()));
     BigInteger H = spec.getH();
     ECFieldElement A = spec.getCurve().getA();
     ECFieldElement B = spec.getCurve().getB();
@@ -112,10 +112,10 @@ public class ECRECOVER extends NamedWarpScriptFunction implements WarpScriptStac
 
       int rlen = (int) sig[offset++];
 
-      r = new BigInteger("00" + Hex.encodeHexString(Arrays.copyOfRange(sig, offset, offset + rlen)), 16);
+      r = new BigInteger(1, Arrays.copyOfRange(sig, offset, offset + rlen));
       offset += rlen;
       offset += 2;
-      s = new BigInteger("00" + Hex.encodeHexString(Arrays.copyOfRange(sig, offset, sig.length)), 16);
+      s = new BigInteger(1, Arrays.copyOfRange(sig, offset, sig.length));
       if (r.compareTo(spec.getN()) > 0 || r.compareTo(BigInteger.ONE) < 0) {
         throw new WarpScriptException(getName() + " invalid value for r, should be in [1, 0x00" + spec.getN().toString(16) + "] but was 0x" + r.toString(16) + ".");
       }
@@ -154,79 +154,87 @@ public class ECRECOVER extends NamedWarpScriptFunction implements WarpScriptStac
     byte[] hash = (byte[]) params.get(KEY_HASH);
 
     if (0 == nbits % 8) {
-      if (hash.length * 8 > nbits) {
+      if (hash.length * 8 != nbits) {
         hash = Arrays.copyOf(hash, nbits / 8);
       }
 
-      z = new BigInteger("00" + Hex.encodeHexString(hash), 16);
-    } else {
+      z = new BigInteger(1, hash);
+    } else { // Curve bit len is not a multiple of 8, fallback to binary representation
       String bin = BinaryCodec.toAsciiString(hash);
       if (hash.length * 8 > nbits) {
         z = new BigInteger("0" + bin.substring(0, nbits), 2);
       } else {
         z = new BigInteger("0" + bin, 2);
+        //z = z.shiftLeft(nbits - bin.length());
       }
     }
 
     List<Object> candidates = new ArrayList<Object>();
 
     for (int j = 0; j < H.intValue(); j++) {
+      try {
+        //
+        // Compute y = sqrt(x^3  + ax + b)
+        //
 
-      //
-      // Compute y = sqrt(x^3  + ax + b)
-      //
+        ECFieldElement je = spec.getCurve().fromBigInteger(BigInteger.valueOf(j));
+        ECFieldElement x = spec.getCurve().fromBigInteger(r).add(N.multiply(je));
+        ECFieldElement rhs = x.square().add(A).multiply(x).add(B);
+        ECFieldElement y = rhs.sqrt();
 
-      ECFieldElement je = spec.getCurve().fromBigInteger(BigInteger.valueOf(j));
-      ECFieldElement x = spec.getCurve().fromBigInteger(r).add(N.multiply(je));
-      ECFieldElement rhs = x.square().add(A).multiply(x).add(B);
-      ECFieldElement y = rhs.sqrt();
+        // No square root, continue with next value of j
+        if (null == y) {
+          continue;
+        }
 
-      // No square root, continue with next value of j
-      if (null == y) {
+        ECPoint R = spec.getCurve().createPoint(x.toBigInteger(), y.toBigInteger());
+
+        //
+        // if R is not a multiple of G then we skip to the next iteration of the loop
+        //
+
+        if (!R.normalize().multiply(spec.getN()).isInfinity()) {
+          continue;
+        }
+
+        ECPoint Rprime = spec.getCurve().createPoint(x.toBigInteger(), y.negate().toBigInteger());
+
+        //𝑟−1(𝑠𝑅−𝑧𝐺)  and 𝑟−1(𝑠𝑅′−𝑧𝐺)
+
+        BigInteger rinv = spec.getCurve().fromBigInteger(r.modInverse(spec.getN())).toBigInteger(); //.invert().toBigInteger();
+
+        // Points MUST be normalized
+
+        // r^(-1) x (sR - zG)
+        final ECPoint Q1 = R.multiply(s).subtract(spec.getG().multiply(z)).multiply(rinv).normalize();
+        ECPublicKey K1 = new ECPublicKey() {
+          public String getFormat() { return "PKCS#8"; }
+          public byte[] getEncoded() { return Q1.getEncoded(false); }
+          public String getAlgorithm() { return "EC"; }
+          public ECPoint getQ() { return Q1; }
+          public ECParameterSpec getParameters() { return spec; }
+        };
+
+        candidates.add(K1);
+
+        // r^(-1) x (sR' - zG)
+        final ECPoint Q2 = Rprime.multiply(s).subtract(spec.getG().multiply(z)).multiply(rinv).normalize();
+        ECPublicKey K2 = new ECPublicKey() {
+          public String getFormat() { return "PKCS#8"; }
+          public byte[] getEncoded() { return Q2.getEncoded(false); }
+          public String getAlgorithm() { return "EC"; }
+          public ECPoint getQ() { return Q2; }
+          public ECParameterSpec getParameters() { return spec; }
+        };
+
+        candidates.add(K2);
+      } catch (IllegalArgumentException iae) {
+        // May be throws when x is not valid
+        continue;
+      } catch (IllegalStateException ise) {
+        // May be thrown when an ECPoint is invalid
         continue;
       }
-
-      ECPoint R = spec.getCurve().createPoint(x.toBigInteger(), y.toBigInteger());
-
-      //
-      // if R is not a multiple of G then we skip to the next iteration of the loop
-      //
-
-      if (!R.multiply(spec.getN()).isInfinity()) {
-        continue;
-      }
-
-      ECPoint Rprime = spec.getCurve().createPoint(x.toBigInteger(), y.negate().toBigInteger());
-
-      //𝑟−1(𝑠𝑅−𝑧𝐺)  and 𝑟−1(𝑠𝑅′−𝑧𝐺)
-
-      BigInteger rinv = spec.getCurve().fromBigInteger(r.modInverse(spec.getN())).toBigInteger(); //.invert().toBigInteger();
-
-      // Points MUST be normalized
-
-      // r^(-1) x (sR - zG)
-      final ECPoint Q1 = R.multiply(s).subtract(spec.getG().multiply(z)).multiply(rinv).normalize();
-      ECPublicKey K1 = new ECPublicKey() {
-        public String getFormat() { return "PKCS#8"; }
-        public byte[] getEncoded() { return Q1.getEncoded(false); }
-        public String getAlgorithm() { return "EC"; }
-        public ECPoint getQ() { return Q1; }
-        public ECParameterSpec getParameters() { return spec; }
-      };
-
-      candidates.add(K1);
-
-      // r^(-1) x (sR' - zG)
-      final ECPoint Q2 = Rprime.multiply(s).subtract(spec.getG().multiply(z)).multiply(rinv).normalize();
-      ECPublicKey K2 = new ECPublicKey() {
-        public String getFormat() { return "PKCS#8"; }
-        public byte[] getEncoded() { return Q2.getEncoded(false); }
-        public String getAlgorithm() { return "EC"; }
-        public ECPoint getQ() { return Q2; }
-        public ECParameterSpec getParameters() { return spec; }
-      };
-
-      candidates.add(K2);
     }
 
     stack.push(candidates);
