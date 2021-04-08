@@ -153,20 +153,10 @@ public class ECRECOVER extends NamedWarpScriptFunction implements WarpScriptStac
     int nbits = spec.getN().bitLength();
     byte[] hash = (byte[]) params.get(KEY_HASH);
 
-    if (0 == nbits % 8) {
-      if (hash.length * 8 != nbits) {
-        hash = Arrays.copyOf(hash, nbits / 8);
-      }
+    z = new BigInteger(1, hash);
 
-      z = new BigInteger(1, hash);
-    } else { // Curve bit len is not a multiple of 8, fallback to binary representation
-      String bin = BinaryCodec.toAsciiString(hash);
-      if (hash.length * 8 > nbits) {
-        z = new BigInteger("0" + bin.substring(0, nbits), 2);
-      } else {
-        z = new BigInteger("0" + bin, 2);
-        //z = z.shiftLeft(nbits - bin.length());
-      }
+    if (nbits < hash.length * 8) {
+      z = z.shiftRight(hash.length * 8 - nbits);
     }
 
     List<Object> candidates = new ArrayList<Object>();
@@ -187,7 +177,7 @@ public class ECRECOVER extends NamedWarpScriptFunction implements WarpScriptStac
           continue;
         }
 
-        ECPoint R = spec.getCurve().createPoint(x.toBigInteger(), y.toBigInteger());
+        ECPoint R = spec.getCurve().createPoint(x.toBigInteger(), y.toBigInteger()).normalize();
 
         //
         // if R is not a multiple of G then we skip to the next iteration of the loop
@@ -197,7 +187,7 @@ public class ECRECOVER extends NamedWarpScriptFunction implements WarpScriptStac
           continue;
         }
 
-        ECPoint Rprime = spec.getCurve().createPoint(x.toBigInteger(), y.negate().toBigInteger());
+        ECPoint Rprime = spec.getCurve().createPoint(x.toBigInteger(), y.negate().toBigInteger()).normalize();
 
         //𝑟−1(𝑠𝑅−𝑧𝐺)  and 𝑟−1(𝑠𝑅′−𝑧𝐺)
 
