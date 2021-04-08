@@ -18,12 +18,11 @@ package io.warp10.script.functions;
 
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
-import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
 /**
- * Push the reference of the giving function named based on functions known to WarpScriptLib.
+ * Push the reference of the given function named based on functions known to WarpScriptLib.
  */
 public class FUNCREF extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
@@ -39,7 +38,7 @@ public class FUNCREF extends NamedWarpScriptFunction implements WarpScriptStackF
       throw new WarpScriptException(getName() + " expects the function name as a STRING.");
     }
 
-    stack.push(WarpScriptLib.getFunction((String) top));
+    stack.push(stack.findFunction((String) top));
 
     return stack;
   }

@@ -24,7 +24,7 @@ public class NamedWarpScriptFunction {
   }
 
   public String toString() {
-    return "'" + this.name + "' " + WarpScriptLib.FUNCREF;
+    return refSnapshot();
   }
   
   public void setName(String name) {
@@ -33,5 +33,9 @@ public class NamedWarpScriptFunction {
   
   public String getName() {
     return this.name;
+  }
+
+  public final String refSnapshot() {
+    return "'" + this.name + "' " + WarpScriptLib.FUNCREF;
   }
 }

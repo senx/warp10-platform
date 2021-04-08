@@ -50,22 +50,26 @@ public class MacroHelper {
       if (null != getName()) {
         return super.toString();
       } else {
-        return this.macro.toString() + " " + WarpScriptLib.EVAL;
+        return this.macro.toString();
       }
     }
     
     @Override
     public String snapshot() {
-      if (null != macro) {
-        return macro.snapshot() + " " + WarpScriptLib.EVAL;
+      if (null != getName()) {
+        return super.toString();
       } else {
-        return this.toString();
+        return macro.snapshot() + " " + WarpScriptLib.EVAL;
       }
     }
   }
   
   public static WarpScriptStackFunction wrap(Macro m) {
-    return new MacroWrapper(null, m);
+    return wrap(null, m);
+  }
+
+  public static WarpScriptStackFunction wrap(String name, Macro m) {
+    return new MacroWrapper(name, m);
   }
   
   public static WarpScriptStackFunction wrap(String name, String mc2, boolean secure) {

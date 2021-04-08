@@ -433,8 +433,7 @@ public interface WarpScriptStack {
               // In the case the snapshot of the function is 'MYFUNC' FUNCREF, instead of adding
               // 'MYFUNC' FUNCREF EVAL to the snapshot, MYFUNC can simply be added.
               if (o instanceof NamedWarpScriptFunction
-                  && null != funcSnapshot
-                  && funcSnapshot.equals("'" + ((NamedWarpScriptFunction) o).getName() + "' " + WarpScriptLib.FUNCREF)) {
+                  && ((NamedWarpScriptFunction) o).refSnapshot().equals(funcSnapshot)) {
                 sb.append(((NamedWarpScriptFunction) o).getName());
               } else {
                 sb.append(funcSnapshot);
@@ -704,6 +703,14 @@ public interface WarpScriptStack {
    * Execute a WarpScriptJavaFunction against the stack
    */
   public void exec(WarpScriptJavaFunction function) throws WarpScriptException;
+
+  /**
+   * Find a function by name
+   *
+   * @param macroName Name of function to find
+   * @throws WarpScriptException if macro is not found
+   */
+  public Object findFunction(String macroName) throws WarpScriptException;
 
   /**
    * Find a macro by name
