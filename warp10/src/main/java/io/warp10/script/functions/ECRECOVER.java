@@ -45,6 +45,7 @@ public class ECRECOVER extends NamedWarpScriptFunction implements WarpScriptStac
   private static final String KEY_S = "s";
   private static final String KEY_SIG = "sig";
   private static final String KEY_HASH = "hash";
+  private static final String KEY_CURVE = "curve";
 
   public ECRECOVER(String name) {
     super(name);
@@ -63,7 +64,10 @@ public class ECRECOVER extends NamedWarpScriptFunction implements WarpScriptStac
 
     Map<Object,Object> params = (Map<Object,Object>) top;
 
-    final ECNamedCurveParameterSpec spec = ECNamedCurveTable.getParameterSpec(String.valueOf(params.get("curve")));
+    if (!(params.get(KEY_CURVE) instanceof String)) {
+      throw new WarpScriptException(getName() + " missing ECC curve name under '" + KEY_CURVE + "'.");
+    }
+    final ECNamedCurveParameterSpec spec = ECNamedCurveTable.getParameterSpec((String) params.get(KEY_CURVE));
 
     ECFieldElement N = spec.getCurve().fromBigInteger(spec.getN().mod(spec.getCurve().getField().getCharacteristic()));
     BigInteger H = spec.getH();
@@ -166,16 +170,15 @@ public class ECRECOVER extends NamedWarpScriptFunction implements WarpScriptStac
       for (int type = 0x02; type <= 0x03; type++) {
         try {
           //
-          // Compute y = sqrt(x^3  + ax + b)
+          // Compute R with x coordinate equal to r from the signature
           //
 
-          ECFieldElement je = spec.getCurve().fromBigInteger(BigInteger.valueOf(j));
-          ECFieldElement x = spec.getCurve().fromBigInteger(r).add(N.multiply(je));
+          BigInteger x = r.add(BigInteger.valueOf(j).multiply(spec.getN()));
 
           // Compress the point so it can de decompressed by the curve
-
+          //org.bouncycastle.math.ec.custom.sec.SecP256K1Curve
           X9IntegerConverter x9 = new X9IntegerConverter();
-          byte[] encoded = x9.integerToBytes(x.toBigInteger(), 1 + x9.getByteLength(spec.getCurve()));
+          byte[] encoded = x9.integerToBytes(x, 1 + x9.getByteLength(spec.getCurve()));
           encoded[0] = (byte)(type);
           ECPoint R = spec.getCurve().decodePoint(encoded).normalize();
 
@@ -187,7 +190,7 @@ public class ECRECOVER extends NamedWarpScriptFunction implements WarpScriptStac
             continue;
           }
 
-          ECPoint Rprime = spec.getCurve().createPoint(x.toBigInteger(), R.getYCoord().negate().toBigInteger()).normalize();
+          ECPoint Rprime = spec.getCurve().createPoint(x, R.getYCoord().negate().toBigInteger()).normalize();
 
           //𝑟−1(𝑠𝑅−𝑧𝐺)  and 𝑟−1(𝑠𝑅′−𝑧𝐺)
 
@@ -219,7 +222,7 @@ public class ECRECOVER extends NamedWarpScriptFunction implements WarpScriptStac
 
           candidates.add(K2);
         } catch (IllegalArgumentException iae) {
-          // May be throws when x is not valid
+          // May be thrown when x is not valid
           continue;
         } catch (IllegalStateException ise) {
           // May be thrown when an ECPoint is invalid
