@@ -21,7 +21,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 
-import org.apache.commons.codec.binary.Hex;
 import org.iq80.leveldb.shaded.guava.primitives.Bytes;
 
 import com.google.common.primitives.Longs;
@@ -83,7 +82,7 @@ public class TORLP extends NamedWarpScriptFunction implements WarpScriptStackFun
         data = (byte[]) o;
       }
 
-      if (1 == data.length && data[0] <= 0x7f) {
+      if (1 == data.length && (data[0] & 0xFF) <= 0x7f) {
         return data;
       } else if (data.length <= 55) {
         return Bytes.concat(new byte[] { (byte) (0x80 + data.length) }, data);
@@ -119,7 +118,7 @@ public class TORLP extends NamedWarpScriptFunction implements WarpScriptStackFun
 
       return encode(data);
     } else {
-      throw new WarpScriptException("Invalid item type, only LIST, BYTES and STRING are supported.");
+      throw new WarpScriptException("Invalid item type, only LIST, LONG, BYTES and STRING are supported.");
     }
 
   }
