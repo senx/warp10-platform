@@ -69,10 +69,7 @@ public class ECRECOVER extends NamedWarpScriptFunction implements WarpScriptStac
     }
     final ECNamedCurveParameterSpec spec = ECNamedCurveTable.getParameterSpec((String) params.get(KEY_CURVE));
 
-    ECFieldElement N = spec.getCurve().fromBigInteger(spec.getN().mod(spec.getCurve().getField().getCharacteristic()));
     BigInteger H = spec.getH();
-    ECFieldElement A = spec.getCurve().getA();
-    ECFieldElement B = spec.getCurve().getB();
     BigInteger r;
     BigInteger s;
     BigInteger z;
@@ -163,6 +160,8 @@ public class ECRECOVER extends NamedWarpScriptFunction implements WarpScriptStac
       z = z.shiftRight(hash.length * 8 - nbits);
     }
 
+    BigInteger rinv = spec.getCurve().fromBigInteger(r.modInverse(spec.getN())).toBigInteger();
+
     Set<Object> candidates = new HashSet<Object>();
 
     for (int j = 0; j < H.intValue(); j++) {
@@ -194,7 +193,6 @@ public class ECRECOVER extends NamedWarpScriptFunction implements WarpScriptStac
 
           //𝑟−1(𝑠𝑅−𝑧𝐺)  and 𝑟−1(𝑠𝑅′−𝑧𝐺)
 
-          BigInteger rinv = spec.getCurve().fromBigInteger(r.modInverse(spec.getN())).toBigInteger(); //.invert().toBigInteger();
 
           // Points MUST be normalized
 
