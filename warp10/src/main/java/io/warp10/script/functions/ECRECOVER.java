@@ -19,6 +19,7 @@ package io.warp10.script.functions;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -27,7 +28,6 @@ import org.bouncycastle.jce.ECNamedCurveTable;
 import org.bouncycastle.jce.interfaces.ECPublicKey;
 import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec;
 import org.bouncycastle.jce.spec.ECParameterSpec;
-import org.bouncycastle.math.ec.ECFieldElement;
 import org.bouncycastle.math.ec.ECPoint;
 import org.bouncycastle.util.Arrays;
 
@@ -35,6 +35,7 @@ import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.warp.sdk.Capabilities;
 
 /**
  * Recover possible ECC public keys from an ECDSA signature (r,s), curve and hash
@@ -46,6 +47,10 @@ public class ECRECOVER extends NamedWarpScriptFunction implements WarpScriptStac
   private static final String KEY_SIG = "sig";
   private static final String KEY_HASH = "hash";
   private static final String KEY_CURVE = "curve";
+
+  private static final String CAP_COFACTOR = "ecc.h";
+
+  private static final int MAX_COFACTOR = 10;
 
   public ECRECOVER(String name) {
     super(name);
@@ -164,7 +169,21 @@ public class ECRECOVER extends NamedWarpScriptFunction implements WarpScriptStac
 
     Set<Object> candidates = new HashSet<Object>();
 
-    for (int j = 0; j < H.intValue(); j++) {
+    int maxH = H.intValue();
+
+    if (maxH > MAX_COFACTOR) {
+      Map<String,String> capabilities = Capabilities.get(stack, (List) null);
+      if (null != capabilities.get(CAP_COFACTOR)) {
+        int hmax = Integer.valueOf(capabilities.get(CAP_COFACTOR));
+        if (maxH > hmax) {
+          throw new WarpScriptException(getName() + " cofactor " + maxH + " is above the maximum " + hmax + " allowed by the '" + CAP_COFACTOR + "' capability.");
+        }
+      } else {
+        throw new WarpScriptException(getName() + " cofactor " + maxH + " is above allowed maximum " + MAX_COFACTOR + ", increase this limit using a token with the '" + CAP_COFACTOR + "' capability.");
+      }
+    }
+
+    for (int j = 0; j < maxH; j++) {
       // Iterate over the type of encoded points 0x02 and 0x03
       for (int type = 0x02; type <= 0x03; type++) {
         try {
