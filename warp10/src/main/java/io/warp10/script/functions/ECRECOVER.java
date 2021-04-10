@@ -17,8 +17,10 @@
 package io.warp10.script.functions;
 
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -30,6 +32,7 @@ import org.bouncycastle.jce.spec.ECParameterSpec;
 import org.bouncycastle.math.ec.ECPoint;
 import org.bouncycastle.util.Arrays;
 
+import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
@@ -166,8 +169,6 @@ public class ECRECOVER extends NamedWarpScriptFunction implements WarpScriptStac
 
     BigInteger rinv = spec.getCurve().fromBigInteger(r.modInverse(spec.getN())).toBigInteger();
 
-    Set<Object> candidates = new HashSet<Object>();
-
     int maxH = H.intValue();
 
     if (maxH > MAX_COFACTOR) {
@@ -181,6 +182,8 @@ public class ECRECOVER extends NamedWarpScriptFunction implements WarpScriptStac
         throw new WarpScriptException(getName() + " cofactor " + maxH + " is above allowed maximum " + MAX_COFACTOR + ", increase this limit using a token with the '" + CAP_COFACTOR + "' capability.");
       }
     }
+
+    Set<String> candidates = new HashSet<String>();
 
     for (int j = 0; j < maxH; j++) {
       // Iterate over the type of encoded points 0x02 and 0x03
@@ -213,27 +216,11 @@ public class ECRECOVER extends NamedWarpScriptFunction implements WarpScriptStac
 
           // 𝑟−1(𝑠𝑅−𝑧𝐺)
           final ECPoint Q1 = R.multiply(s).subtract(spec.getG().multiply(z)).multiply(rinv).normalize();
-          ECPublicKey K1 = new ECPublicKey() {
-            public String getFormat() { return "PKCS#8"; }
-            public byte[] getEncoded() { return Q1.getEncoded(false); }
-            public String getAlgorithm() { return "EC"; }
-            public ECPoint getQ() { return Q1; }
-            public ECParameterSpec getParameters() { return spec; }
-          };
-
-          candidates.add(K1);
+          candidates.add(new String(Q1.getEncoded(false), StandardCharsets.ISO_8859_1));
 
           // 𝑟−1(𝑠𝑅′−𝑧𝐺)
           final ECPoint Q2 = Rprime.multiply(s).subtract(spec.getG().multiply(z)).multiply(rinv).normalize();
-          ECPublicKey K2 = new ECPublicKey() {
-            public String getFormat() { return "PKCS#8"; }
-            public byte[] getEncoded() { return Q2.getEncoded(false); }
-            public String getAlgorithm() { return "EC"; }
-            public ECPoint getQ() { return Q2; }
-            public ECParameterSpec getParameters() { return spec; }
-          };
-
-          candidates.add(K2);
+          candidates.add(new String(Q2.getEncoded(false), StandardCharsets.ISO_8859_1));
         } catch (IllegalArgumentException iae) {
           // May be thrown when x is not valid
           continue;
@@ -244,7 +231,21 @@ public class ECRECOVER extends NamedWarpScriptFunction implements WarpScriptStac
       }
     }
 
-    stack.push(new ArrayList<Object>(candidates));
+    List<Object> keys = new ArrayList<Object>(candidates.size());
+
+    for (String qstr: candidates) {
+      byte[] encoded = qstr.getBytes(StandardCharsets.ISO_8859_1);
+      ECPoint Q = spec.getCurve().decodePoint(encoded);
+      keys.add(new ECPublicKey() {
+        public String getFormat() { return "PKCS#8"; }
+        public byte[] getEncoded() { return encoded; }
+        public String getAlgorithm() { return "EC"; }
+        public ECPoint getQ() { return Q; }
+        public ECParameterSpec getParameters() { return spec; }
+      });
+    }
+
+    stack.push(keys);
 
     return stack;
   }
