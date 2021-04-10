@@ -19,7 +19,6 @@ package io.warp10.script.functions;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -172,13 +171,13 @@ public class ECRECOVER extends NamedWarpScriptFunction implements WarpScriptStac
     int maxH = H.intValue();
 
     if (maxH > MAX_COFACTOR) {
-      Map<String,String> capabilities = Capabilities.get(stack, (List) null);
-      if (null != capabilities.get(CAP_COFACTOR)) {
-        int hmax = Integer.valueOf(capabilities.get(CAP_COFACTOR));
+      String hmaxCap = Capabilities.get(stack, CAP_COFACTOR);
+      try {
+        int hmax = Integer.valueOf(hmaxCap);
         if (maxH > hmax) {
           throw new WarpScriptException(getName() + " cofactor " + maxH + " is above the maximum " + hmax + " allowed by the '" + CAP_COFACTOR + "' capability.");
         }
-      } else {
+      } catch (NumberFormatException nfe) {
         throw new WarpScriptException(getName() + " cofactor " + maxH + " is above allowed maximum " + MAX_COFACTOR + ", increase this limit using a token with the '" + CAP_COFACTOR + "' capability.");
       }
     }
@@ -210,12 +209,9 @@ public class ECRECOVER extends NamedWarpScriptFunction implements WarpScriptStac
 
           ECPoint Rprime = spec.getCurve().createPoint(x, R.getYCoord().negate().toBigInteger()).normalize();
 
-          //𝑟−1(𝑠𝑅−𝑧𝐺)  and 𝑟−1(𝑠𝑅′−𝑧𝐺)
-
-
           // Points MUST be normalized
 
-          // r^(-1) x (sR - zG)
+          // 𝑟−1(𝑠𝑅−𝑧𝐺)
           final ECPoint Q1 = R.multiply(s).subtract(spec.getG().multiply(z)).multiply(rinv).normalize();
           ECPublicKey K1 = new ECPublicKey() {
             public String getFormat() { return "PKCS#8"; }
@@ -227,7 +223,7 @@ public class ECRECOVER extends NamedWarpScriptFunction implements WarpScriptStac
 
           candidates.add(K1);
 
-          // r^(-1) x (sR' - zG)
+          // 𝑟−1(𝑠𝑅′−𝑧𝐺)
           final ECPoint Q2 = Rprime.multiply(s).subtract(spec.getG().multiply(z)).multiply(rinv).normalize();
           ECPublicKey K2 = new ECPublicKey() {
             public String getFormat() { return "PKCS#8"; }
