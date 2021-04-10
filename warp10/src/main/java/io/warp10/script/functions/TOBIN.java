@@ -26,7 +26,7 @@ import org.bouncycastle.util.encoders.Hex;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Encode a String in binary
+ * Encode a String, byte[] or Long in binary
  */
 public class TOBIN extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
@@ -51,18 +51,23 @@ public class TOBIN extends NamedWarpScriptFunction implements WarpScriptStackFun
       data = o.toString().getBytes(StandardCharsets.UTF_8);
     } else if (o instanceof byte[]) {
       data = (byte[]) o;
-    }
-    
-    if (null == data) {
-      throw new WarpScriptException(getName() + " operates on a String or a byte array.");
+    } else if (o instanceof Long) {
+      StringBuilder sb = new StringBuilder("0000000000000000000000000000000000000000000000000000000000000000");
+
+      sb.append(Long.toBinaryString(((Number) o).longValue()));
+      stack.push(sb.substring(sb.length() - 64));
+
+      return stack;
+    } else {
+      throw new WarpScriptException(getName() + " operates on a STRING, BYTES or LONG.");
     }
 
     StringBuilder sb = new StringBuilder();
-    
-    for (int i = 0; i < data.length; i++) {
-      int nibble = (data[i] >>> 4) & 0xF;
+
+    for (byte datum: data) {
+      int nibble = (datum >>> 4) & 0xF;
       sb.append(NIBBLES[nibble]);
-      nibble = (data[i] & 0xF);
+      nibble = (datum & 0xF);
       sb.append(NIBBLES[nibble]);
     }
     
