@@ -940,6 +940,8 @@ public class WarpScriptLib {
   public static final String MODE = "MODE";
   public static final String PACK = "PACK";
   public static final String UNPACK = "UNPACK";
+  public static final String TORLP = "->RLP";
+  public static final String RLPTO = "RLP->";
   public static final String TR = "TR";
   public static final String TRANSPOSE = "TRANSPOSE";
   public static final String DET = "DET";
@@ -1606,6 +1608,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new OPB64TO(OPB64TO));
     addNamedWarpScriptFunction(new OPB64TOHEX(OPB64TOHEX));
 
+    addNamedWarpScriptFunction(new TORLP(TORLP));
+    addNamedWarpScriptFunction(new RLPTO(RLPTO));
     addNamedWarpScriptFunction(new TOB58(TOB58, false));
     addNamedWarpScriptFunction(new TOB58(TOB58C, true));
     addNamedWarpScriptFunction(new B58TO(B58TO, false));
