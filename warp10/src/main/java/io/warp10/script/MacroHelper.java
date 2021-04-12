@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -47,16 +47,16 @@ public class MacroHelper {
      
     @Override
     public String toString() {
-      if (null != getName()) {
+      if (null != getName() || null == macro) {
         return super.toString();
       } else {
-        return this.macro.toString();
+        return macro.toString();
       }
     }
     
     @Override
     public String snapshot() {
-      if (null != getName()) {
+      if (null != getName() || null == macro) {
         return super.toString();
       } else {
         return macro.snapshot() + " " + WarpScriptLib.EVAL;
