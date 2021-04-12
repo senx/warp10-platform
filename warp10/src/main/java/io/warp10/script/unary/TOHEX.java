@@ -14,42 +14,37 @@
 //   limitations under the License.
 //
 
-package io.warp10.script.functions;
+package io.warp10.script.unary;
 
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
-import org.bouncycastle.util.encoders.Hex;
-
-import java.nio.charset.StandardCharsets;
-
 /**
- * Encode a String, byte[] or Long in hexadecimal
+ * Converts the LONG operand on top of the stack to its hexadecimal representation
+ * Deprecated, use io.warp10.script.functions.TOHEX instead.
  */
+@Deprecated
 public class TOHEX extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   public TOHEX(String name) {
     super(name);
   }
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    Object o = stack.pop();
-
-    if (o instanceof String) {
-      stack.push(new String(Hex.encode(o.toString().getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8));
-    } else if (o instanceof byte[]) {
-      stack.push(new String(Hex.encode((byte[]) o), StandardCharsets.UTF_8));
-    } else if (o instanceof Long) {
-      StringBuilder sb = new StringBuilder("0000000000000000");
-      sb.append(Long.toHexString(((Number) o).longValue()));
+    Object op = stack.pop();
+    
+    StringBuilder sb = new StringBuilder("0000000000000000");
+    
+    if (op instanceof Long) {
+      sb.append(Long.toHexString(((Number) op).longValue()));
       stack.push(sb.substring(sb.length() - 16));
     } else {
-      throw new WarpScriptException(getName() + " operates on a STRING, BYTES or LONG.");
+      throw new WarpScriptException(getName() + " can only operate on long values.");
     }
-
+    
     return stack;
   }
 }
