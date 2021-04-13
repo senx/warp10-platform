@@ -71,11 +71,11 @@ public class TOBIN extends NamedWarpScriptFunction implements WarpScriptStackFun
     } else if (o instanceof BitSet) {
       BitSet bitset = (BitSet) o;
 
-      for (int i = 0; i < bitset.size(); i++) {
+      for (int i = 0; i < bitset.length(); i++) {
         sb.append(bitset.get(i) ? '1' : '0');
       }
 
-      stack.push(sb);
+      stack.push(sb.toString());
     } else {
       throw new WarpScriptException(getName() + " operates on a STRING, BYTES, LONG or BITSET.");
     }
