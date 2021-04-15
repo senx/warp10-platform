@@ -306,11 +306,9 @@ import io.warp10.script.unary.FROMBITS;
 import io.warp10.script.unary.FROMHEX;
 import io.warp10.script.unary.NOT;
 import io.warp10.script.unary.REVERSEBITS;
-import io.warp10.script.unary.TOBIN;
 import io.warp10.script.unary.TOBITS;
 import io.warp10.script.unary.TOBOOLEAN;
 import io.warp10.script.unary.TODOUBLE;
-import io.warp10.script.unary.TOHEX;
 import io.warp10.script.unary.TOLONG;
 import io.warp10.script.unary.TOSTRING;
 import io.warp10.script.unary.TOTIMESTAMP;
@@ -1602,8 +1600,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new BYTESTO(BYTESTO));
 
     addNamedWarpScriptFunction(new TOBYTES(TOBYTES));
-    addNamedWarpScriptFunction(new io.warp10.script.functions.TOBIN(TOBIN_));
-    addNamedWarpScriptFunction(new io.warp10.script.functions.TOHEX(TOHEX_));
+    addNamedWarpScriptFunction(new TOBIN(TOBIN_));
+    addNamedWarpScriptFunction(new TOHEX(TOHEX_));
     addNamedWarpScriptFunction(new TOB64(TOB64));
     addNamedWarpScriptFunction(new TOB64URL(TOB64URL));
     addNamedWarpScriptFunction(new TOOPB64(TOOPB64));
