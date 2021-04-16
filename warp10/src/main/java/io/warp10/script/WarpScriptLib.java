@@ -344,6 +344,7 @@ public class WarpScriptLib {
 
   public static final String EVAL = "EVAL";
   public static final String EVALSECURE = "EVALSECURE";
+  public static final String FUNCREF = "FUNCREF";
   public static final String SNAPSHOT = "SNAPSHOT";
   public static final String SNAPSHOTALL = "SNAPSHOTALL";
   public static final String DEREF = "DEREF";
@@ -1321,6 +1322,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new SYMBOLS(SYMBOLS));
     addNamedWarpScriptFunction(new MAXJSON(MAXJSON));
     addNamedWarpScriptFunction(new EVAL(EVAL));
+    addNamedWarpScriptFunction(new FUNCREF(FUNCREF));
     addNamedWarpScriptFunction(new NOW(NOW));
     addNamedWarpScriptFunction(new AGO(AGO));
     addNamedWarpScriptFunction(new MSTU(MSTU));
