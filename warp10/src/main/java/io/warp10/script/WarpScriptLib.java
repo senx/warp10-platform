@@ -306,11 +306,9 @@ import io.warp10.script.unary.FROMBITS;
 import io.warp10.script.unary.FROMHEX;
 import io.warp10.script.unary.NOT;
 import io.warp10.script.unary.REVERSEBITS;
-import io.warp10.script.unary.TOBIN;
 import io.warp10.script.unary.TOBITS;
 import io.warp10.script.unary.TOBOOLEAN;
 import io.warp10.script.unary.TODOUBLE;
-import io.warp10.script.unary.TOHEX;
 import io.warp10.script.unary.TOLONG;
 import io.warp10.script.unary.TOSTRING;
 import io.warp10.script.unary.TOTIMESTAMP;
@@ -346,6 +344,7 @@ public class WarpScriptLib {
 
   public static final String EVAL = "EVAL";
   public static final String EVALSECURE = "EVALSECURE";
+  public static final String FUNCREF = "FUNCREF";
   public static final String SNAPSHOT = "SNAPSHOT";
   public static final String SNAPSHOTALL = "SNAPSHOTALL";
   public static final String DEREF = "DEREF";
@@ -673,6 +672,7 @@ public class WarpScriptLib {
   public static final String ECDH = "ECDH";
   public static final String ECPRIVATE = "ECPRIVATE";
   public static final String ECPUBLIC = "ECPUBLIC";
+  public static final String ECRECOVER = "ECRECOVER";
   public static final String ECSIGN = "ECSIGN";
   public static final String ECVERIFY = "ECVERIFY";
   public static final String MSIGN = "MSIGN";
@@ -942,6 +942,8 @@ public class WarpScriptLib {
   public static final String MODE = "MODE";
   public static final String PACK = "PACK";
   public static final String UNPACK = "UNPACK";
+  public static final String TORLP = "->RLP";
+  public static final String RLPTO = "RLP->";
   public static final String TR = "TR";
   public static final String TRANSPOSE = "TRANSPOSE";
   public static final String DET = "DET";
@@ -1322,6 +1324,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new SYMBOLS(SYMBOLS));
     addNamedWarpScriptFunction(new MAXJSON(MAXJSON));
     addNamedWarpScriptFunction(new EVAL(EVAL));
+    addNamedWarpScriptFunction(new FUNCREF(FUNCREF));
     addNamedWarpScriptFunction(new NOW(NOW));
     addNamedWarpScriptFunction(new AGO(AGO));
     addNamedWarpScriptFunction(new MSTU(MSTU));
@@ -1558,6 +1561,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new ECDH(ECDH));
     addNamedWarpScriptFunction(new ECPRIVATE(ECPRIVATE));
     addNamedWarpScriptFunction(new ECPUBLIC(ECPUBLIC));
+    addNamedWarpScriptFunction(new ECRECOVER(ECRECOVER));
     addNamedWarpScriptFunction(new ECSIGN(ECSIGN));
     addNamedWarpScriptFunction(new ECVERIFY(ECVERIFY));
     addNamedWarpScriptFunction(new MSIGN(MSIGN));
@@ -1603,14 +1607,16 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new BYTESTO(BYTESTO));
 
     addNamedWarpScriptFunction(new TOBYTES(TOBYTES));
-    addNamedWarpScriptFunction(new io.warp10.script.functions.TOBIN(TOBIN_));
-    addNamedWarpScriptFunction(new io.warp10.script.functions.TOHEX(TOHEX_));
+    addNamedWarpScriptFunction(new TOBIN(TOBIN_));
+    addNamedWarpScriptFunction(new TOHEX(TOHEX_));
     addNamedWarpScriptFunction(new TOB64(TOB64));
     addNamedWarpScriptFunction(new TOB64URL(TOB64URL));
     addNamedWarpScriptFunction(new TOOPB64(TOOPB64));
     addNamedWarpScriptFunction(new OPB64TO(OPB64TO));
     addNamedWarpScriptFunction(new OPB64TOHEX(OPB64TOHEX));
 
+    addNamedWarpScriptFunction(new TORLP(TORLP));
+    addNamedWarpScriptFunction(new RLPTO(RLPTO));
     addNamedWarpScriptFunction(new TOB58(TOB58, false));
     addNamedWarpScriptFunction(new TOB58(TOB58C, true));
     addNamedWarpScriptFunction(new B58TO(B58TO, false));

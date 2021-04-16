@@ -591,11 +591,14 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
     }
   }
 
-  //
-  // Process a string to make it readable and compatible in WarpScript code
-  //
-
-  private static void appendProcessedString(StringBuilder sb, String s) {
+  /**
+   * Process a string to make it readable and compatible in WarpScript code.
+   * @param sb A StringBuilder whose given String will appended to.
+   * @param s A String which may contain invalid WarpScript characters. It will not be encapsulated with quote
+   *          characters so it should be appended to the StringBuilder before and after. Double quotes will not
+   *          be escaped, so only single quotes are acceptable.
+   */
+  public static void appendProcessedString(StringBuilder sb, String s) {
 
     char[] chars = UnsafeString.getChars(s);
 

@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -428,8 +428,35 @@ public interface WarpScriptStack {
             if (o instanceof Macro) {
               sb.append(((Macro) o).snapshot(hideSecure));
               sb.append(" ");
-            } else if (o instanceof NamedWarpScriptFunction) {
-              sb.append(o.toString());
+            } else if (o instanceof WarpScriptStackFunction) {
+              String funcSnapshot = o.toString();
+
+              // In the case the snapshot of the function is 'MYFUNC' FUNCREF, instead of adding
+              // 'MYFUNC' FUNCREF EVAL to the snapshot, MYFUNC can simply be added.
+              // This can be done only if the name of function contains no special character.
+              boolean simplified = false;
+
+              if (o instanceof NamedWarpScriptFunction) {
+                NamedWarpScriptFunction namedWarpScriptFunction = (NamedWarpScriptFunction) o;
+                String refSnapshot = namedWarpScriptFunction.refSnapshot();
+                String funcName = namedWarpScriptFunction.getName();
+                // Check that the snapshot and name are not null, as it can happen with MacroWrapper.
+                if (null != refSnapshot && null != funcName) {
+                  // We also have to check for invalid WarpScript characters in the function name.
+                  StringBuilder curatedFuncName = new StringBuilder();
+                  SNAPSHOT.appendProcessedString(curatedFuncName, funcName);
+                  if (refSnapshot.equals(funcSnapshot) && curatedFuncName.toString().equals(funcName)) {
+                    sb.append(funcName);
+                    simplified = true;
+                  }
+                }
+              }
+
+              if(!simplified) {
+                sb.append(funcSnapshot);
+                sb.append(" ");
+                sb.append(WarpScriptLib.EVAL);
+              }
               sb.append(" ");
             } else {
               SNAPSHOT.addElement(sb, o);
@@ -693,6 +720,14 @@ public interface WarpScriptStack {
    * Execute a WarpScriptJavaFunction against the stack
    */
   public void exec(WarpScriptJavaFunction function) throws WarpScriptException;
+
+  /**
+   * Find a function by name
+   *
+   * @param macroName Name of function to find
+   * @throws WarpScriptException if macro is not found
+   */
+  public Object findFunction(String macroName) throws WarpScriptException;
 
   /**
    * Find a macro by name

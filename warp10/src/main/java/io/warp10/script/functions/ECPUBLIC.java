@@ -85,7 +85,7 @@ public class ECPUBLIC extends NamedWarpScriptFunction implements WarpScriptStack
     final ECNamedCurveParameterSpec curve = ECNamedCurveTable.getParameterSpec(name);
 
     if (null == curve) {
-      throw new WarpScriptException(getName() + " curve name not in " + ECGEN.getCurves() + ".");
+      throw new WarpScriptException(getName() + " curve name '" + name + "' not in " + ECGEN.getCurves() + ".");
     }
 
     if (!(params.get(Constants.KEY_Q) instanceof String)) {
