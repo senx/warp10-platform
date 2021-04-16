@@ -16,6 +16,11 @@
 
 package io.warp10.script;
 
+import io.warp10.WarpURLEncoder;
+
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
+
 public class NamedWarpScriptFunction {
   private String name = "##UNDEF##";
   
@@ -35,7 +40,17 @@ public class NamedWarpScriptFunction {
     return this.name;
   }
 
+  /**
+   * Gives the snapshot to get the reference to this function.
+   */
   public final String refSnapshot() {
-    return "'" + this.name + "' " + WarpScriptLib.FUNCREF;
+    if (null == name) {
+      return null;
+    }
+    try {
+      return "'" + WarpURLEncoder.encode(name, StandardCharsets.UTF_8) + "' " + WarpScriptLib.FUNCREF;
+    } catch (UnsupportedEncodingException e) {
+      return null;
+    }
   }
 }

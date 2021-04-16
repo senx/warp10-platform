@@ -430,12 +430,29 @@ public interface WarpScriptStack {
               sb.append(" ");
             } else if (o instanceof WarpScriptStackFunction) {
               String funcSnapshot = o.toString();
+
               // In the case the snapshot of the function is 'MYFUNC' FUNCREF, instead of adding
               // 'MYFUNC' FUNCREF EVAL to the snapshot, MYFUNC can simply be added.
-              if (o instanceof NamedWarpScriptFunction
-                  && ((NamedWarpScriptFunction) o).refSnapshot().equals(funcSnapshot)) {
-                sb.append(((NamedWarpScriptFunction) o).getName());
-              } else {
+              // This can be done only if the name of function contains no special character.
+              boolean simplified = false;
+
+              if (o instanceof NamedWarpScriptFunction) {
+                NamedWarpScriptFunction namedWarpScriptFunction = (NamedWarpScriptFunction) o;
+                String refSnapshot = namedWarpScriptFunction.refSnapshot();
+                String funcName = namedWarpScriptFunction.getName();
+                // Check that the snapshot and name are not null, as it can happen with MacroWrapper.
+                if (null != refSnapshot && null != funcName) {
+                  // We also have to check for invalid WarpScript characters in the function name.
+                  StringBuilder curatedFuncName = new StringBuilder();
+                  SNAPSHOT.appendProcessedString(curatedFuncName, funcName);
+                  if (refSnapshot.equals(funcSnapshot) && curatedFuncName.toString().equals(funcName)) {
+                    sb.append(funcName);
+                    simplified = true;
+                  }
+                }
+              }
+
+              if(!simplified) {
                 sb.append(funcSnapshot);
                 sb.append(" ");
                 sb.append(WarpScriptLib.EVAL);
