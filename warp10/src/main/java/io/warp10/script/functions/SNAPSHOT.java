@@ -70,13 +70,6 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
     }
   };
 
-  private static ThreadLocal<Boolean> inList = new ThreadLocal<Boolean>() {
-    @Override
-    protected Boolean initialValue() {
-      return Boolean.FALSE;
-    }
-  };
-
   public static interface SnapshotEncoder {
     public boolean addElement(SNAPSHOT snapshot, StringBuilder sb, Object o, boolean readable) throws WarpScriptException;
   }
@@ -188,13 +181,13 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         sb.append(WarpScriptLib.STORE);
         sb.append(" ");
       }
-
+      
       //
       // Snapshot the registers
       //
-
+      
       Object[] regs = stack.getRegisters();
-
+      
       sb.append(WarpScriptLib.CLEARREGS);
       sb.append(" ");
       for (int i = 0; i < regs.length; i++) {
@@ -236,17 +229,8 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
   public static void addElement(SNAPSHOT snapshot, StringBuilder sb, Object o) throws WarpScriptException {
     addElement(snapshot, sb, o, false);
   }
-
-  /**
-   * Return true if the call to addElement took care of adding the snapshot to the current collection
-   * @param snapshot
-   * @param sb
-   * @param o
-   * @param readable
-   * @return
-   * @throws WarpScriptException
-   */
-  public static boolean addElement(SNAPSHOT snapshot, StringBuilder sb, Object o, boolean readable) throws WarpScriptException {
+  
+  public static void addElement(SNAPSHOT snapshot, StringBuilder sb, Object o, boolean readable) throws WarpScriptException {
 
     AtomicInteger depth = null;
 
@@ -313,84 +297,58 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         }
         sb.append(" ");
       } else if (o instanceof Vector) {
-        boolean inlist = inList.get();
-        try {
-          inList.set(true);
-
-          if (readable) {
-            sb.append(WarpScriptLib.VECTOR_START);
-            sb.append(" ");
-            for (Object oo : (Vector) o) {
-              addElement(snapshot, sb, oo, true);
-            }
-            sb.append(WarpScriptLib.VECTOR_END);
-            sb.append(" ");
-          } else {
-            sb.append(WarpScriptLib.EMPTY_VECTOR);
-            sb.append(" ");
-            for (Object oo : (Vector) o) {
-              if (!addElement(snapshot, sb, oo, false)) {
-                sb.append(WarpScriptLib.INPLACEADD);
-                sb.append(" ");
-              }
-            }
+        if (readable) {
+          sb.append(WarpScriptLib.VECTOR_START);
+          sb.append(" ");
+          for (Object oo : (Vector) o) {
+            addElement(snapshot, sb, oo, true);
           }
-        } finally {
-          inList.set(inlist);
+          sb.append(WarpScriptLib.VECTOR_END);
+          sb.append(" ");          
+        } else {
+          sb.append(WarpScriptLib.EMPTY_VECTOR);
+          sb.append(" ");
+          for (Object oo : (Vector) o) {
+            addElement(snapshot, sb, oo, false);
+            sb.append(WarpScriptLib.INPLACEADD);
+            sb.append(" ");
+          }
         }
       } else if (o instanceof List) {
-        boolean inlist = inList.get();
-
-        try {
-          inList.set(true);
-
-          if (readable) {
-            sb.append(WarpScriptLib.LIST_START);
+        if (readable) {
+          sb.append(WarpScriptLib.LIST_START);
+          sb.append(" ");
+          for (Object oo : (List) o) {
+            addElement(snapshot, sb, oo, true);
+          }          
+          sb.append(WarpScriptLib.LIST_END);
+          sb.append(" ");          
+        } else {
+          sb.append(WarpScriptLib.EMPTY_LIST);
+          sb.append(" ");
+          for (Object oo : (List) o) {
+            addElement(snapshot, sb, oo, false);
+            sb.append(WarpScriptLib.INPLACEADD);
             sb.append(" ");
-            for (Object oo : (List) o) {
-              addElement(snapshot, sb, oo, true);
-            }
-            sb.append(WarpScriptLib.LIST_END);
-            sb.append(" ");
-          } else {
-            sb.append(WarpScriptLib.EMPTY_LIST);
-            sb.append(" ");
-            for (Object oo : (List) o) {
-              if (!addElement(snapshot, sb, oo, false)) {
-                sb.append(WarpScriptLib.INPLACEADD);
-                sb.append(" ");
-              }
-            }
-          }
-        } finally {
-          inList.set(inlist);
+          }          
         }
       } else if (o instanceof Set) {
-        boolean inlist = inList.get();
-
-        try {
-          inList.set(true);
-
-          if (readable) {
-            sb.append(WarpScriptLib.SET_START);
-            sb.append(" ");
-            for (Object oo : (Set) o) {
-              addElement(snapshot, sb, oo, true);
-            }
-            sb.append(WarpScriptLib.SET_END);
-            sb.append(" ");
-          } else {
-            sb.append(WarpScriptLib.EMPTY_SET);
-            sb.append(" ");
-            for (Object oo : (Set) o) {
-              if (!addElement(snapshot, sb, oo, false)) {
-                sb.append(WarpScriptLib.INPLACEADD);
-                sb.append(" ");
-              }
-            }
+        if (readable) {
+          sb.append(WarpScriptLib.SET_START);
+          sb.append(" ");
+          for (Object oo : (Set) o) {
+            addElement(snapshot, sb, oo, true);
           }
-        } finally {
-          inList.set(inlist);
+          sb.append(WarpScriptLib.SET_END);
+          sb.append(" ");          
+        } else {
+          sb.append(WarpScriptLib.EMPTY_SET);
+          sb.append(" ");
+          for (Object oo : (Set) o) {
+            addElement(snapshot, sb, oo, false);
+            sb.append(WarpScriptLib.INPLACEADD);
+            sb.append(" ");
+          }
         }
       } else if (o instanceof Map) {
         if (readable) {
@@ -400,7 +358,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
             addElement(snapshot, sb, entry.getKey(), true);
             addElement(snapshot, sb, entry.getValue(), true);
             sb.append(System.lineSeparator());
-          }
+          }                    
           sb.append(WarpScriptLib.MAP_END);
           sb.append(" ");
         } else {
@@ -411,7 +369,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
             addElement(snapshot, sb, entry.getKey(), false);
             sb.append(WarpScriptLib.PUT);
             sb.append(" ");
-          }
+          }          
         }
       } else if (o instanceof BitSet) {
         sb.append("'");
@@ -456,24 +414,8 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         sb.append(WarpScriptLib.RSAPRIVATE);
         sb.append(" ");
       } else if (o instanceof NamedWarpScriptFunction) {
-        sb.append(WarpScriptStack.MACRO_START);
-        sb.append(" ");
         sb.append(o.toString());
         sb.append(" ");
-        sb.append(WarpScriptStack.MACRO_END);
-        sb.append(" ");
-        sb.append(WarpScriptLib.MACROTO);
-        sb.append(" ");
-        if (inList.get() && !readable) {
-          sb.append(WarpScriptLib.APPEND);
-          sb.append(" ");
-          return true;
-        } else {
-          sb.append(WarpScriptLib.LISTTO);
-          sb.append(" ");
-          sb.append(WarpScriptLib.DROP);
-          sb.append(" ");
-        }
       } else if (o instanceof PImage && !(o instanceof PGraphics)) {
         // PGraphics cannot be snapshot properly because it would require PFont to be snapshotable, which is not.
         sb.append("'");
@@ -580,8 +522,6 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
           sb.append("'UNSUPPORTED:" + WarpURLEncoder.encode(o.getClass().toString(), StandardCharsets.UTF_8) + "' ");
         }
       }
-
-      return false;
     } catch (UnsupportedEncodingException uee) {
       throw new WarpScriptException(uee);
     } finally {
