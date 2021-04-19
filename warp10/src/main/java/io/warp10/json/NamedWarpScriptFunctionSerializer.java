@@ -19,6 +19,8 @@ package io.warp10.json;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
+
+import io.warp10.WarpURLEncoder;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStack;
@@ -33,6 +35,6 @@ public class NamedWarpScriptFunctionSerializer extends StdSerializer<NamedWarpSc
 
   @Override
   public void serialize(NamedWarpScriptFunction namedWarpScriptFunction, JsonGenerator gen, SerializerProvider provider) throws IOException {
-    gen.writeString(WarpScriptStack.MACRO_START + " " + namedWarpScriptFunction.toString() + " " + WarpScriptStack.MACRO_END + " " + WarpScriptLib.EVAL);
+    gen.writeString(namedWarpScriptFunction.refSnapshot());
   }
 }
