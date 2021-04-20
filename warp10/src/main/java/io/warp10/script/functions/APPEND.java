@@ -16,20 +16,20 @@
 
 package io.warp10.script.functions;
 
-import io.warp10.continuum.gts.GTSHelper;
-import io.warp10.continuum.gts.GeoTimeSerie;
-import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
-import io.warp10.script.WarpScriptException;
-import io.warp10.script.WarpScriptStack;
-
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedHashSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
+
+import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.gts.GeoTimeSerie;
+import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
 
 /**
  * Append a list to another list or a map to another map
@@ -57,7 +57,7 @@ public class APPEND extends NamedWarpScriptFunction implements WarpScriptStackFu
         } else if (undertop instanceof List) {
           undertop = new ArrayList<Object>((Collection) undertop);
         } else if (undertop instanceof Set) {
-          undertop = new LinkedHashSet<Object>((Collection) undertop);
+          undertop = new HashSet<Object>((Collection) undertop);
         } else {
           throw new WarpScriptException(getName() + " invalid target collection of type " + undertop.getClass() + ".");
         }
