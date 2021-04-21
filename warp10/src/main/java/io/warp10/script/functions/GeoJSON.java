@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -69,7 +69,7 @@ public class GeoJSON extends NamedWarpScriptFunction implements WarpScriptStackF
     try {
       geometry = reader.read((String) geoJson);
     } catch (UnsupportedOperationException uoe) {
-      throw new WarpScriptException(uoe);
+      throw new WarpScriptException(getName() + " expects a valid GeoJSON STRING.", uoe);
     }
 
     //
@@ -107,7 +107,7 @@ public class GeoJSON extends NamedWarpScriptFunction implements WarpScriptStackF
     }
 
     if (null == shape) {
-      throw new WarpScriptException("Maximum number of cells exceeded in a geographic shape (warpscript.maxgeocells=" + maxcells + ")");
+      throw new WarpScriptException(getName() + " reached the maximum number of cells in a geographic shape (warpscript.maxgeocells=" + maxcells + ").");
     }
 
     stack.push(shape);

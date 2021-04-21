@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -114,7 +114,7 @@ public class WEBCALL extends NamedWarpScriptFunction implements WarpScriptStackF
     } else if ("POST".equals(method)) {
       request.setMethod(WebCallMethod.POST);      
     } else {
-      throw new WarpScriptException("Invalid method for " + getName() + ", can be one of 'GET' or 'POST'.");
+      throw new WarpScriptException(getName() + " given invalid method. Can be one of 'GET' or 'POST'.");
     }
     
     //
@@ -141,13 +141,13 @@ public class WEBCALL extends NamedWarpScriptFunction implements WarpScriptStackF
     
     if (Warp.isStandaloneMode()) {
       if (!StandaloneWebCallService.offer(request)) {
-        throw new WarpScriptException("Unable to forward WebCall request.");
+        throw new WarpScriptException(getName() + " is unable to forward WebCall request.");
       } else {
         stack.push(request.getWebCallUUID());
       }
     } else {
       if (!KafkaWebCallService.offer(request)) {
-        throw new WarpScriptException("Unable to forward WebCall request.");        
+        throw new WarpScriptException(getName() + " unable to forward WebCall request.");
       } else {
         stack.push(request.getWebCallUUID());
       }
@@ -156,7 +156,7 @@ public class WEBCALL extends NamedWarpScriptFunction implements WarpScriptStackF
     AtomicLong remaining = (AtomicLong) stack.getAttribute(WarpScriptStack.ATTRIBUTE_MAX_WEBCALLS);
     
     if (0 > remaining.get()) {
-      throw new WarpScriptException("Maximum number of invocations of " + getName() + " reached.");
+      throw new WarpScriptException(getName() + " reached the maximum number of invocations.");
     } else {
       remaining.decrementAndGet();
     }

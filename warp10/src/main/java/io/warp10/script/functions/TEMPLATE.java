@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -77,17 +77,17 @@ public class TEMPLATE extends NamedWarpScriptFunction implements WarpScriptStack
     
     List<Object> elts = new ArrayList<Object>();
     elts.add(scope);
-    
-    while(!elts.isEmpty()) {         
-      Object res = checkTypes(elts.get(0));
-      elts.remove(0);
-      
-      if (null != res) {
-        elts.addAll((Collection) res);
-      }
-    }
-        
+
     try {
+      while(!elts.isEmpty()) {
+        Object res = checkTypes(elts.get(0));
+        elts.remove(0);
+
+        if (null != res) {
+          elts.addAll((Collection) res);
+        }
+      }
+
       Mustache mustache = mf.compile(new StringReader(o.toString()), "");
       
       StringWriter writer = new StringWriter();
@@ -98,7 +98,7 @@ public class TEMPLATE extends NamedWarpScriptFunction implements WarpScriptStack
 
       return stack;      
     } catch (Exception e) {
-      throw new WarpScriptException(e);
+      throw new WarpScriptException(getName() + " failed.", e);
     }
   }
   

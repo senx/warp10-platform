@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -85,7 +85,7 @@ public class TOLONGBYTES extends NamedWarpScriptFunction implements WarpScriptSt
           }
           stack.push(b);
         } catch (Exception e) {
-          throw new WarpScriptException(getName() + " operates on a LONG or a list of LONG and expects a number of output bytes per LONG between 1 and 8 on top of the stack.");
+          throw new WarpScriptException(getName() + " operates on a LONG or a list of LONG and expects a number of output bytes per LONG between 1 and 8 on top of the stack.", e);
         }
       } else {
         throw new WarpScriptException(getName() + " operates on a LONG or a list of LONG and expects a number of output bytes per LONG between 1 and 8 on top of the stack.");

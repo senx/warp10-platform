@@ -1,5 +1,5 @@
 //
-//   Copyright 2020  SenX S.A.S.
+//   Copyright 2020-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -146,7 +146,7 @@ public class GEOBUFFER extends NamedWarpScriptFunction implements WarpScriptStac
         WKBWriter writer = new WKBWriter();
         stack.push(writer.write(geometry));
       } catch (ParseException pe) {
-        throw new WarpScriptException(pe);
+        throw new WarpScriptException(getName() + " expects valid WKB BYTES.", pe);
       }
     } else if (map.get(KEY_WKT) instanceof String) {
       if (map.containsKey(KEY_WKB) || map.containsKey(KEY_GEOJSON)) {
@@ -161,7 +161,7 @@ public class GEOBUFFER extends NamedWarpScriptFunction implements WarpScriptStac
         geometry = bop.getResultGeometry(distance);
         stack.push(geometry.toText());
       } catch (ParseException pe) {
-        throw new WarpScriptException(pe);
+        throw new WarpScriptException(getName() + " expects a valid WKT STRING.", pe);
       }
     } else if (map.get(KEY_GEOJSON) instanceof String) {
       if (map.containsKey(KEY_WKT) || map.containsKey(KEY_WKB)) {
@@ -177,7 +177,7 @@ public class GEOBUFFER extends NamedWarpScriptFunction implements WarpScriptStac
         GeoJSONWriter writer = new GeoJSONWriter();
         stack.push(writer.write(geometry).toString());
       } catch (UnsupportedOperationException uoe) {
-        throw new WarpScriptException(uoe);
+        throw new WarpScriptException(getName() + " expects a valid GeoJSON STRING.", uoe);
       }
     } else {
       buffer.put(KEY_PARAMS, params);
