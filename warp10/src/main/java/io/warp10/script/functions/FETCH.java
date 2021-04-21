@@ -430,7 +430,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         try {
           iter = directoryClient.iterator(drequest);
         } catch (Exception e) {
-          throw new WarpScriptException(e);
+          throw new WarpScriptException(getName() + " failed.", e);
         }
       }
     }
@@ -843,7 +843,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         } catch (WarpScriptException ee) {
           throw ee;
         } catch (Throwable t) {
-          throw new WarpScriptException(t);
+          throw new WarpScriptException(getName() + "failed.", t);
         }
 
 
