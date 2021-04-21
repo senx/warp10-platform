@@ -583,6 +583,8 @@ public class WarpScriptLib {
   public static final String TIMEON = "TIMEON";
   public static final String TIMEOFF = "TIMEOFF";
   public static final String MACROTTL = "MACROTTL";
+  public static final String MACROTO = "MACRO->";
+  public static final String TOMACRO = "->MACRO";
   public static final String WFON = "WFON";
   public static final String WFOFF = "WFOFF";
   public static final String SETMACROCONFIG = "SETMACROCONFIG";
@@ -1424,6 +1426,9 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new FAIL(COMPILED, "Not supported"));
     addNamedWarpScriptFunction(new REF(REF));
 
+
+    addNamedWarpScriptFunction(new MACROTO(MACROTO));
+    addNamedWarpScriptFunction(new TOMACRO(TOMACRO));
     addNamedWarpScriptFunction(new MACROTTL(MACROTTL));
     addNamedWarpScriptFunction(new WFON(WFON));
     addNamedWarpScriptFunction(new WFOFF(WFOFF));
