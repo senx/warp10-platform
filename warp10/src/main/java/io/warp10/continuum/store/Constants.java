@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -384,11 +384,31 @@ public class Constants {
   //
   
   /**
-   * Attribute used to specify a WRITE token cannot be used for delete
+   * Attribute used to specify that a WRITE token cannot be used for delete.
    */
   public static final String TOKEN_ATTR_NODELETE = ".nodelete";
+
+  /**
+   * Attribute used to specify that a WRITE token cannot be used for updating.
+   */
   public static final String TOKEN_ATTR_NOUPDATE = ".noupdate";
+
+  /**
+   * Attribute used to specify that a WRITE token cannot be used for updating metadata.
+   * Attribute used to specify that a READ token cannot be used for metadata queries.
+   * A READ token that cannot be used for metadata queries cannot be use either to query for data.
+   */
   public static final String TOKEN_ATTR_NOMETA = ".nometa";
+
+  /**
+   * Attribute used to specify that a READ token cannot be used to query for data.
+   */
+  public static final String TOKEN_ATTR_NOFETCH = ".nofetch";
+
+  /**
+   * Attribute used to specify that a READ token cannot be used to AUTHENTICATE.
+   */
+  public static final String TOKEN_ATTR_NOAUTH = ".noauth";
   
   /**
    * Attribute to specify the maximum value size

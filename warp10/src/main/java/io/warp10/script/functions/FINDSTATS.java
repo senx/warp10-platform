@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -115,8 +115,18 @@ public class FINDSTATS extends NamedWarpScriptFunction implements WarpScriptStac
 
     
     DirectoryClient directoryClient = stack.getDirectoryClient();
-    
-    ReadToken rtoken = Tokens.extractReadToken(token);
+
+    ReadToken rtoken;
+    try {
+      rtoken = Tokens.extractReadToken(token);
+
+      Map<String, String> rtokenAttributes = rtoken.getAttributes();
+      if (null != rtokenAttributes && rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOMETA)) {
+        throw new WarpScriptException("Token cannot be used for finding metadata.");
+      }
+    } catch (WarpScriptException wse) {
+      throw new WarpScriptException(getName() + " given an invalid token.", wse);
+    }
 
     labelSelectors.remove(Constants.PRODUCER_LABEL);
     labelSelectors.remove(Constants.OWNER_LABEL);
