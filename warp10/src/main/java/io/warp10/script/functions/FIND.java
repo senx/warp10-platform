@@ -326,8 +326,13 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
       rtoken = Tokens.extractReadToken(token);
 
       Map<String, String> rtokenAttributes = rtoken.getAttributes();
-      if (null != rtokenAttributes && rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOMETA)) {
-        throw new WarpScriptException("Token cannot be used for finding metadata.");
+      if (null != rtokenAttributes) {
+        if (rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOMETA)) {
+          throw new WarpScriptException("Token cannot be used for finding metadata.");
+        }
+        if (metaset && rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOFETCH)) {
+          throw new WarpScriptException("Token cannot be used for fetching data.");
+        }
       }
     } catch (WarpScriptException wse) {
       throw new WarpScriptException(getName() + " given an invalid token.", wse);
