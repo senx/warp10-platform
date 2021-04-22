@@ -176,7 +176,7 @@ public class ECRECOVER extends NamedWarpScriptFunction implements WarpScriptStac
 
     if (params.get(KEY_I) instanceof Long) {
       minH = ((Long) params.get(KEY_I)).intValue();
-      maxH = minH;
+      maxH = minH + 1;
     }
 
     if (maxH - minH > MAX_COFACTOR) {
