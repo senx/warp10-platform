@@ -46,6 +46,8 @@ public class ECRECOVER extends NamedWarpScriptFunction implements WarpScriptStac
 
   private static final String KEY_R = "r";
   private static final String KEY_S = "s";
+  private static final String KEY_I = "i";
+  private static final String KEY_EVEN = "even";
   private static final String KEY_SIG = "sig";
   private static final String KEY_HASH = "hash";
   private static final String KEY_CURVE = "curve";
@@ -169,9 +171,15 @@ public class ECRECOVER extends NamedWarpScriptFunction implements WarpScriptStac
 
     BigInteger rinv = spec.getCurve().fromBigInteger(r.modInverse(spec.getN())).toBigInteger();
 
+    int minH = 0;
     int maxH = H.intValue();
 
-    if (maxH > MAX_COFACTOR) {
+    if (params.get(KEY_I) instanceof Long) {
+      minH = ((Long) params.get(KEY_I)).intValue();
+      maxH = minH + 1;
+    }
+
+    if (maxH - minH > MAX_COFACTOR) {
       String hmaxCap = Capabilities.get(stack, CAP_COFACTOR);
       try {
         int hmax = Integer.valueOf(hmaxCap);
@@ -185,9 +193,24 @@ public class ECRECOVER extends NamedWarpScriptFunction implements WarpScriptStac
 
     Set<String> candidates = new HashSet<String>();
 
-    for (int j = 0; j < maxH; j++) {
+    int mintype = 0x02;
+    int maxtype = 0x03;
+
+    if (params.get(KEY_EVEN) instanceof Boolean) {
+      if (Boolean.TRUE.equals(params.get(KEY_EVEN))) {
+        mintype = 0x02;
+        maxtype = 0x02;
+      } else {
+        mintype = 0x03;
+        maxtype = 0x03;
+      }
+    }
+
+    for (int j = minH; j < maxH; j++) {
       // Iterate over the type of encoded points 0x02 and 0x03
-      for (int type = 0x02; type <= 0x03; type++) {
+      // 0x02 is for even key
+      // 0x03 is for odd key
+      for (int type = mintype; type <= maxtype; type++) {
         try {
           //
           // Compute R with x coordinate equal to r from the signature
