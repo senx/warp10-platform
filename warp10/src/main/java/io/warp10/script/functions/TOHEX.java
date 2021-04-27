@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ import org.bouncycastle.util.encoders.Hex;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Encode a String in hexadecimal
+ * Encode a String, byte[] or Long in hexadecimal
  */
 public class TOHEX extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
@@ -37,16 +37,19 @@ public class TOHEX extends NamedWarpScriptFunction implements WarpScriptStackFun
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object o = stack.pop();
-    
+
     if (o instanceof String) {
       stack.push(new String(Hex.encode(o.toString().getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8));
     } else if (o instanceof byte[]) {
       stack.push(new String(Hex.encode((byte[]) o), StandardCharsets.UTF_8));
+    } else if (o instanceof Long) {
+      StringBuilder sb = new StringBuilder("0000000000000000");
+      sb.append(Long.toHexString(((Number) o).longValue()));
+      stack.push(sb.substring(sb.length() - 16));
     } else {
-      throw new WarpScriptException(getName() + " operates on a String or a byte array.");
+      throw new WarpScriptException(getName() + " operates on a STRING, BYTES or LONG.");
     }
-    
-    
+
     return stack;
   }
 }

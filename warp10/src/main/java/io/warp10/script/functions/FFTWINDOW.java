@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -81,7 +81,7 @@ public class FFTWINDOW extends GTSStackFunction {
     //
     
     if (TYPE.DOUBLE != gts.getType() && TYPE.LONG != gts.getType()) {
-      throw new WarpScriptException("Geo Time Series " + GTSHelper.buildSelector(gts, false) + " is not numeric.");
+      throw new WarpScriptException(getName() + " expects numeric Geo Time Series. " + GTSHelper.buildSelector(gts, false) + " is not numeric.");
     }
     
     double window = 0.0D;
@@ -125,7 +125,7 @@ public class FFTWINDOW extends GTSStackFunction {
       } else if (WINDOW_WELCH.equals(algorithm)) {
         window = 1.0D * ((n - ((N - 1.0D) / 2.0D)) / ((N - 1.0D) / 2.0D));        
       } else {
-        throw new WarpScriptException("Unknown windowing function '" + algorithm + "'.");
+        throw new WarpScriptException(getName() + " given an unknown windowing function '" + algorithm + "'.");
       }
         
       long ts = GTSHelper.tickAtIndex(gts, n);

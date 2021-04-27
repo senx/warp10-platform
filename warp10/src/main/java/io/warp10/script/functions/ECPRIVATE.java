@@ -70,7 +70,14 @@ public class ECPRIVATE extends NamedWarpScriptFunction implements WarpScriptStac
       throw new WarpScriptException(getName() + " missing or non-String parameter '" + Constants.KEY_D + "'.");
     }
 
-    final BigInteger d = new BigInteger((String) params.get(Constants.KEY_D));
+    String dstr = (String) params.get(Constants.KEY_D);
+    final BigInteger d;
+
+    if (dstr.startsWith("0x") || dstr.startsWith("0X")) {
+      d = new BigInteger(dstr.substring(2), 16);
+    } else {
+      d = new BigInteger(dstr);
+    }
 
     ECPrivateKey privateKey = new ECPrivateKey() {
       public String getFormat() { return "PKCS#8"; }

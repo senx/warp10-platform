@@ -33,6 +33,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
+import io.warp10.script.functions.MSGFAIL;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.util.Progressable;
 
@@ -841,23 +842,11 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             // This is a function call
             //
 
-            Object func = null;
+            Object func = findFunction(stmt);
 
             //
             // Check WarpScript functions
             //
-
-            func = defined.get(stmt);
-
-            if (null != func && Boolean.FALSE.equals(getAttribute(WarpScriptStack.ATTRIBUTE_ALLOW_REDEFINED))) {
-              throw new WarpScriptException("Disallowed redefined function '" + stmt + "'.");
-            }
-
-            func = null != func ? func : WarpScriptLib.getFunction(stmt);
-
-            if (null == func) {
-              throw new WarpScriptException("Unknown function '" + stmt + "'");
-            }
 
             Map<String,String> labels = new HashMap<String,String>();
             labels.put(SensisionConstants.SENSISION_LABEL_FUNCTION, stmt);
@@ -995,10 +984,20 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       } else {
         String name = macro.getName();
         String section = (String) this.getAttribute(WarpScriptStack.ATTRIBUTE_SECTION_NAME);
+        Object statement = macro.get(i);
+        String statementString = statement.toString();
+        // For NamedWarpScriptFunction, toString is used for snapshotting. Getting the name is better to generate
+        // a clear error message.
+        if(statement instanceof NamedWarpScriptFunction) {
+          String funcName = ((NamedWarpScriptFunction) statement).getName();
+          if(null != funcName) {
+            statementString = funcName;
+          }
+        }
         if (null == name) {
-          throw new WarpScriptException("Exception" + (i < n ? (" at '" + macro.get(i).toString() + "'") : "") + " in section '" + section + "'", ee);
+          throw new WarpScriptException("Exception" + (i < n ? (" at '" + statementString + "'") : "") + " in section '" + section + "'", ee);
         } else {
-          throw new WarpScriptException("Exception" + (i < n ? (" at '" + macro.get(i).toString() + "'") : "") + " in section '" + section + "' called from macro '" + name + "'", ee);
+          throw new WarpScriptException("Exception" + (i < n ? (" at '" + statementString + "'") : "") + " in section '" + section + "' called from macro '" + name + "'", ee);
         }
       }
     } finally {
@@ -1065,6 +1064,22 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     } catch (WarpScriptJavaFunctionException ejfe) {
       throw new WarpScriptException(ejfe);
     }
+  }
+
+  public Object findFunction(String stmt) throws WarpScriptException {
+    Object func = defined.get(stmt);
+
+    if (null != func && Boolean.FALSE.equals(getAttribute(WarpScriptStack.ATTRIBUTE_ALLOW_REDEFINED))) {
+      throw new WarpScriptException("Disallowed redefined function '" + stmt + "'.");
+    }
+
+    func = null != func ? func : WarpScriptLib.getFunction(stmt);
+
+    if (null == func) {
+      throw new WarpScriptException("Unknown function '" + stmt + "'");
+    }
+
+    return func;
   }
 
   @Override
@@ -1377,23 +1392,13 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       if (this.unshadow) {
         this.defined.remove(stmt);
       } else {
-        this.defined.put(stmt, new WarpScriptStackFunction() {
-          @Override
-          public Object apply(WarpScriptStack stack) throws WarpScriptException {
-            throw new WarpScriptException("Function '" + stmt + "' is undefined.");
-          }
-        });
+        Macro undefMacro = new Macro();
+        undefMacro.add("is undefined.");
+        undefMacro.add(new MSGFAIL(stmt));
+        this.defined.put(stmt, MacroHelper.wrap(stmt, undefMacro));
       }
     } else {
-      // Wrap the macro into a function
-      WarpScriptStackFunction func = new WarpScriptStackFunction() {
-        @Override
-        public Object apply(WarpScriptStack stack) throws WarpScriptException {
-          stack.exec(macro);
-          return stack;
-        }
-      };
-      this.defined.put(stmt, func);
+      this.defined.put(stmt, MacroHelper.wrap(stmt, macro));
     }
   }
 

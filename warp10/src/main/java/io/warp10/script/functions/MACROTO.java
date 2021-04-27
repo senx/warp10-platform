@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -14,37 +14,39 @@
 //   limitations under the License.
 //
 
-package io.warp10.script.unary;
+package io.warp10.script.functions;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStack.Macro;
+import io.warp10.script.WarpScriptStackFunction;
 
-/**
- * Converts the LONG operand on top of the stack to its binary representation
- * Deprecated, use io.warp10.script.functions.TOBIN instead.
- */
-@Deprecated
-public class TOBIN extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class MACROTO extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  public TOBIN(String name) {
+  public MACROTO(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    Object op = stack.pop();
-    
-    StringBuilder sb = new StringBuilder("0000000000000000000000000000000000000000000000000000000000000000");
-    
-    if (op instanceof Long) {
-      sb.append(Long.toBinaryString(((Number) op).longValue()));
-      stack.push(sb.substring(sb.length() - 64));
-    } else {
-      throw new WarpScriptException(getName() + " can only operate on long values.");
+    Object top = stack.pop();
+
+    if (!(top instanceof Macro)) {
+      throw new WarpScriptException(getName() + " operates on a MACRO.");
     }
-    
+
+    Macro m = (Macro) top;
+
+    if (m.isSecure()) {
+      throw new WarpScriptException(getName() + " cannot operate on a secure MACRO.");
+    }
+
+    List<Object> statements = new ArrayList<Object>(m.statements());
+    stack.push(statements);
     return stack;
   }
 }
