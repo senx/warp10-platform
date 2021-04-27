@@ -327,7 +327,7 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
 
       Map<String, String> rtokenAttributes = rtoken.getAttributes();
       if (null != rtokenAttributes) {
-        if (rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOMETA)) {
+        if (rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOFIND)) {
           throw new WarpScriptException("Token cannot be used for finding metadata.");
         }
         if (metaset && rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOFETCH)) {

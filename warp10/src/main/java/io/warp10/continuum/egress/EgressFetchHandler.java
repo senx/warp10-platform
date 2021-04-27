@@ -467,7 +467,7 @@ public class EgressFetchHandler extends AbstractHandler {
           }
 
           Map<String, String> rtokenAttributes = rtoken.getAttributes();
-          if (null != rtokenAttributes && (rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOFETCH) || rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOMETA))) {
+          if (null != rtokenAttributes && (rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOFETCH) || rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOFIND))) {
             httpStatusCode = HttpServletResponse.SC_FORBIDDEN;
             throw new IOException("Token cannot be used for fetching data.");
           }

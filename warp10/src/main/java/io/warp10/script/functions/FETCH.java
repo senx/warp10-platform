@@ -232,7 +232,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       rtoken = Tokens.extractReadToken(params.get(PARAM_TOKEN).toString());
 
       Map<String, String> rtokenAttributes = rtoken.getAttributes();
-      if (null != rtokenAttributes && (rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOFETCH) || rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOMETA))) {
+      if (null != rtokenAttributes && (rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOFETCH) || rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOFIND))) {
         throw new WarpScriptException("Token cannot be used for fetching data.");
       }
     } catch (WarpScriptException wse) {
@@ -968,7 +968,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         ReadToken rtoken = Tokens.extractReadToken(metaset.getToken());
 
         Map<String, String> rtokenAttributes = rtoken.getAttributes();
-        if (null != rtokenAttributes && (rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOFETCH) || rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOMETA))) {
+        if (null != rtokenAttributes && (rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOFETCH) || rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOFIND))) {
           throw new WarpScriptException("Token cannot be used for fetching data.");
         }
       } catch (WarpScriptException wse) {

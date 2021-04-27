@@ -123,7 +123,7 @@ public class EgressFindHandler extends AbstractHandler {
         rtoken = Tokens.extractReadToken(token);
 
         Map<String, String> rtokenAttributes = rtoken.getAttributes();
-        if (null != rtokenAttributes && rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOMETA)) {
+        if (null != rtokenAttributes && rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOFIND)) {
           resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid token.");
           return;
         }

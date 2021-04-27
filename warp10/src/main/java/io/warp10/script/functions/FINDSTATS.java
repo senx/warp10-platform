@@ -121,7 +121,7 @@ public class FINDSTATS extends NamedWarpScriptFunction implements WarpScriptStac
       rtoken = Tokens.extractReadToken(token);
 
       Map<String, String> rtokenAttributes = rtoken.getAttributes();
-      if (null != rtokenAttributes && rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOMETA)) {
+      if (null != rtokenAttributes && rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOFIND)) {
         throw new WarpScriptException("Token cannot be used for finding metadata.");
       }
     } catch (WarpScriptException wse) {

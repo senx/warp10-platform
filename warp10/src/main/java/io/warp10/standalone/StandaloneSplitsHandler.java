@@ -99,7 +99,7 @@ public class StandaloneSplitsHandler extends AbstractHandler {
       }
 
       Map<String, String> rtokenAttributes = rtoken.getAttributes();
-      if (null != rtokenAttributes && (rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOFETCH) || rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOMETA))) {
+      if (null != rtokenAttributes && (rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOFETCH) || rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOFIND))) {
         throw new IOException("Token cannot be used for fetching data.");
       }
     } catch (WarpScriptException ee) {

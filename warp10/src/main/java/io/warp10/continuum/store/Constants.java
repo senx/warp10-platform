@@ -395,10 +395,14 @@ public class Constants {
 
   /**
    * Attribute used to specify that a WRITE token cannot be used for updating metadata.
+   */
+  public static final String TOKEN_ATTR_NOMETA = ".nometa";
+
+  /**
    * Attribute used to specify that a READ token cannot be used for metadata queries.
    * A READ token that cannot be used for metadata queries cannot be use either to query for data.
    */
-  public static final String TOKEN_ATTR_NOMETA = ".nometa";
+  public static final String TOKEN_ATTR_NOFIND = ".nofind";
 
   /**
    * Attribute used to specify that a READ token cannot be used to query for data.
