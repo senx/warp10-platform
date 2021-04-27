@@ -57,11 +57,10 @@ import java.util.concurrent.atomic.AtomicLong;
  * method The optional http method. Default to GET
  * headers An optional header map
  * body An optional body. UTF-8 STRING or BYTES
- * headers.macro An optional macro that expects this input parameters map on the stack, and push back the headers. Convenient for custom authorization schemes
  * chunk.size Chunk size
  * chunk.macro A macro that is executed whenever a chunk has been downloaded. It expects a MAP that contains chunk number (a LONG), status code (a LONG), status message (a STRING), headers (a MAP), and chunk content (a BYTES objects)
- * username Optional field. If both username and password field are present and headers.macro is absent, basic authentication will be performed
- * password Optional field. If both username and password field are present and headers.macro is absent, basic authentication will be performed
+ * username Optional field. If both username and password field are present, basic authentication will be performed
+ * password Optional field. If both username and password field are present, basic authentication will be performed
  *
  * Output:
  * RESPONSE A map that contains status code (a LONG), status message (a STRING), headers (a MAP) and full content of the response (a BYTES objects). The content is empty if chunk option is used
@@ -77,7 +76,6 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
   public static final String URL = "url";
   public static final String HEADERS = "headers";
   public static final String BODY = "body";
-  public static final String HEADERS_MACRO = "headers.macro";
   public static final String CHUNK_SIZE = "chunk.size";
   public static final String CHUNK_MACRO = "chunk.macro";
   public static final String USERNAME = "username";
@@ -221,15 +219,6 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
 
     Map<Object, Object> headers = (Map) params.getOrDefault(HEADERS, new HashMap<>());
 
-    WarpScriptStack.Macro headersMacro = null;
-    o = params.get(HEADERS_MACRO);
-    if (null != o) {
-      if (!(o instanceof WarpScriptStack.Macro)) {
-        throw new WarpScriptException(getName() + " expects a macro in the input parameters map as value of " + HEADERS_MACRO);
-      }
-       headersMacro = (WarpScriptStack.Macro) o;
-    }
-
     Long chunkSize = (Long) params.get(CHUNK_SIZE);
     if (null != chunkSize) {
       if (0 >= chunkSize) {
@@ -315,41 +304,26 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
       // Set headers
       //
 
-      if (null == headersMacro) {
+      Object username = params.get(USERNAME);
+      Object password = params.get(PASSWORD);
 
-        Object username = params.get(USERNAME);
-        Object password = params.get(PASSWORD);
+      if (null != username && null != password) {
 
-        if (null != username && null != password) {
+        //
+        // Compute basic auth
+        //
 
-          //
-          // Compute basic auth
-          //
-
-          if (!(username instanceof String)) {
-            throw new WarpScriptException(getName() + " expects a STRING username when doing basic authentication.");
-          }
-
-          if (!(password instanceof String)) {
-            throw new WarpScriptException(getName() + " expects a STRING password when doing basic authentication.");
-          }
-
-          String userInfo = ((String) username) + ":" + ((String) password);
-          String basicAuth = "Basic " + Base64.encodeBase64String(userInfo.getBytes(StandardCharsets.UTF_8));
-          conn.setRequestProperty("Authorization", basicAuth);
+        if (!(username instanceof String)) {
+          throw new WarpScriptException(getName() + " expects a STRING username when doing basic authentication.");
         }
 
-      } else {
-
-        stack.push(params);
-        stack.exec(headersMacro);
-        o = stack.pop();
-
-        if (!(o instanceof Map)) {
-          throw new WarpScriptException(getName() + " expects the " + HEADERS_MACRO + " to push a headers map onto the stack.");
+        if (!(password instanceof String)) {
+          throw new WarpScriptException(getName() + " expects a STRING password when doing basic authentication.");
         }
 
-        headers = (Map) o;
+        String userInfo = ((String) username) + ":" + ((String) password);
+        String basicAuth = "Basic " + Base64.encodeBase64String(userInfo.getBytes(StandardCharsets.UTF_8));
+        conn.setRequestProperty("Authorization", basicAuth);
       }
 
       for (Map.Entry<Object, Object> prop: headers.entrySet()) {
