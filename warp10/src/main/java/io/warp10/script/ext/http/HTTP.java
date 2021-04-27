@@ -45,16 +45,19 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * Send an HTTP request to a url
  *
- * To raise maximum number of calls and download size limit, use these capabilities:
- * http.requests
- * http.size
+ * Capabilities:
+ * - http.requests (maximum number of calls)
+ * - http.size (maximum download size in number of bytes)
+ * - http.chunksize (maximum chunk size in number of bytes)
+ * - if the configuration parameter warpscript.http.capability exists,
+ *   then its value is a capability that is checked to enable usage of this function
  *
  * Params:
  * url The URL to send the request to. Must begin with http:// or https://
  * method The optional http method. Default to GET
  * headers An optional header map
  * body An optional body. UTF-8 STRING or BYTES
- * headers.macro A optional macro that expects this input parameters map on the stack, and push back the headers. Convenient for custom authorization schemes
+ * headers.macro An optional macro that expects this input parameters map on the stack, and push back the headers. Convenient for custom authorization schemes
  * chunk.size Chunk size
  * chunk.macro A macro that is executed whenever a chunk has been downloaded. It expects a MAP that contains chunk number (a LONG), status code (a LONG), status message (a STRING), headers (a MAP), and chunk content (a BYTES objects)
  * username Optional field. If both username and password field are present and headers.macro is absent, basic authentication will be performed
@@ -232,16 +235,16 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
       if (0 >= chunkSize) {
         throw new WarpScriptException(getName() + " expects " + CHUNK_SIZE + " value to be greater than 0.");
       }
-    }
 
-    long maxChunkSize;
-    if (null != Capabilities.get(stack, HttpWarpScriptExtension.ATTRIBUTE_CHUNK_SIZE)) {
-      maxChunkSize = Long.valueOf(Capabilities.get(stack, HttpWarpScriptExtension.ATTRIBUTE_CHUNK_SIZE));
-    } else {
-      maxChunkSize = baseMaxChunkSize;
-    }
-    if (chunkSize > maxChunkSize) {
-      throw new WarpScriptException(getName() + " expects a chunk size in number of bytes that do not exceed " + maxChunkSize + ".");
+      long maxChunkSize;
+      if (null != Capabilities.get(stack, HttpWarpScriptExtension.ATTRIBUTE_CHUNK_SIZE)) {
+        maxChunkSize = Long.valueOf(Capabilities.get(stack, HttpWarpScriptExtension.ATTRIBUTE_CHUNK_SIZE));
+      } else {
+        maxChunkSize = baseMaxChunkSize;
+      }
+      if (chunkSize > maxChunkSize) {
+        throw new WarpScriptException(getName() + " expects a chunk size in number of bytes that do not exceed " + maxChunkSize + ".");
+      }
     }
 
     WarpScriptStack.Macro chunkMacro = null;
@@ -362,26 +365,22 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
 
       if ("GET" != method && "DELETE" != method && "TRACE" != method && "OPTIONS" != method && "HEAD" != method) {
 
+        byte[] bodyB = null;
         if (body instanceof String) {
-          String bodyS = (String) body;
-          conn.setDoOutput(bodyS.length() > 0);
-          if (bodyS.length() > 0) {
-            try (OutputStream os = conn.getOutputStream()) {
-              os.write(bodyS.getBytes(StandardCharsets.UTF_8));
-            }
-          }
+          bodyB = ((String) body).getBytes(StandardCharsets.UTF_8);
 
         } else if (body instanceof byte[]) {
-          byte[] bodyB = (byte[]) body;
-          conn.setDoOutput(bodyB.length > 0);
-          if (bodyB.length > 0) {
-            try (OutputStream os = conn.getOutputStream()) {
-              os.write(bodyB);
-            }
-          }
+          bodyB = (byte[]) body;
 
         } else if (null != body) {
           throw new WarpScriptException(getName() + " expects the body of the request to be a STRING or BYTES object.");
+        }
+
+        conn.setDoOutput(bodyB.length > 0);
+        if (bodyB.length > 0) {
+          try (OutputStream os = conn.getOutputStream()) {
+            os.write(bodyB);
+          }
         }
 
       } else if (null != body) {
