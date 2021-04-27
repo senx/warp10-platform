@@ -489,6 +489,7 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
         //
 
         res.remove(CHUNK_NUMBER);
+        res.remove(CONTENT);
       }
 
     } catch (IOException ioe) {
