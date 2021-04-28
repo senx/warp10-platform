@@ -187,7 +187,7 @@ public class STRICTMAPPER extends NamedWarpScriptFunction implements WarpScriptS
 
     } else if (o instanceof WarpScriptStack.Macro) {
       WarpScriptStack.Macro macro = new WarpScriptStack.Macro();
-      macro.add(new StringentMacroAsMapperFunction(getName(), min, max, macro));
+      macro.add(new StringentMacroAsMapperFunction(getName(), min, max, (WarpScriptStack.Macro) o));
       stack.push(macro);
 
     } else {
