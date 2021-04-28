@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package io.warp10.continuum.store;
 
+import io.warp10.CustomThreadFactory;
 import io.warp10.continuum.KafkaOffsetCounters;
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
@@ -382,7 +383,7 @@ public class Store extends Thread {
             executor = Executors.newFixedThreadPool(nthreads);
     
             if (nthreadsDelete > 0) {
-              deleteExecutor = new ThreadPoolExecutor(nthreadsDelete, nthreadsDelete, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(1));
+              deleteExecutor = new ThreadPoolExecutor(nthreadsDelete, nthreadsDelete, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(1), new CustomThreadFactory("Warp Store Thread"));
             }
             
             //
