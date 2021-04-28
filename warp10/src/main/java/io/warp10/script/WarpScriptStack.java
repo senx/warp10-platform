@@ -141,6 +141,11 @@ public interface WarpScriptStack {
   public static final String ATTRIBUTE_JSON_STRICT = "json.strict";
 
   /**
+   * Is the stack configured to output pretty JSON (i.e with ident)?
+   */
+  public static final String ATTRIBUTE_JSON_PRETTY = "json.pretty";
+
+  /**
    * Maximum size of a JSON created and pushed on the stack, in number of characters.
    */
   public static final String ATTRIBUTE_JSON_MAXSIZE = "json.size.max";

@@ -544,6 +544,8 @@ public class WarpScriptLib {
   public static final String TIMEBOX = "TIMEBOX";
   public static final String JSONSTRICT = "JSONSTRICT";
   public static final String JSONLOOSE = "JSONLOOSE";
+  public static final String JSONPRETTY = "JSONPRETTY";
+  public static final String JSONCOMPACT = "JSONCOMPACT";
   public static final String DEBUGON = "DEBUGON";
   public static final String NDEBUGON = "NDEBUGON";
   public static final String DEBUGOFF = "DEBUGOFF";
@@ -1359,7 +1361,9 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new ERROR(ERROR));
     addNamedWarpScriptFunction(new TIMEBOX(TIMEBOX));
     addNamedWarpScriptFunction(new JSONSTRICT(JSONSTRICT));
-    addNamedWarpScriptFunction(new JSONLOOSE(JSONLOOSE));
+    addNamedWarpScriptFunction(new JSONLOOSE(JSONLOOSE));;
+    addNamedWarpScriptFunction(new JSONPRETTY(JSONPRETTY));
+    addNamedWarpScriptFunction(new JSONCOMPACT(JSONCOMPACT));
     addNamedWarpScriptFunction(new DEBUGON(DEBUGON));
     addNamedWarpScriptFunction(new NDEBUGON(NDEBUGON));
     addNamedWarpScriptFunction(new DEBUGOFF(DEBUGOFF));
