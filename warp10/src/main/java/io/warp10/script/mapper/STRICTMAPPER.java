@@ -105,7 +105,7 @@ public class STRICTMAPPER extends NamedWarpScriptFunction implements WarpScriptS
 
       Object o = stack.peek();
       if (!(o instanceof GeoTimeSerie)) {
-        throw new WarpScriptException(getName() + " can only be applied on a GTS.");
+        throw new WarpScriptException(getName() + "'s resulting function can only be applied on a GTS.");
       }
 
       GeoTimeSerie gts = (GeoTimeSerie) o;
