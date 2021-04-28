@@ -25,6 +25,9 @@ import io.warp10.script.WarpScriptMapperFunction;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Wrap a Mapper so we return no value when the number of values in the
  * window is outside a given range
@@ -116,8 +119,14 @@ public class STRICTMAPPER extends NamedWarpScriptFunction implements WarpScriptS
       }
 
       if (min > 0 && size < min || max > 0 && size > max || min < 0 && timespan < -min || max < 0 && timespan > -max) {
-        stack.push(new Object[]{0, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, null});
+        stack.pop();
 
+        List<Object> list = new ArrayList<Object>();
+        list.add(0);
+        list.add(GeoTimeSerie.NO_LOCATION);
+        list.add(GeoTimeSerie.NO_ELEVATION);
+        list.add(null);
+        stack.push(list);
         return stack;
       }
 
@@ -153,7 +162,6 @@ public class STRICTMAPPER extends NamedWarpScriptFunction implements WarpScriptS
     if (!(o instanceof Number)) {
       throw new WarpScriptException(getName() + " expects a maximum (inclusive) number of values or a minimum timespan on top of the stack.");
     }
-
 
     long max = ((Number) o).longValue();
 
