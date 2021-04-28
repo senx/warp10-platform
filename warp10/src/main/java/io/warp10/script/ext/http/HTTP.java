@@ -134,25 +134,25 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
     capName = WarpConfig.getProperty(HttpWarpScriptExtension.WARPSCRIPT_HTTP_CAPABILITY);
 
     // retrieve limits
-    Object confMaxRequests = WarpConfig.getProperty(HttpWarpScriptExtension.WARPSCRIPT_HTTP_REQUESTS);
+    String confMaxRequests = WarpConfig.getProperty(HttpWarpScriptExtension.WARPSCRIPT_HTTP_REQUESTS);
     if (null == confMaxRequests) {
       baseMaxRequests = HttpWarpScriptExtension.DEFAULT_HTTP_REQUESTS;
     } else {
-      baseMaxRequests = Long.parseLong((String) confMaxRequests);
+      baseMaxRequests = Long.parseLong(confMaxRequests);
     }
 
-    Object confMaxSize = WarpConfig.getProperty(HttpWarpScriptExtension.WARPSCRIPT_HTTP_SIZE);
+    String confMaxSize = WarpConfig.getProperty(HttpWarpScriptExtension.WARPSCRIPT_HTTP_SIZE);
     if (null == confMaxSize) {
       baseMaxSize = HttpWarpScriptExtension.DEFAULT_HTTP_MAXSIZE;
     } else {
-      baseMaxSize = Long.parseLong((String) confMaxSize);
+      baseMaxSize = Long.parseLong(confMaxSize);
     }
 
-    Object confMaxChunkSize = WarpConfig.getProperty(HttpWarpScriptExtension.WARPSCRIPT_CHUNK_SIZE);
+    String confMaxChunkSize = WarpConfig.getProperty(HttpWarpScriptExtension.WARPSCRIPT_CHUNK_SIZE);
     if (null == confMaxChunkSize) {
       baseMaxChunkSize = HttpWarpScriptExtension.DEFAULT_HTTP_CHUNK_SIZE;
     } else {
-      baseMaxChunkSize = Long.parseLong((String) confMaxChunkSize);
+      baseMaxChunkSize = Long.parseLong(confMaxChunkSize);
     }
   }
 
@@ -205,9 +205,9 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
     //
 
     Object body = params.get(BODY);
-    String method = (String) params.get(METHOD);
-
-    if (null == method) {
+    Object oo = params.get(METHOD);
+    String method;
+    if (null == oo) {
 
       if (null == body) {
         method = "GET";
@@ -215,12 +215,36 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
       } else {
         method = "POST";
       }
+
+    } else if (oo instanceof String) {
+      method = (String) oo;
+
+    } else {
+      throw new WarpScriptException(getName() + " expects " + METHOD + " to be a STRING.");
     }
 
-    Map<Object, Object> headers = (Map) params.getOrDefault(HEADERS, new HashMap<>());
+    Map<Object, Object> headers;
+    oo = params.get(HEADERS);
+    if (null == oo) {
+      headers = new HashMap<Object, Object>();
+    } else if (oo instanceof Map) {
+      headers = (Map) oo;
+    } else {
+     throw new WarpScriptException(getName() + " expects " + HEADERS + " to be a MAP.");
+    }
 
-    Long chunkSize = (Long) params.get(CHUNK_SIZE);
-    if (null != chunkSize) {
+    Long chunkSize = null;
+    oo = params.get(CHUNK_SIZE);
+
+    if (null != oo) {
+
+      if (oo instanceof Long) {
+        chunkSize = (Long) oo;
+
+      } else {
+        throw new WarpScriptException(getName() + " expects " + CHUNK_SIZE + " to be a LONG.");
+      }
+
       if (0 >= chunkSize) {
         throw new WarpScriptException(getName() + " expects " + CHUNK_SIZE + " value to be greater than 0.");
       }
@@ -252,6 +276,9 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
     Object urlParam = params.get(URL);
     if (null == urlParam) {
       throw new WarpScriptException(getName() + " expects a url.");
+
+    } else if (!(urlParam instanceof String)) {
+      throw new WarpScriptException(getName() + " expects " + URL + " to be a STRING.");
     }
 
     URL url = null;
@@ -294,7 +321,7 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
       throw new WarpScriptException(getName() + " is limited to " + maxrequests + " calls per script execution.");
     }
 
-    Map<String, Object> res = new LinkedHashMap<>();
+    Map<String, Object> res = new LinkedHashMap<String, Object>();
     HttpURLConnection conn = null;
 
     try {
@@ -350,10 +377,12 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
           throw new WarpScriptException(getName() + " expects the body of the request to be a STRING or BYTES object.");
         }
 
-        conn.setDoOutput(bodyB.length > 0);
-        if (bodyB.length > 0) {
-          try (OutputStream os = conn.getOutputStream()) {
-            os.write(bodyB);
+        if (null != bodyB) {
+          conn.setDoOutput(bodyB.length > 0);
+          if (bodyB.length > 0) {
+            try (OutputStream os = conn.getOutputStream()) {
+              os.write(bodyB);
+            }
           }
         }
 
