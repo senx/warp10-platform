@@ -337,7 +337,7 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
       // Set body
       //
 
-      if ("GET" != method && "DELETE" != method && "TRACE" != method && "OPTIONS" != method && "HEAD" != method) {
+      if (!"GET".equals(method) && !"TRACE".equals(method)) {
 
         byte[] bodyB = null;
         if (body instanceof String) {
