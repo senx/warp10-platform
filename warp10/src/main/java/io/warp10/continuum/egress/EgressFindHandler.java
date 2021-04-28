@@ -124,7 +124,7 @@ public class EgressFindHandler extends AbstractHandler {
 
         Map<String, String> rtokenAttributes = rtoken.getAttributes();
         if (null != rtokenAttributes && rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOFIND)) {
-          resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid token.");
+          resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Token cannot be used for finding metadata.");
           return;
         }
 
