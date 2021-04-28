@@ -27,9 +27,23 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 
+import org.bouncycastle.crypto.digests.GOST3411Digest;
+import org.bouncycastle.crypto.digests.KeccakDigest;
+import org.bouncycastle.crypto.digests.MD2Digest;
+import org.bouncycastle.crypto.digests.MD4Digest;
 import org.bouncycastle.crypto.digests.MD5Digest;
+import org.bouncycastle.crypto.digests.RIPEMD128Digest;
+import org.bouncycastle.crypto.digests.RIPEMD160Digest;
+import org.bouncycastle.crypto.digests.RIPEMD256Digest;
+import org.bouncycastle.crypto.digests.RIPEMD320Digest;
 import org.bouncycastle.crypto.digests.SHA1Digest;
+import org.bouncycastle.crypto.digests.SHA224Digest;
 import org.bouncycastle.crypto.digests.SHA256Digest;
+import org.bouncycastle.crypto.digests.SHA384Digest;
+import org.bouncycastle.crypto.digests.SHA3Digest;
+import org.bouncycastle.crypto.digests.SHA512Digest;
+import org.bouncycastle.crypto.digests.TigerDigest;
+import org.bouncycastle.crypto.digests.WhirlpoolDigest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -292,11 +306,9 @@ import io.warp10.script.unary.FROMBITS;
 import io.warp10.script.unary.FROMHEX;
 import io.warp10.script.unary.NOT;
 import io.warp10.script.unary.REVERSEBITS;
-import io.warp10.script.unary.TOBIN;
 import io.warp10.script.unary.TOBITS;
 import io.warp10.script.unary.TOBOOLEAN;
 import io.warp10.script.unary.TODOUBLE;
-import io.warp10.script.unary.TOHEX;
 import io.warp10.script.unary.TOLONG;
 import io.warp10.script.unary.TOSTRING;
 import io.warp10.script.unary.TOTIMESTAMP;
@@ -332,6 +344,7 @@ public class WarpScriptLib {
 
   public static final String EVAL = "EVAL";
   public static final String EVALSECURE = "EVALSECURE";
+  public static final String FUNCREF = "FUNCREF";
   public static final String SNAPSHOT = "SNAPSHOT";
   public static final String SNAPSHOTALL = "SNAPSHOTALL";
   public static final String DEREF = "DEREF";
@@ -346,15 +359,19 @@ public class WarpScriptLib {
   public static final String NOOP = "NOOP";
   public static final String JSONTO = "JSON->";
 
+  public static final String EMPTY_MAP = "{}";
   public static final String MAP_START = "{";
   public static final String MAP_END = "}";
 
+  public static final String EMPTY_LIST = "[]";
   public static final String LIST_START = "[";
   public static final String LIST_END = "]";
 
+  public static final String EMPTY_SET = "()";
   public static final String SET_START = "(";
   public static final String SET_END = ")";
 
+  public static final String EMPTY_VECTOR = "[[]]";
   public static final String VECTOR_START = "[[";
   public static final String VECTOR_END = "]]";
 
@@ -527,6 +544,8 @@ public class WarpScriptLib {
   public static final String TIMEBOX = "TIMEBOX";
   public static final String JSONSTRICT = "JSONSTRICT";
   public static final String JSONLOOSE = "JSONLOOSE";
+  public static final String JSONPRETTY = "JSONPRETTY";
+  public static final String JSONCOMPACT = "JSONCOMPACT";
   public static final String DEBUGON = "DEBUGON";
   public static final String NDEBUGON = "NDEBUGON";
   public static final String DEBUGOFF = "DEBUGOFF";
@@ -566,6 +585,8 @@ public class WarpScriptLib {
   public static final String TIMEON = "TIMEON";
   public static final String TIMEOFF = "TIMEOFF";
   public static final String MACROTTL = "MACROTTL";
+  public static final String MACROTO = "MACRO->";
+  public static final String TOMACRO = "->MACRO";
   public static final String WFON = "WFON";
   public static final String WFOFF = "WFOFF";
   public static final String SETMACROCONFIG = "SETMACROCONFIG";
@@ -613,9 +634,33 @@ public class WarpScriptLib {
   public static final String NS = "ns";
   public static final String PS = "ps";
   public static final String HASH = "HASH";
+  public static final String KECCAK_128 = "KECCAK.128";
+  public static final String KECCAK_224 = "KECCAK.224";
+  public static final String KECCAK_256 = "KECCAK.256";
+  public static final String KECCAK_288 = "KECCAK.288";
+  public static final String KECCAK_384 = "KECCAK.384";
+  public static final String KECCAK_512 = "KECCAK.512";
+  public static final String TOSSSS = "->SSSS";
+  public static final String SSSSTO = "SSSS->";
+  public static final String MD2 = "MD2";
+  public static final String MD4 = "MD4";
   public static final String MD5 = "MD5";
   public static final String SHA1 = "SHA1";
+  public static final String SHA224 = "SHA224";
   public static final String SHA256 = "SHA256";
+  public static final String SHA384 = "SHA384";
+  public static final String SHA512 = "SHA512";
+  public static final String SHA3_224 = "SHA3.224";
+  public static final String SHA3_256 = "SHA3.256";
+  public static final String SHA3_384 = "SHA3.384";
+  public static final String SHA3_512 = "SHA3.512";
+  public static final String RIPEMD128 = "RIPEMD128";
+  public static final String RIPEMD160 = "RIPEMD160";
+  public static final String RIPEMD256 = "RIPEMD256";
+  public static final String RIPEMD320 = "RIPEMD320";
+  public static final String GOST = "GOST";
+  public static final String TIGER = "TIGER";
+  public static final String WHIRLPOOL = "WHIRLPOOL";
   public static final String SHA256HMAC = "SHA256HMAC";
   public static final String SHA1HMAC = "SHA1HMAC";
   public static final String AESWRAP = "AESWRAP";
@@ -629,8 +674,16 @@ public class WarpScriptLib {
   public static final String ECDH = "ECDH";
   public static final String ECPRIVATE = "ECPRIVATE";
   public static final String ECPUBLIC = "ECPUBLIC";
+  public static final String ECRECOVER = "ECRECOVER";
   public static final String ECSIGN = "ECSIGN";
   public static final String ECVERIFY = "ECVERIFY";
+  public static final String MSIGN = "MSIGN";
+  public static final String MSIG = "MSIG";
+  public static final String MSIGCOUNT = "MSIGCOUNT";
+  public static final String MSIGINFO = "MSIGINFO";
+  public static final String MVERIFY = "MVERIFY";
+  public static final String MCHECKSIG = "MCHECKSIG";
+  public static final String MDETACH = "MDETACH";
   public static final String RSAGEN = "RSAGEN";
   public static final String RSAENCRYPT = "RSAENCRYPT";
   public static final String RSADECRYPT = "RSADECRYPT";
@@ -891,6 +944,8 @@ public class WarpScriptLib {
   public static final String MODE = "MODE";
   public static final String PACK = "PACK";
   public static final String UNPACK = "UNPACK";
+  public static final String TORLP = "->RLP";
+  public static final String RLPTO = "RLP->";
   public static final String TR = "TR";
   public static final String TRANSPOSE = "TRANSPOSE";
   public static final String DET = "DET";
@@ -1057,6 +1112,10 @@ public class WarpScriptLib {
   public static final String TOBIN_ = "->BIN";
   public static final String TOHEX_ = "->HEX";
   public static final String TOB64 = "->B64";
+  public static final String TOB58 = "->B58";
+  public static final String TOB58C = "->B58C";
+  public static final String B58TO = "B58->";
+  public static final String B58CTO = "B58C->";
   public static final String TOB64URL = "->B64URL";
   public static final String TOENCODER = "->ENCODER";
   public static final String TOENCODERS = "->ENCODERS";
@@ -1267,6 +1326,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new SYMBOLS(SYMBOLS));
     addNamedWarpScriptFunction(new MAXJSON(MAXJSON));
     addNamedWarpScriptFunction(new EVAL(EVAL));
+    addNamedWarpScriptFunction(new FUNCREF(FUNCREF));
     addNamedWarpScriptFunction(new NOW(NOW));
     addNamedWarpScriptFunction(new AGO(AGO));
     addNamedWarpScriptFunction(new MSTU(MSTU));
@@ -1301,7 +1361,9 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new ERROR(ERROR));
     addNamedWarpScriptFunction(new TIMEBOX(TIMEBOX));
     addNamedWarpScriptFunction(new JSONSTRICT(JSONSTRICT));
-    addNamedWarpScriptFunction(new JSONLOOSE(JSONLOOSE));
+    addNamedWarpScriptFunction(new JSONLOOSE(JSONLOOSE));;
+    addNamedWarpScriptFunction(new JSONPRETTY(JSONPRETTY));
+    addNamedWarpScriptFunction(new JSONCOMPACT(JSONCOMPACT));
     addNamedWarpScriptFunction(new DEBUGON(DEBUGON));
     addNamedWarpScriptFunction(new NDEBUGON(NDEBUGON));
     addNamedWarpScriptFunction(new DEBUGOFF(DEBUGOFF));
@@ -1311,17 +1373,17 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new MMAP(MMAP));
     addNamedWarpScriptFunction(new NONNULL(NONNULL));
     addNamedWarpScriptFunction(new LMAP(LFLATMAP, true));
-    addNamedWarpScriptFunction(new EMPTYLIST("[]"));
+    addNamedWarpScriptFunction(new EMPTYLIST(EMPTY_LIST));
     addNamedWarpScriptFunction(new MARK(LIST_START));
     addNamedWarpScriptFunction(new ENDLIST(LIST_END));
     addNamedWarpScriptFunction(new STACKTOLIST(STACKTOLIST));
     addNamedWarpScriptFunction(new MARK(SET_START));
     addNamedWarpScriptFunction(new ENDSET(SET_END));
-    addNamedWarpScriptFunction(new EMPTYSET("()"));
+    addNamedWarpScriptFunction(new EMPTYSET(EMPTY_SET));
     addNamedWarpScriptFunction(new MARK(VECTOR_START));
     addNamedWarpScriptFunction(new ENDVECTOR(VECTOR_END));
-    addNamedWarpScriptFunction(new EMPTYVECTOR("[[]]"));
-    addNamedWarpScriptFunction(new EMPTYMAP("{}"));
+    addNamedWarpScriptFunction(new EMPTYVECTOR(EMPTY_VECTOR));
+    addNamedWarpScriptFunction(new EMPTYMAP(EMPTY_MAP));
     addNamedWarpScriptFunction(new IMMUTABLE(IMMUTABLE));
     addNamedWarpScriptFunction(new MARK(MAP_START));
     addNamedWarpScriptFunction(new ENDMAP(MAP_END));
@@ -1337,6 +1399,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new SECTION(SECTION));
     addNamedWarpScriptFunction(new GETSECTION(GETSECTION));
     addNamedWarpScriptFunction(new SNAPSHOT(SNAPSHOT, false, false, true, false));
+    addNamedWarpScriptFunction(new SNAPSHOT("SNAPSHOTREADABLE", false, false, true, false, true, true));
     addNamedWarpScriptFunction(new SNAPSHOT(SNAPSHOTALL, true, false, true, false));
     addNamedWarpScriptFunction(new SNAPSHOT(SNAPSHOTTOMARK, false, true, true, false));
     addNamedWarpScriptFunction(new SNAPSHOT(SNAPSHOTALLTOMARK, true, true, true, false));
@@ -1367,6 +1430,9 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new FAIL(COMPILED, "Not supported"));
     addNamedWarpScriptFunction(new REF(REF));
 
+
+    addNamedWarpScriptFunction(new MACROTO(MACROTO));
+    addNamedWarpScriptFunction(new TOMACRO(TOMACRO));
     addNamedWarpScriptFunction(new MACROTTL(MACROTTL));
     addNamedWarpScriptFunction(new WFON(WFON));
     addNamedWarpScriptFunction(new WFOFF(WFOFF));
@@ -1459,9 +1525,33 @@ public class WarpScriptLib {
 
     // Crypto functions
     addNamedWarpScriptFunction(new HASH(HASH));
+    addNamedWarpScriptFunction(new DIGEST(KECCAK_128, KeccakDigest.class, 128));
+    addNamedWarpScriptFunction(new DIGEST(KECCAK_224, KeccakDigest.class, 224));
+    addNamedWarpScriptFunction(new DIGEST(KECCAK_256, KeccakDigest.class, 256));
+    addNamedWarpScriptFunction(new DIGEST(KECCAK_288, KeccakDigest.class, 288));
+    addNamedWarpScriptFunction(new DIGEST(KECCAK_384, KeccakDigest.class, 384));
+    addNamedWarpScriptFunction(new DIGEST(KECCAK_512, KeccakDigest.class, 512));
+    addNamedWarpScriptFunction(new DIGEST(MD2, MD2Digest.class));
+    addNamedWarpScriptFunction(new DIGEST(MD4, MD4Digest.class));
     addNamedWarpScriptFunction(new DIGEST(MD5, MD5Digest.class));
     addNamedWarpScriptFunction(new DIGEST(SHA1, SHA1Digest.class));
+    addNamedWarpScriptFunction(new DIGEST(SHA224, SHA224Digest.class));
     addNamedWarpScriptFunction(new DIGEST(SHA256, SHA256Digest.class));
+    addNamedWarpScriptFunction(new DIGEST(SHA384, SHA384Digest.class));
+    addNamedWarpScriptFunction(new DIGEST(SHA512, SHA512Digest.class));
+    addNamedWarpScriptFunction(new DIGEST(SHA3_224, SHA3Digest.class, 224));
+    addNamedWarpScriptFunction(new DIGEST(SHA3_256, SHA3Digest.class, 256));
+    addNamedWarpScriptFunction(new DIGEST(SHA3_384, SHA3Digest.class, 384));
+    addNamedWarpScriptFunction(new DIGEST(SHA3_512, SHA3Digest.class, 512));
+
+    addNamedWarpScriptFunction(new DIGEST(RIPEMD128, RIPEMD128Digest.class));
+    addNamedWarpScriptFunction(new DIGEST(RIPEMD160, RIPEMD160Digest.class));
+    addNamedWarpScriptFunction(new DIGEST(RIPEMD256, RIPEMD256Digest.class));
+    addNamedWarpScriptFunction(new DIGEST(RIPEMD320, RIPEMD320Digest.class));
+    addNamedWarpScriptFunction(new DIGEST(TIGER, TigerDigest.class));
+    addNamedWarpScriptFunction(new DIGEST(WHIRLPOOL, WhirlpoolDigest.class));
+    addNamedWarpScriptFunction(new DIGEST(GOST, GOST3411Digest.class));
+
     addNamedWarpScriptFunction(new HMAC(SHA256HMAC, SHA256Digest.class));
     addNamedWarpScriptFunction(new HMAC(SHA1HMAC, SHA1Digest.class));
     addNamedWarpScriptFunction(new AESWRAP(AESWRAP));
@@ -1475,8 +1565,18 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new ECDH(ECDH));
     addNamedWarpScriptFunction(new ECPRIVATE(ECPRIVATE));
     addNamedWarpScriptFunction(new ECPUBLIC(ECPUBLIC));
+    addNamedWarpScriptFunction(new ECRECOVER(ECRECOVER));
     addNamedWarpScriptFunction(new ECSIGN(ECSIGN));
     addNamedWarpScriptFunction(new ECVERIFY(ECVERIFY));
+    addNamedWarpScriptFunction(new MSIGN(MSIGN));
+    addNamedWarpScriptFunction(new MSIG(MSIG));
+    addNamedWarpScriptFunction(new MSIGCOUNT(MSIGCOUNT));
+    addNamedWarpScriptFunction(new MSIGINFO(MSIGINFO));
+    addNamedWarpScriptFunction(new MVERIFY(MVERIFY, true));
+    addNamedWarpScriptFunction(new MVERIFY(MCHECKSIG, false));
+    addNamedWarpScriptFunction(new MDETACH(MDETACH));
+    addNamedWarpScriptFunction(new TOSSSS(TOSSSS));
+    addNamedWarpScriptFunction(new SSSSTO(SSSSTO));
     addNamedWarpScriptFunction(new RSAGEN(RSAGEN));
     addNamedWarpScriptFunction(new RSAPUBLIC(RSAPUBLIC));
     addNamedWarpScriptFunction(new RSAPRIVATE(RSAPRIVATE));
@@ -1511,13 +1611,20 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new BYTESTO(BYTESTO));
 
     addNamedWarpScriptFunction(new TOBYTES(TOBYTES));
-    addNamedWarpScriptFunction(new io.warp10.script.functions.TOBIN(TOBIN_));
-    addNamedWarpScriptFunction(new io.warp10.script.functions.TOHEX(TOHEX_));
+    addNamedWarpScriptFunction(new TOBIN(TOBIN_));
+    addNamedWarpScriptFunction(new TOHEX(TOHEX_));
     addNamedWarpScriptFunction(new TOB64(TOB64));
     addNamedWarpScriptFunction(new TOB64URL(TOB64URL));
     addNamedWarpScriptFunction(new TOOPB64(TOOPB64));
     addNamedWarpScriptFunction(new OPB64TO(OPB64TO));
     addNamedWarpScriptFunction(new OPB64TOHEX(OPB64TOHEX));
+
+    addNamedWarpScriptFunction(new TORLP(TORLP));
+    addNamedWarpScriptFunction(new RLPTO(RLPTO));
+    addNamedWarpScriptFunction(new TOB58(TOB58, false));
+    addNamedWarpScriptFunction(new TOB58(TOB58C, true));
+    addNamedWarpScriptFunction(new B58TO(B58TO, false));
+    addNamedWarpScriptFunction(new B58TO(B58CTO, true));
 
     //
     // Conditionals
@@ -1546,7 +1653,7 @@ public class WarpScriptLib {
     //
 
     addNamedWarpScriptFunction(new RETURN(RETURN));
-    addNamedWarpScriptFunction(new NRETURN(NRETURN));
+    addNamedWarpScriptFunction(new RETURN(NRETURN, true));
 
     //
     // GTS standalone functions

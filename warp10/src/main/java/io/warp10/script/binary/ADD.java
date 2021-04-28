@@ -1,5 +1,5 @@
 //
-//   Copyright 2020  SenX S.A.S.
+//   Copyright 2020-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -72,6 +72,7 @@ public class ADD extends NamedWarpScriptFunction implements WarpScriptStackFunct
       Macro macro = new Macro();
       macro.addAll((Macro) op1);
       macro.addAll((Macro) op2);
+      macro.setSecure(((Macro) op1).isSecure() || ((Macro) op2).isSecure());
       stack.push(macro);
     } else if (op1 instanceof RealMatrix && op2 instanceof RealMatrix) {
       stack.push(((RealMatrix) op1).add((RealMatrix) op2));

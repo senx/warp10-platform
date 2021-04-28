@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,20 +16,30 @@
 
 package io.warp10.script.functions;
 
+import java.lang.reflect.Constructor;
+
+import org.bouncycastle.crypto.Digest;
+
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
-import org.bouncycastle.crypto.Digest;
-import org.bouncycastle.crypto.digests.GeneralDigest;
 
 public class DIGEST extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
   private Class digestAlgo;
 
-  public DIGEST(String name, Class<? extends GeneralDigest> digestAlgo) {
+  private Integer size = null;
+
+  public DIGEST(String name, Class<? extends Digest> digestAlgo) {
     super(name);
     this.digestAlgo = digestAlgo;
+  }
+
+  public DIGEST(String name, Class<? extends Digest> digestAlgo, int size) {
+    super(name);
+    this.digestAlgo = digestAlgo;
+    this.size = size;
   }
 
   @Override
@@ -43,7 +53,14 @@ public class DIGEST extends NamedWarpScriptFunction implements WarpScriptStackFu
     byte[] bytes = (byte[]) o;
 
     try {
-      Digest digest = (Digest) digestAlgo.newInstance();
+      Digest digest;
+
+      if (null == this.size) {
+        digest = (Digest) digestAlgo.newInstance();
+      } else {
+        Constructor c = digestAlgo.getConstructor(new Class[] { int.class });
+        digest = (Digest) c.newInstance(this.size);
+      }
 
       byte[] digestOctets = new byte[digest.getDigestSize()];
 

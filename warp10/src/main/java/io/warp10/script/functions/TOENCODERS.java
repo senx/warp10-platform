@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -107,7 +107,7 @@ public class TOENCODERS extends NamedWarpScriptFunction implements WarpScriptSta
         enc.addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), value);
       }      
     } catch (Exception e) {
-      throw new WarpScriptException(getName() + " encountered an exception during conversion.");
+      throw new WarpScriptException(getName() + " encountered an exception during conversion.", e);
     }
         
     stack.push(encoders);

@@ -471,7 +471,14 @@ public class InMemoryChunkSet {
     long oursize = this.getSize();
     long ourcount = this.getCount();
     int avgsize = (int) Math.ceil((double) oursize / (double) ourcount);
-    int hint = (int) Math.min((int) (count * avgsize), this.getSize());
+    int estimatedEncoderSize;
+    try {
+      // estimatedEncoderSize = (count + postBoundary) * avgsize
+      estimatedEncoderSize = Math.toIntExact(Math.multiplyExact(Math.addExact(count, postBoundary), avgsize));
+    } catch (ArithmeticException ae) {
+      estimatedEncoderSize = Integer.MAX_VALUE;
+    }
+    int hint = (int) Math.min(estimatedEncoderSize, this.getSize());
     GTSEncoder encoder = new GTSEncoder(0L, null, hint);
 
     //

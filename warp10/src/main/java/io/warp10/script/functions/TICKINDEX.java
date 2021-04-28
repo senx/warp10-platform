@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -28,28 +28,29 @@ import io.warp10.script.WarpScriptStack;
  */
 public class TICKINDEX extends ElementOrListStackFunction {
   
-  private static final ElementStackFunction CONVERTER = new ElementStackFunction() {
-    @Override
-    public Object applyOnElement(Object element) throws WarpScriptException {
-      try {
-        if (element instanceof GeoTimeSerie) {
-          return GTSHelper.tickindex((GeoTimeSerie) element);
-        } else if (element instanceof GTSEncoder) {
-          return GTSHelper.tickindex((GTSEncoder) element);
-        }
-        throw new WarpScriptException("Can only operate on Geo Time Series™ or GTS Encoder instances.");
-      } catch (Exception e) {
-        throw new WarpScriptException("Caught an exception while converting encoder.",e);
-      }
-    }  
-  };
+  private final ElementStackFunction converter;
   
   public TICKINDEX(String name) {
     super(name);
+    converter = new ElementStackFunction() {
+      @Override
+      public Object applyOnElement(Object element) throws WarpScriptException {
+        try {
+          if (element instanceof GeoTimeSerie) {
+            return GTSHelper.tickindex((GeoTimeSerie) element);
+          } else if (element instanceof GTSEncoder) {
+            return GTSHelper.tickindex((GTSEncoder) element);
+          }
+          throw new WarpScriptException(getName() + " can only operate on Geo Time Series™ or GTS Encoder instances.");
+        } catch (Exception e) {
+          throw new WarpScriptException(getName() + " caught an exception while converting encoder.", e);
+        }
+      }
+    };
   }
 
   @Override
   public ElementStackFunction generateFunction(WarpScriptStack stack) throws WarpScriptException {
-    return CONVERTER;
+    return converter;
   }
 }

@@ -1,5 +1,5 @@
 //
-//   Copyright 2020  SenX S.A.S.
+//   Copyright 2020-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -27,11 +27,17 @@ import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStack;
-import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStack.Mark;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.processing.Pencode;
+import org.apache.commons.math3.linear.RealMatrix;
+import org.apache.commons.math3.linear.RealVector;
+import processing.core.PGraphics;
+import processing.core.PImage;
+import processing.core.PShapeSVG;
 
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
@@ -46,6 +52,7 @@ import java.util.UUID;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Matcher;
 
 /**
  * Replaces the stack so far with a WarpScript snippet which will regenerate
@@ -96,11 +103,20 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
    */
   private final boolean pop;
 
+  /**
+   * Should we generate a snapshot easier for humans to read.
+   */
+  private final boolean readable;
+
   public SNAPSHOT(String name, boolean snapshotSymbols, boolean toMark, boolean pop, boolean countbased) {
     this(name, snapshotSymbols, toMark, pop, countbased, true);
   }
 
   public SNAPSHOT(String name, boolean snapshotSymbols, boolean toMark, boolean pop, boolean countbased, boolean compresswrappers) {
+    this(name, snapshotSymbols, toMark, pop, countbased, compresswrappers, false);
+  }
+
+  public SNAPSHOT(String name, boolean snapshotSymbols, boolean toMark, boolean pop, boolean countbased, boolean compresswrappers, boolean readable) {
     super(name);
     this.snapshotSymbols = snapshotSymbols;
     this.toMark = toMark;
@@ -108,6 +124,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
 
     this.countbased = countbased;
     this.compresswrappers = compresswrappers;
+    this.readable = readable;
   }
 
   @Override
@@ -151,7 +168,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
 
       Object o = stack.get(i);
 
-      addElement(this, sb, o);
+      addElement(this, sb, o, readable);
     }
 
     //
@@ -159,8 +176,8 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
     //
     if (this.snapshotSymbols) {
       for (Entry<String, Object> entry : stack.getSymbolTable().entrySet()) {
-        addElement(this, sb, entry.getValue());
-        addElement(this, sb, entry.getKey());
+        addElement(this, sb, entry.getValue(), readable);
+        addElement(this, sb, entry.getKey(), readable);
         sb.append(WarpScriptLib.STORE);
         sb.append(" ");
       }
@@ -175,7 +192,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
       sb.append(" ");
       for (int i = 0; i < regs.length; i++) {
         if (null != regs[i]) {
-          addElement(this, sb, regs[i]);
+          addElement(this, sb, regs[i], readable);
           sb.append(WarpScriptLib.POPR);
           sb.append(i);
           sb.append(" ");
@@ -281,16 +298,15 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         sb.append(" ");
       } else if (o instanceof Vector) {
         if (readable) {
-          sb.append(WarpScriptLib.LIST_START);
+          sb.append(WarpScriptLib.VECTOR_START);
           sb.append(" ");
           for (Object oo : (Vector) o) {
             addElement(snapshot, sb, oo, true);
           }
-          sb.append(WarpScriptLib.LIST_END);
+          sb.append(WarpScriptLib.VECTOR_END);
           sb.append(" ");          
         } else {
-          sb.append(WarpScriptLib.LIST_START);
-          sb.append(WarpScriptLib.LIST_END);
+          sb.append(WarpScriptLib.EMPTY_VECTOR);
           sb.append(" ");
           for (Object oo : (Vector) o) {
             addElement(snapshot, sb, oo, false);
@@ -298,8 +314,6 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
             sb.append(" ");
           }
         }
-        sb.append(WarpScriptLib.TO_VECTOR);
-        sb.append(" ");          
       } else if (o instanceof List) {
         if (readable) {
           sb.append(WarpScriptLib.LIST_START);
@@ -310,8 +324,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
           sb.append(WarpScriptLib.LIST_END);
           sb.append(" ");          
         } else {
-          sb.append(WarpScriptLib.LIST_START);
-          sb.append(WarpScriptLib.LIST_END);
+          sb.append(WarpScriptLib.EMPTY_LIST);
           sb.append(" ");
           for (Object oo : (List) o) {
             addElement(snapshot, sb, oo, false);
@@ -321,16 +334,15 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         }
       } else if (o instanceof Set) {
         if (readable) {
-          sb.append(WarpScriptLib.LIST_START);
+          sb.append(WarpScriptLib.SET_START);
           sb.append(" ");
           for (Object oo : (Set) o) {
             addElement(snapshot, sb, oo, true);
           }
-          sb.append(WarpScriptLib.LIST_END);
+          sb.append(WarpScriptLib.SET_END);
           sb.append(" ");          
         } else {
-          sb.append(WarpScriptLib.LIST_START);
-          sb.append(WarpScriptLib.LIST_END);
+          sb.append(WarpScriptLib.EMPTY_SET);
           sb.append(" ");
           for (Object oo : (Set) o) {
             addElement(snapshot, sb, oo, false);
@@ -338,8 +350,6 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
             sb.append(" ");
           }
         }
-        sb.append(WarpScriptLib.TO_SET);
-        sb.append(" ");          
       } else if (o instanceof Map) {
         if (readable) {
           sb.append(WarpScriptLib.MAP_START);
@@ -352,8 +362,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
           sb.append(WarpScriptLib.MAP_END);
           sb.append(" ");
         } else {
-          sb.append(WarpScriptLib.MAP_START);
-          sb.append(WarpScriptLib.MAP_END);
+          sb.append(WarpScriptLib.EMPTY_MAP);
           sb.append(" ");
           for (Entry<Object, Object> entry: ((Map<Object, Object>) o).entrySet()) {
             addElement(snapshot, sb, entry.getValue(), false);
@@ -407,6 +416,92 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
       } else if (o instanceof NamedWarpScriptFunction) {
         sb.append(o.toString());
         sb.append(" ");
+      } else if (o instanceof PImage && !(o instanceof PGraphics)) {
+        // PGraphics cannot be snapshot properly because it would require PFont to be snapshotable, which is not.
+        sb.append("'");
+        sb.append(Pencode.PImageToString((PImage) o, null));
+        sb.append("' ");
+        sb.append(WarpScriptLib.PDECODE);
+        sb.append(" ");
+      } else if (o instanceof PShapeSVG) {
+        PShapeSVG pshape = (PShapeSVG) o;
+        // The source SVG is package-protected, so use reflection on the PShapeSVG to get it.
+        try {
+          Field elementField = PShapeSVG.class.getDeclaredField("element");
+          elementField.setAccessible(true);
+          Object element = elementField.get(pshape);
+          sb.append("'");
+          sb.append(element.toString());
+          sb.append("' ");
+          sb.append(WarpScriptLib.PLOADSHAPE);
+          sb.append(" ");
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+          sb.append("'UNSUPPORTED:" + WarpURLEncoder.encode(o.getClass().toString(), StandardCharsets.UTF_8) + "' ");
+        }
+      } else if (o instanceof RealVector) {
+        RealVector vector = (RealVector) o;
+        if (readable) {
+          sb.append(WarpScriptLib.LIST_START);
+          sb.append(" ");
+          for (int i = 0; i < vector.getDimension(); i++) {
+            sb.append(vector.getEntry(i));
+            sb.append(" ");
+          }
+          sb.append(WarpScriptLib.LIST_END);
+          sb.append(" ");
+        } else {
+          sb.append(WarpScriptLib.EMPTY_LIST);
+          sb.append(" ");
+          for (int i = 0; i < vector.getDimension(); i++) {
+            sb.append(vector.getEntry(i));
+            sb.append(" ");
+            sb.append(WarpScriptLib.INPLACEADD);
+            sb.append(" ");
+          }
+        }
+        sb.append(WarpScriptLib.TOVEC);
+        sb.append(" ");
+      } else if (o instanceof RealMatrix) {
+        RealMatrix matrix = (RealMatrix) o;
+        if (readable) {
+          sb.append(WarpScriptLib.LIST_START);
+          sb.append(System.lineSeparator());
+          for (int i = 0; i < matrix.getColumnDimension(); i++) {
+            sb.append(WarpScriptLib.LIST_START);
+            sb.append(" ");
+            for (int j = 0; j < matrix.getRowDimension(); j++) {
+              sb.append(matrix.getEntry(i, j));
+              sb.append(" ");
+            }
+            sb.append(WarpScriptLib.LIST_END);
+            sb.append(System.lineSeparator());
+          }
+          sb.append(WarpScriptLib.LIST_END);
+          sb.append(" ");
+        } else {
+          sb.append(WarpScriptLib.EMPTY_LIST);
+          sb.append(" ");
+          for (int i = 0; i < matrix.getColumnDimension(); i++) {
+            sb.append(WarpScriptLib.EMPTY_LIST);
+            sb.append(" ");
+            for (int j = 0; j < matrix.getRowDimension(); j++) {
+              sb.append(matrix.getEntry(i, j));
+              sb.append(" ");
+              sb.append(WarpScriptLib.INPLACEADD);
+              sb.append(" ");
+            }
+            sb.append(WarpScriptLib.INPLACEADD);
+            sb.append(" ");
+          }
+        }
+        sb.append(WarpScriptLib.TOMAT);
+        sb.append(" ");
+      } else if (o instanceof Matcher) {
+        sb.append("'");
+        sb.append(((Matcher) o).pattern());
+        sb.append("' ");
+        sb.append(WarpScriptLib.MATCHER);
+        sb.append(" ");
       } else {
         // Check if any of the defined encoders can encode the current element
         // loops will be caught by the recursion level check
@@ -421,17 +516,14 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         }
 
         // Some types are not supported
-        // functions, PImage...
         // Nevertheless we need to have the correct levels of the stack preserved, so
         // we push an informative string onto the stack there
         if (!encoded) {
-          try {
-            sb.append("'UNSUPPORTED:" + WarpURLEncoder.encode(o.getClass().toString(), StandardCharsets.UTF_8) + "' ");
-          } catch (UnsupportedEncodingException uee) {
-            throw new WarpScriptException(uee);
-          }
+          sb.append("'UNSUPPORTED:" + WarpURLEncoder.encode(o.getClass().toString(), StandardCharsets.UTF_8) + "' ");
         }
       }
+    } catch (UnsupportedEncodingException uee) {
+      throw new WarpScriptException(uee);
     } finally {
       if (null != depth && 0 == depth.addAndGet(-1)) {
         recursionDepth.remove();
@@ -439,11 +531,14 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
     }
   }
 
-  //
-  // Process a string to make it readable and compatible in WarpScript code
-  //
-
-  private static void appendProcessedString(StringBuilder sb, String s) {
+  /**
+   * Process a string to make it readable and compatible in WarpScript code.
+   * @param sb A StringBuilder whose given String will appended to.
+   * @param s A String which may contain invalid WarpScript characters. It will not be encapsulated with quote
+   *          characters so it should be appended to the StringBuilder before and after. Double quotes will not
+   *          be escaped, so only single quotes are acceptable.
+   */
+  public static void appendProcessedString(StringBuilder sb, String s) {
 
     char[] chars = UnsafeString.getChars(s);
 

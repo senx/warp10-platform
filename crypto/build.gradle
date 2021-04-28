@@ -21,8 +21,8 @@ dependencies {
     testImplementation 'junit:junit:4.6'
     // Utils
     api 'com.google.guava:guava:15.0'
-    // Crypto Java provider
-    api 'org.bouncycastle:bcprov-jdk16:1.46'
+    // CRYPTO JAVA PROVIDER
+    api 'org.bouncycastle:bcprov-jdk15on:1.68'
     // OSS
     api 'com.geoxp.oss:oss-client:1.0.1'
 }

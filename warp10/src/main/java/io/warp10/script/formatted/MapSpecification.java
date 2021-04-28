@@ -18,6 +18,7 @@ package io.warp10.script.formatted;
 
 import java.util.Map;
 
+@Deprecated
 public class MapSpecification extends ArgumentSpecification {
 
   private Class<?> classOfKey;
