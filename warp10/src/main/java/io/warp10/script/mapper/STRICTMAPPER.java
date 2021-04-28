@@ -24,7 +24,6 @@ import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptMapperFunction;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
-import io.warp10.warp.sdk.WarpScriptJavaFunction;
 
 /**
  * Wrap a Mapper so we return no value when the number of values in the
