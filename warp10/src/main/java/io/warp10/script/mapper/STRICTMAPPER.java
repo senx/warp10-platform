@@ -182,7 +182,7 @@ public class STRICTMAPPER extends NamedWarpScriptFunction implements WarpScriptS
 
     o = stack.pop(); // mapper
 
-    if (o instanceof WarpScriptJavaFunction) {
+    if (o instanceof WarpScriptMapperFunction) {
       WarpScriptMapperFunction mapper = (WarpScriptMapperFunction) o;
       stack.push(new StringentMapper(getName(), min, max, mapper));
 
