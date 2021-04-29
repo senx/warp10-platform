@@ -88,6 +88,7 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
   public static final String TYPE_MARK = "MARK";
   public static final String TYPE_KEY = "KEY";
   public static final String TYPE_CONTEXT = "CONTEXT";
+  public static final String TYPE_FUNCTION = "FUNCTION";
 
   /**
    * Interface to be used by extensions and plugins to define a new type.
@@ -178,6 +179,8 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
       return TYPE_KEY;
     } else if (WarpScriptStack.StackContext.class.isAssignableFrom(c)) {
       return TYPE_CONTEXT;
+    } else if (WarpScriptStackFunction.class.isAssignableFrom(c)) {
+      return TYPE_FUNCTION;
     } else if (Typeofable.class.isAssignableFrom(c)) {
       try {
         return "X-" + ((Typeofable) c.getDeclaredConstructor().newInstance()).typeof();
