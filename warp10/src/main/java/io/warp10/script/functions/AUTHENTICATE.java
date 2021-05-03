@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -17,10 +17,12 @@
 package io.warp10.script.functions;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import java.util.Random;
 
 import com.geoxp.oss.CryptoHelper;
 import io.warp10.continuum.Tokens;
+import io.warp10.continuum.store.Constants;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.script.NamedWarpScriptFunction;
@@ -56,13 +58,18 @@ public class AUTHENTICATE extends NamedWarpScriptFunction implements WarpScriptS
     if (!(o instanceof String)) {
       throw new WarpScriptException(getName() + " expects a string on top of the stack.");
     }
-    
-    ReadToken rtoken = Tokens.extractReadToken(o.toString());
-    
-    //
-    // TODO(hbs): check that the provided token can indeed be used for AUTHENTICATION
-    // or simply to set specific values of various thresholds
-    //
+
+    ReadToken rtoken;
+    try {
+      rtoken = Tokens.extractReadToken(o.toString());
+    } catch (WarpScriptException wse) {
+      throw new WarpScriptException(getName() + " given an invalid read token.", wse);
+    }
+
+    Map<String, String> rtokenAttributes = rtoken.getAttributes();
+    if (null != rtokenAttributes && rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOAUTH)) {
+      throw new WarpScriptException(getName() + " given a read token which cannot be used for authentication.");
+    }
 
     stack.setAttribute(WarpScriptStack.ATTRIBUTE_TOKEN, hide(o.toString()));
 

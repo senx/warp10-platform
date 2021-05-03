@@ -115,8 +115,18 @@ public class FINDSTATS extends NamedWarpScriptFunction implements WarpScriptStac
 
     
     DirectoryClient directoryClient = stack.getDirectoryClient();
-    
-    ReadToken rtoken = Tokens.extractReadToken(token);
+
+    ReadToken rtoken;
+    try {
+      rtoken = Tokens.extractReadToken(token);
+
+      Map<String, String> rtokenAttributes = rtoken.getAttributes();
+      if (null != rtokenAttributes && rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOFIND)) {
+        throw new WarpScriptException("Token cannot be used for finding metadata.");
+      }
+    } catch (WarpScriptException wse) {
+      throw new WarpScriptException(getName() + " given an invalid token.", wse);
+    }
 
     labelSelectors.remove(Constants.PRODUCER_LABEL);
     labelSelectors.remove(Constants.OWNER_LABEL);

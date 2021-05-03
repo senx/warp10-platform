@@ -16,6 +16,7 @@
 
 package io.warp10.continuum.egress;
 
+import io.warp10.CustomThreadFactory;
 import io.warp10.WarpConfig;
 import io.warp10.continuum.BootstrapManager;
 import io.warp10.continuum.Configuration;
@@ -309,7 +310,7 @@ public class EgressMobiusHandler extends WebSocketHandler.Simple implements Runn
     // Configure executor
     //
     
-    Executor executor = new ThreadPoolExecutor(poolsize, poolsize, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(1 + (poolsize >>> 1)));
+    Executor executor = new ThreadPoolExecutor(poolsize, poolsize, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(1 + (poolsize >>> 1)), new CustomThreadFactory("Warp EgressMobiusHandler Thread"));
     
     while (true) {
       

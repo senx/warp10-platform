@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -464,6 +464,12 @@ public class EgressFetchHandler extends AbstractHandler {
           if (rtoken.getHooksSize() > 0) {
             httpStatusCode = HttpServletResponse.SC_BAD_REQUEST;
             throw new IOException("Tokens with hooks cannot be used for fetching data.");
+          }
+
+          Map<String, String> rtokenAttributes = rtoken.getAttributes();
+          if (null != rtokenAttributes && (rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOFETCH) || rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOFIND))) {
+            httpStatusCode = HttpServletResponse.SC_FORBIDDEN;
+            throw new IOException("Token cannot be used for fetching data.");
           }
         } catch (WarpScriptException wse) {
           httpStatusCode = HttpServletResponse.SC_FORBIDDEN;

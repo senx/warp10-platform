@@ -29,7 +29,7 @@ ext {
     // List of dependencies required by Warpscript
     requiredLibsMc2 = [ 'libthrift', 'bcprov-jdk15on', 'commons-io', 'commons-codec', 'commons-lang3', 'commons-math3',\
                         'compiler', 'core', 'curator-x-discovery', 'geoxplib', 'guava', 'hadoop-common', 'hadoop-mapreduce-client-core',\
-                        'java-merge-sort','joda-time', 'jtransforms', 'jts', 'oss-client', 'sensision', 'slf4j-api', 'pyrolite',\
+                        'java-merge-sort','joda-time', 'jtransforms', 'jts-core', 'oss-client', 'sensision', 'slf4j-api', 'pyrolite',\
                         'jts2geojson', 'jackson-core', 'jackson-databind', 'jackson-annotations' ]
 }
 
@@ -59,6 +59,7 @@ sourceSets {
             include 'io/warp10/WrapperList$ArrayItr.*'
             include 'io/warp10/Revision.*'
             include 'io/warp10/ThrowableUtils.*'
+            include 'io/warp10/CustomThreadFactory.*'
             include 'io/warp10/continuum/AuthenticationPlugin.*'
             include 'io/warp10/continuum/MetadataUtils.*'
             include 'io/warp10/continuum/MetadataUtils$*'
