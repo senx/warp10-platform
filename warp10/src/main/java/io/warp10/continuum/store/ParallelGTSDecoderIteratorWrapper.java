@@ -21,7 +21,6 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.RejectedExecutionHandler;
@@ -33,6 +32,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 
+import io.warp10.CustomThreadFactory;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
 
@@ -249,7 +249,7 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
       // details of where the exception was thrown. This saves a lot of CPU otherwise spent filling in the
       // stack trace.
       final RejectedExecutionException ree = new RejectedExecutionException();
-      executor = new ThreadPoolExecutor(POOLSIZE, POOLSIZE, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(POOLSIZE), Executors.defaultThreadFactory(), new RejectedExecutionHandler() {
+      executor = new ThreadPoolExecutor(POOLSIZE, POOLSIZE, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(POOLSIZE), new CustomThreadFactory("Warp ParallelGTSDecoderIteratorWrapper Thread"), new RejectedExecutionHandler() {
         @Override
         public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
           throw ree;

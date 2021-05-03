@@ -77,7 +77,7 @@ public class WarpScriptJarRepository extends Thread {
     this.delay = delay;
     
     if (null != directory) {
-      this.setName("[Warp Jar Repository (" + directory + ")");
+      this.setName("[Warp Jar Repository (" + directory + ")]");
       this.setDaemon(true);
       this.start();
     }

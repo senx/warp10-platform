@@ -65,6 +65,7 @@ tasks.withType(Jar) {
     include 'io/warp10/WrapperList$ArrayItr.*'
     include 'io/warp10/Revision.*'
     include 'io/warp10/ThrowableUtils.*'
+    include 'io/warp10/CustomThreadFactory.*'
     include 'io/warp10/continuum/AuthenticationPlugin.*'
     include 'io/warp10/continuum/MetadataUtils.*'
     include 'io/warp10/continuum/MetadataUtils$*'

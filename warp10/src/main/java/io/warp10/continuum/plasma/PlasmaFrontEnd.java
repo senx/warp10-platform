@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -297,8 +297,10 @@ public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable,
       int queuesize = Integer.parseInt(properties.getProperty(Configuration.PLASMA_FRONTEND_JETTY_MAXQUEUESIZE));
       queue = new BlockingArrayQueue<Runnable>(queuesize);
     }
-    
-    Server server = new Server(new QueuedThreadPool(maxThreads, 8, 60000, queue));
+
+    QueuedThreadPool queuedThreadPool = new QueuedThreadPool(maxThreads, 8, 60000, queue);
+    queuedThreadPool.setName("Warp PlasmaFrontEnd Jetty Thread");
+    Server server = new Server(queuedThreadPool);
     
     boolean useHttp = null != properties.getProperty(Configuration.PLASMA_FRONTEND_PORT);
     boolean useHttps = null != properties.getProperty(Configuration.PLASMA_FRONTEND_PREFIX + Configuration._SSL_PORT);
