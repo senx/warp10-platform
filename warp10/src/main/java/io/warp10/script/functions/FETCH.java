@@ -227,7 +227,17 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       bases = new GeoTimeSerie[5];
     }
 
-    ReadToken rtoken = Tokens.extractReadToken(params.get(PARAM_TOKEN).toString());
+    ReadToken rtoken;
+    try {
+      rtoken = Tokens.extractReadToken(params.get(PARAM_TOKEN).toString());
+
+      Map<String, String> rtokenAttributes = rtoken.getAttributes();
+      if (null != rtokenAttributes && (rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOFETCH) || rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOFIND))) {
+        throw new WarpScriptException("Token cannot be used for fetching data.");
+      }
+    } catch (WarpScriptException wse) {
+      throw new WarpScriptException(getName() + " given an invalid read token.", wse);
+    }
 
     boolean expose = rtoken.getAttributesSize() > 0 && rtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_EXPOSE);
 
@@ -954,7 +964,16 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       }
 
       // Attempt to extract token, this will raise an exception if token has expired or was revoked
-      ReadToken rtoken = Tokens.extractReadToken(metaset.getToken());
+      try {
+        ReadToken rtoken = Tokens.extractReadToken(metaset.getToken());
+
+        Map<String, String> rtokenAttributes = rtoken.getAttributes();
+        if (null != rtokenAttributes && (rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOFETCH) || rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOFIND))) {
+          throw new WarpScriptException("Token cannot be used for fetching data.");
+        }
+      } catch (WarpScriptException wse) {
+        throw new WarpScriptException(getName() + " MetaSet token is not valid.", wse);
+      }
 
       params.put(PARAM_METASET, metaset);
       params.put(PARAM_TOKEN, metaset.getToken());
