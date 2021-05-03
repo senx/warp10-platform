@@ -1,3 +1,5 @@
+import org.gradle.api.tasks.bundling.Jar
+
 //
 //   Copyright 2018-2021  SenX S.A.S.
 //
@@ -31,92 +33,81 @@ ext {
                         'jts2geojson', 'jackson-core', 'jackson-databind', 'jackson-annotations' ]
 }
 
-//
-// Set jars title and class inclusion/exclusion
-//
-tasks.withType(Jar) {
-    manifest.attributes.put("Implementation-Title", "WarpScript")
+sourceSets {
+    main {
+        java {
+            srcDir new File(project(':warp10').projectDir, "src/main/java")
+            include 'io/warp10/Py4JEntryPoint.*'
+            include 'io/warp10/SortedPathIterator.*'
+            include 'io/warp10/SortedPathIterator$*'
+            include 'io/warp10/WarpClassLoader.*'
+            include 'io/warp10/json/**'
+            include 'io/warp10/script/**'
+            exclude 'io/warp10/script/ScriptRunner*.*'
+            include 'io/warp10/CapacityExtractorOutputStream.*'
+            include 'io/warp10/udf/**'
+            include 'io/warp10/thrift/**'
+            include 'io/warp10/WarpConfig.*'
+            include 'io/warp10/WarpConfig$1.*'
+            include 'io/warp10/WarpHexDecoder.*'
+            include 'io/warp10/WarpManager.*'
+            include 'io/warp10/WarpURLEncoder.*'
+            include 'io/warp10/WarpURLDecoder.*'
+            include 'io/warp10/DoubleUtils.*'
+            include 'io/warp10/FloatUtils.*'
+            include 'io/warp10/WrapperList.*'
+            include 'io/warp10/WrapperList$ArrayItr.*'
+            include 'io/warp10/Revision.*'
+            include 'io/warp10/ThrowableUtils.*'
+            include 'io/warp10/CustomThreadFactory.*'
+            include 'io/warp10/continuum/AuthenticationPlugin.*'
+            include 'io/warp10/continuum/MetadataUtils.*'
+            include 'io/warp10/continuum/MetadataUtils$*'
+            include 'io/warp10/continuum/index/**'
+            include 'io/warp10/continuum/Configuration.*'
+            include 'io/warp10/continuum/TimeSource.*'
+            include 'io/warp10/continuum/TimeSource$*'
+            include 'io/warp10/continuum/TextFileShuffler.*'
+            include 'io/warp10/continuum/TextFileShuffler$*'
+            include 'io/warp10/continuum/SortUtil.*'
+            include 'io/warp10/continuum/SortUtil$*'
+            include 'io/warp10/continuum/Tokens.*'
+            include 'io/warp10/continuum/Tokens$*'
+            include 'io/warp10/continuum/gts/**'
+            include 'io/warp10/continuum/store/Constants.*'
+            include 'io/warp10/continuum/store/DirectoryClient.*'
+            include 'io/warp10/continuum/store/GTSDecoderIterator.*'
+            include 'io/warp10/continuum/store/MetadataIterator.*'
+            include 'io/warp10/warp/sdk/**'
+            include 'io/warp10/continuum/sensision/SensisionConstants.*'
+            include 'io/warp10/continuum/store/StoreClient.*'
+            include 'io/warp10/hadoop/**'
+            include 'io/warp10/standalone/AcceleratorConfig.*'
+            include 'io/warp10/standalone/AcceleratorConfig$*.*'
 
-    if('sources' == archiveClassifier) {
-        from project(':warp10').sourceSets.main.allSource
-    } else {
-        from project(':warp10').sourceSets.main.output
-    }
-    include('REVISION')
-    include 'io/warp10/Py4JEntryPoint.*'
-    include 'io/warp10/SortedPathIterator.*'
-    include 'io/warp10/SortedPathIterator$*'
-    include 'io/warp10/WarpClassLoader.*'
-    include 'io/warp10/json/**'
-    include 'io/warp10/script/**'
-    exclude 'io/warp10/script/ScriptRunner*.*'
-    include 'io/warp10/CapacityExtractorOutputStream.*'
-    include 'io/warp10/udf/**'
-    include 'io/warp10/thrift/**'
-    include 'io/warp10/WarpConfig.*'
-    include 'io/warp10/WarpConfig$1.*'
-    include 'io/warp10/WarpHexDecoder.*'
-    include 'io/warp10/WarpManager.*'
-    include 'io/warp10/WarpURLEncoder.*'
-    include 'io/warp10/WarpURLDecoder.*'
-    include 'io/warp10/DoubleUtils.*'
-    include 'io/warp10/FloatUtils.*'
-    include 'io/warp10/WrapperList.*'
-    include 'io/warp10/WrapperList$ArrayItr.*'
-    include 'io/warp10/Revision.*'
-    include 'io/warp10/ThrowableUtils.*'
-    include 'io/warp10/CustomThreadFactory.*'
-    include 'io/warp10/continuum/AuthenticationPlugin.*'
-    include 'io/warp10/continuum/MetadataUtils.*'
-    include 'io/warp10/continuum/MetadataUtils$*'
-    include 'io/warp10/continuum/index/**'
-    include 'io/warp10/continuum/thrift/data/**'
-    include 'io/warp10/continuum/Configuration.*'
-    include 'io/warp10/continuum/TimeSource.*'
-    include 'io/warp10/continuum/TimeSource$*'
-    include 'io/warp10/continuum/TextFileShuffler.*'
-    include 'io/warp10/continuum/TextFileShuffler$*'
-    include 'io/warp10/continuum/SortUtil.*'
-    include 'io/warp10/continuum/SortUtil$*'
-    include 'io/warp10/continuum/Tokens.*'
-    include 'io/warp10/continuum/Tokens$*'
-    include 'io/warp10/continuum/gts/**'
-    include 'io/warp10/continuum/store/Constants.*'
-    include 'io/warp10/continuum/store/DirectoryClient.*'
-    include 'io/warp10/continuum/store/GTSDecoderIterator.*'
-    include 'io/warp10/continuum/store/MetadataIterator.*'
-    include 'io/warp10/continuum/store/thrift/data/**'
-    include 'io/warp10/warp/sdk/**'
-    include 'io/warp10/continuum/sensision/SensisionConstants.*'
-    include 'io/warp10/continuum/store/StoreClient.*'
-    include 'io/warp10/hadoop/**'
-    include 'io/warp10/standalone/AcceleratorConfig.*'
-    include 'io/warp10/standalone/AcceleratorConfig$*.*'
+            srcDir new File(project(':warp10').projectDir, "src/generated/thrift/gen-java")
+            include 'io/warp10/continuum/thrift/data/**'
+            include 'io/warp10/continuum/store/thrift/data/**'
 
-    if('sources' == archiveClassifier) {
-        from project(':token').sourceSets.main.allSource
-    } else {
-        from project(':token').sourceSets.main.output
-    }
-    include 'io/warp10/quasar/token/thrift/data/**'
-    include 'io/warp10/quasar/filter/QuasarTokenFilter.*'
-    include 'io/warp10/quasar/filter/exception/QuasarTokenException.*'
+            srcDir new File(project(':token').projectDir, "src/generated/thrift/gen-java")
+            include 'io/warp10/quasar/filter/QuasarTokenFilter.*'
+            include 'io/warp10/quasar/filter/exception/QuasarTokenException.*'
 
-    if('sources' == archiveClassifier) {
-        from project(':crypto').sourceSets.main.allSource
-    } else {
-        from project(':crypto').sourceSets.main.output
+            srcDir new File(project(':token').projectDir, "src/main/java")
+            include 'io/warp10/quasar/token/thrift/data/**'
+
+            srcDir new File(project(':crypto').projectDir, "src/main/java")
+            include 'io/warp10/crypto/**'
+        }
+        resources {
+            srcDir new File(project(':warp10').projectDir, "src/main/resources")
+            include('REVISION')
+        }
     }
-    include 'io/warp10/crypto/**'
 }
 
-//
-// Customize POM filename
-//
-model {
-    tasks.generatePomFileForMavenPublication {
-        destination = file("$buildDir/generated-pom.xml")
-    }
+dependencies {
+    compileOnly project(':warp10')
 }
 
 //
@@ -125,40 +116,25 @@ model {
 publishing {
     publications {
         maven(MavenPublication) {
-            genPomForWarpscript(pom)
-        }
-    }
-}
+            pom {
+                name = "WarpScript"
+                description = "Warp 10 functions for the manipulation and analysis of time series"
+            }
+            pom.withXml {
+                // compute the list of dependencies
+                project(":warp10").configurations.compileClasspath.resolvedConfiguration.firstLevelModuleDependencies.each {
+                    directDep ->
+                        addChildsToWarpscriptDeps(directDep)
+                }
 
-//
-// Configure bintray artifacts, repo and name.
-//
-bintray {
-    publications = ['maven']
-
-    pkg {
-        repo = 'maven'
-        name = project.name
-    }
-}
-
-//
-// Generate custom pom for WarpScript with the minimal dependencies
-//
-def genPomForWarpscript(Object pom) {
-    pom.withXml {
-        // compute the list of dependencies
-        project(":warp10").configurations.compileClasspath.resolvedConfiguration.firstLevelModuleDependencies.each {
-            directDep ->
-                addChildsToWarpscriptDeps(directDep)
-        }
-
-        def dependenciesNode = asNode().appendNode('dependencies')
-        mc2DepsList.each {
-            def dependencyNode = dependenciesNode.appendNode('dependency')
-            dependencyNode.appendNode('groupId', it.getModuleGroup())
-            dependencyNode.appendNode('artifactId', it.getModuleName())
-            dependencyNode.appendNode('version', it.getModuleVersion())
+                def dependenciesNode = asNode().appendNode('dependencies')
+                mc2DepsList.each {
+                    def dependencyNode = dependenciesNode.appendNode('dependency')
+                    dependencyNode.appendNode('groupId', it.getModuleGroup())
+                    dependencyNode.appendNode('artifactId', it.getModuleName())
+                    dependencyNode.appendNode('version', it.getModuleVersion())
+                }
+            }
         }
     }
 }
