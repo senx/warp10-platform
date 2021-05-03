@@ -21,8 +21,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 
-import org.iq80.leveldb.shaded.guava.primitives.Bytes;
-
+import com.google.common.primitives.Bytes;
 import com.google.common.primitives.Longs;
 
 import io.warp10.script.NamedWarpScriptFunction;
