@@ -246,7 +246,7 @@ subprojects {
         }
     }
 
-    classes.dependsOn updateRevision
+    processResources.dependsOn updateRevision
 }
 
 if (project.hasProperty("ossrhUsername")) {
