@@ -121,10 +121,7 @@ public class STRICTMAPPER extends NamedWarpScriptFunction implements WarpScriptS
       if (min > 0 && size < min || max > 0 && size > max || min < 0 && timespan < -min || max < 0 && timespan > -max) {
         stack.pop();
 
-        List<Object> list = new ArrayList<Object>();
-        list.add(0);
-        list.add(GeoTimeSerie.NO_LOCATION);
-        list.add(GeoTimeSerie.NO_ELEVATION);
+        List<Object> list = new ArrayList<Object>(1);
         list.add(null);
         stack.push(list);
         return stack;
