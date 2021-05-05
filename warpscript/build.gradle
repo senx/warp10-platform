@@ -1,5 +1,3 @@
-import org.gradle.api.tasks.bundling.Jar
-
 //
 //   Copyright 2018-2021  SenX S.A.S.
 //
@@ -15,23 +13,6 @@ import org.gradle.api.tasks.bundling.Jar
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-
-//
-// Define WarpScript dependencies for the POM file generation
-//
-ext {
-    // List of dependencies for Warpscript
-    mc2DepsList = []
-
-    // List of unique dependency names (index)
-    mc2DepsIndex = [] as Set
-
-    // List of dependencies required by Warpscript
-    requiredLibsMc2 = [ 'libthrift', 'bcprov-jdk15on', 'commons-io', 'commons-codec', 'commons-lang3', 'commons-math3',\
-                        'compiler', 'core', 'curator-x-discovery', 'geoxplib', 'guava', 'hadoop-common', 'hadoop-mapreduce-client-core',\
-                        'java-merge-sort','joda-time', 'jtransforms', 'jts-core', 'oss-client', 'sensision', 'slf4j-api', 'pyrolite',\
-                        'jts2geojson', 'jackson-core', 'jackson-databind', 'jackson-annotations' ]
-}
 
 sourceSets {
     main {
@@ -108,6 +89,32 @@ sourceSets {
 
 dependencies {
     compileOnly project(':warp10')
+
+    api withVersion('org.apache.thrift:libthrift')
+    api withVersion('org.bouncycastle:bcprov-jdk15on')
+    api withVersion('commons-io:commons-io')
+    api withVersion('commons-codec:commons-codec')
+    api withVersion('org.apache.commons:commons-lang3')
+    api withVersion('org.apache.commons:commons-math3')
+    api withVersion('com.github.spullara.mustache.java:compiler')
+    api withVersion('org.processing:core')
+    api withVersion('com.netflix.curator:curator-x-discovery')
+    api withVersion('io.senx:geoxplib')
+    api withVersion('com.google.guava:guava')
+    api withVersion('org.apache.hadoop:hadoop-common')
+    api withVersion('org.apache.hadoop:hadoop-mapreduce-client-core')
+    api withVersion('com.fasterxml.util:java-merge-sort')
+    api withVersion('joda-time:joda-time')
+    api withVersion('com.github.rwl:jtransforms')
+    api withVersion('com.vividsolutions:jts-core')
+    api withVersion('com.geoxp.oss:oss-client')
+    api withVersion('io.warp10:sensision')
+    api withVersion('org.slf4j:slf4j-api')
+    api withVersion('net.razorvine:pyrolite')
+    api withVersion('org.wololo:jts2geojson')
+    api withVersion('com.fasterxml.jackson.core:jackson-core')
+    api withVersion('com.fasterxml.jackson.core:jackson-databind')
+    api withVersion('com.fasterxml.jackson.core:jackson-annotations')
 }
 
 //
@@ -120,42 +127,21 @@ publishing {
                 name = "WarpScript"
                 description = "Warp 10 functions for the manipulation and analysis of time series"
             }
-            pom.withXml {
-                // compute the list of dependencies
-                project(":warp10").configurations.compileClasspath.resolvedConfiguration.firstLevelModuleDependencies.each {
-                    directDep ->
-                        addChildsToWarpscriptDeps(directDep)
-                }
-
-                def dependenciesNode = asNode().appendNode('dependencies')
-                mc2DepsList.each {
-                    def dependencyNode = dependenciesNode.appendNode('dependency')
-                    dependencyNode.appendNode('groupId', it.getModuleGroup())
-                    dependencyNode.appendNode('artifactId', it.getModuleName())
-                    dependencyNode.appendNode('version', it.getModuleVersion())
-                }
-            }
         }
     }
 }
 
-//
-// Add the root dependency and all its children (transitive dependencies) to the list
-//
-def addChildsToWarpscriptDeps (def pResolvedDependency) {
-
-    pResolvedDependency.children.each {
-        addChildsToWarpscriptDeps(it)
+def withVersion(String dependencyWithoutVersion) {
+    Set<ResolvedDependency> deps = project(":warp10").configurations.compileClasspath.resolvedConfiguration.firstLevelModuleDependencies;
+    while (!deps.isEmpty()) {
+        Set<ResolvedDependency> transitiveDependency = new HashSet<>()
+        for (dep in deps) {
+            if (dependencyWithoutVersion.equals(dep.getModuleGroup() + ":" + dep.getModuleName())) {
+                return dep.getModuleGroup() + ":" + dep.getModuleName() + ":" + dep.getModuleVersion()
+            }
+            transitiveDependency.addAll(dep.children)
+        }
+        deps = transitiveDependency;
     }
-
-    // Add the dependency and its children if it has not been seen before and if this dependency is required by Warpscript
-    String depName = pResolvedDependency.getModuleName()
-    if(!mc2DepsIndex.contains(depName) && isDepRequired(depName)) {
-        mc2DepsIndex << depName
-        mc2DepsList << pResolvedDependency
-    }
-}
-
-boolean isDepRequired(String currentDep ) {
-    return ext.requiredLibsMc2.any { currentDep.equalsIgnoreCase(it as String) }
+    throw new Exception("Cannot find " + dependencyWithoutVersion + " in warp10 dependencies.")
 }
