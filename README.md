@@ -1,9 +1,10 @@
-# Warp 10 Platform [![Tweet](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/intent/tweet?text=Get%20The%20Most%20Advanced%20Time%20Series%20Platform&url=https://warp10.io/download&via=warp10io&hashtags=tsdb,database,timeseries,opensource)
+[![Release](https://img.shields.io/github/v/release/senx/warp10-platform)](https://github.com/senx/warp10-platform/releases/latest)
 [![Build Status](https://www.travis-ci.org/senx/warp10-platform.svg?branch=master)](https://www.travis-ci.org/senx/warp10-platform)
-[![Download](https://api.bintray.com/packages/senx/generic/warp10/images/download.svg)](https://bintray.com/senx/generic/warp10/_latestVersion)
+[![Tweet](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/intent/tweet?text=Get%20The%20Most%20Advanced%20Time%20Series%20Platform&url=https://warp10.io/download&via=warp10io&hashtags=tsdb,database,timeseries,opensource)
 
-<p align="center"><img src="https://warp10.io/assets/img/warp10_bySenx_dark.png" alt="Warp 10 Logo" width="50%"></p>
+<p align="center"><a href="https://warp10.io" title="Warp 10 Platform"><img src="https://warp10.io/assets/img/warp10_bySenx_dark.png" alt="Warp 10 Logo" width="50%"></a></p>
 
+# Warp 10 Platform
 ## Introduction
 
 Warp 10 is an Open Source Geo Time Series Platform designed to handle data coming from sensors, monitoring systems and the Internet of Things.
