@@ -1474,7 +1474,7 @@ public class Store extends Thread {
               Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_DATAPOINTS_PEROWNERAPP, labels, noOfDeletedVersions);
             }            
           } catch (Throwable t) {
-            t.printStackTrace();
+            LOG.error("Error while processing delete request", t);
             if (t instanceof Exception) {
               throw (Exception) t;
             } else {

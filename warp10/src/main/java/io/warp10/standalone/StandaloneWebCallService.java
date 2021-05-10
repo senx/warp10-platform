@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -22,6 +22,8 @@ import io.warp10.continuum.store.Constants;
 import io.warp10.script.WebAccessController;
 import io.warp10.script.thrift.data.WebCallMethod;
 import io.warp10.script.thrift.data.WebCallRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -34,6 +36,8 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 public class StandaloneWebCallService extends Thread {
+
+  private static final Logger LOG = LoggerFactory.getLogger(StandaloneWebCallService.class);
   
   /**
    * User agent to use when making calls
@@ -176,7 +180,7 @@ public class StandaloneWebCallService extends Thread {
       
       int code = conn.getResponseCode();                
     } catch (IOException ioe) {
-      ioe.printStackTrace();
+      LOG.error("Error doing a WebCall.", ioe);
     } finally {
       if (null != conn) {
         conn.disconnect();

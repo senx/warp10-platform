@@ -258,7 +258,6 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         throw new WarpScriptException("Token cannot be used for deletions.");
       }
     } catch (WarpScriptException ee) {
-      ee.printStackTrace();
       response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, ThrowableUtils.getErrorMessage(ee, Constants.MAX_HTTP_REASON_LENGTH));
       return;
     }

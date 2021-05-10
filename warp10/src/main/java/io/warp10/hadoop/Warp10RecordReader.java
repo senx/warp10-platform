@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -195,8 +195,7 @@ public class Warp10RecordReader extends RecordReader<Text, BytesWritable> implem
 
         break;
       } catch (Exception e) {
-        e.printStackTrace();
-        LOG.error(e.getMessage(),e);
+        LOG.error(e.getMessage(), e);
       } finally {
         if (null == this.br && null != conn) {
           try { conn.disconnect(); } catch (Exception e) {}

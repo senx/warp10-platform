@@ -265,7 +265,7 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
           this.prefixes.remove(uri);
         }        
       } catch (Throwable t) {
-        t.printStackTrace();
+        LOG.error("Error while loading a HTTP configuration script.", t);
       }
 
       LockSupport.parkNanos(this.period * 1000000L);
@@ -337,7 +337,6 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
       }
       success = true;
     } catch (Exception e) {
-      e.printStackTrace();
       LOG.error("Caught exception while loading '" + p.getFileName() + "'.", e);
     }
     return success;
