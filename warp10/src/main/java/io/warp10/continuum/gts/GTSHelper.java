@@ -1961,10 +1961,11 @@ public class GTSHelper {
     while (iter.hasNext()) {
 
       tick = iter.next();
-      i = Arrays.binarySearch(gts.ticks, 0, i, tick);
+      int j = Arrays.binarySearch(gts.ticks, 0, i, tick);
 
-      if (i >= 0) {
-        setValue(subgts, gts.ticks[i], null != gts.locations ? gts.locations[i] : GeoTimeSerie.NO_LOCATION, null != gts.elevations ? gts.elevations[i] : GeoTimeSerie.NO_ELEVATION, valueAtIndex(gts, i), overwrite);
+      if (j >= 0) {
+        setValue(subgts, tick, null != gts.locations ? gts.locations[j] : GeoTimeSerie.NO_LOCATION, null != gts.elevations ? gts.elevations[j] : GeoTimeSerie.NO_ELEVATION, valueAtIndex(gts, j), overwrite);
+        i = j;
       }
     }
 
