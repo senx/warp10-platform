@@ -10332,7 +10332,7 @@ public class GTSHelper {
         }
         if (0 == count) {
           // this should not happen
-          throw new WarpScriptException("STL found no value in its step 3.0, is GTS empty ?");
+          throw new WarpScriptException("STL found no value in its step 3.0, is GTS empty?");
 
         } else {
           lowpassed.doubleValues[0] = sum / count;
@@ -10359,7 +10359,7 @@ public class GTSHelper {
               count--;
               if (0 == count) {
                 // this should not happen
-                throw new WarpScriptException("STL found no value in its step 3.1, is GTS empty ?");
+                throw new WarpScriptException("STL found no value in its step 3.1, is GTS empty?");
               }
               sum -= (Double) firstVal;
 
