@@ -10288,16 +10288,18 @@ public class GTSHelper {
           // extracting subRho
           if (s > 0) {
             double[] tmp = seasonal.doubleValues;
+            int tmp_size = seasonal.values;
             seasonal.doubleValues = rho;
+            seasonal.values = rho.length;
             subRho = subCycleSerie(seasonal, seasonal.lastbucket - c * seasonal.bucketspan, buckets_per_period, true, subRho);
             seasonal.doubleValues = tmp;
+            seasonal.values = tmp_size;
           }
 
           // applying lowess
           if (subCycle.values > 0) {
             lowess_stl(subCycle, seasonal, neighbour_s, degree_s, jump_s, weights, s > 0 ? subRho.doubleValues : rho);
           }
-
         }
 
         /*
@@ -10462,12 +10464,17 @@ public class GTSHelper {
         // compute residual
         int idx_s = 0;
         int idx_t = 0;
+        int id = 0;
         for (int idx = 0 ; idx < nonnull; idx++){
-          idx_s = Arrays.binarySearch(seasonal.ticks, idx_s, nonnull, gts.ticks[idx]);
+          idx_s = Arrays.binarySearch(seasonal.ticks, idx_s, seasonal.size(), gts.ticks[idx]);
+
+          // we assume idx_t == idx_s so we comment the following line
           //idx_t = Arrays.binarySearch(trend.ticks, idx_t, nonnull, gts.ticks[idx]);
-          // we assume idx_t == idx_s
-          idx_t = idx_s;
-          residual[idx] = Math.abs(((Number) valueAtIndex(gts,idx)).doubleValue() - seasonal.doubleValues[idx_s] - trend.doubleValues[idx_t]);
+
+          if (idx_s >= 0) {
+            idx_t = idx_s;
+            residual[id++] = Math.abs(((Number) valueAtIndex(gts, idx)).doubleValue() - seasonal.doubleValues[idx_s] - trend.doubleValues[idx_t]);
+          }
         }
 
         //
