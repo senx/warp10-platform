@@ -88,6 +88,8 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.functions.MACROMAPPER;
 import io.warp10.script.functions.TOQUATERNION;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import sun.nio.cs.ArrayEncoder;
 
 
@@ -96,6 +98,8 @@ import sun.nio.cs.ArrayEncoder;
  *
  */
 public class GTSHelper {
+
+  private static final Logger LOG = LoggerFactory.getLogger(GTSHelper.class);
 
   /**
    * Sort the values (and associated locations/elevations) by order of their ticks
@@ -3822,7 +3826,7 @@ public class GTSHelper {
       return sb.toString();
 
     } catch (Exception e) {
-      e.printStackTrace();
+      LOG.error("Error converting tick to String.", e);
     }
     return null;
   }

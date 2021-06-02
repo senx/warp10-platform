@@ -126,7 +126,6 @@ public class TCPManager extends Thread {
     try {
       stack.execMulti(warpscript);
     } catch (Throwable t) {
-      t.printStackTrace();
       LOG.error("Caught exception while loading '" + p.getFileName() + "'.", t);
     }
 
@@ -230,7 +229,7 @@ public class TCPManager extends Thread {
               return;
             } catch (WarpScriptStopException wsse) {
             } catch (Exception e) {
-              e.printStackTrace();
+              LOG.error("Error while executing TCP macro.", e);
             }
           }
         }

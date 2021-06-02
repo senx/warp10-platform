@@ -1915,7 +1915,7 @@ public class Ingress extends AbstractHandler implements Runnable {
         }        
       }
     } catch (Throwable t) {
-      LOG.error("",t);
+      LOG.error("Error deleting data.", t);
       Sensision.update(SensisionConstants.CLASS_WARP_INGRESS_DELETE_ERRORS, Sensision.EMPTY_LABELS, 1);
       if (showErrors && null != pw) {
         pw.println();

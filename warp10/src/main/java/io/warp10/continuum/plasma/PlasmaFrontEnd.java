@@ -63,8 +63,12 @@ import io.warp10.standalone.StandalonePlasmaHandler;
 import kafka.consumer.ConsumerIterator;
 import kafka.consumer.KafkaStream;
 import kafka.message.MessageAndMetadata;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable, PlasmaSubscriptionListener {
+
+  private static final Logger LOG = LoggerFactory.getLogger(PlasmaFrontEnd.class);
 
   private static final String DEFAULT_THREADPOOL_SIZE = "200";
   
@@ -247,7 +251,7 @@ public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable,
               }          
             }        
           } catch (Throwable t) {
-            t.printStackTrace(System.err);
+            LOG.error("Error processing messages from Kakfa.", t);
           } finally {
             // Set abort to true in case we exit the 'run' method
             pool.getAbort().set(true);
@@ -377,7 +381,7 @@ public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable,
         try {
           this.subscriptionCuratorFramework.delete().guaranteed().forPath(znode);
         } catch (Exception e) {
-          e.printStackTrace();
+          LOG.error("Error deleting subscriptions.", e);
         }
       }
       
@@ -427,7 +431,7 @@ public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable,
           this.subscriptionCuratorFramework.create().withMode(CreateMode.EPHEMERAL).forPath(path, data);
           currentZnodes.add(path);
         } catch (Exception e) {
-          e.printStackTrace();
+          LOG.error("Error creating subscription.", e);
         }
         
         idx += data.length;
@@ -442,7 +446,7 @@ public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable,
       try {
         this.subscriptionCuratorFramework.setData().forPath(this.znoderoot, randomData);
       } catch (Exception e) {
-        e.printStackTrace();
+        LOG.error("Error updating subscription.", e);
       }
       
       Map<String,String> labels = new HashMap<String,String>();

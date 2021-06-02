@@ -41,8 +41,12 @@ import org.apache.thrift.TDeserializer;
 import org.apache.thrift.protocol.TCompactProtocol;
 
 import com.google.common.primitives.Longs;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class IngressMetadataConsumerFactory implements ConsumerFactory {
+
+  private static final Logger LOG = LoggerFactory.getLogger(IngressMetadataConsumerFactory.class);
   
   private final Ingress ingress;
   
@@ -149,7 +153,7 @@ public class IngressMetadataConsumerFactory implements ConsumerFactory {
             }
           }        
         } catch (Throwable t) {
-          t.printStackTrace(System.err);
+          LOG.error("Error reading Kafka Metadata message.", t);
         } finally {
           // Set abort to true in case we exit the 'run' method
           pool.getAbort().set(true);

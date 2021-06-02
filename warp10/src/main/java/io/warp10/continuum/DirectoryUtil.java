@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -48,8 +48,13 @@ import org.apache.commons.io.output.ByteArrayOutputStream;
 
 import com.google.common.primitives.Longs;
 import org.apache.thrift.TException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DirectoryUtil {
+
+  private static final Logger LOG = LoggerFactory.getLogger(DirectoryUtil.class);
+
   /**
    * Compute the hash of a DirectoryFindRequest for the provided SipHash key
    *
@@ -484,11 +489,8 @@ public class DirectoryUtil {
       }
 
       return response;
-    } catch (IOException ioe) {
-      ioe.printStackTrace();
-      throw new TException(ioe);
     } catch (Exception e) {
-      e.printStackTrace();
+      LOG.error("Error getting the stats.", e);
       throw new TException(e);
     }
   }
