@@ -288,7 +288,9 @@ public class Warp extends WarpDist implements Runnable {
       queue = new BlockingArrayQueue<Runnable>(queuesize);
     }
 
-    Server server = new Server(new QueuedThreadPool(maxThreads, 8, 60000, queue));
+    QueuedThreadPool queuedThreadPool = new QueuedThreadPool(maxThreads, 8, 60000, queue);
+    queuedThreadPool.setName("Warp Jetty Thread");
+    Server server = new Server(queuedThreadPool);
 
     boolean useHTTPS = null != properties.getProperty(Configuration.STANDALONE_PREFIX + Configuration._SSL_PORT);
     boolean useHTTP = null != properties.getProperty(Configuration.STANDALONE_PORT);

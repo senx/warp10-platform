@@ -19,21 +19,10 @@ plugins {
     id "com.selesse.git.changelog" version "0.3.0"
 }
 
-//
-// Configurations
-//
-configurations {
-    provided
-}
-
 sourceSets {
     main {
-        compileClasspath += configurations.provided
         java {
             srcDirs 'src/generated/thrift/gen-java'
-        }
-        resources {
-            srcDirs 'src/main/resources'
         }
     }
 }
@@ -49,7 +38,7 @@ dependencies {
     api 'joda-time:joda-time:2.2'
     api 'org.apache.commons:commons-lang3:3.6'
     api 'org.apache.commons:commons-math3:3.6'
-    api 'org.bouncycastle:bcprov-jdk16:1.46'
+    api 'org.bouncycastle:bcprov-jdk15on:1.68'
 
     //
     // Processing
@@ -219,18 +208,16 @@ tasks.withType(Jar) {
 }
 
 //
-// Configure bintray artifacts, repo and name.
+// Customize POM name and description.
 //
-bintray {
-    // Not uploaded to a maven repo, so just copy the jar.
-    filesSpec {
-        from createTarArchive
-        into project.group.replaceAll('\\.', '/') + "/$project.name/$project.version"
-    }
-
-    pkg {
-        repo = 'generic'
-        name = project.name
+publishing {
+    publications {
+        maven(MavenPublication) {
+            pom {
+                name = "Warp 10"
+                description = "Warp 10 platform for time series storage and analysis"
+            }
+        }
     }
 }
 

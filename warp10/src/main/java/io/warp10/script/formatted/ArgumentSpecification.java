@@ -18,6 +18,7 @@ package io.warp10.script.formatted;
 
 import io.warp10.script.functions.TYPEOF;
 
+@Deprecated
 public class ArgumentSpecification {
 
   private Class<?> clazz;

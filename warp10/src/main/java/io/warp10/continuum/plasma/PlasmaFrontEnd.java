@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -63,8 +63,12 @@ import io.warp10.standalone.StandalonePlasmaHandler;
 import kafka.consumer.ConsumerIterator;
 import kafka.consumer.KafkaStream;
 import kafka.message.MessageAndMetadata;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable, PlasmaSubscriptionListener {
+
+  private static final Logger LOG = LoggerFactory.getLogger(PlasmaFrontEnd.class);
 
   private static final String DEFAULT_THREADPOOL_SIZE = "200";
   
@@ -247,7 +251,7 @@ public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable,
               }          
             }        
           } catch (Throwable t) {
-            t.printStackTrace(System.err);
+            LOG.error("Error processing messages from Kakfa.", t);
           } finally {
             // Set abort to true in case we exit the 'run' method
             pool.getAbort().set(true);
@@ -297,8 +301,10 @@ public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable,
       int queuesize = Integer.parseInt(properties.getProperty(Configuration.PLASMA_FRONTEND_JETTY_MAXQUEUESIZE));
       queue = new BlockingArrayQueue<Runnable>(queuesize);
     }
-    
-    Server server = new Server(new QueuedThreadPool(maxThreads, 8, 60000, queue));
+
+    QueuedThreadPool queuedThreadPool = new QueuedThreadPool(maxThreads, 8, 60000, queue);
+    queuedThreadPool.setName("Warp PlasmaFrontEnd Jetty Thread");
+    Server server = new Server(queuedThreadPool);
     
     boolean useHttp = null != properties.getProperty(Configuration.PLASMA_FRONTEND_PORT);
     boolean useHttps = null != properties.getProperty(Configuration.PLASMA_FRONTEND_PREFIX + Configuration._SSL_PORT);
@@ -375,7 +381,7 @@ public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable,
         try {
           this.subscriptionCuratorFramework.delete().guaranteed().forPath(znode);
         } catch (Exception e) {
-          e.printStackTrace();
+          LOG.error("Error deleting subscriptions.", e);
         }
       }
       
@@ -425,7 +431,7 @@ public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable,
           this.subscriptionCuratorFramework.create().withMode(CreateMode.EPHEMERAL).forPath(path, data);
           currentZnodes.add(path);
         } catch (Exception e) {
-          e.printStackTrace();
+          LOG.error("Error creating subscription.", e);
         }
         
         idx += data.length;
@@ -440,7 +446,7 @@ public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable,
       try {
         this.subscriptionCuratorFramework.setData().forPath(this.znoderoot, randomData);
       } catch (Exception e) {
-        e.printStackTrace();
+        LOG.error("Error updating subscription.", e);
       }
       
       Map<String,String> labels = new HashMap<String,String>();

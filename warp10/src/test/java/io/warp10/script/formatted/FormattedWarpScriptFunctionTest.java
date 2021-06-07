@@ -30,6 +30,7 @@ import java.util.Map;
 
 import static io.warp10.script.formatted.DocumentationGenerator.generateWarpScriptDoc;
 
+@Deprecated
 public class FormattedWarpScriptFunctionTest extends FormattedWarpScriptFunction {
 
   private final Arguments args;

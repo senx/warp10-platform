@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -23,7 +23,9 @@ import io.warp10.script.WarpScriptStack;
 
 /**
  * Converts the LONG operand on top of the stack to its hexadecimal representation
+ * Deprecated, use io.warp10.script.functions.TOHEX instead.
  */
+@Deprecated
 public class TOHEX extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
   public TOHEX(String name) {

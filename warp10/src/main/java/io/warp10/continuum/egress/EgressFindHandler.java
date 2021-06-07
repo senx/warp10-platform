@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -121,12 +121,15 @@ public class EgressFindHandler extends AbstractHandler {
       
       try {
         rtoken = Tokens.extractReadToken(token);
-      } catch (WarpScriptException ee) {
-        throw new IOException(ee);
-      }
 
-      if (null == rtoken) {
-        resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Missing token.");
+        Map<String, String> rtokenAttributes = rtoken.getAttributes();
+        if (null != rtokenAttributes && rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOFIND)) {
+          resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Token cannot be used for finding metadata.");
+          return;
+        }
+
+      } catch (WarpScriptException wse) {
+        resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Missing or invalid token.");
         return;
       }
 

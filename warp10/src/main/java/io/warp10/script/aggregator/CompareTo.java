@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -71,15 +71,15 @@ public class CompareTo extends NamedWarpScriptFunction implements WarpScriptMapp
     //
     if (Compared.TICK == compared || Compared.HHCODE == compared || Compared.ELEV == compared) {
       if (!(threshold instanceof Long)) {
-        throw new WarpScriptException(name + " can only compare with a LONG." + comparison);
+        throw new WarpScriptException(name + " can only compare with a LONG.");
       }
     } else if (Compared.LAT == compared || Compared.LON == compared) {
       if (!(threshold instanceof Double || threshold instanceof Long)) {
-        throw new WarpScriptException(name + " can only compare with a DOUBLE or a LONG." + comparison);
+        throw new WarpScriptException(name + " can only compare with a DOUBLE or a LONG.");
       }
     } else { // Compared.VALUE == compared
       if (!(threshold instanceof String || threshold instanceof Long || threshold instanceof Double || threshold instanceof Boolean)) {
-        throw new WarpScriptException(name + " can only compare with a STRING, a DOUBLE, a LONG or a BOOLEAN." + comparison);
+        throw new WarpScriptException(name + " can only compare with a STRING, a DOUBLE, a LONG or a BOOLEAN.");
       }
     }
 

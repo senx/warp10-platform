@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2020  SenX S.A.S.
+//   Copyright 2019-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -72,7 +72,7 @@ public class GeoWKB extends NamedWarpScriptFunction implements WarpScriptStackFu
       byte[] bytes = (byte[]) wkb;
       geometry = reader.read(bytes);
     } catch (ParseException pe) {
-      throw new WarpScriptException(pe);
+      throw new WarpScriptException(getName() + " expects valid WKB BYTES.", pe);
     }
 
     //
@@ -110,7 +110,7 @@ public class GeoWKB extends NamedWarpScriptFunction implements WarpScriptStackFu
     }
 
     if (null == shape) {
-      throw new WarpScriptException("Maximum number of cells exceeded in a geographic shape (warpscript.maxgeocells=" + maxcells + ")");
+      throw new WarpScriptException(getName() + " reached the maximum number of cells in a geographic shape (warpscript.maxgeocells=" + maxcells + ").");
     }
 
     stack.push(shape);

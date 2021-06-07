@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -105,7 +105,6 @@ public class UDPConsumer extends Thread {
     try {
       stack.execMulti(this.warpscript);
     } catch (Throwable t) {
-      t.printStackTrace();
       LOG.error("Caught exception while loading '" + p.getFileName() + "'.", t);
     }
 
@@ -200,7 +199,7 @@ public class UDPConsumer extends Thread {
                 return;
               } catch (WarpScriptStopException wsse) {
               } catch (Exception e) {
-                e.printStackTrace();
+                LOG.error("Error while executing UDP macro.", e);
               }
             }            
           } finally {

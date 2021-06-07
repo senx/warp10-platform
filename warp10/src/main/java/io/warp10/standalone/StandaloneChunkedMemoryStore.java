@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -127,7 +127,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
           try {
             self.dump(path);
           } catch (IOException ioe) {
-            ioe.printStackTrace();
+            LOG.error("Error dumping the memory store.", ioe);
             throw new RuntimeException(ioe);
           }
         }
@@ -601,10 +601,10 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
         }
       }
     } catch (IOException ioe) {
-      ioe.printStackTrace();
+      LOG.error("Error writing the dump.", ioe);
       throw ioe;
     } catch (Exception e) {
-      e.printStackTrace();
+      LOG.error("Error writing the dump.", e);
       throw new IOException(e);
     }
 

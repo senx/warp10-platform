@@ -138,7 +138,7 @@ public class WarpScriptMacroRepository extends Thread {
     };
   }
   private WarpScriptMacroRepository() {
-    this.setName("[Warp Macro Repository (" + directory + ")");
+    this.setName("[Warp Macro Repository (" + directory + ")]");
     this.setDaemon(true);
     this.start();
   }

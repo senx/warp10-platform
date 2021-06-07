@@ -1,5 +1,5 @@
 //
-//   Copyright 2020  SenX S.A.S.
+//   Copyright 2020-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.BeanDescription;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationConfig;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.BeanSerializer;
@@ -103,7 +104,9 @@ public class JsonUtils {
   // ObjectMapper instances are thread-safe, so we can safely use a single static instance.
   //
   private static final ObjectMapper STRICT_MAPPER;
+  private static final ObjectMapper STRICT_MAPPER_PRETTY;
   private static final ObjectMapper LOOSE_MAPPER;
+  private static final ObjectMapper LOOSE_MAPPER_PRETTY;
 
   public interface JsonTransformer {
     class TransformationResult {
@@ -184,6 +187,11 @@ public class JsonUtils {
     STRICT_MAPPER = new ObjectMapper(builder.build());
     STRICT_MAPPER.getSerializerProvider().setNullKeySerializer(NULL_KEY_SERIALIZER);
     STRICT_MAPPER.registerModule(module);
+    // Pretty version
+    STRICT_MAPPER_PRETTY = new ObjectMapper(builder.build());
+    STRICT_MAPPER_PRETTY.enable(SerializationFeature.INDENT_OUTPUT);
+    STRICT_MAPPER_PRETTY.getSerializerProvider().setNullKeySerializer(NULL_KEY_SERIALIZER);
+    STRICT_MAPPER_PRETTY.registerModule(module);
 
     //
     // Configure loose mapper
@@ -192,6 +200,11 @@ public class JsonUtils {
     LOOSE_MAPPER = new ObjectMapper(builder.build());
     LOOSE_MAPPER.getSerializerProvider().setNullKeySerializer(NULL_KEY_SERIALIZER);
     LOOSE_MAPPER.registerModule(module);
+    // Pretty version
+    LOOSE_MAPPER_PRETTY = new ObjectMapper(builder.build());
+    LOOSE_MAPPER_PRETTY.enable(SerializationFeature.INDENT_OUTPUT);
+    LOOSE_MAPPER_PRETTY.getSerializerProvider().setNullKeySerializer(NULL_KEY_SERIALIZER);
+    LOOSE_MAPPER_PRETTY.registerModule(module);
   }
 
   //
@@ -211,33 +224,57 @@ public class JsonUtils {
   }
 
   public static String objectToJson(Object o, long maxJsonSize) throws IOException {
-    return objectToJson(o, false, maxJsonSize);
+    return objectToJson(o, false, false, maxJsonSize);
   }
 
   public static String objectToJson(Object o, boolean isStrict) throws IOException {
-    return objectToJson(o, isStrict, Long.MAX_VALUE);
+    return objectToJson(o, isStrict, false, Long.MAX_VALUE);
+  }
+
+  public static String objectToJson(Object o, boolean isStrict, boolean isPretty) throws IOException {
+    return objectToJson(o, isStrict, isPretty, Long.MAX_VALUE);
   }
 
   public static String objectToJson(Object o, boolean isStrict, long maxJsonSize) throws IOException {
+    return objectToJson(o, isStrict, false, maxJsonSize);
+  }
+
+  public static String objectToJson(Object o, boolean isStrict, boolean isPretty, long maxJsonSize) throws IOException {
     StringWriter writer = new StringWriter();
-    objectToJson(writer, o, isStrict, maxJsonSize);
+    objectToJson(writer, o, isStrict, isPretty, maxJsonSize);
     return writer.toString();
   }
 
   public static void objectToJson(Writer writer, Object o, boolean isStrict) throws IOException {
-    objectToJson(writer, o, isStrict, Long.MAX_VALUE);
+    objectToJson(writer, o, isStrict, false, Long.MAX_VALUE);
+  }
+
+  public static void objectToJson(Writer writer, Object o, boolean isStrict, boolean isPretty) throws IOException {
+    objectToJson(writer, o, isStrict, isPretty, Long.MAX_VALUE);
   }
 
   public static void objectToJson(Writer writer, Object o, boolean isStrict, long maxJsonSize) throws IOException {
+    objectToJson(writer, o, isStrict, false, maxJsonSize);
+  }
+
+  public static void objectToJson(Writer writer, Object o, boolean isStrict, boolean isPretty, long maxJsonSize) throws IOException {
     if (Long.MAX_VALUE != maxJsonSize) {
       writer = new BoundedWriter(writer, maxJsonSize);
     }
 
     try {
       if (isStrict) {
-        STRICT_MAPPER.writeValue(writer, o);
+        if (isPretty) {
+          STRICT_MAPPER_PRETTY.writeValue(writer, o);
+        } else {
+          STRICT_MAPPER.writeValue(writer, o);
+        }
       } else {
-        LOOSE_MAPPER.writeValue(writer, o);
+        if (isPretty) {
+          LOOSE_MAPPER_PRETTY.writeValue(writer, o);
+        } else {
+          LOOSE_MAPPER.writeValue(writer, o);
+        }
       }
     } catch (BoundedWriter.WriterBoundReachedException wbre) {
       throw new IOException("Resulting JSON is too big.", wbre);

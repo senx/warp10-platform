@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -49,6 +49,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 import java.util.zip.GZIPInputStream;
 
+import io.warp10.CustomThreadFactory;
 import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.store.Constants;
@@ -89,7 +90,7 @@ public class DEVAL extends NamedWarpScriptFunction implements WarpScriptStackFun
         
     BlockingQueue<Runnable> queue = new LinkedBlockingDeque<Runnable>(poolsize * 2);
     
-    executor = new ThreadPoolExecutor(poolsize, poolsize, 60, TimeUnit.SECONDS, queue);
+    executor = new ThreadPoolExecutor(poolsize, poolsize, 60, TimeUnit.SECONDS, queue, new CustomThreadFactory("Warp DEVAL Thread"));
     
     //
     // Scan the properties, identifying the endpoints
