@@ -1,5 +1,5 @@
 //
-//   Copyright 2020  SenX S.A.S.
+//   Copyright 2020-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 
+import io.warp10.CustomThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -181,7 +182,7 @@ public class StandaloneAcceleratedStoreClient implements StoreClient {
               
         int nthreads = Integer.parseInt(WarpConfig.getProperty(Configuration.ACCELERATOR_PRELOAD_POOLSIZE, "8"));
         
-        ThreadPoolExecutor exec = new ThreadPoolExecutor(nthreads, nthreads, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(nthreads));
+        ThreadPoolExecutor exec = new ThreadPoolExecutor(nthreads, nthreads, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(nthreads), new CustomThreadFactory("Warp StandaloneAcceleratedStoreClient Thread"));
         final AtomicReference<Throwable> error = new AtomicReference<Throwable>();
         
         while(iter.hasNext()) {

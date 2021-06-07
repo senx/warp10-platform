@@ -19,10 +19,10 @@
 //
 dependencies {
     testImplementation 'junit:junit:4.6'
-    // UTILS
+    // Utils
     api 'com.google.guava:guava:15.0'
     // CRYPTO JAVA PROVIDER
-    api 'org.bouncycastle:bcprov-jdk16:1.46'
+    api 'org.bouncycastle:bcprov-jdk15on:1.68'
     // OSS
     api 'com.geoxp.oss:oss-client:1.0.1'
 }
@@ -35,13 +35,15 @@ tasks.withType(Jar) {
 }
 
 //
-// Configure bintray artifacts, repo and name.
+// Customize POM name and description.
 //
-bintray {
-    publications = ['maven']
-
-    pkg {
-        repo = 'maven'
-        name = 'warp10'
+publishing {
+    publications {
+        maven(MavenPublication) {
+            pom {
+                name = "Crypto"
+                description = "Warp 10 crypto utilities"
+            }
+        }
     }
 }

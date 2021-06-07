@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStackFunction;
 
 import java.util.Collection;
@@ -34,13 +35,13 @@ import com.geoxp.GeoXPLib.GeoXPShape;
  * Pushes on the stack the size of an object (map, list or GTS). Consumes the object.
  */
 public class SIZE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   public SIZE(String name) {
     super(name);
   }
-  
+
   @Override
-  public Object apply(WarpScriptStack stack) throws WarpScriptException {        
+  public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object obj = stack.pop();
 
     if (obj instanceof Map) {
@@ -58,10 +59,12 @@ public class SIZE extends NamedWarpScriptFunction implements WarpScriptStackFunc
       stack.push(((byte[]) obj).length);
     } else if (obj instanceof GeoXPShape) {
       stack.push(GeoXPLib.getCells((GeoXPShape) obj).length);
+    } else if (obj instanceof Macro) {
+      stack.push(((Macro) obj).size());
     } else {
-      throw new WarpScriptException(getName() + " operates on a map, a collection, a string, a byte array or a GTS.");
+      throw new WarpScriptException(getName() + " operates on a MAP, a collection, a STRING, a byte array, a GTS or GTS Encoder, a GEOSHAPE or a Macro.");
     }
-    
+
     return stack;
   }
 }

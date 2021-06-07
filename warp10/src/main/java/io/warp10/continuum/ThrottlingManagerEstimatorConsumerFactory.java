@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -39,8 +39,12 @@ import org.apache.thrift.TDeserializer;
 import org.apache.thrift.protocol.TCompactProtocol;
 
 import com.google.common.primitives.Longs;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ThrottlingManagerEstimatorConsumerFactory implements ConsumerFactory {
+
+  private static final Logger LOG = LoggerFactory.getLogger(ThrottlingManagerEstimatorConsumerFactory.class);
   
   private final byte[] macKey;
   
@@ -102,7 +106,7 @@ public class ThrottlingManagerEstimatorConsumerFactory implements ConsumerFactor
             }
           }        
         } catch (Throwable t) {
-          t.printStackTrace(System.err);
+          LOG.error("Error reading throttling messages.", t);
         } finally {
           // Set abort to true in case we exit the 'run' method
           pool.getAbort().set(true);

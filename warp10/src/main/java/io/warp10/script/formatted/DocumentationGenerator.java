@@ -28,6 +28,7 @@ import static io.warp10.script.WarpScriptStack.MACRO_END;
 import static io.warp10.script.WarpScriptStack.MACRO_START;
 import io.warp10.script.functions.SNAPSHOT;
 
+@Deprecated
 public class DocumentationGenerator {
 
   //

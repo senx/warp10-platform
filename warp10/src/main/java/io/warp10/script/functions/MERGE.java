@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -90,7 +90,7 @@ public class MERGE extends NamedWarpScriptFunction implements WarpScriptStackFun
         stack.push(encoder);
       }
     } catch (IOException ioe) {
-      throw new WarpScriptException(ioe);
+      throw new WarpScriptException(getName() + " failed.", ioe);
     }
 
     return stack;

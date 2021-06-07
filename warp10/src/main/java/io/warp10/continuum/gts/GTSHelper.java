@@ -90,6 +90,8 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.functions.MACROMAPPER;
 import io.warp10.script.functions.TOQUATERNION;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
@@ -97,6 +99,8 @@ import io.warp10.script.functions.TOQUATERNION;
  *
  */
 public class GTSHelper {
+
+  private static final Logger LOG = LoggerFactory.getLogger(GTSHelper.class);
 
   /**
    * Sort the values (and associated locations/elevations) by order of their ticks
@@ -1962,10 +1966,11 @@ public class GTSHelper {
     while (iter.hasNext()) {
 
       tick = iter.next();
-      i = Arrays.binarySearch(gts.ticks, 0, i, tick);
+      int j = Arrays.binarySearch(gts.ticks, 0, i, tick);
 
-      if (i >= 0) {
-        setValue(subgts, gts.ticks[i], null != gts.locations ? gts.locations[i] : GeoTimeSerie.NO_LOCATION, null != gts.elevations ? gts.elevations[i] : GeoTimeSerie.NO_ELEVATION, valueAtIndex(gts, i), overwrite);
+      if (j >= 0) {
+        setValue(subgts, tick, null != gts.locations ? gts.locations[j] : GeoTimeSerie.NO_LOCATION, null != gts.elevations ? gts.elevations[j] : GeoTimeSerie.NO_ELEVATION, valueAtIndex(gts, j), overwrite);
+        i = j;
       }
     }
 
@@ -3826,7 +3831,7 @@ public class GTSHelper {
       return sb.toString();
 
     } catch (Exception e) {
-      e.printStackTrace();
+      LOG.error("Error converting tick to String.", e);
     }
     return null;
   }
@@ -5226,6 +5231,7 @@ public class GTSHelper {
     boolean hasSingleResult = true;
 
     long lastTick = 0;
+    long numbOfMappedDupTick = 0;
 
     while (idx < nticks) {
 
@@ -5258,19 +5264,23 @@ public class GTSHelper {
         }
       }
 
-      //
-      // Skip tick if same as last one and must deduplicate
-      // dedup will behave strangely with step>1, pre>0, post>0 or non-null outputTicks, avoid these configurations.
-      //
-      if (dedup && 0 != idx && tick == lastTick) {
-        idx += step;
-        // Do not decrease occurences as duplicate ticks are considered one occurence in dedup mode.
-        continue;
+      if (0 != idx && lastTick == tick) {
+        // Skip tick if same as last one and must deduplicate
+        // dedup will behave strangely with step>1, pre>0, post>0 or non-null outputTicks, avoid these configurations.
+        if (dedup) {
+          idx += step;
+          // Do not decrease occurrences as duplicate ticks are considered one occurrence in dedup mode.
+          continue;
+        }
+        numbOfMappedDupTick++;
+      } else {
+        numbOfMappedDupTick = 0;
       }
+
       lastTick = tick;
 
       //
-      // Determine start/stop timestamp for extracting subserie
+      // Determine start/stop timestamp for extracting subseries
       //
 
       long start = tick;
@@ -5281,12 +5291,14 @@ public class GTSHelper {
       } else if (prewindow > 0) {
         // window is a number of ticks
         if (null == ticks) {
+          // GTS is bucketized.
           if (null == outputTicks || !reversed) {
             start = prewindow <= mapped.bucketcount ? tick - prewindow * mapped.bucketspan : Long.MIN_VALUE;
           } else {
             start = prewindow - 1 <= mapped.bucketcount ? tick - (prewindow - 1) * mapped.bucketspan : Long.MIN_VALUE;
           }
         } else {
+          // GTS is not bucketized.
           if (null == outputTicks) {
             if (reversed) {
               start = idx + prewindow < ticks.length ? (ticks[idx + (int) prewindow]) : Long.MIN_VALUE;
@@ -5321,12 +5333,14 @@ public class GTSHelper {
       } else if (postwindow > 0) {
         // window is a number of ticks
         if (null == ticks) {
+          // GTS is bucketized.
           if (null == outputTicks || reversed) {
             stop = postwindow <= mapped.bucketcount ? tick + postwindow * mapped.bucketspan : Long.MAX_VALUE;
           } else {
             stop = postwindow - 1 <= mapped.bucketcount ? tick + (postwindow - 1) * mapped.bucketspan : Long.MAX_VALUE;
           }
         } else {
+          // GTS is not bucketized.
           if (null == outputTicks) {
             if (reversed) {
               stop = idx - postwindow >= 0 ? (ticks[idx - (int) postwindow]) : Long.MAX_VALUE;
@@ -5458,9 +5472,17 @@ public class GTSHelper {
 
         for (int j = 0; j < subgts.values; j++) {
           ((Object[]) parms[6])[j] = valueAtIndex(subgts, j);
-          if (-1 == tickidx && tick == tickAtIndex(subgts, j)) {
+          // Find the first index of the current tick or the last one in case we map in reverse.
+          // This is because subgts is always sorted but never in reverse.
+          if ((-1 == tickidx || reversed) && tick == tickAtIndex(subgts, j)) {
             tickidx = j;
           }
+        }
+
+        if(reversed) {
+          tickidx -= numbOfMappedDupTick;
+        } else {
+          tickidx += numbOfMappedDupTick;
         }
 
         parms[i++] = new long[] {prewindow, postwindow, start, stop, tickidx};
@@ -5493,9 +5515,6 @@ public class GTSHelper {
         //
         // Set value if it was not null. Don't overwrite, we scan ticks only once
         //
-
-
-
         if (null != result[3]) {
           GTSHelper.setValue(mapped, overrideTick ? (long) result[0] : tick, (long) result[1], (long) result[2], result[3], false);
         }
@@ -10256,7 +10275,7 @@ public class GTSHelper {
 
         int idx_t = 0;
         for (int idx = 0 ; idx < nonnull; idx++){
-          idx_t = Arrays.binarySearch(trend.ticks, idx_t, nonnull, gts.ticks[idx]);
+          idx_t = Arrays.binarySearch(trend.ticks, idx_t, trend.size(), gts.ticks[idx]);
           seasonal.doubleValues[idx] = ((Number) valueAtIndex(gts,idx)).doubleValue() - trend.doubleValues[idx_t];
         }
 
@@ -10278,13 +10297,18 @@ public class GTSHelper {
           // extracting subRho
           if (s > 0) {
             double[] tmp = seasonal.doubleValues;
+            int tmp_size = seasonal.values;
             seasonal.doubleValues = rho;
+            seasonal.values = rho.length;
             subRho = subCycleSerie(seasonal, seasonal.lastbucket - c * seasonal.bucketspan, buckets_per_period, true, subRho);
             seasonal.doubleValues = tmp;
+            seasonal.values = tmp_size;
           }
 
           // applying lowess
-          lowess_stl(subCycle, seasonal, neighbour_s, degree_s, jump_s, weights, s > 0 ? subRho.doubleValues : rho);
+          if (subCycle.values > 0) {
+            lowess_stl(subCycle, seasonal, neighbour_s, degree_s, jump_s, weights, s > 0 ? subRho.doubleValues : rho);
+          }
         }
 
         /*
@@ -10305,18 +10329,57 @@ public class GTSHelper {
         // FIXME(JCV): what happens if buckets_per_period < bucketcount / buckets_per_period ?
 
         // Applying first moving average of size bpp
+        long firstbucket = GTSHelper.firsttick(seasonal);
 
-        // First average
-        double sum = 0;
+        // first average
+        double sum = 0.0;
+        int count = 0;
         for (int r = 0; r < buckets_per_period; r++) {
-          sum += seasonal.doubleValues[r];
+          Object val = GTSHelper.valueAtTick(seasonal, firstbucket + r * seasonal.bucketspan);
+          if (null != val) {
+            count++;
+            sum += (Double) val;
+          }
         }
-        lowpassed.doubleValues[0] = sum / buckets_per_period;
+        if (0 == count) {
+          // this should not happen
+          throw new WarpScriptException("STL found no value in its step 3.0, is GTS empty?");
+
+        } else {
+          lowpassed.doubleValues[0] = sum / count;
+        }
 
         // other averages
         for (int r = 1; r < seasonal.bucketcount - buckets_per_period + 1; r++) {
-          sum += seasonal.doubleValues[r + buckets_per_period - 1] - seasonal.doubleValues[r - 1];
-          lowpassed.doubleValues[r] = sum / buckets_per_period;
+          Object firstVal = GTSHelper.valueAtTick(seasonal, firstbucket + (r - 1) * seasonal.bucketspan);
+          Object nextVal = GTSHelper.valueAtTick(seasonal, firstbucket + (r + buckets_per_period - 1) * seasonal.bucketspan);
+
+          if (null == firstVal) {
+            if (null == nextVal) {
+              lowpassed.doubleValues[r] = lowpassed.doubleValues[r-1];
+
+            } else {
+              count++;
+              sum += (Double) nextVal;
+              lowpassed.doubleValues[r] = sum / count;
+            }
+
+          } else {
+
+            if (null == nextVal) {
+              count--;
+              if (0 == count) {
+                // this should not happen
+                throw new WarpScriptException("STL found no value in its step 3.1, is GTS empty?");
+              }
+              sum -= (Double) firstVal;
+
+            } else {
+              sum += (Double) nextVal - (Double) firstVal;
+            }
+
+            lowpassed.doubleValues[r] = sum / count;
+          }
         }
 
         // Applying 2nd moving average of size bpp
@@ -10343,6 +10406,11 @@ public class GTSHelper {
         lowpassed.lastbucket = seasonal.lastbucket - buckets_per_period * seasonal.bucketspan;
         lowpassed.values = lowpassed.bucketcount;
 
+        // make sure ticks are the expected ones
+        for (int i = 0; i < lowpassed.bucketcount; i++) {
+          lowpassed.ticks[i] = lowpassed.lastbucket - (lowpassed.bucketcount - 1 - i) * lowpassed.bucketspan;
+        }
+
         // Lowess_l
         lowpassed = rlowess(lowpassed, neighbour_l, 0, (jump_l + 1) * lowpassed.bucketspan, degree_l, weights, null, true);
 
@@ -10358,13 +10426,18 @@ public class GTSHelper {
           throw new WarpScriptException("stl impl error #1: " + seasonal.values + " vs " + lowpassed.values);
         }
 
+        int id = 0;
         for (int r = 0; r < seasonal.bucketcount; r++) {
-          seasonal.doubleValues[r] = seasonal.doubleValues[r + buckets_per_period] - lowpassed.doubleValues[r];
-          seasonal.ticks[r] = seasonal.ticks[r + buckets_per_period];
+          Object val = GTSHelper.valueAtTick(seasonal, firstbucket + (r + buckets_per_period) * seasonal.bucketspan);
+          if (null != val) {
+            seasonal.doubleValues[id] = (Double) val - lowpassed.doubleValues[r];
+            seasonal.ticks[id] = lowpassed.ticks[r];
+            id++;
+          }
         }
 
         // trim seasonal back
-        seasonal.values = seasonal.bucketcount;
+        seasonal.values = id;
 
         //
         // Step 5: Deseasonalizing
@@ -10372,7 +10445,7 @@ public class GTSHelper {
 
         int idx_s = 0;
         for (int idx = 0 ; idx < nonnull; idx++){
-          idx_s = Arrays.binarySearch(seasonal.ticks, idx_s, nonnull, gts.ticks[idx]);
+          idx_s = Arrays.binarySearch(seasonal.ticks, idx_s, seasonal.values, gts.ticks[idx]);
           trend.doubleValues[idx] = ((Number) valueAtIndex(gts,idx)).doubleValue() - seasonal.doubleValues[idx_s];
         }
 
@@ -10400,12 +10473,17 @@ public class GTSHelper {
         // compute residual
         int idx_s = 0;
         int idx_t = 0;
+        int id = 0;
         for (int idx = 0 ; idx < nonnull; idx++){
-          idx_s = Arrays.binarySearch(seasonal.ticks, idx_s, nonnull, gts.ticks[idx]);
+          idx_s = Arrays.binarySearch(seasonal.ticks, idx_s, seasonal.size(), gts.ticks[idx]);
+
+          // we assume idx_t == idx_s so we comment the following line
           //idx_t = Arrays.binarySearch(trend.ticks, idx_t, nonnull, gts.ticks[idx]);
-          // we assume idx_t == idx_s
-          idx_t = idx_s;
-          residual[idx] = Math.abs(((Number) valueAtIndex(gts,idx)).doubleValue() - seasonal.doubleValues[idx_s] - trend.doubleValues[idx_t]);
+
+          if (idx_s >= 0) {
+            idx_t = idx_s;
+            residual[id++] = Math.abs(((Number) valueAtIndex(gts, idx)).doubleValue() - seasonal.doubleValues[idx_s] - trend.doubleValues[idx_t]);
+          }
         }
 
         //

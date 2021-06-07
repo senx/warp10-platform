@@ -1,6 +1,6 @@
 #!/usr/bin/env groovy
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -25,98 +25,117 @@ pipeline {
     }
     environment {
         THRIFT_HOME = '/opt/thrift-0.11.0'
-        version = "${getVersion()}"
-        BINTRAY_USER = getParam('BINTRAY_USER')
-        BINTRAY_API_KEY = getParam('BINTRAY_API_KEY')
+        GRADLE_CMD = "./gradlew -Psigning.gnupg.keyName=${getParam('gpgKeyName')} -PossrhUsername=${getParam('ossrhUsername')} -PossrhPassword=${getParam('ossrhPassword')} -PnexusHost=${getParam('nexusHost')}  -PnexusUsername=${getParam('nexusUsername')} -PnexusPassword=${getParam('nexusPassword')}"
     }
     stages {
 
         stage('Checkout') {
             steps {
-                this.notifyBuild('STARTED', version)
-                git credentialsId: 'github', poll: false, url: 'git@github.com:senx/warp10-platform.git'
-                sh 'git fetch --tags'
-                echo "Building ${version}"
+                notifyBuild('STARTED')
+                git poll: false, branch: "${getParam('gitBranch')}", url: "git@${getParam('gitHost')}:${getParam('gitOwner')}/${getParam('gitRepo')}.git"
+                script {
+                    VERSION = getVersion()
+                    TAG = getTag()
+                }
+                echo "Building ${VERSION}"
             }
         }
 
         stage('Build') {
             steps {
-                sh './gradlew clean build -x test'
-                sh './gradlew generateChangelog'
+                sh '$GRADLE_CMD clean build -x test'
+                sh '$GRADLE_CMD generateChangelog'
+                archiveArtifacts allowEmptyArchive: true, artifacts: '**/build/libs/*.jar', fingerprint: true
             }
         }
 
         stage('Test') {
             options { retry(3) }
             steps {
-                sh './gradlew -Djava.security.egd=file:/dev/urandom test'
+                sh '$GRADLE_CMD -Djava.security.egd=file:/dev/urandom test'
                 junit allowEmptyResults: true, keepLongStdio: true, testResults: '**/build/test-results/**/*.xml'
                 step([$class: 'JUnitResultArchiver', allowEmptyResults: true, keepLongStdio: true, testResults: '**/build/test-results/**/*.xml'])
             }
         }
 
-
-        stage('Pack and Tar') {
+        stage('Tar') {
             steps {
-                sh './gradlew jar pack -x test'
-                archiveArtifacts allowEmptyArchive: true, artifacts: '**/build/libs/*.jar', fingerprint: true
-                sh './gradlew createTarArchive -x test'
+                sh '$GRADLE_CMD createTarArchive -x test'
                 archiveArtifacts allowEmptyArchive: true, artifacts: '**/build/libs/*.tar.gz', fingerprint: true
             }
         }
 
-/*        stage('Publish') {
+        stage('Deploy libs to SenX\' Nexus') {
+            options {
+                timeout(time: 2, unit: 'HOURS')
+            }
+            input {
+                message "Should we deploy libs?"
+            }
             steps {
-                sh './gradlew warp10:uploadArchives'
-                sh './gradlew warpscript:uploadArchives'
-            }
-        }*/
-
-        stage('Deploy') {
-            when {
-                expression { return isItATagCommit() }
-            }
-            parallel {
-                stage('Deploy to Bintray') {
-                    options {
-                        timeout(time: 2, unit: 'HOURS')
-                    }
-                    input {
-                        message 'Should we deploy to Bintray?'
-                    }
-                    steps {
-                        sh './gradlew crypto:clean crypto:bintrayUpload -x test'
-                        sh './gradlew token:clean  token:bintrayUpload -x test'
-                        sh './gradlew warp10:clean warp10:bintrayUpload -x test'
-                        sh './gradlew warp10:clean warpscript:bintrayUpload -x test'
-                        this.notifyBuild('PUBLISHED', version)
-                    }
-                }
+                sh '$GRADLE_CMD publishMavenPublicationToNexusRepository -x test'
             }
         }
+
+        stage('Release tar.gz on GitHub') {
+            when {
+                beforeInput true
+                // Only possible if code pulled from github because the release will refer to the
+                // given tag in the given branch. If no such tag exists, it is created from the
+                // HEAD of the branch.
+                expression { return 'github.com' == getParam('gitHost') }
+            }
+            options {
+                timeout(time: 2, unit: 'HOURS')
+            }
+            input {
+                message "Should we release Warp 10?"
+            }
+            steps {
+                script {
+                    releaseID = createGitHubRelease()
+                }
+                sh "curl -f -X POST -H \"Authorization:token ${getParam('githubToken')}\" -H \"Content-Type:application/octet-stream\" -T warp10/build/libs/warp10-${VERSION}.tar.gz https://uploads.github.com/repos/${getParam('gitOwner')}/${getParam('gitRepo')}/releases/${releaseID}/assets?name=warp10-${VERSION}.tar.gz"
+            }
+        }
+
+        stage('Deploy libs to Maven Central') {
+            options {
+                timeout(time: 2, unit: 'HOURS')
+            }
+            input {
+                message "Should we deploy libs?"
+            }
+            steps {
+                sh '$GRADLE_CMD publish'
+                sh '$GRADLE_CMD closeRepository'
+                sh '$GRADLE_CMD releaseRepository'
+                notifyBuild('PUBLISHED')
+            }
+        }
+
     }
 
     post {
         success {
-            this.notifyBuild('SUCCESSFUL', version)
+            notifyBuild('SUCCESSFUL')
         }
         failure {
-            this.notifyBuild('FAILURE', version)
+            notifyBuild('FAILURE')
         }
         aborted {
-            this.notifyBuild('ABORTED', version)
+            notifyBuild('ABORTED')
         }
         unstable {
-            this.notifyBuild('UNSTABLE', version)
+            notifyBuild('UNSTABLE')
         }
     }
 }
 
-void notifyBuild(String buildStatus, String version) {
+void notifyBuild(String buildStatus) {
     // build status of null means successful
     buildStatus = buildStatus ?: 'SUCCESSFUL'
-    String subject = "${buildStatus}: Job ${env.JOB_NAME} [${env.BUILD_DISPLAY_NAME}] | ${version}"
+    String subject = "${buildStatus}: Job ${env.JOB_NAME} [${env.BUILD_DISPLAY_NAME}]"
     String summary = "${subject} (${env.BUILD_URL})"
     // Override default values based on build status
     if (buildStatus == 'STARTED') {
@@ -134,7 +153,7 @@ void notifyBuild(String buildStatus, String version) {
     }
 
     // Send notifications
-    this.notifySlack(colorCode, summary, buildStatus)
+    notifySlack(colorCode, summary, buildStatus)
 }
 
 void notifySlack(color, message, buildStatus) {
@@ -143,16 +162,21 @@ void notifySlack(color, message, buildStatus) {
     sh "curl -X POST -H 'Content-type: application/json' --data '${payload}' ${slackURL}"
 }
 
+String createGitHubRelease() {
+    String githubURL = "https://api.github.com/repos/${getParam('gitOwner')}/${getParam('gitRepo')}/releases"
+    String payload = "{\"tag_name\": \"${VERSION}\", \"name\": \"${VERSION}\", \"body\": \"Release ${VERSION}\", \"target_commitish\": \"${getParam('gitBranch')}\", \"draft\": false, \"prerelease\": false}"
+    releaseID = sh (returnStdout: true, script: "curl -f -X POST -H \"Authorization:token ${getParam('githubToken')} \" --data '${payload}' ${githubURL} | sed -n -e 's/\"id\":\\ \\([0-9]\\+\\),/\\1/p' | head -n 1").trim()
+    return releaseID
+}
+
 String getParam(key) {
     return params.get(key)
 }
 
 String getVersion() {
-    return sh(returnStdout: true, script: 'git describe --abbrev=0 --tags').trim()
+    return sh(returnStdout: true, script: '$GRADLE_CMD --quiet version').trim()
 }
 
-boolean isItATagCommit() {
-    String lastCommit = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
-    String tag = sh(returnStdout: true, script: "git show-ref --tags -d | grep ^${lastCommit} | sed -e 's,.* refs/tags/,,' -e 's/\\^{}//'").trim()
-    return tag != ''
+String getTag() {
+    return sh(returnStdout: true, script: 'git describe --tags').trim()
 }

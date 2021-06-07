@@ -15,7 +15,7 @@
 //
 
 plugins {
-    id "com.jfrog.bintray" version "1.8.4" apply false // Not applied to root, only to sub projects
+    id 'io.codearte.nexus-staging' version '0.22.0'
 }
 
 //
@@ -53,19 +53,19 @@ subprojects {
     apply plugin: 'eclipse'
     apply plugin: 'idea'
     apply plugin: 'maven-publish'
-    apply plugin: 'com.jfrog.bintray'
+    apply plugin: 'signing'
+
 
     version = versionFromGit
     group = 'io.warp10'
 
-    sourceCompatibility = 1.8
-    targetCompatibility = 1.8
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
 
     //
     // Repositories for dependency resolution for all subprojects
     //
     repositories {
-        jcenter()
         mavenCentral()
         //mavenLocal()
     }
@@ -102,16 +102,23 @@ subprojects {
         //options.debugOptions.debugLevel = ''
     }
 
+    // Disable crazy-strict fail-fast javadoc checks
+    javadoc.options.addStringOption('Xdoclint:none', '-quiet')
+
+    // Adds sourceJar and javadocJar task
+    java {
+        withSourcesJar()
+        withJavadocJar()
+    }
+
     //
-    // IDE CONFIGURATIONS 
+    // IDE confs
     //
-    // IDEA DEFAULT CONFIGURATION
     idea {
         module {
             inheritOutputDirs = true
         }
     }
-    // ECLIPSE
     eclipse {
         classpath {
             //customizing the classes output directory:
@@ -148,14 +155,6 @@ subprojects {
     }
 
     //
-    // Sources jar
-    //
-    task sourcesJar(type: Jar) {
-        archiveClassifier = 'sources'
-        from sourceSets.main.allSource
-    }
-
-    //
     // Update REVISION File
     //
     task updateRevision {
@@ -173,17 +172,20 @@ subprojects {
 
         manifest {
             attributes(
-                    // "Implementation-Title" to be set by each sub-project
-                    "Implementation-Vendor": "Warp 10",
-                    "Implementation-Version": project.version)
+                // "Implementation-Title": to be set by each sub-project
+                "Implementation-Vendor": "Warp 10",
+                "Implementation-Version": project.version)
         }
     }
 
     //
-    // Disable the new gradle metadata generation because it is not uploaded to bintray by the plugin
+    // Sign maven publication only if signing key name is in the properties
     //
-    tasks.withType(GenerateModuleMetadata) {
-        enabled = false
+    if (project.hasProperty("signing.gnupg.keyName")) {
+        signing {
+            useGpgCmd()
+            sign publishing.publications
+        }
     }
 
     //
@@ -193,38 +195,65 @@ subprojects {
         publications {
             maven(MavenPublication) {
                 from components.java
+                pom {
+                    // name = to be set by each sub-project
+                    // description = to be set by each sub-project
+                    url = 'https://warp10.io/'
+                    licenses {
+                        license {
+                            name = 'The Apache License, Version 2.0'
+                            url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                        }
+                    }
+                    developers {
+                        developer {
+                            id = 'senx'
+                            name = 'SenX'
+                            email = 'contact@senx.io'
+                        }
+                    }
+                    scm {
+                        connection = 'scm:git:git://github.com:senx/warp10-platform.git'
+                        developerConnection = 'scm:git:git://github.com:senx/warp10-platform.git'
+                        url = 'https://github.com/senx/warp10-platform'
+                    }
+                }
+            }
+        }
+        repositories {
+            if (project.hasProperty("ossrhUsername")) {
+                maven {
+                    url "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
+                    credentials {
+                        username ossrhUsername
+                        password ossrhPassword
+                    }
+                }
+            }
+            if (project.hasProperty("nexusUsername")) {
+                maven {
+                    name "nexus"
+                    url "$nexusHost/repository/maven-releases/"
+                    credentials {
+                        username nexusUsername
+                        password nexusPassword
+                    }
+                }
             }
         }
     }
 
-    //
-    // Bintray deployment common conf
-    //
-    bintray {
-        user = project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER')
-        key = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
-
-        publish = true
-//        dryRun = true
-
-        // publications (for maven repo) or filesSpec (for generic repo) to be set by each subproject.
-
-        pkg {
-            // repo and name to be set by each subproject
-            userOrg = 'senx'
-            licenses = ['Apache-2.0']
-            vcsUrl = 'https://github.com/senx/warp10-platform.git'
-            version {
-                name = project.version
-                released = new Date()
-                vcsTag = project.version
-            }
-        }
-    }
-
-    classes.dependsOn(updateRevision)
-    bintrayUpload.dependsOn checkPublicationState
+    processResources.dependsOn updateRevision
 }
+
+if (project.hasProperty("ossrhUsername")) {
+    nexusStaging {
+        packageGroup = "io.warp10"
+        username ossrhUsername
+        password ossrhPassword
+    }
+}
+
 
 // ------------------------------------------------------------------
 //                    AUTO RELEASE MANAGEMENT
@@ -247,4 +276,6 @@ def getVersionFromGit() {
     }
 }
 
-
+task version {
+    println getVersionFromGit()
+}

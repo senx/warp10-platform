@@ -41,14 +41,16 @@ tasks.withType(Jar) {
 }
 
 //
-// Configure bintray artifacts, repo and name.
+// Customize POM name and description.
 //
-bintray {
-    publications = ['maven']
-
-    pkg {
-        repo = 'maven'
-        name = 'warp10'
+publishing {
+    publications {
+        maven(MavenPublication) {
+            pom {
+                name = "Token"
+                description = "Warp 10 token utilities"
+            }
+        }
     }
 }
 

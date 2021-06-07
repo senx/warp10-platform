@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -44,7 +44,10 @@ public class TOJSON extends NamedWarpScriptFunction implements WarpScriptStackFu
 
     try {
       Long maxJsonSize = (Long)stack.getAttribute(WarpScriptStack.ATTRIBUTE_JSON_MAXSIZE);
-      String json = JsonUtils.objectToJson(o, false, maxJsonSize);
+      boolean strictJSON = Boolean.TRUE.equals(stack.getAttribute(WarpScriptStack.ATTRIBUTE_JSON_STRICT));
+      boolean prettyJSON = Boolean.TRUE.equals(stack.getAttribute(WarpScriptStack.ATTRIBUTE_JSON_PRETTY));
+
+      String json = JsonUtils.objectToJson(o, strictJSON, prettyJSON, maxJsonSize);
       stack.push(json);
     } catch (IOException ioe) {
       throw new WarpScriptException(getName() + " failed with to convert to JSON.", ioe);

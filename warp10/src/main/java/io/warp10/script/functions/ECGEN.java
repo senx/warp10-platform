@@ -1,5 +1,5 @@
 //
-//   Copyright 2020  SenX S.A.S.
+//   Copyright 2020-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 package io.warp10.script.functions;
 
 import java.util.Enumeration;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.apache.commons.codec.binary.Hex;
@@ -48,14 +48,14 @@ import io.warp10.script.functions.SNAPSHOT.SnapshotEncoder;
  * Generate a key pair for Elliptic Curve Cryptography
  */
 public class ECGEN extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   public static final BouncyCastleProvider BCProvider = new BouncyCastleProvider();
-  
+
   static {
     // Add a custom snapshot encoder for EC private and public keys
     SNAPSHOT.addEncoder(new ECSnapshotEncoder());
   }
-  
+
   private static class ECSnapshotEncoder implements SnapshotEncoder {
     @Override
     public boolean addElement(SNAPSHOT snapshot, StringBuilder sb, Object o, boolean readable) throws WarpScriptException {
@@ -82,7 +82,7 @@ public class ECGEN extends NamedWarpScriptFunction implements WarpScriptStackFun
         sb.append("' '");
         sb.append(Constants.KEY_Q);
         sb.append("' '");
-        sb.append(Hex.encodeHex(((ECPublicKey) o).getQ().getEncoded()));        
+        sb.append(Hex.encodeHex(((ECPublicKey) o).getQ().getEncoded(false)));
         sb.append("' } ");
         sb.append(WarpScriptLib.ECPUBLIC);
         sb.append(" ");
@@ -92,11 +92,11 @@ public class ECGEN extends NamedWarpScriptFunction implements WarpScriptStackFun
       }
     }
   }
-  
+
   public ECGEN(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
@@ -110,39 +110,39 @@ public class ECGEN extends NamedWarpScriptFunction implements WarpScriptStackFun
     ECKeyPairGenerator gen = new ECKeyPairGenerator();
 
     ECNamedCurveParameterSpec spec = ECNamedCurveTable.getParameterSpec(name);
-    
+
     if (null == spec) {
       throw new WarpScriptException(getName() + " only supports the following curves: " + getCurves() + ".");
     }
-    
+
     ECCurve curve = spec.getCurve();
-    ECDomainParameters domainParams = new ECDomainParameters(curve, spec.getG(),spec.getN(), spec.getH(), spec.getSeed());    
+    ECDomainParameters domainParams = new ECDomainParameters(curve, spec.getG(),spec.getN(), spec.getH(), spec.getSeed());
     ECKeyGenerationParameters params = new ECKeyGenerationParameters(domainParams, CryptoHelper.getSecureRandom());
-    
+
     gen.init(params);
 
     final AsymmetricCipherKeyPair keypair = gen.generateKeyPair();
 
     ECPrivateKeyParameters privateKey = (ECPrivateKeyParameters) keypair.getPrivate();
     ECPublicKeyParameters publicKey = (ECPublicKeyParameters) keypair.getPublic();
-    
-    Map<String,String> keyparams = new HashMap<String,String>();
-    
-    keyparams.put(Constants.KEY_CURVE, name);
-    keyparams.put(Constants.KEY_D, privateKey.getD().toString());
-    
-    stack.push(keyparams);
-    
-    keyparams = new HashMap<String,String>();
+
+    Map<String,String> keyparams = new LinkedHashMap<String,String>();
 
     keyparams.put(Constants.KEY_CURVE, name);
-    keyparams.put(Constants.KEY_Q, Hex.encodeHexString(publicKey.getQ().getEncoded()));
+    keyparams.put(Constants.KEY_D, privateKey.getD().toString());
+
+    stack.push(keyparams);
+
+    keyparams = new LinkedHashMap<String,String>();
+
+    keyparams.put(Constants.KEY_CURVE, name);
+    keyparams.put(Constants.KEY_Q, Hex.encodeHexString(publicKey.getQ().getEncoded(false)));
 
     stack.push(keyparams);
 
     return stack;
   }
-  
+
   public static String getCurves() {
     StringBuilder sb = new StringBuilder();
     Enumeration<String> names = ECNamedCurveTable.getNames();

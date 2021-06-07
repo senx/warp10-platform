@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -600,8 +600,10 @@ public class Ingress extends AbstractHandler implements Runnable {
       int queuesize = Integer.parseInt(props.getProperty(Configuration.INGRESS_JETTY_MAXQUEUESIZE));
       queue = new BlockingArrayQueue<Runnable>(queuesize);
     }
-    
-    Server server = new Server(new QueuedThreadPool(maxThreads,8, 60000, queue));
+
+    QueuedThreadPool queuedThreadPool = new QueuedThreadPool(maxThreads, 8, 60000, queue);
+    queuedThreadPool.setName("Warp Ingress Jetty Thread");
+    Server server = new Server(queuedThreadPool);
     
     List<Connector> connectors = new ArrayList<Connector>();
 
@@ -1913,7 +1915,7 @@ public class Ingress extends AbstractHandler implements Runnable {
         }        
       }
     } catch (Throwable t) {
-      LOG.error("",t);
+      LOG.error("Error deleting data.", t);
       Sensision.update(SensisionConstants.CLASS_WARP_INGRESS_DELETE_ERRORS, Sensision.EMPTY_LABELS, 1);
       if (showErrors && null != pw) {
         pw.println();

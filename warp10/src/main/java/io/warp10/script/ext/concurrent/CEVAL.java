@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package io.warp10.script.ext.concurrent;
 
+import io.warp10.CustomThreadFactory;
 import io.warp10.script.MemoryWarpScriptStack;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
@@ -25,9 +26,7 @@ import io.warp10.script.WarpScriptStack.StackContext;
 import io.warp10.script.WarpScriptStackFunction;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -113,7 +112,7 @@ public class CEVAL extends NamedWarpScriptFunction implements WarpScriptStackFun
       stack.setAttribute(CONCURRENT_LOCK_ATTRIBUTE, lock);
       
       BlockingQueue<Runnable> queue = new LinkedBlockingDeque<Runnable>(nmacros);    
-      executor = new ThreadPoolExecutor(parallelism, parallelism, 30, TimeUnit.SECONDS, queue);
+      executor = new ThreadPoolExecutor(parallelism, parallelism, 30, TimeUnit.SECONDS, queue, new CustomThreadFactory("Warp CEVAL Thread"));
 
       //
       // Copy the current stack context
