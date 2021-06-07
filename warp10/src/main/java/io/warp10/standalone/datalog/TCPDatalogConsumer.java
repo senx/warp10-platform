@@ -32,7 +32,6 @@ import java.util.Set;
 import java.util.concurrent.locks.LockSupport;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import org.bouncycastle.jce.interfaces.ECPrivateKey;
 import org.bouncycastle.jce.interfaces.ECPublicKey;
 import org.bouncycastle.util.encoders.Hex;
@@ -43,6 +42,7 @@ import com.geoxp.oss.CryptoHelper;
 import com.google.common.primitives.Longs;
 
 import io.warp10.WarpConfig;
+import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.thrift.data.DatalogMessage;
@@ -62,6 +62,7 @@ import io.warp10.script.functions.ECSIGN;
 import io.warp10.script.functions.ECVERIFY;
 import io.warp10.script.functions.HASH;
 import io.warp10.script.functions.REVERSE;
+import io.warp10.script.functions.RUN;
 import io.warp10.script.functions.TOLONGBYTES;
 import io.warp10.sensision.Sensision;
 
@@ -118,6 +119,8 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
 
   private String suffix;
 
+  private static final RUN RUN = new RUN(WarpScriptLib.RUN);
+
   @Override
   public void run() {
 
@@ -164,6 +167,14 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
         modulus[i] = Integer.parseInt(subtokens[0]);
         remainder[i] = Integer.parseInt(subtokens[1]);
       }
+    }
+
+    String macro = WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_CONSUMER_MACRO);
+    MemoryWarpScriptStack stack = null;
+
+    if (null != macro) {
+      stack = new MemoryWarpScriptStack(null, null);
+      stack.maxLimits();
     }
 
     while(true) {
@@ -548,8 +559,28 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
           }
 
           //
-          // Execute the sharding macro if set
+          // Execute the sharding macro if set. The macro is
+          // expected to return a boolean which, if true, will
+          // accept the message.
+          // The macro is fed with a GTS Encoder with the metadata
+          // of the GTS subject of the message and a STRING with
+          // the type of message (From DatalogRecordType, UPDATE, DELETE, REGISTER, UNREGISTER).
           //
+
+          if (null != macro) {
+            stack.clear();
+            GTSEncoder encoder = new GTSEncoder(0L);
+            encoder.setMetadata(record.getMetadata());
+            stack.push(encoder);
+            stack.push(record.getType().name());
+            stack.push(macro);
+            RUN.apply(stack);
+            if (0 == stack.depth() || !Boolean.TRUE.equals(stack.peek())) {
+              stack.clear();
+              continue;
+            }
+            stack.clear();
+          }
 
           //
           // Offer the message
