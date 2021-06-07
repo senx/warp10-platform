@@ -16,7 +16,6 @@
 package io.warp10.worf;
 
 import io.warp10.WarpConfig;
-import io.warp10.WarpDist;
 import io.warp10.continuum.Configuration;
 import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OSSKeyStore;
@@ -32,12 +31,17 @@ import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.InputStream;
 import java.io.PrintWriter;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Map.Entry;
 import java.util.Properties;
 
 public class TokenGen {
   public static void main(String[] args) throws Exception {
+    if (StandardCharsets.UTF_8 != Charset.defaultCharset()) {
+      throw new RuntimeException("Default encoding MUST be UTF-8 but it is " + Charset.defaultCharset() + ". Aborting.");
+    }
 
     TokenGen instance = new TokenGen();
 

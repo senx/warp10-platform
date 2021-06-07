@@ -111,9 +111,10 @@ public class KafkaWebCallService {
 
     Properties properties = new Properties();
     
+    // @see <a href="http://kafka.apache.org/documentation.html#producerconfigs">http://kafka.apache.org/documentation.html#producerconfigs</a>
     properties.putAll(Configuration.extractPrefixed(props, props.getProperty(Configuration.WEBCALL_KAFKA_PRODUCER_CONF_PREFIX)));
 
-    // @see http://kafka.apache.org/documentation.html#producerconfigs
+    // @see <a href="http://kafka.apache.org/documentation.html#producerconfigs">http://kafka.apache.org/documentation.html#producerconfigs</a>
     properties.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, WarpConfig.getProperty(Configuration.WEBCALL_KAFKA_PRODUCER_BOOTSTRAP_SERVERS));
     
     if (null != props.getProperty(Configuration.WEBCALL_KAFKA_PRODUCER_CLIENTID)) {

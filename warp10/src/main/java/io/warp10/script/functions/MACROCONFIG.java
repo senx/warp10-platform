@@ -31,36 +31,36 @@ import io.warp10.script.WarpScriptStackFunction;
  * This function is not intended to be used outside of Macro Repositories, Macro libraries and WarpFleet™ Resolver
  */
 public class MACROCONFIG extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-   
+
   private final boolean defaultValue;
-  
+
   public MACROCONFIG(String name, boolean defaultValue) {
     super(name);
     this.defaultValue = defaultValue;
   }
-  
+
   public MACROCONFIG(String name) {
     this(name, false);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    
+
     String macro = (String) stack.getAttribute(WarpScriptStack.ATTRIBUTE_MACRO_NAME);
 
     if (null == macro) {
       throw new WarpScriptException(getName() + " can only be used from named macro.");
     }
-        
+
     Object top = stack.pop();
-    
+
     String defVal = null;
-    
+
     if (this.defaultValue) {
       defVal = null == top ? null : String.valueOf(top);
       top = stack.pop();
     }
-    
+
     if (!(top instanceof String)) {
       throw new WarpScriptException(getName() + " expects a macro configuration key name.");
     }
@@ -68,39 +68,43 @@ public class MACROCONFIG extends NamedWarpScriptFunction implements WarpScriptSt
     String key = String.valueOf(top).trim();
 
     String value = null;
-    
+
     List<String> attempts = new ArrayList<String>();
+
+    boolean resolved = false;
 
     if (this.defaultValue) {
       attempts.add(key + "@" + macro);
-      value = WarpConfig.getProperty(key + "@" + macro, defVal);  
+      value = WarpConfig.getProperty(key + "@" + macro, defVal);
+      resolved = true;
     } else {
       //
       // We will attempt to find key@name/of/macro
       // then fallback to key@name/of
       // then fallback to key@name
       //
-            
+
       String m = macro;
-      
+
       while(true) {
         attempts.add(key + "@"  + m);
-        
+
         value =  WarpConfig.getProperty(key + "@" + m);
-            
+
         if (null != value) {
+          resolved = true;
           break;
         }
-            
+
         if (!m.contains("/")) {
           break;
         }
-        
+
         m = m.replaceAll("/[^/]+$", "");
-      }       
+      }
     }
-       
-    if (null == value) {
+
+    if (!resolved) {
       StringBuilder sb = new StringBuilder();
       sb.append(getName() + " macro configuration '" + key + "' not found, need to set one of [");
       for (String attempt: attempts) {
@@ -109,9 +113,9 @@ public class MACROCONFIG extends NamedWarpScriptFunction implements WarpScriptSt
       sb.append(" ].");
       throw new WarpScriptException(sb.toString());
     }
-    
+
     stack.push(value);
-    
+
     return stack;
   }
 }

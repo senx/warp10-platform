@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -122,7 +122,7 @@ public class TCPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
           }
         }
       } catch (Throwable t) {
-        t.printStackTrace();
+        LOG.error("Error while loading TCP definition scripts.", t);
       }
 
       LockSupport.parkNanos(this.scanperiod * 1000000L);
@@ -175,7 +175,7 @@ public class TCPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
       @Override
       public void run() {
         done = true;
-        System.out.println("TCP Plugin shutting down all managers.");
+        LOG.info("TCP Plugin shutting down all managers.");
         this.interrupt();
         for (TCPManager server: managers.values()) {
           try {

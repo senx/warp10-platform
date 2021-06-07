@@ -56,16 +56,9 @@ public class DIV extends NamedWarpScriptFunction implements WarpScriptStackFunct
       GeoTimeSerie gts1 = (GeoTimeSerie) op1;
       GeoTimeSerie gts2 = (GeoTimeSerie) op2;
 
-      // Returns immediately a new gts if both inputs are empty
-      if (0 == GTSHelper.nvalues(gts1) || 0 == GTSHelper.nvalues(gts2)) {
-        GeoTimeSerie result = new GeoTimeSerie();
-        // Make sure the bucketization logic is still applied to the result, even if empty.
-        GTSOpsHelper.handleBucketization(result, gts1, gts2);
-        stack.push(result);
-        return stack;
-      }
-
-      if (!(gts1.getType() == TYPE.DOUBLE || gts1.getType() == TYPE.LONG) || !(gts2.getType() == TYPE.DOUBLE || gts2.getType() == TYPE.LONG)) {
+      // Only only numeric and empty GTSs.
+      if (!(gts1.getType() == TYPE.DOUBLE || gts1.getType() == TYPE.LONG || 0 == GTSHelper.nvalues(gts1))
+          || !(gts2.getType() == TYPE.DOUBLE || gts2.getType() == TYPE.LONG || 0 == GTSHelper.nvalues(gts2))) {
         throw new WarpScriptException(typeCheckErrorMsg);
       }
 
@@ -73,72 +66,15 @@ public class DIV extends NamedWarpScriptFunction implements WarpScriptStackFunct
       GeoTimeSerie result = new GeoTimeSerie(Math.max(GTSHelper.nvalues(gts1), GTSHelper.nvalues(gts2)));
       result.setType((gts1.getType() == TYPE.LONG && gts2.getType() == TYPE.LONG) ? TYPE.LONG : TYPE.DOUBLE);
 
-      // Determine if result should be bucketized or not
-      GTSOpsHelper.handleBucketization(result, gts1, gts2);
-      
-      // Sort GTS
-      GTSHelper.sort(gts1);
-      GTSHelper.sort(gts2);
-      
-      // Sweeping line over the timestamps
-      int idxa = 0;
-      int idxb = 0;
-               
-      int na = GTSHelper.nvalues(gts1);
-      int nb = GTSHelper.nvalues(gts2);
-      
-      Long tsa = null;
-      Long tsb = null;
+      GTSOpsHelper.GTSBinaryOp op = new GTSOpsHelper.GTSBinaryOp() {
+        @Override
+        public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
+          return ((Number) GTSHelper.valueAtIndex(gtsa, idxa)).doubleValue() / ((Number) GTSHelper.valueAtIndex(gtsb, idxb)).doubleValue();
+        }
+      };
 
-      if (idxa < na) {
-        tsa = GTSHelper.tickAtIndex(gts1, idxa);
-      }
-      if (idxb < na) {
-        tsb = GTSHelper.tickAtIndex(gts2, idxb);
-      }
+      GTSOpsHelper.applyBinaryOp(result, gts1, gts2, op);
 
-      while(idxa < na || idxb < nb) {
-        if (idxa >= na) {
-          tsa = null;
-        }
-        if (idxb >= nb) {
-          tsb = null;
-        }
-        if (null != tsa && null != tsb) {
-          // We have values at the current index for both GTS
-          if (0 == tsa.compareTo(tsb)) {
-            // Both indices indicate the same timestamp
-            GTSHelper.setValue(result, tsa, ((Number) GTSHelper.valueAtIndex(gts1, idxa)).doubleValue() / ((Number) GTSHelper.valueAtIndex(gts2, idxb)).doubleValue());
-            // Advance both indices
-            idxa++;
-            idxb++;
-          } else if (tsa < tsb) {
-            // Timestamp at index A is lower than timestamp at index B
-            //GTSHelper.setValue(result, tsa, ((Number) GTSHelper.valueAtIndex(gts1, idxa)).doubleValue());
-            // Advance index for GTS A
-            idxa++;
-          } else {
-            // Timestamp at index B is >= timestamp at index B
-            //GTSHelper.setValue(result, tsb, ((Number) GTSHelper.valueAtIndex(gts2, idxb)).doubleValue());
-            // Advance index for GTS B
-            idxb++;
-          }
-        } else if (null == tsa && null != tsb) {
-          // Index A has reached the end of GTS A, GTS B still has values to scan
-          //GTSHelper.setValue(result, tsb, ((Number) GTSHelper.valueAtIndex(gts2, idxb)).doubleValue());          
-          idxb++;
-        } else if (null == tsb && null != tsa) {
-          // Index B has reached the end of GTS B, GTS A still has values to scan
-          //GTSHelper.setValue(result, tsa, ((Number) GTSHelper.valueAtIndex(gts1, idxa)).doubleValue());          
-          idxa++;
-        }
-        if (idxa < na) {
-          tsa = GTSHelper.tickAtIndex(gts1, idxa);
-        }
-        if (idxb < nb) {
-          tsb = GTSHelper.tickAtIndex(gts2, idxb);
-        }
-      }
       // If result is empty, set type and sizehint to default.
       if (0 == result.size()) {
         result = result.cloneEmpty();

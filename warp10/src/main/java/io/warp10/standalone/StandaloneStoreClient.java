@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -65,9 +65,9 @@ public class StandaloneStoreClient implements StoreClient {
   private final int MAX_DELETE_BATCHSIZE;
   private static final int DEFAULT_MAX_DELETE_BATCHSIZE = 10000;
   
-  private final DB db;
+  private final WarpDB db;
   private final KeyStore keystore;
-  private final Properties properties;
+
   
   private final List<StandalonePlasmaHandlerInterface> plasmaHandlers;
 
@@ -75,10 +75,9 @@ public class StandaloneStoreClient implements StoreClient {
   private final double syncrate;
   private final int blockcacheThreshold;
   
-  public StandaloneStoreClient(DB db, KeyStore keystore, Properties properties) {
+  public StandaloneStoreClient(WarpDB db, KeyStore keystore, Properties properties) {
     this.db = db;
     this.keystore = keystore;
-    this.properties = properties;
     this.plasmaHandlers = new ArrayList<StandalonePlasmaHandlerInterface>();
     this.blockcacheThreshold = Integer.parseInt(properties.getProperty(Configuration.LEVELDB_BLOCKCACHE_GTS_THRESHOLD, "0"));
     MAX_ENCODER_SIZE = Long.valueOf(properties.getProperty(Configuration.STANDALONE_MAX_ENCODER_SIZE, DEFAULT_MAX_ENCODER_SIZE));
@@ -189,15 +188,42 @@ public class StandaloneStoreClient implements StoreClient {
      
     return new GTSDecoderIterator() {
     
-      Random prng = fsample < 1.0D ? new Random() : null;
-      
-      long skip = fskip;
-      long preBoundary = preB;
-      long postBoundary = postB;
-      long step = fstep;
-      long timestep = ftimestep;
-      long nextTimestamp = Long.MAX_VALUE;
-      long steps = 0L;
+      final Random prng = fsample < 1.0D ? new Random() : null;
+
+      //
+      // The following nvalues, skip, preBoundary, postBoundary and nextTimestamp fields
+      // are initialized by hasNext() when handling a new GTS.
+      //
+
+      /**
+       * Number of points yet to retrieve for the current GTS.
+       */
+      long nvalues;
+
+      /**
+       * Number of points yet to skip because of the 'skip' parameter.
+       */
+      long skip;
+
+      /**
+       * Number of points before the time boundary yet to fetch.
+       */
+      long preBoundary;
+
+      /**
+       * Number of points after the time boundary yet to fetch.
+       */
+      long postBoundary;
+
+      /**
+       * Most recent timestamp to be accepted because of the 'timestep' parameter.
+       */
+      long nextTimestamp;
+
+      /**
+       * Number of points yet to skip because of the 'step' parameter.
+       */
+      long steps;
       
       int idx = -1;
        
@@ -205,11 +231,6 @@ public class StandaloneStoreClient implements StoreClient {
       byte[] startrow = null;
       // Last raw (included) of current scan
       byte[] stoprow = null;
-      
-      /**
-       * Number of values yet to retrieve for the current GTS
-       */ 
-      long nvalues = Long.MAX_VALUE;
       
       @Override
       public void close() throws Exception {
@@ -369,7 +390,7 @@ public class StandaloneStoreClient implements StoreClient {
             //
             if (hasTimestep) {
               try {
-                nextTimestamp = Math.subtractExact(basets, timestep);
+                nextTimestamp = Math.subtractExact(basets, ftimestep);
               } catch (ArithmeticException ae) {
                 nextTimestamp = Long.MIN_VALUE;
                 nvalues = 0L;
@@ -409,7 +430,7 @@ public class StandaloneStoreClient implements StoreClient {
             }
             
             if (hasStep) {
-              steps = step - 1L;
+              steps = fstep - 1L;
             }
 
             //
@@ -493,17 +514,30 @@ public class StandaloneStoreClient implements StoreClient {
           return false;
         }
 
-        // While all the metadata are exhasted or there is potentially some data associated to a metadata.
+        // While all the metadata are exhausted or there is potentially some data associated to a metadata.
         while(true) {
           // Check if there are still some data associated with the current metadata.
-          if (idx >= 0 && iterator.hasNext()) {
-            byte[] key = iterator.peekNext().getKey();
-
-            // Still some data if there are boundaries to fetch...
-            if ((preBoundary > 0 || postBoundary > 0)
-                // ...or fetch is either time based or has not returned the requested number of points and stoprow was not yet reached.
-                || ((-1 == fcount || nvalues > 0) && (Bytes.compareTo(key, stoprow) <= 0))) {
+          if (idx >= 0) {
+            // Still potential data if iterator has a previous value and postBoundary is strictly positive.
+            // The definitive check to whether there is data or not is in next(). If no data is found,
+            // postBoundary will be set to 0 and the next call to hasNext will fail on this test.
+            if (postBoundary > 0 && iterator.hasPrev()) {
               return true;
+            }
+
+            if (iterator.hasNext()) {
+              // Still potential data if iterator has a next value and preBoundary is strictly positive.
+              // The definitive check to whether there is data or not is in next(). If no data is found,
+              // preBoundary will be set to 0 and the next call to hasNext will fail on this test.
+              if(preBoundary > 0) {
+                return true;
+              }
+
+              // Still some data if fetch is either time based or has not returned the requested number of points and stoprow was not yet reached.
+              byte[] key = iterator.peekNext().getKey();
+              if ((-1 == fcount || nvalues > 0) && (Bytes.compareTo(key, stoprow) <= 0)) {
+                return true;
+              }
             }
           }
           
@@ -541,9 +575,12 @@ public class StandaloneStoreClient implements StoreClient {
           //
           
           nvalues = fcount >= 0L ? fcount : Long.MAX_VALUE;
-          
+
+          skip = fskip;
           preBoundary = preB;
           postBoundary = postB;
+          nextTimestamp = Long.MAX_VALUE;
+          steps = 0L;
 
           // If we are not fetching a post boundary and not fetching data from the
           // defined time range, seek to stoprow to speed up possible pre boundary
@@ -572,8 +609,6 @@ public class StandaloneStoreClient implements StoreClient {
   
   private void store(List<byte[][]> kvs) throws IOException {
   
-    //WriteBatch batch = this.db.createWriteBatch();
-    
     WriteBatch batch = perThreadWriteBatch.get();
 
     AtomicLong size = perThreadWriteBatchSize.get();
@@ -660,73 +695,83 @@ public class StandaloneStoreClient implements StoreClient {
     // Retrieve an iterator
     //
     
-    DBIterator iterator = this.db.iterator();
-    //
-    // Seek the most recent key
-    //
+    DBIterator iterator = null;
     
-    // 128BITS
-    byte[] bend = new byte[Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
-    ByteBuffer bb = ByteBuffer.wrap(bend).order(ByteOrder.BIG_ENDIAN);
-    bb.put(Constants.HBASE_RAW_DATA_KEY_PREFIX);
-    bb.putLong(metadata.getClassId());
-    bb.putLong(metadata.getLabelsId());
-    bb.putLong(Long.MAX_VALUE - end);
+    try {
+      iterator = this.db.iterator();
+      //
+      // Seek the most recent key
+      //
+      
+      // 128BITS
+      byte[] bend = new byte[Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
+      ByteBuffer bb = ByteBuffer.wrap(bend).order(ByteOrder.BIG_ENDIAN);
+      bb.put(Constants.HBASE_RAW_DATA_KEY_PREFIX);
+      bb.putLong(metadata.getClassId());
+      bb.putLong(metadata.getLabelsId());
+      bb.putLong(Long.MAX_VALUE - end);
 
-    iterator.seek(bend);
-    
-    byte[] bstart = new byte[bend.length];
-    bb = ByteBuffer.wrap(bstart).order(ByteOrder.BIG_ENDIAN);
-    bb.put(Constants.HBASE_RAW_DATA_KEY_PREFIX);
-    bb.putLong(metadata.getClassId());
-    bb.putLong(metadata.getLabelsId());
-    bb.putLong(Long.MAX_VALUE - start);
-    
-    //
-    // Scan the iterator, deleting keys if they are between start and end
-    //
-    
-    long count = 0L;
-    
-    WriteBatch batch = this.db.createWriteBatch();
-    int batchsize = 0;
-    
-    WriteOptions options = new WriteOptions().sync(1.0 == syncrate);
-                
-    while (iterator.hasNext()) {
-      Entry<byte[],byte[]> entry = iterator.next();
+      iterator.seek(bend);
+      
+      byte[] bstart = new byte[bend.length];
+      bb = ByteBuffer.wrap(bstart).order(ByteOrder.BIG_ENDIAN);
+      bb.put(Constants.HBASE_RAW_DATA_KEY_PREFIX);
+      bb.putLong(metadata.getClassId());
+      bb.putLong(metadata.getLabelsId());
+      bb.putLong(Long.MAX_VALUE - start);
+      
+      //
+      // Scan the iterator, deleting keys if they are between start and end
+      //
+      
+      long count = 0L;
+      
+      WriteBatch batch = this.db.createWriteBatchUnlocked();
+      int batchsize = 0;
+      
+      WriteOptions options = new WriteOptions().sync(1.0 == syncrate);
+                  
+      while (iterator.hasNext()) {
+        Entry<byte[],byte[]> entry = iterator.next();
 
-      if (Bytes.compareTo(entry.getKey(), bend) >= 0 && Bytes.compareTo(entry.getKey(), bstart) <= 0) {
-        batch.delete(entry.getKey());
-        batchsize++;
-        
-        if (MAX_DELETE_BATCHSIZE <= batchsize) {
-          if (syncwrites) {
-            options = new WriteOptions().sync(Math.random() < syncrate);
+        if (Bytes.compareTo(entry.getKey(), bend) >= 0 && Bytes.compareTo(entry.getKey(), bstart) <= 0) {
+          batch.delete(entry.getKey());
+          batchsize++;
+          
+          if (MAX_DELETE_BATCHSIZE <= batchsize) {
+            if (syncwrites) {
+              options = new WriteOptions().sync(Math.random() < syncrate);
+            }
+            this.db.writeUnlocked(batch, options);
+            batch.close();
+            batch = this.db.createWriteBatchUnlocked();
+            batchsize = 0;
           }
-          this.db.write(batch, options);
-          batch.close();
-          batch = this.db.createWriteBatch();
-          batchsize = 0;
+          //this.db.delete(entry.getKey());
+          count++;
+        } else {
+          break;
         }
-        //this.db.delete(entry.getKey());
-        count++;
-      } else {
-        break;
       }
-    }
-    
-    if (batchsize > 0) {
-      if (syncwrites) {
-        options = new WriteOptions().sync(Math.random() < syncrate);
+      
+      if (batchsize > 0) {
+        if (syncwrites) {
+          options = new WriteOptions().sync(Math.random() < syncrate);
+        }
+        this.db.write(batch, options);
       }
-      this.db.write(batch, options);
-    }
-
-    iterator.close();
-    batch.close();
-    
-    return count;
+      return count;
+    } finally {
+      //
+      // We need to close those so pendingOps is correctly updated
+      //
+      if (null != iterator) {
+        try {
+          iterator.close();
+        } catch (Throwable t) {          
+        }
+      }
+    }   
   }
   
   public void addPlasmaHandler(StandalonePlasmaHandlerInterface plasmaHandler) {

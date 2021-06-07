@@ -32,22 +32,16 @@ public interface WarpScriptFillerFunction {
    * 
    * It is expected to return an array of tick,loc,elev,value which will be used to fill the
    * current GTS.
-   * 
-   * @param args
-   * @return
-   * @throws WarpScriptException
    */
   public Object[] apply(Object[] args) throws WarpScriptException;
   
   /**
    * Returns the size of the pre-window (in number of ticks)
-   * @return
    */
   public int getPreWindow();
   
   /**
    * Returns the size of the post-window (in ticks)
-   * @return
    */
   public int getPostWindow();
 }

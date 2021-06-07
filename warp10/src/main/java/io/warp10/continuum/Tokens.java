@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,20 +16,6 @@
 
 package io.warp10.continuum;
 
-import io.warp10.WarpConfig;
-import io.warp10.WarpDist;
-import io.warp10.continuum.gts.GTSHelper;
-import io.warp10.continuum.store.Constants;
-import io.warp10.crypto.KeyStore;
-import io.warp10.quasar.filter.QuasarTokenFilter;
-import io.warp10.quasar.filter.exception.QuasarTokenException;
-import io.warp10.quasar.token.thrift.data.ReadToken;
-import io.warp10.quasar.token.thrift.data.TokenType;
-import io.warp10.quasar.token.thrift.data.WriteToken;
-import io.warp10.script.MemoryWarpScriptStack;
-import io.warp10.script.WarpScriptException;
-import io.warp10.script.ext.token.TOKENGEN;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -45,9 +31,24 @@ import java.util.UUID;
 import java.util.concurrent.locks.LockSupport;
 import java.util.regex.Pattern;
 
+import io.warp10.ThrowableUtils;
 import org.apache.thrift.TBase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.warp10.WarpConfig;
+import io.warp10.WarpDist;
+import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.store.Constants;
+import io.warp10.crypto.KeyStore;
+import io.warp10.quasar.filter.QuasarTokenFilter;
+import io.warp10.quasar.filter.exception.QuasarTokenException;
+import io.warp10.quasar.token.thrift.data.ReadToken;
+import io.warp10.quasar.token.thrift.data.TokenType;
+import io.warp10.quasar.token.thrift.data.WriteToken;
+import io.warp10.script.MemoryWarpScriptStack;
+import io.warp10.script.WarpScriptException;
+import io.warp10.script.ext.token.TOKENGEN;
 
 public class Tokens {
 
@@ -344,7 +345,7 @@ public class Tokens {
    * those, thus leading potentially to data exposure
    * 
    */
-  public static LinkedHashMap<String,String> labelSelectorsFromReadToken(ReadToken rtoken) {
+  public static Map<String,String> labelSelectorsFromReadToken(ReadToken rtoken) {
     
     LinkedHashMap<String,String> labelSelectors = new LinkedHashMap<String,String>();
     
@@ -496,11 +497,11 @@ public class Tokens {
               if (!(params.containsKey(TOKENGEN.KEY_ID))) {
                 throw new WarpScriptException("Missing '" + TOKENGEN.KEY_ID + "' field in token spec.");
               }
-              TBase token = new TOKENGEN("TOKENGEN", Long.MAX_VALUE >> 4).tokenFromMap(params);
+              TBase token = TOKENGEN.tokenFromMap(params, "Token generation in token file", Long.MAX_VALUE >> 4);
               tokens.put(params.get(TOKENGEN.KEY_ID).toString(), token);
             }
           } catch (WarpScriptException wse) {
-            LOG.error("Error parsing token spec '" + line + "'.", wse);
+            LOG.error("Error parsing token spec in file " + path + " at line '" + line + "': " + ThrowableUtils.getErrorMessage(wse));
           }
           continue;
         }
@@ -599,7 +600,7 @@ public class Tokens {
         fileTokens.putAll(tokens);
       }      
     } catch (Exception e) {
-      e.printStackTrace();
+      LOG.error("Error loading tokens file.", e);
       return;
     }
   }

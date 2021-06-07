@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -619,7 +619,7 @@ public class ThrottlingManager {
       
       dataProps.putAll(Configuration.extractPrefixed(WarpConfig.getProperties(), WarpConfig.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_PRODUCER_CONF_PREFIX)));
 
-      // @see http://kafka.apache.org/documentation.html#producerconfigs
+      // @see <a href="http://kafka.apache.org/documentation.html#producerconfigs">http://kafka.apache.org/documentation.html#producerconfigs</a>
       dataProps.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, WarpConfig.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_PRODUCER_BOOTSTRAP_SERVERS));
       if (null != WarpConfig.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_PRODUCER_CLIENTID)) {
         dataProps.setProperty(ProducerConfig.CLIENT_ID_CONFIG, WarpConfig.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_PRODUCER_CLIENTID));
@@ -896,9 +896,9 @@ public class ThrottlingManager {
               br.close();
               
               newreads.add(file);
-            } catch (Exception e) {              
-              e.printStackTrace();
-            }            
+            } catch (Exception e) {
+              LOG.error("Error reading throttling files.", e);
+            }
           }
 
           loaded = true;

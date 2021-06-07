@@ -255,7 +255,7 @@ public class HBaseStoreClient implements StoreClient {
 
     boolean useBlockCache = metadatas.size() <= blockcacheThreshold;
 
-    if (metadatas.size() < ParallelGTSDecoderIteratorWrapper.getMinGTSPerScanner() || !ParallelGTSDecoderIteratorWrapper.useParallelScanners()) {
+    if (!freq.isParallelScanners() || metadatas.size() < ParallelGTSDecoderIteratorWrapper.getMinGTSPerScanner() || !ParallelGTSDecoderIteratorWrapper.useParallelScanners()) {
       if (optimized) {
         return new OptimizedSlicedRowFilterGTSDecoderIterator(freq, this.conn, this.tableName, this.colfam, this.keystore, useBlockCache);
       } else {
@@ -285,9 +285,6 @@ public class HBaseStoreClient implements StoreClient {
   /**
    * Return a RegionLocator instance suitable for inspecting the underlying table regions.
    * Be aware that the returned RegionLocator is not thread-safe and should be unmanaged using close().
-   * 
-   * @return
-   * @throws IOException
    */
   public RegionLocator getRegionLocator() throws IOException {
     return this.conn.getRegionLocator(this.tableName);

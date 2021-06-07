@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -15,11 +15,6 @@
 //
 
 package io.warp10.script.processing;
-
-import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
-import io.warp10.script.WarpScriptException;
-import io.warp10.script.WarpScriptStack;
 
 import java.awt.image.BufferedImage;
 import java.io.BufferedOutputStream;
@@ -39,36 +34,62 @@ import org.apache.commons.codec.binary.Base64;
 
 import com.sun.imageio.plugins.png.PNGMetadata;
 
+import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.functions.TYPEOF;
+import processing.core.PGraphics;
+import processing.core.PImage;
+
 /**
  * Encode the PGraphics on the stack into a base64 string suitable for a data URL.
  */
 public class Pencode extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   public Pencode(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
 
     Map<Object,Object> chunks = null;
-    
+
     if (top instanceof Map) {
       chunks = (Map<Object,Object>) top;
       top = stack.pop();
     }
-    
-    if (!(top instanceof processing.core.PGraphics)) {
-      throw new WarpScriptException(getName() + " operates on a PGraphics instance.");
+
+    if (!(top instanceof PImage)) {
+      throw new WarpScriptException(getName() + " operates on a " + TYPEOF.TYPE_PGRAPHICSIMAGE + " or " + TYPEOF.TYPE_PIMAGE + " instance.");
     }
 
-    processing.core.PGraphics pg = (processing.core.PGraphics) top;
-    
-    pg.endDraw();
-    
-    BufferedImage bimage = new BufferedImage(pg.pixelWidth, pg.pixelHeight, BufferedImage.TYPE_INT_ARGB);
-    bimage.setRGB(0, 0, pg.pixelWidth, pg.pixelHeight, pg.pixels, 0, pg.pixelWidth);
+    PImage image = (PImage) top;
+
+    String imageStr;
+    try {
+      imageStr = PImageToString(image, chunks);
+    } catch (WarpScriptException wse) {
+      throw new WarpScriptException(getName() + " failed.", wse);
+    }
+
+    stack.push(imageStr);
+
+    return stack;
+  }
+
+  public static String PImageToString(PImage image, Map<Object,Object> chunks) throws WarpScriptException {
+    PGraphics  pg = null;
+
+    if (image instanceof PGraphics) {
+      pg = (PGraphics) image;
+      pg.endDraw();
+    }
+
+    BufferedImage bimage = new BufferedImage(image.pixelWidth, image.pixelHeight, BufferedImage.TYPE_INT_ARGB);
+    bimage.setRGB(0, 0, image.pixelWidth, image.pixelHeight, image.pixels, 0, image.pixelWidth);
     Iterator<ImageWriter> iter = ImageIO.getImageWritersByFormatName("png");
     ImageWriter writer = null;
     if (iter.hasNext()) {
@@ -77,30 +98,30 @@ public class Pencode extends NamedWarpScriptFunction implements WarpScriptStackF
     ImageWriteParam param = writer.getDefaultWriteParam();
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     BufferedOutputStream output = new BufferedOutputStream(baos);
-    
+
     try {
       writer.setOutput(ImageIO.createImageOutputStream(output));
-      
+
       IIOImage iioimage = new IIOImage(bimage, null, null);
-      
+
       if (null != chunks) {
         PNGMetadata metadata = new PNGMetadata();
-        
+
         for (Entry<Object,Object> entry: chunks.entrySet()) {
           if ("tEXt".equals(entry.getKey()) || "zTXt".equals(entry.getKey())) {
             boolean zTXt = "zTXt".equals(entry.getKey());
             Object chunklist = entry.getValue();
-            
+
             if (!(chunklist instanceof List)) {
-              throw new WarpScriptException(getName() + " expects chunk type to be associated with a list of chunks.");
+              throw new WarpScriptException("Chunk type must be associated with a list of chunks.");
             }
-            
+
             for (Object chunkelt: (List<Object>) chunklist) {
               if (!(chunkelt instanceof Map)) {
-                throw new WarpScriptException(getName() + " expects tEXt and zTXt chunks to be MAP instances.");
+                throw new WarpScriptException("tEXt and zTXt chunks must be MAP instances.");
               }
               Map<Object,Object> chunkmap = (Map<Object,Object>) chunkelt;
-              
+
               if (chunkmap.get("keyword") instanceof String && chunkmap.get("text") instanceof String) {
                 if (zTXt) {
                   metadata.zTXt_keyword.add((String) chunkmap.get("keyword"));
@@ -108,25 +129,25 @@ public class Pencode extends NamedWarpScriptFunction implements WarpScriptStackF
                   metadata.zTXt_compressionMethod.add(0);
                 } else {
                   metadata.tEXt_keyword.add((String) chunkmap.get("keyword"));
-                  metadata.tEXt_text.add((String) chunkmap.get("text"));                  
+                  metadata.tEXt_text.add((String) chunkmap.get("text"));
                 }
               } else {
-                throw new WarpScriptException(getName() + " tEXt and zTXt chunks MUST contains 'keyword' and 'text' entries of type STRING.");
+                throw new WarpScriptException("tEXt and zTXt chunks MUST contains 'keyword' and 'text' entries of type STRING.");
               }
             }
           } else if ("iTXt".equals(entry.getKey())) {
             Object chunklist = entry.getValue();
-            
+
             if (!(chunklist instanceof List)) {
-              throw new WarpScriptException(getName() + " expects chunk type to be associated with a list of chunks.");
+              throw new WarpScriptException("Chunk type must be associated with a list of chunks.");
             }
-            
+
             for (Object chunkelt: (List<Object>) chunklist) {
               if (!(chunkelt instanceof Map)) {
-                throw new WarpScriptException(getName() + " expects iTXt chunks to be MAP instances.");
+                throw new WarpScriptException("iTXt chunks must be MAP instances.");
               }
               Map<Object,Object> chunkmap = (Map<Object,Object>) chunkelt;
-              
+
               if (chunkmap.get("keyword") instanceof String && chunkmap.get("text") instanceof String) {
                 metadata.iTXt_keyword.add((String) chunkmap.get("keyword"));
                 metadata.iTXt_text.add((String) chunkmap.get("text"));
@@ -136,11 +157,11 @@ public class Pencode extends NamedWarpScriptFunction implements WarpScriptStackF
                 metadata.iTXt_languageTag.add(chunkmap.getOrDefault("languageTag", "").toString());
                 metadata.iTXt_translatedKeyword.add(chunkmap.getOrDefault("translatedKeyword", "").toString());
               } else {
-                throw new WarpScriptException(getName() + " iTXt chunks MUST contains 'keyword' and 'text' entries of type STRING.");
+                throw new WarpScriptException("iTXt chunks MUST contains 'keyword' and 'text' entries of type STRING.");
               }
             }
           } else {
-            throw new WarpScriptException(getName() + " only 'tEXt', 'zTXt' and 'iTXt' chunks can be specified.");
+            throw new WarpScriptException("Only 'tEXt', 'zTXt' and 'iTXt' chunks can be specified.");
           }
         }
         iioimage.setMetadata(metadata);
@@ -148,22 +169,22 @@ public class Pencode extends NamedWarpScriptFunction implements WarpScriptStackF
 
       writer.write(null, iioimage, param);
     } catch (IOException ioe) {
-      throw new WarpScriptException(getName() + " error while encoding PGraphics.", ioe);
+      throw new WarpScriptException("Error while encoding PGraphics or PImage.", ioe);
     }
-    
+
     writer.dispose();
 
     StringBuilder sb = new StringBuilder("data:image/png;base64,");
     sb.append(Base64.encodeBase64String(baos.toByteArray()));
-    
-    stack.push(sb.toString());
 
     //
     // Re-issue a 'beginDraw' so we can continue using the PGraphics instance
     //
-    
-    pg.beginDraw();
 
-    return stack;
+    if (null != pg) {
+      pg.beginDraw();
+    }
+
+    return sb.toString();
   }
 }

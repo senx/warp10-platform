@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -289,11 +289,6 @@ ingress.kafka.metadata.maxsize = 900000
 // Name of partition assignment strategy to use
 //
 #ingress.kafka.metadata.consumer.partition.assignment.strategy = 
-
-//
-// Identification of Ingress Metadata Update endpoint source
-//
-#ingress.metadata.update = 
 
 //
 // Default maximum age of datapoints pushed to Warp 10, in ms. Any timestamp older than

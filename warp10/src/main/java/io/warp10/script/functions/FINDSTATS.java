@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -84,7 +84,7 @@ public class FINDSTATS extends NamedWarpScriptFunction implements WarpScriptStac
     Object oLabelsSelector = stack.pop();
     
     if (!(oLabelsSelector instanceof Map)) {
-      throw new WarpScriptException("Label selectors must be a map.");
+      throw new WarpScriptException(getName() + " expects the label selectors to be a MAP.");
     }
     
     Map<String,String> labelSelectors = (Map<String,String>) oLabelsSelector;
@@ -96,7 +96,7 @@ public class FINDSTATS extends NamedWarpScriptFunction implements WarpScriptStac
     Object oClassSelector = stack.pop();
 
     if (!(oClassSelector instanceof String)) {
-      throw new WarpScriptException("Class selector must be a string.");
+      throw new WarpScriptException(getName() + " expects the class selector to be a STRING.");
     }
     
     String classSelector = (String) oClassSelector;
@@ -108,15 +108,25 @@ public class FINDSTATS extends NamedWarpScriptFunction implements WarpScriptStac
     Object oToken = stack.pop();
     
     if (!(oToken instanceof String)) {
-      throw new WarpScriptException("Token must be a string.");
+      throw new WarpScriptException(getName() + " expects the token to be a STRING.");
     }
     
     String token = (String) oToken;
 
     
     DirectoryClient directoryClient = stack.getDirectoryClient();
-    
-    ReadToken rtoken = Tokens.extractReadToken(token);
+
+    ReadToken rtoken;
+    try {
+      rtoken = Tokens.extractReadToken(token);
+
+      Map<String, String> rtokenAttributes = rtoken.getAttributes();
+      if (null != rtokenAttributes && rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOFIND)) {
+        throw new WarpScriptException("Token cannot be used for finding metadata.");
+      }
+    } catch (WarpScriptException wse) {
+      throw new WarpScriptException(getName() + " given an invalid token.", wse);
+    }
 
     labelSelectors.remove(Constants.PRODUCER_LABEL);
     labelSelectors.remove(Constants.OWNER_LABEL);
@@ -138,7 +148,7 @@ public class FINDSTATS extends NamedWarpScriptFunction implements WarpScriptStac
 
       stats = directoryClient.stats(drequest);
     } catch (IOException ioe) {
-      throw new WarpScriptException(ioe);
+      throw new WarpScriptException(getName() + " failed.", ioe);
     }
 
     stack.push(stats);

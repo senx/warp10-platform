@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package io.warp10.continuum.store;
 
+import io.warp10.CustomThreadFactory;
 import io.warp10.continuum.KafkaOffsetCounters;
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
@@ -412,7 +413,7 @@ public class Store extends Thread {
             executor = Executors.newFixedThreadPool(nthreads);
     
             if (nthreadsDelete > 0) {
-              deleteExecutor = new ThreadPoolExecutor(nthreadsDelete, nthreadsDelete, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(1));
+              deleteExecutor = new ThreadPoolExecutor(nthreadsDelete, nthreadsDelete, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(1), new CustomThreadFactory("Warp Store Thread"));
             }
             
             //
@@ -1424,7 +1425,7 @@ public class Store extends Thread {
       }        
 
       //
-      // @see https://hbase.apache.org/apidocs/org/apache/hadoop/hbase/coprocessor/example/BulkDeleteEndpoint.html
+      // @see <a href="https://hbase.apache.org/apidocs/org/apache/hadoop/hbase/coprocessor/example/BulkDeleteEndpoint.html">https://hbase.apache.org/apidocs/org/apache/hadoop/hbase/coprocessor/example/BulkDeleteEndpoint.html</a>
       //
       
       //
@@ -1604,7 +1605,7 @@ public class Store extends Thread {
               Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_DATAPOINTS_PEROWNERAPP, labels, noOfDeletedVersions);
             }            
           } catch (Throwable t) {
-            t.printStackTrace();
+            LOG.error("Error while processing delete request", t);
             if (t instanceof Exception) {
               throw (Exception) t;
             } else {

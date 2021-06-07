@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -47,6 +47,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -59,7 +60,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import io.warp10.WarpDist;
 import org.apache.hadoop.util.ShutdownHookManager;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -416,7 +416,7 @@ public class Ingress extends AbstractHandler implements Runnable {
  
     metaProps.putAll(Configuration.extractPrefixed(props, props.getProperty(Configuration.INGRESS_KAFKA_META_PRODUCER_CONF_PREFIX)));
 
-    // @see http://kafka.apache.org/documentation.html#producerconfigs
+    // @see <a href="http://kafka.apache.org/documentation.html#producerconfigs">http://kafka.apache.org/documentation.html#producerconfigs</a>
     metaProps.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, props.getProperty(Configuration.INGRESS_KAFKA_METADATA_PRODUCER_BOOTSTRAP_SERVERS));
     if (null != props.getProperty(Configuration.INGRESS_KAFKA_META_PRODUCER_CLIENTID)) {
       metaProps.setProperty(ProducerConfig.CLIENT_ID_CONFIG, props.getProperty(Configuration.INGRESS_KAFKA_META_PRODUCER_CLIENTID));
@@ -441,7 +441,7 @@ public class Ingress extends AbstractHandler implements Runnable {
     
     dataProps.putAll(Configuration.extractPrefixed(props, props.getProperty(Configuration.INGRESS_KAFKA_DATA_PRODUCER_CONF_PREFIX)));
 
-    // @see http://kafka.apache.org/documentation.html#producerconfigs
+    // @see <a href="http://kafka.apache.org/documentation.html#producerconfigs">http://kafka.apache.org/documentation.html#producerconfigs</a>
     dataProps.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, props.getProperty(Configuration.INGRESS_KAFKA_DATA_PRODUCER_BOOTSTRAP_SERVERS));
     if (null != props.getProperty(Configuration.INGRESS_KAFKA_DATA_PRODUCER_CLIENTID)) {
       dataProps.setProperty(ProducerConfig.CLIENT_ID_CONFIG, props.getProperty(Configuration.INGRESS_KAFKA_DATA_PRODUCER_CLIENTID));
@@ -499,7 +499,7 @@ public class Ingress extends AbstractHandler implements Runnable {
 
     /*
     Properties deleteProps = new Properties();
-    // @see http://kafka.apache.org/documentation.html#producerconfigs
+    // @see <a href="http://kafka.apache.org/documentation.html#producerconfigs">http://kafka.apache.org/documentation.html#producerconfigs</a>
     deleteProps.setProperty("metadata.broker.list", props.getProperty(INGRESS_KAFKA_DELETE_BROKERLIST));
     deleteProps.setProperty("request.required.acks", "-1");
     deleteProps.setProperty("producer.type","sync");
@@ -600,8 +600,10 @@ public class Ingress extends AbstractHandler implements Runnable {
       int queuesize = Integer.parseInt(props.getProperty(Configuration.INGRESS_JETTY_MAXQUEUESIZE));
       queue = new BlockingArrayQueue<Runnable>(queuesize);
     }
-    
-    Server server = new Server(new QueuedThreadPool(maxThreads,8, 60000, queue));
+
+    QueuedThreadPool queuedThreadPool = new QueuedThreadPool(maxThreads, 8, 60000, queue);
+    queuedThreadPool.setName("Warp Ingress Jetty Thread");
+    Server server = new Server(queuedThreadPool);
     
     List<Connector> connectors = new ArrayList<Connector>();
 
@@ -710,6 +712,7 @@ public class Ingress extends AbstractHandler implements Runnable {
     }
     
     long nowms = System.currentTimeMillis();
+    int httpStatusCode = HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
     
     try {      
       WarpConfig.setThreadProperty(WarpConfig.THREAD_PROPERTY_SESSION, UUID.randomUUID().toString());
@@ -735,10 +738,12 @@ public class Ingress extends AbstractHandler implements Runnable {
       try {
         writeToken = Tokens.extractWriteToken(token);
         if (writeToken.getAttributesSize() > 0 && writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_NOUPDATE)) {
+          httpStatusCode = HttpServletResponse.SC_FORBIDDEN;
           throw new WarpScriptException("Token cannot be used for updating data.");
         }
       } catch (WarpScriptException ee) {
-        throw new IOException(ee);
+        httpStatusCode = HttpServletResponse.SC_FORBIDDEN;
+        throw ee;
       }
       
       String application = writeToken.getAppName();
@@ -789,8 +794,8 @@ public class Ingress extends AbstractHandler implements Runnable {
       try {
         if (null == producer || null == owner) {
           Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_INVALIDTOKEN, Sensision.EMPTY_LABELS, 1);
-          response.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid token.");
-          return;
+          httpStatusCode = HttpServletResponse.SC_FORBIDDEN;
+          throw new IOException("Invalid token.");
         }
                 
         //
@@ -885,6 +890,7 @@ public class Ingress extends AbstractHandler implements Runnable {
           if (null != deltastr) {
             long delta = Long.parseLong(deltastr);
             if (delta < 0) {
+              httpStatusCode = HttpServletResponse.SC_BAD_REQUEST;
               throw new WarpScriptException("Invalid '" + Constants.TOKEN_ATTR_MAXPAST + "' token attribute, MUST be positive.");
             }
             try {
@@ -899,6 +905,7 @@ public class Ingress extends AbstractHandler implements Runnable {
           if (null != deltastr) {
             long delta = Long.parseLong(deltastr);
             if (delta < 0) {
+              httpStatusCode = HttpServletResponse.SC_BAD_REQUEST;
               throw new WarpScriptException("Invalid '" + Constants.TOKEN_ATTR_MAXFUTURE + "' token attribute, MUST be positive.");
             }
             try {
@@ -950,6 +957,7 @@ public class Ingress extends AbstractHandler implements Runnable {
               long delta = Long.parseLong(nowstr.substring(1));
               now = now + delta;
             } catch (Exception e) {
+              httpStatusCode = HttpServletResponse.SC_BAD_REQUEST;
               throw new IOException("Invalid base timestamp.");
             }                  
           } else if (nowstr.startsWith("-")) {
@@ -957,12 +965,14 @@ public class Ingress extends AbstractHandler implements Runnable {
               long delta = Long.parseLong(nowstr.substring(1));
               now = now - delta;
             } catch (Exception e) {
+              httpStatusCode = HttpServletResponse.SC_BAD_REQUEST;
               throw new IOException("Invalid base timestamp.");
             }                            
           } else {
             try {
               now = Long.parseLong(nowstr);
             } catch (Exception e) {
+              httpStatusCode = HttpServletResponse.SC_BAD_REQUEST;
               throw new IOException("Invalid base timestamp.");
             }                  
           }
@@ -971,6 +981,7 @@ public class Ingress extends AbstractHandler implements Runnable {
         boolean deltaAttributes = "delta".equals(request.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_ATTRIBUTES)));
 
         if (deltaAttributes && !this.allowDeltaAttributes) {
+          httpStatusCode = HttpServletResponse.SC_BAD_REQUEST;
           throw new IOException("Delta update of attributes is disabled.");
         }
         
@@ -1033,7 +1044,8 @@ public class Ingress extends AbstractHandler implements Runnable {
             count++;
           } catch (ParseException pe) {
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_PARSEERRORS, sensisionLabels, 1);
-            throw new IOException("Parse error at '" + line + "'", pe);
+            httpStatusCode = HttpServletResponse.SC_BAD_REQUEST;
+            throw new IOException("Parse error at index " + pe.getErrorOffset() + " in '" + line + "'", pe);
           }
                   
           if (encoder != lastencoder || dms.get() + 16 + lastencoder.size() > DATA_MESSAGES_THRESHOLD) {
@@ -1053,8 +1065,13 @@ public class Ingress extends AbstractHandler implements Runnable {
             //
             
             if (null != lastencoder && lastencoder.size() > 0) {
-              ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId(), expose);
-              ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount(), expose);
+              try {
+                ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId(), expose);
+                ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount(), expose);
+              } catch (WarpException we) {
+                httpStatusCode = 429; // Too Many Requests
+                throw we;
+              }
             }
             
             boolean pushMeta = false;
@@ -1066,9 +1083,7 @@ public class Ingress extends AbstractHandler implements Runnable {
             } else if (activityTracking && updateActivity) {
               Long lastActivity = val;
               
-              if (null == lastActivity) {
-                pushMeta = true;
-              } else if (nowms - lastActivity > activityWindow) {
+              if (null == lastActivity || nowms - lastActivity > activityWindow) {
                 pushMeta = true;
               }
             }
@@ -1143,8 +1158,13 @@ public class Ingress extends AbstractHandler implements Runnable {
         } while (true); 
         
         if (null != lastencoder && lastencoder.size() > 0) {
-          ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId(), expose);
-          ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount(), expose);
+          try {
+            ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId(), expose);
+            ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount(), expose);
+          } catch (WarpException we) {
+            httpStatusCode = 429; // Too Many Requests
+            throw we;
+          }
 
           pushDataMessage(lastencoder, kafkaDataMessageAttributes);
           
@@ -1160,8 +1180,6 @@ public class Ingress extends AbstractHandler implements Runnable {
             pushMetadataMessage(meta);
           }
         }
-      } catch (WarpException we) {
-        throw new IOException(we);      
       } finally {
         //
         // Flush message buffers into Kafka
@@ -1181,19 +1199,18 @@ public class Ingress extends AbstractHandler implements Runnable {
         
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_TIME_US, sensisionLabels, micros);
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_TIME_US_GLOBAL, Sensision.EMPTY_LABELS, micros);      
-      }      
+      }
+
+      response.setStatus(HttpServletResponse.SC_OK);
     } catch (Throwable t) { // Catch everything else this handler could return 200 on a OOM exception
       if (!response.isCommitted()) {
         String prefix = "Error when updating data: ";
         String msg = prefix + ThrowableUtils.getErrorMessage(t, Constants.MAX_HTTP_REASON_LENGTH - prefix.length());
-        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msg);
-        return;
+        response.sendError(httpStatusCode, msg);
       }
     } finally {
       WarpConfig.clearThreadProperties();
     }
-    
-    response.setStatus(HttpServletResponse.SC_OK);
   }
   
   /**
@@ -1624,7 +1641,7 @@ public class Ingress extends AbstractHandler implements Runnable {
         //
         
         final byte[] onetimepad = new byte[(int) Math.max(65537, System.currentTimeMillis() % 100000)];
-        new Random().nextBytes(onetimepad);
+        ThreadLocalRandom.current().nextBytes(onetimepad);
         
         final File cache = File.createTempFile(Long.toHexString(System.currentTimeMillis()) + "-" + Long.toHexString(System.nanoTime()), ".delete.dircache");
         cache.deleteOnExit();
@@ -1898,7 +1915,7 @@ public class Ingress extends AbstractHandler implements Runnable {
         }        
       }
     } catch (Throwable t) {
-      LOG.error("",t);
+      LOG.error("Error deleting data.", t);
       Sensision.update(SensisionConstants.CLASS_WARP_INGRESS_DELETE_ERRORS, Sensision.EMPTY_LABELS, 1);
       if (showErrors && null != pw) {
         pw.println();

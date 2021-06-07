@@ -105,11 +105,6 @@ public interface KeyStore {
   public static final String SIPHASH_KAFKA_PLASMA_FRONTEND_IN = "warp.siphash.kafka.plasma.frontend.in";
 
   /**
-   * Name of key for computing MAC for kafka messages produced by plasma frontends
-   */
-  public static final String SIPHASH_KAFKA_PLASMA_FRONTEND_OUT = "warp.siphash.kafka.plasma.frontend.out";
-
-  /**
    * Name of key for computing MAC for WebCall requests in Kafka
    */
   public static final String SIPHASH_KAFKA_WEBCALL = "warp.siphash.kafka.webcall";
@@ -123,11 +118,6 @@ public interface KeyStore {
    * Name of key for computing MAC for fetch requests
    */
   public static final String SIPHASH_FETCH_PSK = "warp.siphash.fetch.psk";
-
-  /**
-   * Name of key for wrapping kafka run requests
-   */
-  public static final String AES_KAFKA_RUNNER = "warp.aes.kafka.runner";
 
   /**
    * Name of key for wrapping kafka data messages
@@ -153,11 +143,6 @@ public interface KeyStore {
    * Name of key for wrapping kafka messages consumed by plasma frontends
    */
   public static final String AES_KAFKA_PLASMA_FRONTEND_IN = "warp.aes.kafka.plasma.frontend.in";
-
-  /**
-   * Name of key for wrapping kafka messages produced by plasma frontends
-   */
-  public static final String AES_KAFKA_PLASMA_FRONTEND_OUT = "warp.aes.kafka.plasma.frontend.out";
 
   /**
    * Name of key for wrapping WebCall requests in Kafka
@@ -231,7 +216,7 @@ public interface KeyStore {
    * Get a key from the configuration, and, if it exists and if the number of bits of the key is in the given values,
    * add it to the keystore.
    * @param keystore The KeyStore to add the key to.
-   * @param keyname The key name under which to add the key in the keystore.
+   * @param keystoreKey The key name under which to add the key in the keystore.
    * @param props The properties from which to get the key.
    * @param configurationKey The configuration key holding the key value.
    * @param sizeInBits The valid number of bits of the key. Typically 128 or 128, 192, 256.

@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -44,12 +44,16 @@ public class QUATERNIONTO extends NamedWarpScriptFunction implements WarpScriptS
       throw new WarpScriptException(getName() + " expects a quaternion as a LONG on top of the stack.");
     }
 
-    double[] elements = fromQuaternion(((Number) qo).longValue());
-    
-    stack.push(elements[0]);
-    stack.push(elements[1]);
-    stack.push(elements[2]);
-    stack.push(elements[3]);
+    try {
+      double[] elements = fromQuaternion(((Number) qo).longValue());
+
+      stack.push(elements[0]);
+      stack.push(elements[1]);
+      stack.push(elements[2]);
+      stack.push(elements[3]);
+    } catch (WarpScriptException wse) {
+      throw new WarpScriptException(getName() + " failed.", wse);
+    }
     
     return stack;
   }

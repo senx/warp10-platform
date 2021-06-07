@@ -209,7 +209,6 @@ public class TimeSource {
   
   /**
    * Return the current time in the platform's native time units.
-   * @return
    */
   public static synchronized long getTime() {    
     //
@@ -273,7 +272,6 @@ public class TimeSource {
 
   /**
    * Return the current time in nanoseconds
-   * @return
    */
   public static long getNanoTime() {
     while(0 == calibrations.get()) {      

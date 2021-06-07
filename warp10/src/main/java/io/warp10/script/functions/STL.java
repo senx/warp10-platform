@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -31,7 +31,7 @@ import java.util.Map;
 
 /**
  * Apply Seasonal Trend decomposition based on Loess procedure
- * @see http://www.wessa.net/download/stl.pdf
+ * @see <a href="http://www.wessa.net/download/stl.pdf">http://www.wessa.net/download/stl.pdf</a>
  */
 public class STL extends GTSStackFunction {
   
@@ -180,7 +180,7 @@ public class STL extends GTSStackFunction {
     //
     
     // default values are the same as for R's implementation (except for ns and ds)
-    // @see https://stat.ethz.ch/R-manual/R-devel/library/stats/html/stl.html
+    // @see <a href="https://stat.ethz.ch/R-manual/R-devel/library/stats/html/stl.html">https://stat.ethz.ch/R-manual/R-devel/library/stats/html/stl.html</a>
     
     if (null == params.get(PERIOD_PARAM)) {
       throw new WarpScriptException(getName() + " expects map of parameters to at least contains field PERIOD");
@@ -229,63 +229,63 @@ public class STL extends GTSStackFunction {
     //
 
     if (buckets_per_period < 2) {
-      throw new WarpScriptException("Seasonal periods must be composed by at least 2 buckets.");
+      throw new WarpScriptException(getName() + " expects seasonal periods to be composed by at least 2 buckets.");
     }
 
     if (inner < 1) {
-      throw new WarpScriptException(PRECISION_PARAM + " must be positive.");
+      throw new WarpScriptException(getName() + " expects " + PRECISION_PARAM + " to be positive.");
     }
 
     if (outer < 0) {
-      throw new WarpScriptException(ROBUSTNESS_PARAM + " can not be negative.");
+      throw new WarpScriptException(getName() + " expects " + ROBUSTNESS_PARAM + " to be non-negative.");
     }
 
     if (0 == ns) {
-      throw new WarpScriptException(BANDWIDTH_S_PARAM + " can not be equal to zero.");
+      throw new WarpScriptException(getName() + " expects " + BANDWIDTH_S_PARAM + " to be different than zero.");
     }
 
     if (ds < 0) {
-      throw new WarpScriptException(DEGREE_S_PARAM + " can not be negative.");
+      throw new WarpScriptException(getName() + " expects " + DEGREE_S_PARAM + " to be non-negative.");
     }
 
     if (js < 0) {
-      throw new WarpScriptException(SPEED_S_PARAM + " can not be negative.");
+      throw new WarpScriptException(getName() + " expects " + SPEED_S_PARAM + " to be non-negative.");
     }
 
     if (nl < 0) {
-      throw new WarpScriptException(BANDWIDTH_L_PARAM + " can not be negative..");
+      throw new WarpScriptException(getName() + " expects " + BANDWIDTH_L_PARAM + " to be non-negative.");
     }
 
     if (dl < 0) {
-      throw new WarpScriptException(DEGREE_L_PARAM + " can not be negative.");
+      throw new WarpScriptException(getName() + " expects " + DEGREE_L_PARAM + " to be non-negative.");
     }
 
     if (jl < 0) {
-      throw new WarpScriptException(SPEED_L_PARAM + " can not be negative.");
+      throw new WarpScriptException(getName() + " expects " + SPEED_L_PARAM + " to be non-negative.");
     }
 
     if (nt < 0) {
-      throw new WarpScriptException(BANDWIDTH_T_PARAM + " can not be negative..");
+      throw new WarpScriptException(getName() + " expects " + BANDWIDTH_T_PARAM + " to be non-negative.");
     }
 
     if (dt < 0) {
-      throw new WarpScriptException(DEGREE_T_PARAM + " can not be negative.");
+      throw new WarpScriptException(getName() + " expects " + DEGREE_T_PARAM + " to be non-negative.");
     }
 
     if (jt < 0) {
-      throw new WarpScriptException(SPEED_T_PARAM + " can not be negative.");
+      throw new WarpScriptException(getName() + " expects " + SPEED_T_PARAM + " to be non-negative.");
     }
 
     if (np < 0) {
-      throw new WarpScriptException(BANDWIDTH_P_PARAM + " can not be negative.");
+      throw new WarpScriptException(getName() + " expects " + BANDWIDTH_P_PARAM + " to be non-negative.");
     }
 
     if (dp < 0) {
-      throw new WarpScriptException(DEGREE_P_PARAM + " can not be negative.");
+      throw new WarpScriptException(getName() + " expects " + DEGREE_P_PARAM + " to be non-negative.");
     }
 
     if (jp < 0) {
-      throw new WarpScriptException(SPEED_P_PARAM + " can not be negative.");
+      throw new WarpScriptException(getName() + " expects " + SPEED_P_PARAM + " to be non-negative.");
     }
     
     //

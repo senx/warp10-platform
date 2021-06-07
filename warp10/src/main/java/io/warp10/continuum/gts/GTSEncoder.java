@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -45,7 +45,7 @@ import sun.misc.FloatingDecimal.BinaryToASCIIConverter;
  * Utility class used to create Geo Time Series
  */
 public class GTSEncoder implements Cloneable {
-  
+
   /**
    * Mask to extract encryption flag.
    */
@@ -103,22 +103,22 @@ public class GTSEncoder implements Cloneable {
   static final byte FLAGS_TYPE_STRING = 0x18;
 
   static final byte FLAGS_STRING_BINARY = 0x02;
-  
+
   //
   // Where to store boolean values, we need two different bits because
   // the ENCRYPTED flag is 0x00 so we would not be able to differentiate a
   // 'false' from the ENCRYPTED flag if we don't explicitly set a bit for false
   //
-  
+
   static final byte FLAGS_BOOLEAN_VALUE_TRUE = 0x04;
   static final byte FLAGS_BOOLEAN_VALUE_FALSE = 0x02;
 
   //
   // Piggyback on BOOLEAN values for delete tombstone markers
   //
-  
+
   static final byte FLAGS_DELETE_MARKER = 0x07;
-  
+
   static final byte FLAGS_LONG_ZIGZAG = 0x04;
   static final byte FLAGS_LONG_DELTA_PREVIOUS = 0x02;
 
@@ -136,7 +136,7 @@ public class GTSEncoder implements Cloneable {
   static final byte FLAGS_ELEVATION_IDENTICAL = 0x01;
 
   private boolean readonly = false;
-  
+
   private long baseTimestamp = 0L;
 
   /**
@@ -178,13 +178,13 @@ public class GTSEncoder implements Cloneable {
    * Holder for binary data
    */
   private String binaryString = null;
-  
+
   //
   // The following 7 fields are initial values which are needed
   // to decode delta encoded values when creating an encoder from
   // a decoder. @see GTSDecoder.getEncoder
   //
-  
+
   private long initialTimestamp = lastTimestamp;
   private long initialGeoXPPoint = lastGeoXPPoint;
   private long initialElevation = lastElevation;
@@ -192,7 +192,7 @@ public class GTSEncoder implements Cloneable {
   private double initialDoubleValue = lastDoubleValue;
   private BigDecimal initialBDValue = lastBDValue;
   private String initialStringValue = lastStringValue;
-  
+
   /**
    * OutputStream which collects the encoded values
    */
@@ -210,12 +210,20 @@ public class GTSEncoder implements Cloneable {
    */
   private long count = 0L;
 
+  private boolean validLastGeoXPPoint = false;
+  private boolean validLastElevation = false;
+
   private boolean noDeltaMetaTimestamp = false;
-  private boolean noDeltaMetaLocation = false;
-  private boolean noDeltaMetaElevation = false;
-  
-  private boolean noDeltaValue = false;
-  
+
+  /**
+   * Flags indicating whether or not the last values
+   * of each type are valid, if so delta/identical encoding can be used.
+   */
+  private boolean validLastLongValue = false;
+  private boolean validLastDoubleValue = false;
+  private boolean validLastBDValue = false;
+  private boolean validLastStringValue = false;
+
   public GTSEncoder() {
     this.stream = new ByteArrayOutputStream();
     this.wrappingKey = null;
@@ -230,14 +238,15 @@ public class GTSEncoder implements Cloneable {
     } catch (IOException ioe) {
       throw new RuntimeException(ioe);
     }
-    // Disable delta encoding since we have no idea what the last value was
+    // Disable delta/identical encoding since we have no idea what the last values of
+    // each type were or what the last encountered timestamp/lat/lon/elev were.
     this.safeDelta();
   }
-  
+
   /**
    * Create an encoder using the given timestamp as its base.
    * Base timestamp may be used to encode value timestamps as deltas.
-   * 
+   *
    * @param baseTimestamp
    *          Timestamp to use as base.
    */
@@ -249,7 +258,7 @@ public class GTSEncoder implements Cloneable {
 
   /**
    * Create an encoder using the given base and AES wrapping key.
-   * 
+   *
    * @param baseTimestamp
    *          Timestamp to use as base (to compute deltas)
    * @param key
@@ -257,19 +266,19 @@ public class GTSEncoder implements Cloneable {
    */
   public GTSEncoder(long baseTimestamp, byte[] key) {
     this.baseTimestamp = baseTimestamp;
-    this.stream = new ByteArrayOutputStream();    
+    this.stream = new ByteArrayOutputStream();
     this.wrappingKey = null == key ? null : Arrays.copyOf(key, key.length);
   }
 
   public GTSEncoder(long baseTimestamp, byte[] key, int size) {
     this.baseTimestamp = baseTimestamp;
-    this.stream = new ByteArrayOutputStream(size);    
+    this.stream = new ByteArrayOutputStream(size);
     this.wrappingKey = null == key ? null : Arrays.copyOf(key, key.length);
   }
 
   /**
    * Encode an additional value in the GTS.
-   * 
+   *
    * @param timestamp
    *          Timestamp in microseconds at which the measurement was done
    * @param location
@@ -286,11 +295,11 @@ public class GTSEncoder implements Cloneable {
   private byte[] buf8 = new byte[10];
   private byte[] buf10 = buf8;
   public synchronized int addValue(long timestamp, long location, long elevation, Object value) throws IOException {
-    
+
     if (this.readonly) {
       throw new IOException("Encoder is read-only.");
     }
-    
+
     //
     // Determine the encoding for the timestamp
     // We choose the encoding mode which leads to the least number of bytes
@@ -305,7 +314,7 @@ public class GTSEncoder implements Cloneable {
       // bytes otherwise use 8 bytes representation without varint encoding to save
       // space.
       //
-      
+
       //if (timestamp < (1L << 48)) {
       //  tsTypeFlag |= FLAGS_TIMESTAMP_ZIGZAG_ABSOLUTE;
       //} else {
@@ -319,8 +328,8 @@ public class GTSEncoder implements Cloneable {
         // Special case, the timestamp is equal to the base, simply indicate it in the flags
         //
         tsTypeFlag |= FLAGS_TIMESTAMP_EQUALS_BASE;
-      } else if (0L != lastTimestamp) {        
-        long deltaBase = Math.abs(timestamp - baseTimestamp); 
+      } else if (0L != lastTimestamp) {
+        long deltaBase = Math.abs(timestamp - baseTimestamp);
         long deltaLast = Math.abs(timestamp - lastTimestamp);
         if (deltaBase < deltaLast) {
           if (deltaBase < (1L << 48)) {
@@ -337,7 +346,7 @@ public class GTSEncoder implements Cloneable {
         }
       } else {
         long deltaBase = Math.abs(timestamp - baseTimestamp);
-        
+
         if (deltaBase < (1L << 48)) {
           tsTypeFlag |= FLAGS_TIMESTAMP_ZIGZAG_DELTA_BASE;
         } else {
@@ -355,13 +364,12 @@ public class GTSEncoder implements Cloneable {
         || value instanceof Byte) {
       tsTypeFlag |= FLAGS_TYPE_LONG;
       long longValue = ((Number) value).longValue();
-      
-      if (!noDeltaValue && Long.MAX_VALUE != lastLongValue && longValue == lastLongValue) {
+
+      if (validLastLongValue && longValue == lastLongValue) {
         tsTypeFlag |= FLAGS_VALUE_IDENTICAL;
       } else {
         long offset = longValue - lastLongValue;
-        if (!noDeltaValue && Long.MAX_VALUE != lastLongValue
-            && ((Math.abs(offset) < Math.abs(longValue)) && Math.abs(offset) < (1L << 48))) {
+        if (validLastLongValue && ((Math.abs(offset) < Math.abs(longValue)) && Math.abs(offset) < (1L << 48))) {
           tsTypeFlag |= FLAGS_LONG_DELTA_PREVIOUS;
           tsTypeFlag |= FLAGS_LONG_ZIGZAG;
         } else if (Math.abs(longValue) < (1L << 48)) {
@@ -378,22 +386,24 @@ public class GTSEncoder implements Cloneable {
       } else {
         tsTypeFlag |= FLAGS_BOOLEAN_VALUE_FALSE;
       }
-      
+
     } else if (value instanceof String) {
       tsTypeFlag |= FLAGS_TYPE_STRING;
-      if (((String) value).equals(lastStringValue)) {
+      if (validLastStringValue && ((String) value).equals(lastStringValue)) {
         tsTypeFlag |= FLAGS_VALUE_IDENTICAL;
       }
     } else if (value instanceof byte[]) {
       tsTypeFlag |= FLAGS_TYPE_STRING | FLAGS_STRING_BINARY;
       binaryString = new String((byte[]) value, StandardCharsets.ISO_8859_1);
-      if (binaryString.equals(lastStringValue)) {
+      if (validLastStringValue && binaryString.equals(lastStringValue)) {
         tsTypeFlag |= FLAGS_VALUE_IDENTICAL;
       }
     } else if (value instanceof Double || value instanceof Float) {
       tsTypeFlag |= FLAGS_TYPE_DOUBLE;
       // Only compare to the previous double value if the last floating point value was NOT encoded as a BigDecimal
-      if (null == lastBDValue && lastDoubleValue == ((Number) value).doubleValue()) {
+      if (validLastDoubleValue && (lastDoubleValue == ((Number) value).doubleValue()
+              // We need to check for NaNs in a specific way
+              || (Double.isNaN(lastDoubleValue) && Double.isNaN(((Number) value).doubleValue())))) {
         tsTypeFlag |= FLAGS_VALUE_IDENTICAL;
       } else {
         tsTypeFlag |= FLAGS_DOUBLE_IEEE754;
@@ -405,7 +415,7 @@ public class GTSEncoder implements Cloneable {
       // Strip trailing zero so we optimize the representation
       doubleValue = doubleValue.stripTrailingZeros();
 
-      if (null != lastBDValue && 0 == lastBDValue.compareTo(doubleValue)) {
+      if (validLastBDValue && 0 == lastBDValue.compareTo(doubleValue)) {
         tsTypeFlag |= FLAGS_VALUE_IDENTICAL;
       } else {
         int scale = doubleValue.scale();
@@ -449,7 +459,7 @@ public class GTSEncoder implements Cloneable {
       // Otherwise, encode location as raw GeoXPPoint.
       //
 
-      if (GeoTimeSerie.NO_LOCATION != lastGeoXPPoint && !noDeltaMetaLocation) {
+      if (validLastGeoXPPoint) {
         if (lastGeoXPPoint == location) {
           locElevFlag |= FLAGS_LOCATION_IDENTICAL;
         } else {
@@ -460,10 +470,9 @@ public class GTSEncoder implements Cloneable {
         }
       } else {
         // Do nothing, implicitly we will encode location as raw GeoXPPoint
-        noDeltaMetaLocation = false;
       }
     } else {
-      lastGeoXPPoint = GeoTimeSerie.NO_LOCATION;
+      validLastGeoXPPoint = false;
     }
 
     if (GeoTimeSerie.NO_ELEVATION != elevation && null != value) {
@@ -476,7 +485,7 @@ public class GTSEncoder implements Cloneable {
       // If it's worth it spacewise, set encoding to zig zag varint delta.
       //
 
-      if (GeoTimeSerie.NO_ELEVATION != lastElevation && !noDeltaMetaElevation) {
+      if (validLastElevation) {
         if (lastElevation == elevation) {
           locElevFlag |= FLAGS_ELEVATION_IDENTICAL;
         } else {
@@ -496,10 +505,9 @@ public class GTSEncoder implements Cloneable {
         if (Math.abs(elevation) < (1L << 48)) {
           locElevFlag |= FLAGS_ELEVATION_ZIGZAG;
         }
-        noDeltaMetaElevation = false;
       }
     } else {
-      lastElevation = GeoTimeSerie.NO_ELEVATION;
+      validLastElevation = false;
     }
 
     //
@@ -522,7 +530,7 @@ public class GTSEncoder implements Cloneable {
         //ByteBuffer bb = ByteBuffer.wrap(buf);
         //bb.order(ByteOrder.BIG_ENDIAN);
         //bb.putLong(timestamp);
-        
+
         buf[0] = (byte) ((timestamp >> 56) & 0xff);
         buf[1] = (byte) ((timestamp >> 48) & 0xff);
         buf[2] = (byte) ((timestamp >> 40) & 0xff);
@@ -531,7 +539,7 @@ public class GTSEncoder implements Cloneable {
         buf[5] = (byte) ((timestamp >> 16) & 0xff);
         buf[6] = (byte) ((timestamp >> 8) & 0xff);
         buf[7] = (byte) (timestamp & 0xff);
-        
+
         this.stream.write(buf, 0, 8);
       }
         break;
@@ -572,7 +580,7 @@ public class GTSEncoder implements Cloneable {
           //ByteBuffer bb = ByteBuffer.wrap(buf);
           //bb.order(ByteOrder.BIG_ENDIAN);
           //bb.putLong(location);
-          
+
           buf[0] = (byte) ((location >> 56) & 0xff);
           buf[1] = (byte) ((location >> 48) & 0xff);
           buf[2] = (byte) ((location >> 40) & 0xff);
@@ -586,6 +594,7 @@ public class GTSEncoder implements Cloneable {
         }
       }
       lastGeoXPPoint = location;
+      validLastGeoXPPoint = true;
     }
 
     // Write elevation data
@@ -608,7 +617,7 @@ public class GTSEncoder implements Cloneable {
           //ByteBuffer bb = ByteBuffer.wrap(buf);
           //bb.order(ByteOrder.BIG_ENDIAN);
           //bb.putLong(toencode);
-          
+
           buf[0] = (byte) ((toencode >> 56) & 0xff);
           buf[1] = (byte) ((toencode >> 48) & 0xff);
           buf[2] = (byte) ((toencode >> 40) & 0xff);
@@ -622,6 +631,7 @@ public class GTSEncoder implements Cloneable {
         }
       }
       lastElevation = elevation;
+      validLastElevation = true;
     }
 
     // Write value (if type is not boolean, as boolean values are included in
@@ -636,6 +646,7 @@ public class GTSEncoder implements Cloneable {
             this.stream.write(buf10, 0, l);
             this.stream.write(bytes);
             lastStringValue = binaryString;
+            validLastStringValue = true;
           } else {
             // Convert String to UTF8 byte array
             byte[] utf8 = ((String) value).getBytes(StandardCharsets.UTF_8);
@@ -647,7 +658,8 @@ public class GTSEncoder implements Cloneable {
             this.stream.write(utf8);
 
             // Keep track of last value
-            lastStringValue = (String) value;            
+            lastStringValue = (String) value;
+            validLastStringValue = true;
           }
         }
         break;
@@ -682,10 +694,9 @@ public class GTSEncoder implements Cloneable {
 
             this.stream.write(buf, 0, 8);
           }
-
-          noDeltaValue = false;
           // Keep track of last value
           lastLongValue = lvalue;
+          validLastLongValue = true;
         }
         break;
 
@@ -702,6 +713,8 @@ public class GTSEncoder implements Cloneable {
             this.stream.write(buf, 0, 8);
             // Clear the last BDValue otherwise we might incorrectly encode the next value specified as a BigDecimal
             lastBDValue = null;
+            validLastDoubleValue = true;
+            validLastBDValue = false;
           } else {
             BigDecimal dvalue = (BigDecimal) value;
             dvalue = dvalue.stripTrailingZeros();
@@ -715,6 +728,8 @@ public class GTSEncoder implements Cloneable {
             this.stream.write(buf10, 0, l);
             // Keep track of last value
             lastBDValue = dvalue;
+            validLastBDValue = true;
+            validLastDoubleValue = false;
           }
         }
         break;
@@ -727,10 +742,10 @@ public class GTSEncoder implements Cloneable {
     }
 
     this.count++;
-    
+
     return this.stream.size();
   }
-  
+
   public void setWrappingKey(byte[] key) {
     if (this.readonly) {
       throw new RuntimeException("Encoder is read-only.");
@@ -738,14 +753,14 @@ public class GTSEncoder implements Cloneable {
 
     this.wrappingKey = null == key ? null : Arrays.copyOf(key, key.length);
   }
-  
+
   /**
    * Return the bytes currently in this encoder.
    * If 'wrappingKey' is non null, encrypt the bytes prior to returning them.
-   * 
+   *
    * @return The (possibly encrypted bytes) or null if an exception is raised
    *         while encrypting.
-   * 
+   *
    */
   public byte[] getBytes() {
     if (null == this.wrappingKey) {
@@ -787,11 +802,9 @@ public class GTSEncoder implements Cloneable {
       }
     }
   }
-  
+
   /**
    * Return the current size of the encoded data.
-   * 
-   * @return
    */
   public int size() {
     return this.stream.size();
@@ -799,15 +812,14 @@ public class GTSEncoder implements Cloneable {
 
   /**
    * Return the number of values encoded by this encoder.
-   * @return
    */
   public long getCount() {
     return this.count;
   }
-  
+
   /**
    * Encode the given GTS instance.
-   * 
+   *
    * @param gts
    */
   public synchronized void encode(GeoTimeSerie gts) throws IOException {
@@ -819,17 +831,17 @@ public class GTSEncoder implements Cloneable {
   /**
    * Encode the given GTS instance, converting doubles to BigDecimal to get a chance to
    * store them more efficiently
-   * 
+   *
    * @param gts
    */
   public synchronized void encodeOptimized(GeoTimeSerie gts) throws IOException {
     StringBuilder sb = new StringBuilder();
-    
+
     char[] chars = null;
-    
+
     for (int i = 0; i < gts.values; i++) {
       Object value = GTSHelper.valueAtIndex(gts, i);
-      
+
       if ((value instanceof Double) && Double.isFinite((double) value)) {
         sb.setLength(0);
         BinaryToASCIIConverter btoa = FloatingDecimal.getBinaryToASCIIConverter((double) value);
@@ -837,9 +849,9 @@ public class GTSEncoder implements Cloneable {
         if (null == chars || chars.length < sb.length()) {
           chars = new char[sb.length()];
         }
-        
+
         sb.getChars(0, sb.length(), chars, 0);
-        
+
         value = new BigDecimal(chars, 0, sb.length());
       }
       addValue(gts.ticks[i], null != gts.locations ? gts.locations[i] : GeoTimeSerie.NO_LOCATION, null != gts.elevations ? gts.elevations[i] : GeoTimeSerie.NO_ELEVATION, value);
@@ -850,22 +862,22 @@ public class GTSEncoder implements Cloneable {
 
     if ((value instanceof Double) && Double.isFinite((double) value)) {
       StringBuilder sb = new StringBuilder();
-      
+
       char[] chars = null;
 
       BinaryToASCIIConverter btoa = FloatingDecimal.getBinaryToASCIIConverter((double) value);
       btoa.appendTo(sb);
-      
+
       value = new BigDecimal(sb.toString());
     }
-    
+
     return value;
   }
-  
+
   /**
    * Return a decoder instance capable of decoding the encoded content of this
    * encoder.
-   * 
+   *
    * @param safeMetadata Is it safe to reuse the Metadata instance?
    * @return A suitable GTSDecoder instance.
    */
@@ -884,7 +896,7 @@ public class GTSEncoder implements Cloneable {
       this.initialDoubleValue,
       this.initialBDValue,
       this.initialStringValue);
-    
+
     decoder.setCount(this.getCount());
     return decoder;
   }
@@ -892,35 +904,35 @@ public class GTSEncoder implements Cloneable {
   public GTSDecoder getDecoder() {
     return getDecoder(false);
   }
-  
+
   /**
    * Retrieve a GTSDecoder which uses the same metadata as
    * this GTSEncoder and has a ByteBuffer which wraps the current
    * byte array in this GTSEncoder's stream.
-   * 
+   *
    * Calling this method will render the GTSEncoder 'read-only'
-   * 
+   *
    */
   public synchronized GTSDecoder getUnsafeDecoder(boolean blockWrites) {
     //
     // If the wrapping key is not null, fallback to getGTSDecoder as we must first
     // encrypt the content
     //
-    
+
     if (null != this.wrappingKey) {
       return getDecoder(true);
     }
-    
+
     //
     // Retrieve the underlying byte[], we do this using
     // a dummy OutputStream
     //
-        
+
     final AtomicReference<byte[]> aref = new AtomicReference<byte[]>();
     final AtomicInteger alen = new AtomicInteger();
     final AtomicInteger aoff = new AtomicInteger();
-    
-    OutputStream out = new OutputStream() {      
+
+    OutputStream out = new OutputStream() {
       @Override
       public void write(int b) throws IOException {}
       @Override
@@ -930,13 +942,13 @@ public class GTSEncoder implements Cloneable {
         aoff.set(off);
       }
     };
-    
+
     try {
       this.stream.writeTo(out);
     } catch (IOException ioe) {
       throw new RuntimeException(ioe);
     }
-    
+
     GTSDecoder decoder = new GTSDecoder(this.baseTimestamp, this.wrappingKey, ByteBuffer.wrap(aref.get(), aoff.get(), alen.get()));
     decoder.safeSetMetadata(this.getMetadata());
 
@@ -948,19 +960,19 @@ public class GTSEncoder implements Cloneable {
       this.initialDoubleValue,
       this.initialBDValue,
       this.initialStringValue);
-    
+
     decoder.setCount(this.getCount());
-    
+
     if (blockWrites) {
       this.readonly = true;
     }
-    
-    return decoder;    
+
+    return decoder;
   }
-  
+
   /**
    * Set the initial values of the encoder, to be used in the created decoder to decode delta encoded values
-   * 
+   *
    * @param initialTimestamp
    * @param initialGeoXPPoint
    * @param initialElevation
@@ -981,10 +993,10 @@ public class GTSEncoder implements Cloneable {
     this.initialBDValue = initialBDValue;
     this.initialStringValue = initialStringValue;
   }
-  
+
   /**
    * Reset the state of this encoder with that of 'encoder'.
-   * 
+   *
    * @param encoder
    * @throws IOException
    */
@@ -993,39 +1005,48 @@ public class GTSEncoder implements Cloneable {
       throw new RuntimeException("Encoder is read-only.");
     }
     this.initialize(encoder.initialTimestamp, encoder.initialGeoXPPoint, encoder.initialElevation, encoder.initialLongValue, encoder.initialDoubleValue, encoder.initialBDValue, encoder.initialStringValue);
-    
+
     this.baseTimestamp = encoder.baseTimestamp;
     this.count = encoder.count;
-    
-    this.lastBDValue = encoder.lastBDValue;
-    this.lastDoubleValue = encoder.lastDoubleValue;
+
+    this.lastTimestamp = encoder.lastTimestamp;
+
     this.lastGeoXPPoint = encoder.lastGeoXPPoint;
     this.lastElevation = encoder.lastElevation;
+
+    this.lastBDValue = encoder.lastBDValue;
+    this.lastDoubleValue = encoder.lastDoubleValue;
     this.lastLongValue = encoder.lastLongValue;
     this.lastStringValue = encoder.lastStringValue;
-    this.lastTimestamp = encoder.lastTimestamp;
-  
+
     this.metadata = encoder.metadata;
-    
+
     this.wrappingKey = encoder.wrappingKey;
-    
+
     this.noDeltaMetaTimestamp = encoder.noDeltaMetaTimestamp;
-    this.noDeltaMetaLocation = encoder.noDeltaMetaLocation;
-    this.noDeltaMetaElevation = encoder.noDeltaMetaElevation;
-    this.noDeltaValue = encoder.noDeltaValue;
-    
+
+    this.validLastGeoXPPoint = encoder.validLastGeoXPPoint;
+    this.validLastElevation = encoder.validLastElevation;
+
+    this.validLastLongValue = encoder.validLastLongValue;
+    this.validLastDoubleValue = encoder.validLastDoubleValue;
+    this.validLastBDValue = encoder.validLastBDValue;
+    this.validLastStringValue = encoder.validLastStringValue;
+
     this.stream.reset();
     encoder.stream.writeTo(this.stream);
   }
-  
+
   public synchronized void reset(long baseTS) throws IOException {
     if (this.readonly) {
       throw new RuntimeException("Encoder is read-only.");
     }
     baseTimestamp = baseTS;
     lastTimestamp = 0L;
+
     lastGeoXPPoint = GeoTimeSerie.NO_LOCATION;
     lastElevation = GeoTimeSerie.NO_ELEVATION;
+
     lastLongValue = Long.MAX_VALUE;
     lastBDValue = null;
     lastDoubleValue = Double.NaN;
@@ -1043,10 +1064,15 @@ public class GTSEncoder implements Cloneable {
     count = 0L;
 
     noDeltaMetaTimestamp = false;
-    noDeltaMetaLocation = false;
-    noDeltaMetaElevation = false;
-    noDeltaValue = false;
-    
+
+    validLastGeoXPPoint = false;
+    validLastElevation = false;
+
+    validLastLongValue = false;
+    validLastDoubleValue = false;
+    validLastBDValue = false;
+    validLastStringValue = false;
+
     stream.reset();
   }
 
@@ -1060,17 +1086,17 @@ public class GTSEncoder implements Cloneable {
     }
 
     int size = size();
-    
+
     if (target > size) {
       ByteArrayOutputStream out = new ByteArrayOutputStream(target);
       this.stream.writeTo(out);
       this.stream = out;
     }
   }
-  
+
   /**
    * Merge data encoded in another encoder with this one.
-   * 
+   *
    * If the two encoders have different base timestamps or different
    * encryption keys, the values will be fetched using a decoder
    * and added individually. Otherwise a fastpath is taken and
@@ -1088,39 +1114,31 @@ public class GTSEncoder implements Cloneable {
     // If the current encoder is empty and the base timestamps and wrapping
     // keys match, simply reset 'this' with 'encoder'
     //
-    
+
     if (0 == this.size() && this.baseTimestamp == encoder.baseTimestamp && Arrays.equals(this.wrappingKey, encoder.wrappingKey)) {
       this.reset(encoder);
       return;
     }
-    
+
     //
     // If the initialization parameters of 'encoder' differ from the last values of 'this'
     // or if the base timestamp of wrapping keys differ, use the safe path and copy values individually
     //
-    
-    if (this.baseTimestamp != encoder.baseTimestamp
-        || !Arrays.equals(this.wrappingKey, encoder.wrappingKey)
-        || this.lastTimestamp != encoder.initialTimestamp
-        || this.lastGeoXPPoint != encoder.initialGeoXPPoint
-        || this.lastElevation != encoder.initialElevation
-        || this.lastLongValue != encoder.initialLongValue
-        || this.lastDoubleValue != encoder.initialDoubleValue
-        || this.lastBDValue != encoder.initialBDValue
-        || this.lastStringValue != encoder.initialStringValue) {
+
+    if (this.baseTimestamp != encoder.baseTimestamp || !Arrays.equals(this.wrappingKey, encoder.wrappingKey)) {
       GTSDecoder decoder = encoder.getDecoder(true);
 
       while (decoder.next()) {
         this.addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue());
-      }      
+      }
     } else {
       //
-      // Same basetimestamp, wrapping key and matching 'last' and 'initial' values, take the fast path!
+      // Same basetimestamp and wrapping key, take the fast path!
       //
-      
+
       // Copy the data
       this.stream.write(encoder.getBytes());
-      
+
       // Copy the last values
       this.lastTimestamp = encoder.lastTimestamp;
       this.lastElevation = encoder.lastElevation;
@@ -1129,10 +1147,23 @@ public class GTSEncoder implements Cloneable {
       this.lastBDValue = encoder.lastBDValue;
       this.lastDoubleValue = encoder.lastDoubleValue;
       this.lastStringValue = encoder.lastStringValue;
+
+      // Disable delta encoding, this allows us to have a wider use of the fast path
+      safeDelta();
+
+      // Copy the validity states of the merged Encoder to loosen the delta encoding restrictions
+      this.validLastElevation = encoder.validLastElevation;
+      this.validLastGeoXPPoint = encoder.validLastGeoXPPoint;
+
+      this.validLastBDValue = encoder.validLastBDValue;
+      this.validLastDoubleValue = encoder.validLastDoubleValue;
+      this.validLastLongValue = encoder.validLastLongValue;
+      this.validLastStringValue = encoder.validLastStringValue;
+
       this.count += encoder.getCount();
     }
   }
-  
+
   public long getBaseTimestamp() {
     return baseTimestamp;
   }
@@ -1152,7 +1183,7 @@ public class GTSEncoder implements Cloneable {
   public void setLabelsId(long labelsId) {
     this.getMetadata().setLabelsId(labelsId);
   }
-  
+
   public String getName() {
     return this.getMetadata().getName();
   }
@@ -1185,52 +1216,54 @@ public class GTSEncoder implements Cloneable {
   public void safeSetMetadata(Metadata metadata) {
     this.metadata = metadata;
   }
-  
+
   public Metadata getMetadata() {
     if (null == this.metadata) {
       this.metadata = new Metadata();
     }
-    
+
     if (null == this.metadata.getLabels()) {
       this.metadata.setLabels(new HashMap<String,String>());
     }
-    
+
     if (null == this.metadata.getAttributes()) {
       this.metadata.setAttributes(new HashMap<String,String>());
     }
-    
+
     return this.metadata;
   }
-  
+
   /**
    * Return the untouched Metadata associated with this encoder
    */
   public Metadata getRawMetadata() {
     return this.metadata;
   }
-  
+
   public long getLastTimestamp() {
     return this.lastTimestamp;
   }
-  
+
   /**
-   * Disable delta encoding until the encoder has encountered a new
-   * ts/location/elevation and longValue.
+   * Disable delta/identical encoding until the encoder has encountered a new
+   * ts/lat/lon/elev and value from each type.
    * This is used when creating an encoder from the remaining of a decoder,
    * in this case we don't know the 'last' value and thus cannot delta encode the new value
    */
   public void safeDelta() {
     this.noDeltaMetaTimestamp = true;
-    this.noDeltaMetaLocation = true;
-    this.noDeltaMetaElevation = true;
-    
-    this.noDeltaValue = true;
+    this.validLastElevation = false;
+    this.validLastGeoXPPoint = false;
+    this.validLastLongValue = false;
+    this.validLastDoubleValue = false;
+    this.validLastBDValue = false;
+    this.validLastStringValue = false;
   }
-  
+
   public synchronized void setCount(long count) {
     this.count = count;
   }
-  
+
   /**
    * Empty the output stream and disable delta encoding
    */
@@ -1240,20 +1273,17 @@ public class GTSEncoder implements Cloneable {
     this.safeDelta();
     this.readonly = false;
   }
-  
+
   /**
    * Transform the current encoder into a storable block.
-   * 
-   * @param compress
-   * @return
    */
   public byte[] toBlock(boolean compress) throws IOException {
-    ByteArrayOutputStream baos = new ByteArrayOutputStream(); 
-    
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
     //
     // Reserve bytes for size + compress flag + base timestamp
     //
- 
+
     baos.write(0);
     baos.write(0);
     baos.write(0);
@@ -1264,44 +1294,44 @@ public class GTSEncoder implements Cloneable {
     if (payload.length < 128) {
       compress = false;
     }
-    
+
     baos.write(compress ? 1 : 0);
-    
+
     //
     // Write header indicating whether content is compressed or not
     //
 
     baos.write(Varint.encodeSignedLong(this.baseTimestamp));
-    
+
     OutputStream out = baos;
 
     if (compress) {
       out = new GZIPOutputStream(out);
     }
-    
+
     out.write(payload, 0, payload.length);
-    
+
     out.flush();
     out.close();
-   
+
     byte[] data = baos.toByteArray();
 
     //
     // Update length
     //
-    
+
     int len = data.length;
-    
+
     data[0] = (byte) ((len >>> 24) & 0xff);
     data[1] = (byte) ((len >>> 16) & 0xff);
     data[2] = (byte) ((len >>> 8) & 0xff);
     data[3] = (byte) (len & 0xff);
-    
+
     return data;
   }
-  
+
   public void writeTo(OutputStream out) throws IOException {
-    this.stream.writeTo(out);    
+    this.stream.writeTo(out);
   }
 
   public GTSEncoder cloneEmpty() {
@@ -1311,7 +1341,7 @@ public class GTSEncoder implements Cloneable {
     }
 
     encoder.setMetadata(this.getMetadata());
-    
+
     return encoder;
   }
 
@@ -1322,8 +1352,10 @@ public class GTSEncoder implements Cloneable {
     // an unsafe decoder. As we clone this encoder, no unsafe decoder references this clone.
 
     clone.lastTimestamp = this.lastTimestamp;
+
     clone.lastGeoXPPoint = this.lastGeoXPPoint;
     clone.lastElevation = this.lastElevation;
+
     clone.lastLongValue = this.lastLongValue;
     // BigDecimals are immutable, so this is OK
     clone.lastBDValue = this.lastBDValue;
@@ -1353,10 +1385,14 @@ public class GTSEncoder implements Cloneable {
     clone.count = this.count;
 
     clone.noDeltaMetaTimestamp = this.noDeltaMetaTimestamp;
-    clone.noDeltaMetaLocation = this.noDeltaMetaLocation;
-    clone.noDeltaMetaElevation = this.noDeltaMetaElevation;
 
-    clone.noDeltaValue = this.noDeltaValue;
+    clone.validLastGeoXPPoint = this.validLastGeoXPPoint;
+    clone.validLastElevation = this.validLastElevation;
+
+    clone.validLastLongValue = this.validLastLongValue;
+    clone.validLastDoubleValue = this.validLastDoubleValue;
+    clone.validLastBDValue = this.validLastBDValue;
+    clone.validLastStringValue = this.validLastStringValue;
 
     return clone;
   }

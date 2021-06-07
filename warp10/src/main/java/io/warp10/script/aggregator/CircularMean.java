@@ -33,7 +33,7 @@ import io.warp10.script.WarpScriptStack;
 /**
  * Compute the mean of circular quantities
  * 
- * @see https://en.wikipedia.org/wiki/Mean_of_circular_quantities
+ * @see <a href="https://en.wikipedia.org/wiki/Mean_of_circular_quantities">https://en.wikipedia.org/wiki/Mean_of_circular_quantities</a>
  */
 public class CircularMean extends NamedWarpScriptFunction implements WarpScriptMapperFunction, WarpScriptReducerFunction, WarpScriptBucketizerFunction {
   

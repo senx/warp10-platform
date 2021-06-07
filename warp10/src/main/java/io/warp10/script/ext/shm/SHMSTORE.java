@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -41,10 +41,10 @@ public class SHMSTORE extends NamedWarpScriptFunction implements WarpScriptStack
     Object top = stack.pop();
     
     if (!(top instanceof String)) {
-      throw new WarpScriptException(getName() + " expects a symbol name on top of the stack.");
+      throw new WarpScriptException(getName() + " expects a symbol name.");
     }
     
-    String symbol = String.valueOf(top);
+    String symbol = (String) top;
     
     top = stack.pop();
     

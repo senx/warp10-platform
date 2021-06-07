@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -14,37 +14,37 @@
 //   limitations under the License.
 //
 
-package io.warp10.script.binary;
+package io.warp10.script.functions;
 
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStack.Macro;
+import io.warp10.script.WarpScriptStackFunction;
 
-/**
- * Raise the first operand to the power of the second
- */
-public class POW extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class MDETACH extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  public POW(String name) {
+  public MDETACH(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    Object op2 = stack.pop();
-    Object op1 = stack.pop();
-    
-    if (op2 instanceof Number && op1 instanceof Number) {
-      if (op1 instanceof Double || op2 instanceof Double) {
-        stack.push(Math.pow(((Number) op1).doubleValue(), ((Number) op2).doubleValue()));
-      } else {
-        stack.push((long) Math.pow(((Number) op1).longValue(), ((Number) op2).longValue()));        
-      }
-    } else {
-      throw new WarpScriptException(getName() + " can only operate on numeric values.");
+    Object top = stack.pop();
+
+    if (!(top instanceof Macro)) {
+      throw new WarpScriptException(getName() + " operates on a macro.");
     }
-    
+
+    Macro macro = (Macro) top;
+
+    Macro sigmacro = MSIG.getSignature(macro);
+
+    macro.setSize(macro.size() - sigmacro.size());
+
+    stack.push(macro);
+    stack.push(sigmacro);
+
     return stack;
   }
 }

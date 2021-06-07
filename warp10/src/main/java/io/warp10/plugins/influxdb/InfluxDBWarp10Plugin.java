@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -56,7 +56,9 @@ public class InfluxDBWarp10Plugin extends AbstractWarp10Plugin implements Runnab
   
   @Override
   public void run() {
-    Server server = new Server(new QueuedThreadPool(maxThreads, 8, idleTimeout, queue));
+    QueuedThreadPool queuedThreadPool = new QueuedThreadPool(maxThreads, 8, idleTimeout, queue);
+    queuedThreadPool.setName("Warp InfluxDB plugin Jetty Thread");
+    Server server = new Server(queuedThreadPool);
     ServerConnector connector = new ServerConnector(server, acceptors, selectors);
     connector.setIdleTimeout(idleTimeout);
     connector.setPort(port);

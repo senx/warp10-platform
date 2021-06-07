@@ -30,10 +30,10 @@ import com.geoxp.GeoXPLib;
 
 /**
  * Compute the true course between points on a great circle.
- *
- * @see http://williams.best.vwh.net/avform.htm#Crs
- * 
+ * <p>
  * Returned location and elevation are those of the tick being computed.
+ *
+ * @see <a href="http://williams.best.vwh.net/avform.htm#Crs">http://williams.best.vwh.net/avform.htm#Crs</a>
  */
 public class TrueCourse extends NamedWarpScriptFunction implements WarpScriptMapperFunction, WarpScriptBucketizerFunction, WarpScriptReducerFunction {
   

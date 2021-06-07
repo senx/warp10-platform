@@ -1,5 +1,5 @@
 //
-//   Copyright 2020  SenX S.A.S.
+//   Copyright 2020-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -22,42 +22,35 @@ import io.warp10.script.StackUtils;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptFilterFunction;
 import io.warp10.script.WarpScriptStack;
-import io.warp10.script.formatted.FormattedWarpScriptFunction;
+import io.warp10.script.WarpScriptStackFunction;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 public class FilterBySize extends NamedWarpScriptFunction implements WarpScriptFilterFunction {
-  static private final String MIN = "min";
-  static private final String MAX = "max";
 
   private final int min;
   private final int max;
 
-  public static class Builder extends FormattedWarpScriptFunction {
-
-    private final Arguments args;
+  public static class Builder extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
     public Builder(String name) {
-      super(name);
-
-      args = new ArgumentsBuilder()
-        .addArgument(Long.class, MIN, "The minimum size.")
-        .addArgument(Long.class, MAX, "The maximum size.")
-        .build();
+      super((name));
     }
 
     @Override
-    protected Arguments getArguments() {
-      return args;
-    }
+    public Object apply(WarpScriptStack stack) throws WarpScriptException {
 
-    @Override
-    protected WarpScriptStack apply(Map<String, Object> formattedArgs, WarpScriptStack stack) throws WarpScriptException {
-      int min = ((Long) formattedArgs.get(MIN)).intValue();
-      int max = ((Long) formattedArgs.get(MAX)).intValue();
-      stack.push(new FilterBySize(getName(), min, max));
+      Object o2 = stack.pop();
+      Object o1 = stack.pop();
+
+      if (!(o1 instanceof Long) || !(o2 instanceof Long)) {
+        throw new WarpScriptException(getName() + " expects two LONG objects as arguments.");
+      }
+
+      stack.push(new FilterBySize(getName(), ((Long) o1).intValue(), ((Long) o2).intValue()));
+
       return stack;
     }
   }

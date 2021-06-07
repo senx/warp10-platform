@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2019  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -19,6 +19,8 @@ package io.warp10.continuum.gts;
 import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
 import io.warp10.continuum.store.thrift.data.GTSWrapper;
 import io.warp10.continuum.store.thrift.data.Metadata;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -29,6 +31,8 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 public class GTSWrapperHelper {
+
+  private static final Logger LOG = LoggerFactory.getLogger(GTSWrapperHelper.class);
 
   /**
    * Default compression ratio threshold
@@ -219,7 +223,7 @@ public class GTSWrapperHelper {
         wrapper.setMetadata(encoder.getMetadata());
       }
     } catch (IOException e) {
-      e.printStackTrace();
+      LOG.error("Error wrapping GTS.", e);
     }
 
     return wrapper;
@@ -383,11 +387,6 @@ public class GTSWrapperHelper {
   
   /**
    * Method used to rewrap a GTSWrapper, typically to change the compression settings.
-   * 
-   * @param wrapper
-   * @param compress
-   * @param compratio
-   * @return
    */
   public static GTSWrapper rewrap(GTSWrapper wrapper, boolean compress, double compratio) {
     byte[] unwrapped = unwrapEncoded(wrapper);

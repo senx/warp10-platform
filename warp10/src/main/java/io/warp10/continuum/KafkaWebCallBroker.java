@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -418,8 +418,8 @@ public class KafkaWebCallBroker extends Thread {
           }          
         }        
       } catch (Throwable t) {
-        // FIXME(hbs): log something/update Sensision metrics
-        LOG.error("",t);
+        LOG.warn("WebCall Broker failed.", t);
+        // FIXME(hbs): update Sensision metrics
       } finally {
         // Set abort to true in case we exit the 'run' method
         broker.abort.set(true);

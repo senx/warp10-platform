@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -57,8 +57,12 @@ public class GEOPACK extends NamedWarpScriptFunction implements WarpScriptStackF
     }
     
     GeoXPShape shape = (GeoXPShape) o;
-    
-    stack.push(pack(shape));
+
+    try {
+      stack.push(pack(shape));
+    } catch (WarpScriptException wse) {
+      throw new WarpScriptException(getName() + " could not pack the shape.", wse);
+    }
     
     return stack;
   }

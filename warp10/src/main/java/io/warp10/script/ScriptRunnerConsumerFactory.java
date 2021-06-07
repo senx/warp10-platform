@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -35,6 +35,8 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.protocol.TCompactProtocol;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Charsets;
 
@@ -49,6 +51,8 @@ import io.warp10.crypto.CryptoUtils;
 import io.warp10.sensision.Sensision;
 
 public class ScriptRunnerConsumerFactory implements ConsumerFactory {
+
+  private static final Logger LOG = LoggerFactory.getLogger(ScriptRunnerConsumerFactory.class);
   
   private final ScriptRunner runner;
   
@@ -304,7 +308,7 @@ public class ScriptRunnerConsumerFactory implements ConsumerFactory {
             }
           }        
         } catch (Throwable t) {
-          t.printStackTrace(System.err);
+          LOG.error("Error running the script.", t);
         } finally {
           // Set abort to true in case we exit the 'run' method
           pool.getAbort().set(true);

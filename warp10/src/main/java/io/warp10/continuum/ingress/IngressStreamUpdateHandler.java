@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -274,7 +274,7 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
                 }
               } catch (ParseException pe) {
                 Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STREAM_UPDATE_PARSEERRORS, sensisionLabels, 1);
-                throw new IOException("Parse error at '" + line + "'", pe);
+                throw new IOException("Parse error at index " + pe.getErrorOffset() + " in '" + line + "'", pe);
               }
 
               //
@@ -429,7 +429,7 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
           String msg = "ERROR " + ThrowableUtils.getErrorMessage(t);
           session.getRemote().sendString(msg);
         } else {
-          throw t;
+          session.close(HttpServletResponse.SC_BAD_REQUEST, ThrowableUtils.getErrorMessage(t));
         }
       }      
     }

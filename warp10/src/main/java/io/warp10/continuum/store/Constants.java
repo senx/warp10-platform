@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -25,8 +25,13 @@ import java.util.Set;
 import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class Constants {
-  
+
+  private static final Logger LOG = LoggerFactory.getLogger(Constants.class);
+
   //
   //  A T T E N T I O N
   //  
@@ -58,8 +63,8 @@ public class Constants {
   
   /**
    * Banner, based on Figlet
-   * @see http://patorjk.com/software/taag/#p=display&f=Speed&t=Warp%2010
-   */  
+   * @see <a href="http://patorjk.com/software/taag/#p=display&f=Speed&t=Warp%2010">http://patorjk.com/software/taag/#p=display&f=Speed&t=Warp%2010</a>
+   */
   public static final String WARP10_BANNER = "  ___       __                           ____________ \n" + 
       "  __ |     / /_____ _______________      __<  /_  __ \\\n" + 
       "  __ | /| / /_  __ `/_  ___/__  __ \\     __  /_  / / /\n" + 
@@ -379,11 +384,35 @@ public class Constants {
   //
   
   /**
-   * Attribute used to specify a WRITE token cannot be used for delete
+   * Attribute used to specify that a WRITE token cannot be used for delete.
    */
   public static final String TOKEN_ATTR_NODELETE = ".nodelete";
+
+  /**
+   * Attribute used to specify that a WRITE token cannot be used for updating.
+   */
   public static final String TOKEN_ATTR_NOUPDATE = ".noupdate";
+
+  /**
+   * Attribute used to specify that a WRITE token cannot be used for updating metadata.
+   */
   public static final String TOKEN_ATTR_NOMETA = ".nometa";
+
+  /**
+   * Attribute used to specify that a READ token cannot be used for metadata queries.
+   * A READ token that cannot be used for metadata queries cannot be use either to query for data.
+   */
+  public static final String TOKEN_ATTR_NOFIND = ".nofind";
+
+  /**
+   * Attribute used to specify that a READ token cannot be used to query for data.
+   */
+  public static final String TOKEN_ATTR_NOFETCH = ".nofetch";
+
+  /**
+   * Attribute used to specify that a READ token cannot be used to AUTHENTICATE.
+   */
+  public static final String TOKEN_ATTR_NOAUTH = ".noauth";
   
   /**
    * Attribute to specify the maximum value size
@@ -482,7 +511,7 @@ public class Constants {
     MAX_ENCODER_SIZE = Integer.parseInt(WarpConfig.getProperty(Configuration.MAX_ENCODER_SIZE, Integer.toString(DEFAULT_MAX_ENCODER_SIZE)));
     
     if (null == System.getProperty(Configuration.WARP10_QUIET)) {
-      System.out.println("########[ Initialized with " + TIME_UNITS_PER_MS + " time units per millisecond ]########");
+      LOG.info("########[ Initialized with " + TIME_UNITS_PER_MS + " time units per millisecond ]########");
     }
     
     //

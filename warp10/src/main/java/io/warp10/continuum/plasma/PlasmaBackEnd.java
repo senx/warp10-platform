@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -60,6 +60,8 @@ import com.netflix.curator.framework.CuratorFrameworkFactory;
 import com.netflix.curator.framework.recipes.cache.NodeCache;
 import com.netflix.curator.framework.recipes.cache.NodeCacheListener;
 import com.netflix.curator.retry.RetryNTimes;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.warp10.continuum.KafkaOffsetCounters;
 import io.warp10.continuum.sensision.SensisionConstants;
@@ -75,7 +77,7 @@ import jline.internal.Log;
  */
 public class PlasmaBackEnd extends Thread implements NodeCacheListener {
 
-  private final static Logger LOG = LoggerFactory.getLogger(PlasmaBackEnd.class);
+  private static final Logger LOG = LoggerFactory.getLogger(PlasmaBackEnd.class);
   
   private final KeyStore keystore;
 
@@ -172,7 +174,7 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
     
     properties.putAll(io.warp10.continuum.Configuration.extractPrefixed(props, props.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_OUT_PRODUCER_CONF_PREFIX)));
 
-    // @see http://kafka.apache.org/documentation.html#producerconfigs
+    // @see <a href="http://kafka.apache.org/documentation.html#producerconfigs">http://kafka.apache.org/documentation.html#producerconfigs</a>
     dataProps.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, props.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_OUT_PRODUCER_BOOTSTRAP_SERVERS));
     if (null != props.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_OUT_PRODUCER_CLIENTID)) {
       dataProps.setProperty(ProducerConfig.CLIENT_ID_CONFIG, props.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_OUT_PRODUCER_CLIENTID));
@@ -311,7 +313,7 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
             }
             abort.set(false);
           } catch (Throwable t) {
-            LOG.error("",t);
+            LOG.error("Error while spawning KafkaConsumers.", t);
           } finally {
             LockSupport.parkNanos(1000000L);
           }
@@ -653,7 +655,7 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
           }          
         }        
       } catch (Throwable t) {
-        Log.error("",t);
+        LOG.error("Error processing subscription messages from Kafka.", t);
       } finally {
         // Set abort to true in case we exit the 'run' method
         backend.abort.set(true);

@@ -38,6 +38,8 @@ import io.warp10.sensision.Sensision;
 import io.warp10.warp.sdk.AbstractWarp10Plugin;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -94,15 +96,25 @@ public class WarpDist {
   }
  
   public static void setProperties(String[] files) throws IOException {
-    WarpConfig.setProperties(files);
-    
-    properties = WarpConfig.getProperties();    
+    try {
+      WarpConfig.setProperties(false, files);
+
+      properties = WarpConfig.getProperties();
+    } catch (Throwable t) {
+      System.err.println(ThrowableUtils.getErrorMessage(t));
+      System.exit(-1);
+    }
   }
   
   public static void setProperties(String file) throws IOException {
-    WarpConfig.setProperties(file);
-    
-    properties = WarpConfig.getProperties();
+    try {
+      WarpConfig.setProperties(false, file);
+
+      properties = WarpConfig.getProperties();
+    } catch (Throwable t) {
+      System.err.println(ThrowableUtils.getErrorMessage(t));
+      System.exit(-1);
+    }
   }
   
   public static void setKeyStore(KeyStore ks) {
@@ -120,6 +132,10 @@ public class WarpDist {
     System.out.println();
     
     System.setProperty("java.awt.headless", "true");
+
+    if (StandardCharsets.UTF_8 != Charset.defaultCharset()) {
+      throw new RuntimeException("Default encoding MUST be UTF-8 but it is " + Charset.defaultCharset() + ". Aborting.");
+    }
     
     if (args.length > 0) {
       setProperties(args);

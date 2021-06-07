@@ -26,8 +26,8 @@ import sun.misc.Unsafe;
 /**
  * The following class is inspired by:
  * 
- * @see https://raw.githubusercontent.com/nitsanw/javanetperf/psylobsaw/src/psy/lob/saw/UnsafeString.java
- * @see http://psy-lob-saw.blogspot.fr/2012/12/encode-utf-8-string-to-bytebuffer-faster.html
+ * @see <a href="https://raw.githubusercontent.com/nitsanw/javanetperf/psylobsaw/src/psy/lob/saw/UnsafeString.java">https://raw.githubusercontent.com/nitsanw/javanetperf/psylobsaw/src/psy/lob/saw/UnsafeString.java</a>
+ * @see <a href="http://psy-lob-saw.blogspot.fr/2012/12/encode-utf-8-string-to-bytebuffer-faster.html">http://psy-lob-saw.blogspot.fr/2012/12/encode-utf-8-string-to-bytebuffer-faster.html</a>
  * 
  */
 
@@ -63,8 +63,6 @@ public class UnsafeString {
         countOffset = -1L;
       }
       
-      declaredField = null;
-
       try {
         declaredField = String.class.getDeclaredField("offset");
       } catch (NoSuchFieldException e) {
@@ -78,8 +76,6 @@ public class UnsafeString {
         offsetOffset = -1L;
       }
       
-      declaredField = null;
-
       try {
         declaredField = String.class.getDeclaredField("hash");
       } catch (NoSuchFieldException e) {
@@ -403,8 +399,6 @@ public class UnsafeString {
    * Checks if the given string could be a decimal double, i.e. only contains '.', '-', '+', '0'-'9'.
    * It does not check if the string is actually a valid double or not, just what kind of double it
    * would be.
-   * @param s
-   * @return
    */
   public static boolean mayBeDecimalDouble(String s) {
     char[] c = getChars(s);
@@ -437,9 +431,6 @@ public class UnsafeString {
   /**
    * Replace whitespaces in Strings enclosed in single quotes
    * with '%20'
-   * 
-   * @param str
-   * @return
    */
   public static String sanitizeStrings(String str) {
     char[] c = getChars(str);

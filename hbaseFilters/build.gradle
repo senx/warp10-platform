@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -14,56 +14,36 @@
 //   limitations under the License.
 //
 
-archivesBaseName = 'hbaseFilters'
-group = 'io.warp10'
-version = getVersionName(warp10Version[archivesBaseName])
-
-jar {
-    zip64 = true
-
-    manifest {
-        attributes(
-                "Implementation-Title": "HBase Filters",
-                "Implementation-Vendor": "Warp 10",
-                "Implementation-Version": version)
+sourceSets {
+  main {
+    java {
+      srcDir new File(project(':warp10').projectDir, "src/main/java/")
+      include "org/apache/hadoop/hbase/filter/*.java"
     }
-
-    from project(':warp10').sourceSets.main.output
-    include 'org/apache/hadoop/hbase/filter/**'
+  }
 }
 
+dependencies {
+  compileOnly project(':warp10')
+}
+
+//
+// Set jars title
+//
+tasks.withType(Jar) {
+    manifest.attributes.put("Implementation-Title", "HBase Filters")
+}
+
+//
+// Customize POM name and description.
+//
 publishing {
-    publications {
-        hbaseFilters(MavenPublication) {
-            artifact file("${buildDir}/libs/hbaseFilters-${getVersionName(warp10Version['warp10'])}.jar")
-            groupId 'io.warp10'
-            artifactId archivesBaseName
-            version version
-        }
+  publications {
+    maven(MavenPublication) {
+      pom {
+        name = "HBaseFilter"
+        description = "Warp 10 HBase custom filter"
+      }
     }
+  }
 }
-
-bintray {
-    dryRun = false
-    user = project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER')
-    key = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
-    publications = ['hbaseFilters']
-    publish = true
-    pkg {
-        repo = 'generic'
-        name = 'hbaseFilters'
-        userOrg = 'senx'
-        licenses = ['Apache-2.0']
-        vcsUrl = 'https://github.com/senx/warp10-platform.git'
-        version {
-            name = getVersionName(warp10Version['hbaseFilters'])
-            released = new Date()
-            vcsTag = getVersionName(warp10Version['hbaseFilters'])
-        }
-    }
-}
-
-//
-// Tasks dependencies
-//
-bintrayUpload.dependsOn jar
