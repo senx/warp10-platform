@@ -22,8 +22,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -71,6 +73,8 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
   public static final String CONFIG_DATALOG_MANAGER_SYNCALL = "datalog.manager.syncall";
   public static final String CONFIG_DATALOG_MANAGER_COMPRESS = "datalog.manager.compress";
   public static final String CONFIG_DATALOG_MANAGER_ID = "datalog.manager.id";
+  public static final String CONFIG_DATALOG_MANAGER_NOFORWARD = "datalog.manager.noforward";
+  public static final String CONFIG_DATALOG_MANAGER_FORWARD = "datalog.manager.forward";
 
   public static final String CONFIG_DATALOG_FEEDER_ID = "datalog.feeder.id";
   public static final String CONFIG_DATALOG_FEEDER_DIR = "datalog.feeder.dir";
@@ -134,6 +138,16 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
    */
   private List<String> activeFiles = new ArrayList<String>();
 
+  /**
+   * Set of ids that will be forwarded in 'process'
+   */
+  private final Set<String> forward;
+
+  /**
+   * Set of ids that will NOT be forwarded in 'process'
+   */
+  private final Set<String> noforward;
+
   public FileBasedDatalogManager() {
 
     conf = new Configuration();
@@ -181,6 +195,34 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
 
     if (null == id) {
       throw new RuntimeException("Missing Datalog id '" + CONFIG_DATALOG_MANAGER_ID + "'.");
+    }
+
+    if (null != WarpConfig.getProperty(CONFIG_DATALOG_MANAGER_FORWARD)) {
+      String[] ids =  WarpConfig.getProperty(CONFIG_DATALOG_MANAGER_FORWARD).split(",");
+      forward = new LinkedHashSet<String>();
+      for (String id: ids) {
+        id = id.trim();
+        if ("".equals(id)) {
+          continue;
+        }
+        forward.add(id);
+      }
+    } else {
+      forward = null;
+    }
+
+    if (null != WarpConfig.getProperty(CONFIG_DATALOG_MANAGER_NOFORWARD)) {
+      String[] ids =  WarpConfig.getProperty(CONFIG_DATALOG_MANAGER_NOFORWARD).split(",");
+      noforward = new LinkedHashSet<String>();
+      for (String id: ids) {
+        id = id.trim();
+        if ("".equals(id)) {
+          continue;
+        }
+        noforward.add(id);
+      }
+    } else {
+      noforward = null;
     }
 
     //
@@ -301,6 +343,16 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
       case DELETE:
         this.storeClient.delete(null, record.getMetadata(), record.getStart(), record.getStop());
         break;
+    }
+
+    // If the record id is in 'noforward', don't append the record to the log file
+    if (null != noforward && noforward.contains(record.getId())) {
+      return;
+    }
+
+    // If a 'forward' list was defined and the id is not in it, don't append the record to the log file
+    if (null != forward && !forward.contains(record.getId())) {
+      return;
     }
 
     append(record);
