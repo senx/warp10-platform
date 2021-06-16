@@ -63,11 +63,6 @@ public class POLYFIT extends NamedWarpScriptFunction implements WarpScriptStackF
 
     GeoTimeSerie gts = (GeoTimeSerie) top;
 
-    //
-    // We only support bucketized GTS so we can index datapoints with
-    // the bucket id
-    //
-
     int n = GTSHelper.nvalues(gts);
 
     if (0 == n) {
