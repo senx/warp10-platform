@@ -24,6 +24,7 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 
 import org.apache.commons.math3.fitting.PolynomialCurveFitter;
@@ -112,7 +113,7 @@ public class POLYFIT extends NamedWarpScriptFunction implements WarpScriptStackF
 
     double[] coeffs = fitter.fit(points.toList());
 
-    stack.push(Arrays.asList(coeffs));
+    stack.push(new ArrayList<Object>(Arrays.asList(coeffs)));
 
     return stack;
   }
