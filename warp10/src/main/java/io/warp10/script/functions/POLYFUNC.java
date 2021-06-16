@@ -146,7 +146,7 @@ public class POLYFUNC extends NamedWarpScriptFunction implements WarpScriptStack
     Object[] values = (Object[]) args[6];
 
     if (0 == values.length) {
-      return new Object[] { 0L, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, null };
+      return new Object[] { tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, this.func.value(tick) };
     }
 
     if (1 != values.length) {
