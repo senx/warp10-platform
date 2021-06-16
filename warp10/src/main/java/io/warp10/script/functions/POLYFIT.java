@@ -42,6 +42,13 @@ public class POLYFIT extends NamedWarpScriptFunction implements WarpScriptStackF
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
 
+    boolean useBucketId = false;
+
+    if (top instanceof Boolean) {
+      useBucketId = Boolean.TRUE.equals(top);
+      top = stack.pop();
+    }
+
     if (!(top instanceof Long)) {
       throw new WarpScriptException(getName() + " expects a polynomial degree on top if the stack.");
     }
@@ -63,8 +70,12 @@ public class POLYFIT extends NamedWarpScriptFunction implements WarpScriptStackF
 
     int n = GTSHelper.nvalues(gts);
 
-    if (!GTSHelper.isBucketized(gts) || 0 == n) {
-      throw new WarpScriptException(getName() + " operates on a non empty bucketized numerical Geo Time Series.");
+    if (0 == n) {
+      throw new WarpScriptException(getName() + " operates on a non empty Geo Time Series.");
+    }
+
+    if (useBucketId && !GTSHelper.isBucketized(gts)) {
+      throw new WarpScriptException(getName() + " use of bucket id is only possible for bucketized Geo Time Series.");
     }
 
     if (TYPE.LONG != gts.getType() && TYPE.DOUBLE != gts.getType()) {
@@ -85,13 +96,17 @@ public class POLYFIT extends NamedWarpScriptFunction implements WarpScriptStackF
 
       long tick = GTSHelper.tickAtIndex(gts, i);
 
-      //
-      // Compute bucket id
-      //
+      if (useBucketId) {
+        //
+        // Compute bucket id
+        //
 
-      int bucket = (int) ((tick - firsttick) / bucketspan);
+        int bucket = (int) ((tick - firsttick) / bucketspan);
 
-      points.add(bucket, ((Number) value).doubleValue());
+        points.add(bucket, ((Number) value).doubleValue());
+      } else {
+        points.add(tick, ((Number) value).doubleValue());
+      }
     }
 
     //
