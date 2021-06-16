@@ -45,8 +45,6 @@ public class POLYFUNC extends NamedWarpScriptFunction implements WarpScriptStack
 
   private final PolynomialFunction func;
 
-  private final boolean useBucketId;
-
   public static class Builder extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
     public Builder(String name) {
@@ -56,13 +54,6 @@ public class POLYFUNC extends NamedWarpScriptFunction implements WarpScriptStack
     @Override
     public Object apply(WarpScriptStack stack) throws WarpScriptException {
       Object top = stack.pop();
-
-      boolean useBucketId = false;
-
-      if (top instanceof Boolean) {
-        useBucketId = Boolean.TRUE.equals(top);
-        top = stack.pop();
-      }
 
       if (!(top instanceof List)) {
         throw new WarpScriptException(getName() + " expects a list of polynomial coefficients on top of the stack.");
@@ -81,21 +72,27 @@ public class POLYFUNC extends NamedWarpScriptFunction implements WarpScriptStack
         coeffs[i++] = ((Number) o).doubleValue();
       }
 
-      stack.push(new POLYFUNC(getName(), coeffs, useBucketId));
+      stack.push(new POLYFUNC(getName(), coeffs));
 
       return stack;
     }
   }
 
-  public POLYFUNC(String name, double[] coeffs, boolean useBucketId) {
+  public POLYFUNC(String name, double[] coeffs) {
     super(name);
     this.func = new PolynomialFunction(coeffs);
-    this.useBucketId = useBucketId;
   }
 
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
+
+    boolean useBucketId = false;
+
+    if (top instanceof Boolean) {
+      useBucketId = Boolean.TRUE.equals(top);
+      top = stack.pop();
+    }
 
     if (useBucketId && (!(top instanceof GeoTimeSerie) || !GTSHelper.isBucketized((GeoTimeSerie) top))) {
       throw new WarpScriptException(getName() + " can only be applied to bucketized numerical Geo Time Series.");
@@ -184,10 +181,6 @@ public class POLYFUNC extends NamedWarpScriptFunction implements WarpScriptStack
         l.add(d);
       }
       SNAPSHOT.addElement(sb, l);
-      if (this.useBucketId) {
-        sb.append(" ");
-        SNAPSHOT.addElement(sb, this.useBucketId);
-      }
     } catch (WarpScriptException wse) {
       throw new RuntimeException("Error building coefficient snapshot", wse);
     }
