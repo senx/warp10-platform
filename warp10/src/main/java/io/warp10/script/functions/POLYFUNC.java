@@ -28,6 +28,7 @@ import io.warp10.script.WarpScriptMapperFunction;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -44,6 +45,8 @@ public class POLYFUNC extends NamedWarpScriptFunction implements WarpScriptStack
 
   private final PolynomialFunction func;
 
+  private final boolean useBucketId;
+
   public static class Builder extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
     public Builder(String name) {
@@ -53,6 +56,13 @@ public class POLYFUNC extends NamedWarpScriptFunction implements WarpScriptStack
     @Override
     public Object apply(WarpScriptStack stack) throws WarpScriptException {
       Object top = stack.pop();
+
+      boolean useBucketId = false;
+
+      if (top instanceof Boolean) {
+        useBucketId = Boolean.TRUE.equals(top);
+        top = stack.pop();
+      }
 
       if (!(top instanceof List)) {
         throw new WarpScriptException(getName() + " expects a list of polynomial coefficients on top of the stack.");
@@ -71,20 +81,25 @@ public class POLYFUNC extends NamedWarpScriptFunction implements WarpScriptStack
         coeffs[i++] = ((Number) o).doubleValue();
       }
 
-      stack.push(new POLYFUNC(getName(), coeffs));
+      stack.push(new POLYFUNC(getName(), coeffs, useBucketId));
 
       return stack;
     }
   }
 
-  public POLYFUNC(String name, double[] coeffs) {
+  public POLYFUNC(String name, double[] coeffs, boolean useBucketId) {
     super(name);
     this.func = new PolynomialFunction(coeffs);
+    this.useBucketId = useBucketId;
   }
 
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
+
+    if (useBucketId && (!(top instanceof GeoTimeSerie) || !GTSHelper.isBucketized((GeoTimeSerie) top))) {
+      throw new WarpScriptException(getName() + " can only be applied to bucketized numerical Geo Time Series.");
+    }
 
     if (top instanceof List) {
       List<Object> list = new ArrayList<Object>(((List) top).size());
@@ -103,7 +118,7 @@ public class POLYFUNC extends NamedWarpScriptFunction implements WarpScriptStack
         long lastbucket = GTSHelper.getLastBucket(gts);
         long bucketspan = GTSHelper.getBucketSpan(gts);
         for (int i = 0; i < n; i++) {
-          long ts = lastbucket - i * bucketspan;
+          long ts = this.useBucketId ? n - 1 - i : lastbucket - i * bucketspan;
           double value = this.func.value(ts);
           GTSHelper.setValue(out, ts, GTSHelper.locationAtTick(gts, ts), GTSHelper.elevationAtTick(gts, ts), value, false);
         }
@@ -123,7 +138,11 @@ public class POLYFUNC extends NamedWarpScriptFunction implements WarpScriptStack
       while(decoder.next()) {
         long ts = decoder.getTimestamp();
         double value = this.func.value(ts);
-        encoder.addValue(ts, decoder.getLocation(), decoder.getElevation(), value);
+        try {
+          encoder.addValue(ts, decoder.getLocation(), decoder.getElevation(), value);
+        } catch (IOException ioe) {
+          throw new WarpScriptException(getName() + " error while generating ENCODER.");
+        }
       }
       stack.push(encoder);
     } else if (top instanceof Number) {
@@ -160,7 +179,15 @@ public class POLYFUNC extends NamedWarpScriptFunction implements WarpScriptStack
   public String toString() {
     StringBuilder sb = new StringBuilder();
     try {
-      SNAPSHOT.addElement(sb, Arrays.asList(this.func.getCoefficients()));
+      List<Object> l = new ArrayList<Object>(this.func.getCoefficients().length);
+      for(double d: this.func.getCoefficients()) {
+        l.add(d);
+      }
+      SNAPSHOT.addElement(sb, l);
+      if (this.useBucketId) {
+        sb.append(" ");
+        SNAPSHOT.addElement(sb, this.useBucketId);
+      }
     } catch (WarpScriptException wse) {
       throw new RuntimeException("Error building coefficient snapshot", wse);
     }
