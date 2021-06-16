@@ -92,7 +92,7 @@ public class POLYFUNC extends NamedWarpScriptFunction implements WarpScriptStack
         if (!(elt instanceof Number)) {
           throw new WarpScriptException(getName() + " can only be applied to numerical values.");
         }
-        list.add(this.func.value(((Number) elt).doubleValue());
+        list.add(this.func.value(((Number) elt).doubleValue()));
       }
       stack.push(list);
     } else if (top instanceof GeoTimeSerie) {
