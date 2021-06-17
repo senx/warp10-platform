@@ -140,8 +140,8 @@ public class POLYFUNC extends NamedWarpScriptFunction implements WarpScriptStack
       double value = this.func.value(((Number) top).doubleValue());
 
       stack.push(value);
-    } else if (!(top instanceof Number)) {
-      throw new WarpScriptException(getName() + " can only be applied to numerical values.");
+    } else {
+      throw new WarpScriptException(getName() + " can only be applied to numerical values which may appear in LISTs, GTS or ENCODERs.");
     }
 
 
