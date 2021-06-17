@@ -16,27 +16,21 @@
 
 package io.warp10.script.functions;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.commons.math3.analysis.polynomials.PolynomialFunction;
+
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.StackUtils;
 import io.warp10.script.WarpScriptException;
-import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptMapperFunction;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
-import org.apache.commons.math3.analysis.polynomials.PolynomialFunction;
-import org.apache.kafka.common.config.ConfigDef.Type;
 
 /**
  * Build a function which will compute a polynomial function
