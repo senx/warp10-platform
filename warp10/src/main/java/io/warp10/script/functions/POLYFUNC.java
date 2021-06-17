@@ -115,7 +115,7 @@ public class POLYFUNC extends NamedWarpScriptFunction implements WarpScriptStack
         long lastbucket = GTSHelper.getLastBucket(gts);
         long bucketspan = GTSHelper.getBucketSpan(gts);
         for (int i = 0; i < n; i++) {
-          long ts = this.useBucketId ? n - 1 - i : lastbucket - i * bucketspan;
+          long ts = useBucketId ? n - 1 - i : lastbucket - i * bucketspan;
           double value = this.func.value(ts);
           GTSHelper.setValue(out, ts, GTSHelper.locationAtTick(gts, ts), GTSHelper.elevationAtTick(gts, ts), value, false);
         }
