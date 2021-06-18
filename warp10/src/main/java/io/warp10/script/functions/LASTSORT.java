@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ public class LASTSORT extends NamedWarpScriptFunction implements WarpScriptStack
 
   private static final Comparator<GeoTimeSerie> LAST_COMPARATOR = new Comparator<GeoTimeSerie>() {
     
-    private final Comparator<Metadata> INNER_COMP = new MetadataTextComparator(null);
+    private final Comparator<Metadata> INNER_COMP = new MetadataTextComparator(null, false);
     
     @Override
     public int compare(GeoTimeSerie o1, GeoTimeSerie o2) {
@@ -70,7 +70,7 @@ public class LASTSORT extends NamedWarpScriptFunction implements WarpScriptStack
       Object last1 = GTSHelper.valueAtIndex(o1, 0);
       Object last2 = GTSHelper.valueAtIndex(o2, 0);
       
-      int res = 0;
+      int res;
       
       if (last1 instanceof Long && last2 instanceof Long) {
         res = ((Long) last1).compareTo((Long) last2);
@@ -139,8 +139,8 @@ public class LASTSORT extends NamedWarpScriptFunction implements WarpScriptStack
         throw new WarpScriptException(getName() + " operates on a list of Geo Time Series.");
       }
     }
-    
-    Collections.sort((List<GeoTimeSerie>) top, LAST_COMPARATOR);
+
+    ((List<GeoTimeSerie>) top).sort(LAST_COMPARATOR);
     
     return stack;
   }
