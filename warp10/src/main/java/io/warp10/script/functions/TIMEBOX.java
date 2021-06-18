@@ -34,7 +34,7 @@ import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.warp.sdk.Capabilities;
 
-public class TIMEBOX extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class TIMEBOX<F extends NamedWarpScriptFunction & WarpScriptStackFunction > extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
   /**
    * Default timeboxing is 30s
@@ -56,16 +56,20 @@ public class TIMEBOX extends NamedWarpScriptFunction implements WarpScriptStackF
    */
   private final WarpScriptStackFunction function;
 
-  public TIMEBOX(String name, WarpScriptStackFunction function) {
-    this(name, function, false);
+  public TIMEBOX(F function) {
+    this(function, false);
   }
 
-  public TIMEBOX(String name, WarpScriptStackFunction function, Boolean requireCapability) {
-    this(name, function, name + ".timebox.maxtime", requireCapability);
+  public TIMEBOX(F function, Boolean requireCapability) {
+    this(function, function.getName() + ".timebox.maxtime", requireCapability);
   }
 
-  public TIMEBOX(String name, WarpScriptStackFunction function, String maxtimeKey) {
-    this(name, function, maxtimeKey, false);
+  public TIMEBOX(F function, String maxtimeKey) {
+    this(function, maxtimeKey, false);
+  }
+
+  public TIMEBOX(F function, String maxtimeKey, Boolean requireCapability) {
+    this(function.getName(), function, maxtimeKey, requireCapability);
   }
 
   /**
@@ -90,7 +94,10 @@ public class TIMEBOX extends NamedWarpScriptFunction implements WarpScriptStackF
    * No wrapped function: TIMEBOX will expect a macro and a maxtime long on top of the stack.
    */
   public TIMEBOX(String name) {
-    this(name, null, Configuration.CONFIG_WARPSCRIPT_TIMEBOX_MAXTIME);
+    super(name);
+    this.function = null;
+    TIMEBOX_MAXTIME = Long.parseLong(WarpConfig.getProperty(Configuration.CONFIG_WARPSCRIPT_TIMEBOX_MAXTIME, Long.toString(DEFAULT_TIMEBOX_MAXTIME)));
+    SPECIAL_ALLOWANCE_CAPNAME = Configuration.CONFIG_WARPSCRIPT_TIMEBOX_MAXTIME;
   }
   
   @Override
