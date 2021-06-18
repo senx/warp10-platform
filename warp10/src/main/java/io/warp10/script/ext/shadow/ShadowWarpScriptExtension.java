@@ -21,12 +21,14 @@ import java.util.Map;
 import java.util.Properties;
 
 import io.warp10.WarpConfig;
+import io.warp10.script.MemoryWarpScriptStack;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.WarpScriptStackRegistry;
 import io.warp10.script.functions.FAIL;
 import io.warp10.script.functions.NOOP;
 import io.warp10.warp.sdk.WarpScriptExtension;
@@ -142,10 +144,11 @@ public class ShadowWarpScriptExtension extends WarpScriptExtension {
     //
     // Generate the functions shadowed by specific macros
     //
-    
+
     for (String key: properties.stringPropertyNames()) {
       if (key.startsWith(SHADOW_MACRO + ".")) {
         final String f = key.substring(SHADOW_MACRO.length() + 1);
+        System.out.println(f);
         boolean globalUnsafe = "true".equals(WarpConfig.getProperty(SHADOW_UNSAFEMACRO));
                 
         boolean unsafe = globalUnsafe;
@@ -157,8 +160,53 @@ public class ShadowWarpScriptExtension extends WarpScriptExtension {
         final boolean finalUnsafe = unsafe;
 
         final String macro = properties.getProperty(key);
-        
-        WarpScriptStackFunction function = new ShadowFunction(f) {        
+
+        Macro inlineMacro = null;
+        if (macro.length() > 4 && WarpScriptStack.MACRO_START.equals(macro.substring(0, 2)) && WarpScriptStack.MACRO_END.equals(macro.substring(macro.length() - 2))) {
+
+          //
+          // Form the inline macro
+          //
+
+          MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null);
+          stack.maxLimits();
+
+          try {
+
+            stack.execMulti(macro);
+
+            //
+            // Ensure the resulting stack is one level deep and has a macro on top
+            //
+
+            if (1 != stack.depth()) {
+              throw new WarpScriptException("Stack depth was not 1 after the code execution.");
+            }
+
+            if (!(stack.peek() instanceof Macro)) {
+              throw new WarpScriptException("No macro was found on top of the stack.");
+            }
+
+            inlineMacro = (Macro) stack.pop();
+
+          } catch (WarpScriptException wse) {
+
+            //
+            // Shadow FUNCTION with MSGFAIL
+            //
+
+            inlineMacro = new Macro();
+            inlineMacro.add("Error while parsing inline macro for shadowing function " + f);
+            inlineMacro.add(WarpScriptLib.getFunction(WarpScriptLib.MSGFAIL));
+
+          } finally {
+            WarpScriptStackRegistry.unregister(stack);
+          }
+        }
+        final Macro finalInlineMacro = inlineMacro;
+
+        WarpScriptStackFunction function = new ShadowFunction(f) {
+
           @Override
           public Object apply(WarpScriptStack stack) throws WarpScriptException {
             if (!finalUnsafe) {
@@ -168,8 +216,13 @@ public class ShadowWarpScriptExtension extends WarpScriptExtension {
               if (!finalUnsafe) {
                 stack.forget(macro);
               }
-              Macro m = stack.find(macro);
-              stack.exec(m);
+
+              if (null != finalInlineMacro) {
+                stack.exec(finalInlineMacro);
+              } else {
+                Macro m = stack.find(macro);
+                stack.exec(m);
+              }
             } finally {
               if (!finalUnsafe) {
                 stack.restore();
