@@ -47,7 +47,6 @@ public class TIMEBOX extends NamedWarpScriptFunction implements WarpScriptStackF
 
   /**
    * Wrapped function
-   * If wrapped function is null, TIMEBOX will expect a macro and a maxtime long on top of the stack.
    */
   private final WarpScriptStackFunction function;
 
@@ -60,11 +59,18 @@ public class TIMEBOX extends NamedWarpScriptFunction implements WarpScriptStackF
     this.function = function;
     TIMEBOX_MAXTIME = maxtime;
   }
-  
-  public TIMEBOX(String name) {
+
+  public TIMEBOX(String name, WarpScriptStackFunction function, String configMaxtimeKey) {
     super(name);
-    this.function = null;
-    TIMEBOX_MAXTIME = Long.parseLong(WarpConfig.getProperty(Configuration.CONFIG_WARPSCRIPT_TIMEBOX_MAXTIME, Long.toString(DEFAULT_TIMEBOX_MAXTIME)));
+    this.function = function;
+    TIMEBOX_MAXTIME = Long.parseLong(WarpConfig.getProperty(configMaxtimeKey, Long.toString(DEFAULT_TIMEBOX_MAXTIME)));
+  }
+
+  /**
+   * No wrapped function: TIMEBOX will expect a macro and a maxtime long on top of the stack.
+   */
+  public TIMEBOX(String name) {
+    this(name, null, Configuration.CONFIG_WARPSCRIPT_TIMEBOX_MAXTIME);
   }
   
   @Override
