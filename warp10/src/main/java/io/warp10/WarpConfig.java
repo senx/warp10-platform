@@ -326,10 +326,8 @@ public class WarpConfig {
       }
 
       if (tokens.length > 2) {
-        if (!line.contains(WarpScriptStack.MACRO_START) || !line.contains(WarpScriptStack.MACRO_END)) {
-          linesInError.add(lineno);
-          continue;
-        }
+        linesInError.add(lineno);
+        continue;
       }
 
       if (tokens.length < 2) {
