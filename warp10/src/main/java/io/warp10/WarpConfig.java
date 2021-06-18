@@ -311,7 +311,7 @@ public class WarpConfig {
 
       String[] tokens = line.split("=");
 
-      if (tokens[1].contains(WarpScriptStack.MACRO_START)) {
+      if (tokens[1].contains(WarpScriptStack.MACRO_START) && WarpScriptStack.MACRO_START.equals(tokens[1].trim().substring(0, 2))) {
 
         // Expect value to be a macro
         String key = tokens[0];
