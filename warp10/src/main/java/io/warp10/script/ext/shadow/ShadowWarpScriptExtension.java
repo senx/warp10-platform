@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import io.warp10.ThrowableUtils;
 import io.warp10.WarpConfig;
 import io.warp10.script.MemoryWarpScriptStack;
 import io.warp10.script.NamedWarpScriptFunction;
@@ -195,7 +196,7 @@ public class ShadowWarpScriptExtension extends WarpScriptExtension {
             //
 
             inlineMacro = new Macro();
-            inlineMacro.add("Error while parsing inline macro for shadowing function " + f);
+            inlineMacro.add("Error while parsing inline macro for shadowing function " + f + ": " + ThrowableUtils.getErrorMessage(wse, 1024));
             inlineMacro.add(WarpScriptLib.getFunction(WarpScriptLib.MSGFAIL));
 
           } finally {
