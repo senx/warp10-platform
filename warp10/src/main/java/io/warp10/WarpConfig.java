@@ -21,7 +21,9 @@ import io.warp10.continuum.Tokens;
 import io.warp10.continuum.store.Constants;
 import io.warp10.script.WarpFleetMacroRepository;
 import io.warp10.script.WarpScriptJarRepository;
+import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptMacroRepository;
+import io.warp10.script.WarpScriptStack;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -309,9 +311,25 @@ public class WarpConfig {
 
       String[] tokens = line.split("=");
 
+      if (tokens[1].contains(WarpScriptStack.MACRO_START)) {
+
+        // Expect value to be a macro
+        String key = tokens[0];
+        String macro = line.substring(key.length() + 1);
+        macro = macro.trim();
+        if (macro.length() < 5 || !WarpScriptStack.MACRO_START.equals(macro.substring(0, 2)) || !WarpScriptStack.MACRO_END.equals(macro.substring(macro.length() - 2))) {
+          linesInError.add(lineno);
+          continue;
+        }
+
+        tokens = new String[]{key, macro};
+      }
+
       if (tokens.length > 2) {
-        linesInError.add(lineno);
-        continue;
+        if (!line.contains(WarpScriptStack.MACRO_START) || !line.contains(WarpScriptStack.MACRO_END)) {
+          linesInError.add(lineno);
+          continue;
+        }
       }
 
       if (tokens.length < 2) {
@@ -322,8 +340,10 @@ public class WarpConfig {
       // Remove URL encoding if a '%' sign is present in the token
       try {
         for (int i = 0; i < tokens.length; i++) {
-          tokens[i] = WarpURLDecoder.decode(tokens[i], StandardCharsets.UTF_8);
-          tokens[i] = tokens[i].trim();
+          if (!tokens[i].contains(WarpScriptStack.MACRO_START)) {
+            tokens[i] = WarpURLDecoder.decode(tokens[i], StandardCharsets.UTF_8);
+            tokens[i] = tokens[i].trim();
+          }
         }
       } catch (IllegalArgumentException iae) {
         linesInError.add(lineno);
