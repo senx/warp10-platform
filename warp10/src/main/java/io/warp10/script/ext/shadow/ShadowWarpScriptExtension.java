@@ -209,8 +209,10 @@ public class ShadowWarpScriptExtension extends WarpScriptExtension {
 
           @Override
           public Object apply(WarpScriptStack stack) throws WarpScriptException {
+            Object stackContext = null;
             if (!finalUnsafe) {
               stack.save();
+              stackContext = stack.pop();
             }
             try {
               if (!finalUnsafe) {
@@ -225,6 +227,7 @@ public class ShadowWarpScriptExtension extends WarpScriptExtension {
               }
             } finally {
               if (!finalUnsafe) {
+                stack.push(stackContext);
                 stack.restore();
               }
             }
