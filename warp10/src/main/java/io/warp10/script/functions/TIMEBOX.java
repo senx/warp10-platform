@@ -61,7 +61,7 @@ public class TIMEBOX extends NamedWarpScriptFunction implements WarpScriptStackF
   }
 
   public TIMEBOX(String name, WarpScriptStackFunction function, Boolean requireCapability) {
-    this(name, function, name + "timebox.maxtime", requireCapability);
+    this(name, function, name + ".timebox.maxtime", requireCapability);
   }
 
   public TIMEBOX(String name, WarpScriptStackFunction function, String maxtimeKey) {
