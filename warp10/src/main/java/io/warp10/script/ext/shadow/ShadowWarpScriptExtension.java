@@ -148,7 +148,6 @@ public class ShadowWarpScriptExtension extends WarpScriptExtension {
     for (String key: properties.stringPropertyNames()) {
       if (key.startsWith(SHADOW_MACRO + ".")) {
         final String f = key.substring(SHADOW_MACRO.length() + 1);
-        System.out.println(f);
         boolean globalUnsafe = "true".equals(WarpConfig.getProperty(SHADOW_UNSAFEMACRO));
                 
         boolean unsafe = globalUnsafe;
