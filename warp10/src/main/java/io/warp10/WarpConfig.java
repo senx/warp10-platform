@@ -317,7 +317,7 @@ public class WarpConfig {
         String key = tokens[0];
         String macro = line.substring(key.length() + 1);
         macro = macro.trim();
-        if (macro.length() < 5 || !WarpScriptStack.MACRO_START.equals(macro.substring(0, 2)) || !WarpScriptStack.MACRO_END.equals(macro.substring(macro.length() - 2))) {
+        if (macro.length() < 5 || !WarpScriptStack.MACRO_END.equals(macro.substring(macro.length() - 2))) {
           linesInError.add(lineno);
           continue;
         }
