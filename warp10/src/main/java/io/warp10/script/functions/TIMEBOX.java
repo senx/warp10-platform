@@ -43,41 +43,49 @@ public class TIMEBOX extends NamedWarpScriptFunction implements WarpScriptStackF
   /**
    * Maximum timeboxing possible
    */
-  private static final long TIMEBOX_MAXTIME;
+  private final long TIMEBOX_MAXTIME;
 
   /**
-   * Wrapped function if any
-   * If wrapped function is null, TIMEBOX will expect a macro on top of the stack.
+   * Wrapped function
+   * If wrapped function is null, TIMEBOX will expect a macro and a maxtime long on top of the stack.
    */
   private final WarpScriptStackFunction function;
 
-  static {
-    TIMEBOX_MAXTIME = Long.parseLong(WarpConfig.getProperty(Configuration.CONFIG_WARPSCRIPT_TIMEBOX_MAXTIME, Long.toString(DEFAULT_TIMEBOX_MAXTIME)));
+  public TIMEBOX(String name, WarpScriptStackFunction function) {
+    this(name, function, DEFAULT_TIMEBOX_MAXTIME);
   }
 
-  public TIMEBOX(String name, WarpScriptStackFunction function) {
+  public TIMEBOX(String name, WarpScriptStackFunction function, long maxtime) {
     super(name);
     this.function = function;
+    TIMEBOX_MAXTIME = maxtime;
   }
   
   public TIMEBOX(String name) {
-    this(name, null);
+    super(name);
+    this.function = null;
+    TIMEBOX_MAXTIME = Long.parseLong(WarpConfig.getProperty(Configuration.CONFIG_WARPSCRIPT_TIMEBOX_MAXTIME, Long.toString(DEFAULT_TIMEBOX_MAXTIME)));
   }
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    Object top = stack.pop();
-    
-    if (!(top instanceof Long)) {
-      throw new WarpScriptException(getName() + " expects a maximum execution time on top of the stack.");
-    }
-    
-    long maxtime = Math.min(Math.max(0L,((Number) top).longValue()/Constants.TIME_UNITS_PER_MS), TIMEBOX_MAXTIME);
-    
-    top = stack.pop();
-    
-    if (!(top instanceof Macro)) {
-      throw new WarpScriptException(getName() + " operates on a macro.");
+    Object top = null;
+    long maxtime = TIMEBOX_MAXTIME;
+
+    if (null == function) {
+      top = stack.pop();
+
+      if (!(top instanceof Long)) {
+        throw new WarpScriptException(getName() + " expects a maximum execution time on top of the stack.");
+      }
+
+      maxtime = Math.min(Math.max(0L, ((Number) top).longValue() / Constants.TIME_UNITS_PER_MS), maxtime);
+
+      top = stack.pop();
+
+      if (!(top instanceof Macro)) {
+        throw new WarpScriptException(getName() + " operates on a macro.");
+      }
     }
 
     final Macro macro = (Macro) top;
@@ -87,7 +95,11 @@ public class TIMEBOX extends NamedWarpScriptFunction implements WarpScriptStackF
     Future<Object> future = executorService.submit(new Callable<Object>() {
       @Override
       public Object call() throws Exception {
-        fstack.exec(macro);
+        if (null == macro) {
+          function.apply(fstack);
+        } else {
+          fstack.exec(macro);
+        }
         return fstack;
       }
     });
