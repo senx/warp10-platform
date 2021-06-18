@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@
 
 package io.warp10.script.functions;
 
-import java.util.Properties;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -45,13 +44,24 @@ public class TIMEBOX extends NamedWarpScriptFunction implements WarpScriptStackF
    * Maximum timeboxing possible
    */
   private static final long TIMEBOX_MAXTIME;
-  
+
+  /**
+   * Wrapped function if any
+   * If wrapped function is null, TIMEBOX will expect a macro on top of the stack.
+   */
+  private final WarpScriptStackFunction function;
+
   static {
     TIMEBOX_MAXTIME = Long.parseLong(WarpConfig.getProperty(Configuration.CONFIG_WARPSCRIPT_TIMEBOX_MAXTIME, Long.toString(DEFAULT_TIMEBOX_MAXTIME)));
   }
+
+  public TIMEBOX(String name, WarpScriptStackFunction function) {
+    super(name);
+    this.function = function;
+  }
   
   public TIMEBOX(String name) {
-    super(name);
+    this(name, null);
   }
   
   @Override
