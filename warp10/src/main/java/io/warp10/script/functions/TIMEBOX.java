@@ -34,7 +34,7 @@ import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.warp.sdk.Capabilities;
 
-public class TIMEBOX<F extends NamedWarpScriptFunction & WarpScriptStackFunction > extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class TIMEBOX extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
   /**
    * Default timeboxing is 30s
@@ -52,73 +52,28 @@ public class TIMEBOX<F extends NamedWarpScriptFunction & WarpScriptStackFunction
   private final String SPECIAL_ALLOWANCE_CAPNAME;
 
   /**
-   * Wrapped function
-   */
-  private final WarpScriptStackFunction function;
-
-  public TIMEBOX(F function) {
-    this(function, false);
-  }
-
-  public TIMEBOX(F function, Boolean requireCapability) {
-    this(function, function.getName() + ".timebox.maxtime", requireCapability);
-  }
-
-  public TIMEBOX(F function, String maxtimeKey) {
-    this(function, maxtimeKey, false);
-  }
-
-  public TIMEBOX(F function, String maxtimeKey, Boolean requireCapability) {
-    this(function.getName(), function, maxtimeKey, requireCapability);
-  }
-
-  /**
-   * Wrap a function into a timeboxed function
-   * @param name of the Warpscript function
-   * @param function that is timeboxed
-   * @param maxtimeKey used for finding maxtime in configurations, and also raise maxtime as a capname
-   * @param requireCapability if true, function will need capability .cap:<value-of-maxtimeKey>
-   */
-  public TIMEBOX(String name, WarpScriptStackFunction function, String maxtimeKey, Boolean requireCapability) {
-    super(name);
-    this.function = function;
-    if (requireCapability) {
-      TIMEBOX_MAXTIME = 0L;
-    } else {
-      TIMEBOX_MAXTIME = Long.parseLong(WarpConfig.getProperty(maxtimeKey, Long.toString(DEFAULT_TIMEBOX_MAXTIME)));
-    }
-    SPECIAL_ALLOWANCE_CAPNAME = maxtimeKey;
-  }
-
-  /**
    * No wrapped function: TIMEBOX will expect a macro and a maxtime long on top of the stack.
    */
   public TIMEBOX(String name) {
     super(name);
-    this.function = null;
     TIMEBOX_MAXTIME = Long.parseLong(WarpConfig.getProperty(Configuration.CONFIG_WARPSCRIPT_TIMEBOX_MAXTIME, Long.toString(DEFAULT_TIMEBOX_MAXTIME)));
     SPECIAL_ALLOWANCE_CAPNAME = Configuration.CONFIG_WARPSCRIPT_TIMEBOX_MAXTIME;
   }
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    Object top = null;
-    long maxtime = TIMEBOX_MAXTIME;
+    Object top = stack.pop();
 
-    if (null == function) {
-      top = stack.pop();
+    if (!(top instanceof Long)) {
+      throw new WarpScriptException(getName() + " expects a maximum execution time on top of the stack.");
+    }
 
-      if (!(top instanceof Long)) {
-        throw new WarpScriptException(getName() + " expects a maximum execution time on top of the stack.");
-      }
+    long maxtime = Math.min(Math.max(0L, ((Number) top).longValue() / Constants.TIME_UNITS_PER_MS), TIMEBOX_MAXTIME);
 
-      maxtime = Math.min(Math.max(0L, ((Number) top).longValue() / Constants.TIME_UNITS_PER_MS), maxtime);
+    top = stack.pop();
 
-      top = stack.pop();
-
-      if (!(top instanceof Macro)) {
-        throw new WarpScriptException(getName() + " operates on a macro.");
-      }
+    if (!(top instanceof Macro)) {
+      throw new WarpScriptException(getName() + " operates on a macro.");
     }
 
     if (null != Capabilities.get(stack, SPECIAL_ALLOWANCE_CAPNAME)) {
@@ -136,11 +91,7 @@ public class TIMEBOX<F extends NamedWarpScriptFunction & WarpScriptStackFunction
     Future<Object> future = executorService.submit(new Callable<Object>() {
       @Override
       public Object call() throws Exception {
-        if (null == macro) {
-          function.apply(fstack);
-        } else {
-          fstack.exec(macro);
-        }
+        fstack.exec(macro);
         return fstack;
       }
     });
