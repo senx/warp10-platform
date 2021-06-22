@@ -73,7 +73,7 @@ public class TIMEBOX extends NamedWarpScriptFunction implements WarpScriptStackF
     final Macro macro = (Macro) top;
     final WarpScriptStack fstack = stack;
 
-    Object timeboxed = Boolean.TRUE.equals(fstack.getAttribute(WarpScriptStack.ATTRIBUTE_TIMEBOXED));
+    Boolean timeboxed = Boolean.TRUE.equals(fstack.getAttribute(WarpScriptStack.ATTRIBUTE_TIMEBOXED));
     fstack.setAttribute(WarpScriptStack.ATTRIBUTE_TIMEBOXED, true);
 
     ExecutorService executorService = Executors.newSingleThreadExecutor();
