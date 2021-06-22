@@ -46,8 +46,8 @@ public class MetadataTextComparator implements Comparator<Metadata> {
   @Override
   public int compare(Metadata o1, Metadata o2) {
 
-    if (null != this.fields && !this.fields.isEmpty()) {
-      return compareWithFields(o1, o2);
+    if (null == o1 && null == o2) {
+      return 0;
     }
 
     if (null == o1) {
@@ -58,21 +58,32 @@ public class MetadataTextComparator implements Comparator<Metadata> {
       return 1;
     }
 
+    if (null != this.fields && !this.fields.isEmpty()) {
+      return compareWithFields(o1, o2);
+    }
+
+    //
+    // Compare name
+    //
     String name1 = o1.getName();
     String name2 = o2.getName();
 
-    if (null == name1) {
+    if (null == name1 && null != name2) {
       return -1;
     }
 
-    if (null == name2) {
+    if (null == name2 && null != name1) {
       return 1;
     }
 
-    int comp = name1.compareTo(name2);
+    int comp;
+    if (null != name1) {
+      // Both name are valid, compare them
+      comp = name1.compareTo(name2);
 
-    if (0 != comp) {
-      return comp;
+      if (0 != comp) {
+        return comp;
+      }
     }
 
     //
@@ -81,11 +92,11 @@ public class MetadataTextComparator implements Comparator<Metadata> {
     int size1 = o1.getLabelsSize();
     int size2 = o2.getLabelsSize();
 
-    if (0 == size1) {
+    if (0 == size1 && 0 != size2) {
       return -1;
     }
 
-    if (0 == size2) {
+    if (0 == size2 && 0 != size1) {
       return 1;
     }
 
@@ -209,19 +220,15 @@ public class MetadataTextComparator implements Comparator<Metadata> {
       // Field 'null' is the GTS name
       //
 
-      String s1 = null;
-      String s2 = null;
+      String s1;
+      String s2;
 
       if (null == field) {
         s1 = o1.getName();
         s2 = o2.getName();
       } else {
-        if (m1.size() > 0) {
-          s1 = m1.get(field);
-        }
-        if (m2.size() > 0) {
-          s2 = m2.get(field);
-        }
+        s1 = m1.get(field);
+        s2 = m2.get(field);
       }
 
       if (null == s1 && null != s2) {
