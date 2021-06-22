@@ -33,6 +33,11 @@ public class MetadataTextComparator implements Comparator<Metadata> {
   private final List<String> fields;
   private final boolean considerAttributes;
 
+  public MetadataTextComparator(List<String> fields) {
+    this.fields = fields;
+    this.considerAttributes = false;
+  }
+
   public MetadataTextComparator(List<String> fields, boolean considerAttributes) {
     this.fields = fields;
     this.considerAttributes = considerAttributes;
@@ -73,27 +78,27 @@ public class MetadataTextComparator implements Comparator<Metadata> {
     //
     // Names are identical, compare labels
     //
+    int size1 = o1.getLabelsSize();
+    int size2 = o2.getLabelsSize();
 
-    if (0 == o1.getLabelsSize()) {
+    if (0 == size1) {
       return -1;
     }
 
-    if (0 == o2.getLabelsSize()) {
+    if (0 == size2) {
       return 1;
     }
 
-    List<String> labels1 = new ArrayList<String>(o1.getLabelsSize());
+    List<String> labels1 = new ArrayList<String>(size1);
     labels1.addAll(o1.getLabels().keySet());
 
-    List<String> labels2 = new ArrayList<String>(o2.getLabelsSize());
+    List<String> labels2 = new ArrayList<String>(size2);
     labels2.addAll(o2.getLabels().keySet());
 
     Collections.sort(labels1);
     Collections.sort(labels2);
 
     int idx = 0;
-    int size1 = labels1.size();
-    int size2 = labels2.size();
 
     while (idx < size1 && idx < size2) {
 
@@ -128,31 +133,32 @@ public class MetadataTextComparator implements Comparator<Metadata> {
     // Names are identical, labels are identical, compare attributes
     //
 
-    if (0 == o1.getAttributesSize() && 0 == o2.getAttributesSize()) {
+    size1 = o1.getAttributesSize();
+    size2 = o2.getAttributesSize();
+
+    if (0 == size1 && 0 == size2) {
       return 0;
     }
 
-    if (0 == o1.getAttributesSize()) {
+    if (0 == size1) {
       return -1;
     }
 
-    if (0 == o2.getAttributesSize()) {
+    if (0 == size2) {
       return 1;
     }
 
 
-    List<String> attr1 = new ArrayList<String>(o1.getAttributesSize());
+    List<String> attr1 = new ArrayList<String>(size1);
     attr1.addAll(o1.getAttributes().keySet());
 
-    List<String> attr2 = new ArrayList<String>(o2.getAttributesSize());
+    List<String> attr2 = new ArrayList<String>(size2);
     attr2.addAll(o2.getAttributes().keySet());
 
     Collections.sort(attr1);
     Collections.sort(attr2);
 
     idx = 0;
-    size1 = attr1.size();
-    size2 = attr2.size();
 
     while (idx < size1 && idx < size2) {
 

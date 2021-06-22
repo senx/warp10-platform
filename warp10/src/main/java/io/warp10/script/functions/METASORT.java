@@ -93,7 +93,7 @@ public class METASORT extends NamedWarpScriptFunction implements WarpScriptStack
     if (fields.isEmpty()) {
       ((List<GeoTimeSerie>) top).sort(META_COMPARATOR);
     } else {
-      boolean finalConsiderAttributes = considerAttributes;
+      final boolean finalConsiderAttributes = considerAttributes;
       ((List<GeoTimeSerie>) top).sort(new Comparator<GeoTimeSerie>() {
         private final Comparator<Metadata> INNER_COMP = new MetadataTextComparator(fields, finalConsiderAttributes);
 
