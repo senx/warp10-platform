@@ -52,7 +52,7 @@ public class TIMEBOX extends NamedWarpScriptFunction implements WarpScriptStackF
   /**
    * Allowance capability to raise TIMEBOX_MAXTIME
    */
-  private static final String SPECIAL_ALLOWANCE_CAPNAME = Configuration.CONFIG_WARPSCRIPT_TIMEBOX_MAXTIME;
+  private static final String SPECIAL_ALLOWANCE_CAPNAME = WarpConfig.getProperty(Configuration.MAXTIME_EXTENSION_ALLOWANCE_CAPNAME);
 
   /**
    * No wrapped function: TIMEBOX will expect a macro and a maxtime long on top of the stack.
@@ -77,7 +77,7 @@ public class TIMEBOX extends NamedWarpScriptFunction implements WarpScriptStackF
       throw new WarpScriptException(getName() + " operates on a macro.");
     }
 
-    if (null != Capabilities.get(stack, SPECIAL_ALLOWANCE_CAPNAME)) {
+    if (null != SPECIAL_ALLOWANCE_CAPNAME && null != Capabilities.get(stack, SPECIAL_ALLOWANCE_CAPNAME)) {
       maxtime = Math.max(maxtime, Long.valueOf(Capabilities.get(stack, SPECIAL_ALLOWANCE_CAPNAME)));
     }
 
