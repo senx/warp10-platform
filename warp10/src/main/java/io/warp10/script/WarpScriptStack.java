@@ -298,6 +298,11 @@ public interface WarpScriptStack {
   public static final String ATTRIBUTE_NAME = "stack.name";
 
   /**
+   * Stack attribute used to indicate the execution is currently timeboxed
+   */
+  public static final String ATTRIBUTE_TIMEBOXED = "stack.timeboxed";
+
+  /**
    * Index of RETURN_DEPTH counter
    */
   public static final int COUNTER_RETURN_DEPTH = 0;
