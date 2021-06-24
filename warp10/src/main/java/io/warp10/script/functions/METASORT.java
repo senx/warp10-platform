@@ -35,7 +35,7 @@ public class METASORT extends NamedWarpScriptFunction implements WarpScriptStack
 
   public static final Comparator<GeoTimeSerie> META_COMPARATOR = new Comparator<GeoTimeSerie>() {
 
-    private final Comparator<Metadata> INNER_COMP = new MetadataTextComparator(null, false);
+    private final Comparator<Metadata> INNER_COMP = new MetadataTextComparator(null);
 
     @Override
     public int compare(GeoTimeSerie o1, GeoTimeSerie o2) {

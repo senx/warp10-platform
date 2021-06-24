@@ -31,16 +31,19 @@ import io.warp10.continuum.store.thrift.data.Metadata;
 public class MetadataTextComparator implements Comparator<Metadata> {
 
   private final List<String> fields;
-  private final boolean considerAttributes;
+
+  // This is taken into account when the fields list provided is non-null and non-empty
+  // Then, if set to true, attributes are considered as labels
+  private final boolean fieldsConsiderAttributes;
 
   public MetadataTextComparator(List<String> fields) {
     this.fields = fields;
-    this.considerAttributes = false;
+    this.fieldsConsiderAttributes = false;
   }
 
-  public MetadataTextComparator(List<String> fields, boolean considerAttributes) {
+  public MetadataTextComparator(List<String> fields, boolean fieldsConsiderAttributes) {
     this.fields = fields;
-    this.considerAttributes = considerAttributes;
+    this.fieldsConsiderAttributes = fieldsConsiderAttributes;
   }
 
   @Override
@@ -201,7 +204,7 @@ public class MetadataTextComparator implements Comparator<Metadata> {
     Map<String, String> m1 = new HashMap<String, String>();
     Map<String, String> m2 = new HashMap<String, String>();
 
-    if (this.considerAttributes) {
+    if (this.fieldsConsiderAttributes) {
       m1.putAll(o1.getAttributes());
       m2.putAll(o2.getAttributes());
     }
