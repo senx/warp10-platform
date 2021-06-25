@@ -35,16 +35,17 @@ import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.warp.sdk.Capabilities;
 
 public class TIMEBOX extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   /**
    * Default timeboxing is 30s
    */
   private static final long DEFAULT_TIMEBOX_MAXTIME = 30000L;
-  
+
   /**
    * Maximum timeboxing possible
    */
   private static final long TIMEBOX_MAXTIME;
+
   static {
     TIMEBOX_MAXTIME = Long.parseLong(WarpConfig.getProperty(Configuration.CONFIG_WARPSCRIPT_TIMEBOX_MAXTIME, Long.toString(DEFAULT_TIMEBOX_MAXTIME)));
   }
@@ -57,7 +58,7 @@ public class TIMEBOX extends NamedWarpScriptFunction implements WarpScriptStackF
   public TIMEBOX(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
@@ -84,7 +85,10 @@ public class TIMEBOX extends NamedWarpScriptFunction implements WarpScriptStackF
 
     final Macro macro = (Macro) top;
     final WarpScriptStack fstack = stack;
-    
+
+    Boolean timeboxed = Boolean.TRUE.equals(fstack.getAttribute(WarpScriptStack.ATTRIBUTE_TIMEBOXED));
+    fstack.setAttribute(WarpScriptStack.ATTRIBUTE_TIMEBOXED, true);
+
     ExecutorService executorService = Executors.newSingleThreadExecutor();
     Future<Object> future = executorService.submit(new Callable<Object>() {
       @Override
@@ -93,9 +97,9 @@ public class TIMEBOX extends NamedWarpScriptFunction implements WarpScriptStackF
         return fstack;
       }
     });
-    
+
     try {
-      future.get(maxtime, TimeUnit.MILLISECONDS);      
+      future.get(maxtime, TimeUnit.MILLISECONDS);
     } catch (TimeoutException te) {
       throw new WarpScriptException(getName() + " reached the execution time limit (" + maxtime + " ms).");
     } catch (ExecutionException ee) {
@@ -105,6 +109,7 @@ public class TIMEBOX extends NamedWarpScriptFunction implements WarpScriptStackF
     } finally {
       executorService.shutdown();
       executorService.shutdownNow();
+      fstack.setAttribute(WarpScriptStack.ATTRIBUTE_TIMEBOXED, timeboxed);
       if (!executorService.isShutdown()) {
         throw new WarpScriptException(getName() + " could not be properly shut down.");
       }

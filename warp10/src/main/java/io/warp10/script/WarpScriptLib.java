@@ -795,6 +795,8 @@ public class WarpScriptLib {
   public static final String SRANDPDF = "SRANDPDF";
   public static final String SINGLEEXPONENTIALSMOOTHING = "SINGLEEXPONENTIALSMOOTHING";
   public static final String DOUBLEEXPONENTIALSMOOTHING = "DOUBLEEXPONENTIALSMOOTHING";
+  public static final String POLYFIT = "POLYFIT";
+  public static final String POLYFUNC = "POLYFUNC";
   public static final String LOWESS = "LOWESS";
   public static final String RLOWESS = "RLOWESS";
   public static final String STL = "STL";
@@ -1745,6 +1747,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new RANDPDF.Builder(SRANDPDF, true));
     addNamedWarpScriptFunction(new SINGLEEXPONENTIALSMOOTHING(SINGLEEXPONENTIALSMOOTHING));
     addNamedWarpScriptFunction(new DOUBLEEXPONENTIALSMOOTHING(DOUBLEEXPONENTIALSMOOTHING));
+    addNamedWarpScriptFunction(new POLYFIT(POLYFIT));
+    addNamedWarpScriptFunction(new POLYFUNC.Builder(POLYFUNC));
     addNamedWarpScriptFunction(new LOWESS(LOWESS));
     addNamedWarpScriptFunction(new RLOWESS(RLOWESS));
     addNamedWarpScriptFunction(new STL(STL));
