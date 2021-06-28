@@ -988,7 +988,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
         if (i >= macro.size()) {
           statement = macro.get(macro.size() - 1);
         }
-        String statementString = statement.toString();
+        String statementString = String.valueOf(statement);
         // For NamedWarpScriptFunction, toString is used for snapshotting. Getting the name is better to generate
         // a clear error message.
         if(statement instanceof NamedWarpScriptFunction) {
