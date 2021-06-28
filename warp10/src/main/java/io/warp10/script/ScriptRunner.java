@@ -340,7 +340,14 @@ public class ScriptRunner extends Thread {
         long nextrun1 = null != nextrun.get(o1) ? nextrun.get(o1) : Long.MAX_VALUE;
         long nextrun2 = null != nextrun.get(o2) ? nextrun.get(o2) : Long.MAX_VALUE;
 
-        return Long.compare(nextrun1, nextrun2);
+        long nanos = System.nanoTime();
+
+        //
+        // We order by the delta to nanos, this is an approximation of the actual order
+        // but should be fine in most of the cases
+        //
+
+        return Long.compare(nextrun1 - nanos, nextrun2 - nanos);
       }
     });
 
@@ -352,7 +359,7 @@ public class ScriptRunner extends Thread {
     while (true) {
       long now = System.nanoTime();
 
-      if (now - lastscan > this.scanperiod) {
+      if (now - lastscan > this.scanperiod * 1000000L) {
         Map<String, Long> newscripts = scanSuperRoot(this.root);
 
         Set<String> currentScripts = scripts.keySet();
@@ -392,9 +399,11 @@ public class ScriptRunner extends Thread {
           } else {
             Long period = 1000000L * scriptAndPeriod.getValue();
             long schedat = System.nanoTime();
+            long timenanos = TimeSource.getNanoTime();
 
-            if (0 != schedat % period) {
-              schedat = schedat - (schedat % period) + period;
+            if (0 != timenanos % period) {
+              long delta = period - (timenanos % period);
+              schedat = schedat + delta;
             }
 
             nextrun.put(script, schedat);
