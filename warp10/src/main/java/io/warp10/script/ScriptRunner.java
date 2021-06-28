@@ -46,6 +46,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -334,13 +335,15 @@ public class ScriptRunner extends Thread {
 
     final Map<String, Long> nextrun = new ConcurrentHashMap<String, Long>();
 
+    final AtomicLong nanoref = new AtomicLong();
+
     PriorityQueue<String> runnables = new PriorityQueue<String>(1, new Comparator<String>() {
       @Override
       public int compare(String o1, String o2) {
         long nextrun1 = null != nextrun.get(o1) ? nextrun.get(o1) : Long.MAX_VALUE;
         long nextrun2 = null != nextrun.get(o2) ? nextrun.get(o2) : Long.MAX_VALUE;
 
-        long nanos = System.nanoTime();
+        long nanos = nanoref.get();
 
         //
         // We order by the delta to nanos, this is an approximation of the actual order
@@ -385,6 +388,7 @@ public class ScriptRunner extends Thread {
       //
 
       runnables.clear();
+      nanoref.set(now);
 
       for (Map.Entry<String, Long> scriptAndPeriod: scripts.entrySet()) {
         //
