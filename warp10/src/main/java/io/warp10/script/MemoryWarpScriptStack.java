@@ -985,7 +985,10 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
         String name = macro.getName();
         String section = (String) this.getAttribute(WarpScriptStack.ATTRIBUTE_SECTION_NAME);
         Object statement = macro.get(i);
-        String statementString = statement.toString();
+        if (i >= macro.size()) {
+          statement = macro.get(macro.size() - 1);
+        }
+        String statementString = String.valueOf(statement);
         // For NamedWarpScriptFunction, toString is used for snapshotting. Getting the name is better to generate
         // a clear error message.
         if(statement instanceof NamedWarpScriptFunction) {
