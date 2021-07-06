@@ -34,14 +34,14 @@ public class Constants {
 
   //
   //  A T T E N T I O N
-  //  
+  //
   //  Once the time_units and modulus have been set, their values must not be modified.
-  //  
+  //
   //  Doing so would render the storage system unusable
   //
-  
+
   private static boolean timeUnitsAlreadySet = false;
-  
+
   /**
    * Number of continuum time units per millisecond
    * 1000000 means we store nanoseconds
@@ -50,7 +50,7 @@ public class Constants {
    * 0.001 means we store seconds (N/A since we use a long for the constant)
    */
   public static final long TIME_UNITS_PER_MS;
-  
+
   /**
    * Number of time units per second
    */
@@ -60,43 +60,43 @@ public class Constants {
    * Number of nanoseconds per time unit
    */
   public static final long NS_PER_TIME_UNIT;
-  
+
   /**
    * Banner, based on Figlet
    * @see <a href="http://patorjk.com/software/taag/#p=display&f=Speed&t=Warp%2010">http://patorjk.com/software/taag/#p=display&f=Speed&t=Warp%2010</a>
    */
-  public static final String WARP10_BANNER = "  ___       __                           ____________ \n" + 
-      "  __ |     / /_____ _______________      __<  /_  __ \\\n" + 
-      "  __ | /| / /_  __ `/_  ___/__  __ \\     __  /_  / / /\n" + 
-      "  __ |/ |/ / / /_/ /_  /   __  /_/ /     _  / / /_/ / \n" + 
-      "  ____/|__/  \\__,_/ /_/    _  .___/      /_/  \\____/  \n" + 
-      "                           /_/                        \n"; 
+  public static final String WARP10_BANNER = "  ___       __                           ____________ \n" +
+      "  __ |     / /_____ _______________      __<  /_  __ \\\n" +
+      "  __ | /| / /_  __ `/_  ___/__  __ \\     __  /_  / / /\n" +
+      "  __ |/ |/ / / /_/ /_  /   __  /_/ /     _  / / /_/ / \n" +
+      "  ____/|__/  \\__,_/ /_/    _  .___/      /_/  \\____/  \n" +
+      "                           /_/                        \n";
 
   /**
    * Row key time boundary in time units
    */
   public static final long DEFAULT_MODULUS = 1L;
-  
+
   /**
    * Number of elevation units per meter.
    */
   public static final long ELEVATION_UNITS_PER_M = 1000L;
-  
+
   /**
    * Name of the 'producer' label
    */
   public static final String PRODUCER_LABEL = ".producer";
-  
+
   /**
    * Name of the 'owner' label
    */
   public static final String OWNER_LABEL = ".owner";
-  
+
   /**
    * Name of the 'uuid' attribute
    */
   public static final String UUID_ATTRIBUTE = ".uuid";
-  
+
   /**
    * Name of the 'application' label
    */
@@ -121,39 +121,44 @@ public class Constants {
   public static final String RUNNER_PATH = "runner.path";
   public static final String RUNNER_SCHEDULEDAT = "runner.scheduledat";
   public static final String RUNNER_NONCE = "runner.nonce";
-  
+
   private static final Map<String,String> HEADERS = new HashMap<String,String>();
-  
+
+  /**
+   * Header containing a comma separated list of tokens with capabilities
+   */
+  public static final String HTTP_HEADER_CAPABILITIES_DEFAULT = "X-Warp10-Capabilities";
+
   /**
    * Header containing the request UUID when calling the endpoint
    */
   public static final String HTTP_HEADER_WEBCALL_UUID_DEFAULT = "X-Warp10-WebCall";
-    
+
   /**
    * HTTP Header for elapsed time of WarpScript scripts
-   */  
+   */
   public static final String HTTP_HEADER_ELAPSED_DEFAULT = "X-Warp10-Elapsed";
-  
+
   /**
    * HTTP Header for number of operations performed by a WarpScript
    */
   public static final String HTTP_HEADER_OPS_DEFAULT = "X-Warp10-Ops";
-  
+
   /**
    * HTTP Header for number of datapoints fetched during a WarpScript execution
    */
   public static final String HTTP_HEADER_FETCHED_DEFAULT = "X-Warp10-Fetched";
-  
+
   /**
    * Script line where an error was encountered
    */
   public static final String HTTP_HEADER_ERROR_LINE_DEFAULT = "X-Warp10-Error-Line";
-  
+
   /**
    * Message for the error that was encountered
    */
   public static final String HTTP_HEADER_ERROR_MESSAGE_DEFAULT = "X-Warp10-Error-Message";
-  
+
   /**
    * HTTP Header for access tokens
    */
@@ -183,7 +188,7 @@ public class Constants {
    * Name of header containing the signature of the token used for the update
    */
   public static final String HTTP_HEADER_UPDATE_SIGNATURE_DEFAULT = "X-Warp10-Update-Signature";
-  
+
   /**
    * Name of header containing the signature of streaming directory requests
    */
@@ -193,51 +198,51 @@ public class Constants {
    * Name of header specifying the name of the symbol in which to expose the request headers
    */
   public static final String HTTP_HEADER_EXPOSE_HEADERS_DEFAULT = "X-Warp10-ExposeHeaders";
-  
+
   /**
    * Name of header containing the wrapped Datalog request
    */
   public static final String HTTP_HEADER_DATALOG_DEFAULT = "X-Warp10-Datalog";
-  
+
   /**
    * Header name for specifying attribute updates are delta
    */
   public static final String HTTP_HEADER_ATTRIBUTES_DEFAULT = "X-Warp10-Attributes";
-  
+
   public static final String DATALOG_UPDATE = "UPDATE";
   public static final String DATALOG_META = "META";
   public static final String DATALOG_DELETE = "DELETE";
-  
+
   /**
    * Empty column qualifier for HBase writes
    */
   public static final byte[] EMPTY_COLQ = new byte[0];
-  
+
   /**
    * Endpoint for checks
    */
   public static final String API_ENDPOINT_CHECK = "/api/v0/check";
-  
+
   /**
    * Endpoint for splits generation
    */
   public static final String API_ENDPOINT_SPLITS = "/api/v0/splits";
-  
+
   /**
    * Endpoint for script submission
    */
   public static final String API_ENDPOINT_EXEC = "/api/v0/exec";
-  
+
   /**
    * Update endpoint for the API
    */
   public static final String API_ENDPOINT_UPDATE = "/api/v0/update";
-  
+
   /**
    * Find endpoint for the API
    */
   public static final String API_ENDPOINT_FIND = "/api/v0/find";
-  
+
   /**
    * Fetch endpoint for the API
    */
@@ -252,12 +257,12 @@ public class Constants {
    * Delete endpoint for the API
    */
   public static final String API_ENDPOINT_DELETE = "/api/v0/delete";
-  
+
   /**
    * Plasma client endpoint for the API
    */
   public static final String API_ENDPOINT_PLASMA_CLIENT = "/api/v0/plasma/client";
-  
+
   /**
    * Plasma server endpoint
    */
@@ -267,7 +272,7 @@ public class Constants {
    * Plasma update endpoint
    */
   public static final String API_ENDPOINT_PLASMA_UPDATE = "/api/v0/streamupdate";
-  
+
   /**
    * Mobius server endpoint
    */
@@ -277,27 +282,27 @@ public class Constants {
    * Read Execute Loop endpoint
    */
   public static final String API_ENDPOINT_INTERACTIVE = "/api/v0/interactive";
-  
+
   /**
    * Meta endpoint
    */
   public static final String API_ENDPOINT_META = "/api/v0/meta";
-  
+
   /**
    * Geo root endpoint
    */
   public static final String API_ENDPOINT_GEO = "/api/v0/geo";
-  
+
   /**
    * Geo endpoint subpath for 'list'
    */
   public static final String API_ENDPOINT_GEO_LIST = "/list";
-  
+
   /**
    * Geo endpoint subpath for 'add'
    */
   public static final String API_ENDPOINT_GEO_ADD = "/add";
-  
+
   /**
    * Geo endpoint subpath for 'remove'
    */
@@ -312,22 +317,22 @@ public class Constants {
    * Endpoint for internal directory streaming requests
    */
   public static final String API_ENDPOINT_DIRECTORY_STREAMING_INTERNAL = "/directory-streaming";
-  
+
   /**
    * Endpoint for internal stats requests
    */
   public static final String API_ENDPOINT_DIRECTORY_STATS_INTERNAL = "/directory-stats";
-  
+
   /**
    * Header to extract POP from OVH CDN
    */
   public static final String OVH_CDN_GEO_HEADER = "X-CDN-Geo";
-  
+
   /**
    * Maximum size for internal encoders. MUST be less than Kafka's max message size.
    */
   public static final int MAX_ENCODER_SIZE;
-  
+
   public static final String HTTP_PARAM_TOKEN = "token";
   public static final String HTTP_PARAM_SELECTOR = "selector";
   public static final String HTTP_PARAM_START = "start";
@@ -364,25 +369,25 @@ public class Constants {
 
   public static final String DEFAULT_PACKED_CLASS_SUFFIX = ":packed";
   public static final int DEFAULT_PACKED_MAXSIZE = 65536;
-  
+
   public static final String WARP10_DOC_URL = "http://www.warp10.io/";
   public static final String WARP10_FUNCTION_DOC_URL = "http://www.warp10.io/doc/";
 
   public static final int WARP_PLASMA_MAXSUBS_DEFAULT = 256000;
-  
+
   public static final String KEY_MODULUS = "modulus";
   public static final String KEY_ALGORITHM = "algorithm";
   public static final String KEY_EXPONENT = "exponent";
   public static final String KEY_CURVE = "curve";
   public static final String KEY_Q = "Q";
   public static final String KEY_D = "d";
-  
+
   private static final int DEFAULT_MAX_ENCODER_SIZE = 100000;
-  
+
   //
   // Token Attributes
   //
-  
+
   /**
    * Attribute used to specify that a WRITE token cannot be used for delete.
    */
@@ -413,7 +418,7 @@ public class Constants {
    * Attribute used to specify that a READ token cannot be used to AUTHENTICATE.
    */
   public static final String TOKEN_ATTR_NOAUTH = ".noauth";
-  
+
   /**
    * Attribute to specify the maximum value size
    */
@@ -425,27 +430,27 @@ public class Constants {
   public static final String TOKEN_ATTR_MAXFUTURE = ".maxfuture";
   public static final String TOKEN_ATTR_MAXPAST = ".maxpast";
   public static final String TOKEN_ATTR_IGNOOR = ".ignoor";
-  
+
   /**
    * TTL for the written data (in ms)
    */
   public static final String TOKEN_ATTR_TTL = ".ttl";
-  
+
   /**
    * Use the timestamp of the datapoints as the HBase cell timestamp.
    * Use of this attribute has no effect on a standalone version of Warp 10
    */
   public static final String TOKEN_ATTR_DPTS = ".dpts";
-  
+
   /**
    * Attribute to specify that owner and producer should be exposed instead of hidden
    */
   public static final String TOKEN_ATTR_EXPOSE = ".expose";
-  
+
   //
   // KafkaMessage Store attributes
   //
-  
+
   public static final String STORE_ATTR_TTL = "ttl";
   public static final String STORE_ATTR_USEDATAPOINTTS = "dpts";
 
@@ -464,34 +469,34 @@ public class Constants {
   public static  final int MAX_HTTP_HEADER_LENGTH = 1024;
 
   public static final boolean EXPOSE_OWNER_PRODUCER;
-  
+
   /**
    * Does Directory support missing label selectors (using an empty STRING as exact match)
    */
   public static final boolean ABSENT_LABEL_SUPPORT;
-  
+
   /**
    * Does the /delete endpoint allow the use of the 'nodata' parameter to only remove metadata
    */
   public static final boolean DELETE_METAONLY_SUPPORT;
-  
+
   public static final boolean DELETE_ACTIVITY_SUPPORT;
-  
+
   static {
     if (1 != Constants.DEFAULT_MODULUS) {
       throw new RuntimeException("DEFAULT_MODULUS cannot be diffrent than 1.");
     }
-    
+
     String tu = WarpConfig.getProperty(Configuration.WARP_TIME_UNITS);
-  
+
     EXPOSE_OWNER_PRODUCER = "true".equals(WarpConfig.getProperty(Configuration.WARP10_EXPOSE_OWNER_PRODUCER));
-    
+
     ABSENT_LABEL_SUPPORT = "true".equals(WarpConfig.getProperty(Configuration.WARP10_ABSENT_LABEL_SUPPORT));
-    
+
     DELETE_METAONLY_SUPPORT = "true".equals(WarpConfig.getProperty(Configuration.INGRESS_DELETE_METAONLY_SUPPORT));
-    
+
     DELETE_ACTIVITY_SUPPORT = "true".equals(WarpConfig.getProperty(Configuration.INGRESS_DELETE_ACTIVITY_SUPPORT));
-    
+
     if (null == tu) {
       throw new RuntimeException("Missing time units.");
     } else if ("ms".equals(tu)) {
@@ -509,15 +514,15 @@ public class Constants {
     //DEFAULT_MODULUS = 600L * TIME_UNITS_PER_S;
 
     MAX_ENCODER_SIZE = Integer.parseInt(WarpConfig.getProperty(Configuration.MAX_ENCODER_SIZE, Integer.toString(DEFAULT_MAX_ENCODER_SIZE)));
-    
+
     if (null == System.getProperty(Configuration.WARP10_QUIET)) {
       LOG.info("########[ Initialized with " + TIME_UNITS_PER_MS + " time units per millisecond ]########");
     }
-    
+
     //
     // Initialize headers
     //
-    
+
     HEADERS.put(Configuration.HTTP_HEADER_WEBCALL_UUIDX, WarpConfig.getProperty(Configuration.HTTP_HEADER_WEBCALL_UUIDX, HTTP_HEADER_WEBCALL_UUID_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_ELAPSEDX, WarpConfig.getProperty(Configuration.HTTP_HEADER_ELAPSEDX, HTTP_HEADER_ELAPSED_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_OPSX, WarpConfig.getProperty(Configuration.HTTP_HEADER_OPSX, HTTP_HEADER_OPS_DEFAULT));
@@ -533,26 +538,27 @@ public class Constants {
     HEADERS.put(Configuration.HTTP_HEADER_DIRECTORY_SIGNATURE, WarpConfig.getProperty(Configuration.HTTP_HEADER_DIRECTORY_SIGNATURE, HTTP_HEADER_DIRECTORY_SIGNATURE_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_EXPOSE_HEADERS, WarpConfig.getProperty(Configuration.HTTP_HEADER_EXPOSE_HEADERS, HTTP_HEADER_EXPOSE_HEADERS_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_DATALOG, WarpConfig.getProperty(Configuration.HTTP_HEADER_DATALOG, HTTP_HEADER_DATALOG_DEFAULT));
-    HEADERS.put(Configuration.HTTP_HEADER_ATTRIBUTES, WarpConfig.getProperty(Configuration.HTTP_HEADER_ATTRIBUTES, HTTP_HEADER_ATTRIBUTES_DEFAULT));    
+    HEADERS.put(Configuration.HTTP_HEADER_ATTRIBUTES, WarpConfig.getProperty(Configuration.HTTP_HEADER_ATTRIBUTES, HTTP_HEADER_ATTRIBUTES_DEFAULT));
+    HEADERS.put(Configuration.HTTP_HEADER_CAPABILITIES, WarpConfig.getProperty(Configuration.HTTP_HEADER_CAPABILITIES, HTTP_HEADER_CAPABILITIES_DEFAULT));
   }
-  
+
   public static String getHeader(String name) {
     return HEADERS.get(name);
   }
-  
+
   public static boolean hasReservedHeader(Map<String,String> headers) {
     Set<String> hdrs = new HashSet<String>();
-    
+
     for (String definedHeader: headers.keySet()) {
       hdrs.add(definedHeader.toLowerCase());
     }
-    
+
     for (String key: HEADERS.keySet()) {
       if (hdrs.contains(key.toLowerCase())) {
         return true;
       }
     }
-    
+
     return false;
   }
 
