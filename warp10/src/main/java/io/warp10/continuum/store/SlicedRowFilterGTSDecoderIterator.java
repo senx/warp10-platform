@@ -151,7 +151,7 @@ public class SlicedRowFilterGTSDecoderIterator extends GTSDecoderIterator implem
     
     // 128BITS
     
-    int[] bounds = { 0, 24 };
+    int[] bounds = { 0, prefix.length + 23 };
     
     //
     // Create singleton for each classId/labelsId combo
