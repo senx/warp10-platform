@@ -41,27 +41,37 @@ import org.joda.time.format.ISOPeriodFormat;
 public class DURATION extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
   final private static Double STU = new Double(Constants.TIME_UNITS_PER_S);
-  
+
   public DURATION(String name) {
     super(name);
   }
 
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    
+
     Object o = stack.pop();
-    
+
     if (!(o instanceof String)) {
       throw new WarpScriptException(getName() + " expects an ISO8601 duration (a string) on top of the stack. See http://en.wikipedia.org/wiki/ISO_8601#Durations");
     }
 
     // Separate seconds from digits below second precision
     String duration_string = o.toString();
+
+    long duration = parseDuration(new Instant(), duration_string, false, false);
+
+    stack.push(duration);
+
+    return stack;
+  }
+
+  public static long parseDuration(Instant ref, String duration_string, boolean allowAmbiguous, boolean negate) throws WarpScriptException {
     String[] tokens = UnsafeString.split(duration_string, '.');
 
     long offset = 0;
+
     if (tokens.length > 2) {
-      throw new WarpScriptException(getName() + "received an invalid ISO8601 duration.");
+      throw new WarpScriptException("invalid ISO8601 duration.");
     }
 
     if (2 == tokens.length) {
@@ -70,26 +80,24 @@ public class DURATION extends NamedWarpScriptFunction implements WarpScriptStack
       Double d_offset = Double.valueOf("0." + tmp) * STU;
       offset = d_offset.longValue();
     }
-    
+
     ReadWritablePeriod period = new MutablePeriod();
-    
+
     ISOPeriodFormat.standard().getParser().parseInto(period, duration_string, 0, Locale.US);
 
     Period p = period.toPeriod();
-    
-    if (p.getMonths() != 0 || p.getYears() != 0) {
-      throw new WarpScriptException(getName() + " doesn't support ambiguous durations containing years or months, please convert those to days.");
+
+    if (!allowAmbiguous && (p.getMonths() != 0 || p.getYears() != 0)) {
+      throw new WarpScriptException("no support for ambiguous durations containing years or months, please convert those to days.");
     }
 
-    Duration duration = p.toDurationFrom(new Instant());
+    Duration duration = negate ? p.toDurationTo(ref) : p.toDurationFrom(ref);
 
     // check if offset should be positive of negative
-    if (p.getSeconds() < 0) {
+    if (p.getSeconds() < 0 || negate) {
       offset = -offset;
     }
 
-    stack.push(duration.getMillis() * Constants.TIME_UNITS_PER_MS + offset);
-
-    return stack;
+    return duration.getMillis() * Constants.TIME_UNITS_PER_MS + offset;
   }
 }

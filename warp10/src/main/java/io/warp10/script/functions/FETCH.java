@@ -75,6 +75,7 @@ import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.unary.TOTIMESTAMP;
 import io.warp10.sensision.Sensision;
 import io.warp10.standalone.AcceleratorConfig;
 
@@ -237,6 +238,64 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       }
     } catch (WarpScriptException wse) {
       throw new WarpScriptException(getName() + " given an invalid read token.", wse);
+    }
+
+    //
+    // Parse the token attributes and update params accordingly
+    //
+
+    Map<String,Object> tokenattr = parseTokenAttributes(rtoken, params);
+
+    if (null != tokenattr.get(PARAM_START)) {
+      long start = (long) tokenattr.get(PARAM_START);
+      if ((long) params.get(PARAM_START) < start) {
+        params.put(PARAM_START, start);
+      }
+    }
+
+    if (null != tokenattr.get(PARAM_END)) {
+      long end = (long) tokenattr.get(PARAM_END);
+      if ((long) params.get(PARAM_END) > end) {
+        params.put(PARAM_END, end);
+      }
+    }
+
+    if (null != tokenattr.get(PARAM_END)) {
+      long end = (long) tokenattr.get(PARAM_END);
+      if ((long) params.get(PARAM_END) > end) {
+        params.put(PARAM_END, end);
+      }
+    }
+
+    if (null != tokenattr.get(PARAM_QUIET_AFTER)) {
+      long activity = (long) tokenattr.get(PARAM_QUIET_AFTER);
+      params.put(PARAM_QUIET_AFTER, activity);
+    }
+
+    if (null != tokenattr.get(PARAM_ACTIVE_AFTER)) {
+      long activity = (long) tokenattr.get(PARAM_ACTIVE_AFTER);
+      params.put(PARAM_ACTIVE_AFTER, activity);
+    }
+
+    if (null != tokenattr.get(PARAM_COUNT)) {
+      long count = (long) tokenattr.get(PARAM_COUNT);
+      if ((long) params.get(PARAM_COUNT) > count) {
+        params.put(PARAM_COUNT, count);
+      }
+    }
+
+    if (null != tokenattr.get(PARAM_BOUNDARY_PRE)) {
+      long boundary = (long) tokenattr.get(PARAM_BOUNDARY_PRE);
+      if ((long) params.get(PARAM_BOUNDARY_PRE) > boundary) {
+        params.put(PARAM_BOUNDARY_PRE, boundary);
+      }
+    }
+
+    if (null != tokenattr.get(PARAM_BOUNDARY_POST)) {
+      long boundary = (long) tokenattr.get(PARAM_BOUNDARY_POST);
+      if ((long) params.get(PARAM_BOUNDARY_POST) > boundary) {
+        params.put(PARAM_BOUNDARY_POST, boundary);
+      }
     }
 
     boolean expose = rtoken.getAttributesSize() > 0 && rtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_EXPOSE);
@@ -1484,5 +1543,155 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
     }
 
     return timestamp;
+  }
+
+  public static Map<String,Object> parseTokenAttributes(ReadToken token, Map<String,Object> params) throws WarpScriptException {
+    Map<String,Object> attributes = new HashMap<String,Object>();
+
+    Map<String,String> tokenattr = token.getAttributes();
+
+    if (null == tokenattr) {
+      return attributes;
+    }
+
+    long now = TimeSource.getTime();
+
+    Instant ref = new Instant(now / Constants.TIME_UNITS_PER_MS);
+
+    String value = tokenattr.get(Constants.TOKEN_ATTR_END);
+
+    Long end = null;
+
+    if (null != value) {
+      value = value.trim();
+
+      if (value.startsWith("P")) {
+        long offset = DURATION.parseDuration(ref, value, true, true);
+        end = now + offset;
+      } else {
+        end = TOTIMESTAMP.parseTimestamp(value);
+      }
+      attributes.put(PARAM_END, end);
+    }
+
+    value = tokenattr.get(Constants.TOKEN_ATTR_START);
+    if (null != value) {
+      value = value.trim();
+      long start;
+
+      if (value.startsWith("P")) {
+        long offset = DURATION.parseDuration(ref, value, true, true);
+        if (null == end) {
+          if (null != params && params.get(PARAM_END) instanceof Long) {
+            start = ((Long) params.get(PARAM_END)).longValue() + offset;
+          } else {
+            start = now + offset;
+          }
+        } else {
+          start = end + offset;
+        }
+      } else {
+        start = TOTIMESTAMP.parseTimestamp(value);
+      }
+      attributes.put(PARAM_START, start);
+    }
+
+    value = tokenattr.get(Constants.TOKEN_ATTR_QUIETAFTER);
+    if (null != value) {
+      value = value.trim();
+      long quietafter;
+
+      if (value.startsWith("P")) {
+        long offset = DURATION.parseDuration(ref, value, true, true);
+        if (null == end) {
+          if (null != params && params.get(PARAM_END) instanceof Long) {
+            quietafter = ((Long) params.get(PARAM_END)).longValue() + offset;
+          } else {
+            quietafter = now + offset;
+          }
+        } else {
+          quietafter = end + offset;
+        }
+        quietafter = now + offset;
+      } else {
+        quietafter = TOTIMESTAMP.parseTimestamp(value);
+      }
+      attributes.put(PARAM_QUIET_AFTER, quietafter);
+    }
+
+    value = tokenattr.get(Constants.TOKEN_ATTR_ACTIVEAFTER);
+    if (null != value) {
+      value = value.trim();
+      long activeafter;
+
+      if (value.startsWith("P")) {
+        long offset = DURATION.parseDuration(ref, value, true, true);
+        if (null == end) {
+          if (null != params && params.get(PARAM_END) instanceof Long) {
+            activeafter = ((Long) params.get(PARAM_END)).longValue() + offset;
+          } else {
+            activeafter = now + offset;
+          }
+        } else {
+          activeafter = end + offset;
+        }
+      } else {
+        activeafter = TOTIMESTAMP.parseTimestamp(value);
+      }
+      attributes.put(PARAM_ACTIVE_AFTER, activeafter);
+    }
+
+    value = tokenattr.get(Constants.TOKEN_ATTR_COUNT);
+    if (null != value) {
+      value = value.trim();
+      long count;
+
+      try {
+        count = Long.parseLong(value);
+
+        if (count < 0) {
+          throw new WarpScriptException("Invalid count specification.");
+        }
+      } catch (NumberFormatException nfe) {
+        throw new WarpScriptException("Invalid count specification.");
+      }
+      attributes.put(PARAM_COUNT, count);
+    }
+
+    value = tokenattr.get(Constants.TOKEN_ATTR_BOUNDARY_PRE);
+    if (null != value) {
+      value = value.trim();
+      long preboundary;
+
+      try {
+        preboundary = Long.parseLong(value);
+
+        if (preboundary < 0) {
+          throw new WarpScriptException("Invalid pre boundary specification.");
+        }
+      } catch (NumberFormatException nfe) {
+        throw new WarpScriptException("Invalid pre boundary specification.");
+      }
+      attributes.put(PARAM_BOUNDARY_PRE, preboundary);
+    }
+
+    value = tokenattr.get(Constants.TOKEN_ATTR_BOUNDARY_POST);
+    if (null != value) {
+      value = value.trim();
+      long postboundary;
+
+      try {
+        postboundary = Long.parseLong(value);
+
+        if (postboundary < 0) {
+          throw new WarpScriptException("Invalid post boundary specification.");
+        }
+      } catch (NumberFormatException nfe) {
+        throw new WarpScriptException("Invalid post boundary specification.");
+      }
+      attributes.put(PARAM_BOUNDARY_POST, postboundary);
+    }
+
+    return attributes;
   }
 }
