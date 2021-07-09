@@ -125,6 +125,11 @@ public class Constants {
   private static final Map<String,String> HEADERS = new HashMap<String,String>();
 
   /**
+   * Header containing a comma separated list of tokens with capabilities
+   */
+  public static final String HTTP_HEADER_CAPABILITIES_DEFAULT = "X-Warp10-Capabilities";
+
+  /**
    * Header containing the request UUID when calling the endpoint
    */
   public static final String HTTP_HEADER_WEBCALL_UUID_DEFAULT = "X-Warp10-WebCall";
@@ -573,6 +578,7 @@ public class Constants {
     HEADERS.put(Configuration.HTTP_HEADER_EXPOSE_HEADERS, WarpConfig.getProperty(Configuration.HTTP_HEADER_EXPOSE_HEADERS, HTTP_HEADER_EXPOSE_HEADERS_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_DATALOG, WarpConfig.getProperty(Configuration.HTTP_HEADER_DATALOG, HTTP_HEADER_DATALOG_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_ATTRIBUTES, WarpConfig.getProperty(Configuration.HTTP_HEADER_ATTRIBUTES, HTTP_HEADER_ATTRIBUTES_DEFAULT));
+    HEADERS.put(Configuration.HTTP_HEADER_CAPABILITIES, WarpConfig.getProperty(Configuration.HTTP_HEADER_CAPABILITIES, HTTP_HEADER_CAPABILITIES_DEFAULT));
   }
 
   public static String getHeader(String name) {
