@@ -53,7 +53,7 @@ public class TIMEBOX extends NamedWarpScriptFunction implements WarpScriptStackF
   /**
    * Allowance capability to raise TIMEBOX_MAXTIME
    */
-  private static final String SPECIAL_ALLOWANCE_CAPNAME = WarpConfig.getProperty(Configuration.MAXTIME_EXTENSION_ALLOWANCE_CAPNAME);
+  private static final String TIMEBOX_MAXTIME_CAPNAME = WarpConfig.getProperty(Configuration.CONFIG_WARPSCRIPT_TIMEBOX_MAXTIME_CAPNAME);
 
   public TIMEBOX(String name) {
     super(name);
@@ -75,12 +75,22 @@ public class TIMEBOX extends NamedWarpScriptFunction implements WarpScriptStackF
       throw new WarpScriptException(getName() + " operates on a macro.");
     }
 
-    if (null != SPECIAL_ALLOWANCE_CAPNAME && null != Capabilities.get(stack, SPECIAL_ALLOWANCE_CAPNAME)) {
-      maxtime = Math.max(maxtime, Long.valueOf(Capabilities.get(stack, SPECIAL_ALLOWANCE_CAPNAME)));
+    if (null != TIMEBOX_MAXTIME_CAPNAME && null != Capabilities.get(stack, TIMEBOX_MAXTIME_CAPNAME)) {
+      String val = Capabilities.get(stack, TIMEBOX_MAXTIME_CAPNAME).trim();
+
+      if (val.startsWith("P")) {
+        maxtime = Math.max(maxtime, DURATION.parseDuration(val) / Constants.TIME_UNITS_PER_MS);
+      } else {
+        try {
+          maxtime = Math.max(maxtime, Long.valueOf(Capabilities.get(stack, TIMEBOX_MAXTIME_CAPNAME)));
+        } catch (NumberFormatException nfe) {
+          throw new WarpScriptException(getName() + " invalid value for capability '" + TIMEBOX_MAXTIME_CAPNAME + "'.");
+        }
+      }
     }
 
     if (0 >= maxtime) {
-      throw new WarpScriptException(getName() + " requires capability " + SPECIAL_ALLOWANCE_CAPNAME + " with a positive value.");
+      throw new WarpScriptException(getName() + " requires capability '" + TIMEBOX_MAXTIME_CAPNAME + "' with a positive value.");
     }
 
     final Macro macro = (Macro) top;
