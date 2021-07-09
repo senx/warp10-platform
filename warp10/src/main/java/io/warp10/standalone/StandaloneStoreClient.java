@@ -89,6 +89,7 @@ public class StandaloneStoreClient implements StoreClient {
     MAX_DELETE_BATCHSIZE = Integer.parseInt(properties.getProperty(Configuration.STANDALONE_MAX_DELETE_BATCHSIZE, Integer.toString(DEFAULT_MAX_DELETE_BATCHSIZE)));
     DELETE_FILLCACHE = Boolean.valueOf(properties.getProperty(Configuration.STANDALONE_DELETE_LEVELDB_FILLCACHE, Boolean.toString(DEFAULT_DELETE_FILLCACHE)));
     DELETE_VERIFYCHECKSUMS = Boolean.valueOf(properties.getProperty(Configuration.STANDALONE_DELETE_LEVELDB_VERIFYCHECKSUMS, Boolean.toString(DEFAULT_DELETE_VERIFYCHECKSUMS)));
+
     syncrate = Math.min(1.0D, Math.max(0.0D, Double.parseDouble(properties.getProperty(Configuration.LEVELDB_DATA_SYNCRATE, "1.0"))));
     syncwrites = 0.0 < syncrate && syncrate < 1.0 ;
   }
@@ -703,6 +704,8 @@ public class StandaloneStoreClient implements StoreClient {
 
     DBIterator iterator = null;
 
+    WriteBatch batch = null;
+
     try {
       ReadOptions roptions = new ReadOptions();
       roptions.fillCache(DELETE_FILLCACHE);
@@ -737,7 +740,7 @@ public class StandaloneStoreClient implements StoreClient {
 
       long count = 0L;
 
-      WriteBatch batch = this.db.createWriteBatchUnlocked();
+      batch = this.db.createWriteBatchUnlocked();
       int batchsize = 0;
 
       WriteOptions options = new WriteOptions().sync(1.0 == syncrate);
@@ -769,7 +772,7 @@ public class StandaloneStoreClient implements StoreClient {
         if (syncwrites) {
           options = new WriteOptions().sync(Math.random() < syncrate);
         }
-        this.db.write(batch, options);
+        this.db.writeUnlocked(batch, options);
       }
       return count;
     } finally {
@@ -779,6 +782,12 @@ public class StandaloneStoreClient implements StoreClient {
       if (null != iterator) {
         try {
           iterator.close();
+        } catch (Throwable t) {
+        }
+      }
+      if (null != batch) {
+        try {
+          batch.close();
         } catch (Throwable t) {
         }
       }
