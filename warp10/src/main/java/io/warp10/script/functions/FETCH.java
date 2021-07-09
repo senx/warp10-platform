@@ -260,13 +260,6 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       }
     }
 
-    if (null != tokenattr.get(PARAM_END)) {
-      long end = (long) tokenattr.get(PARAM_END);
-      if ((long) params.get(PARAM_END) > end) {
-        params.put(PARAM_END, end);
-      }
-    }
-
     if (null != tokenattr.get(PARAM_QUIET_AFTER)) {
       long activity = (long) tokenattr.get(PARAM_QUIET_AFTER);
       params.put(PARAM_QUIET_AFTER, activity);
