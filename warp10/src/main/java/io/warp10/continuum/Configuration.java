@@ -2342,6 +2342,11 @@ public class Configuration {
   public static final String HTTP_HEADER_WEBCALL_UUIDX = "http.header.webcall.uuid";
 
   /**
+   * Configuration key to modify the capabilities header
+   */
+  public static final String HTTP_HEADER_CAPABILITIES = "http.header.capabilities";
+
+  /**
    * HTTP Header for elapsed time of WarpScript scripts
    */
   public static final String HTTP_HEADER_ELAPSEDX = "http.header.elapsed";
