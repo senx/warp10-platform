@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@
 package io.warp10.script.functions;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
@@ -35,15 +34,15 @@ import io.warp10.script.WarpScriptStackFunction;
 public class METASORT extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
   public static final Comparator<GeoTimeSerie> META_COMPARATOR = new Comparator<GeoTimeSerie>() {
-    
+
     private final Comparator<Metadata> INNER_COMP = new MetadataTextComparator(null);
-    
+
     @Override
     public int compare(GeoTimeSerie o1, GeoTimeSerie o2) {
       return INNER_COMP.compare(o1.getMetadata(), o2.getMetadata());
     }
   };
-  
+
   public METASORT(String name) {
     super(name);
   }
@@ -51,7 +50,13 @@ public class METASORT extends NamedWarpScriptFunction implements WarpScriptStack
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
-    
+
+    boolean considerAttributes = false;
+    if (top instanceof Boolean) {
+      considerAttributes = (Boolean) top;
+      top = stack.pop();
+    }
+
     if (!(top instanceof List)) {
       throw new WarpScriptException(getName() + " expects a list of fields to consider for sorting on top of the stack.");
     }
@@ -68,9 +73,9 @@ public class METASORT extends NamedWarpScriptFunction implements WarpScriptStack
         fields.add(o.toString());
       }
     }
-    
+
     top = stack.peek();
-    
+
     //
     // Check if list on the top of the stack is a list of String
     //
@@ -84,20 +89,21 @@ public class METASORT extends NamedWarpScriptFunction implements WarpScriptStack
         throw new WarpScriptException(getName() + " operates on a list of Geo Time Series.");
       }
     }
-    
+
     if (fields.isEmpty()) {
-      Collections.sort((List<GeoTimeSerie>) top, META_COMPARATOR);
+      ((List<GeoTimeSerie>) top).sort(META_COMPARATOR);
     } else {
-      Collections.sort((List<GeoTimeSerie>) top, new Comparator<GeoTimeSerie>() {
-        private final Comparator<Metadata> INNER_COMP = new MetadataTextComparator(fields);
-        
+      final boolean finalConsiderAttributes = considerAttributes;
+      ((List<GeoTimeSerie>) top).sort(new Comparator<GeoTimeSerie>() {
+        private final Comparator<Metadata> INNER_COMP = new MetadataTextComparator(fields, finalConsiderAttributes);
+
         @Override
         public int compare(GeoTimeSerie o1, GeoTimeSerie o2) {
           return INNER_COMP.compare(o1.getMetadata(), o2.getMetadata());
-        }        
+        }
       });
     }
-    
+
     return stack;
   }
 }

@@ -110,6 +110,11 @@ public class Configuration {
   public static final String CONFIG_WARPSCRIPT_TIMEBOX_MAXTIME = "warpscript.timebox.maxtime";
 
   /**
+   * Capability name used for extending timebox maxtime, if set.
+   */
+  public static final String MAXTIME_EXTENSION_ALLOWANCE_CAPNAME = "warpscript.timebox.maxtime.capname";
+
+  /**
    * Comma separated list of WarpScriptExtension classes to instantiate to modify
    * the defined WarpScript functions.
    */
@@ -2335,6 +2340,11 @@ public class Configuration {
    * Header containing the request UUID when calling the endpoint
    */
   public static final String HTTP_HEADER_WEBCALL_UUIDX = "http.header.webcall.uuid";
+
+  /**
+   * Configuration key to modify the capabilities header
+   */
+  public static final String HTTP_HEADER_CAPABILITIES = "http.header.capabilities";
 
   /**
    * HTTP Header for elapsed time of WarpScript scripts
