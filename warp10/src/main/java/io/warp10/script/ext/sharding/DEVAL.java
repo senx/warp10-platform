@@ -71,16 +71,16 @@ public class DEVAL extends NamedWarpScriptFunction implements WarpScriptStackFun
   
   private static final int maxThreadsPerRequest;
   
-  private static Map<URI,Set<Long>> endpoints = new HashMap<URI,Set<Long>>();
+  private static final Map<URI,Set<Long>> endpoints = new HashMap<URI,Set<Long>>();
   
   private static long shardmodulus;
-  
+
   /**
    * Snapshot command to use
    */
-  private static byte[] snapshot;
+  private static final byte[] snapshot;
   
-  private static JSONTO JSONTO;
+  private static final JSONTO JSONTO;
   
   static {    
     snapshot = WarpConfig.getProperty(ShardingWarpScriptExtension.SHARDING_SNAPSHOT, WarpScriptLib.SNAPSHOT).trim().getBytes(StandardCharsets.UTF_8);
@@ -96,7 +96,7 @@ public class DEVAL extends NamedWarpScriptFunction implements WarpScriptStackFun
     // Scan the properties, identifying the endpoints
     //
     
-    long shardmodulus = -1;        
+    shardmodulus = -1;
 
     Properties props = WarpConfig.getProperties();
 
@@ -135,15 +135,15 @@ public class DEVAL extends NamedWarpScriptFunction implements WarpScriptStackFun
       
       try {
         URL url = new URL(entry.getValue().toString().trim());
-        
+
         Set<Long> remainders = endpoints.get(url.toURI());
-        
+
         if (null == remainders) {
           remainders = new HashSet<Long>();
           endpoints.put(url.toURI(), remainders);
         }
-        
-        remainders.add(remainder);        
+
+        remainders.add(remainder);
       } catch (MalformedURLException | URISyntaxException e) {
         throw new RuntimeException(e);
       }
