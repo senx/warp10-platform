@@ -30,7 +30,7 @@ dependencies {
     api project(':crypto')
     api 'io.warp10:sensision:1.0.24'
 
-    api 'org.apache.thrift:libthrift:0.11.0'
+    api 'org.apache.thrift:libthrift:[0.11.0,0.13.0]'
 }
 
 //
