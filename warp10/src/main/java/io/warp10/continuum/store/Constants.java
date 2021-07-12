@@ -40,8 +40,6 @@ public class Constants {
   //  Doing so would render the storage system unusable
   //
   
-  private static boolean timeUnitsAlreadySet = false;
-  
   /**
    * Number of continuum time units per millisecond
    * 1000000 means we store nanoseconds
@@ -254,11 +252,6 @@ public class Constants {
   public static final String API_ENDPOINT_DELETE = "/api/v0/delete";
   
   /**
-   * Plasma client endpoint for the API
-   */
-  public static final String API_ENDPOINT_PLASMA_CLIENT = "/api/v0/plasma/client";
-  
-  /**
    * Plasma server endpoint
    */
   public static final String API_ENDPOINT_PLASMA_SERVER = "/api/v0/plasma";
@@ -282,31 +275,6 @@ public class Constants {
    * Meta endpoint
    */
   public static final String API_ENDPOINT_META = "/api/v0/meta";
-  
-  /**
-   * Geo root endpoint
-   */
-  public static final String API_ENDPOINT_GEO = "/api/v0/geo";
-  
-  /**
-   * Geo endpoint subpath for 'list'
-   */
-  public static final String API_ENDPOINT_GEO_LIST = "/list";
-  
-  /**
-   * Geo endpoint subpath for 'add'
-   */
-  public static final String API_ENDPOINT_GEO_ADD = "/add";
-  
-  /**
-   * Geo endpoint subpath for 'remove'
-   */
-  public static final String API_ENDPOINT_GEO_REMOVE = "/remove";
-
-  /**
-   * Geo endpoint subpath for 'index'
-   */
-  public static final String API_ENDPOINT_GEO_INDEX = "/index";
 
   /**
    * Endpoint for internal directory streaming requests
@@ -344,8 +312,6 @@ public class Constants {
   public static final String HTTP_PARAM_SHOWUUID = "showuuid";
   public static final String HTTP_PARAM_SHOWATTR = "showattr";
   public static final String HTTP_PARAM_SORTMETA = "sortmeta";
-  public static final String HTTP_PARAM_MINSPLITS = "minsplits";
-  public static final String HTTP_PARAM_MAXSPLITS = "maxsplits";
   public static final String HTTP_PARAM_MAXSIZE = "maxsize";
   public static final String HTTP_PARAM_SUFFIX = "suffix";
   public static final String HTTP_PARAM_UNPACK = "unpack";

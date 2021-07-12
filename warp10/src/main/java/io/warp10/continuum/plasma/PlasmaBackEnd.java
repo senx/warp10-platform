@@ -124,8 +124,6 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
   
   private CuratorFramework curatorFramework = null;
   
-  private String rootznode = null;
-      
   public PlasmaBackEnd(KeyStore keystore, final Properties props) {
     this.keystore = keystore;
 

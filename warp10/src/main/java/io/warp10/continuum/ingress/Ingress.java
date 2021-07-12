@@ -170,8 +170,6 @@ public class Ingress extends AbstractHandler implements Runnable {
   
   private final String cacheDumpPath;
   
-  private DateTimeFormatter fmt = ISODateTimeFormat.dateTimeParser();
-  
   public final IngressPlugin plugin;
   
   /**
@@ -994,8 +992,6 @@ public class Ingress extends AbstractHandler implements Runnable {
         
         byte[] bytes = new byte[16];
         
-        int idx = 0;
-        
         AtomicLong dms = this.dataMessagesSize.get();
         
         // Atomic boolean to track if attributes were parsed
@@ -1035,8 +1031,7 @@ public class Ingress extends AbstractHandler implements Runnable {
           try {
             encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxsize, hadAttributes, maxpast, maxfuture, ignoredCount, deltaAttributes);
             if (null != this.plugin) {
-              GTSEncoder enc = encoder;
-              if (!this.plugin.update(this, writeToken, line, encoder)) {                
+              if (!this.plugin.update(this, writeToken, line, encoder)) {
                 hadAttributes.set(false);
                 continue;
               }
@@ -1433,8 +1428,6 @@ public class Ingress extends AbstractHandler implements Runnable {
     
     response.setHeader("Access-Control-Allow-Origin", "*");
 
-    long nano = System.nanoTime();
-    
     //
     // Extract token infos
     //
@@ -1615,8 +1608,6 @@ public class Ingress extends AbstractHandler implements Runnable {
       
       labelsSelectors.putAll(extraLabels);
 
-      List<Metadata> metadatas = null;
-      
       List<String> clsSels = new ArrayList<String>();
       List<Map<String,String>> lblsSels = new ArrayList<Map<String,String>>();
       

@@ -29,7 +29,6 @@ import org.joda.time.format.ISODateTimeFormat;
  * Checks that the current time is not before the provided instant.
  */
 public class NOTBEFORE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  private DateTimeFormatter fmt = ISODateTimeFormat.dateTimeParser();
 
   public NOTBEFORE(String name) {
     super(name);    
