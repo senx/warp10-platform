@@ -129,3 +129,13 @@ leveldb.compression.type = SNAPPY
 // Defaults to 0, meaning never disable the block cache
 //
 leveldb.blockcache.gts.threshold = 0
+
+//
+// Should the LevelDB cache be filled when scanning key space for deletes? Defaults to false.
+//
+#standalone.delete.leveldb.fillcache = false
+
+//
+// Should LevelDB checksums be verified when scanning key space for deletes? Defaults to true.
+//
+#standalone.delete.leveldb.verifychecksums = true
