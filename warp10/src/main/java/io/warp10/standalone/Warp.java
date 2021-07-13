@@ -455,8 +455,6 @@ public class Warp extends WarpDist implements Runnable {
       ThrottlingManager.enable();
     }
 
-    QuasarTokenFilter tf = new QuasarTokenFilter(properties, keystore);
-
     GzipHandler gzip = new GzipHandler();
     EgressExecHandler egressExecHandler = new EgressExecHandler(keystore, properties, sdc, scc);
     gzip.setHandler(egressExecHandler);

@@ -1278,7 +1278,6 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
           public void run() {
             try {
               long lastsync = System.currentTimeMillis();
-              long lastflush = lastsync;
 
               //
               // Check for how long we've been storing readings, if we've reached the commitperiod,
@@ -2358,8 +2357,6 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
       return;
     }
 
-    long nano = System.nanoTime();
-
     baseRequest.setHandled(true);
 
     //
@@ -2435,8 +2432,6 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     if (null == signature) {
       throw new IOException("Missing header '" + Constants.getHeader(io.warp10.continuum.Configuration.HTTP_HEADER_DIRECTORY_SIGNATURE) + "'.");
     }
-
-    boolean signed = false;
 
     //
     // Signature has the form hex(ts):hex(hash)

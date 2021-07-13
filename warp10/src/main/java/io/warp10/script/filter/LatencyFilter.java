@@ -542,8 +542,6 @@ public class LatencyFilter extends NamedWarpScriptFunction implements WarpScript
     // Maximum latency, this is to enforce a stop condition when looking for a
     // matching out packet
     
-    long maxlatency = 1000L;
-    
     while(indices[0] < n) {
       long ints = GTSHelper.tickAtIndex(inGTS, indices[0]);
       long maxoutts = ints + maxLatency;

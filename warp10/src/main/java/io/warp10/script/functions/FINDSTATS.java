@@ -48,7 +48,6 @@ import org.joda.time.format.ISODateTimeFormat;
  */
 public class FINDSTATS extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
-  private WarpScriptStackFunction toList = new TOLIST("");
   private WarpScriptStackFunction listTo = new LISTTO("");
   
   public FINDSTATS(String name) {
