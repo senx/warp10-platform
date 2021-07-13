@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -58,9 +58,12 @@ public class DURATION extends NamedWarpScriptFunction implements WarpScriptStack
     // Separate seconds from digits below second precision
     String duration_string = o.toString();
 
-    long duration = parseDuration(new Instant(), duration_string, false, false);
-
-    stack.push(duration);
+    try {
+      long duration = parseDuration(new Instant(), duration_string, false, false);
+      stack.push(duration);
+    } catch (WarpScriptException wse) {
+      throw new WarpScriptException(getName() + " encountered an error while parsing duration.", wse);
+    }
 
     return stack;
   }
@@ -93,8 +96,7 @@ public class DURATION extends NamedWarpScriptFunction implements WarpScriptStack
 
     Duration duration = negate ? p.toDurationTo(ref) : p.toDurationFrom(ref);
 
-    // check if offset should be positive of negative
-    if (p.getSeconds() < 0 || negate) {
+    if (duration.getMillis() < 0) {
       offset = -offset;
     }
 

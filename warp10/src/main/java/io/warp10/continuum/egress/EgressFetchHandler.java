@@ -487,7 +487,7 @@ public class EgressFetchHandler extends AbstractHandler {
       // Apply constraints from token attribute
       //
 
-      if (rtoken.getAttributesSize() > 0) {
+      if (null != rtoken && rtoken.getAttributesSize() > 0) {
         Map<String,Object> params = new HashMap<String,Object>();
         params.put(FETCH.PARAM_END, now);
         params.put(FETCH.PARAM_START, then);
@@ -518,19 +518,17 @@ public class EgressFetchHandler extends AbstractHandler {
         }
 
         if (null != tokenattr.get(FETCH.PARAM_QUIET_AFTER)) {
-          long activity = (long) tokenattr.get(FETCH.PARAM_QUIET_AFTER);
-          quietAfter = activity;
+          quietAfter = (long) tokenattr.get(FETCH.PARAM_QUIET_AFTER);
         }
 
         if (null != tokenattr.get(FETCH.PARAM_ACTIVE_AFTER)) {
-          long activity = (long) tokenattr.get(FETCH.PARAM_ACTIVE_AFTER);
-          activeAfter = activity;
+          activeAfter = (long) tokenattr.get(FETCH.PARAM_ACTIVE_AFTER);
         }
 
         if (null != tokenattr.get(FETCH.PARAM_COUNT)) {
           long c = (long) tokenattr.get(FETCH.PARAM_COUNT);
           if (count > c) {
-            c = count;
+            count = c;
           }
         }
 

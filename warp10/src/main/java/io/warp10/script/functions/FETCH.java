@@ -1605,7 +1605,16 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         } else {
           quietafter = end + offset;
         }
-        quietafter = now + offset;
+      } else if ("0".equals(value)) {
+        if (null == end) {
+          if (null != params && params.get(PARAM_END) instanceof Long) {
+            quietafter = ((Long) params.get(PARAM_END)).longValue();
+          } else {
+            quietafter = now;
+          }
+        } else {
+          quietafter = end;
+        }
       } else {
         quietafter = TOTIMESTAMP.parseTimestamp(value);
       }
@@ -1615,7 +1624,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
     value = tokenattr.get(Constants.TOKEN_ATTR_ACTIVEAFTER);
     if (null != value) {
       value = value.trim();
-      long activeafter;
+      Long activeafter = null;
 
       if (value.startsWith("P")) {
         long offset = DURATION.parseDuration(ref, value, true, true);
@@ -1628,10 +1637,14 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         } else {
           activeafter = end + offset;
         }
+      } else if ("0".equals(value) && params.get(PARAM_START) instanceof Long) {
+        activeafter = ((Long) params.get(PARAM_START)).longValue();
       } else {
         activeafter = TOTIMESTAMP.parseTimestamp(value);
       }
-      attributes.put(PARAM_ACTIVE_AFTER, activeafter);
+      if (null != activeafter) {
+        attributes.put(PARAM_ACTIVE_AFTER, activeafter);
+      }
     }
 
     value = tokenattr.get(Constants.TOKEN_ATTR_COUNT);
