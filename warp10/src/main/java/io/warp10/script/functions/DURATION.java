@@ -96,7 +96,18 @@ public class DURATION extends NamedWarpScriptFunction implements WarpScriptStack
 
     Duration duration = negate ? p.toDurationTo(ref) : p.toDurationFrom(ref);
 
-    if (duration.getMillis() < 0) {
+    // Find out if subseconds are positive or negative.
+    boolean offsetIsNegative = false;
+    if (p.getSeconds() < 0) {
+      // Seconds are negative, so as subseconds (example: -1.234).
+      offsetIsNegative = true;
+    } else if (0 == p.getSeconds() && 2 == tokens.length) {
+      // There aren't whole seconds and subseconds are defined (example: 0.123).
+      // Check if there is a minus sign before any number of 0s defining seconds.
+      offsetIsNegative = tokens[0].matches(".*-0+$");
+    }
+
+    if (offsetIsNegative ^ negate) {
       offset = -offset;
     }
 
