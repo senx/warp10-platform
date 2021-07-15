@@ -14,11 +14,6 @@
 //   limitations under the License.
 //
 
-// Only the warp10 subproject uses changelog, so apply the plugin here.
-plugins {
-    id "com.selesse.git.changelog" version "0.3.0"
-}
-
 sourceSets {
     main {
         java {
@@ -195,8 +190,8 @@ task pack(type: Jar) {
 // Exec task to create the Warp 10 tar.gz file
 //
 task createTarArchive(type: Exec, dependsOn: pack) {
-    workingDir = '.'
-    commandLine = ["${workingDir}/src/main/sh/package.sh", version, projectDir]
+    workingDir '.'
+    commandLine "${projectDir}/src/main/sh/package.sh", version, projectDir
     outputs.file "${buildDir}/libs/warp10-${version}.tar.gz"
 }
 
@@ -221,56 +216,74 @@ publishing {
     }
 }
 
-changelog {
-    // The title appears at the top of the changelog.
-    // Default value: the name of the project.
-    title = "${project.name} - Changelog"
+task generateChangelog(type: Exec) {
+    workingDir '.'
 
-    // The output directory where the report is generated.
-    // Default value: main resource directory, or the "build" directory
-    outputDirectory = file("${project.buildDir}")
+    String separator = "§ÉÖÁËÁÞÓË"
 
-    // The name of the report to generate.
-    // Default value: CHANGELOG.md
-    fileName = "changelog.txt"
+    commandLine 'git', 'log', '--first-parent', 'master', '--decorate=short', '--decorate-refs=refs/tags/', '--format=%cs' + separator + '%D' + separator + '%s' + separator + '%b'
 
-    // The range of commits the changelog should be composed of.
-    // Default value: 'beginning' (i.e. full changelog)
-    // Possible values: 'beginning', 'last_tag', 'xxx'
-    //
-    // 'last_tag' will use all the commits since the last tag,
-    // 'beginning' will use all commits since the initial commit (default)
-    // 'xxx' will use all the tags since the 'xxx' Git reference (i.e. `since = 1.2.0` will display the changelog
-    //       since the 1.2.0 tag, excluding 1.2.0)
-    since = 'beginning'
+    standardOutput = new ByteArrayOutputStream()
 
-    // The output formats that should be generated.
-    // Default value: ['markdown']
-    // Possible values: 'html', 'markdown'.
-    formats = ['html', 'markdown']
+    File changelogFile = new File('.', "CHANGELOG.md")
+    outputs.file changelogFile
 
-    // The Git "pretty" changelog commit format.
-    // Default value: %ad%x09%s (%an), which produces:
-    // Thu May 7 20:10:33 2015 -0400    Initial commit (Alex Selesse)
-    commitFormat = '%ad%x09%s'
+    doLast {
+        changelogFile.write("# Warp 10 Changelog\n")
 
-    // Specifies a commit format for Markdown.
-    // Default value: '* %s (%an)', which produces:
-    // * Initial commit (Alex Selesse)
-    markdown {
-        commitFormat = '* %s'
-    }
+        boolean firstLine = true
+        BufferedReader br = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(standardOutput.toByteArray())));
 
-    // Specifies a commit format for the HTML template.
-    // Default value: see commitFormat
-    html {
-        commitFormat = '%s'
-    }
+        for (String line; (line = br.readLine()) != null;) {
+            String[] splittedLine = line.trim().split(separator)
 
-    // A closure that returns 'true' if the line should be included in the changelog.
-    // Default value: accept everything, { true }
-    includeLines = {
-        !it.contains("Merge")
+            if (splittedLine.length < 3) {
+                // Skip invalid lines, usually the last empty line.
+                continue
+            }
+
+            // Release
+            if (!"".equals(splittedLine[1])) {
+                // There can be several tags for the same commit (rc for instance).
+                String[] tags = splittedLine[1].split(",")
+                changelogFile.append("##")
+                // Last tag is last created, so scan from the end.
+                for (int i = tags.length - 1; i >= 0; i--) {
+                    if (i < tags.length - 1) {
+                        changelogFile.append(",")
+                    }
+                    changelogFile.append(tags[i].trim().substring(4))
+                }
+                // Add date of tagged commit.
+                changelogFile.append(" (" + splittedLine[0] + ")\n")
+            } else if (firstLine) {
+                // First line but no tag, add "Unreleased" section.
+                changelogFile.append("## Unreleased\n")
+            }
+
+            // Commit
+            String commitMessage
+            if (splittedLine.length < 4) {
+                // Not a PR
+                commitMessage = splittedLine[2]
+            } else {
+                // Most probably a PR
+                commitMessage = splittedLine[3]
+                if (splittedLine[2].startsWith("Merge pull request")) {
+                    // Definitively a PR, add link
+                    int prNumberStartIndex = splittedLine[2].indexOf("#") + 1
+                    int prNumberEndIndex = splittedLine[2].indexOf(" ", prNumberStartIndex)
+                    String prNumber = splittedLine[2].substring(prNumberStartIndex, prNumberEndIndex)
+                    commitMessage += " [#" + prNumber + "](https://github.com/senx/warp10-platform/pull/" + prNumber + ")"
+                }
+            }
+            if (commitMessage.startsWith("#")) {
+                commitMessage = "\\" + commitMessage
+            }
+            changelogFile.append("* " + commitMessage + "\n")
+
+            firstLine = false
+        }
     }
 }
 
