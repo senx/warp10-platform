@@ -87,8 +87,8 @@ public class StandaloneStoreClient implements StoreClient {
     this.blockcacheThreshold = Integer.parseInt(properties.getProperty(Configuration.LEVELDB_BLOCKCACHE_GTS_THRESHOLD, "0"));
     MAX_ENCODER_SIZE = Long.valueOf(properties.getProperty(Configuration.STANDALONE_MAX_ENCODER_SIZE, DEFAULT_MAX_ENCODER_SIZE));
     MAX_DELETE_BATCHSIZE = Integer.parseInt(properties.getProperty(Configuration.STANDALONE_MAX_DELETE_BATCHSIZE, Integer.toString(DEFAULT_MAX_DELETE_BATCHSIZE)));
-    DELETE_FILLCACHE = Boolean.valueOf(properties.getProperty(Configuration.STANDALONE_DELETE_LEVELDB_FILLCACHE, Boolean.toString(DEFAULT_DELETE_FILLCACHE)));
-    DELETE_VERIFYCHECKSUMS = Boolean.valueOf(properties.getProperty(Configuration.STANDALONE_DELETE_LEVELDB_VERIFYCHECKSUMS, Boolean.toString(DEFAULT_DELETE_VERIFYCHECKSUMS)));
+    DELETE_FILLCACHE = Boolean.valueOf(properties.getProperty(Configuration.LEVELDB_DELETE_FILLCACHE, Boolean.toString(DEFAULT_DELETE_FILLCACHE)));
+    DELETE_VERIFYCHECKSUMS = Boolean.valueOf(properties.getProperty(Configuration.LEVELDB_DELETE_VERIFYCHECKSUMS, Boolean.toString(DEFAULT_DELETE_VERIFYCHECKSUMS)));
 
     syncrate = Math.min(1.0D, Math.max(0.0D, Double.parseDouble(properties.getProperty(Configuration.LEVELDB_DATA_SYNCRATE, "1.0"))));
     syncwrites = 0.0 < syncrate && syncrate < 1.0 ;

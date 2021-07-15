@@ -1591,12 +1591,12 @@ public class Configuration {
   /**
    * Should the LevelDB cache be filled when scanning key space for deletes? Defaults to false.
    */
-  public static final String STANDALONE_DELETE_LEVELDB_FILLCACHE = "standalone.delete.leveldb.fillcache";
+  public static final String LEVELDB_DELETE_FILLCACHE = "leveldb.delete.fillcache";
 
   /**
    * Should LevelDB checksums be verified when scanning key space for deletes? Defaults to true.
    */
-  public static final String STANDALONE_DELETE_LEVELDB_VERIFYCHECKSUMS = "standalone.delete.leveldb.verifychecksums";
+  public static final String LEVELDB_DELETE_VERIFYCHECKSUMS = "leveldb.delete.verifychecksums";
 
   /**
    * Maximum size in bytes of a value
