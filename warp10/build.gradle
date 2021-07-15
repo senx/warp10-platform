@@ -33,6 +33,7 @@ dependencies {
     //
     api project(':crypto')
     api project(':token')
+    api project(':hbaseFilters')
     api 'io.warp10:sensision:1.0.24'
 
     api 'joda-time:joda-time:2.2'
@@ -281,3 +282,4 @@ compileJava.dependsOn("generateThrift")
 pack.dependsOn("generateChangelog")
 pack.dependsOn(":crypto:jar")
 pack.dependsOn(":token:jar")
+pack.dependsOn(":hbaseFilters:jar")
