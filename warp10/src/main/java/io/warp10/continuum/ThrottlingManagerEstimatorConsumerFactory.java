@@ -61,8 +61,6 @@ public class ThrottlingManagerEstimatorConsumerFactory implements ConsumerFactor
         ConsumerIterator<byte[],byte[]> iter = stream.iterator();
 
         // Iterate on the messages
-        TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
-
         KafkaOffsetCounters counters = pool.getCounters();
         
         try {

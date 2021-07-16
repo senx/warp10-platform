@@ -660,8 +660,6 @@ public class EgressFetchHandler extends AbstractHandler {
 
           private boolean done = false;
 
-          private String lasttoken = "";
-
           @Override
           public void close() throws Exception {
             fbr.close();
@@ -1128,8 +1126,6 @@ public class EgressFetchHandler extends AbstractHandler {
 
     // Labels for Sensision
     Map<String,String> labels = new HashMap<String,String>();
-
-    StringBuilder sb = new StringBuilder();
 
     Metadata lastMetadata = lastMeta.get();
     long currentCount = lastCount.get();

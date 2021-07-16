@@ -216,8 +216,6 @@ public class ShadowWarpScriptExtension extends WarpScriptExtension {
       for (String f: func) {
         f = f.trim();
 
-        final String fu = f;
-        
         if (null == msg) {
           functions.put(f, new FAIL(f));
         } else {                    

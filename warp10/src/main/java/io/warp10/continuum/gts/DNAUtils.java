@@ -101,8 +101,6 @@ public class DNAUtils {
     
     GTSHelper.sort(gts);
     
-    StringBuilder sb = new StringBuilder();    
-    
     byte[] seq = new byte[gts.values];
 
     long value = 0;

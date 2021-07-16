@@ -97,11 +97,6 @@ public class StandaloneDeleteHandler extends AbstractHandler {
    */
   private final byte[] datalogPSK;
 
-  private final long[] classKeyLongs;
-  private final long[] labelsKeyLongs;
-
-  private DateTimeFormatter fmt = ISODateTimeFormat.dateTimeParser();
-
   private final boolean datalogSync;
 
   private final File loggingDir;
@@ -122,10 +117,8 @@ public class StandaloneDeleteHandler extends AbstractHandler {
     this.directoryClient = directoryClient;
 
     this.classKey = this.keyStore.getKey(KeyStore.SIPHASH_CLASS);
-    this.classKeyLongs = SipHashInline.getKey(this.classKey);
 
     this.labelsKey = this.keyStore.getKey(KeyStore.SIPHASH_LABELS);
-    this.labelsKeyLongs = SipHashInline.getKey(this.labelsKey);
 
     String dirProp = WarpConfig.getProperty(Configuration.DATALOG_DIR);
     if (null != dirProp) {

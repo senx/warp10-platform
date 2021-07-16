@@ -30,8 +30,6 @@ import org.joda.time.format.ISODateTimeFormat;
  */
 public class TIMECLIP extends ElementOrListStackFunction {
 
-  private DateTimeFormatter fmt = ISODateTimeFormat.dateTimeParser();
-
   public TIMECLIP(String name) {
     super(name);
   }
