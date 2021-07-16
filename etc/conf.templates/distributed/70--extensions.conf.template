@@ -30,14 +30,19 @@
 // Integrated extensions:
 // CEVAL, SYNC
 #warpscript.extension.concurrent = io.warp10.script.ext.concurrent.ConcurrentWarpScriptExtension
+
 // LOGMSG, NOLOG, STDERR, STDOUT, TDESCRIBE
 #warpscript.extension.debug = io.warp10.script.ext.debug.DebugWarpScriptExtension
+
 // HLOCATE
 #warpscript.extension.hbase = io.warp10.script.ext.debug.HBaseWarpScriptExtension
+
 // FUNCTIONS
 #warpscript.extension.inventory = io.warp10.script.ext.inventory.InventoryWarpScriptExtension
+
 // LOGEVENTTO
 #warpscript.extension.logging = io.warp10.script.ext.logging.LoggingWarpScriptExtension
+
 // REXEC
 #warpscript.extension.rexec = io.warp10.script.ext.rexec.RexecWarpScriptExtension
 // Comma separated list of included and excluded (! prefixed) host patterns
@@ -46,25 +51,34 @@
 #warpscript.rexec.timeout.connect = 0
 // REXEC read timeout in ms (default = 0, no timeout)
 #warpscript.rexec.timeout.read = 0
+
 // SENSISIONEVENT, SENSISIONGET, SENSISIONSET, SENSISIONUPDATE
 #warpscript.extension.sensision = io.warp10.script.ext.sensision.SensisionWarpScriptExtension
+
 // MUTEX, SHMLOAD, SHMSTORE
 #warpscript.extension.shm = io.warp10.script.ext.shm.SharedMemoryWarpScriptExtension
 // SHM ttl in ms, default = 1 hour
 #shm.ttl = 3600000
+
 // TOKENDUMP, TOKENGEN, TOKENSECRET
 #warpscript.extension.token = io.warp10.script.ext.token.TokenWarpScriptExtension
 // If you use OSS to handle this secret
 #warp.key.token.secret = wrapped:hex:......
 // If you use a plain string token. Used instead of the previous configuration key if set and not commented
 #token.secret = ....
+
 // URLFETCH, MAXURLFETCHCOUNT, MAXURLFETCHSIZE
 #warpscript.extension.urlfetch = io.warp10.script.ext.urlfetch.UrlFetchWarpScriptExtension
+// see also warpscript.urlfetch.* configurations in 20-warpscript.conf
+
 // HTTP
 #warpscript.extension.http = io.warp10.script.ext.http.HttpWarpScriptExtension
+// see also warpscript.http.* configurations in 20-warpscript.conf
+
 // WSPS WSINFO WSKILL STACKPSSECRET
 #warpscript.extension.stackps = io.warp10.script.ext.stackps.StackPSWarpScriptExtension
 #stackps.secret = ....
+
 //
 // Specific namespace under which to load an extension. The specified namespace will be used as a prefix for all functions of the extension.
 //
