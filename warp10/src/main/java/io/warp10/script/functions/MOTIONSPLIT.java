@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -225,7 +225,8 @@ public class MOTIONSPLIT extends ElementOrListStackFunction {
     long refTimestamp = Long.MIN_VALUE;
 
     long previousTimestamp = Long.MIN_VALUE;
-    long previousLocation = GeoTimeSerie.NO_LOCATION;
+    long previousTimestampWithLocation = Long.MIN_VALUE;
+    long previousValidLocation = GeoTimeSerie.NO_LOCATION;
     double proximityZoneTraveledDistance = 0.0D;
     String splitReason = SPLIT_TYPE_END;
 
@@ -263,19 +264,19 @@ public class MOTIONSPLIT extends ElementOrListStackFunction {
       // change the reference point and reset the traveled distance.
       // If the distance traveled in the proximity zone was traveled at less than proximityInZoneMaxMeanSpeed and the time spent in the zone is above proximityZoneTime, force a split
       //
-      long timeStopped = previousTimestamp - refTimestamp;
-      if (proximityZoneRadius < Double.MAX_VALUE && proximityZoneTime < Double.MAX_VALUE && GeoTimeSerie.NO_LOCATION != refLocation && GeoTimeSerie.NO_LOCATION != location) {
+      long timeStopped = previousTimestampWithLocation - refTimestamp;
+      if (proximityZoneRadius < Double.MAX_VALUE && proximityZoneTime < Long.MAX_VALUE && GeoTimeSerie.NO_LOCATION != refLocation && GeoTimeSerie.NO_LOCATION != location) {
 
         double currentSpeed = 0.0D;
-        if (GeoTimeSerie.NO_LOCATION != previousLocation && timestamp != previousTimestamp) {
-          currentSpeed = GeoXPLib.orthodromicDistance(previousLocation, location) / ((double) (timestamp - previousTimestamp) / Constants.TIME_UNITS_PER_S);
+        if (GeoTimeSerie.NO_LOCATION != previousValidLocation && timestamp != previousTimestampWithLocation) {
+          currentSpeed = GeoXPLib.orthodromicDistance(previousValidLocation, location) / ((double) (timestamp - previousTimestampWithLocation) / Constants.TIME_UNITS_PER_S);
         }
 
         // quit the radius, or speed greater than max stopped speed.
         if (GeoXPLib.orthodromicDistance(refLocation, location) > proximityZoneRadius || currentSpeed > proximityZoneMaxSpeed) {
           double zoneMeanSpeed = 0.0D;
-          if (previousTimestamp != refTimestamp) {
-            zoneMeanSpeed = proximityZoneTraveledDistance / ((double) (previousTimestamp - refTimestamp) / Constants.TIME_UNITS_PER_S);
+          if (previousTimestampWithLocation != refTimestamp) {
+            zoneMeanSpeed = proximityZoneTraveledDistance / ((double) (previousTimestampWithLocation - refTimestamp) / Constants.TIME_UNITS_PER_S);
           }
           if (timeStopped > proximityZoneTime && zoneMeanSpeed < proximityInZoneMaxMeanSpeed) {
             splitReason = SPLIT_TYPE_STOPPED;
@@ -288,8 +289,8 @@ public class MOTIONSPLIT extends ElementOrListStackFunction {
           refTimestamp = timestamp;
           proximityZoneTraveledDistance = 0.0D;
         } else { // inside the radius
-          if (GeoTimeSerie.NO_LOCATION != previousLocation) {
-            proximityZoneTraveledDistance += GeoXPLib.orthodromicDistance(previousLocation, location);
+          if (GeoTimeSerie.NO_LOCATION != previousValidLocation) {
+            proximityZoneTraveledDistance += GeoXPLib.orthodromicDistance(previousValidLocation, location);
           }
         }
       }
@@ -299,7 +300,7 @@ public class MOTIONSPLIT extends ElementOrListStackFunction {
         // priority 2: if no stop detection, test for distance
         // If the distance to the previous location is above distanceThreshold, split
         //
-        if (GeoTimeSerie.NO_LOCATION != previousLocation && GeoTimeSerie.NO_LOCATION != location && GeoXPLib.orthodromicDistance(location, previousLocation) > distanceThreshold) {
+        if (GeoTimeSerie.NO_LOCATION != previousValidLocation && GeoTimeSerie.NO_LOCATION != location && GeoXPLib.orthodromicDistance(location, previousValidLocation) > distanceThreshold) {
           splitReason = SPLIT_TYPE_DISTANCE;
           mustSplit = true;
         } else if (timestamp - previousTimestamp > timeThreshold) {
@@ -365,7 +366,7 @@ public class MOTIONSPLIT extends ElementOrListStackFunction {
       // On the last iteration, also manage the split type label (end or stopped), and split again if needed
       //
       if (idx == n - 1) {
-        if ((previousTimestamp - refTimestamp) > proximityZoneTime) {
+        if ((previousTimestampWithLocation - refTimestamp) > proximityZoneTime) {
           splitReason = SPLIT_TYPE_STOPPED;
           if (null != stoppedTimeLabel) {
             split.getMetadata().putToLabels(stoppedTimeLabel, Long.toString(timeStopped));
@@ -402,7 +403,10 @@ public class MOTIONSPLIT extends ElementOrListStackFunction {
       }
 
       previousTimestamp = timestamp;
-      previousLocation = location;
+      if(GeoTimeSerie.NO_LOCATION != location) {
+        previousTimestampWithLocation = timestamp;
+        previousValidLocation = location;
+      }
 
       idx++;
     }
