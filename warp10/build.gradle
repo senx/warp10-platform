@@ -1,3 +1,5 @@
+import java.nio.charset.StandardCharsets
+
 //
 //   Copyright 2018-2021  SenX S.A.S.
 //
@@ -219,7 +221,7 @@ publishing {
 task generateChangelog(type: Exec) {
     workingDir '.'
 
-    String separator = "§ÉÖÁËÁÞÓË"
+    String separator = "\uBEEF\uC0DE";
 
     commandLine 'git', 'log', '--first-parent', 'master', '--decorate=short', '--decorate-refs=refs/tags/', '--format=%cs' + separator + '%D' + separator + '%s' + separator + '%b'
 
