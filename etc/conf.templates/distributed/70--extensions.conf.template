@@ -50,6 +50,8 @@
 #warpscript.extension.sensision = io.warp10.script.ext.sensision.SensisionWarpScriptExtension
 // MUTEX, SHMLOAD, SHMSTORE
 #warpscript.extension.shm = io.warp10.script.ext.shm.SharedMemoryWarpScriptExtension
+// SHM ttl in ms, default = 1 hour
+#shm.ttl = 3600000
 // TOKENDUMP, TOKENGEN, TOKENSECRET
 #warpscript.extension.token = io.warp10.script.ext.token.TokenWarpScriptExtension
 // If you use OSS to handle this secret
