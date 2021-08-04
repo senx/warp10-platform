@@ -29,8 +29,18 @@ public class STDOUT extends NamedWarpScriptFunction implements WarpScriptStackFu
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
+
+    boolean forceFlush = false;
+    if (top instanceof Boolean) {
+      forceFlush = Boolean.TRUE.equals(top);
+      top = stack.pop();
+    }
     
     System.out.println(top.toString());
+
+    if (forceFlush) {
+      System.out.flush();
+    }
     
     return stack;
   }
