@@ -849,7 +849,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         } catch (WarpScriptException ee) {
           throw ee;
         } catch (Throwable t) {
-          throw new WarpScriptException(getName() + "failed.", t);
+          throw new WarpScriptException(getName() + " failed.", t);
         }
 
 

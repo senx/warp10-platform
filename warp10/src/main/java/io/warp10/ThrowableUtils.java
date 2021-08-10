@@ -53,6 +53,10 @@ public class ThrowableUtils {
 
       if (null != message) {
         messages.add(message);
+      } else {
+        // Make sure Exceptions without message are displayed with at least the class name.
+        // For instance OutOfMemoryErrors don't have any message.
+        messages.add(t.getClass().getSimpleName());
       }
 
       throwables.add(t);
