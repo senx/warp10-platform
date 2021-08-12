@@ -1,5 +1,5 @@
 //
-//    Copyright 2020-2021  SenX S.A.S.
+//    Copyright 2021  SenX S.A.S.
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -18,18 +18,46 @@ package io.warp10.script.functions;
 
 import com.geoxp.GeoXPLib;
 import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.io.ParseException;
-import com.vividsolutions.jts.io.WKBWriter;
+import com.vividsolutions.jts.geom.MultiLineString;
+import com.vividsolutions.jts.geom.MultiPoint;
+import com.vividsolutions.jts.geom.MultiPolygon;
+import com.vividsolutions.jts.io.gml2.GMLConstants;
+import com.vividsolutions.jts.io.gml2.GMLWriter;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
-public class TOWKB extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+import java.io.IOException;
+import java.io.Writer;
 
-  private TOGEOJSON togeojson;
+public class TOKML extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  public TOWKB(String name) {
+  private final TOGEOJSON togeojson;
+
+  protected static class KMLWriter extends GMLWriter {
+
+    public KMLWriter() {
+      setPrefix(null);
+    }
+
+    @Override
+    public void write(Geometry geometry, Writer writer) throws IOException {
+      if (geometry instanceof MultiPoint || geometry instanceof MultiLineString || geometry instanceof MultiPolygon) {
+        // In KML those do no exists and are represented using a GeometryCollection
+        writer.write("<" + GMLConstants.GML_MULTI_GEOMETRY + ">");
+
+        for (int t = 0; t < geometry.getNumGeometries(); t++) {
+          write(geometry.getGeometryN(t), writer);
+        }
+        writer.write("</" + GMLConstants.GML_MULTI_GEOMETRY + ">");
+      } else {
+        super.write(geometry, writer);
+      }
+    }
+  }
+
+  public TOKML(String name) {
     super(name);
     togeojson = new TOGEOJSON(name);
   }
@@ -48,15 +76,20 @@ public class TOWKB extends NamedWarpScriptFunction implements WarpScriptStackFun
 
     try {
       Geometry geometry = TOGEOJSON.toGeometry(geomObject);
-      WKBWriter writer = new WKBWriter();
-      byte[] wkb = writer.write(geometry);
-      stack.push(wkb);
+      stack.push(GeometryToKML(geometry));
     } catch (WarpScriptException wse) {
-      throw new WarpScriptException(getName() + " expects a GEOSHAPE, a WKT STRING, a GML STRING, a KML STRING or a GeoJSON STRING.", wse);
+      throw new WarpScriptException(getName() + " expects a GEOSHAPE, a WKT STRING, a GeoJSON STRING, a KML STRING or a GeoJSON STRING.", wse);
     } catch (Exception e) {
       throw new WarpScriptException(getName() + " was given invalid input.", e);
     }
 
     return stack;
+  }
+
+  public static String GeometryToKML(Geometry geometry) {
+    KMLWriter writer = new KMLWriter();
+    String kml = writer.write(geometry);
+    // Remove formatting
+    return kml.replaceAll("\\n\\s*", "");
   }
 }

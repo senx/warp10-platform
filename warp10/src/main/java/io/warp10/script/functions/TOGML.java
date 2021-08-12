@@ -1,5 +1,5 @@
 //
-//    Copyright 2020-2021  SenX S.A.S.
+//    Copyright 2021  SenX S.A.S.
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -18,17 +18,17 @@ package io.warp10.script.functions;
 
 import com.geoxp.GeoXPLib;
 import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.io.ParseException;
+import com.vividsolutions.jts.io.gml2.GMLWriter;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
-public class TOWKT extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class TOGML extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
   private TOGEOJSON togeojson;
 
-  public TOWKT(String name) {
+  public TOGML(String name) {
     super(name);
     togeojson = new TOGEOJSON(name);
   }
@@ -36,7 +36,7 @@ public class TOWKT extends NamedWarpScriptFunction implements WarpScriptStackFun
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     // The top of the stack is either a GeoXPShape or a Boolean, then we apply GEOJSON to convert it to
-    // GeoJSON before converting it to WKT. This is a quick and easy way of converting GeoXPShape to WKT.
+    // GeoJSON before converting it to WKB. This is a quick and easy way of converting GeoXPShape to WKB.
     Object peeked = stack.peek();
 
     if (peeked instanceof GeoXPLib.GeoXPShape || peeked instanceof Boolean) {
@@ -47,14 +47,20 @@ public class TOWKT extends NamedWarpScriptFunction implements WarpScriptStackFun
 
     try {
       Geometry geometry = TOGEOJSON.toGeometry(geomObject);
-
-      stack.push(geometry.toText());
+      stack.push(GeometryToGML(geometry));
     } catch (WarpScriptException wse) {
-      throw new WarpScriptException(getName() + " expects a GEOSHAPE, a GeoJSON STRING, a GML STRING, a KML STRING or WKB BYTES.", wse);
+      throw new WarpScriptException(getName() + " expects a GEOSHAPE, a WKT STRING, a GeoJSON STRING, a KML STRING or a GeoJSON STRING.", wse);
     } catch (Exception e) {
       throw new WarpScriptException(getName() + " was given invalid input.", e);
     }
 
     return stack;
+  }
+
+  public static String GeometryToGML(Geometry geometry) {
+    GMLWriter writer = new GMLWriter();
+    String gml = writer.write(geometry);
+    // Remove formatting
+    return gml.replaceAll("\\n\\s*", "");
   }
 }
