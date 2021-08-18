@@ -453,39 +453,34 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       long start = Long.MIN_VALUE;
       long end = Long.MAX_VALUE;
 
-      if (null != startstr) {
-        if (null == endstr) {
-          response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Both " + Constants.HTTP_PARAM_START + " and " + Constants.HTTP_PARAM_END + " should be defined.");
-          return;
-        }
+      // Both or neither start and end must be specified
+      if (null == startstr ^ null == endstr) {
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Both " + Constants.HTTP_PARAM_START + " and " + Constants.HTTP_PARAM_END + " should be defined.");
+        return;
+      }
+
+      // Parse start and end parameters
+      if (null != startstr && null != endstr) {
         if (startstr.contains("T")) {
           start = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(startstr);
         } else {
-          start = Long.valueOf(startstr);
+          start = Long.parseLong(startstr);
         }
-      }
 
-      if (null != endstr) {
-        if (null == startstr) {
-          response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Both " + Constants.HTTP_PARAM_START + " and " + Constants.HTTP_PARAM_END + " should be defined.");
-          return;
-        }
         if (endstr.contains("T")) {
           end = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(endstr);
         } else {
-          end = Long.valueOf(endstr);
+          end = Long.parseLong(endstr);
         }
+
+        hasRange = true;
       }
 
       boolean metaonly = null != request.getParameter(Constants.HTTP_PARAM_METAONLY);
 
-      if (Long.MIN_VALUE == start && Long.MAX_VALUE == end && (null == request.getParameter(Constants.HTTP_PARAM_DELETEALL) && !metaonly)) {
+      if (!hasRange && (null == request.getParameter(Constants.HTTP_PARAM_DELETEALL) && !metaonly)) {
         response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Parameter " + Constants.HTTP_PARAM_DELETEALL + " or " + Constants.HTTP_PARAM_METAONLY + " should be set when no time range is specified.");
         return;
-      }
-
-      if (Long.MIN_VALUE != start || Long.MAX_VALUE != end) {
-        hasRange = true;
       }
 
       if (metaonly && !Constants.DELETE_METAONLY_SUPPORT) {
