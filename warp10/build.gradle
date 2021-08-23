@@ -227,7 +227,7 @@ task generateChangelog(type: Exec) {
 
     standardOutput = new ByteArrayOutputStream()
 
-    File changelogFile = new File('.', "CHANGELOG.md")
+    File changelogFile = new File(project.parent.projectDir, "CHANGELOG.md")
     outputs.file changelogFile
 
     doLast {
