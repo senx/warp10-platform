@@ -50,8 +50,6 @@ public class MapperReplace extends NamedWarpScriptFunction implements WarpScript
     }
   }
 
-  private final DateTimeZone dtz;
-  
   /**
    * 
    */
@@ -74,9 +72,6 @@ public class MapperReplace extends NamedWarpScriptFunction implements WarpScript
     } else {
       throw new WarpScriptException("Invalid value type.");
     }
-    
-    
-    this.dtz = DateTimeZone.UTC; 
   }
     
   @Override

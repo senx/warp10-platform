@@ -95,7 +95,6 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
     DEFAULT_LABELS_PRIORITY = Collections.unmodifiableList(order);
   }
   
-  private WarpScriptStackFunction toList = new TOLIST("");
   private WarpScriptStackFunction listTo = new LISTTO("");
   
   /**
@@ -366,8 +365,6 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
 
       lblsSels.add((Map<String,String>) ordered);
     }
-
-    List<Metadata> metadatas = null;
 
     if (this.metaset) {
       set.setToken(token);      

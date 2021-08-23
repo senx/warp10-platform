@@ -1590,6 +1590,16 @@ public class Configuration {
   public static final String STANDALONE_MAX_DELETE_BATCHSIZE = "standalone.max.delete.batchsize";
 
   /**
+   * Should the LevelDB cache be filled when scanning key space for deletes? Defaults to false.
+   */
+  public static final String LEVELDB_DELETE_FILLCACHE = "leveldb.delete.fillcache";
+
+  /**
+   * Should LevelDB checksums be verified when scanning key space for deletes? Defaults to true.
+   */
+  public static final String LEVELDB_DELETE_VERIFYCHECKSUMS = "leveldb.delete.verifychecksums";
+
+  /**
    * Maximum size in bytes of a value
    */
   public static final String STANDALONE_VALUE_MAXSIZE = "standalone.value.maxsize";

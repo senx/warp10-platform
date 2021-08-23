@@ -59,13 +59,9 @@ public class EgressFindHandler extends AbstractHandler {
   
   private static final Logger LOG = LoggerFactory.getLogger(EgressFindHandler.class);
 
-  private final KeyStore keyStore;
   private final DirectoryClient directoryClient;
   
-  private static final Pattern EXPR_RE = Pattern.compile("^([^{]+)\\{(.*)\\}$");
-  
   public EgressFindHandler(KeyStore keystore, DirectoryClient directoryClient) {
-    this.keyStore = keystore;
     this.directoryClient = directoryClient;
   }
   

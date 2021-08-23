@@ -74,8 +74,6 @@ public class SlicedRowFilterGTSDecoderIterator extends GTSDecoderIterator implem
   
   private final FetchRequest request;
   
-  private final KeyStore keystore;
-
   private long cellCount = 0;
   private long resultCount = 0;
   
@@ -123,7 +121,6 @@ public class SlicedRowFilterGTSDecoderIterator extends GTSDecoderIterator implem
   public SlicedRowFilterGTSDecoderIterator(FetchRequest req, Connection conn, TableName tableName, byte[] colfam, KeyStore keystore, boolean useBlockCache) {
       
     this.request = req;
-    this.keystore = keystore;
     this.now = req.getNow();
     this.then = req.getThents();
     this.count = req.getCount();

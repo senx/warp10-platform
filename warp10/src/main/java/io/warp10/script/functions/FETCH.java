@@ -134,10 +134,6 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
 
   public static final String NOW_PARAM_VALUE = "now";
 
-  private static DateTimeFormatter fmt = ISODateTimeFormat.dateTimeParser();
-
-  private WarpScriptStackFunction listTo = new LISTTO("");
-
   private final TYPE forcedType;
 
   private long[] SIPHASH_CLASS;
@@ -853,7 +849,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         } catch (WarpScriptException ee) {
           throw ee;
         } catch (Throwable t) {
-          throw new WarpScriptException(getName() + "failed.", t);
+          throw new WarpScriptException(getName() + " failed.", t);
         }
 
 
