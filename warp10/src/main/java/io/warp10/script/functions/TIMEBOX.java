@@ -79,7 +79,7 @@ public class TIMEBOX extends NamedWarpScriptFunction implements WarpScriptStackF
       String val = Capabilities.get(stack, TIMEBOX_MAXTIME_CAPNAME).trim();
 
       if (val.startsWith("P")) {
-        maxtime = Math.max(maxtime, DURATION.parseDuration(val) / Constants.TIME_UNITS_PER_MS);
+        maxtime = Math.max(maxtime, DURATION.parseDuration(getName(), val) / Constants.TIME_UNITS_PER_MS);
       } else {
         try {
           maxtime = Math.max(maxtime, Long.valueOf(Capabilities.get(stack, TIMEBOX_MAXTIME_CAPNAME)));
