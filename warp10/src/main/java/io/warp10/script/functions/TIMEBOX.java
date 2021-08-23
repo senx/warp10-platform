@@ -30,7 +30,6 @@ import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
-import io.warp10.script.WarpScriptStack.Signal;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.warp.sdk.Capabilities;
 
@@ -111,9 +110,6 @@ public class TIMEBOX extends NamedWarpScriptFunction implements WarpScriptStackF
     try {
       future.get(maxtime, Constants.timeunit);
     } catch (TimeoutException te) {
-      // Send a STOP signal to the stack so some operations which may still be running
-      // like FETCH or FIND get a chance to be interrupted.
-      stack.signal(Signal.STOP);
       throw new WarpScriptException(getName() + " reached the execution time limit (" + maxtime + " " + Constants.timeunit.name() + ").");
     } catch (ExecutionException ee) {
       throw new WarpScriptException(getName() + " encountered an exception while executing macro", ee.getCause());
