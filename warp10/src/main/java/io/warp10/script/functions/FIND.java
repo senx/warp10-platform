@@ -437,7 +437,8 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
     }
 
     try {
-      while(iter.hasNext()) {
+      Thread thread = Thread.currentThread();
+      while(iter.hasNext() && !thread.isInterrupted()) {
         Metadata metadata = iter.next();
 
         if (elements) {
