@@ -162,9 +162,6 @@ task pack(type: Jar) {
     manifest {
         attributes(
             "Main-Class": "io.warp10.standalone.Warp",
-            "Implementation-Title": "Warp 10",
-            "Implementation-Vendor": "Warp 10",
-            "Implementation-Version": project.version
         )
     }
 
