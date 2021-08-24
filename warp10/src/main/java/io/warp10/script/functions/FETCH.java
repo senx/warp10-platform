@@ -467,7 +467,9 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
     }
 
     try {
-      while(iter.hasNext()) {
+      Thread thread = Thread.currentThread();
+
+      while(iter.hasNext() && !thread.isInterrupted()) {
 
         metadatas.add(iter.next());
 
@@ -591,7 +593,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
 
 
         try (GTSDecoderIterator gtsiter = gtsStore.fetch(req)) {
-          while(gtsiter.hasNext()) {
+          while(gtsiter.hasNext() && !thread.isInterrupted()) {
             GTSDecoder decoder = gtsiter.next();
 
             //
