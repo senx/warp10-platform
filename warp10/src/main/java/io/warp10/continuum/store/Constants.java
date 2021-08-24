@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
@@ -487,6 +488,8 @@ public class Constants {
 
   public static final boolean DELETE_ACTIVITY_SUPPORT;
 
+  public static final TimeUnit timeunit;
+
   static {
     if (1 != Constants.DEFAULT_MODULUS) {
       throw new RuntimeException("DEFAULT_MODULUS cannot be diffrent than 1.");
@@ -506,10 +509,13 @@ public class Constants {
       throw new RuntimeException("Missing time units.");
     } else if ("ms".equals(tu)) {
       TIME_UNITS_PER_MS = 1L;
+      timeunit = TimeUnit.MILLISECONDS;
     } else if ("us".equals(tu)) {
       TIME_UNITS_PER_MS = 1000L;
+      timeunit = TimeUnit.MICROSECONDS;
     } else if ("ns".equals(tu)) {
       TIME_UNITS_PER_MS = 1000000L;
+      timeunit = TimeUnit.NANOSECONDS;
     } else {
       throw new RuntimeException("Invalid time unit.");
     }

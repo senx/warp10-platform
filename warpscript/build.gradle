@@ -106,7 +106,7 @@ dependencies {
     api withVersion('com.fasterxml.util:java-merge-sort')
     api withVersion('joda-time:joda-time')
     api withVersion('com.github.rwl:jtransforms')
-    api withVersion('com.vividsolutions:jts-core')
+    api withVersion('com.vividsolutions:jts')
     api withVersion('com.geoxp.oss:oss-client')
     api withVersion('io.warp10:sensision')
     api withVersion('org.slf4j:slf4j-api')

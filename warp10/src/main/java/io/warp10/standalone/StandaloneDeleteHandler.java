@@ -39,6 +39,7 @@ import javax.servlet.http.HttpServletResponse;
 import com.google.common.base.Preconditions;
 import com.google.common.primitives.Longs;
 
+import org.eclipse.jetty.io.EofException;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
@@ -47,7 +48,6 @@ import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
-import org.joda.time.format.ISODateTimeFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,7 +73,6 @@ import io.warp10.continuum.thrift.data.LoggingEvent;
 import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OrderPreservingBase64;
-import io.warp10.crypto.SipHashInline;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.script.WarpScriptException;
 import io.warp10.sensision.Sensision;
@@ -668,6 +667,8 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         String prefix = "Error when deleting data: ";
         String msg = prefix + ThrowableUtils.getErrorMessage(thr, Constants.MAX_HTTP_REASON_LENGTH - prefix.length());
         response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msg);
+      } else if (thr.getCause() instanceof EofException) {
+        LOG.info((dryrun ? "Dry-run delete" : "Delete") + " request was aborted.");
       } else {
         throw new IOException(thr);
       }

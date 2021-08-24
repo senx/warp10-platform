@@ -16,102 +16,27 @@
 
 package io.warp10.script.functions;
 
-import java.util.Map;
-
-import com.geoxp.GeoXPLib;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKTReader;
-import com.vividsolutions.jts.operation.buffer.BufferOp;
-import com.vividsolutions.jts.operation.buffer.BufferParameters;
-
-import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptException;
-import io.warp10.script.WarpScriptStack;
-import io.warp10.script.WarpScriptStackFunction;
 
 /**
  * Converts a Well Known Text String into a GeoXP Shape suitable for geo filtering
  */
-public class GeoWKT extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class GeoWKT extends GeoImporter {
 
-  private final boolean uniform;
 
   public GeoWKT(String name, boolean uniform) {
-    super(name);
-    this.uniform = uniform;
+    super(name, uniform, String.class, "a WKT " + TYPEOF.TYPE_STRING);
   }
 
   @Override
-  public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    Object inside = stack.pop();
-    Object pcterror = stack.pop();
-    Object wkt = stack.pop();
+  public Geometry convert(Object input) throws Exception {
+    return wktToGeometry((String) input);
+  }
 
-    if (!(wkt instanceof String) || !(inside instanceof Boolean) || (!(pcterror instanceof Double) && !(pcterror instanceof Long))) {
-      throw new WarpScriptException(getName() + " expects a WKT string, an error percentage or resolution (even number between 2 and 30) and a boolean as the top 3 elements of the stack.");
-    }
-
-    // Check the resolution is even and in 2..30, if relevant
-    if (pcterror instanceof Long) {
-      long res = ((Number) pcterror).longValue();
-      if (1 == (res % 2) || res > 30 || res < 2) {
-        throw new WarpScriptException(getName() + " expects the resolution to be an even number between 2 and 30");
-      }
-    }
-
-    //
-    // Read WKT
-    //
-
+  public static Geometry wktToGeometry(String wkt) throws ParseException {
     WKTReader reader = new WKTReader();
-    Geometry geometry = null;
-
-    try {
-      geometry = reader.read(wkt.toString());
-    } catch (ParseException pe) {
-      throw new WarpScriptException(getName() + " expects a valid WKT STRING.", pe);
-    }
-
-    //
-    // Apply buffer if defined
-    //
-    Map<Object,Object> buffer = (Map<Object,Object>) stack.getAttribute(GEOBUFFER.ATTR_GEOBUFFER);
-    
-    if (null != buffer) {
-      // Clear the buffer
-      stack.setAttribute(GEOBUFFER.ATTR_GEOBUFFER, null);
-      // Apply the buffer operation
-      BufferOp bop = new BufferOp(geometry, (BufferParameters) buffer.get(GEOBUFFER.KEY_PARAMS));
-      geometry = bop.getResultGeometry(((Double) buffer.get(GEOBUFFER.KEY_DIST)).doubleValue());
-    }
-    
-    //
-    // Convert Geometry to a GeoXPShape
-    //
-
-    int maxcells = ((Number) stack.getAttribute(WarpScriptStack.ATTRIBUTE_MAX_GEOCELLS)).intValue();
-    Object shape = null;
-
-    if (!this.uniform) {
-      if (pcterror instanceof Double) {
-        shape = GeoXPLib.toGeoXPShape(geometry, ((Number) pcterror).doubleValue(), Boolean.TRUE.equals(inside), maxcells);
-      } else {
-        shape = GeoXPLib.toGeoXPShape(geometry, ((Number) pcterror).intValue(), Boolean.TRUE.equals(inside), maxcells);
-      }
-    } else {
-      if (pcterror instanceof Double) {
-        shape = GeoXPLib.toUniformGeoXPShape(geometry, ((Number) pcterror).doubleValue(), Boolean.TRUE.equals(inside), maxcells);
-      } else {
-        shape = GeoXPLib.toUniformGeoXPShape(geometry, ((Number) pcterror).intValue(), Boolean.TRUE.equals(inside), maxcells);
-      }
-    }
-
-    if (null == shape) {
-      throw new WarpScriptException(getName() + " reached the maximum number of cells in a geographic shape (warpscript.maxgeocells=" + maxcells + ").");
-    }
-
-    stack.push(shape);
-    return stack;
+    return reader.read(wkt);
   }
 }
