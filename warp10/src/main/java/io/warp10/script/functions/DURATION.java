@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -41,27 +41,32 @@ import org.joda.time.format.ISOPeriodFormat;
 public class DURATION extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
   final private static Double STU = new Double(Constants.TIME_UNITS_PER_S);
-  
+
   public DURATION(String name) {
     super(name);
   }
 
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    
+
     Object o = stack.pop();
-    
+
     if (!(o instanceof String)) {
       throw new WarpScriptException(getName() + " expects an ISO8601 duration (a string) on top of the stack. See http://en.wikipedia.org/wiki/ISO_8601#Durations");
     }
 
+    stack.push(parseDuration(getName(), (String) o));
+
+    return stack;
+  }
+
+  public static long parseDuration(String name, String duration_string) throws WarpScriptException {
     // Separate seconds from digits below second precision
-    String duration_string = o.toString();
     String[] tokens = UnsafeString.split(duration_string, '.');
 
     long offset = 0;
     if (tokens.length > 2) {
-      throw new WarpScriptException(getName() + "received an invalid ISO8601 duration.");
+      throw new WarpScriptException(name + " received an invalid ISO8601 duration.");
     }
 
     if (2 == tokens.length) {
@@ -70,15 +75,15 @@ public class DURATION extends NamedWarpScriptFunction implements WarpScriptStack
       Double d_offset = Double.valueOf("0." + tmp) * STU;
       offset = d_offset.longValue();
     }
-    
+
     ReadWritablePeriod period = new MutablePeriod();
-    
+
     ISOPeriodFormat.standard().getParser().parseInto(period, duration_string, 0, Locale.US);
 
     Period p = period.toPeriod();
-    
+
     if (p.getMonths() != 0 || p.getYears() != 0) {
-      throw new WarpScriptException(getName() + " doesn't support ambiguous durations containing years or months, please convert those to days.");
+      throw new WarpScriptException(name + " doesn't support ambiguous durations containing years or months, please convert those to days.");
     }
 
     Duration duration = p.toDurationFrom(new Instant());
@@ -88,8 +93,6 @@ public class DURATION extends NamedWarpScriptFunction implements WarpScriptStack
       offset = -offset;
     }
 
-    stack.push(duration.getMillis() * Constants.TIME_UNITS_PER_MS + offset);
-
-    return stack;
+    return duration.getMillis() * Constants.TIME_UNITS_PER_MS + offset;
   }
 }
