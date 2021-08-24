@@ -476,7 +476,7 @@ public class Constants {
       timeunit = TimeUnit.MICROSECONDS;
     } else if ("ns".equals(tu)) {
       TIME_UNITS_PER_MS = 1000000L;
-      timeunit = TimeUnit.MILLISECONDS;
+      timeunit = TimeUnit.NANOSECONDS;
     } else {
       throw new RuntimeException("Invalid time unit.");
     }
