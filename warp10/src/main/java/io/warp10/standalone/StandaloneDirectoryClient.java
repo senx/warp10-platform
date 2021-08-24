@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -753,25 +753,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     byte[] bytes = new byte[1 + 8 + 8];
     System.arraycopy(METADATA_PREFIX, 0, bytes, 0, METADATA_PREFIX.length);
 
-    int idx = METADATA_PREFIX.length;
-
-    bytes[idx++] = (byte) ((classId >> 56) & 0xff);
-    bytes[idx++] = (byte) ((classId >> 48) & 0xff);
-    bytes[idx++] = (byte) ((classId >> 40) & 0xff);
-    bytes[idx++] = (byte) ((classId >> 32) & 0xff);
-    bytes[idx++] = (byte) ((classId >> 24) & 0xff);
-    bytes[idx++] = (byte) ((classId >> 16) & 0xff);
-    bytes[idx++] = (byte) ((classId >> 8) & 0xff);
-    bytes[idx++] = (byte) (classId & 0xff);
-
-    bytes[idx++] = (byte) ((labelsId >> 56) & 0xff);
-    bytes[idx++] = (byte) ((labelsId >> 48) & 0xff);
-    bytes[idx++] = (byte) ((labelsId >> 40) & 0xff);
-    bytes[idx++] = (byte) ((labelsId >> 32) & 0xff);
-    bytes[idx++] = (byte) ((labelsId >> 24) & 0xff);
-    bytes[idx++] = (byte) ((labelsId >> 16) & 0xff);
-    bytes[idx++] = (byte) ((labelsId >> 8) & 0xff);
-    bytes[idx++] = (byte) (labelsId & 0xff);
+    GTSHelper.fillGTSIds(bytes, METADATA_PREFIX.length, classId, labelsId);
 
     this.db.delete(bytes);
 
@@ -847,25 +829,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     byte[] bytes = new byte[1 + 8 + 8];
     System.arraycopy(METADATA_PREFIX, 0, bytes, 0, METADATA_PREFIX.length);
 
-    int idx = METADATA_PREFIX.length;
-
-    bytes[idx++] = (byte) ((classId >> 56) & 0xff);
-    bytes[idx++] = (byte) ((classId >> 48) & 0xff);
-    bytes[idx++] = (byte) ((classId >> 40) & 0xff);
-    bytes[idx++] = (byte) ((classId >> 32) & 0xff);
-    bytes[idx++] = (byte) ((classId >> 24) & 0xff);
-    bytes[idx++] = (byte) ((classId >> 16) & 0xff);
-    bytes[idx++] = (byte) ((classId >> 8) & 0xff);
-    bytes[idx++] = (byte) (classId & 0xff);
-
-    bytes[idx++] = (byte) ((labelsId >> 56) & 0xff);
-    bytes[idx++] = (byte) ((labelsId >> 48) & 0xff);
-    bytes[idx++] = (byte) ((labelsId >> 40) & 0xff);
-    bytes[idx++] = (byte) ((labelsId >> 32) & 0xff);
-    bytes[idx++] = (byte) ((labelsId >> 24) & 0xff);
-    bytes[idx++] = (byte) ((labelsId >> 16) & 0xff);
-    bytes[idx++] = (byte) ((labelsId >> 8) & 0xff);
-    bytes[idx++] = (byte) (labelsId & 0xff);
+    GTSHelper.fillGTSIds(bytes, METADATA_PREFIX.length, classId, labelsId);
 
     metadata.setClassId(classId);
     metadata.setLabelsId(labelsId);
