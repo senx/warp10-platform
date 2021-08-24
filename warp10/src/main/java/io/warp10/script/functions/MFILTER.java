@@ -43,7 +43,7 @@ public class MFILTER extends NamedWarpScriptFunction implements WarpScriptStackF
     }
     
     if (!(top instanceof Macro)) {
-      throw new WarpScriptException(getName() + " expects a macro on top of the stack.");
+      throw new WarpScriptException(getName() + " expects a MACRO.");
     }
 
     Macro macro = (Macro) top;
@@ -51,12 +51,12 @@ public class MFILTER extends NamedWarpScriptFunction implements WarpScriptStackF
     top = stack.pop();
     
     if (!(top instanceof Map)) {
-      throw new WarpScriptException(getName() + " expects a MAP below the macro on top of the stack.");
+      throw new WarpScriptException(getName() + " expects a MAP.");
     }
 
     Map<?, ?> map = (Map) top;
 
-    LinkedHashMap<Object, Object> result = new LinkedHashMap<Object, Object>(map.size());
+    LinkedHashMap<Object, Object> result = new LinkedHashMap<Object, Object>();
 
     int i = 0;
     for (Map.Entry entry: map.entrySet()) {
@@ -75,7 +75,7 @@ public class MFILTER extends NamedWarpScriptFunction implements WarpScriptStackF
       Object o = stack.pop();
 
       if(!(o instanceof Boolean)) {
-        throw new WarpScriptException(getName() + " expect the filter macro to return a BOOLEAN for each element.");
+        throw new WarpScriptException(getName() + " expects the filter macro to return a BOOLEAN for each element.");
       }
 
       if (Boolean.TRUE.equals(o)) {

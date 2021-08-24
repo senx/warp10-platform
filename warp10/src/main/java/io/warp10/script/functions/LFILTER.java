@@ -43,17 +43,17 @@ public class LFILTER extends NamedWarpScriptFunction implements WarpScriptStackF
     }
 
     if (!(top instanceof Macro)) {
-      throw new WarpScriptException(getName() + " expects a macro on top of the stack.");
+      throw new WarpScriptException(getName() + " expects a MACRO.");
     }
 
     Object list = stack.pop();
 
     if (!(list instanceof List)) {
-      throw new WarpScriptException(getName() + " expects a list below the macro on top of the stack.");
+      throw new WarpScriptException(getName() + " expects a LIST.");
     }
 
     int n = ((List) list).size();
-    ArrayList<Object> result = new ArrayList<Object>(n);
+    ArrayList<Object> result = new ArrayList<Object>();
 
     for (int i = 0; i < n; i++) {
       Object element = ((List) list).get(i);
@@ -66,7 +66,7 @@ public class LFILTER extends NamedWarpScriptFunction implements WarpScriptStackF
       Object o = stack.pop();
 
       if (!(o instanceof Boolean)) {
-        throw new WarpScriptException(getName() + " expect the filter macro to return a BOOLEAN for each element.");
+        throw new WarpScriptException(getName() + " expects the filter macro to return a BOOLEAN for each element.");
       }
 
       if (Boolean.TRUE.equals(o)) {
