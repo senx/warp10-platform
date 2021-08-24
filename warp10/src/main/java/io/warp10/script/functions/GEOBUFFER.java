@@ -140,7 +140,7 @@ public class GEOBUFFER extends NamedWarpScriptFunction implements WarpScriptStac
     String keySet = null;
     for (String key: ALL_INPUT_GEOMETRY_KEYS) {
       if (map.containsKey(key)) {
-        if (keySet != null) {
+        if (null != keySet) {
           throw new WarpScriptException(getName() + " only one of '" + KEY_WKB + "', '" + KEY_WKT + "', '" + KEY_GEOJSON + "', '" + KEY_GML + "' or '" + KEY_KML + "' can be specified.");
         }
         keySet = key;

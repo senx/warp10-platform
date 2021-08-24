@@ -52,7 +52,7 @@ public class GeoImporter extends NamedWarpScriptFunction implements WarpScriptSt
     Object input = stack.pop();
 
     if (!(inputClass.isInstance(input)) || !(inside instanceof Boolean) || (!(pcterror instanceof Double) && !(pcterror instanceof Long))) {
-      throw new WarpScriptException(getName() + " expects " + inputType + ", an error percentage or resolution (even number between 2 and 30) and a boolean as the top 3 elements of the stack.");
+      throw new WarpScriptException(getName() + " expects " + inputType + ", a DOUBLE error percentage or a LONG resolution (even number between 2 and 30) and a BOOLEAN.");
     }
 
     // Check the resolution is even and in 2..30, if relevant
