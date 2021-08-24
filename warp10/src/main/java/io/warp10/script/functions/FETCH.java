@@ -268,21 +268,21 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
 
     if (null != tokenattr.get(PARAM_COUNT)) {
       long count = (long) tokenattr.get(PARAM_COUNT);
-      if ((long) params.get(PARAM_COUNT) > count) {
+      if ((long) params.getOrDefault(PARAM_COUNT, count) >= count) {
         params.put(PARAM_COUNT, count);
       }
     }
 
     if (null != tokenattr.get(PARAM_BOUNDARY_PRE)) {
       long boundary = (long) tokenattr.get(PARAM_BOUNDARY_PRE);
-      if ((long) params.get(PARAM_BOUNDARY_PRE) > boundary) {
+      if ((long) params.getOrDefault(PARAM_BOUNDARY_PRE, boundary) >= boundary) {
         params.put(PARAM_BOUNDARY_PRE, boundary);
       }
     }
 
     if (null != tokenattr.get(PARAM_BOUNDARY_POST)) {
       long boundary = (long) tokenattr.get(PARAM_BOUNDARY_POST);
-      if ((long) params.get(PARAM_BOUNDARY_POST) > boundary) {
+      if ((long) params.getOrDefault(PARAM_BOUNDARY_POST, boundary) >= boundary) {
         params.put(PARAM_BOUNDARY_POST, boundary);
       }
     }
@@ -1637,9 +1637,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       } else {
         activeafter = TOTIMESTAMP.parseTimestamp(value);
       }
-      if (null != activeafter) {
-        attributes.put(PARAM_ACTIVE_AFTER, activeafter);
-      }
+      attributes.put(PARAM_ACTIVE_AFTER, activeafter);
     }
 
     value = tokenattr.get(Constants.TOKEN_ATTR_COUNT);
