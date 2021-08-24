@@ -3626,28 +3626,24 @@ public class GTSHelper {
   }
 
   public static void fillGTSIds(byte[] bytes, int offset, long classId, long labelsId) {
-    long id = classId;
-    int idx = offset;
+    // 128BITS
+    bytes[offset++] = (byte) ((classId >> 56) & 0xff);
+    bytes[offset++] = (byte) ((classId >> 48) & 0xff);
+    bytes[offset++] = (byte) ((classId >> 40) & 0xff);
+    bytes[offset++] = (byte) ((classId >> 32) & 0xff);
+    bytes[offset++] = (byte) ((classId >> 24) & 0xff);
+    bytes[offset++] = (byte) ((classId >> 16) & 0xff);
+    bytes[offset++] = (byte) ((classId >> 8) & 0xff);
+    bytes[offset++] = (byte) (classId & 0xff);
 
-    bytes[idx++] = (byte) ((id >> 56) & 0xff);
-    bytes[idx++] = (byte) ((id >> 48) & 0xff);
-    bytes[idx++] = (byte) ((id >> 40) & 0xff);
-    bytes[idx++] = (byte) ((id >> 32) & 0xff);
-    bytes[idx++] = (byte) ((id >> 24) & 0xff);
-    bytes[idx++] = (byte) ((id >> 16) & 0xff);
-    bytes[idx++] = (byte) ((id >> 8) & 0xff);
-    bytes[idx++] = (byte) (id & 0xff);
-
-    id = labelsId;
-
-    bytes[idx++] = (byte) ((id >> 56) & 0xff);
-    bytes[idx++] = (byte) ((id >> 48) & 0xff);
-    bytes[idx++] = (byte) ((id >> 40) & 0xff);
-    bytes[idx++] = (byte) ((id >> 32) & 0xff);
-    bytes[idx++] = (byte) ((id >> 24) & 0xff);
-    bytes[idx++] = (byte) ((id >> 16) & 0xff);
-    bytes[idx++] = (byte) ((id >> 8) & 0xff);
-    bytes[idx++] = (byte) (id & 0xff);
+    bytes[offset++] = (byte) ((labelsId >> 56) & 0xff);
+    bytes[offset++] = (byte) ((labelsId >> 48) & 0xff);
+    bytes[offset++] = (byte) ((labelsId >> 40) & 0xff);
+    bytes[offset++] = (byte) ((labelsId >> 32) & 0xff);
+    bytes[offset++] = (byte) ((labelsId >> 24) & 0xff);
+    bytes[offset++] = (byte) ((labelsId >> 16) & 0xff);
+    bytes[offset++] = (byte) ((labelsId >> 8) & 0xff);
+    bytes[offset] = (byte) (labelsId & 0xff);
   }
 
   /**

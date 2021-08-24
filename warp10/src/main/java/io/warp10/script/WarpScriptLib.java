@@ -388,13 +388,19 @@ public class WarpScriptLib {
   public static final String GEO_WKT_UNIFORM = "GEO.WKT.UNIFORM";
   public static final String GEO_WKB = "GEO.WKB";
   public static final String GEO_WKB_UNIFORM = "GEO.WKB.UNIFORM";
+  public static final String GEO_JSON = "GEO.JSON";
+  public static final String GEO_JSON_UNIFORM = "GEO.JSON.UNIFORM";
+  public static final String GEO_GML = "GEO.GML";
+  public static final String GEO_GML_UNIFORM = "GEO.GML.UNIFORM";
+  public static final String GEO_KML = "GEO.KML";
+  public static final String GEO_KML_UNIFORM = "GEO.KML.UNIFORM";
 
   public static final String TOGEOJSON = "->GEOJSON";
   public static final String TOWKT = "->WKT";
   public static final String TOWKB = "->WKB";
+  public static final String TOGML = "->GML";
+  public static final String TOKML = "->KML";
   public static final String GEO_BUFFER = "GEO.BUFFER";
-  public static final String GEO_JSON = "GEO.JSON";
-  public static final String GEO_JSON_UNIFORM = "GEO.JSON.UNIFORM";
   public static final String GEO_INTERSECTION = "GEO.INTERSECTION";
   public static final String GEO_DIFFERENCE = "GEO.DIFFERENCE";
   public static final String GEO_UNION = "GEO.UNION";
@@ -2066,9 +2072,15 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new GeoWKB(GEO_WKB_UNIFORM, true));
     addNamedWarpScriptFunction(new GeoJSON(GEO_JSON, false));
     addNamedWarpScriptFunction(new GeoJSON(GEO_JSON_UNIFORM, true));
+    addNamedWarpScriptFunction(new GeoGML(GEO_GML, false));
+    addNamedWarpScriptFunction(new GeoGML(GEO_GML_UNIFORM, true));
+    addNamedWarpScriptFunction(new GeoKML(GEO_KML, false));
+    addNamedWarpScriptFunction(new GeoKML(GEO_KML_UNIFORM, true));
     addNamedWarpScriptFunction(new TOGEOJSON(TOGEOJSON));
     addNamedWarpScriptFunction(new TOWKT(TOWKT));
     addNamedWarpScriptFunction(new TOWKB(TOWKB));
+    addNamedWarpScriptFunction(new TOGML(TOGML));
+    addNamedWarpScriptFunction(new TOKML(TOKML));
     addNamedWarpScriptFunction(new GEOOPTIMIZE(GEO_OPTIMIZE));
     addNamedWarpScriptFunction(new GEONORMALIZE(GEO_NORMALIZE));
     addNamedWarpScriptFunction(new GEOSHIFT(GEOSHIFT));

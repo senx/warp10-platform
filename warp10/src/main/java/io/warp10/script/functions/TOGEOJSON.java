@@ -1,5 +1,5 @@
 //
-//   Copyright 2020  SenX S.A.S.
+//   Copyright 2020-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -23,15 +23,16 @@ import com.geoxp.geo.CoverageHelper;
 import com.geoxp.geo.HHCodeHelper;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.io.ParseException;
-import com.vividsolutions.jts.io.WKBReader;
-import com.vividsolutions.jts.io.WKTReader;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 import org.wololo.geojson.GeoJSON;
-import org.wololo.jts2geojson.GeoJSONReader;
 import org.wololo.jts2geojson.GeoJSONWriter;
+import org.xml.sax.SAXException;
+
+import javax.xml.parsers.ParserConfigurationException;
+import java.io.IOException;
 
 public class TOGEOJSON extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
@@ -93,36 +94,36 @@ public class TOGEOJSON extends NamedWarpScriptFunction implements WarpScriptStac
         GeoJSON json = writer.write(geometry);
         stack.push(json.toString());
       } catch (WarpScriptException wse) {
-        throw new WarpScriptException(getName() + " expects a GEOSHAPE, a WKT STRING or WKB BYTES.", wse);
-      } catch (ParseException pe) {
-        throw new WarpScriptException(getName() + " was given invalid input.", pe);
+        throw new WarpScriptException(getName() + " expects a GEOSHAPE, a WKT STRING, a GML STRING, a KML STRING or WKB BYTES.", wse);
+      } catch (Exception e) {
+        throw new WarpScriptException(getName() + " was given invalid input.", e);
       }
     }
 
     return stack;
   }
 
-  public static Geometry toGeometry(Object geomObject) throws WarpScriptException, ParseException {
+  public static Geometry toGeometry(Object geomObject) throws WarpScriptException, ParseException, IOException, ParserConfigurationException, SAXException {
 
     Geometry geometry;
 
     if (geomObject instanceof byte[]) {
       // WKB
-      WKBReader reader = new WKBReader();
-
-      geometry = reader.read((byte[]) geomObject);
+      geometry = GeoWKB.wkbToGeometry((byte[]) geomObject);
     } else if (geomObject instanceof String) {
       String geomString = ((String) geomObject).trim();
       if (geomString.startsWith("{")) {
         // GeoJson
-        GeoJSONReader reader = new GeoJSONReader();
-
-        geometry = reader.read(geomString);
+        geometry = io.warp10.script.functions.GeoJSON.geoJSONToGeometry(geomString);
+      } else if (geomString.startsWith("<gml")) {
+        // GML
+        geometry = GeoGML.GMLToGeometry(geomString);
+      } else if (geomString.startsWith("<")) {
+        // KML
+        geometry = GeoKML.KMLToGeometry(geomString);
       } else {
         // WKT
-        WKTReader reader = new WKTReader();
-
-        geometry = reader.read(geomString);
+        geometry = GeoWKT.wktToGeometry(geomString);
       }
     } else {
       throw new WarpScriptException("Unknown geometry format.");
