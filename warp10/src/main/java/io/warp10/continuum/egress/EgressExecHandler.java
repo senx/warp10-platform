@@ -340,10 +340,10 @@ public class EgressExecHandler extends AbstractHandler {
         String val = Capabilities.get(stack, TIMEBOX.TIMEBOX_MAXTIME_CAPNAME).trim();
 
         if (val.startsWith("P")) {
-          timeLimit = Math.max(timeLimit, DURATION.parseDuration(new Instant(), val, false, false));
+          timeLimit = DURATION.parseDuration(new Instant(), val, false, false);
         } else {
           try {
-            timeLimit = Math.max(timeLimit, Long.valueOf(Capabilities.get(stack, TIMEBOX.TIMEBOX_MAXTIME_CAPNAME)) * Constants.TIME_UNITS_PER_MS);
+            timeLimit = Long.valueOf(Capabilities.get(stack, TIMEBOX.TIMEBOX_MAXTIME_CAPNAME)) * Constants.TIME_UNITS_PER_MS;
           } catch (NumberFormatException nfe) {
           }
         }
