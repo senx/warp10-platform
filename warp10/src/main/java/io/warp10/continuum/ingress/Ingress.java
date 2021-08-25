@@ -1525,35 +1525,33 @@ public class Ingress extends AbstractHandler implements Runnable {
           throw new IOException("Invalid value for '" + Constants.HTTP_PARAM_MINAGE + "', expected a number of ms >= 0");
         }
       }
-      
-      if (null != startstr) {
-        if (null == endstr) {
-          throw new IOException("Both " + Constants.HTTP_PARAM_START + " and " + Constants.HTTP_PARAM_END + " should be defined.");
-        }
+
+      // Both or neither start and end must be specified
+      if (null == startstr ^ null == endstr) {
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Both " + Constants.HTTP_PARAM_START + " and " + Constants.HTTP_PARAM_END + " should be defined.");
+        return;
+      }
+
+      // Parse start and end parameters
+      if (null != startstr) { // also implies endstr is not null.
         if (startstr.contains("T")) {
           start = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(startstr);
         } else {
-          start = Long.valueOf(startstr);
+          start = Long.parseLong(startstr);
         }
-      }
-      
-      if (null != endstr) {
-        if (null == startstr) {
-          throw new IOException("Both " + Constants.HTTP_PARAM_START + " and " + Constants.HTTP_PARAM_END + " should be defined.");
-        }
+
         if (endstr.contains("T")) {
           end = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(endstr);
         } else {
-          end = Long.valueOf(endstr);
+          end = Long.parseLong(endstr);
         }
+
+        hasRange = true;
       }
 
-      if (Long.MIN_VALUE == start && Long.MAX_VALUE == end && (null == request.getParameter(Constants.HTTP_PARAM_DELETEALL) && !metaonly)) {
-        throw new IOException("Parameter " + Constants.HTTP_PARAM_DELETEALL + " or " + Constants.HTTP_PARAM_METAONLY + " should be set when no time range is specified.");
-      }
-      
-      if (Long.MIN_VALUE != start || Long.MAX_VALUE != end) {
-        hasRange = true;
+      if (!hasRange && (null == request.getParameter(Constants.HTTP_PARAM_DELETEALL) && !metaonly)) {
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Parameter " + Constants.HTTP_PARAM_DELETEALL + " or " + Constants.HTTP_PARAM_METAONLY + " should be set when no time range is specified.");
+        return;
       }
       
       if (metaonly && !Constants.DELETE_METAONLY_SUPPORT) {
