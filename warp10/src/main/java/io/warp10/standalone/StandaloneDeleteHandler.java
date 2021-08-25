@@ -460,6 +460,8 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       }
 
       // Parse start and end parameters
+      // The code below relies on the fact both startstr and endstr are non-null so the check both.
+      // However, if startstr is non-null then endstr is also non-null because of the check above.
       if (null != startstr && null != endstr) {
         if (startstr.contains("T")) {
           start = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(startstr);
