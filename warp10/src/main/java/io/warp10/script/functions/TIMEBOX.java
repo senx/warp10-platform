@@ -23,6 +23,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 
+import org.joda.time.Instant;
+
 import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.store.Constants;
@@ -78,7 +80,10 @@ public class TIMEBOX extends NamedWarpScriptFunction implements WarpScriptStackF
       String val = Capabilities.get(stack, TIMEBOX_MAXTIME_CAPNAME).trim();
 
       if (val.startsWith("P")) {
-        maxtime = Math.max(maxtime, DURATION.parseDuration(getName(), val));
+        maxtime = Math.max(maxtime, DURATION.parseDuration(new Instant(), val, true, false));
+        if (maxtime < 0) {
+          throw new WarpScriptException(getName() + " invalid duration, expected positive value.");
+        }
       } else {
         try {
           maxtime = Math.max(maxtime, Long.valueOf(Capabilities.get(stack, TIMEBOX_MAXTIME_CAPNAME)) * Constants.TIME_UNITS_PER_MS);

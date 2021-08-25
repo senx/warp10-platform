@@ -356,6 +356,45 @@ public class Constants {
   //
 
   /**
+   * Attribute used to specify an end timestamp, either as an absolute ISO8601 timestamp
+   * or as a period relative to the current time.
+   */
+  public static final String TOKEN_ATTR_END = ".end";
+
+  /**
+   * Attribute used to specify a start timestamp, either as an absolute ISO8601 timestamp
+   * or as a period relative to either the current time or the specified 'end' timestamp
+   */
+  public static final String TOKEN_ATTR_START = ".start";
+
+  /**
+   * Attribute used to specify a quietafter timestamp, either as an absolute ISO8601 timestamp
+   * or as a period relative to the current time or the specified 'end' timestamp
+   */
+  public static final String TOKEN_ATTR_QUIETAFTER = ".quietafter";
+
+  /**
+   * Attribute used to specify an activeafter timestamp, either as an absolute ISO8601 timestamp
+   * or as a period relative to the current time or the specified 'end' timestamp
+   */
+  public static final String TOKEN_ATTR_ACTIVEAFTER = ".activeafter";
+
+  /**
+   * Attribute to specify the upper bound of the 'count' parameter for fetches
+   */
+  public static final String TOKEN_ATTR_COUNT = ".count";
+
+  /**
+   * Attribute to specify the upper bound of the pre boundary parameter for fetches
+   */
+  public static final String TOKEN_ATTR_BOUNDARY_PRE = ".pre";
+
+  /**
+   * Attribute to specify the upper bound of the post boundary parameter for fetches
+   */
+  public static final String TOKEN_ATTR_BOUNDARY_POST = ".post";
+
+  /**
    * Attribute used to specify that a WRITE token cannot be used for delete.
    */
   public static final String TOKEN_ATTR_NODELETE = ".nodelete";
