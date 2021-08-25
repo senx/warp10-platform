@@ -49,22 +49,27 @@ import io.warp10.continuum.BootstrapManager;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.LogUtil;
 import io.warp10.continuum.TimeSource;
+import io.warp10.continuum.Tokens;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.continuum.thrift.data.LoggingEvent;
 import io.warp10.crypto.KeyStore;
+import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.script.MemoryWarpScriptStack;
 import io.warp10.script.StackUtils;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStack.Signal;
 import io.warp10.script.WarpScriptStack.StackContext;
 import io.warp10.script.WarpScriptStackRegistry;
 import io.warp10.script.WarpScriptStopException;
 import io.warp10.script.ext.stackps.StackPSWarpScriptExtension;
 import io.warp10.script.functions.AUTHENTICATE;
+import io.warp10.script.functions.DURATION;
+import io.warp10.script.functions.TIMEBOX;
 import io.warp10.sensision.Sensision;
 import io.warp10.warp.sdk.Capabilities;
 
@@ -82,7 +87,19 @@ public class EgressExecHandler extends AbstractHandler {
 
   private final BootstrapManager bootstrapManager;
 
+  // Our version of TIMEBOX will signal the stack with a KILL signal to ensure its
+  // execution is definitely aborted.
+  private static final TIMEBOX TIMEBOX = new TIMEBOX(WarpScriptLib.TIMEBOX, Signal.KILL);
+  private static final DURATION DURATION = new DURATION(WarpScriptLib.DURATION);
+
+  private static final long MAXTIME;
+
+  static {
+    MAXTIME = Long.parseLong(WarpConfig.getProperty(Configuration.EGRESS_MAXTIME, "0")) * Constants.TIME_UNITS_PER_MS;
+  }
+
   public EgressExecHandler(KeyStore keyStore, Properties properties, DirectoryClient directoryClient, StoreClient storeClient) {
+
     this.keyStore = keyStore;
     this.storeClient = storeClient;
     this.directoryClient = directoryClient;
@@ -217,6 +234,7 @@ public class EgressExecHandler extends AbstractHandler {
       //
       // Extract parameters from the path info and set their value as symbols
       //
+      // TODO(hbs): we should us an alternate stack for those executions and limit the number of ops and timebox the exec
 
       String pathInfo = req.getPathInfo();
 
@@ -285,6 +303,55 @@ public class EgressExecHandler extends AbstractHandler {
 
       boolean terminate = false;
 
+      //
+      // Read the X-Warp10-Timebox header
+      //
+
+      String timebox = req.getHeader(Constants.HTTP_HEADER_TIMEBOX);
+      long maxtime = 0L;
+
+      if (null != timebox) {
+        boolean fromToken = false;
+        try {
+          maxtime = Long.parseLong(timebox) * Constants.TIME_UNITS_PER_MS;
+        } catch (NumberFormatException nfe) {
+          try {
+            ReadToken token = Tokens.extractReadToken(timebox);
+            if (token.getAttributesSize() > 0 && null != token.getAttributes().get(Constants.TOKEN_ATTR_MAXTIME)) {
+              maxtime = Long.parseLong(token.getAttributes().get(Constants.TOKEN_ATTR_MAXTIME)) * Constants.TIME_UNITS_PER_MS;
+              fromToken = true;
+            }
+          } catch (Exception e) {
+            try {
+              maxtime = DURATION.parseDuration("", timebox);
+            } catch (Exception ee) {
+              resp.sendError(errorCode, "Invalid value for header " + Constants.HTTP_HEADER_TIMEBOX + " " + ThrowableUtils.getErrorMessage(ee));
+              return;
+            }
+          }
+        }
+
+        //
+        // Check the configured maxtime as the upper limit unless a valid token was specified as timebox
+        //
+
+        if (!fromToken && 0 != MAXTIME && maxtime > 0) {
+          maxtime = Math.min(maxtime, MAXTIME);
+        }
+      } else {
+        maxtime = MAXTIME;
+      }
+
+      boolean forcedMacro = maxtime > 0;
+
+      if (forcedMacro) {
+        stack.macroOpen();
+      }
+
+      if (null != req.getHeader(Constants.HTTP_HEADER_LINES)) {
+        stack.setAttribute(WarpScriptStack.ATTRIBUTE_LINENO, true);
+      }
+
       while(!terminate) {
         String line = br.readLine();
 
@@ -321,11 +388,21 @@ public class EgressExecHandler extends AbstractHandler {
         times.add(end - nano);
       }
 
+      if (forcedMacro) {
+        stack.macroClose();
+      }
+
       //
       // Make sure stack is balanced
       //
 
       stack.checkBalanced();
+
+      if (maxtime > 0) {
+        stack.push(maxtime);
+        TIMEBOX.apply(stack);
+        stack.handleSignal();
+      }
 
       //
       // Check the user defined headers and set them.
@@ -460,6 +537,7 @@ public class EgressExecHandler extends AbstractHandler {
         return;
       }
     } finally {
+      stack.signal(Signal.KILL);
       WarpConfig.clearThreadProperties();
       WarpScriptStackRegistry.unregister(stack);
 

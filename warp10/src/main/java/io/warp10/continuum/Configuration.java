@@ -1973,6 +1973,12 @@ public class Configuration {
   //
 
   /**
+   * Maximum allowed execution time per script execution (in ms). Can be modified
+   * via the token attribute .maxtime
+   */
+  public static final String EGRESS_MAXTIME = "egress.maxtime";
+
+  /**
    * Number of threads in Jetty's Thread Pool
    */
   public static final String EGRESS_JETTY_THREADPOOL = "egress.jetty.threadpool";

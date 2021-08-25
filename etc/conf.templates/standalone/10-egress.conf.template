@@ -43,3 +43,11 @@ egress.clients.expose = false
 // Number of GTS to batch when retrieving datapoints (to mitigate responseTooSlow errors)
 //
 #egress.fetch.batchsize = 100000
+
+//
+// Maximum execution time of requests to the /exec endpoint (in ms).
+// This value may be overriden with a READ token containing a '.maxtime' attribute passed as value of
+// the X-Warp10-Timebox header.
+// By default the maximum execution time is not bounded.
+//
+#egress.maxtime = 1000

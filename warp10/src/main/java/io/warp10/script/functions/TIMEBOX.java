@@ -30,6 +30,7 @@ import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
+import io.warp10.script.WarpScriptStack.Signal;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.warp.sdk.Capabilities;
 
@@ -54,8 +55,16 @@ public class TIMEBOX extends NamedWarpScriptFunction implements WarpScriptStackF
    */
   private static final String TIMEBOX_MAXTIME_CAPNAME = WarpConfig.getProperty(Configuration.CONFIG_WARPSCRIPT_TIMEBOX_MAXTIME_CAPNAME);
 
+  private final Signal signal;
+
   public TIMEBOX(String name) {
     super(name);
+    this.signal = null;
+  }
+
+  public TIMEBOX(String name, Signal signal) {
+    super(name);
+    this.signal = signal;
   }
 
   @Override
@@ -110,6 +119,9 @@ public class TIMEBOX extends NamedWarpScriptFunction implements WarpScriptStackF
     try {
       future.get(maxtime, Constants.timeunit);
     } catch (TimeoutException te) {
+      if (null != signal) {
+        stack.signal(signal);
+      }
       throw new WarpScriptException(getName() + " reached the execution time limit (" + maxtime + " " + Constants.timeunit.name() + ").");
     } catch (ExecutionException ee) {
       throw new WarpScriptException(getName() + " encountered an exception while executing macro", ee.getCause());
