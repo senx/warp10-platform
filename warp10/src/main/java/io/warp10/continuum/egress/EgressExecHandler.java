@@ -316,18 +316,10 @@ public class EgressExecHandler extends AbstractHandler {
           maxtime = Long.parseLong(timebox) * Constants.TIME_UNITS_PER_MS;
         } catch (NumberFormatException nfe) {
           try {
-            ReadToken token = Tokens.extractReadToken(timebox);
-            if (token.getAttributesSize() > 0 && null != token.getAttributes().get(Constants.TOKEN_ATTR_MAXTIME)) {
-              maxtime = Long.parseLong(token.getAttributes().get(Constants.TOKEN_ATTR_MAXTIME)) * Constants.TIME_UNITS_PER_MS;
-              fromToken = true;
-            }
-          } catch (Exception e) {
-            try {
-              maxtime = DURATION.parseDuration("", timebox);
-            } catch (Exception ee) {
-              resp.sendError(errorCode, "Invalid value for header " + Constants.HTTP_HEADER_TIMEBOX + " " + ThrowableUtils.getErrorMessage(ee));
-              return;
-            }
+            maxtime = DURATION.parseDuration("", timebox);
+          } catch (Exception ee) {
+            resp.sendError(errorCode, "Invalid value for header " + Constants.HTTP_HEADER_TIMEBOX + " " + ThrowableUtils.getErrorMessage(ee));
+            return;
           }
         }
 
@@ -340,6 +332,25 @@ public class EgressExecHandler extends AbstractHandler {
         }
       } else {
         maxtime = MAXTIME;
+      }
+
+      long timeLimit = MAXTIME;
+
+      if (null != TIMEBOX.TIMEBOX_MAXTIME_CAPNAME && null != Capabilities.get(stack, TIMEBOX.TIMEBOX_MAXTIME_CAPNAME)) {
+        String val = Capabilities.get(stack, TIMEBOX.TIMEBOX_MAXTIME_CAPNAME).trim();
+
+        if (val.startsWith("P")) {
+          timeLimit = Math.max(timeLimit, DURATION.parseDuration("", val));
+        } else {
+          try {
+            timeLimit = Math.max(timeLimit, Long.valueOf(Capabilities.get(stack, TIMEBOX.TIMEBOX_MAXTIME_CAPNAME)) * Constants.TIME_UNITS_PER_MS);
+          } catch (NumberFormatException nfe) {
+          }
+        }
+      }
+
+      if (maxtime > timeLimit) {
+        maxtime = timeLimit;
       }
 
       boolean forcedMacro = maxtime > 0;

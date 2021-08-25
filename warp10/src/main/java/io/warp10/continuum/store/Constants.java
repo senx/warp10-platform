@@ -425,11 +425,6 @@ public class Constants {
    */
   public static final String TOKEN_ATTR_EXPOSE = ".expose";
 
-  /**
-   * Attribute to specify the maximum execution time (in ms) of each WarpScript execution in egress.
-   */
-  public static final String TOKEN_ATTR_MAXTIME = ".maxtime";
-
   //
   // KafkaMessage Store attributes
   //

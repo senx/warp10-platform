@@ -53,7 +53,7 @@ public class TIMEBOX extends NamedWarpScriptFunction implements WarpScriptStackF
   /**
    * Allowance capability to raise TIMEBOX_MAXTIME
    */
-  private static final String TIMEBOX_MAXTIME_CAPNAME = WarpConfig.getProperty(Configuration.CONFIG_WARPSCRIPT_TIMEBOX_MAXTIME_CAPNAME);
+  public static final String TIMEBOX_MAXTIME_CAPNAME = WarpConfig.getProperty(Configuration.CONFIG_WARPSCRIPT_TIMEBOX_MAXTIME_CAPNAME);
 
   private final Signal signal;
 
