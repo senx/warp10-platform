@@ -40,6 +40,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
+import org.joda.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -90,7 +91,6 @@ public class EgressExecHandler extends AbstractHandler {
   // Our version of TIMEBOX will signal the stack with a KILL signal to ensure its
   // execution is definitely aborted.
   private static final TIMEBOX TIMEBOX = new TIMEBOX(WarpScriptLib.TIMEBOX, Signal.KILL);
-  private static final DURATION DURATION = new DURATION(WarpScriptLib.DURATION);
 
   private static final long MAXTIME;
 
@@ -316,7 +316,7 @@ public class EgressExecHandler extends AbstractHandler {
           maxtime = Long.parseLong(timebox) * Constants.TIME_UNITS_PER_MS;
         } catch (NumberFormatException nfe) {
           try {
-            maxtime = DURATION.parseDuration("", timebox);
+            maxtime = DURATION.parseDuration(new Instant(), timebox, false, false);
           } catch (Exception ee) {
             resp.sendError(errorCode, "Invalid value for header " + Constants.HTTP_HEADER_TIMEBOX + " " + ThrowableUtils.getErrorMessage(ee));
             return;
@@ -340,7 +340,7 @@ public class EgressExecHandler extends AbstractHandler {
         String val = Capabilities.get(stack, TIMEBOX.TIMEBOX_MAXTIME_CAPNAME).trim();
 
         if (val.startsWith("P")) {
-          timeLimit = Math.max(timeLimit, DURATION.parseDuration("", val));
+          timeLimit = Math.max(timeLimit, DURATION.parseDuration(new Instant(), val, false, false));
         } else {
           try {
             timeLimit = Math.max(timeLimit, Long.valueOf(Capabilities.get(stack, TIMEBOX.TIMEBOX_MAXTIME_CAPNAME)) * Constants.TIME_UNITS_PER_MS);
