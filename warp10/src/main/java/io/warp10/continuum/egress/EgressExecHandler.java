@@ -333,7 +333,7 @@ public class EgressExecHandler extends AbstractHandler {
 
       long maxtimeCapability = MAXTIME;
 
-      if (null != TIMEBOX.TIMEBOX_MAXTIME_CAPNAME && null != Capabilities.get(stack, TIMEBOX.TIMEBOX_MAXTIME_CAPNAME)) {
+      if (maxtime > 0 && null != TIMEBOX.TIMEBOX_MAXTIME_CAPNAME && null != Capabilities.get(stack, TIMEBOX.TIMEBOX_MAXTIME_CAPNAME)) {
         String val = Capabilities.get(stack, TIMEBOX.TIMEBOX_MAXTIME_CAPNAME).trim();
 
         if (val.startsWith("P")) {
