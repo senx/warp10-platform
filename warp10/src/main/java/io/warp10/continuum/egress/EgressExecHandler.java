@@ -346,10 +346,12 @@ public class EgressExecHandler extends AbstractHandler {
         }
         // make sure value is positive
         maxtimeCapability = Math.max(0, maxtimeCapability);
-      }
 
-      if (maxtimeCapability > 0) {
-        maxtime = Math.max(maxtime, maxtimeCapability);
+        if (maxtimeCapability > 0) {
+          maxtime = Math.max(maxtime, maxtimeCapability);
+        } else {
+          maxtime = 0;
+        }
       }
 
       long maxtimeHeader = 0;
@@ -374,9 +376,6 @@ public class EgressExecHandler extends AbstractHandler {
           // No bound was set, use the limit provided in the header
           maxtime = maxtimeHeader;
         }
-      } else {
-        // No custom limit was specified, so use the limit configured in egress.maxtime
-        maxtime = MAXTIME;
       }
 
       boolean forcedMacro = maxtime > 0;
