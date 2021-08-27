@@ -96,6 +96,9 @@ public class EgressExecHandler extends AbstractHandler {
 
   static {
     MAXTIME = Long.parseLong(WarpConfig.getProperty(Configuration.EGRESS_MAXTIME, "0")) * Constants.TIME_UNITS_PER_MS;
+    if (MAXTIME < 0) {
+      throw new RuntimeException("Invalid negative value for " + Configuration.EGRESS_MAXTIME + ".");
+    }
   }
 
   public EgressExecHandler(KeyStore keyStore, Properties properties, DirectoryClient directoryClient, StoreClient storeClient) {
@@ -304,11 +307,51 @@ public class EgressExecHandler extends AbstractHandler {
       boolean terminate = false;
 
       //
-      // Read the X-Warp10-Timebox header
+      // Timeboxing of the /exec requests is done in the following manner:
+      //
+      // If the configuration 'egress.maxtime' is set, the execution is
+      // bounded by the provided value (in ms).
+      //
+      // If a token with the capability specified in 'warpscript.timebox.maxtime.capname' is
+      // passed in the X-Warp10-Capabilities header and its value is above that specified in
+      // 'egress.maxtime', the value of the capability will be used as the new limit of the custom execution times.
+      //
+      // The header X-Warp10-Timebox is checked, if present, the value is interpreted as a
+      // limit in ms or as an ISO8601 period. This value is the requested maximum execution time
+      // of the /exec request. It will be capped to either egress.maxtime or the value provided in the
+      // token (see above).
       //
 
       String timebox = req.getHeader(Constants.HTTP_HEADER_TIMEBOX);
+
+      // Value set in 'egress.maxtime'
       long maxtime = MAXTIME;
+
+      //
+      // Check the capability
+      //
+
+      long maxtimeCapability = MAXTIME;
+
+      if (null != TIMEBOX.TIMEBOX_MAXTIME_CAPNAME && null != Capabilities.get(stack, TIMEBOX.TIMEBOX_MAXTIME_CAPNAME)) {
+        String val = Capabilities.get(stack, TIMEBOX.TIMEBOX_MAXTIME_CAPNAME).trim();
+
+        if (val.startsWith("P")) {
+          maxtimeCapability = DURATION.parseDuration(new Instant(), val, false, false);
+        } else {
+          try {
+            maxtimeCapability = Long.valueOf(Capabilities.get(stack, TIMEBOX.TIMEBOX_MAXTIME_CAPNAME)) * Constants.TIME_UNITS_PER_MS;
+          } catch (NumberFormatException nfe) {
+          }
+        }
+        // make sure value is positive
+        maxtimeCapability = Math.max(0, maxtimeCapability);
+      }
+
+      if (maxtimeCapability > 0) {
+        maxtime = Math.max(maxtime, maxtimeCapability);
+      }
+
       long maxtimeHeader = 0;
 
       if (null != timebox) {
@@ -324,29 +367,16 @@ public class EgressExecHandler extends AbstractHandler {
         maxtimeHeader = Math.max(0, maxtimeHeader);
       }
 
-      long maxtimeCapability = MAXTIME;
-
-      if (null != TIMEBOX.TIMEBOX_MAXTIME_CAPNAME && null != Capabilities.get(stack, TIMEBOX.TIMEBOX_MAXTIME_CAPNAME)) {
-        String val = Capabilities.get(stack, TIMEBOX.TIMEBOX_MAXTIME_CAPNAME).trim();
-
-        if (val.startsWith("P")) {
-          maxtimeCapability = DURATION.parseDuration(new Instant(), val, false, false);
+      if (maxtimeHeader > 0) {
+        if (maxtime > 0) {
+          maxtime = Math.min(maxtime, maxtimeHeader);
         } else {
-          try {
-            maxtimeCapability = Long.valueOf(Capabilities.get(stack, TIMEBOX.TIMEBOX_MAXTIME_CAPNAME)) * Constants.TIME_UNITS_PER_MS;
-          } catch (NumberFormatException nfe) {
-          }
+          // No bound was set, use the limit provided in the header
+          maxtime = maxtimeHeader;
         }
-
-        maxtimeCapability = Math.max(0, maxtimeCapability);
-      }
-
-      if (maxtimeCapability > 0) {
-        maxtime = Math.max(maxtime, maxtimeCapability);
-      }
-
-      if (maxtime > 0) {
-        maxtime = Math.min(maxtime, maxtimeHeader);
+      } else {
+        // No custom limit was specified, so use the limit configured in egress.maxtime
+        maxtime = MAXTIME;
       }
 
       boolean forcedMacro = maxtime > 0;
