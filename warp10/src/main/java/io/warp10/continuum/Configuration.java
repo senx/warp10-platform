@@ -1979,6 +1979,11 @@ public class Configuration {
   public static final String EGRESS_MAXTIME = "egress.maxtime";
 
   /**
+   * Validity (in ms) of a runner nonce. This is used to determine if timeboxing should be waived or not for a runner call.
+   */
+  public static final String EGRESS_RUNNER_NONCE_VALIDITY = "egress.runner.nonce.validity";
+
+  /**
    * Number of threads in Jetty's Thread Pool
    */
   public static final String EGRESS_JETTY_THREADPOOL = "egress.jetty.threadpool";

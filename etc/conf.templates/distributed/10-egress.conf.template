@@ -201,3 +201,12 @@ egress.hbase.filter = true
 // By default the maximum execution time is not bounded.
 //
 #egress.maxtime = 1000
+
+//
+// Maximum validity of runner nonces (in ms). Runner scripts are submitted to the /exec endpoint
+// with the header X-Warp10-Runner-Nonce set to a nonce containing the time of execution in ns since
+// the epoch. If the nonce is correct and less than this many ms in the past, the time boxing is
+// waived for the execution.
+// The default value if 1000 ms
+//
+#egress.runner.nonce.validity = 1000

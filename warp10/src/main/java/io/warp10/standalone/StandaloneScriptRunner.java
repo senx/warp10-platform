@@ -165,11 +165,11 @@ public class StandaloneScriptRunner extends ScriptRunner {
             stack.store(Constants.RUNNER_SCHEDULEDAT, scheduledat);
 
             //
-            // Generate a nonce by wrapping the current time with random 64bits
+            // Generate a nonce by wrapping the current time jointly with random 64bits
             //
 
             if (null != runnerPSK) {
-              byte[] now = Longs.toByteArray(TimeSource.getTime());
+              byte[] now = Longs.toByteArray(TimeSource.getNanoTime());
 
               byte[] nonce = CryptoHelper.wrapBlob(runnerPSK, now);
 

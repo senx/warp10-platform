@@ -129,6 +129,11 @@ public class Constants {
   public static final String HTTP_HEADER_LINES = "X-Warp10-Lines";
 
   /**
+   * Header containing an encrypted nonce for executions triggered by runners
+   */
+  public static final String HTTP_HEADER_RUNNER_NONCE = "X-Warp10-Runner-Nonce";
+
+  /**
    * Header which will force timeboxing of the execution. The value is either
    * a number of milliseconds or an ISO 8601 period.
    */

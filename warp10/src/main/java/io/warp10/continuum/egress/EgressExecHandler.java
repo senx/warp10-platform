@@ -70,6 +70,7 @@ import io.warp10.script.WarpScriptStopException;
 import io.warp10.script.ext.stackps.StackPSWarpScriptExtension;
 import io.warp10.script.functions.AUTHENTICATE;
 import io.warp10.script.functions.DURATION;
+import io.warp10.script.functions.RUNNERNONCE;
 import io.warp10.script.functions.TIMEBOX;
 import io.warp10.sensision.Sensision;
 import io.warp10.warp.sdk.Capabilities;
@@ -92,6 +93,9 @@ public class EgressExecHandler extends AbstractHandler {
   // execution is definitely aborted.
   private static final TIMEBOX TIMEBOX = new TIMEBOX(WarpScriptLib.TIMEBOX, Signal.KILL);
 
+  private static final RUNNERNONCE RUNNERNONCE = new RUNNERNONCE(WarpScriptLib.RUNNERNONCE);
+
+  private static final long RUNNER_NONCE_VALIDITY = Long.parseLong(WarpConfig.getProperty(Configuration.EGRESS_RUNNER_NONCE_VALIDITY, Long.toString(1000L)));
   private static final long MAXTIME;
 
   static {
@@ -321,6 +325,9 @@ public class EgressExecHandler extends AbstractHandler {
       // of the /exec request. It will be capped to either egress.maxtime or the value provided in the
       // token (see above).
       //
+      // If the header X-Warp10-Runner-Nonce is set with a value which is within egress.runner.nonce.validity
+      // then the time boxing is waived.
+      //
 
       String timebox = req.getHeader(Constants.HTTP_HEADER_TIMEBOX);
 
@@ -375,6 +382,24 @@ public class EgressExecHandler extends AbstractHandler {
         } else {
           // No bound was set, use the limit provided in the header
           maxtime = maxtimeHeader;
+        }
+      }
+
+      if (null != req.getHeader(Constants.HTTP_HEADER_RUNNER_NONCE)) {
+        try {
+          Long nonce = RUNNERNONCE.getNonce(req.getHeader(Constants.HTTP_HEADER_RUNNER_NONCE));
+
+          if (null != nonce) {
+            long delta = TimeSource.getTime() - nonce;
+
+            // Waive the time boxing if the nonce is still valid
+            if ((delta / Constants.TIME_UNITS_PER_MS) <= RUNNER_NONCE_VALIDITY) {
+              maxtime = 0;
+            } else {
+              LOG.warn("Runner nonce has expired.");
+            }
+          }
+        } catch (Exception e) {
         }
       }
 
