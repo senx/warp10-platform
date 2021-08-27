@@ -19,10 +19,11 @@ package io.warp10.script.functions;
 import java.util.List;
 
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
+import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.WarpScriptStopException;
 
 public class GUARD extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
@@ -58,15 +59,26 @@ public class GUARD extends NamedWarpScriptFunction implements WarpScriptStackFun
       //
       stack.clear();
       if (null != symbols) {
-        for (Object symbol: symbols) {
-          if (symbol instanceof String) {
-            stack.forget((String) symbol);
-          } else if (symbol instanceof Long) {
-            stack.store(((Long) symbol).intValue(), null);
+        if (symbols.isEmpty()) {
+          // Clear all registers and symbols
+          Object[] regs = stack.getRegisters();
+
+          for (int i = 0; i < regs.length; i++) {
+            regs[i] = null;
+          }
+          stack.getSymbolTable().clear();
+        } else {
+          // Clear specified symbols/registers
+          for (Object symbol: symbols) {
+            if (symbol instanceof String) {
+              stack.forget((String) symbol);
+            } else if (symbol instanceof Long) {
+              stack.store(((Long) symbol).intValue(), null);
+            }
           }
         }
       }
-      throw t;
+      throw new WarpScriptStopException("Exception in GUARDed macro.");
     }
 
     return stack;
