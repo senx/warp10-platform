@@ -35,6 +35,14 @@ public class GUARD extends NamedWarpScriptFunction implements WarpScriptStackFun
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
 
     Object top = stack.pop();
+    Object hide = null;
+    boolean hasHide = false;
+
+    if (null == top || top instanceof Long) {
+      hide = top;
+      hasHide = true;
+      top = stack.pop();
+    }
 
     List<Object> symbols = null;
 
@@ -49,7 +57,16 @@ public class GUARD extends NamedWarpScriptFunction implements WarpScriptStackFun
 
     Macro macro = (Macro) top;
 
+    int hidden = 0;
+
     try {
+      if (hasHide) {
+        if (null == hide) {
+          hidden = stack.hide();
+        } else {
+          hidden = stack.hide(((Long) hide).intValue());
+        }
+      }
       stack.exec(macro);
     } catch (Throwable t) {
       //
@@ -78,7 +95,12 @@ public class GUARD extends NamedWarpScriptFunction implements WarpScriptStackFun
           }
         }
       }
+
       throw new WarpScriptStopException("Exception in GUARDed macro.");
+    } finally {
+      if (hasHide) {
+        stack.show(hidden);
+      }
     }
 
     return stack;
