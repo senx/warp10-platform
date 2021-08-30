@@ -495,9 +495,10 @@ public class ScriptRunner extends Thread {
               byte[] now = Longs.toByteArray(TimeSource.getNanoTime());
 
               nonce = OrderPreservingBase64.encode(CryptoHelper.wrapBlob(runnerPSK, now));
+
+              conn.setRequestProperty(Constants.HTTP_HEADER_RUNNER_NONCE, new String(nonce, StandardCharsets.US_ASCII));
             }
 
-            conn.setRequestProperty(Constants.HTTP_HEADER_RUNNER_NONCE, new String(nonce, StandardCharsets.US_ASCII));
 
             conn.setRequestMethod("POST");
 
