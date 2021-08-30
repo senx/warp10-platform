@@ -75,6 +75,8 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
   private static final String SENSISION_LABEL_CONSUMER = "consumer";
   private static final String SENSISION_LABEL_FEEDER = "feeder";
 
+  private static final RUN RUN = new RUN(WarpScriptLib.RUN);
+
   private WarpScriptStack stack;
 
   private ECPrivateKey eccPrivate;
@@ -167,7 +169,7 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
       }
     }
 
-    String macro = WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_CONSUMER_MACRO);
+    String macro = WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_CONSUMER_MACRO + suffix);
     MemoryWarpScriptStack stack = null;
 
     if (null != macro) {
@@ -575,7 +577,8 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
             encoder.setMetadata(record.getMetadata());
             stack.push(encoder);
             stack.push(record.getType().name());
-            stack.exec(macro);
+            stack.push(macro);
+            RUN.apply(stack);
             if (0 == stack.depth() || !Boolean.TRUE.equals(stack.peek())) {
               stack.show();
               stack.clear();
