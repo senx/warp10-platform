@@ -119,8 +119,6 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
 
   private String suffix;
 
-  private static final RUN RUN = new RUN(WarpScriptLib.RUN);
-
   @Override
   public void run() {
 
@@ -226,6 +224,7 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
         // Check signature of feeder
         //
 
+        stack.show();
         stack.clear();
         stack.push(Longs.toByteArray(msg.getNonce()));
         stack.push(Longs.toByteArray(msg.getTimestamp()));
@@ -248,6 +247,7 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
         // Compute signature and emit INIT message
         //
 
+        stack.show();
         stack.clear();
         stack.push(Longs.toByteArray(msg.getNonce()));
         stack.push(Longs.toByteArray(msg.getTimestamp()));
@@ -278,6 +278,7 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
           // + ->LONGBYTES(SIPHASH(timestamp,nonce,CLONEREVERSE(secret)),8)
           //
 
+          stack.show();
           stack.clear();
           stack.push(eccPrivate);
           stack.push(feederPublic);
@@ -568,17 +569,19 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
           //
 
           if (null != macro) {
+            stack.show();
             stack.clear();
             GTSEncoder encoder = new GTSEncoder(0L);
             encoder.setMetadata(record.getMetadata());
             stack.push(encoder);
             stack.push(record.getType().name());
-            stack.push(macro);
-            RUN.apply(stack);
+            stack.exec(macro);
             if (0 == stack.depth() || !Boolean.TRUE.equals(stack.peek())) {
+              stack.show();
               stack.clear();
               continue;
             }
+            stack.show();
             stack.clear();
           }
 
