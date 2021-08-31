@@ -631,9 +631,7 @@ public class Store extends Thread {
   
   @Override
   public void run() {
-    
-    long now = 0;
-    
+
     while (true){      
       LockSupport.parkNanos(500000000L);
       

@@ -161,8 +161,10 @@ public class ShadowWarpScriptExtension extends WarpScriptExtension {
         WarpScriptStackFunction function = new ShadowFunction(f) {        
           @Override
           public Object apply(WarpScriptStack stack) throws WarpScriptException {
+            Object stackContext = null;
             if (!finalUnsafe) {
               stack.save();
+              stackContext = stack.pop();
             }
             try {
               if (!finalUnsafe) {
@@ -172,6 +174,7 @@ public class ShadowWarpScriptExtension extends WarpScriptExtension {
               stack.exec(m);
             } finally {
               if (!finalUnsafe) {
+                stack.push(stackContext);
                 stack.restore();
               }
             }
@@ -213,8 +216,6 @@ public class ShadowWarpScriptExtension extends WarpScriptExtension {
       for (String f: func) {
         f = f.trim();
 
-        final String fu = f;
-        
         if (null == msg) {
           functions.put(f, new FAIL(f));
         } else {                    

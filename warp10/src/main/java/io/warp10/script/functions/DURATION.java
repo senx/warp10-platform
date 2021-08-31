@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -24,6 +24,8 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
 import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.joda.time.Duration;
 import org.joda.time.Instant;
@@ -41,55 +43,86 @@ import org.joda.time.format.ISOPeriodFormat;
 public class DURATION extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
   final private static Double STU = new Double(Constants.TIME_UNITS_PER_S);
-  
+
+  final private static Pattern NEGATIVE_ZERO_SECONDS_PATTERN = Pattern.compile(".*-0+$");
+
   public DURATION(String name) {
     super(name);
   }
 
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    
+
     Object o = stack.pop();
-    
+
     if (!(o instanceof String)) {
       throw new WarpScriptException(getName() + " expects an ISO8601 duration (a string) on top of the stack. See http://en.wikipedia.org/wiki/ISO_8601#Durations");
     }
 
-    // Separate seconds from digits below second precision
     String duration_string = o.toString();
+
+    try {
+      long duration = parseDuration(new Instant(), duration_string, false, false);
+      stack.push(duration);
+    } catch (WarpScriptException wse) {
+      throw new WarpScriptException(getName() + " encountered an error while parsing duration.", wse);
+    }
+
+    return stack;
+  }
+
+  public static long parseDuration(Instant ref, String duration_string, boolean allowAmbiguous, boolean toRef) throws WarpScriptException {
+    // Handle "-PTxxx" which is valid but not handled by Joda.
+    long globalSignFactor = 1;
+    if (duration_string.startsWith("-")) {
+      duration_string = duration_string.substring(1);
+      globalSignFactor = -1;
+    }
+
+    // Separate seconds from digits below second precision
     String[] tokens = UnsafeString.split(duration_string, '.');
 
-    long offset = 0;
+    long subseconds = 0;
+
     if (tokens.length > 2) {
-      throw new WarpScriptException(getName() + "received an invalid ISO8601 duration.");
+      throw new WarpScriptException("invalid ISO8601 duration.");
     }
 
     if (2 == tokens.length) {
       duration_string = tokens[0].concat("S");
       String tmp = tokens[1].substring(0, tokens[1].length() - 1);
       Double d_offset = Double.valueOf("0." + tmp) * STU;
-      offset = d_offset.longValue();
+      subseconds = d_offset.longValue();
     }
-    
+
     ReadWritablePeriod period = new MutablePeriod();
-    
+
     ISOPeriodFormat.standard().getParser().parseInto(period, duration_string, 0, Locale.US);
 
     Period p = period.toPeriod();
-    
-    if (p.getMonths() != 0 || p.getYears() != 0) {
-      throw new WarpScriptException(getName() + " doesn't support ambiguous durations containing years or months, please convert those to days.");
+
+    if (!allowAmbiguous && (p.getMonths() != 0 || p.getYears() != 0)) {
+      throw new WarpScriptException("no support for ambiguous durations containing years or months, please convert those to days.");
     }
 
-    Duration duration = p.toDurationFrom(new Instant());
+    Duration duration = toRef ? p.toDurationTo(ref) : p.toDurationFrom(ref);
 
-    // check if offset should be positive of negative
+    // Find out if subseconds are positive or negative.
+    boolean negativeSubseconds = false;
     if (p.getSeconds() < 0) {
-      offset = -offset;
+      // Seconds are negative, so as subseconds (example: -1.234).
+      negativeSubseconds = true;
+    } else if (0 == p.getSeconds() && 0 != subseconds) {
+      // There aren't whole seconds and subseconds are defined (example: 0.123).
+      // Check if there is a minus sign before any number of 0s defining seconds.
+      Matcher negativeZeroSecondMatcher = NEGATIVE_ZERO_SECONDS_PATTERN.matcher(tokens[0]);
+      negativeSubseconds = negativeZeroSecondMatcher.matches();
     }
 
-    stack.push(duration.getMillis() * Constants.TIME_UNITS_PER_MS + offset);
+    if (negativeSubseconds) {
+      subseconds = -subseconds;
+    }
 
-    return stack;
+    return globalSignFactor * (duration.getMillis() * Constants.TIME_UNITS_PER_MS + subseconds);
   }
 }

@@ -156,8 +156,7 @@ public class Egress {
     HandlerList handlers = new HandlerList();
     
     StoreClient storeClient = new HBaseStoreClient(this.keystore, this.properties);
-    QuasarTokenFilter tokenFilter = new QuasarTokenFilter(this.properties, this.keystore);
-    
+
     Handler cors = new CORSHandler();
     handlers.addHandler(cors);
     

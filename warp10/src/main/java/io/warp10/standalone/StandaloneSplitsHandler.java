@@ -76,7 +76,6 @@ public class StandaloneSplitsHandler extends AbstractHandler {
     
     String token = request.getParameter(Constants.HTTP_PARAM_TOKEN);
     String selector = request.getParameter(Constants.HTTP_PARAM_SELECTOR);
-    String now = request.getParameter(Constants.HTTP_PARAM_NOW);
     Long activeAfter = null == request.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER) ? null : Long.parseLong(request.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER));
     Long quietAfter = null == request.getParameter(Constants.HTTP_PARAM_QUIETAFTER) ? null : Long.parseLong(request.getParameter(Constants.HTTP_PARAM_QUIETAFTER));
 
@@ -171,8 +170,7 @@ public class StandaloneSplitsHandler extends AbstractHandler {
         //
         
         long classId = metadata.getClassId();
-        long labelsId = metadata.getLabelsId();
-        
+
         //
         // Build Split
         //

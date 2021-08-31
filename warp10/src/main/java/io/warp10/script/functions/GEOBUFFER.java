@@ -16,17 +16,16 @@
 
 package io.warp10.script.functions;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.wololo.jts2geojson.GeoJSONReader;
+import com.vividsolutions.jts.io.gml2.GMLWriter;
 import org.wololo.jts2geojson.GeoJSONWriter;
 
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.io.ParseException;
-import com.vividsolutions.jts.io.WKBReader;
 import com.vividsolutions.jts.io.WKBWriter;
-import com.vividsolutions.jts.io.WKTReader;
 import com.vividsolutions.jts.operation.buffer.BufferOp;
 import com.vividsolutions.jts.operation.buffer.BufferParameters;
 
@@ -34,6 +33,9 @@ import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
+import org.xml.sax.SAXException;
+
+import javax.xml.parsers.ParserConfigurationException;
 
 public class GEOBUFFER extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
@@ -54,7 +56,11 @@ public class GEOBUFFER extends NamedWarpScriptFunction implements WarpScriptStac
   public static final String KEY_WKB = "wkb";
   public static final String KEY_WKT = "wkt";
   public static final String KEY_GEOJSON = "geojson";
+  public static final String KEY_GML = "gml";
+  public static final String KEY_KML = "kml";
   public static final String KEY_SINGLESIDED = "singlesided";
+
+  public static final String[] ALL_INPUT_GEOMETRY_KEYS = new String[]{KEY_WKB, KEY_WKT, KEY_GEOJSON, KEY_GML, KEY_KML};
   
   public GEOBUFFER(String name) {
     super(name);
@@ -127,20 +133,29 @@ public class GEOBUFFER extends NamedWarpScriptFunction implements WarpScriptStac
     }
 
     //
-    // If any of KEY_WKB, KEY_WKT or KEY_GEOJSON is set, simply compute buffer and output modified geometry definition
+    // If any of KEY_WKB, KEY_WKT, KEY_GEOJSON, KEY_GML or KEY_KML is set, simply compute buffer and output modified geometry definition
     //
-    
-    if (map.get(KEY_WKB) instanceof byte[]) {
-      if (map.containsKey(KEY_WKT) || map.containsKey(KEY_GEOJSON)) {
-        throw new WarpScriptException(getName() + " only one of '" + KEY_WKB + "', '" + KEY_WKT + "' or '" + KEY_GEOJSON + "' can be specified.");
-      }
-      WKBReader reader = new WKBReader();
 
-      Geometry geometry = null;
+    // Check only one on these keys is set.
+    String keySet = null;
+    for (String key: ALL_INPUT_GEOMETRY_KEYS) {
+      if (map.containsKey(key)) {
+        if (null != keySet) {
+          throw new WarpScriptException(getName() + " only one of '" + KEY_WKB + "', '" + KEY_WKT + "', '" + KEY_GEOJSON + "', '" + KEY_GML + "' or '" + KEY_KML + "' can be specified.");
+        }
+        keySet = key;
+      }
+    }
+
+    Object inputGeometry = map.get(keySet);
+
+    if (KEY_WKB.equals(keySet)) {
+      if (!(inputGeometry instanceof byte[])) {
+        throw new WarpScriptException(getName() + " expects WKB to be of type BYTES.");
+      }
 
       try {
-        byte[] bytes = (byte[]) map.get(KEY_WKB);
-        geometry = reader.read(bytes);
+        Geometry geometry = GeoWKB.wkbToGeometry((byte[]) inputGeometry);
         BufferOp bop = new BufferOp(geometry, params);
         geometry = bop.getResultGeometry(distance);
         WKBWriter writer = new WKBWriter();
@@ -148,30 +163,26 @@ public class GEOBUFFER extends NamedWarpScriptFunction implements WarpScriptStac
       } catch (ParseException pe) {
         throw new WarpScriptException(getName() + " expects valid WKB BYTES.", pe);
       }
-    } else if (map.get(KEY_WKT) instanceof String) {
-      if (map.containsKey(KEY_WKB) || map.containsKey(KEY_GEOJSON)) {
-        throw new WarpScriptException(getName() + " only one of '" + KEY_WKB + "', '" + KEY_WKT + "' or '" + KEY_GEOJSON + "' can be specified.");
-      }      
-      WKTReader reader = new WKTReader();
-      Geometry geometry = null;
+    } else if (KEY_WKT.equals(keySet)) {
+      if (!(inputGeometry instanceof String)) {
+        throw new WarpScriptException(getName() + " expects WKT to be of type STRING.");
+      }
 
       try {
-        geometry = reader.read(((String) map.get(KEY_WKT)).toString());
+        Geometry geometry = GeoWKT.wktToGeometry((String) inputGeometry);
         BufferOp bop = new BufferOp(geometry, params);
         geometry = bop.getResultGeometry(distance);
         stack.push(geometry.toText());
       } catch (ParseException pe) {
         throw new WarpScriptException(getName() + " expects a valid WKT STRING.", pe);
       }
-    } else if (map.get(KEY_GEOJSON) instanceof String) {
-      if (map.containsKey(KEY_WKT) || map.containsKey(KEY_WKB)) {
-        throw new WarpScriptException(getName() + " only one of '" + KEY_WKB + "', '" + KEY_WKT + "' or '" + KEY_GEOJSON + "' can be specified.");
+    } else if (KEY_GEOJSON.equals(keySet)) {
+      if (!(inputGeometry instanceof String)) {
+        throw new WarpScriptException(getName() + " expects GeoJSON to be of type STRING.");
       }
-      GeoJSONReader reader = new GeoJSONReader();
-      Geometry geometry = null;
 
       try {
-        geometry = reader.read((String) map.get(KEY_GEOJSON));
+        Geometry geometry = GeoJSON.geoJSONToGeometry((String) inputGeometry);
         BufferOp bop = new BufferOp(geometry, params);
         geometry = bop.getResultGeometry(distance);
         GeoJSONWriter writer = new GeoJSONWriter();
@@ -179,9 +190,35 @@ public class GEOBUFFER extends NamedWarpScriptFunction implements WarpScriptStac
       } catch (UnsupportedOperationException uoe) {
         throw new WarpScriptException(getName() + " expects a valid GeoJSON STRING.", uoe);
       }
+    } else if (KEY_GML.equals(keySet)) {
+      if (!(inputGeometry instanceof String)) {
+        throw new WarpScriptException(getName() + " expects GML to be of type STRING.");
+      }
+
+      try {
+        Geometry geometry = GeoGML.GMLToGeometry((String) inputGeometry);
+        BufferOp bop = new BufferOp(geometry, params);
+        geometry = bop.getResultGeometry(distance);
+        stack.push(TOGML.GeometryToGML(geometry));
+      } catch (IOException | ParserConfigurationException | SAXException e) {
+        throw new WarpScriptException(getName() + " expects a valid GML STRING.", e);
+      }
+    } else if (KEY_KML.equals(keySet)) {
+      if (!(inputGeometry instanceof String)) {
+        throw new WarpScriptException(getName() + " expects KML to be of type STRING.");
+      }
+
+      try {
+        Geometry geometry = GeoKML.KMLToGeometry((String) inputGeometry);
+        BufferOp bop = new BufferOp(geometry, params);
+        geometry = bop.getResultGeometry(distance);
+        stack.push(TOKML.GeometryToKML(geometry));
+      } catch (ParserConfigurationException | SAXException | IOException e) {
+        throw new WarpScriptException(getName() + " expects a valid KML STRING.", e);
+      }
     } else {
       buffer.put(KEY_PARAMS, params);
-      stack.setAttribute(ATTR_GEOBUFFER, buffer);      
+      stack.setAttribute(ATTR_GEOBUFFER, buffer);
     }    
     
     return stack;

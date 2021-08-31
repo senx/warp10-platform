@@ -143,16 +143,19 @@ subprojects {
     // Generate thrift classes, used by token and warp10.
     //
     task generateThrift {
-        doLast {
-            def thriftOutputDir = new File(project.projectDir, 'src/generated/thrift')
+        def thriftOutputDir = new File(project.projectDir, 'src/generated/thrift')
+        def thriftFiles = fileTree(dir: 'src/main/thrift').matching { include '**/*.thrift' }
 
+        outputs.dir(thriftOutputDir)
+        inputs.files(thriftFiles)
+
+        doLast {
             // Delete the thrift dir if exists
             if (thriftOutputDir.exists()) {
                 thriftOutputDir.deleteDir()
             }
             thriftOutputDir.mkdirs()
 
-            def thriftFiles = fileTree(dir: 'src/main/thrift').matching { include '**/*.thrift' }
             thriftFiles.collect {
                 def file = relativePath(it)
                 exec {
@@ -161,6 +164,10 @@ subprojects {
                 }
             }
         }
+    }
+
+    clean {
+        delete generateThrift
     }
 
     //

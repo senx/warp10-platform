@@ -124,11 +124,6 @@ public class ThrottlingManager {
   private static final long MAXWAIT_PER_DATAPOINT_DEFAULT = 10L;
   
   /**
-   * Number of milliseconds in a 30 days period
-   */
-  private static final long _30DAYS_SPAN = 30L * 86400L * 1000L;
-  
-  /**
    * Default value of 'p' parameter for estimator
    */
   private static final int DEFAULT_P = 14;
@@ -913,8 +908,6 @@ public class ThrottlingManager {
           // Store events with the current versions of all estimators.
           //
           
-          TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
-              
           if (System.currentTimeMillis() - now > rampup) {
             try {
               for (Map.Entry<String, HyperLogLogPlus> keyAndHllp: producerHLLPEstimators.entrySet()) {

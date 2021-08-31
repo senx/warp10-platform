@@ -29,7 +29,6 @@ import org.joda.time.format.ISODateTimeFormat;
  * Checks that the current time is not after the provided instant.
  */
 public class NOTAFTER extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  private DateTimeFormatter fmt = ISODateTimeFormat.dateTimeParser();
 
   public NOTAFTER(String name) {
     super(name);    
