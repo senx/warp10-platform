@@ -143,17 +143,6 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
 
     private String encodedToken;
 
-    /**
-     * Cache used to determine if we should push metadata into Kafka or if it was previously seen.
-     * Key is a BigInteger constructed from a byte array of classId+labelsId (we cannot use byte[] as map key)
-     */
-    private final Map<BigInteger, Object> metadataCache = new LinkedHashMap<BigInteger, Object>(100, 0.75F, true) {
-      @Override
-      protected boolean removeEldestEntry(java.util.Map.Entry<BigInteger, Object> eldest) {
-        return this.size() > METADATA_CACHE_SIZE;
-      }
-    };
-
     private Map<String,String> sensisionLabels = new HashMap<String,String>();
 
     private Map<String,String> extraLabels = null;

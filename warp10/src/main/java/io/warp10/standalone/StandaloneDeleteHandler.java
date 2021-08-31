@@ -39,6 +39,7 @@ import javax.servlet.http.HttpServletResponse;
 import com.google.common.base.Preconditions;
 import com.google.common.primitives.Longs;
 
+import org.eclipse.jetty.io.EofException;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
@@ -72,7 +73,6 @@ import io.warp10.continuum.thrift.data.LoggingEvent;
 import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OrderPreservingBase64;
-import io.warp10.crypto.SipHashInline;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.script.WarpScriptException;
 import io.warp10.sensision.Sensision;
@@ -88,12 +88,6 @@ public class StandaloneDeleteHandler extends AbstractHandler {
   private final StoreClient storeClient;
   private final StandaloneDirectoryClient directoryClient;
 
-  private final byte[] classKey;
-  private final byte[] labelsKey;  
-  
-  private final long[] classKeyLongs;
-  private final long[] labelsKeyLongs;
-
   private DateTimeFormatter fmt = ISODateTimeFormat.dateTimeParser();
 
   private final DateTimeFormatter dtf = DateTimeFormat.forPattern("yyyyMMdd'T'HHmmss.SSS").withZoneUTC();
@@ -106,13 +100,6 @@ public class StandaloneDeleteHandler extends AbstractHandler {
     this.keyStore = keystore;
     this.storeClient = storeClient;
     this.directoryClient = directoryClient;
-
-    this.classKey = this.keyStore.getKey(KeyStore.SIPHASH_CLASS);
-    this.classKeyLongs = SipHashInline.getKey(this.classKey);
-
-    this.labelsKey = this.keyStore.getKey(KeyStore.SIPHASH_LABELS);
-    this.labelsKeyLongs = SipHashInline.getKey(this.labelsKey);
-
     this.disabled = "true".equals(WarpConfig.getProperty(Configuration.STANDALONE_DELETE_DISABLE));
   }
 
@@ -503,6 +490,8 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         String prefix = "Error when deleting data: ";
         String msg = prefix + ThrowableUtils.getErrorMessage(thr, Constants.MAX_HTTP_REASON_LENGTH - prefix.length());
         response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msg);
+      } else if (thr.getCause() instanceof EofException) {
+        LOG.info((dryrun ? "Dry-run delete" : "Delete") + " request was aborted.");
       } else {
         throw new IOException(thr);
       }

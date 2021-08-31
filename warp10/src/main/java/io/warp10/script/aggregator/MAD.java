@@ -46,7 +46,6 @@ public class MAD extends NamedWarpScriptFunction implements WarpScriptMapperFunc
   @Override
   public Object apply(Object[] args) throws WarpScriptException {
     long tick = (long) args[0];
-    long[] ticks = (long[]) args[3];
     long[] locations = (long[]) args[4];
     long[] elevations = (long[]) args[5];
     Object[] values = (Object[]) args[6];

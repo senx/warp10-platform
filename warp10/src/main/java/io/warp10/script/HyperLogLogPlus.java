@@ -312,9 +312,7 @@ public class HyperLogLogPlus {
         
         // Check if k has precedence above any value in sparse_list
         
-        boolean sparsenew = false;
-
-        if (0 != sparse_list.length) {     
+        if (0 != sparse_list.length) {
           ByteBuffer bb = ByteBuffer.wrap(sparse_list).order(ByteOrder.BIG_ENDIAN);
 
           int lastvalue = 0;

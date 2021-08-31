@@ -34,9 +34,6 @@ public class MapperToDouble extends NamedWarpScriptFunction implements WarpScrip
   @Override
   public Object apply(Object[] args) throws WarpScriptException {
     long tick = (long) args[0];
-    String[] names = (String[]) args[1];
-    Map<String,String>[] labels = (Map<String,String>[]) args[2];
-    long[] ticks = (long[]) args[3];
     long[] locations = (long[]) args[4];
     long[] elevations = (long[]) args[5];
     Object[] values = (Object[]) args[6];
