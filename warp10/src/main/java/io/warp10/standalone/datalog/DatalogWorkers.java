@@ -43,6 +43,7 @@ public class DatalogWorkers {
   private static StoreClient store = null;
   private static DirectoryClient directory = null;
 
+  // FIXME(hbs): make this configurable
   private static final int NUM_WORKERS = 8;
 
   static {
