@@ -26,6 +26,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -44,6 +45,7 @@ import com.google.common.primitives.Longs;
 import io.warp10.WarpConfig;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.thrift.data.DatalogMessage;
 import io.warp10.continuum.store.thrift.data.DatalogMessageType;
@@ -70,10 +72,6 @@ import io.warp10.sensision.Sensision;
  * Consumes a Datalog feed and updates a backend accordingly
  */
 public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
-
-  private static final String SENSISION_CLASS_DATALOG_IGNORED = "datalog.ignored";
-  private static final String SENSISION_LABEL_CONSUMER = "consumer";
-  private static final String SENSISION_LABEL_FEEDER = "feeder";
 
   private static final RUN RUN = new RUN(WarpScriptLib.RUN);
 
@@ -177,6 +175,11 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
       stack.maxLimits();
     }
 
+    Map<String,String> labels = new HashMap<String,String>();
+    labels.put(SensisionConstants.SENSISION_LABEL_CONSUMER, this.id);
+    labels.put(SensisionConstants.SENSISION_LABEL_FEEDER, this.feeder);
+    Map<String,String> typeLabels = new LinkedHashMap<String,String>(labels);
+
     while(true) {
       Socket socket = null;
 
@@ -200,6 +203,9 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
         if (DatalogMessageType.WELCOME != msg.getType()) {
           throw new IOException("Invalid message type " + msg.getType().name() + ", aborting.");
         }
+
+        typeLabels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogMessageType.WELCOME.name());
+        Sensision.update(SensisionConstants.SENSISION_CLASS_DATALOG_CONSUMER_MESSAGES_IN, typeLabels, 1);
 
         //
         // Retrieve feeder ECC public key
@@ -346,6 +352,9 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
         out.write(bytes);
         out.flush();
 
+        typeLabels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogMessageType.INIT.name());
+        Sensision.update(SensisionConstants.SENSISION_CLASS_DATALOG_CONSUMER_MESSAGES_OUT, typeLabels, 1);
+
         //
         // Now emit a seek message
         //
@@ -358,17 +367,19 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
             long ts = Long.parseLong(seek);
             msg.setType(DatalogMessageType.TSEEK);
             msg.setSeekts(ts);
+            typeLabels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogMessageType.TSEEK.name());
           } catch (NumberFormatException nfe) {
             msg.setType(DatalogMessageType.SEEK);
             msg.setRef(seek);
+            typeLabels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogMessageType.SEEK.name());
           }
         } else {
           // If the offset file does not exist, start the feed at the current time
           msg.setType(DatalogMessageType.TSEEK);
           msg.setSeekts(System.currentTimeMillis());
+          typeLabels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogMessageType.TSEEK.name());
         }
 
-        System.out.println("SEEK MSG=" + msg);
         bytes = DatalogHelper.serialize(msg);
         if (encrypt) {
           bytes = CryptoHelper.wrapBlob(AES_KEY, bytes);
@@ -377,15 +388,13 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
         out.write(bytes);
         out.flush();
 
+        Sensision.update(SensisionConstants.SENSISION_CLASS_DATALOG_CONSUMER_MESSAGES_OUT, typeLabels, 1);
+
         //
         // Now retrieve the DATA messages and push them to a worker
         //
 
         DatalogRecord record = new DatalogRecord();
-
-        Map<String,String> labels = new HashMap<String,String>();
-        labels.put(SENSISION_LABEL_CONSUMER, this.id);
-        labels.put(SENSISION_LABEL_FEEDER, this.feeder);
 
         while(true) {
 
@@ -413,7 +422,6 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
 
               // idx is < 0, this means the first commit ref failed
               if (idx < 0) {
-                //System.out.println(">>>SEEK " + inflight.get(0));
                 // Send SEEK message for first failed ref
                 msg.clear();
                 msg.setType(DatalogMessageType.SEEK);
@@ -425,11 +433,13 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
                 DatalogHelper.writeLong(out, bytes.length, 4);
                 out.write(bytes);
                 out.flush();
+                typeLabels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogMessageType.SEEK.name());
+                Sensision.update(SensisionConstants.SENSISION_CLASS_DATALOG_CONSUMER_MESSAGES_OUT, typeLabels, 1);
+
                 inflight.clear();
                 failed.clear();
                 successful.clear();
               } else if (idx >= inflight.size()) {
-                //System.out.println(">>>COMMIT " + inflight.get(inflight.size() - 1));
                 // idx > inflight.size(), so all refs were successfully handled
                 // Send COMMIT message for last ref in infligt
 
@@ -444,13 +454,13 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
                 DatalogHelper.writeLong(out, bytes.length, 4);
                 out.write(bytes);
                 out.flush();
+                typeLabels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogMessageType.COMMIT.name());
+                Sensision.update(SensisionConstants.SENSISION_CLASS_DATALOG_CONSUMER_MESSAGES_OUT, typeLabels, 1);
                 inflight.clear();
                 failed.clear();
                 successful.clear();
 
               } else {
-                //System.out.println(">>>COMMIT " + inflight.get(idx));
-                //System.out.println(">>>SEEK " + inflight.get(idx + 1));
                 // some refs failed and some succeeded
                 // Send COMMIT message for last successful ref
                 msg.clear();
@@ -464,6 +474,8 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
                 DatalogHelper.writeLong(out, bytes.length, 4);
                 out.write(bytes);
                 out.flush();
+                typeLabels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogMessageType.COMMIT.name());
+                Sensision.update(SensisionConstants.SENSISION_CLASS_DATALOG_CONSUMER_MESSAGES_OUT, typeLabels, 1);
 
                 // Send SEEK message for first failed ref
                 msg.clear();
@@ -476,6 +488,9 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
                 DatalogHelper.writeLong(out, bytes.length, 4);
                 out.write(bytes);
                 out.flush();
+                typeLabels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogMessageType.SEEK.name());
+                Sensision.update(SensisionConstants.SENSISION_CLASS_DATALOG_CONSUMER_MESSAGES_OUT, typeLabels, 1);
+
                 inflight.clear();
                 failed.clear();
                 successful.clear();
@@ -508,6 +523,9 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
             throw new IOException("Invalid message type " + msg.getType() + ", expected " + DatalogMessageType.DATA.name());
           }
 
+          typeLabels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogMessageType.DATA.name());
+          Sensision.update(SensisionConstants.SENSISION_CLASS_DATALOG_CONSUMER_MESSAGES_IN, typeLabels, 1);
+
           //
           // Extract the DatalogRecord
           //
@@ -516,12 +534,11 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
           DatalogHelper.deserialize(msg.getRecord(), record);
 
           //
-          // If our id or an exluded one created this message, ignore it, it would create a loop
+          // If our id or an exluded one created this message, ignore it, it would otherwise create a loop
           //
 
           if (this.excluded.contains(record.getId())) {
-            //System.out.println("SKIPPING " + msg.getCommitref());
-            Sensision.update(SENSISION_CLASS_DATALOG_IGNORED, labels, 1);
+            Sensision.update(SensisionConstants.SENSISION_CLASS_DATALOG_IGNORED, labels, 1);
             success(msg.getCommitref());
             inflight.add(msg.getCommitref());
             continue;
@@ -582,6 +599,7 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
             if (0 == stack.depth() || !Boolean.TRUE.equals(stack.peek())) {
               stack.show();
               stack.clear();
+              Sensision.update(SensisionConstants.SENSISION_CLASS_DATALOG_SKIPPED, labels, 1);
               continue;
             }
             stack.show();

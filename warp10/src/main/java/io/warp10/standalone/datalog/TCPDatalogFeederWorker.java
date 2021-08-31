@@ -27,12 +27,10 @@ import java.net.URI;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
@@ -53,6 +51,7 @@ import com.google.common.primitives.Longs;
 
 import io.warp10.WarpConfig;
 import io.warp10.continuum.egress.EgressExecHandler;
+import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.thrift.data.DatalogMessage;
 import io.warp10.continuum.store.thrift.data.DatalogMessageType;
@@ -69,6 +68,7 @@ import io.warp10.script.functions.ECSIGN;
 import io.warp10.script.functions.HASH;
 import io.warp10.script.functions.REVERSE;
 import io.warp10.script.functions.TOLONGBYTES;
+import io.warp10.sensision.Sensision;
 
 public class TCPDatalogFeederWorker extends Thread {
 
@@ -122,6 +122,9 @@ public class TCPDatalogFeederWorker extends Thread {
       boolean encrypt = "true".equals(WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_FEEDER_ENCRYPT));
 
       String id = WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_FEEDER_ID);
+
+      Map<String,String> typeLabels = new LinkedHashMap<String,String>();
+      typeLabels.put(SensisionConstants.SENSISION_LABEL_FEEDER, id);
 
       //
       // Extract ECC private/public key
@@ -242,6 +245,10 @@ public class TCPDatalogFeederWorker extends Thread {
         LOG.error("Invalid " + DatalogMessageType.INIT.name() + " message.");
         return;
       }
+
+      typeLabels.put(SensisionConstants.SENSISION_LABEL_CONSUMER, msg.getId());
+      typeLabels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogMessageType.INIT.name());
+      Sensision.update(SensisionConstants.SENSISION_CLASS_DATALOG_FEEDER_MESSAGES_IN, typeLabels, 1);
 
       //
       // Check consumer signature and compute encryption key if encrypt is true
@@ -366,6 +373,8 @@ public class TCPDatalogFeederWorker extends Thread {
       //System.out.println("SEEK "+ msg);
 
       if (DatalogMessageType.SEEK.equals(msg.getType())) {        // Build file name from ts/uuid
+        typeLabels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogMessageType.SEEK.name());
+        Sensision.update(SensisionConstants.SENSISION_CLASS_DATALOG_FEEDER_MESSAGES_IN, typeLabels, 1);
         currentFile = msg.getRef().replaceAll(":.*","") + FileBasedDatalogManager.SUFFIX;
         String file = this.manager.getNextFile(currentFile);
         if (!currentFile.equals(file)) {
@@ -374,6 +383,8 @@ public class TCPDatalogFeederWorker extends Thread {
           position = Long.parseLong(msg.getRef().replaceAll("[^:]*:",  "").replaceAll(":.*", ""));
         }
       } else if (DatalogMessageType.TSEEK.equals(msg.getType())) {
+        typeLabels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogMessageType.TSEEK.name());
+        Sensision.update(SensisionConstants.SENSISION_CLASS_DATALOG_FEEDER_MESSAGES_IN, typeLabels, 1);
         String hexts = new String(Hex.encode(Longs.toByteArray(msg.getSeekts())), StandardCharsets.US_ASCII);
         //System.out.println("CHECKING " + hexts);
         currentFile = this.manager.getNextFile(hexts);
@@ -530,6 +541,8 @@ public class TCPDatalogFeederWorker extends Thread {
 
           limit = size >= MAX_INFLIGHT_SIZE;
 
+          long batch = count;
+
           while(!limit) {
             // Record the current position
             position = reader.getPosition();
@@ -616,6 +629,9 @@ public class TCPDatalogFeederWorker extends Thread {
             count++;
           }
 
+          typeLabels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogMessageType.DATA.name());
+          Sensision.update(SensisionConstants.SENSISION_CLASS_DATALOG_FEEDER_MESSAGES_OUT, typeLabels, count - batch);
+
           //
           // If we voluntarily exited the loop due to the inflight limit being reached, wait for a
           // message from our peer, either SEEK/TSEEK or COMMIT
@@ -632,6 +648,9 @@ public class TCPDatalogFeederWorker extends Thread {
             DatalogHelper.deserialize(bytes, msg);
 
             if (DatalogMessageType.COMMIT == msg.getType()) {
+              typeLabels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogMessageType.COMMIT.name());
+              Sensision.update(SensisionConstants.SENSISION_CLASS_DATALOG_FEEDER_MESSAGES_IN, typeLabels, 1);
+
               // Find the index of the commit ref in the inflight list
               int idx = inflight.indexOf(msg.getRef());
 
@@ -646,6 +665,9 @@ public class TCPDatalogFeederWorker extends Thread {
               }
               //System.out.println("FEEDER INFLIGHT=" + inflight.size());
             } else if (DatalogMessageType.SEEK == msg.getType()) {
+              typeLabels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogMessageType.SEEK.name());
+              Sensision.update(SensisionConstants.SENSISION_CLASS_DATALOG_FEEDER_MESSAGES_IN, typeLabels, 1);
+
               currentFile = msg.getRef().replaceAll(":.*","") + FileBasedDatalogManager.SUFFIX;
               String file = this.manager.getNextFile(currentFile);
               if (!currentFile.equals(file)) {
@@ -656,6 +678,9 @@ public class TCPDatalogFeederWorker extends Thread {
               inflight.clear();
               size = 0;
             } else if (DatalogMessageType.TSEEK == msg.getType()) {
+              typeLabels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogMessageType.TSEEK.name());
+              Sensision.update(SensisionConstants.SENSISION_CLASS_DATALOG_FEEDER_MESSAGES_IN, typeLabels, 1);
+
               String hexts = new String(Hex.encode(Longs.toByteArray(msg.getSeekts())), StandardCharsets.US_ASCII);
               currentFile = this.manager.getNextFile(hexts);
 

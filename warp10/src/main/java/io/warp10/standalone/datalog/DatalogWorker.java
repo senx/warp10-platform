@@ -16,55 +16,64 @@
 
 package io.warp10.standalone.datalog;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.LockSupport;
 
 import io.warp10.continuum.gts.GTSDecoder;
+import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.continuum.store.thrift.data.DatalogRecord;
+import io.warp10.continuum.store.thrift.data.DatalogRecordType;
+import io.warp10.sensision.Sensision;
 import io.warp10.standalone.StandaloneDirectoryClient;
 import io.warp10.standalone.datalog.DatalogWorkers.DatalogJob;
 
 public class DatalogWorker extends Thread {
-  
+
   private final LinkedBlockingQueue<DatalogJob> queue;
-  
+
   public DatalogWorker(LinkedBlockingQueue<DatalogJob> queue) {
     this.queue = queue;
-    
+
     this.setName("[Datalog Worker]");
     this.setDaemon(true);
     this.start();
   }
 
   @Override
-  public void run() {    
+  public void run() {
     StoreClient storeClient = DatalogWorkers.getStoreClient();
     StandaloneDirectoryClient directoryClient = (StandaloneDirectoryClient) DatalogWorkers.getDirectoryClient();
-    
+
     DatalogManager manager = null;
     if (storeClient instanceof DatalogStoreClient) {
       manager = ((DatalogStoreClient) storeClient).getDatalogManager();
     }
     boolean hasManager = null != manager;
-    
+
+    Map<String,String> labels = new LinkedHashMap<String,String>();
+
     while(true) {
-      
+
       DatalogJob job = null;
       DatalogRecord record = null;
 
+      Throwable err = null;
+
       try {
         job = queue.poll();
-        
+
         if (null == job) {
           LockSupport.parkNanos(10000000L);
           continue;
         }
-        
+
         record = job.record;
-        
+
         System.out.println(job.record);
-        
+
         if (hasManager) {
           manager.process(record);
           job.consumer.success(job.ref);
@@ -88,13 +97,20 @@ public class DatalogWorker extends Thread {
               storeClient.delete(null, record.getMetadata(), record.getStart(), record.getStop());
               job.consumer.success(job.ref);
               break;
-          } 
+          }
         }
       } catch (Throwable t) {
+        err = t;
         if (null != job) {
           job.consumer.failure(job.ref);
         }
-      } finally {        
+      } finally {
+        labels.put(SensisionConstants.SENSISION_LABEL_TYPE, job.record.getType().name());
+        if (null == err) {
+          Sensision.update(SensisionConstants.SENSISION_CLASS_DATALOG_FAILURES, labels, 1);
+        } else {
+          Sensision.update(SensisionConstants.SENSISION_CLASS_DATALOG_SUCCESSES, labels, 1);
+        }
       }
     }
   }
