@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -127,7 +127,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
           try {
             self.dump(path);
           } catch (IOException ioe) {
-            ioe.printStackTrace();
+            LOG.error("Error dumping the memory store.", ioe);
             throw new RuntimeException(ioe);
           }
         }
@@ -203,29 +203,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
           }
 
           while(idx < metadatas.size()) {
-            long id = metadatas.get(idx).getClassId();
-
-            int bidx = 0;
-
-            bytes[bidx++] = (byte) ((id >> 56) & 0xff);
-            bytes[bidx++] = (byte) ((id >> 48) & 0xff);
-            bytes[bidx++] = (byte) ((id >> 40) & 0xff);
-            bytes[bidx++] = (byte) ((id >> 32) & 0xff);
-            bytes[bidx++] = (byte) ((id >> 24) & 0xff);
-            bytes[bidx++] = (byte) ((id >> 16) & 0xff);
-            bytes[bidx++] = (byte) ((id >> 8) & 0xff);
-            bytes[bidx++] = (byte) (id & 0xff);
-
-            id = metadatas.get(idx).getLabelsId();
-
-            bytes[bidx++] = (byte) ((id >> 56) & 0xff);
-            bytes[bidx++] = (byte) ((id >> 48) & 0xff);
-            bytes[bidx++] = (byte) ((id >> 40) & 0xff);
-            bytes[bidx++] = (byte) ((id >> 32) & 0xff);
-            bytes[bidx++] = (byte) ((id >> 24) & 0xff);
-            bytes[bidx++] = (byte) ((id >> 16) & 0xff);
-            bytes[bidx++] = (byte) ((id >> 8) & 0xff);
-            bytes[bidx++] = (byte) (id & 0xff);
+            GTSHelper.fillGTSIds(bytes, 0, metadatas.get(idx).getClassId(), metadatas.get(idx).getLabelsId());
 
             BigInteger clslbls = new BigInteger(bytes);
 
@@ -274,30 +252,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
 
     Metadata meta = encoder.getMetadata();
 
-    // 128BITS
-    long id = meta.getClassId();
-
-    int bidx = 0;
-
-    bytes[bidx++] = (byte) ((id >> 56) & 0xff);
-    bytes[bidx++] = (byte) ((id >> 48) & 0xff);
-    bytes[bidx++] = (byte) ((id >> 40) & 0xff);
-    bytes[bidx++] = (byte) ((id >> 32) & 0xff);
-    bytes[bidx++] = (byte) ((id >> 24) & 0xff);
-    bytes[bidx++] = (byte) ((id >> 16) & 0xff);
-    bytes[bidx++] = (byte) ((id >> 8) & 0xff);
-    bytes[bidx++] = (byte) (id & 0xff);
-
-    id = meta.getLabelsId();
-
-    bytes[bidx++] = (byte) ((id >> 56) & 0xff);
-    bytes[bidx++] = (byte) ((id >> 48) & 0xff);
-    bytes[bidx++] = (byte) ((id >> 40) & 0xff);
-    bytes[bidx++] = (byte) ((id >> 32) & 0xff);
-    bytes[bidx++] = (byte) ((id >> 24) & 0xff);
-    bytes[bidx++] = (byte) ((id >> 16) & 0xff);
-    bytes[bidx++] = (byte) ((id >> 8) & 0xff);
-    bytes[bidx++] = (byte) (id & 0xff);
+    GTSHelper.fillGTSIds(bytes, 0, meta.getClassId(), meta.getLabelsId());
 
     BigInteger clslbls = new BigInteger(bytes);
 
@@ -483,29 +438,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
 
     byte[] bytes = new byte[16];
 
-    long id = metadata.getClassId();
-
-    int bidx = 0;
-
-    bytes[bidx++] = (byte) ((id >> 56) & 0xff);
-    bytes[bidx++] = (byte) ((id >> 48) & 0xff);
-    bytes[bidx++] = (byte) ((id >> 40) & 0xff);
-    bytes[bidx++] = (byte) ((id >> 32) & 0xff);
-    bytes[bidx++] = (byte) ((id >> 24) & 0xff);
-    bytes[bidx++] = (byte) ((id >> 16) & 0xff);
-    bytes[bidx++] = (byte) ((id >> 8) & 0xff);
-    bytes[bidx++] = (byte) (id & 0xff);
-
-    id = metadata.getLabelsId();
-
-    bytes[bidx++] = (byte) ((id >> 56) & 0xff);
-    bytes[bidx++] = (byte) ((id >> 48) & 0xff);
-    bytes[bidx++] = (byte) ((id >> 40) & 0xff);
-    bytes[bidx++] = (byte) ((id >> 32) & 0xff);
-    bytes[bidx++] = (byte) ((id >> 24) & 0xff);
-    bytes[bidx++] = (byte) ((id >> 16) & 0xff);
-    bytes[bidx++] = (byte) ((id >> 8) & 0xff);
-    bytes[bidx++] = (byte) (id & 0xff);
+    GTSHelper.fillGTSIds(bytes, 0, metadata.getClassId(), metadata.getLabelsId());
 
     BigInteger clslbls = new BigInteger(bytes);
 
@@ -597,10 +530,10 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
         }
       }
     } catch (IOException ioe) {
-      ioe.printStackTrace();
+      LOG.error("Error writing the dump.", ioe);
       throw ioe;
     } catch (Exception e) {
-      e.printStackTrace();
+      LOG.error("Error writing the dump.", e);
       throw new IOException(e);
     }
 

@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -169,8 +169,6 @@ public class Ingress extends AbstractHandler implements Runnable {
   final boolean useDatapointTs;
   
   private final String cacheDumpPath;
-  
-  private DateTimeFormatter fmt = ISODateTimeFormat.dateTimeParser();
   
   public final IngressPlugin plugin;
   
@@ -413,7 +411,7 @@ public class Ingress extends AbstractHandler implements Runnable {
     //
     
     Properties metaProps = new Properties();
-    // @see http://kafka.apache.org/documentation.html#producerconfigs
+    // @see <a href="http://kafka.apache.org/documentation.html#producerconfigs">http://kafka.apache.org/documentation.html#producerconfigs</a>
     metaProps.setProperty("metadata.broker.list", props.getProperty(Configuration.INGRESS_KAFKA_META_BROKERLIST));
     if (null != props.getProperty(Configuration.INGRESS_KAFKA_META_PRODUCER_CLIENTID)) {
       metaProps.setProperty("client.id", props.getProperty(Configuration.INGRESS_KAFKA_META_PRODUCER_CLIENTID));
@@ -438,7 +436,7 @@ public class Ingress extends AbstractHandler implements Runnable {
         SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_KAFKA_METADATA_PRODUCER_WAIT_NANO);
     
     Properties dataProps = new Properties();
-    // @see http://kafka.apache.org/documentation.html#producerconfigs
+    // @see <a href="http://kafka.apache.org/documentation.html#producerconfigs">http://kafka.apache.org/documentation.html#producerconfigs</a>
     dataProps.setProperty("metadata.broker.list", props.getProperty(Configuration.INGRESS_KAFKA_DATA_BROKERLIST));
     if (null != props.getProperty(Configuration.INGRESS_KAFKA_DATA_PRODUCER_CLIENTID)) {
       dataProps.setProperty("client.id", props.getProperty(Configuration.INGRESS_KAFKA_DATA_PRODUCER_CLIENTID));
@@ -501,7 +499,7 @@ public class Ingress extends AbstractHandler implements Runnable {
 
     /*
     Properties deleteProps = new Properties();
-    // @see http://kafka.apache.org/documentation.html#producerconfigs
+    // @see <a href="http://kafka.apache.org/documentation.html#producerconfigs">http://kafka.apache.org/documentation.html#producerconfigs</a>
     deleteProps.setProperty("metadata.broker.list", props.getProperty(INGRESS_KAFKA_DELETE_BROKERLIST));
     deleteProps.setProperty("request.required.acks", "-1");
     deleteProps.setProperty("producer.type","sync");
@@ -600,8 +598,10 @@ public class Ingress extends AbstractHandler implements Runnable {
       int queuesize = Integer.parseInt(props.getProperty(Configuration.INGRESS_JETTY_MAXQUEUESIZE));
       queue = new BlockingArrayQueue<Runnable>(queuesize);
     }
-    
-    Server server = new Server(new QueuedThreadPool(maxThreads,8, 60000, queue));
+
+    QueuedThreadPool queuedThreadPool = new QueuedThreadPool(maxThreads, 8, 60000, queue);
+    queuedThreadPool.setName("Warp Ingress Jetty Thread");
+    Server server = new Server(queuedThreadPool);
     
     List<Connector> connectors = new ArrayList<Connector>();
 
@@ -992,8 +992,6 @@ public class Ingress extends AbstractHandler implements Runnable {
         
         byte[] bytes = new byte[16];
         
-        int idx = 0;
-        
         AtomicLong dms = this.dataMessagesSize.get();
         
         // Atomic boolean to track if attributes were parsed
@@ -1033,8 +1031,7 @@ public class Ingress extends AbstractHandler implements Runnable {
           try {
             encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxsize, hadAttributes, maxpast, maxfuture, ignoredCount, deltaAttributes);
             if (null != this.plugin) {
-              GTSEncoder enc = encoder;
-              if (!this.plugin.update(this, writeToken, line, encoder)) {                
+              if (!this.plugin.update(this, writeToken, line, encoder)) {
                 hadAttributes.set(false);
                 continue;
               }
@@ -1431,8 +1428,6 @@ public class Ingress extends AbstractHandler implements Runnable {
     
     response.setHeader("Access-Control-Allow-Origin", "*");
 
-    long nano = System.nanoTime();
-    
     //
     // Extract token infos
     //
@@ -1530,35 +1525,33 @@ public class Ingress extends AbstractHandler implements Runnable {
           throw new IOException("Invalid value for '" + Constants.HTTP_PARAM_MINAGE + "', expected a number of ms >= 0");
         }
       }
-      
-      if (null != startstr) {
-        if (null == endstr) {
-          throw new IOException("Both " + Constants.HTTP_PARAM_START + " and " + Constants.HTTP_PARAM_END + " should be defined.");
-        }
+
+      // Both or neither start and end must be specified
+      if (null == startstr ^ null == endstr) {
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Both " + Constants.HTTP_PARAM_START + " and " + Constants.HTTP_PARAM_END + " should be defined.");
+        return;
+      }
+
+      // Parse start and end parameters
+      if (null != startstr) { // also implies endstr is not null.
         if (startstr.contains("T")) {
           start = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(startstr);
         } else {
-          start = Long.valueOf(startstr);
+          start = Long.parseLong(startstr);
         }
-      }
-      
-      if (null != endstr) {
-        if (null == startstr) {
-          throw new IOException("Both " + Constants.HTTP_PARAM_START + " and " + Constants.HTTP_PARAM_END + " should be defined.");
-        }
+
         if (endstr.contains("T")) {
           end = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(endstr);
         } else {
-          end = Long.valueOf(endstr);
+          end = Long.parseLong(endstr);
         }
+
+        hasRange = true;
       }
 
-      if (Long.MIN_VALUE == start && Long.MAX_VALUE == end && (null == request.getParameter(Constants.HTTP_PARAM_DELETEALL) && !metaonly)) {
-        throw new IOException("Parameter " + Constants.HTTP_PARAM_DELETEALL + " or " + Constants.HTTP_PARAM_METAONLY + " should be set when no time range is specified.");
-      }
-      
-      if (Long.MIN_VALUE != start || Long.MAX_VALUE != end) {
-        hasRange = true;
+      if (!hasRange && (null == request.getParameter(Constants.HTTP_PARAM_DELETEALL) && !metaonly)) {
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Parameter " + Constants.HTTP_PARAM_DELETEALL + " or " + Constants.HTTP_PARAM_METAONLY + " should be set when no time range is specified.");
+        return;
       }
       
       if (metaonly && !Constants.DELETE_METAONLY_SUPPORT) {
@@ -1613,8 +1606,6 @@ public class Ingress extends AbstractHandler implements Runnable {
       
       labelsSelectors.putAll(extraLabels);
 
-      List<Metadata> metadatas = null;
-      
       List<String> clsSels = new ArrayList<String>();
       List<Map<String,String>> lblsSels = new ArrayList<Map<String,String>>();
       
@@ -1913,7 +1904,7 @@ public class Ingress extends AbstractHandler implements Runnable {
         }        
       }
     } catch (Throwable t) {
-      LOG.error("",t);
+      LOG.error("Error deleting data.", t);
       Sensision.update(SensisionConstants.CLASS_WARP_INGRESS_DELETE_ERRORS, Sensision.EMPTY_LABELS, 1);
       if (showErrors && null != pw) {
         pw.println();

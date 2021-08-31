@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -65,11 +65,15 @@ import com.netflix.curator.framework.CuratorFrameworkFactory;
 import com.netflix.curator.framework.recipes.cache.NodeCache;
 import com.netflix.curator.framework.recipes.cache.NodeCacheListener;
 import com.netflix.curator.retry.RetryNTimes;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Reads GTS updates in Kafka and pushes them to PlasmaFrontEnd instances via Kafka
  */
 public class PlasmaBackEnd extends Thread implements NodeCacheListener {
+
+  private static final Logger LOG = LoggerFactory.getLogger(PlasmaBackEnd.class);
   
   private final KeyStore keystore;
 
@@ -120,8 +124,6 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
   
   private CuratorFramework curatorFramework = null;
   
-  private String rootznode = null;
-      
   public PlasmaBackEnd(KeyStore keystore, final Properties props) {
     this.keystore = keystore;
 
@@ -156,7 +158,7 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
     //
     
     Properties dataProps = new Properties();
-    // @see http://kafka.apache.org/documentation.html#producerconfigs
+    // @see <a href="http://kafka.apache.org/documentation.html#producerconfigs">http://kafka.apache.org/documentation.html#producerconfigs</a>
     dataProps.setProperty("metadata.broker.list", props.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_OUT_BROKERLIST));
     if (null != props.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_OUT_PRODUCER_CLIENTID)) {
       dataProps.setProperty("client.id", props.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_OUT_PRODUCER_CLIENTID));
@@ -265,7 +267,7 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
             connector.shutdown();
             abort.set(false);
           } catch (Throwable t) {
-            t.printStackTrace(System.err);
+            LOG.error("Error while spawning KafkaConsumers.", t);
           } finally {
             try { Thread.sleep(1000L); } catch (InterruptedException ie) {}
           }
@@ -305,7 +307,7 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
     try {
       cache.start(true);
     } catch (Exception e) {
-      e.printStackTrace();
+      LOG.error("Error stating cache.", e);
     }
 
     //
@@ -345,7 +347,7 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
     try {
       entries = this.curatorFramework.getChildren().forPath(properties.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_SUBSCRIPTIONS_ZNODE));
     } catch (Exception e) {
-      e.printStackTrace();
+      LOG.error("Error getting subscription.", e);
     }
     
     if (null == entries) {
@@ -401,7 +403,7 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
           subs.add(id);
         }              
       } catch (Exception e) {
-        e.printStackTrace();
+        LOG.error("Error while processing subscriptions.", e);
       }
     }
     
@@ -587,7 +589,7 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
           }          
         }        
       } catch (Throwable t) {
-        t.printStackTrace(System.err);
+        LOG.error("Error processing subscription messages from Kafka.", t);
       } finally {
         // Set abort to true in case we exit the 'run' method
         backend.abort.set(true);

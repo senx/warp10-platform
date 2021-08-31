@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -113,8 +113,10 @@ public class Egress {
       int queuesize = Integer.parseInt(props.getProperty(Configuration.EGRESS_JETTY_MAXQUEUESIZE));
       queue = new BlockingArrayQueue<Runnable>(queuesize);
     }
-    
-    server = new Server(new QueuedThreadPool(maxThreads, 8, 60000, queue));   
+
+    QueuedThreadPool queuedThreadPool = new QueuedThreadPool(maxThreads, 8, 60000, queue);
+    queuedThreadPool.setName("Warp Egress Jetty Thread");
+    server = new Server(queuedThreadPool);
 
     if (useHttp) {
       int port = Integer.valueOf(props.getProperty(Configuration.EGRESS_PORT));
@@ -154,8 +156,7 @@ public class Egress {
     HandlerList handlers = new HandlerList();
     
     StoreClient storeClient = new HBaseStoreClient(this.keystore, this.properties);
-    QuasarTokenFilter tokenFilter = new QuasarTokenFilter(this.properties, this.keystore);
-    
+
     Handler cors = new CORSHandler();
     handlers.addHandler(cors);
     

@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -48,8 +48,9 @@ import com.geoxp.GeoXPLib;
 public class StackUtils {
 
   public static void toJSON(PrintWriter out, WarpScriptStack stack, int maxdepth, long maxJsonSize) throws WarpScriptException, IOException {
-    
+
     boolean strictJSON = Boolean.TRUE.equals(stack.getAttribute(WarpScriptStack.ATTRIBUTE_JSON_STRICT));
+    boolean prettyJSON = Boolean.TRUE.equals(stack.getAttribute(WarpScriptStack.ATTRIBUTE_JSON_PRETTY));
 
     int depth = Math.min(stack.depth(), maxdepth);
 
@@ -66,7 +67,7 @@ public class StackUtils {
 
       Object o = stack.get(i);
 
-      JsonUtils.objectToJson(out, o, strictJSON, maxJsonSize);
+      JsonUtils.objectToJson(out, o, strictJSON, prettyJSON, maxJsonSize);
     }
 
     out.print("]");
@@ -196,7 +197,6 @@ public class StackUtils {
    * Any other object will trigger an exception
    * 
    * @param o The converted object
-   * @return
    */
   public static Object toSDKObject(Object o) throws WarpScriptException {
     if (o instanceof String || o instanceof Long || o instanceof Double || o instanceof Boolean) {

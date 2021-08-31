@@ -26,7 +26,7 @@ import com.google.common.base.Preconditions;
 /**
  * Utility class for ZigZag encoded varints
  * 
- * @see{https://developers.google.com/protocol-buffers/docs/encoding}
+ * @see <a href="https://developers.google.com/protocol-buffers/docs/encoding">https://developers.google.com/protocol-buffers/docs/encoding</a>
  *
  */
 public final class Varint {
@@ -477,7 +477,6 @@ public final class Varint {
    * Decode a varint encoded unsigned long value stored in a ByteBuffer.
    * @param buffer The ByteBuffer from which to read the data.
    *               The buffer is assumed to be positioned where the data should be read.
-   * @return
    */
   public static long decodeUnsignedLong(ByteBuffer buffer) {
     long value = 0L;
@@ -498,7 +497,6 @@ public final class Varint {
    * 
    * @param buffer The ByteBuffer from which to read the data.
    *               The buffer is assumed to be positioned where the data should be read.
-   * @return
    */
   public static long decodeSignedLong(ByteBuffer buffer) {
     long unsigned = decodeUnsignedLong(buffer);
@@ -535,7 +533,6 @@ public final class Varint {
    * Decode a varint encoded unsigned long value stored in a ByteBuffer.
    * @param buffer The ByteBuffer from which to read the data.
    *               The buffer is assumed to be positioned where the data should be read.
-   * @return
    */
   public static long decodeUnsignedLong(CustomBuffer buffer) {
     long value = 0L;
@@ -556,7 +553,6 @@ public final class Varint {
    * 
    * @param buffer The ByteBuffer from which to read the data.
    *               The buffer is assumed to be positioned where the data should be read.
-   * @return
    */
   public static long decodeSignedLong(CustomBuffer buffer) {
     long unsigned = decodeUnsignedLong(buffer);

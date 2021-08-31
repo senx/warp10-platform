@@ -1,5 +1,5 @@
 //
-//    Copyright 2020  SenX S.A.S.
+//    Copyright 2020-2021  SenX S.A.S.
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -52,10 +52,9 @@ public class TOWKB extends NamedWarpScriptFunction implements WarpScriptStackFun
       byte[] wkb = writer.write(geometry);
       stack.push(wkb);
     } catch (WarpScriptException wse) {
-      throw new WarpScriptException(getName() + " expects a GEOSHAPE, a WKT STRING or a GeoJSON STRING.", wse);
-    } catch (
-        ParseException pe) {
-      throw new WarpScriptException(getName() + " was given invalid input.", pe);
+      throw new WarpScriptException(getName() + " expects a GEOSHAPE, a WKT STRING, a GML STRING, a KML STRING or a GeoJSON STRING.", wse);
+    } catch (Exception e) {
+      throw new WarpScriptException(getName() + " was given invalid input.", e);
     }
 
     return stack;

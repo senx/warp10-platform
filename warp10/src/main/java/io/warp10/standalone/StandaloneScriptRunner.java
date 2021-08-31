@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -100,7 +100,7 @@ public class StandaloneScriptRunner extends ScriptRunner {
           String name = currentThread().getName();
           currentThread().setName(script);
 
-          long nowts = System.currentTimeMillis();
+          long nowns = System.nanoTime();
 
           File f = new File(script);
 
@@ -230,7 +230,7 @@ public class StandaloneScriptRunner extends ScriptRunner {
             WarpConfig.clearThreadProperties();
             WarpScriptStackRegistry.unregister(stack);
             currentThread().setName(name);
-            nextrun.put(script, nowts + periodicity);
+            nextrun.put(script, nowns + periodicity * 1000000L);
             nano = System.nanoTime() - nano;
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_TIME_US, labels, ttl, nano / 1000L);
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_ELAPSED, labels, ttl, nano);
@@ -242,7 +242,7 @@ public class StandaloneScriptRunner extends ScriptRunner {
       });
     } catch (RejectedExecutionException ree) {
       // Reschedule script immediately
-      nextrun.put(script, System.currentTimeMillis());
+      nextrun.put(script, System.nanoTime());
     }
   }
 }

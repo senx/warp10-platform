@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -76,7 +76,6 @@ public class StandaloneSplitsHandler extends AbstractHandler {
     
     String token = request.getParameter(Constants.HTTP_PARAM_TOKEN);
     String selector = request.getParameter(Constants.HTTP_PARAM_SELECTOR);
-    String now = request.getParameter(Constants.HTTP_PARAM_NOW);
     Long activeAfter = null == request.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER) ? null : Long.parseLong(request.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER));
     Long quietAfter = null == request.getParameter(Constants.HTTP_PARAM_QUIETAFTER) ? null : Long.parseLong(request.getParameter(Constants.HTTP_PARAM_QUIETAFTER));
 
@@ -96,6 +95,11 @@ public class StandaloneSplitsHandler extends AbstractHandler {
       
       if (rtoken.getHooksSize() > 0) {
         throw new IOException("Tokens with hooks cannot be used for generating splits.");        
+      }
+
+      Map<String, String> rtokenAttributes = rtoken.getAttributes();
+      if (null != rtokenAttributes && (rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOFETCH) || rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOFIND))) {
+        throw new IOException("Token cannot be used for fetching data.");
       }
     } catch (WarpScriptException ee) {
       throw new IOException(ee);
@@ -166,8 +170,7 @@ public class StandaloneSplitsHandler extends AbstractHandler {
         //
         
         long classId = metadata.getClassId();
-        long labelsId = metadata.getLabelsId();
-        
+
         //
         // Build Split
         //

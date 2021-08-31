@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package io.warp10.standalone;
 
+import io.warp10.ThrowableUtils;
 import io.warp10.json.JsonUtils;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.Tokens;
@@ -195,6 +196,11 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
           if (rtoken.getHooksSize() > 0) {
             throw new IOException("Tokens with hooks cannot be used with Plasma.");        
           }
+
+          Map<String, String> rtokenAttributes = rtoken.getAttributes();
+          if (null != rtokenAttributes && (rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOFETCH) || rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOFIND))) {
+            throw new IOException("Token cannot be used for fetching data.");
+          }
         } catch (Exception e) {
           rtoken = null;
         }
@@ -321,7 +327,7 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
           this.handler.sampleRate.remove(session);
         }
       } else {
-        throw new IOException("Invalid verb.");
+        session.close(HttpServletResponse.SC_BAD_REQUEST, "Invalid verb.");
       }
     }
     
@@ -823,8 +829,6 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
   
   /**
    * Return the current set of subscribed classId/labelsId
-   * 
-   * @return
    */
   public Set<BigInteger> getSubscriptions() {
     Set<BigInteger> ids = new HashSet<BigInteger>();

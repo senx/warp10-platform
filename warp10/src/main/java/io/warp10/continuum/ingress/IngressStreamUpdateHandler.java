@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -266,7 +266,6 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
                 encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, this.maxsize, hadAttributes, maxpast, maxfuture, ignoredCount, this.deltaAttributes);
                 
                 if (null != this.handler.ingress.plugin) {
-                  GTSEncoder enc = encoder;
                   if (!this.handler.ingress.plugin.update(this.handler.ingress, wtoken, line, encoder)) {
                     hadAttributes.set(false);
                     continue;
@@ -429,7 +428,7 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
           String msg = "ERROR " + ThrowableUtils.getErrorMessage(t);
           session.getRemote().sendString(msg);
         } else {
-          throw t;
+          session.close(HttpServletResponse.SC_BAD_REQUEST, ThrowableUtils.getErrorMessage(t));
         }
       }      
     }
@@ -522,8 +521,6 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
       this.sensisionLabels.clear();
       this.sensisionLabels.put(SensisionConstants.SENSISION_LABEL_PRODUCER, producer);
 
-      long count = 0;
-      
       if (null == producer || null == owner) {
         throw new IOException("Invalid token.");
       }

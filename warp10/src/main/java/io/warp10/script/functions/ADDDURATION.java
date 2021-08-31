@@ -1,5 +1,5 @@
 //
-//   Copyright 2020  SenX S.A.S.
+//   Copyright 2020-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -140,9 +140,6 @@ public class ADDDURATION extends NamedWarpScriptFunction implements WarpScriptSt
 
   /**
    * Convert an ISO8601 duration to a Period.
-   * @param duration
-   * @return
-   * @throws WarpScriptException
    */
   public static ReadWritablePeriodWithSubSecondOffset durationToPeriod(String duration) throws WarpScriptException {
     // Separate seconds from  digits below second precision
@@ -160,7 +157,7 @@ public class ADDDURATION extends NamedWarpScriptFunction implements WarpScriptSt
       try {
         offset = ((Double) (Double.parseDouble("0." + tmp) * Constants.TIME_UNITS_PER_S)).longValue();
       } catch (NumberFormatException e) {
-        throw new WarpScriptException("Parsing of sub second precision part of duration has failed. tried to parse: " + tmp);
+        throw new WarpScriptException("Parsing of sub second precision part of duration has failed. tried to parse: " + tmp, e);
       }
     }
 

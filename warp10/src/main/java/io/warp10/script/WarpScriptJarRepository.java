@@ -77,7 +77,7 @@ public class WarpScriptJarRepository extends Thread {
     this.delay = delay;
     
     if (null != directory) {
-      this.setName("[Warp Jar Repository (" + directory + ")");
+      this.setName("[Warp Jar Repository (" + directory + ")]");
       this.setDaemon(true);
       this.start();
     }
@@ -187,11 +187,6 @@ public class WarpScriptJarRepository extends Thread {
   
   /**
    * Load an instance of a UDF, possibly checking the cache.
-   * 
-   * @param name
-   * @param cached
-   * @return
-   * @throws WarpScriptException
    */
   public static WarpScriptJavaFunction load(String name, boolean cached) throws WarpScriptException {
     

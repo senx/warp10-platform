@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -104,11 +104,9 @@ public class INCLUDE extends NamedWarpScriptFunction implements WarpScriptStackF
         lineno++;
         stack.exec(line);
       }
-            
-    } catch (WarpScriptException ee) {
-      throw new WarpScriptException("Error line " + lineno, ee);
+
     } catch (Exception e) {
-      throw new WarpScriptException("Error line " + lineno, e);
+      throw new WarpScriptException(getName() + " encountered an error line " + lineno + ".", e);
     } finally {
       if (null != br) {
         try {

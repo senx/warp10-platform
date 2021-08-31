@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -49,6 +49,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 import java.util.zip.GZIPInputStream;
 
+import io.warp10.CustomThreadFactory;
 import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.store.Constants;
@@ -67,82 +68,82 @@ import io.warp10.script.functions.SNAPSHOT;
 public class DEVAL extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   
   private static final ExecutorService executor;
-  
+
   private static final int maxThreadsPerRequest;
-  
-  private static Map<URI,Set<Long>> endpoints = new HashMap<URI,Set<Long>>();
-  
+
+  private static final Map<URI, Set<Long>> endpoints = new HashMap<URI, Set<Long>>();
+
   private static long shardmodulus;
-  
+
   /**
    * Snapshot command to use
    */
-  private static byte[] snapshot;
-  
-  private static JSONTO JSONTO;
-  
-  static {    
+  private static final byte[] snapshot;
+
+  private static final JSONTO JSONTO;
+
+  static {
     snapshot = WarpConfig.getProperty(ShardingWarpScriptExtension.SHARDING_SNAPSHOT, WarpScriptLib.SNAPSHOT).trim().getBytes(StandardCharsets.UTF_8);
-    
+
     int poolsize = Integer.parseInt(WarpConfig.getProperty(ShardingWarpScriptExtension.SHARDING_POOLSIZE, "4"));
     maxThreadsPerRequest = Integer.parseInt(WarpConfig.getProperty(ShardingWarpScriptExtension.SHARDING_MAXTHREADSPERCALL, Integer.toString(poolsize)));
-        
+
     BlockingQueue<Runnable> queue = new LinkedBlockingDeque<Runnable>(poolsize * 2);
-    
-    executor = new ThreadPoolExecutor(poolsize, poolsize, 60, TimeUnit.SECONDS, queue);
-    
+
+    executor = new ThreadPoolExecutor(poolsize, poolsize, 60, TimeUnit.SECONDS, queue, new CustomThreadFactory("Warp DEVAL Thread"));
+
     //
     // Scan the properties, identifying the endpoints
     //
-    
-    long shardmodulus = -1;        
+
+    shardmodulus = -1;
 
     Properties props = WarpConfig.getProperties();
 
-    for (Entry<Object,Object> entry: props.entrySet()) {
+    for (Entry<Object, Object> entry: props.entrySet()) {
       if (!entry.getKey().toString().startsWith(ShardingWarpScriptExtension.SHARDING_ENDPOINT_PREFIX)) {
         continue;
       }
       // Extract shard spec (name.MODULUS:REMAINDER)
-      
+
       String spec = entry.getKey().toString().substring(ShardingWarpScriptExtension.SHARDING_ENDPOINT_PREFIX.length());
-      
+
       // Get rid of the prefix and name
-      
+
       spec = spec.replaceAll(".*\\.", "");
-      
+
       String[] tokens = spec.split(":");
-      
+
       if (2 != tokens.length) {
         continue;
       }
-      
+
       long modulus = Long.parseLong(tokens[0].trim());
       long remainder = Long.parseLong(tokens[1].trim());
-      
+
       if (modulus <= 0 || remainder < 0 || remainder >= modulus) {
         continue;
       }
-      
+
       if (-1L == shardmodulus) {
         shardmodulus = modulus;
       }
-      
+
       if (modulus != shardmodulus) {
         throw new RuntimeException("Invalid modulus " + modulus + " for shard '" + entry.getKey() + "', should be " + shardmodulus);
       }
-      
+
       try {
         URL url = new URL(entry.getValue().toString().trim());
-        
+
         Set<Long> remainders = endpoints.get(url.toURI());
-        
+
         if (null == remainders) {
           remainders = new HashSet<Long>();
           endpoints.put(url.toURI(), remainders);
         }
-        
-        remainders.add(remainder);        
+
+        remainders.add(remainder);
       } catch (MalformedURLException | URISyntaxException e) {
         throw new RuntimeException(e);
       }
@@ -151,59 +152,59 @@ public class DEVAL extends NamedWarpScriptFunction implements WarpScriptStackFun
     //
     // Now check that we have all the remainders
     //
-    
+
     Set<Long> allremainders = new HashSet<Long>();
-    
+
     for (Set<Long> rems: endpoints.values()) {
       allremainders.addAll(rems);
     }
-    
+
     if (shardmodulus != allremainders.size()) {
       throw new RuntimeException("Missing shards, only have " + allremainders.size() + " shards defined out of " + shardmodulus);
     }
-    
+
     JSONTO = new JSONTO(WarpScriptLib.JSONTO);
   }
-  
+
   public DEVAL(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    
+
     Object top = stack.pop();
-    
+
     if (!(top instanceof Macro)) {
       throw new WarpScriptException(getName() + " operates on a Macro.");
     }
-    
+
     StringBuilder sb = new StringBuilder();
-    
+
     SNAPSHOT.addElement(sb, top);
-    
+
     sb.append(" ");
     sb.append(WarpScriptLib.EVAL);
-    
-    final String params = sb.toString();    
-    final AtomicInteger pending = new AtomicInteger(0);    
+
+    final String params = sb.toString();
+    final AtomicInteger pending = new AtomicInteger(0);
     final AtomicBoolean aborted = new AtomicBoolean(false);
-        
+
     // Get the endpoints and shuffle them
     List<URI> uris = new ArrayList<URI>(endpoints.keySet());
     Collections.shuffle(uris);
     Set<Long> remainders = new HashSet<Long>();
-    
+
     List<URI> finaluris = new ArrayList<URI>();
 
     for (URI uri: uris) {
-      
+
       // If the current url is associated with remainders we already have, skip it
-      
+
       if (remainders.containsAll(endpoints.get(uri))) {
         continue;
       }
-      
+
       remainders.addAll(endpoints.get(uri));
       finaluris.add(uri);
 
@@ -212,34 +213,34 @@ public class DEVAL extends NamedWarpScriptFunction implements WarpScriptStackFun
         break;
       }
     }
-        
+
     @SuppressWarnings("unchecked")
     Future<String>[] futures = new Future[finaluris.size()];
 
     int i = 0;
-    
-    while(i < futures.length) {
+
+    while (i < futures.length) {
       // Wait until we have less than maxThreadsPerRequest pending requests
-      while(!aborted.get() && pending.get() >= maxThreadsPerRequest) {
+      while (!aborted.get() && pending.get() >= maxThreadsPerRequest) {
         LockSupport.parkNanos(1000000);
       }
-      
+
       if (aborted.get()) {
         break;
       }
-      
+
       try {
         final URL endpoint = finaluris.get(i).toURL();
         futures[i] = executor.submit(new Callable<String>() {
           @Override
           public String call() throws Exception {
-      
+
             if (aborted.get()) {
               throw new WarpScriptException("Execution aborted.");
             }
-            
+
             HttpURLConnection conn = null;
-            
+
             try {
               // Connect to the endpoint
               conn = (HttpURLConnection) endpoint.openConnection();
@@ -250,33 +251,33 @@ public class DEVAL extends NamedWarpScriptFunction implements WarpScriptStackFun
               conn.setDoInput(true);
               conn.setDoOutput(true);
               conn.setRequestMethod("POST");
-              
+
               OutputStream connout = conn.getOutputStream();
               OutputStream out = connout;
-              
+
               out.write(params.getBytes(StandardCharsets.UTF_8));
               out.write('\n');
               out.write(snapshot);
               out.write('\n');
-              
+
               connout.flush();
-              
+
               InputStream in = conn.getInputStream();
 
               // Retrieve result
               if ("gzip".equals(conn.getContentEncoding())) {
                 in = new GZIPInputStream(in);
               }
-              
+
               if (HttpURLConnection.HTTP_OK != conn.getResponseCode()) {
                 throw new WarpScriptException(getName() + " remote execution encountered an error: " + conn.getHeaderField(Constants.getHeader(Configuration.HTTP_HEADER_ERROR_MESSAGEX)));
               }
-              
+
               ByteArrayOutputStream baos = new ByteArrayOutputStream();
-              
+
               byte[] buf = new byte[1024];
-              
-              while(true) {
+
+              while (true) {
                 int len = in.read(buf);
                 if (len < 0) {
                   break;
@@ -285,9 +286,9 @@ public class DEVAL extends NamedWarpScriptFunction implements WarpScriptStackFun
               }
 
               byte[] bytes = baos.toByteArray();
-              
+
               String result = new String(bytes, StandardCharsets.UTF_8);
-              
+
               return result;
             } catch (IOException ioe) {
               aborted.set(true);
@@ -310,12 +311,12 @@ public class DEVAL extends NamedWarpScriptFunction implements WarpScriptStackFun
       }
       i++;
     }
-    
+
     //
     // Wait until all tasks have completed or the execution was aborted
     //
-    
-    while(!aborted.get() && pending.get() > 0) {
+
+    while (!aborted.get() && pending.get() > 0) {
       LockSupport.parkNanos(1000000L);
     }
 
@@ -324,7 +325,7 @@ public class DEVAL extends NamedWarpScriptFunction implements WarpScriptStackFun
         if (null != futures[i]) {
           try {
             futures[i].get();
-          } catch (ExecutionException ee) {            
+          } catch (ExecutionException ee) {
             throw new WarpScriptException(getName() + " execution was aborted.", ee);
           } catch (InterruptedException ie) {
             throw new WarpScriptException(getName() + " execution was interrupted.", ie);
@@ -332,9 +333,9 @@ public class DEVAL extends NamedWarpScriptFunction implements WarpScriptStackFun
         }
       }
     }
-    
+
     List<Object> results = new ArrayList<Object>();
-    
+
     for (i = 0; i < futures.length; i++) {
       try {
         String result = futures[i].get();
@@ -346,13 +347,13 @@ public class DEVAL extends NamedWarpScriptFunction implements WarpScriptStackFun
         throw new WarpScriptException(ee.getCause());
       } catch (WarpScriptException wse) {
         throw wse;
-      } catch (Exception e) {        
+      } catch (Exception e) {
         throw new WarpScriptException(e);
-      }      
+      }
     }
 
     stack.push(results);
-    
+
     return stack;
-  }  
+  }
 }

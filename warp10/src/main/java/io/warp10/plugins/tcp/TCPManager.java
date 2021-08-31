@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 //
 package io.warp10.plugins.tcp;
 
+import io.warp10.CustomThreadFactory;
 import io.warp10.script.MemoryWarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStopException;
@@ -125,7 +126,6 @@ public class TCPManager extends Thread {
     try {
       stack.execMulti(warpscript);
     } catch (Throwable t) {
-      t.printStackTrace();
       LOG.error("Caught exception while loading '" + p.getFileName() + "'.", t);
     }
 
@@ -177,7 +177,7 @@ public class TCPManager extends Thread {
 
     done = false;
 
-    clientsExecutor = new ThreadPoolExecutor(maxConnections, maxConnections, 30000L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(maxConnections), new NamedThreadFactory("Warp TCP Client for port " + port));
+    clientsExecutor = new ThreadPoolExecutor(maxConnections, maxConnections, 30000L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(maxConnections), new CustomThreadFactory("Warp TCP Client for port " + port));
     clientsExecutor.allowCoreThreadTimeOut(true);
 
     setDaemon(true);
@@ -229,7 +229,7 @@ public class TCPManager extends Thread {
               return;
             } catch (WarpScriptStopException wsse) {
             } catch (Exception e) {
-              e.printStackTrace();
+              LOG.error("Error while executing TCP macro.", e);
             }
           }
         }

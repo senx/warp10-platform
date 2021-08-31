@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -14,38 +14,36 @@
 //   limitations under the License.
 //
 
-archivesBaseName = 'crypto'
-version = getVersionName(warp10Version[archivesBaseName])
 //
 // Project dependencies
 //
 dependencies {
-    testCompile 'junit:junit:4.6'
-    // UTILS
-    compile 'com.google.guava:guava:15.0'
+    testImplementation 'junit:junit:4.6'
+    // Utils
+    api 'com.google.guava:guava:15.0'
     // CRYPTO JAVA PROVIDER
-    compile 'org.bouncycastle:bcprov-jdk16:1.46'
+    api 'org.bouncycastle:bcprov-jdk15on:1.68'
     // OSS
-    compile 'com.geoxp.oss:oss-client:1.0.0'
+    api 'com.geoxp.oss:oss-client:1.0.1'
 }
 
-jar {
-    zip64 = true
-    manifest {
-        attributes(
-                "Implementation-Title": "Warp10-crypto",
-                "Implementation-Vendor": "Warp 10",
-                "Implementation-Version": version)
-    }
+//
+// Set jars title
+//
+tasks.withType(Jar) {
+    manifest.attributes.put("Implementation-Title", "Warp10-crypto")
 }
 
+//
+// Customize POM name and description.
+//
 publishing {
     publications {
-        crypto(MavenPublication) {
-            from components.java
-            groupId 'io.warp10'
-            artifactId archivesBaseName
-            version version
+        maven(MavenPublication) {
+            pom {
+                name = "Crypto"
+                description = "Warp 10 crypto utilities"
+            }
         }
     }
 }

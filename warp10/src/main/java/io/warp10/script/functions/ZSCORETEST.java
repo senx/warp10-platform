@@ -28,7 +28,7 @@ import java.util.Map;
 /**
  * Apply a Z-score test
  * If mad is true, then use modified z-score.
- * @see http://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
+ * @see <a href="http://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm">http://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm</a>
  * 
  */
 public class ZSCORETEST extends GTSStackFunction {

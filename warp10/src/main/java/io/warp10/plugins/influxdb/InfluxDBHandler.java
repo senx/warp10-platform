@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -40,8 +40,12 @@ import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 
 import com.google.common.base.Splitter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class InfluxDBHandler extends AbstractHandler {
+
+  private static final Logger LOG = LoggerFactory.getLogger(InfluxDBHandler.class);
   
   private final URL url;
   private final String token;
@@ -141,9 +145,9 @@ public class InfluxDBHandler extends AbstractHandler {
           break;
         }
         try {
-        parse(pw,line,nsPerTimeUnit);
+          parse(pw, line, nsPerTimeUnit);
         } catch (Throwable t) {
-          t.printStackTrace();
+          LOG.error("Error while parsing '" + line + "'.", t);
           throw t;
         }
       }

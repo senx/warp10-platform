@@ -110,7 +110,7 @@ public class KafkaWebCallService {
     }
 
     Properties properties = new Properties();
-    // @see http://kafka.apache.org/documentation.html#producerconfigs
+    // @see <a href="http://kafka.apache.org/documentation.html#producerconfigs">http://kafka.apache.org/documentation.html#producerconfigs</a>
     properties.setProperty("metadata.broker.list", brokerListProp);
 
     String producerClientIdProp = WarpConfig.getProperty(Configuration.WEBCALL_KAFKA_PRODUCER_CLIENTID);

@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -122,7 +122,7 @@ public class UDPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
           }
         }
       } catch (Throwable t) {
-        t.printStackTrace();
+        LOG.error("Error while loading UDP definition scripts.", t);
       }
 
       LockSupport.parkNanos(this.period * 1000000L);

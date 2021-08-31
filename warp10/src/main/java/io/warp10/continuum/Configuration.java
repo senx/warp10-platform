@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -110,6 +110,12 @@ public class Configuration {
   public static final String CONFIG_WARPSCRIPT_TIMEBOX_MAXTIME = "warpscript.timebox.maxtime";
 
   /**
+   * Capability name used for extending timebox maxtime, if set. The associated value is expressed as a number
+   * of milliseconds or an ISO8601 duration (PT....).
+   */
+  public static final String CONFIG_WARPSCRIPT_TIMEBOX_MAXTIME_CAPNAME = "warpscript.timebox.maxtime.capname";
+
+  /**
    * Comma separated list of WarpScriptExtension classes to instantiate to modify
    * the defined WarpScript functions.
    */
@@ -126,6 +132,16 @@ public class Configuration {
   public static final String CONFIG_WARPSCRIPT_NAMESPACE_PREFIX = "warpscript.namespace.";
 
   public static final String CONFIG_WARPSCRIPT_DEFAULTCL_PREFIX = "warpscript.defaultcl.";
+
+  /**
+   * Prefix for loading a plugin using the default ClassLoader.
+   * For loading plugin class foo.Bar with the default ClassLoader, add
+   *
+   * plugin.defaultcl.foo.Bar = true
+   *
+   * in the configuration
+   */
+  public static final String CONFIG_PLUGIN_DEFAULTCL_PREFIX = "plugin.defaultcl.";
 
   /**
    * This configuration parameter determines if undefining a function (via NULL 'XXX' DEF)
@@ -1463,6 +1479,11 @@ public class Configuration {
   public static final String LEVELDB_HOME = "leveldb.home";
 
   /**
+   * Create LevelDB if not already initialized
+   */
+  public static final String LEVELDB_CREATE_IF_MISSING = "leveldb.create.if.missing";
+
+  /**
    * Maximum number of open files to use for LevelDB
    */
   public static final String LEVELDB_MAXOPENFILES = "leveldb.maxopenfiles";
@@ -1483,14 +1504,39 @@ public class Configuration {
   public static final String LEVELDB_CACHE_SIZE = "leveldb.cache.size";
 
   /**
-   * LevelDB block size to use when compacting ranges
+   * LevelDB block size to use
    */
   public static final String LEVELDB_BLOCK_SIZE = "leveldb.block.size";
+
+  /**
+   * LevelDB block restart interval
+   */
+  public static final String LEVELDB_BLOCK_RESTART_INTERVAL = "leveldb.block.restart.interval";
+
+  /**
+   * Flag indicating whether or not to verify block checksums
+   */
+  public static final String LEVELDB_VERIFY_CHECKSUMS = "leveldb.verify.checksums";
+
+  /**
+   * Flag indicating whether or not to perform paranoid checks
+   */
+  public static final String LEVELDB_PARANOID_CHECKS = "leveldb.paranoid.checks";
 
   /**
    * Compression type to use for leveldb (SNAPPY/NONE)
    */
   public static final String LEVELDB_COMPRESSION_TYPE = "leveldb.compression.type";
+
+  /**
+   * Size of write buffer (in bytes) - defaults to 4194304
+   */
+  public static final String LEVELDB_WRITEBUFFER_SIZE = "leveldb.writebuffer.size";
+
+  /**
+   * Flag indicating whether or not we tolerate pre-existing LevelDB directory
+   */
+  public static final String LEVELDB_ERROR_IF_EXISTS = "leveldb.error.if.exists";
 
   /**
    * Set to true to disable the delete endpoint in the standalone version of Warp 10.
@@ -1542,6 +1588,16 @@ public class Configuration {
    * Maximum number of keys to batch when deleting data
    */
   public static final String STANDALONE_MAX_DELETE_BATCHSIZE = "standalone.max.delete.batchsize";
+
+  /**
+   * Should the LevelDB cache be filled when scanning key space for deletes? Defaults to false.
+   */
+  public static final String LEVELDB_DELETE_FILLCACHE = "leveldb.delete.fillcache";
+
+  /**
+   * Should LevelDB checksums be verified when scanning key space for deletes? Defaults to true.
+   */
+  public static final String LEVELDB_DELETE_VERIFYCHECKSUMS = "leveldb.delete.verifychecksums";
 
   /**
    * Maximum size in bytes of a value
@@ -2295,6 +2351,11 @@ public class Configuration {
    * Header containing the request UUID when calling the endpoint
    */
   public static final String HTTP_HEADER_WEBCALL_UUIDX = "http.header.webcall.uuid";
+
+  /**
+   * Configuration key to modify the capabilities header
+   */
+  public static final String HTTP_HEADER_CAPABILITIES = "http.header.capabilities";
 
   /**
    * HTTP Header for elapsed time of WarpScript scripts

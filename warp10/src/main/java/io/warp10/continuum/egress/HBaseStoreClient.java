@@ -53,9 +53,7 @@ public class HBaseStoreClient implements StoreClient {
   private final TableName tableName;
   
   private final KeyStore keystore;
-  private final byte[] hbaseKey;
-  
-  private final Properties properties;
+
   private final byte[] colfam;
   
   private final boolean useHBaseFilter;
@@ -68,9 +66,7 @@ public class HBaseStoreClient implements StoreClient {
   public HBaseStoreClient(KeyStore keystore, Properties properties) throws IOException {
     
     this.keystore = keystore;
-    this.hbaseKey = keystore.getKey(KeyStore.AES_HBASE_DATA);
-    this.properties = properties;
-    
+
     if (properties.containsKey(io.warp10.continuum.Configuration.EGRESS_HBASE_DATA_BLOCKCACHE_GTS_THRESHOLD)) {
       this.blockcacheThreshold = Long.parseLong(properties.getProperty(io.warp10.continuum.Configuration.EGRESS_HBASE_DATA_BLOCKCACHE_GTS_THRESHOLD));
     } else {
@@ -279,9 +275,6 @@ public class HBaseStoreClient implements StoreClient {
   /**
    * Return a RegionLocator instance suitable for inspecting the underlying table regions.
    * Be aware that the returned RegionLocator is not thread-safe and should be unmanaged using close().
-   * 
-   * @return
-   * @throws IOException
    */
   public RegionLocator getRegionLocator() throws IOException {
     return this.conn.getRegionLocator(this.tableName);

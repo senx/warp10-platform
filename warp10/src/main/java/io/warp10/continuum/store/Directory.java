@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -1040,7 +1040,9 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
       queue = new BlockingArrayQueue<Runnable>(queuesize);
     }
 
-    Server server = new Server(new QueuedThreadPool(streamingMaxThreads,8, (int) idleTimeout, queue));
+    QueuedThreadPool queuedThreadPool = new QueuedThreadPool(streamingMaxThreads, 8, (int) idleTimeout, queue);
+    queuedThreadPool.setName("Warp Directory Jetty Thread");
+    Server server = new Server(queuedThreadPool);
 
     //
     // Iterate over the properties to find those starting with DIRECTORY_STREAMING_JETTY_ATTRIBUTE and set
@@ -1276,7 +1278,6 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
           public void run() {
             try {
               long lastsync = System.currentTimeMillis();
-              long lastflush = lastsync;
 
               //
               // Check for how long we've been storing readings, if we've reached the commitperiod,
@@ -2356,8 +2357,6 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
       return;
     }
 
-    long nano = System.nanoTime();
-
     baseRequest.setHandled(true);
 
     //
@@ -2433,8 +2432,6 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     if (null == signature) {
       throw new IOException("Missing header '" + Constants.getHeader(io.warp10.continuum.Configuration.HTTP_HEADER_DIRECTORY_SIGNATURE) + "'.");
     }
-
-    boolean signed = false;
 
     //
     // Signature has the form hex(ts):hex(hash)

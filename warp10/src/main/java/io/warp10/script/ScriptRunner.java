@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -44,15 +44,15 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPOutputStream;
 
+import io.warp10.CustomThreadFactory;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
@@ -89,34 +89,6 @@ import kafka.producer.ProducerConfig;
  * Greatly inspired by Sensision's own ScriptRunner
  */
 public class ScriptRunner extends Thread {
-
-  static class NamedThreadFactory implements ThreadFactory {
-    final ThreadGroup group;
-    final AtomicInteger threadNumber = new AtomicInteger(1);
-
-    NamedThreadFactory() {
-      SecurityManager s = System.getSecurityManager();
-      if (null == s) {
-        group = Thread.currentThread().getThreadGroup();
-      } else {
-        group = s.getThreadGroup();
-      }
-    }
-
-    public Thread newThread(Runnable r) {
-      Thread t = new Thread(group, r, "[Warp ScriptRunner Thread #" + threadNumber.getAndIncrement() + "]", 0);
-
-      if (t.isDaemon()) {
-        t.setDaemon(false);
-      }
-
-      if (Thread.NORM_PRIORITY != t.getPriority()) {
-        t.setPriority(Thread.NORM_PRIORITY);
-      }
-
-      return t;
-    }
-  }
 
   protected static final byte[] CLEAR = "\nCLEAR\n".getBytes(StandardCharsets.UTF_8);
 
@@ -251,7 +223,7 @@ public class ScriptRunner extends Thread {
       this.minperiod = Long.parseLong(config.getProperty(Configuration.RUNNER_MINPERIOD));
       this.endpoint = config.getProperty(Configuration.RUNNER_ENDPOINT);
 
-      ThreadPoolExecutor runnersExecutor = new ThreadPoolExecutor(nthreads, nthreads, 30000L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(nthreads * 256), new NamedThreadFactory());
+      ThreadPoolExecutor runnersExecutor = new ThreadPoolExecutor(nthreads, nthreads, 30000L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(nthreads * 256), new CustomThreadFactory("Warp ScriptRunner Thread"));
       runnersExecutor.allowCoreThreadTimeOut(true);
 
       this.executor = runnersExecutor;
@@ -288,7 +260,7 @@ public class ScriptRunner extends Thread {
       int nthreads = Integer.parseInt(config.getProperty(Configuration.RUNNER_KAFKA_NTHREADS));
       long commitPeriod = Long.parseLong(config.getProperty(Configuration.RUNNER_KAFKA_COMMITPERIOD));
 
-      ThreadPoolExecutor runnersExecutor = new ThreadPoolExecutor(nthreads, nthreads, 30000L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(nthreads * 256), new NamedThreadFactory());
+      ThreadPoolExecutor runnersExecutor = new ThreadPoolExecutor(nthreads, nthreads, 30000L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(nthreads * 256), new CustomThreadFactory("Warp ScriptRunner Thread"));
       runnersExecutor.allowCoreThreadTimeOut(true);
 
       this.executor = runnersExecutor;
@@ -307,7 +279,7 @@ public class ScriptRunner extends Thread {
       this.topic = config.getProperty(Configuration.RUNNER_KAFKA_TOPIC);
 
       Properties props = new Properties();
-      // @see http://kafka.apache.org/documentation.html#producerconfigs
+      // @see <a href="http://kafka.apache.org/documentation.html#producerconfigs">http://kafka.apache.org/documentation.html#producerconfigs</a>
       props.setProperty("metadata.broker.list", props.getProperty(Configuration.RUNNER_KAFKA_BROKERLIST));
       if (null != props.getProperty(Configuration.RUNNER_KAFKA_PRODUCER_CLIENTID)) {
         props.setProperty("client.id", props.getProperty(Configuration.RUNNER_KAFKA_PRODUCER_CLIENTID));
@@ -349,7 +321,7 @@ public class ScriptRunner extends Thread {
   @Override
   public void run() {
 
-    long lastscan = System.currentTimeMillis() - 2 * scanperiod;
+    long lastscan = System.nanoTime() - 2 * scanperiod * 1000000L;
 
     //
     // Periodicity of scripts
@@ -362,14 +334,23 @@ public class ScriptRunner extends Thread {
     //
 
     final Map<String, Long> nextrun = new ConcurrentHashMap<String, Long>();
-    
+
+    final AtomicLong nanoref = new AtomicLong();
+
     PriorityQueue<String> runnables = new PriorityQueue<String>(1, new Comparator<String>() {
       @Override
       public int compare(String o1, String o2) {
         long nextrun1 = null != nextrun.get(o1) ? nextrun.get(o1) : Long.MAX_VALUE;
         long nextrun2 = null != nextrun.get(o2) ? nextrun.get(o2) : Long.MAX_VALUE;
 
-        return Long.compare(nextrun1, nextrun2);
+        long nanos = nanoref.get();
+
+        //
+        // We order by the delta to nanos, this is an approximation of the actual order
+        // but should be fine in most of the cases
+        //
+
+        return Long.compare(nextrun1 - nanos, nextrun2 - nanos);
       }
     });
 
@@ -377,11 +358,11 @@ public class ScriptRunner extends Thread {
     while(!WarpDist.isInitialized()) {
       LockSupport.parkNanos(100000000L);
     }
-    
-    while (true) {
-      long now = System.currentTimeMillis();
 
-      if (now - lastscan > this.scanperiod) {
+    while (true) {
+      long now = System.nanoTime();
+
+      if (now - lastscan > this.scanperiod * 1000000L) {
         Map<String, Long> newscripts = scanSuperRoot(this.root);
 
         Set<String> currentScripts = scripts.keySet();
@@ -407,6 +388,7 @@ public class ScriptRunner extends Thread {
       //
 
       runnables.clear();
+      nanoref.set(now);
 
       for (Map.Entry<String, Long> scriptAndPeriod: scripts.entrySet()) {
         //
@@ -419,16 +401,18 @@ public class ScriptRunner extends Thread {
           if (runAtStartup) {
             runnables.add(script);
           } else {
-            Long period = scriptAndPeriod.getValue();
-            long schedat = System.currentTimeMillis();
+            Long period = 1000000L * scriptAndPeriod.getValue();
+            long schedat = System.nanoTime();
+            long timenanos = TimeSource.getNanoTime();
 
-            if (0 != schedat % period) {
-              schedat = schedat - (schedat % period) + period;
+            if (0 != timenanos % period) {
+              long delta = period - (timenanos % period);
+              schedat = schedat + delta;
             }
 
             nextrun.put(script, schedat);
           }
-        } else if (-1L != schedule && schedule <= now) {
+        } else if (-1L != schedule && (schedule - now) <= 0) {
           // Do not schedule scripts with a schedule set to -1
           runnables.add(script);
         }
@@ -460,14 +444,14 @@ public class ScriptRunner extends Thread {
     final ScriptRunner self = this;
 
     try {
-      
+
       final long scheduledat = System.currentTimeMillis();
-      
+
       this.executor.submit(new Runnable() {
         @Override
         public void run() {
-          long nowts = System.currentTimeMillis();
-          
+          long nowns = System.nanoTime();
+
           Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_CURRENT, Sensision.EMPTY_LABELS, 1);
 
           File f = new File(script);
@@ -486,7 +470,7 @@ public class ScriptRunner extends Thread {
           long ttl = Math.max(scanperiod * 2, periodicity * 2);
 
           InputStream in = null;
-          
+
           try {
             in = new FileInputStream(f);
 
@@ -501,7 +485,7 @@ public class ScriptRunner extends Thread {
 
             OutputStream out = conn.getOutputStream();
 
- 
+
             //
             // Push the script parameters
             //
@@ -562,16 +546,16 @@ public class ScriptRunner extends Thread {
             String rawpath = "/" + path.replaceFirst("/" + Long.toString(periodicity) + "/", "/");
             // Remove the file extension
             rawpath = rawpath.substring(0, rawpath.length() - 4);
-            
+
             while (true) {
               String line = br.readLine();
-              
+
               if (null == line) {
                 break;
               }
-              
+
               // Replace ${name} and ${name:default} constructs
-              
+
               Matcher m = VAR.matcher(line);
 
               StringBuffer mc2WithReplacement = new StringBuffer();
@@ -614,7 +598,7 @@ public class ScriptRunner extends Thread {
             }
 
             br.close();
-            
+
             // Add a 'CLEAR' at the end of the script so we don't return anything
             out.write(CLEAR);
 
@@ -626,20 +610,20 @@ public class ScriptRunner extends Thread {
           } catch (Exception e) {
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_FAILURES, labels, ttl, 1);
           } finally {
-            nextrun.put(script, nowts + periodicity);
+            nextrun.put(script, nowns + periodicity * 1000000L);
             nano = System.nanoTime() - nano;
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_TIME_US, labels, ttl, nano / 1000L);
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_CURRENT, Sensision.EMPTY_LABELS, -1);
             if (null != conn) {
               try {
                 conn.disconnect();
-              } catch (Exception e) {                
+              } catch (Exception e) {
               }
             }
             if (null != in) {
               try {
                 in.close();
-              } catch (Exception e) {                
+              } catch (Exception e) {
               }
             }
           }
@@ -647,7 +631,7 @@ public class ScriptRunner extends Thread {
       });
     } catch (RejectedExecutionException ree) {
       // Reschedule script immediately
-      nextrun.put(script, System.currentTimeMillis());
+      nextrun.put(script, System.nanoTime());
     }
   }
 
@@ -658,6 +642,8 @@ public class ScriptRunner extends Thread {
     String path = new File(script).getAbsolutePath().substring(new File(this.root).getAbsolutePath().length() + 1);
 
     long now = System.currentTimeMillis();
+    long nowts = System.nanoTime();
+
     request.setScheduledAt(now);
     request.setPeriodicity(periodicity);
     request.setPath(path);
@@ -686,7 +672,7 @@ public class ScriptRunner extends Thread {
       }
     } catch (IOException ioe) {
       // Reschedule immediately
-      nextrun.put(script, System.currentTimeMillis());
+      nextrun.put(script, System.nanoTime());
       return;
     } finally {
       if (null != in) {
@@ -708,7 +694,7 @@ public class ScriptRunner extends Thread {
       content = serializer.serialize(request);
     } catch (TException te) {
       // Reschedule immediately
-      nextrun.put(script, System.currentTimeMillis());
+      nextrun.put(script, System.nanoTime());
       return;
     }
 
@@ -740,15 +726,15 @@ public class ScriptRunner extends Thread {
       producer.send(message);
     } catch (Exception e) {
       // Reschedule immediately
-      nextrun.put(script, System.currentTimeMillis());
+      nextrun.put(script, System.nanoTime());
       return;
     } finally {
       if (null != producer) {
         this.kafkaProducerPool.recycleProducer(producer);
       }
     }
-    
-    nextrun.put(script, now + periodicity);
+
+    nextrun.put(script, nowts + periodicity * 1000000L);
   }
 
   private Map<String, Long> scanSuperRoot(String superroot) {

@@ -31,10 +31,11 @@ import com.geoxp.GeoXPLib;
 
 /**
  * Return the Median Absolute Deviation
- * @see https://en.wikipedia.org/wiki/Median_absolute_deviation
- * 
+ * <p>
  * The returned location will be the median of all locations.
  * The returned elevation will be the median of all elevations.
+ *
+ * @see <a href="https://en.wikipedia.org/wiki/Median_absolute_deviation">https://en.wikipedia.org/wiki/Median_absolute_deviation</a>
  */
 public class MAD extends NamedWarpScriptFunction implements WarpScriptMapperFunction, WarpScriptBucketizerFunction, WarpScriptReducerFunction {
   
@@ -45,7 +46,6 @@ public class MAD extends NamedWarpScriptFunction implements WarpScriptMapperFunc
   @Override
   public Object apply(Object[] args) throws WarpScriptException {
     long tick = (long) args[0];
-    long[] ticks = (long[]) args[3];
     long[] locations = (long[]) args[4];
     long[] elevations = (long[]) args[5];
     Object[] values = (Object[]) args[6];

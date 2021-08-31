@@ -30,11 +30,12 @@ import java.util.Map;
  * Apply an Seasonal Hybrid ESD test
  * This test is based on piecewise median and STL seasonal extraction, completed by an ESD test.
  * It was developed at Twitter.
- * @see https://www.usenix.org/system/files/conference/hotcloud14/hotcloud14-vallis.pdf
- * @see https://github.com/twitter/AnomalyDetection
- * 
+ *
  * Alpha is optional. Default value is 0.05.
  * STL parameters are optional. They can be set by adding a map as last parameter.
+ *
+ * @see <a href="https://www.usenix.org/system/files/conference/hotcloud14/hotcloud14-vallis.pdf">https://www.usenix.org/system/files/conference/hotcloud14/hotcloud14-vallis.pdf</a>
+ * @see <a href="https://github.com/twitter/AnomalyDetection">https://github.com/twitter/AnomalyDetection</a>
  */
 public class HYBRIDTEST extends GTSStackFunction {
 

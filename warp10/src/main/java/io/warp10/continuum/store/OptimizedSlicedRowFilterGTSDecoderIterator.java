@@ -120,12 +120,6 @@ public class OptimizedSlicedRowFilterGTSDecoderIterator extends GTSDecoderIterat
       // any data
       //
       
-      boolean neg = false;
-      
-      if (currentStartKeyIndex < 0 && currentEndKeyIndex < 0) {
-        neg = true;
-      }
-      
       if (currentStartKeyIndex < 0) {
         currentStartKeyIndex = -1 - currentStartKeyIndex;
         //currentStartKeyIndex = currentStartKeyIndex >>> 1;

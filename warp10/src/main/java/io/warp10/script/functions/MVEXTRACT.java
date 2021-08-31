@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import org.apache.thrift.TDeserializer;
@@ -66,10 +65,12 @@ public class MVEXTRACT extends ElementOrListStackFunction implements ElementStac
     if (!(element instanceof GTSEncoder) && !(element instanceof GeoTimeSerie)) {
       throw new WarpScriptException(getName() + " can only be applied on Geo Time Series™ or GTS Encoders.");
     }
-    
-    Object o = mvextract(element);
 
-    return o;
+    try {
+      return mvextract(element);
+    } catch (WarpScriptException wse) {
+      throw new WarpScriptException(getName() + " failed.", wse);
+    }
   }
   
   private List<Object> mvextract(Object element) throws WarpScriptException {
@@ -122,7 +123,7 @@ public class MVEXTRACT extends ElementOrListStackFunction implements ElementStac
             values.add(elt);
           }
         } catch (IOException e) {
-          throw new WarpScriptException("Error decoding.");
+          throw new WarpScriptException("Error decoding.", e);
         } catch (TException te) {
           values.add(elt(decoder, gts, idx, value));
         }
@@ -145,7 +146,7 @@ public class MVEXTRACT extends ElementOrListStackFunction implements ElementStac
               values.add(elt);
             }
           } catch (IOException e) {
-            throw new WarpScriptException("Error decoding.");
+            throw new WarpScriptException("Error decoding.", e);
           } catch (TException te) {
             values.add(elt(null, gts, idx, value));
           }
@@ -167,16 +168,17 @@ public class MVEXTRACT extends ElementOrListStackFunction implements ElementStac
         return null != decoder ? decoder.getTimestamp() : GTSHelper.tickAtIndex(gts, idx);
       case LATLON:
         long location = null != decoder ? decoder.getLocation() : GTSHelper.locationAtIndex(gts, idx);
-        double[] latlon;
-        
+        List<Double> latlon = new ArrayList<Double>(2);
+
         if (GeoTimeSerie.NO_LOCATION == location) {
-          latlon = new double[2];
-          latlon[0] = Double.NaN;
-          latlon[1] = Double.NaN;
+          latlon.add(Double.NaN);
+          latlon.add(Double.NaN);
         } else {
-          latlon = GeoXPLib.fromGeoXPPoint(location);
-        }        
-        return Arrays.asList(latlon[0], latlon[1]);
+          double[] latlonArray = GeoXPLib.fromGeoXPPoint(location);
+          latlon.add(latlonArray[0]);
+          latlon.add(latlonArray[1]);
+        }
+        return latlon;
       case ELEVATION:
         return null != decoder ? decoder.getElevation() : GTSHelper.elevationAtIndex(gts, idx);
       case LOCATION:

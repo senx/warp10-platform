@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -85,8 +85,12 @@ public class REPORT extends NamedWarpScriptFunction implements WarpScriptStackFu
     if (!SECRET.equals(top.toString())) {
       throw new WarpScriptException(getName() + " invalid secret.");
     }
-    
-    stack.push(genReport(true));
+
+    try {
+      stack.push(genReport(true));
+    } catch (WarpScriptException wse) {
+      throw new WarpScriptException(getName() + " failed.", wse);
+    }
         
     return stack;
   }
@@ -188,7 +192,7 @@ public class REPORT extends NamedWarpScriptFunction implements WarpScriptStackFu
       
       return sb.toString();
     } catch (Exception e) {
-      throw new WarpScriptException("Error while generating report.");
+      throw new WarpScriptException("Error while generating report.", e);
     }
   }
   
@@ -217,6 +221,7 @@ public class REPORT extends NamedWarpScriptFunction implements WarpScriptStackFu
       };
       
       telemetry.setDaemon(true);
+      telemetry.setName("Warp Telemetry Thread");
       telemetry.start();
       
       Runtime.getRuntime().addShutdownHook(new Thread() {

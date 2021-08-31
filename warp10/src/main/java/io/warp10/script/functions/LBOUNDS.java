@@ -84,7 +84,6 @@ public class LBOUNDS extends NamedWarpScriptFunction implements WarpScriptStackF
     
     List<Object> bounds = new ArrayList<Object>(n - 1);
     
-    double bound = lower;
     double step = (upper - lower) / n;
     
     if (0.0 == step) {

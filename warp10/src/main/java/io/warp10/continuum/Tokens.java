@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -58,7 +58,6 @@ public class Tokens {
   
   public static final Map<String,String> UUIDByIngressToken = new HashMap<String,String>();
   public static final Map<String,String> UUIDByEgressToken = new HashMap<String,String>();
-  public static final Map<String,String> OwnerByToken = new HashMap<String,String>();
   public static final Map<String,String> ApplicationByUUID = new HashMap<String,String>();
   
   private static KeyStore keystore;
@@ -600,7 +599,7 @@ public class Tokens {
         fileTokens.putAll(tokens);
       }      
     } catch (Exception e) {
-      e.printStackTrace();
+      LOG.error("Error loading tokens file.", e);
       return;
     }
   }

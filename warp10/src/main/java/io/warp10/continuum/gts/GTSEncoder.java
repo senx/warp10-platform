@@ -809,8 +809,6 @@ public class GTSEncoder implements Cloneable {
 
   /**
    * Return the current size of the encoded data.
-   *
-   * @return
    */
   public int size() {
     return this.stream.size();
@@ -818,7 +816,6 @@ public class GTSEncoder implements Cloneable {
 
   /**
    * Return the number of values encoded by this encoder.
-   * @return
    */
   public long getCount() {
     return this.count;
@@ -1283,9 +1280,6 @@ public class GTSEncoder implements Cloneable {
 
   /**
    * Transform the current encoder into a storable block.
-   *
-   * @param compress
-   * @return
    */
   public byte[] toBlock(boolean compress) throws IOException {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();

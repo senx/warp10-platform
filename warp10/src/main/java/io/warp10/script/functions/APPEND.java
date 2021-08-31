@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,16 +16,20 @@
 
 package io.warp10.script.functions;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Vector;
+
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import io.warp10.script.WarpScriptStackFunction;
 
 /**
  * Append a list to another list or a map to another map
@@ -41,17 +45,23 @@ public class APPEND extends NamedWarpScriptFunction implements WarpScriptStackFu
     Object top = stack.pop();
     Object undertop = stack.pop();
 
-    if (top instanceof List && undertop instanceof List) {
+    if (top instanceof Collection && undertop instanceof Collection) {
       try {
-        ((List) undertop).addAll((List) top);
+        ((Collection) undertop).addAll((Collection) top);
       } catch (UnsupportedOperationException uoe) {
         // This exception may be thrown when attempting to merge append
         // a list to a first list produced by Arrays.asList, in this case
         // we copy undertop to an empty list first and attempt again
-        List l = new ArrayList<Object>();
-        l.addAll((List) undertop);
-        undertop = l;
-        ((List) undertop).addAll((List) top);
+        if (undertop instanceof Vector) {
+          undertop = new Vector<Object>((Collection) undertop);
+        } else if (undertop instanceof List) {
+          undertop = new ArrayList<Object>((Collection) undertop);
+        } else if (undertop instanceof Set) {
+          undertop = new HashSet<Object>((Collection) undertop);
+        } else {
+          throw new WarpScriptException(getName() + " invalid target collection of type " + undertop.getClass() + ".");
+        }
+        ((Collection) undertop).addAll((Collection) top);
       }
       stack.push(undertop);
     } else if (top instanceof Map && undertop instanceof Map) {
@@ -60,7 +70,7 @@ public class APPEND extends NamedWarpScriptFunction implements WarpScriptStackFu
     } else if (top instanceof GeoTimeSerie && undertop instanceof GeoTimeSerie) {
       stack.push(GTSHelper.merge((GeoTimeSerie)undertop, (GeoTimeSerie)top));
     } else {
-      throw new WarpScriptException(getName() + " can only operate on 2 lists, 2 maps or 2 GTSs.");
+      throw new WarpScriptException(getName() + " can only operate on 2 collections (LIST, SET, VECTOR), 2 MAPs or 2 GTSs.");
     }
 
     return stack;

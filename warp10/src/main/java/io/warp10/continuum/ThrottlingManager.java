@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -121,11 +121,6 @@ public class ThrottlingManager {
    * Default value for MAXWAIT_PER_DATAPOINT
    */
   private static final long MAXWAIT_PER_DATAPOINT_DEFAULT = 10L;
-  
-  /**
-   * Number of milliseconds in a 30 days period
-   */
-  private static final long _30DAYS_SPAN = 30L * 86400L * 1000L;
   
   /**
    * Default value of 'p' parameter for estimator
@@ -616,7 +611,7 @@ public class ThrottlingManager {
     String brokerlistProp = WarpConfig.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_BROKERLIST);
     if (null != brokerlistProp) {
       Properties dataProps = new Properties();
-      // @see http://kafka.apache.org/documentation.html#producerconfigs
+      // @see <a href="http://kafka.apache.org/documentation.html#producerconfigs">http://kafka.apache.org/documentation.html#producerconfigs</a>
       dataProps.setProperty("metadata.broker.list", brokerlistProp);
       String producerClientId = WarpConfig.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_PRODUCER_CLIENTID);
       if (null != producerClientId) {
@@ -894,9 +889,9 @@ public class ThrottlingManager {
               br.close();
               
               newreads.add(file);
-            } catch (Exception e) {              
-              e.printStackTrace();
-            }            
+            } catch (Exception e) {
+              LOG.error("Error reading throttling files.", e);
+            }
           }
 
           loaded = true;
@@ -911,8 +906,6 @@ public class ThrottlingManager {
           // Store events with the current versions of all estimators.
           //
           
-          TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
-              
           if (System.currentTimeMillis() - now > rampup) {
             try {
               for (Map.Entry<String, HyperLogLogPlus> keyAndHllp: producerHLLPEstimators.entrySet()) {

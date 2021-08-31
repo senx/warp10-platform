@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -107,19 +107,19 @@ import io.warp10.standalone.AcceleratorConfig;
 public class EgressFetchHandler extends AbstractHandler {
 
   private static final Logger LOG = LoggerFactory.getLogger(EgressFetchHandler.class);
-  
+
   private DateTimeFormatter fmt = ISODateTimeFormat.dateTimeParser();
 
   private final StoreClient storeClient;
-    
+
   private final DirectoryClient directoryClient;
-  
+
   private final byte[] fetchPSK;
-  
+
   private final byte[] fetchAES;
 
   private final long maxSplitAge;
-  
+
   public static final Pattern SELECTOR_RE = Pattern.compile("^([^{]+)\\{(.*)\\}$");
 
   /**
@@ -128,24 +128,24 @@ public class EgressFetchHandler extends AbstractHandler {
   public static long FETCH_BATCHSIZE = 100000;
 
   public static final String FIELD_ID = "i";
-  
+
   public EgressFetchHandler(KeyStore keystore, Properties properties, DirectoryClient directoryClient, StoreClient storeClient) {
     this.fetchPSK = keystore.getKey(KeyStore.SIPHASH_FETCH_PSK);
     this.fetchAES = keystore.getKey(KeyStore.AES_FETCHER);
     this.storeClient = storeClient;
     this.directoryClient = directoryClient;
-    
+
     if (properties.containsKey(Configuration.EGRESS_FETCH_BATCHSIZE)) {
       FETCH_BATCHSIZE = Long.parseLong(properties.getProperty(Configuration.EGRESS_FETCH_BATCHSIZE));
     }
-    
+
     if (properties.containsKey(Configuration.EGRESS_FETCHER_MAXSPLITAGE)) {
       this.maxSplitAge = Long.parseLong(properties.getProperty(Configuration.EGRESS_FETCHER_MAXSPLITAGE));
     } else {
       this.maxSplitAge = Long.MAX_VALUE;
     }
   }
-  
+
   @Override
   public void handle(String target, Request baseRequest, HttpServletRequest req, HttpServletResponse resp) throws IOException, ServletException {
     boolean splitFetch = false;
@@ -158,7 +158,7 @@ public class EgressFetchHandler extends AbstractHandler {
     } else if (Constants.API_ENDPOINT_CHECK.equals(target)) {
       baseRequest.setHandled(true);
       resp.setStatus(HttpServletResponse.SC_OK);
-      return;      
+      return;
     } else {
       return;
     }
@@ -174,9 +174,9 @@ public class EgressFetchHandler extends AbstractHandler {
       //
       // Add CORS header
       //
-      
+
       resp.setHeader("Access-Control-Allow-Origin", "*");
-      
+
       long now = Long.MIN_VALUE;
       long then = Long.MIN_VALUE;
       long count = -1;
@@ -226,7 +226,7 @@ public class EgressFetchHandler extends AbstractHandler {
         nowParam = req.getParameter(Constants.HTTP_PARAM_NOW);
         endParam = req.getParameter(Constants.HTTP_PARAM_END);
         timespanParam = req.getParameter(Constants.HTTP_PARAM_TIMESPAN);
-        dedupParam = req.getParameter(Constants.HTTP_PARAM_DEDUP);      
+        dedupParam = req.getParameter(Constants.HTTP_PARAM_DEDUP);
         showErrorsParam = req.getParameter(Constants.HTTP_PARAM_SHOW_ERRORS);
         countParam = req.getParameter(Constants.HTTP_PARAM_COUNT);
         skipParam = req.getParameter(Constants.HTTP_PARAM_SKIP);
@@ -236,12 +236,12 @@ public class EgressFetchHandler extends AbstractHandler {
         preBoundaryParam = req.getParameter(Constants.HTTP_PARAM_PREBOUNDARY);
         postBoundaryParam = req.getParameter(Constants.HTTP_PARAM_POSTBOUNDARY);
       }
-          
+
       boolean nocache = AcceleratorConfig.getDefaultReadNocache();
       boolean forcedNocache = false;
       boolean nopersist = AcceleratorConfig.getDefaultReadNopersist();
       boolean forcedNopersist = false;
-      
+
       if (null != req.getParameter(AcceleratorConfig.NOCACHE)) {
         forcedNocache = true;
         nocache = true;
@@ -256,7 +256,7 @@ public class EgressFetchHandler extends AbstractHandler {
       }
       if (null != req.getParameter(AcceleratorConfig.NOPERSIST)) {
         forcedNopersist = true;
-        nopersist = true;   
+        nopersist = true;
       }
       if (null != req.getParameter(AcceleratorConfig.PERSIST)) {
         if (forcedNopersist) {
@@ -266,28 +266,28 @@ public class EgressFetchHandler extends AbstractHandler {
         forcedNopersist = true;
         nopersist = false;
       }
-      
+
       String maxDecoderLenParam = req.getParameter(Constants.HTTP_PARAM_MAXSIZE);
       int maxDecoderLen = null != maxDecoderLenParam ? Integer.parseInt(maxDecoderLenParam) : Constants.DEFAULT_PACKED_MAXSIZE;
-      
+
       String suffix = req.getParameter(Constants.HTTP_PARAM_SUFFIX);
       if (null == suffix) {
         suffix = Constants.DEFAULT_PACKED_CLASS_SUFFIX;
       }
-      
+
       boolean unpack = null != req.getParameter(Constants.HTTP_PARAM_UNPACK);
-   
+
       long chunksize = Long.MAX_VALUE;
-      
+
       if (null != req.getParameter(Constants.HTTP_PARAM_CHUNKSIZE)) {
-        chunksize = Long.parseLong(req.getParameter(Constants.HTTP_PARAM_CHUNKSIZE));      
+        chunksize = Long.parseLong(req.getParameter(Constants.HTTP_PARAM_CHUNKSIZE));
       }
-      
+
       if (chunksize <= 0) {
         httpStatusCode = HttpServletResponse.SC_BAD_REQUEST;
         throw new IOException("Invalid chunksize.");
-      }    
-      
+      }
+
       boolean showErrors = null != showErrorsParam;
       boolean dedup = null != dedupParam && "true".equals(dedupParam);
 
@@ -344,11 +344,11 @@ public class EgressFetchHandler extends AbstractHandler {
       if (null != countParam) {
         count = Long.parseLong(countParam);
       }
-      
+
       if (null != skipParam) {
-        skip = Long.parseLong(skipParam);        
+        skip = Long.parseLong(skipParam);
       }
-      
+
       if (null != stepParam) {
         step = Long.parseLong(stepParam);
         if (step < 1) {
@@ -356,12 +356,12 @@ public class EgressFetchHandler extends AbstractHandler {
           throw new IOException("Parameter '" + Constants.HTTP_PARAM_STEP + "' cannot be < 1.");
         }
       }
-      
+
       if (null != timestepParam) {
         if (timestepParam.startsWith("P")) {
-          
+
           ADDDURATION.ReadWritablePeriodWithSubSecondOffset periodWithSubSec = ADDDURATION.durationToPeriod(timestepParam);
-          
+
           ReadWritablePeriod p = periodWithSubSec.getPeriod();
 
           if (p.get(DurationFieldType.months()) != 0 || p.get(DurationFieldType.years()) != 0) {
@@ -373,13 +373,13 @@ public class EgressFetchHandler extends AbstractHandler {
         } else {
           timestep = Long.parseLong(timestepParam);
         }
-        
+
         if (timestep < 1) {
           httpStatusCode = HttpServletResponse.SC_BAD_REQUEST;
           throw new IOException("Parameter '" + Constants.HTTP_PARAM_TIMESTEP + "' cannot be < 1.");
         }
       }
-      
+
       if (null != sampleParam) {
         sample = Double.parseDouble(sampleParam);
       }
@@ -391,34 +391,34 @@ public class EgressFetchHandler extends AbstractHandler {
       if (null != postBoundaryParam) {
         postBoundary = Long.parseLong(postBoundaryParam);
       }
-      
+
       String selector = splitFetch ? null : req.getParameter(Constants.HTTP_PARAM_SELECTOR);
-   
+
       //
       // Extract token from header
       //
-      
+
       String token = req.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_TOKENX));
-      
+
       // If token was not found in header, extract it from the 'token' parameter
       if (null == token && !splitFetch) {
         token = req.getParameter(Constants.HTTP_PARAM_TOKEN);
       }
-      
+
       String fetchSig = req.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_FETCH_SIGNATURE));
 
       //
       // Check token signature if it was provided
       //
-      
+
       boolean signed = false;
-      
+
       if (splitFetch) {
         // Force showErrors
         showErrors = true;
         signed = true;
       }
-      
+
       if (null != fetchSig) {
         if (null != fetchPSK) {
           String[] subelts = fetchSig.split(":");
@@ -429,34 +429,34 @@ public class EgressFetchHandler extends AbstractHandler {
           long nowts = System.currentTimeMillis();
           long sigts = new BigInteger(subelts[0], 16).longValue();
           long sighash = new BigInteger(subelts[1], 16).longValue();
-          
+
           if (nowts - sigts > 10000L) {
             httpStatusCode = HttpServletResponse.SC_BAD_REQUEST;
             throw new IOException("Fetch signature has expired.");
           }
-          
+
           // Recompute hash of ts:token
-          
+
           String tstoken = Long.toString(sigts) + ":" + token;
-          
+
           long checkedhash = SipHashInline.hash24(fetchPSK, tstoken.getBytes(StandardCharsets.ISO_8859_1));
-          
+
           if (checkedhash != sighash) {
             httpStatusCode = HttpServletResponse.SC_BAD_REQUEST;
             throw new IOException("Corrupted fetch signature");
           }
-      
+
           signed = true;
         } else {
           httpStatusCode = HttpServletResponse.SC_BAD_REQUEST;
           throw new IOException("Fetch PreSharedKey is not set.");
         }
       }
-      
+
       ReadToken rtoken = null;
-      
+
       String format = splitFetch ? "wrapper" : req.getParameter(Constants.HTTP_PARAM_FORMAT);
-      
+
       if (!splitFetch) {
         try {
           rtoken = Tokens.extractReadToken(token);
@@ -465,49 +465,118 @@ public class EgressFetchHandler extends AbstractHandler {
             httpStatusCode = HttpServletResponse.SC_BAD_REQUEST;
             throw new IOException("Tokens with hooks cannot be used for fetching data.");
           }
+
+          Map<String, String> rtokenAttributes = rtoken.getAttributes();
+          if (null != rtokenAttributes && (rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOFETCH) || rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOFIND))) {
+            httpStatusCode = HttpServletResponse.SC_FORBIDDEN;
+            throw new IOException("Token cannot be used for fetching data.");
+          }
         } catch (WarpScriptException wse) {
           httpStatusCode = HttpServletResponse.SC_FORBIDDEN;
           throw wse;
         }
       }
-      
+
       boolean showAttr = "true".equals(req.getParameter(Constants.HTTP_PARAM_SHOWATTR));
-      
+
       Long activeAfter = null == req.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER) ? null : Long.parseLong(req.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER));
       Long quietAfter = null == req.getParameter(Constants.HTTP_PARAM_QUIETAFTER) ? null : Long.parseLong(req.getParameter(Constants.HTTP_PARAM_QUIETAFTER));
       boolean sortMeta = "true".equals(req.getParameter(Constants.HTTP_PARAM_SORTMETA));
-      
+
+      //
+      // Apply constraints from token attribute
+      //
+
+      if (null != rtoken && rtoken.getAttributesSize() > 0) {
+        Map<String,Object> params = new HashMap<String,Object>();
+        params.put(FETCH.PARAM_END, now);
+        params.put(FETCH.PARAM_START, then);
+        params.put(FETCH.PARAM_COUNT, count);
+        if (null != quietAfter) {
+          params.put(FETCH.PARAM_QUIET_AFTER, quietAfter);
+        }
+        if (null != activeAfter) {
+          params.put(FETCH.PARAM_ACTIVE_AFTER, activeAfter);
+        }
+        params.put(FETCH.PARAM_BOUNDARY_PRE, preBoundary);
+        params.put(FETCH.PARAM_BOUNDARY_POST, postBoundary);
+
+        Map<String,Object> tokenattr = FETCH.parseTokenAttributes(rtoken, params);
+
+        if (null != tokenattr.get(FETCH.PARAM_START)) {
+          long start = (long) tokenattr.get(FETCH.PARAM_START);
+          if (then < start) {
+            then = start;
+          }
+        }
+
+        if (null != tokenattr.get(FETCH.PARAM_END)) {
+          long end = (long) tokenattr.get(FETCH.PARAM_END);
+          if (now > end) {
+            now = end;
+          }
+        }
+
+        if (null != tokenattr.get(FETCH.PARAM_QUIET_AFTER)) {
+          quietAfter = (long) tokenattr.get(FETCH.PARAM_QUIET_AFTER);
+        }
+
+        if (null != tokenattr.get(FETCH.PARAM_ACTIVE_AFTER)) {
+          activeAfter = (long) tokenattr.get(FETCH.PARAM_ACTIVE_AFTER);
+        }
+
+        if (null != tokenattr.get(FETCH.PARAM_COUNT)) {
+          long c = (long) tokenattr.get(FETCH.PARAM_COUNT);
+          if (count > c) {
+            count = c;
+          }
+        }
+
+        if (null != tokenattr.get(FETCH.PARAM_BOUNDARY_PRE)) {
+          long boundary = (long) tokenattr.get(FETCH.PARAM_BOUNDARY_PRE);
+          if (preBoundary > boundary) {
+            preBoundary = boundary;
+          }
+        }
+
+        if (null != tokenattr.get(FETCH.PARAM_BOUNDARY_POST)) {
+          long boundary = (long) tokenattr.get(FETCH.PARAM_BOUNDARY_POST);
+          if (postBoundary > boundary) {
+            postBoundary = boundary;
+          }
+        }
+      }
+
       //
       // Extract the class and labels selectors
       // The class selector and label selectors are supposed to have
       // values which use percent encoding, i.e. explicit percent encoding which
       // might have been re-encoded using percent encoding when passed as parameter
       //
-      //
-      
+
       Set<Metadata> metadatas = new HashSet<Metadata>();
       List<Iterator<Metadata>> iterators = new ArrayList<Iterator<Metadata>>();
-      
-      if (!splitFetch) {      
-        
+
+      if (!splitFetch) {
+
         if (null == selector) {
           httpStatusCode = HttpServletResponse.SC_BAD_REQUEST;
           throw new IOException("Missing '" + Constants.HTTP_PARAM_SELECTOR + "' parameter.");
         }
-        
+
         String[] selectors = selector.split("\\s+");
-        
+
         for (String sel: selectors) {
           Matcher m = SELECTOR_RE.matcher(sel);
-          
+
           if (!m.matches()) {
             resp.sendError(HttpServletResponse.SC_BAD_REQUEST);
             return;
           }
-          
+
           String classSelector = WarpURLDecoder.decode(m.group(1), StandardCharsets.UTF_8);
           String labelsSelection = m.group(2);
-          
+
           Map<String,String> labelsSelectors;
 
           try {
@@ -516,36 +585,36 @@ public class EgressFetchHandler extends AbstractHandler {
             httpStatusCode = HttpServletResponse.SC_BAD_REQUEST;
             throw pe;
           }
-          
+
           //
           // Force 'producer'/'owner'/'app' from token
           //
-          
+
           labelsSelectors.remove(Constants.PRODUCER_LABEL);
           labelsSelectors.remove(Constants.OWNER_LABEL);
           labelsSelectors.remove(Constants.APPLICATION_LABEL);
-          
+
           labelsSelectors.putAll(Tokens.labelSelectorsFromReadToken(rtoken));
 
           List<Metadata> metas = null;
-          
+
           List<String> clsSels = new ArrayList<String>();
           List<Map<String,String>> lblsSels = new ArrayList<Map<String,String>>();
-          
+
           clsSels.add(classSelector);
           lblsSels.add(labelsSelectors);
-          
+
           DirectoryRequest request = new DirectoryRequest();
           request.setClassSelectors(clsSels);
           request.setLabelsSelectors(lblsSels);
-          
+
           if (null != activeAfter) {
             request.setActiveAfter(activeAfter);
           }
           if (null != quietAfter) {
             request.setQuietAfter(quietAfter);
           }
-          
+
           try {
             metas = directoryClient.find(request);
             metadatas.addAll(metas);
@@ -559,45 +628,43 @@ public class EgressFetchHandler extends AbstractHandler {
             }
             iterators.add(directoryClient.iterator(request));
           }
-        }      
+        }
       } else {
         // split fetch
-        
+
         //
         // Add an iterator which reads splits from the request body
         //
-        
+
         boolean gzipped = false;
-        
+
         if (null != req.getHeader("Content-Type") && "application/gzip".equals(req.getHeader("Content-Type"))) {
           gzipped = true;
         }
-        
+
         BufferedReader br = null;
-            
+
         if (gzipped) {
           GZIPInputStream is = new GZIPInputStream(req.getInputStream());
           br = new BufferedReader(new InputStreamReader(is));
-        } else {    
+        } else {
           br = req.getReader();
         }
 
         final BufferedReader fbr = br;
-        
+
 
         MetadataIterator iterator = new MetadataIterator() {
-          
+
           private List<Metadata> metadatas = new ArrayList<Metadata>();
-          
+
           private boolean done = false;
 
-          private String lasttoken = "";
-          
           @Override
           public void close() throws Exception {
             fbr.close();
           }
-          
+
           @Override
           public Metadata next() {
             if (!metadatas.isEmpty()) {
@@ -612,7 +679,7 @@ public class EgressFetchHandler extends AbstractHandler {
               }
             }
           }
-          
+
           @Override
           public boolean hasNext() {
             if (!metadatas.isEmpty()) {
@@ -675,39 +742,39 @@ public class EgressFetchHandler extends AbstractHandler {
             return true;
           }
         };
-        
+
         iterators.add(iterator);
       } // End of splitFetch block
-         
+
       List<Metadata> metas = new ArrayList<Metadata>();
       metas.addAll(metadatas);
-      
+
       if (!metas.isEmpty()) {
         iterators.add(metas.iterator());
       }
-      
+
       //
       // Loop over the iterators, storing the read metadata to a temporary file encrypted on disk
       // Data is encrypted using a onetime pad
       //
-      
+
       final byte[] onetimepad = new byte[(int) Math.min(65537, System.currentTimeMillis() % 100000)];
       ThreadLocalRandom.current().nextBytes(onetimepad);
-      
+
       final File cache = File.createTempFile(Long.toHexString(System.currentTimeMillis()) + "-" + Long.toHexString(System.nanoTime()), ".dircache");
       cache.deleteOnExit();
-      
+
       FileWriter writer = new FileWriter(cache);
 
       TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
-      
+
       int padidx = 0;
-      
+
       for (Iterator<Metadata> itermeta: iterators){
         try {
           while(itermeta.hasNext()) {
             Metadata metadata = itermeta.next();
-            
+
             try {
               byte[] bytes = serializer.serialize(metadata);
               // Apply onetimepad
@@ -719,55 +786,55 @@ public class EgressFetchHandler extends AbstractHandler {
               }
               OrderPreservingBase64.encodeToWriter(bytes, writer);
               writer.write('\n');
-            } catch (TException te) {          
-            }         
+            } catch (TException te) {
+            }
           }
-          
+
           if (itermeta instanceof MetadataIterator) {
             try {
               ((MetadataIterator) itermeta).close();
-            } catch (Exception e) {          
+            } catch (Exception e) {
             }
-          }              
+          }
         } catch (Throwable t) {
           throw t;
         } finally {
           if (itermeta instanceof MetadataIterator) {
             try {
               ((MetadataIterator) itermeta).close();
-            } catch (Exception e) {        
+            } catch (Exception e) {
             }
           }
         }
       }
-      
+
       writer.close();
-      
+
       //
       // Create an iterator based on the cache
       //
-      
+
       MetadataIterator cacheiterator = new MetadataIterator() {
-        
+
         BufferedReader reader = new BufferedReader(new FileReader(cache));
-        
+
         private Metadata current = null;
         private boolean done = false;
-        
+
         private TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
-        
+
         int padidx = 0;
-        
+
         @Override
         public boolean hasNext() {
           if (done) {
             return false;
           }
-          
+
           if (null != current) {
             return true;
           }
-          
+
           try {
             String line = reader.readLine();
             if (null == line) {
@@ -793,10 +860,10 @@ public class EgressFetchHandler extends AbstractHandler {
           } catch (IOException ioe) {
             LOG.error("", ioe);
           }
-          
+
           return false;
         }
-        
+
         @Override
         public Metadata next() {
           if (null != this.current) {
@@ -807,46 +874,46 @@ public class EgressFetchHandler extends AbstractHandler {
             throw new NoSuchElementException();
           }
         }
-        
+
         @Override
         public void close() throws Exception {
           this.reader.close();
           cache.delete();
         }
       };
-      
+
       iterators.clear();
       iterators.add(cacheiterator);
-          
+
       metas = new ArrayList<Metadata>();
 
       PrintWriter pw = resp.getWriter();
-      
+
       AtomicReference<Metadata> lastMeta = new AtomicReference<Metadata>(null);
       AtomicLong lastCount = new AtomicLong(0L);
-      
+
       boolean expose = null != rtoken && rtoken.getAttributesSize() > 0 && rtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_EXPOSE);
-      
+
       if (nocache) {
         AcceleratorConfig.nocache();
       } else {
-        AcceleratorConfig.cache();        
+        AcceleratorConfig.cache();
       }
-      
+
       if (nopersist) {
         AcceleratorConfig.nopersist();
       } else {
-        AcceleratorConfig.persist();        
+        AcceleratorConfig.persist();
       }
-      
+
       for (Iterator<Metadata> itermeta: iterators) {
         while(itermeta.hasNext()) {
           metas.add(itermeta.next());
-          
+
           //
           // Access the data store every 'FETCH_BATCHSIZE' GTS or at the end of each iterator
           //
-          
+
           if (metas.size() > FETCH_BATCHSIZE || !itermeta.hasNext()) {
             FetchRequest freq = new FetchRequest();
             freq.setToken(rtoken);
@@ -866,12 +933,12 @@ public class EgressFetchHandler extends AbstractHandler {
 
             try(GTSDecoderIterator iterrsc = storeClient.fetch(freq)) {
               GTSDecoderIterator iter = iterrsc;
-                          
+
               if (unpack) {
                 iter = new UnpackingGTSDecoderIterator(iter, suffix);
                 count = Long.MAX_VALUE;
               }
-              
+
               if ("text".equals(format)) {
                 textDump(pw, iter, now, count, false, dedup, signed, showAttr, lastMeta, lastCount, sortMeta, expose);
               } else if ("fulltext".equals(format)) {
@@ -907,32 +974,32 @@ public class EgressFetchHandler extends AbstractHandler {
                 pw.println(Constants.EGRESS_FETCH_ERROR_PREFIX + error);
               }
               throw t;
-            } finally {      
+            } finally {
               if (!itermeta.hasNext() && (itermeta instanceof MetadataIterator)) {
                 try {
                   ((MetadataIterator) itermeta).close();
-                } catch (Exception e) {          
+                } catch (Exception e) {
                 }
               }
-            }                  
-            
+            }
+
             //
             // Reset 'metas'
             //
-            
+
             metas.clear();
-          }        
+          }
         }
-        
+
         if (itermeta instanceof MetadataIterator) {
           try {
             ((MetadataIterator) itermeta).close();
-          } catch (Exception e) {          
+          } catch (Exception e) {
           }
         }
       }
 
-      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_REQUESTS, labels, 1);      
+      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FETCH_REQUESTS, labels, 1);
     } catch (Throwable t) {
       if (!resp.isCommitted()) {
         resp.sendError(httpStatusCode, ThrowableUtils.getErrorMessage(t, Constants.MAX_HTTP_REASON_LENGTH));
@@ -942,27 +1009,27 @@ public class EgressFetchHandler extends AbstractHandler {
   }
 
   private static void rawDump(PrintWriter pw, GTSDecoderIterator iter, boolean dedup, boolean signed, long count, AtomicReference<Metadata> lastMeta, AtomicLong lastCount, boolean sortMeta, boolean expose) throws IOException {
-    
+
     String name = null;
 
     StringBuilder sb = new StringBuilder();
-    
+
     Metadata lastMetadata = lastMeta.get();
     long currentCount = lastCount.get();
-    
+
     while(iter.hasNext()) {
       GTSDecoder decoder = iter.next();
 
       if (dedup) {
         decoder = decoder.dedup();
       }
-      
+
       if(!decoder.next()) {
         continue;
       }
 
       long toDecodeCount = Long.MAX_VALUE;
-      
+
       if (count >= 0) {
         Metadata meta = decoder.getMetadata();
         if (!meta.equals(lastMetadata)) {
@@ -973,13 +1040,13 @@ public class EgressFetchHandler extends AbstractHandler {
       }
 
       GTSEncoder encoder = decoder.getEncoder(true);
-      
+
       //
       // Only display the class + labels if they have changed since the previous GTS
       //
-      
+
       Map<String,String> lbls = decoder.getLabels();
-      
+
       //
       // Compute the name
       //
@@ -989,11 +1056,11 @@ public class EgressFetchHandler extends AbstractHandler {
       GTSHelper.encodeName(sb, name);
       sb.append("{");
       boolean first = true;
-      
+
       if (sortMeta) {
         lbls = new TreeMap<String,String>(lbls);
       }
-      
+
       for (Entry<String, String> entry: lbls.entrySet()) {
         //
         // Skip owner/producer labels and any other 'private' labels
@@ -1004,9 +1071,9 @@ public class EgressFetchHandler extends AbstractHandler {
           }
           if (Constants.OWNER_LABEL.equals(entry.getKey())) {
             continue;
-          }          
+          }
         }
-        
+
         if (!first) {
           sb.append(",");
         }
@@ -1043,10 +1110,10 @@ public class EgressFetchHandler extends AbstractHandler {
         //pw.println(new String(OrderPreservingBase64.encode(encoder.getBytes())));
         OrderPreservingBase64.encodeToWriter(encoder.getBytes(), pw);
         pw.write('\r');
-        pw.write('\n');        
+        pw.write('\n');
       }
     }
-    
+
     lastMeta.set(lastMetadata);
     lastCount.set(currentCount);
   }
@@ -1060,24 +1127,22 @@ public class EgressFetchHandler extends AbstractHandler {
     // Labels for Sensision
     Map<String,String> labels = new HashMap<String,String>();
 
-    StringBuilder sb = new StringBuilder();
-    
     Metadata lastMetadata = lastMeta.get();
     long currentCount = lastCount.get();
-    
+
     while(iter.hasNext()) {
       GTSDecoder decoder = iter.next();
 
       if (dedup) {
         decoder = decoder.dedup();
       }
-      
+
       if(!decoder.next()) {
         continue;
       }
 
       long toDecodeCount = Long.MAX_VALUE;
-      
+
       if (count >= 0) {
         Metadata meta = decoder.getMetadata();
         if (!meta.equals(lastMetadata)) {
@@ -1086,7 +1151,7 @@ public class EgressFetchHandler extends AbstractHandler {
         }
         toDecodeCount = Math.max(0, count - currentCount);
       }
-      
+
       GTSEncoder encoder = decoder.getEncoder(true);
 
       if (encoder.getCount() > toDecodeCount) {
@@ -1107,61 +1172,61 @@ public class EgressFetchHandler extends AbstractHandler {
       if (encoder.size() <= 0) {
         continue;
       }
-      
+
       //
       // Build a GTSWrapper
       //
-      
+
       GTSWrapper wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(encoder, true);
-      
+
 //      GTSWrapper wrapper = new GTSWrapper();
 //      wrapper.setBase(encoder.getBaseTimestamp());
 //      wrapper.setMetadata(encoder.getMetadata());
 //      wrapper.setCount(encoder.getCount());
 //      wrapper.setEncoded(encoder.getBytes());
-      
+
       //
       // Serialize the wrapper
       //
-      
+
       TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
       byte[] data = null;
-      
+
       try {
         data = serializer.serialize(wrapper);
       } catch (TException te) {
         throw new IOException(te);
       }
-      
+
       //
       // Output is GTSWrapperId <WSP> HASH <WSP> GTSWrapper
       //
-      
+
       pw.write(Hex.encodeHex(GTSWrapperHelper.getId(wrapper)));
-      
+
       pw.write(' ');
-      
+
       if (null != fetchPSK) {
         //
         // Compute HMac for the wrapper
         //
-        
+
         long hash = SipHashInline.hash24(fetchPSK, data);
-        
+
         //
         // Output the MAC before the data, as hex digits
         //
-        pw.write(Hex.encodeHex(Longs.toByteArray(hash)));               
+        pw.write(Hex.encodeHex(Longs.toByteArray(hash)));
       } else {
         pw.write('-');
       }
-      
+
       pw.write(' ');
-      
+
       //
       // Base64 encode the wrapper
       //
-      
+
       OrderPreservingBase64.encodeToWriter(data, pw);
       pw.write('\r');
       pw.write('\n');
@@ -1187,34 +1252,34 @@ public class EgressFetchHandler extends AbstractHandler {
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_SFETCH_WRAPPERS_DATAPOINTS_PERAPP, labels, wrapper.getCount());
 
     }
-    
+
     lastMeta.set(lastMetadata);
     lastCount.set(currentCount);
   }
-  
+
   /**
    * Output a text version of fetched data. Deduplication is done on the fly so we don't decode twice.
-   * 
+   *
    */
   private static void textDump(PrintWriter pw, GTSDecoderIterator iter, long now, long count, boolean raw, boolean dedup, boolean signed, boolean showAttributes, AtomicReference<Metadata> lastMeta, AtomicLong lastCount, boolean sortMeta, boolean expose) throws IOException {
-    
+
     String name = null;
     Map<String,String> labels = null;
-    
+
     StringBuilder sb = new StringBuilder();
-    
+
     Metadata lastMetadata = lastMeta.get();
     long currentCount = lastCount.get();
-    
+
     while(iter.hasNext()) {
       GTSDecoder decoder = iter.next();
-      
+
       if (!decoder.next()) {
         continue;
       }
 
       long toDecodeCount = Long.MAX_VALUE;
-      
+
       if (count >= 0) {
         Metadata meta = decoder.getMetadata();
         if (!meta.equals(lastMetadata)) {
@@ -1223,19 +1288,19 @@ public class EgressFetchHandler extends AbstractHandler {
         }
         toDecodeCount = Math.max(0, count - currentCount);
       }
-      
+
       //
       // Only display the class + labels if they have changed since the previous GTS
       //
-      
+
       Map<String,String> lbls = decoder.getLabels();
-      
+
       //
       // Compute the new name
       //
 
       boolean displayName = false;
-      
+
       if (null == name || (!name.equals(decoder.getName()) || !labels.equals(lbls))) {
         displayName = true;
         name = decoder.getName();
@@ -1248,7 +1313,7 @@ public class EgressFetchHandler extends AbstractHandler {
         if (sortMeta) {
           lbls = new TreeMap<String, String>(lbls);
         }
-        
+
         for (Entry<String, String> entry: lbls.entrySet()) {
           //
           // Skip owner/producer labels and any other 'private' labels
@@ -1259,9 +1324,9 @@ public class EgressFetchHandler extends AbstractHandler {
             }
             if (Constants.OWNER_LABEL.equals(entry.getKey())) {
               continue;
-            }            
+            }
           }
-          
+
           if (!first) {
             sb.append(",");
           }
@@ -1271,51 +1336,51 @@ public class EgressFetchHandler extends AbstractHandler {
           first = false;
         }
         sb.append("}");
-        
+
         if (showAttributes) {
           Metadata meta = decoder.getMetadata();
           if (meta.getAttributesSize() > 0) {
-            
+
             if (sortMeta) {
               meta.setAttributes(new TreeMap<String,String>(meta.getAttributes()));
             }
-            
+
             GTSHelper.labelsToString(sb, meta.getAttributes(), true);
           } else {
             sb.append("{}");
-          }          
+          }
         }
       }
-      
+
       long timestamp = 0L;
       long location = GeoTimeSerie.NO_LOCATION;
       long elevation = GeoTimeSerie.NO_ELEVATION;
       Object value = null;
-      
+
       boolean dup = true;
-      
+
       long decoded = 0;
-      
+
       do {
-      
+
         if (toDecodeCount == decoded) {
           break;
         }
-        
+
         // FIXME(hbs): only display the results which match the authorized (according to token) timerange and geo zones
-        
+
         long newTimestamp = decoder.getTimestamp();
 
         //
         // TODO(hbs): filter out values with no location or outside the selected geozone when a geozone was set
         //
-        
+
         long newLocation = decoder.getLocation();
         long newElevation = decoder.getElevation();
         Object newValue = decoder.getBinaryValue();
-        
+
         dup = true;
-        
+
         if (dedup) {
           if (location != newLocation || elevation != newElevation) {
             dup = false;
@@ -1340,16 +1405,16 @@ public class EgressFetchHandler extends AbstractHandler {
                 dup = false;
               }
             }
-          }          
+          }
         }
 
         decoded++;
-        
+
         location = newLocation;
         elevation = newElevation;
         timestamp = newTimestamp;
         value = newValue;
-            
+
         if (raw) {
           if (!dedup || !dup) {
             pw.println(GTSHelper.tickToString(sb, timestamp, location, elevation, value));
@@ -1367,76 +1432,76 @@ public class EgressFetchHandler extends AbstractHandler {
               pw.println(GTSHelper.tickToString(timestamp,
                   location,
                   elevation,
-                  value));                                    
+                  value));
             }
           }
         }
-      } while (decoder.next());        
-      
+      } while (decoder.next());
+
       // Update currentcount
       if (count >= 0) {
         currentCount += decoded;
       }
-      
+
       // Print any remaining value
       if (dedup && dup) {
         if (raw) {
-          pw.println(GTSHelper.tickToString(sb, timestamp, location, elevation, value));          
+          pw.println(GTSHelper.tickToString(sb, timestamp, location, elevation, value));
         } else {
           pw.print("=");
           pw.println(GTSHelper.tickToString(timestamp,
               location,
               elevation,
-              value));                                              
+              value));
         }
       }
-      
+
       //
       // If displayName is still true it means we should have displayed the name but no value matched,
       // so set name to null so we correctly display the name for the next decoder if it has values
       //
-      
+
       if (displayName) {
         name = null;
       }
     }
-    
+
     lastMeta.set(lastMetadata);
     lastCount.set(currentCount);
   }
 
   static void jsonDump(PrintWriter pw, Iterator<GTSDecoder> iter, long now, long count, boolean dedup, boolean signed, AtomicReference<Metadata> lastMeta, AtomicLong lastCount, boolean expose) throws IOException {
-    
+
     String name = null;
     Map<String,String> labels = null;
-    
+
     pw.print("[");
-    
+
     boolean hasValues = false;
 
     Metadata lastMetadata = lastMeta.get();
     long currentCount = lastCount.get();
-    
+
     try {
       StringBuilder sb = new StringBuilder();
-      
+
       boolean firstgts = true;
-      
+
       long mask = (long) (Math.random() * Long.MAX_VALUE);
-      
+
       while(iter.hasNext()) {
         GTSDecoder decoder = iter.next();
-        
+
         if (dedup) {
           decoder = decoder.dedup();
         }
-        
+
         if (!decoder.next()) {
           continue;
         }
-            
+
         long toDecodeCount = Long.MAX_VALUE;
-        
+
         if (count >= 0) {
           Metadata meta = decoder.getMetadata();
           if (!meta.equals(lastMetadata)) {
@@ -1449,15 +1514,15 @@ public class EgressFetchHandler extends AbstractHandler {
         //
         // Only display the class + labels if they have changed since the previous GTS
         //
-        
+
         Map<String,String> lbls = decoder.getLabels();
-        
+
         //
         // Compute the new name
         //
 
         boolean displayName = false;
-        
+
         if (null == name || (!name.equals(decoder.getName()) || !labels.equals(lbls))) {
           displayName = true;
           name = decoder.getName();
@@ -1486,13 +1551,13 @@ public class EgressFetchHandler extends AbstractHandler {
               }
               if (Constants.OWNER_LABEL.equals(entry.getKey())) {
                 continue;
-              }            
+              }
             }
-            
+
             if (!first) {
               sb.append(",");
             }
-            
+
             sb.append(JsonUtils.objectToJson(entry.getKey()));
             sb.append(":");
             sb.append(JsonUtils.objectToJson(entry.getValue()));
@@ -1509,13 +1574,13 @@ public class EgressFetchHandler extends AbstractHandler {
             if (!first) {
               sb.append(",");
             }
-            
+
             sb.append(JsonUtils.objectToJson(entry.getKey()));
             sb.append(":");
             sb.append(JsonUtils.objectToJson(entry.getValue()));
             first = false;
           }
-          
+
           sb.append("}");
           sb.append(",\"");
           sb.append(FIELD_ID);
@@ -1530,23 +1595,23 @@ public class EgressFetchHandler extends AbstractHandler {
           sb.append(GeoTimeSerieSerializer.FIELD_VALUES);
           sb.append("\":[");
         }
-        
+
         long decoded = 0L;
-        
+
         do {
-          
+
           if (toDecodeCount == decoded) {
             break;
           }
 
           // FIXME(hbs): only display the results which match the authorized (according to token) timerange and geo zones
-          
+
           decoded++;
-          
+
           //
           // TODO(hbs): filter out values with no location or outside the selected geozone when a geozone was set
           //
-          
+
           // Display the name only if we have at least one value to display
           if (displayName) {
             if (!firstgts) {
@@ -1576,7 +1641,7 @@ public class EgressFetchHandler extends AbstractHandler {
           // For JSON representation we do not extract the binary value as byte[] cannot be
           // represented in JSON
           Object value = decoder.getValue();
-          
+
           if (value instanceof Number) {
             pw.print(value);
           } else if (value instanceof Boolean) {
@@ -1585,8 +1650,8 @@ public class EgressFetchHandler extends AbstractHandler {
             pw.print(JsonUtils.objectToJson(value.toString()));
           }
           pw.print("]");
-        } while (decoder.next());        
-        
+        } while (decoder.next());
+
         if (count >= 0) {
           currentCount += decoded;
         }
@@ -1595,34 +1660,34 @@ public class EgressFetchHandler extends AbstractHandler {
         // If displayName is still true it means we should have displayed the name but no value matched,
         // so set name to null so we correctly display the name for the next decoder if it has values
         //
-        
+
         if (displayName) {
           name = null;
         }
       }
-            
+
     } catch (Throwable t) {
       throw t;
     } finally {
       if (hasValues) {
         pw.print("]}");
       }
-      pw.print("]");      
+      pw.print("]");
     }
-    
+
     lastMeta.set(lastMetadata);
     lastCount.set(currentCount);
   }
-  
+
   /**
    * Output a tab separated version of fetched data. Deduplication is done on the fly so we don't decode twice.
-   * 
+   *
    */
   private static void tsvDump(PrintWriter pw, GTSDecoderIterator iter, long now, long count, boolean raw, boolean dedup, boolean signed, AtomicReference<Metadata> lastMeta, AtomicLong lastCount, boolean sortMeta, boolean expose) throws IOException {
-    
+
     String name = null;
     Map<String,String> labels = null;
-    
+
     StringBuilder classSB = new StringBuilder();
     StringBuilder labelsSB = new StringBuilder();
     StringBuilder attributesSB = new StringBuilder();
@@ -1633,13 +1698,13 @@ public class EgressFetchHandler extends AbstractHandler {
 
     while(iter.hasNext()) {
       GTSDecoder decoder = iter.next();
-      
+
       if (!decoder.next()) {
         continue;
       }
-    
+
       long toDecodeCount = Long.MAX_VALUE;
-      
+
       if (count >= 0) {
         Metadata meta = decoder.getMetadata();
         if (!meta.equals(lastMetadata)) {
@@ -1652,15 +1717,15 @@ public class EgressFetchHandler extends AbstractHandler {
       //
       // Only display the class + labels if they have changed since the previous GTS
       //
-      
+
       Map<String,String> lbls = decoder.getLabels();
-      
+
       //
       // Compute the new name
       //
 
       boolean displayName = false;
-      
+
       if (null == name || (!name.equals(decoder.getName()) || !labels.equals(lbls))) {
         displayName = true;
         name = decoder.getName();
@@ -1670,7 +1735,7 @@ public class EgressFetchHandler extends AbstractHandler {
         labelsSB.setLength(0);
         attributesSB.setLength(0);
         boolean first = true;
-        
+
         if (sortMeta) {
           lbls = new TreeMap<String,String>(lbls);
         }
@@ -1684,9 +1749,9 @@ public class EgressFetchHandler extends AbstractHandler {
             }
             if (Constants.OWNER_LABEL.equals(entry.getKey())) {
               continue;
-            }            
+            }
           }
-          
+
           if (!first) {
             labelsSB.append(",");
           }
@@ -1698,11 +1763,11 @@ public class EgressFetchHandler extends AbstractHandler {
 
         first = true;
         if (decoder.getMetadata().getAttributesSize() > 0) {
-          
+
           if (sortMeta) {
             decoder.getMetadata().setAttributes(new TreeMap<String,String>(decoder.getMetadata().getAttributes()));
           }
-          
+
           for (Entry<String, String> entry: decoder.getMetadata().getAttributes().entrySet()) {
             if (!first) {
               attributesSB.append(",");
@@ -1711,38 +1776,38 @@ public class EgressFetchHandler extends AbstractHandler {
             attributesSB.append("=");
             GTSHelper.encodeName(attributesSB, entry.getValue());
             first = false;
-          }          
+          }
         }
 
       }
-      
+
       long timestamp = 0L;
       long location = GeoTimeSerie.NO_LOCATION;
       long elevation = GeoTimeSerie.NO_ELEVATION;
       Object value = null;
-      
+
       boolean dup = true;
-      
+
       long decoded = 0;
-      
+
       do {
-        
+
         if (toDecodeCount == decoded) {
           break;
         }
-        
+
         long newTimestamp = decoder.getTimestamp();
-        
+
         //
         // TODO(hbs): filter out values with no location or outside the selected geozone when a geozone was set
         //
-        
+
         long newLocation = decoder.getLocation();
         long newElevation = decoder.getElevation();
         Object newValue = decoder.getBinaryValue();
-        
+
         dup = true;
-        
+
         if (dedup) {
           if (location != newLocation || elevation != newElevation) {
             dup = false;
@@ -1767,16 +1832,16 @@ public class EgressFetchHandler extends AbstractHandler {
                 dup = false;
               }
             }
-          }          
+          }
         }
-                
+
         decoded++;
 
         location = newLocation;
         elevation = newElevation;
         timestamp = newTimestamp;
         value = newValue;
-            
+
         if (raw) {
           if (!dedup || !dup) {
             pw.print(classSB);
@@ -1785,10 +1850,10 @@ public class EgressFetchHandler extends AbstractHandler {
             pw.print('\t');
             pw.print(attributesSB);
             pw.print('\t');
-            
+
             pw.print(timestamp);
             pw.print('\t');
-            
+
             if (GeoTimeSerie.NO_LOCATION != location) {
               double[] latlon = GeoXPLib.fromGeoXPPoint(location);
               pw.print(latlon[0]);
@@ -1804,7 +1869,7 @@ public class EgressFetchHandler extends AbstractHandler {
               pw.print(elevation);
             }
             pw.print('\t');
-            
+
             valueSB.setLength(0);
             GTSHelper.encodeValue(valueSB, value);
             pw.println(valueSB);
@@ -1824,10 +1889,10 @@ public class EgressFetchHandler extends AbstractHandler {
             displayName = false;
             dup = false;
           }
-          
+
           if (!dedup || !dup) {
             pw.print(timestamp);
-            pw.print('\t');           
+            pw.print('\t');
             if (GeoTimeSerie.NO_LOCATION != location) {
               double[] latlon = GeoXPLib.fromGeoXPPoint(location);
               pw.print(latlon[0]);
@@ -1836,21 +1901,21 @@ public class EgressFetchHandler extends AbstractHandler {
             } else {
               pw.print('\t');
             }
-            
+
             pw.print('\t');
 
             if (GeoTimeSerie.NO_ELEVATION != elevation) {
               pw.print(elevation);
             }
             pw.print('\t');
-            
+
             valueSB.setLength(0);
             GTSHelper.encodeValue(valueSB, value);
             pw.println(valueSB);
           }
         }
-      } while (decoder.next());        
-      
+      } while (decoder.next());
+
       // Update currentcount
       if (count >= 0) {
         currentCount += decoded;
@@ -1865,7 +1930,7 @@ public class EgressFetchHandler extends AbstractHandler {
           pw.print('\t');
           pw.print(attributesSB);
           pw.print('\t');
-            
+
           pw.print(timestamp);
           pw.print('\t');
 
@@ -1884,7 +1949,7 @@ public class EgressFetchHandler extends AbstractHandler {
             pw.print(elevation);
           }
           pw.print('\t');
-            
+
           valueSB.setLength(0);
           GTSHelper.encodeValue(valueSB, value);
           pw.println(valueSB);
@@ -1901,29 +1966,29 @@ public class EgressFetchHandler extends AbstractHandler {
           }
 
           pw.print('\t');
-          
+
           if (GeoTimeSerie.NO_ELEVATION != elevation) {
             pw.print(elevation);
           }
           pw.print('\t');
-            
+
           valueSB.setLength(0);
           GTSHelper.encodeValue(valueSB, value);
           pw.println(valueSB);
         }
-        
+
       }
-      
+
       //
       // If displayName is still true it means we should have displayed the name but no value matched,
       // so set name to null so we correctly display the name for the next decoder if it has values
       //
-      
+
       if (displayName) {
         name = null;
       }
     }
-    
+
     lastMeta.set(lastMetadata);
     lastCount.set(currentCount);
   }
@@ -1933,16 +1998,16 @@ public class EgressFetchHandler extends AbstractHandler {
       GTSDecoder decoder = iter.next();
     }
   }
-  
+
   private void packedDump(PrintWriter pw, GTSDecoderIterator iter, long now, long count, boolean dedup, boolean signed, AtomicReference<Metadata> lastMeta, AtomicLong lastCount, int maxDecoderLen, String classSuffix, long chunksize, boolean sortMeta, boolean expose) throws IOException {
-    
+
     String name = null;
 
     StringBuilder sb = new StringBuilder();
-    
+
     Metadata lastMetadata = lastMeta.get();
     long currentCount = lastCount.get();
-    
+
     List<GTSEncoder> encoders = new ArrayList<GTSEncoder>();
 
     while(iter.hasNext()) {
@@ -1951,13 +2016,13 @@ public class EgressFetchHandler extends AbstractHandler {
       if (dedup) {
         decoder = decoder.dedup();
       }
-      
+
       if(!decoder.next()) {
         continue;
       }
 
       long toDecodeCount = Long.MAX_VALUE;
-      
+
       if (count >= 0) {
         Metadata meta = decoder.getMetadata();
         if (!meta.equals(lastMetadata)) {
@@ -1968,13 +2033,13 @@ public class EgressFetchHandler extends AbstractHandler {
       }
 
       GTSEncoder encoder = decoder.getEncoder(true);
-      
+
       //
       // Only display the class + labels if they have changed since the previous GTS
       //
-      
+
       Map<String,String> lbls = decoder.getLabels();
-      
+
       //
       // Compute the name
       //
@@ -1984,11 +2049,11 @@ public class EgressFetchHandler extends AbstractHandler {
       GTSHelper.encodeName(sb, name + classSuffix);
       sb.append("{");
       boolean first = true;
-      
+
       if (sortMeta) {
         lbls = new TreeMap<String,String>(lbls);
       }
-      
+
       for (Entry<String, String> entry: lbls.entrySet()) {
         //
         // Skip owner/producer labels and any other 'private' labels
@@ -1999,9 +2064,9 @@ public class EgressFetchHandler extends AbstractHandler {
           }
           if (Constants.OWNER_LABEL.equals(entry.getKey())) {
             continue;
-          }          
+          }
         }
-        
+
         if (!first) {
           sb.append(",");
         }
@@ -2031,17 +2096,17 @@ public class EgressFetchHandler extends AbstractHandler {
       }
 
       encoders.clear();
-      
+
       //
       // Add encoders per chunk
       //
-      
+
       GTSDecoder chunkdec = encoder.getDecoder(true);
-      
+
       GTSEncoder chunkenc = null;
-      
+
       Long lastchunk = null;
-      
+
       if (Long.MAX_VALUE == chunksize) {
         encoders.add(encoder);
       } else {
@@ -2052,19 +2117,19 @@ public class EgressFetchHandler extends AbstractHandler {
           //
           // If it is the first chunk or we changed chunk, create a new encoder
           //
-          
+
           if (null == chunkenc || chunk != lastchunk) {
             chunkenc = new GTSEncoder(0L);
             chunkenc.setMetadata(encoder.getMetadata());
             encoders.add(chunkenc);
           }
-         
+
           lastchunk = chunk;
-          
+
           chunkenc.addValue(ts, chunkdec.getLocation(), chunkdec.getElevation(), chunkdec.getBinaryValue());
-        }        
+        }
       }
-            
+
       while(!encoders.isEmpty()) {
         encoder = encoders.remove(0);
 
@@ -2072,11 +2137,11 @@ public class EgressFetchHandler extends AbstractHandler {
           //
           // Determine most recent timestamp
           //
-          
+
           GTSDecoder dec = encoder.getDecoder(true);
 
           dec.next();
-          
+
           long timestamp = dec.getTimestamp();
 
           //
@@ -2088,12 +2153,12 @@ public class EgressFetchHandler extends AbstractHandler {
           encoder.setName("");
           encoder.setLabels(new HashMap<String,String>());
           encoder.getMetadata().setAttributes(new HashMap<String,String>());
-          
+
           GTSWrapper wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(encoder, true);
-          
+
           TSerializer ser = new TSerializer(new TCompactProtocol.Factory());
           byte[] serialized;
-          
+
           try {
             serialized = ser.serialize(wrapper);
           } catch (TException te) {
@@ -2104,19 +2169,19 @@ public class EgressFetchHandler extends AbstractHandler {
           // Check the size of the generatd wrapper. If it is over 75% of maxDecoderLen,
           // split the original encoder in two
           //
-                    
+
           if (serialized.length >= Math.floor(0.75D * maxDecoderLen) && encoder.getCount() > 2) {
             GTSEncoder split = new GTSEncoder(0L);
             split.setMetadata(encoder.getMetadata());
-            
+
             List<GTSEncoder> splits = new ArrayList<GTSEncoder>();
-            
+
             splits.add(split);
-            
+
             int threshold = encoder.size() / 2;
-            
+
             GTSDecoder deco = encoder.getDecoder(true);
-            
+
             while(deco.next()) {
               split.addValue(deco.getTimestamp(), deco.getLocation(), deco.getElevation(), deco.getBinaryValue());
               if (split.size() > threshold) {
@@ -2124,21 +2189,21 @@ public class EgressFetchHandler extends AbstractHandler {
                 splits.add(split);
               }
             }
-            
+
             //
             // Now insert the splits at the beginning of 'encoders'
             //
-            
+
             for (int i = splits.size() - 1; i >= 0; i--) {
               encoders.add(0, splits.get(i));
             }
             continue;
           }
-          
+
           if (serialized.length > Math.ceil(0.75D * maxDecoderLen)) {
             throw new IOException("Encountered a value whose length is above the configured threshold of " + maxDecoderLen);
           }
-          
+
           pw.print(timestamp);
           pw.print("//");
           pw.print(encoder.getCount());
@@ -2147,10 +2212,10 @@ public class EgressFetchHandler extends AbstractHandler {
           pw.print(" '");
 
           OrderPreservingBase64.encodeToWriter(serialized, pw);
-          
+
           pw.print("'");
           pw.write('\r');
-          pw.write('\n');        
+          pw.write('\n');
         }
       }
     }

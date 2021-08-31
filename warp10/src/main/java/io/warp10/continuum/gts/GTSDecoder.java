@@ -792,7 +792,7 @@ public class GTSDecoder {
       if (first) {
         first = false;
         dup = false;
-
+        timestamp = this.getTimestamp();
         location = this.getLocation();
         elevation = this.getElevation();
         value = this.getBinaryValue();

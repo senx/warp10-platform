@@ -34,7 +34,7 @@ public interface GTSDirectory {
   /**
    * Retrieve classId for a Geo Time Serie
    * 
-   * @param gts GTS instance for which to retrieve the classId
+   * @param name the name of the GTS.
    * @return the computed classId
    */
   public long getClassId(String name);
@@ -42,7 +42,7 @@ public interface GTSDirectory {
   /**
    * Retrieve labelsId for a Geo Time Serie
    * 
-   * @param gts GTS instance for which to retrieve the labelsId
+   * @param labels the labels of the GTS.
    * @return the computed labelsId
    */
   public long getLabelsId(Map<String,String> labels);
@@ -75,16 +75,11 @@ public interface GTSDirectory {
    * Register the GTS which this encoder encodes.
    * 
    * @param encoder GTSEncoder instance whose GTS is to be registered
-   * 
-   * @throws IOException
    */
   public void register(GTSEncoder encoder) throws IOException;
   
   /**
    * Retrieve Metadata by classId/labelsId.
-   * 
-   * @param classId
-   * @param labelsId
    * 
    * @return The matching Metadata or null if none were found.
    */
@@ -100,10 +95,6 @@ public interface GTSDirectory {
    * ~REGULAR_EXPRESSION
    * 
    * The names of labels must match exactly and should not use the above syntax.
-   * 
-   * @param classExpr
-   * @param labelsExpr
-   * @return
    */
   public List<Metadata> find(String classExpr, Map<String,String> labelsExpr);
   

@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -29,7 +29,6 @@ import org.joda.time.format.ISODateTimeFormat;
  * Checks that the current time is not after the provided instant.
  */
 public class NOTAFTER extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  private DateTimeFormatter fmt = ISODateTimeFormat.dateTimeParser();
 
   public NOTAFTER(String name) {
     super(name);    
@@ -52,7 +51,7 @@ public class NOTAFTER extends NamedWarpScriptFunction implements WarpScriptStack
     long now = TimeSource.getTime();
     
     if (now > instant) {
-      throw new WarpScriptException("Current time is after '" + top + "'");
+      throw new WarpScriptException(getName() + " failed because the current time is after '" + top + "'");
     }
     
     return stack;
