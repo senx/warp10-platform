@@ -59,17 +59,20 @@ public class TIMEBOX extends NamedWarpScriptFunction implements WarpScriptStackF
 
   private final Signal signal;
   private final boolean cap;
+  private final boolean quiet;
 
   public TIMEBOX(String name) {
     super(name);
     this.signal = null;
     this.cap = true;
+    this.quiet = false;
   }
 
-  public TIMEBOX(String name, Signal signal, boolean cap) {
+  public TIMEBOX(String name, Signal signal, boolean cap, boolean quiet) {
     super(name);
     this.signal = signal;
     this.cap = cap;
+    this.quiet = quiet;
   }
 
   @Override
@@ -156,7 +159,11 @@ public class TIMEBOX extends NamedWarpScriptFunction implements WarpScriptStackF
       }
       throw new WarpScriptException(getName() + " reached the execution time limit (" + maxtime + " " + Constants.timeunit.name() + ").");
     } catch (ExecutionException ee) {
-      throw new WarpScriptException(getName() + " encountered an exception while executing macro", ee.getCause());
+      if (this.quiet && ee.getCause() instanceof WarpScriptException) {
+        throw (WarpScriptException) ee.getCause();
+      } else {
+        throw new WarpScriptException(getName() + " encountered an exception while executing macro", ee.getCause());
+      }
     } catch (Exception e) {
       throw new WarpScriptException(getName() + " encountered an exception", e);
     } finally {

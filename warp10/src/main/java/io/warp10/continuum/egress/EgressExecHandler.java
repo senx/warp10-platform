@@ -92,7 +92,7 @@ public class EgressExecHandler extends AbstractHandler {
   // Our version of TIMEBOX will signal the stack with a KILL signal to ensure its
   // execution is definitely aborted. It will also not enforce limits since limits are
   // handled here.
-  private static final TIMEBOX TIMEBOX = new TIMEBOX(WarpScriptLib.TIMEBOX, Signal.KILL, false);
+  private static final TIMEBOX TIMEBOX = new TIMEBOX(WarpScriptLib.TIMEBOX, Signal.KILL, false, true);
 
   private static final RUNNERNONCE RUNNERNONCE = new RUNNERNONCE(WarpScriptLib.RUNNERNONCE);
 
