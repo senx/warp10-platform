@@ -463,9 +463,10 @@ public class EgressExecHandler extends AbstractHandler {
       if (maxtime > 0) {
         stack.push(maxtime);
         TIMEBOX.apply(stack);
-        // The call to TIMEBOX above will signal the stack, so we need to handle the signal received.
-        stack.handleSignal();
       }
+
+      // Handle possible signals to determine if termination is normal or not
+      stack.handleSignal();
 
       //
       // Check the user defined headers and set them.
