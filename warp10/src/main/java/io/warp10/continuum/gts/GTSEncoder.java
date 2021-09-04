@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -823,8 +823,10 @@ public class GTSEncoder implements Cloneable {
    * @param gts
    */
   public synchronized void encode(GeoTimeSerie gts) throws IOException {
+    boolean locations = null != gts.locations;
+    boolean elevations = null != gts.elevations;
     for (int i = 0; i < gts.values; i++) {
-      addValue(gts.ticks[i], null != gts.locations ? gts.locations[i] : GeoTimeSerie.NO_LOCATION, null != gts.elevations ? gts.elevations[i] : GeoTimeSerie.NO_ELEVATION, GTSHelper.valueAtIndex(gts, i));
+      addValue(gts.ticks[i], locations ? gts.locations[i] : GeoTimeSerie.NO_LOCATION, elevations ? gts.elevations[i] : GeoTimeSerie.NO_ELEVATION, GTSHelper.valueAtIndex(gts, i));
     }
   }
 
