@@ -43,13 +43,16 @@ import com.geoxp.oss.CryptoHelper;
 import com.google.common.primitives.Longs;
 
 import io.warp10.WarpConfig;
+import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.thrift.data.DatalogMessage;
 import io.warp10.continuum.store.thrift.data.DatalogMessageType;
 import io.warp10.continuum.store.thrift.data.DatalogRecord;
+import io.warp10.continuum.store.thrift.data.DatalogRecordType;
 import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.SipHashInline;
 import io.warp10.script.MemoryWarpScriptStack;
@@ -174,6 +177,8 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
       stack = new MemoryWarpScriptStack(null, null);
       stack.maxLimits();
     }
+
+    boolean macroData = "true".equals(WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_CONSUMER_MACRO_DATA + suffix));
 
     Map<String,String> labels = new HashMap<String,String>();
     labels.put(SensisionConstants.SENSISION_LABEL_CONSUMER, this.id);
@@ -579,28 +584,68 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
           }
 
           //
-          // Execute the sharding macro if set. The macro is
+          // Execute the filtering macro if set.
+          // If 'datalog.consumer.macro.data' is false, the macro is
           // expected to return a boolean which, if true, will
           // accept the message.
           // The macro is fed with a GTS Encoder with the metadata
           // of the GTS subject of the message and a STRING with
           // the type of message (From DatalogRecordType, UPDATE, DELETE, REGISTER, UNREGISTER).
-          //
+          // If 'datalog.consumer.macro.data' is true, the macro
+          // is fed with an encoder as above but with the actual data included for UPDATE messages.
+          // The macro will then have the ability to alter the encoder to update metadata
+          // and/or data. It is then expected to return a boolean or an encoder.
 
           if (null != macro) {
             stack.show();
             stack.clear();
-            GTSEncoder encoder = new GTSEncoder(0L);
-            encoder.setMetadata(record.getMetadata());
-            stack.push(encoder);
-            stack.push(record.getType().name());
-            stack.push(macro);
-            RUN.apply(stack);
-            if (0 == stack.depth() || !Boolean.TRUE.equals(stack.peek())) {
-              stack.show();
-              stack.clear();
-              Sensision.update(SensisionConstants.SENSISION_CLASS_DATALOG_SKIPPED, labels, 1);
-              continue;
+            if (!macroData) {
+              GTSEncoder encoder = new GTSEncoder(0L);
+              encoder.setMetadata(record.getMetadata());
+              stack.push(encoder);
+              stack.push(record.getType().name());
+              stack.push(macro);
+              RUN.apply(stack);
+              if (0 == stack.depth() || !Boolean.TRUE.equals(stack.peek())) {
+                stack.show();
+                stack.clear();
+                Sensision.update(SensisionConstants.SENSISION_CLASS_DATALOG_SKIPPED, labels, 1);
+                continue;
+              }
+            } else {
+              GTSEncoder encoder;
+
+              if (DatalogRecordType.UPDATE.equals(record.getType())) {
+                GTSDecoder decoder = new GTSDecoder(record.getBaseTimestamp(), record.bufferForEncoder());
+                decoder.next();
+                encoder = decoder.getEncoder();
+              } else {
+                encoder = new GTSEncoder(0L);
+              }
+              encoder.setMetadata(record.getMetadata());
+              stack.push(encoder);
+              stack.push(record.getType().name());
+              RUN.apply(stack);
+              if (0 == stack.depth() || (stack.peek() instanceof Boolean && !Boolean.TRUE.equals(stack.peek())) || (!(stack.peek() instanceof GTSEncoder) && !(stack.peek() instanceof GeoTimeSerie))) {
+                stack.show();
+                stack.clear();
+                Sensision.update(SensisionConstants.SENSISION_CLASS_DATALOG_SKIPPED, labels, 1);
+                continue;
+              } else {
+                // The macro returned a GTS or an ENCODER, update the record with the
+                // metadata and the content (for UPDATE records)
+                if (stack.peek() instanceof GeoTimeSerie) {
+                  GeoTimeSerie gts = (GeoTimeSerie) stack.peek();
+                  encoder = new GTSEncoder(0L);
+                  encoder.setMetadata(gts.getMetadata());
+                  encoder.encode(gts);
+                }
+                record.setMetadata(encoder.getMetadata());
+                if (DatalogRecordType.UPDATE.equals(record.getType())) {
+                  record.setBaseTimestamp(encoder.getBaseTimestamp());
+                  record.setEncoder(encoder.getBytes());
+                }
+              }
             }
             stack.show();
             stack.clear();
