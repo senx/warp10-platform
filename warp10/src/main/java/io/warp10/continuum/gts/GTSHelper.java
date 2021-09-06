@@ -55,6 +55,8 @@ import org.apache.commons.math3.fitting.PolynomialCurveFitter;
 import org.apache.commons.math3.fitting.WeightedObservedPoint;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.geoxp.GeoXPLib;
 import com.geoxp.GeoXPLib.GeoXPShape;
@@ -88,8 +90,6 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.functions.MACROMAPPER;
 import io.warp10.script.functions.TOQUATERNION;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import sun.nio.cs.ArrayEncoder;
 
 
@@ -8042,7 +8042,7 @@ public class GTSHelper {
     // Sort gts
     //
 
-    Map<Object, Long> occurrences = new HashMap<Object, Long>();
+    Map<Object, Long> occurrences = new LinkedHashMap<Object, Long>();
 
     //
     // Count the actual values
