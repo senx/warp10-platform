@@ -1,5 +1,5 @@
 //
-//   Copyright 2020  SenX S.A.S.
+//   Copyright 2020-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -22,10 +22,13 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.LockSupport;
 
 import io.warp10.continuum.gts.GTSDecoder;
+import io.warp10.continuum.gts.GTSEncoder;
+import io.warp10.continuum.gts.GTSWrapperHelper;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.continuum.store.thrift.data.DatalogRecord;
 import io.warp10.continuum.store.thrift.data.DatalogRecordType;
+import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.sensision.Sensision;
 import io.warp10.standalone.StandaloneDirectoryClient;
 import io.warp10.standalone.datalog.DatalogWorkers.DatalogJob;
@@ -78,23 +81,26 @@ public class DatalogWorker extends Thread {
           manager.process(record);
           job.consumer.success(job.ref);
         } else {
+          Metadata metadata = record.getMetadata();
           switch (job.record.getType()) {
             case UPDATE:
+              GTSEncoder enc = null;
               GTSDecoder decoder = new GTSDecoder(record.getBaseTimestamp(), record.bufferForEncoder());
               decoder.next();
-              storeClient.store(decoder.getEncoder());
+              enc = decoder.getEncoder();
+              storeClient.store(enc);
               job.consumer.success(job.ref);
               break;
             case REGISTER:
-              directoryClient.register(record.getMetadata());
+              directoryClient.register(metadata);
               job.consumer.success(job.ref);
               break;
             case UNREGISTER:
-              directoryClient.unregister(record.getMetadata());
+              directoryClient.unregister(metadata);
               job.consumer.success(job.ref);
               break;
             case DELETE:
-              storeClient.delete(null, record.getMetadata(), record.getStart(), record.getStop());
+              storeClient.delete(null, metadata, record.getStart(), record.getStop());
               job.consumer.success(job.ref);
               break;
           }

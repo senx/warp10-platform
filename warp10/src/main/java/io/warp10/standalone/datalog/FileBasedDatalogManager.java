@@ -478,6 +478,11 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
     }
   }
 
+  /**
+   *
+   * @param record to store, will be modified by the method calling DetalogHelper.serialize(record)
+   * @throws IOException
+   */
   private void append(DatalogRecord record) throws IOException {
     try {
       lock.lockInterruptibly();

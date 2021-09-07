@@ -1,5 +1,5 @@
 //
-//   Copyright 2020  SenX S.A.S.
+//   Copyright 2020-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -35,7 +35,7 @@ import io.warp10.continuum.store.thrift.data.Metadata;
  * This class contains helper methods to create WAL records.
  */
 public class DatalogHelper {
-    
+
   public static DatalogRecord getUpdateRecord(String id, GTSEncoder encoder) throws IOException {
     DatalogRecord record = new DatalogRecord();
     record.setType(DatalogRecordType.UPDATE);
@@ -44,10 +44,10 @@ public class DatalogHelper {
     record.setMetadata(encoder.getMetadata());
     record.setBaseTimestamp(encoder.getBaseTimestamp());
     record.setEncoder(encoder.getBytes());
-    
+
     return record;
   }
-  
+
   public static DatalogRecord getDeleteRecord(String id,Metadata metadata, long start, long end) throws IOException {
     DatalogRecord record = new DatalogRecord();
     record.setType(DatalogRecordType.DELETE);
@@ -59,40 +59,52 @@ public class DatalogHelper {
 
     return record;
   }
-  
+
   public static DatalogRecord getRegisterRecord(String id,Metadata metadata) throws IOException {
     DatalogRecord record = new DatalogRecord();
     record.setType(DatalogRecordType.REGISTER);
     record.setId(id);
     record.setTimestamp(System.currentTimeMillis());
     record.setMetadata(metadata);
-    
+
     return record;
   }
-  
+
   public static DatalogRecord getUnregisterRecord(String id, Metadata metadata) throws IOException {
     DatalogRecord record = new DatalogRecord();
     record.setType(DatalogRecordType.UNREGISTER);
     record.setId(id);
     record.setTimestamp(System.currentTimeMillis());
     record.setMetadata(metadata);
-    
+
     return record;
   }
-  
+
+  public static byte[] serialize(DatalogRecord record) throws IOException {
+    // If 'forward' is set, copy its content to metadata/baseTimestamp/encoder and
+    // clear the 'forward' field
+    if (record.isSetForward()) {
+      record.setMetadata(record.getForward().getMetadata());
+      record.setBaseTimestamp(record.getForward().getBase());
+      record.setEncoder(record.getForward().getEncoded());
+      record.unsetForward();
+    }
+    return serialize((TBase) record);
+  }
+
   public static byte[] serialize(TBase record) throws IOException {
     try {
       TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
-      return serializer.serialize(record);      
+      return serializer.serialize(record);
     } catch (TException te) {
-      throw new IOException("Error serializing record.", te);      
+      throw new IOException("Error serializing record.", te);
     }
   }
-  
+
   public static void deserialize(byte[] bytes, TBase msg) throws IOException {
     deserialize(bytes, 0, bytes.length, msg);
   }
-  
+
   public static void deserialize(byte[] bytes, int offset, int len, TBase msg) throws IOException {
     try {
       TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
@@ -101,7 +113,7 @@ public class DatalogHelper {
       throw new IOException("Error deserializing record.", te);
     }
   }
-  
+
   public static DatalogRecord getRecord(byte[] bytes, int offset, int length) throws IOException {
     try {
       TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
@@ -109,27 +121,27 @@ public class DatalogHelper {
       deserializer.deserialize(record, bytes, offset, length);
       return record;
     } catch (TException te) {
-      throw new IOException("Error deserializing Datalog record.", te);      
+      throw new IOException("Error deserializing Datalog record.", te);
     }
   }
 
   static long bytesToLong(byte[] bytes, int offset, int len) throws IOException {
-    
+
     if (len > 8 || len < 1) {
       throw new IOException("Invalid long len " + len);
     }
-    
+
     if (len != bytes.length) {
       throw new IOException("Invalid int length, expected " + len + ", got " + bytes.length);
     }
-    
+
     long value = 0L;
-    
+
     for (int i = 0; i < len; i++) {
       value <<= 8;
       value |= ((long) bytes[i+offset]) & 0xFFL;
     }
-    
+
     return value;
   }
 
@@ -137,15 +149,15 @@ public class DatalogHelper {
     //
     // Read blob length as big endian 4 bytes int
     //
-    
+
     byte[] bytes = DatalogHelper.readChunk(in, 4);
-  
+
     int len = (int) (bytesToLong(bytes,0,4) & 0xFFFFFFFFL);
-  
+
     if (len > TCPDatalogFeederWorker.MAX_BLOB_SIZE) {
       throw new IOException("Blob size (" + len + ") would exceed max allowed blob size (" + TCPDatalogFeederWorker.MAX_BLOB_SIZE + ").");
     }
-    
+
     if (0 != size && size != len) {
       throw new IOException("Invalid blob size " + len + ", expected " + size);
     }
@@ -154,11 +166,11 @@ public class DatalogHelper {
   }
 
   static byte[] readChunk(InputStream in, final int size) throws IOException {
-    
+
     byte[] bytes = new byte[size];
-    
+
     int len = 0;
-    
+
     while(len < size) {
       int nread = in.read(bytes, len, size - len);
       if (nread < 0) {
@@ -174,7 +186,7 @@ public class DatalogHelper {
     if (len < 1 || len > 8) {
       throw new IOException("Invalid length.");
     }
-    
+
     for (int i = 8 - len; i < 8; i++) {
       out.write((int) ((value >>> (56 - i * 8)) & 0xFFL));
     }

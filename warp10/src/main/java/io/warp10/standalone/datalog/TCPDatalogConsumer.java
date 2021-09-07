@@ -46,6 +46,7 @@ import io.warp10.WarpConfig;
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.gts.GTSWrapperHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
@@ -53,6 +54,7 @@ import io.warp10.continuum.store.thrift.data.DatalogMessage;
 import io.warp10.continuum.store.thrift.data.DatalogMessageType;
 import io.warp10.continuum.store.thrift.data.DatalogRecord;
 import io.warp10.continuum.store.thrift.data.DatalogRecordType;
+import io.warp10.continuum.store.thrift.data.GTSWrapper;
 import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.SipHashInline;
 import io.warp10.script.MemoryWarpScriptStack;
@@ -623,27 +625,114 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
                 encoder = new GTSEncoder(0L);
               }
               encoder.setMetadata(record.getMetadata());
+
+              // Call the macro with the encoder and the record type
               stack.push(encoder);
               stack.push(record.getType().name());
               RUN.apply(stack);
-              if (0 == stack.depth() || (stack.peek() instanceof Boolean && !Boolean.TRUE.equals(stack.peek())) || (!(stack.peek() instanceof GTSEncoder) && !(stack.peek() instanceof GeoTimeSerie))) {
-                stack.show();
-                stack.clear();
-                Sensision.update(SensisionConstants.SENSISION_CLASS_DATALOG_SKIPPED, labels, 1);
-                continue;
-              } else {
+              // Skip if the macro returned an invalid number of values (!= 1) or if it returned a boolean with value false
+              boolean skip = (1 != stack.depth()) ||  (1 == stack.depth() && stack.peek() instanceof Boolean && !Boolean.TRUE.equals(stack.peek()));
+
+              boolean updateIds = false;
+
+              if (!skip) {
                 // The macro returned a GTS or an ENCODER, update the record with the
                 // metadata and the content (for UPDATE records)
+                GTSEncoder forwardEncoder = null;
                 if (stack.peek() instanceof GeoTimeSerie) {
                   GeoTimeSerie gts = (GeoTimeSerie) stack.peek();
                   encoder = new GTSEncoder(0L);
                   encoder.setMetadata(gts.getMetadata());
                   encoder.encode(gts);
+                  updateIds = true;
+                } else if (stack.peek() instanceof GTSEncoder) {
+                  encoder = (GTSEncoder) stack.peek();
+                  updateIds = true;
+                } else if (stack.peek() instanceof List) {
+                  // The macro returned a list of two elements, either GTS or ENCODER. The first one is the
+                  // content to use for the action (UPDATE/REGISTER/UNREGISTER/DELETE), the second one is
+                  // the content to forward.
+                  List<Object> l = (List<Object>) stack.peek();
+                  if (2 == l.size()) {
+                    Object update = l.get(0);
+                    Object forward = l.get(1);
+
+                    if (update instanceof GeoTimeSerie) {
+                      GeoTimeSerie gts = (GeoTimeSerie) update;
+                      encoder = new GTSEncoder(0L);
+                      encoder.setMetadata(gts.getMetadata());
+                      encoder.encode(gts);
+                      updateIds = true;
+                    } else if (update instanceof GTSEncoder) {
+                      encoder = (GTSEncoder) update;
+                      updateIds = true;
+                    } else {
+                      skip = true;
+                    }
+
+                    // Create 'forward' wrapper
+                    if (forward instanceof GeoTimeSerie) {
+                      GeoTimeSerie gts = (GeoTimeSerie) forward;
+                      forwardEncoder = new GTSEncoder(0L);
+                      forwardEncoder.setMetadata(gts.getMetadata());
+                      forwardEncoder.encode(gts);
+                      updateIds = true;
+                    } else if (forward instanceof GTSEncoder) {
+                      forwardEncoder = (GTSEncoder) forward;
+                      updateIds = true;
+                    } else {
+                      skip = true;
+                    }
+                  } else {
+                    skip = true;
+                  }
+
+                  // Copy the forwardEncoder as a wrapper in the record. This will trigger the storing of this
+                  // encoder instead of the one in 'encoder' but will forward the latter if forwarding should happen.
+                  if (null != forwardEncoder) {
+                    GTSWrapper wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(forwardEncoder, false);
+                    record.setForward(wrapper);
+                  }
+                } else {
+                  skip = true;
                 }
-                record.setMetadata(encoder.getMetadata());
-                if (DatalogRecordType.UPDATE.equals(record.getType())) {
-                  record.setBaseTimestamp(encoder.getBaseTimestamp());
-                  record.setEncoder(encoder.getBytes());
+
+                if (!skip) {
+                  // Copy the encoder
+                  record.setMetadata(encoder.getMetadata());
+                  if (DatalogRecordType.UPDATE.equals(record.getType())) {
+                    record.setBaseTimestamp(encoder.getBaseTimestamp());
+                    record.setEncoder(encoder.getBytes());
+                  }
+                  updateIds = true;
+                }
+              }
+
+              if (skip) {
+                stack.show();
+                stack.clear();
+                Sensision.update(SensisionConstants.SENSISION_CLASS_DATALOG_SKIPPED, labels, 1);
+                continue;
+              }
+
+              //
+              // Update the class and label ids if metadata were possibly changed.
+              // This is so the feeders later have a valid set of ids to use for sharding.
+              //
+
+              if (updateIds) {
+                long cid = GTSHelper.classId(CLASS_KEYS, record.getMetadata().getName());
+                long lid = GTSHelper.labelsId(LABELS_KEYS, record.getMetadata().getLabels());
+
+                record.getMetadata().setClassId(cid);
+                record.getMetadata().setLabelsId(lid);
+
+                if (record.isSetForward()) {
+                  cid = GTSHelper.classId(CLASS_KEYS, record.getForward().getMetadata().getName());
+                  lid = GTSHelper.labelsId(LABELS_KEYS, record.getForward().getMetadata().getLabels());
+
+                  record.getForward().getMetadata().setClassId(cid);
+                  record.getForward().getMetadata().setLabelsId(lid);
                 }
               }
             }

@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -592,6 +592,15 @@ struct DatalogRecord {
    * Optional end timestamp (for DELETE messages)
    */
   9: optional i64 stop = 9223372036854775807,
+  
+  /**
+   * Optional wrapper containing the data to forward. This is a placeholder
+   * where a wrapper can be stored for cases when a macro returned an extra encoder
+   * which differs from the one that should be stored (contained in metadata/encoder).
+   * This wrapper will be used to change the fields metadata/encoder/baseTimestamp prior
+   * to storing the message in the log file. It will not be serialized.
+   */
+  10: optional GTSWrapper forward,
 }
 
 enum DatalogMessageType {

@@ -561,9 +561,10 @@ public class TCPDatalogFeederWorker extends Thread {
               }
             }
 
-            // TODO(hbs): support determining shard using a macro which would look at the metadata
-            // and return a boolean whether or not the message should be sent. The macro would be supplied
-            // by the consumer.
+            //
+            // We leave any more specific sharding to the consumer side. Allowing the execution of
+            // a consumer provided macro in the feeder should be considered an elevated security risk and therefore avoided.
+            //
 
             if (hasShards) {
               byte[] k = key.getBytes();
