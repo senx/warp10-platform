@@ -16,14 +16,14 @@
 
 package io.warp10.script.functions;
 
-import java.util.Properties;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+
+import org.joda.time.Instant;
 
 import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
@@ -33,6 +33,7 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.warp.sdk.Capabilities;
 
 public class TIMEBOX extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
@@ -50,6 +51,11 @@ public class TIMEBOX extends NamedWarpScriptFunction implements WarpScriptStackF
     TIMEBOX_MAXTIME = Long.parseLong(WarpConfig.getProperty(Configuration.CONFIG_WARPSCRIPT_TIMEBOX_MAXTIME, Long.toString(DEFAULT_TIMEBOX_MAXTIME)));
   }
 
+  /**
+   * Allowance capability to raise TIMEBOX_MAXTIME
+   */
+  private static final String TIMEBOX_MAXTIME_CAPNAME = WarpConfig.getProperty(Configuration.CONFIG_WARPSCRIPT_TIMEBOX_MAXTIME_CAPNAME);
+
   public TIMEBOX(String name) {
     super(name);
   }
@@ -62,12 +68,33 @@ public class TIMEBOX extends NamedWarpScriptFunction implements WarpScriptStackF
       throw new WarpScriptException(getName() + " expects a maximum execution time on top of the stack.");
     }
 
-    long maxtime = Math.min(Math.max(0L,((Number) top).longValue()/Constants.TIME_UNITS_PER_MS), TIMEBOX_MAXTIME);
+    long maxtime = Math.min(Math.max(0L, ((Number) top).longValue()), TIMEBOX_MAXTIME * Constants.TIME_UNITS_PER_MS);
 
     top = stack.pop();
 
     if (!(top instanceof Macro)) {
       throw new WarpScriptException(getName() + " operates on a macro.");
+    }
+
+    if (null != TIMEBOX_MAXTIME_CAPNAME && null != Capabilities.get(stack, TIMEBOX_MAXTIME_CAPNAME)) {
+      String val = Capabilities.get(stack, TIMEBOX_MAXTIME_CAPNAME).trim();
+
+      if (val.startsWith("P")) {
+        maxtime = Math.max(maxtime, DURATION.parseDuration(new Instant(), val, true, false));
+        if (maxtime < 0) {
+          throw new WarpScriptException(getName() + " invalid duration, expected positive value.");
+        }
+      } else {
+        try {
+          maxtime = Math.max(maxtime, Long.valueOf(Capabilities.get(stack, TIMEBOX_MAXTIME_CAPNAME)) * Constants.TIME_UNITS_PER_MS);
+        } catch (NumberFormatException nfe) {
+          throw new WarpScriptException(getName() + " invalid value for capability '" + TIMEBOX_MAXTIME_CAPNAME + "'.");
+        }
+      }
+    }
+
+    if (0 >= maxtime) {
+      throw new WarpScriptException(getName() + " requires capability '" + TIMEBOX_MAXTIME_CAPNAME + "' with a positive value.");
     }
 
     final Macro macro = (Macro) top;
@@ -86,9 +113,9 @@ public class TIMEBOX extends NamedWarpScriptFunction implements WarpScriptStackF
     });
 
     try {
-      future.get(maxtime, TimeUnit.MILLISECONDS);
+      future.get(maxtime, Constants.timeunit);
     } catch (TimeoutException te) {
-      throw new WarpScriptException(getName() + " reached the execution time limit (" + maxtime + " ms).");
+      throw new WarpScriptException(getName() + " reached the execution time limit (" + maxtime + " " + Constants.timeunit.name() + ").");
     } catch (ExecutionException ee) {
       throw new WarpScriptException(getName() + " encountered an exception while executing macro", ee.getCause());
     } catch (Exception e) {

@@ -31,11 +31,6 @@ import java.util.Arrays;
 public class OrderPreservingBase64 {
 
   /**
-   * Padding character, MUST be lexicographically less than the first alphabet letter.
-   */
-  private static final String PADDING = "-";
-
-  /**
    * Alphabet preserving the ASCII lexicographic ordering.
    */
   private static final byte[] ALPHABET = ".0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz".getBytes(StandardCharsets.US_ASCII);

@@ -28,6 +28,8 @@
 
 // Maximum time that TIMEBOX can wait for an execution (in ms), defaults to 30s
 #warpscript.timebox.maxtime=30000
+// Capability name for extending the previous value per warpscript
+#warpscript.timebox.maxtime.capname=
 
 // Path of the 'bootstrap' WarpScript code for the interactive mode
 #warpscript.interactive.bootstrap.path =

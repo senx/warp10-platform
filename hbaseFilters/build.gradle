@@ -14,17 +14,11 @@
 //   limitations under the License.
 //
 
-sourceSets {
-  main {
-    java {
-      srcDir new File(project(':warp10').projectDir, "src/main/java/")
-      include "org/apache/hadoop/hbase/filter/*.java"
-    }
-  }
-}
-
 dependencies {
-  compileOnly project(':warp10')
+  compileOnly('org.apache.hbase:hbase-client:1.0.0') {
+    // commons-beanutils:commons-beanutils-core is an alias of commons-beanutils:commons-beanutils, which is already a transitive dependency.
+    exclude group: 'commons-beanutils', module: 'commons-beanutils-core'
+  }
 }
 
 //

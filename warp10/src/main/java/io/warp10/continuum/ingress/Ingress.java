@@ -170,8 +170,6 @@ public class Ingress extends AbstractHandler implements Runnable {
   
   private final String cacheDumpPath;
   
-  private DateTimeFormatter fmt = ISODateTimeFormat.dateTimeParser();
-  
   public final IngressPlugin plugin;
   
   /**
@@ -994,8 +992,6 @@ public class Ingress extends AbstractHandler implements Runnable {
         
         byte[] bytes = new byte[16];
         
-        int idx = 0;
-        
         AtomicLong dms = this.dataMessagesSize.get();
         
         // Atomic boolean to track if attributes were parsed
@@ -1035,8 +1031,7 @@ public class Ingress extends AbstractHandler implements Runnable {
           try {
             encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxsize, hadAttributes, maxpast, maxfuture, ignoredCount, deltaAttributes);
             if (null != this.plugin) {
-              GTSEncoder enc = encoder;
-              if (!this.plugin.update(this, writeToken, line, encoder)) {                
+              if (!this.plugin.update(this, writeToken, line, encoder)) {
                 hadAttributes.set(false);
                 continue;
               }
@@ -1433,8 +1428,6 @@ public class Ingress extends AbstractHandler implements Runnable {
     
     response.setHeader("Access-Control-Allow-Origin", "*");
 
-    long nano = System.nanoTime();
-    
     //
     // Extract token infos
     //
@@ -1532,35 +1525,33 @@ public class Ingress extends AbstractHandler implements Runnable {
           throw new IOException("Invalid value for '" + Constants.HTTP_PARAM_MINAGE + "', expected a number of ms >= 0");
         }
       }
-      
-      if (null != startstr) {
-        if (null == endstr) {
-          throw new IOException("Both " + Constants.HTTP_PARAM_START + " and " + Constants.HTTP_PARAM_END + " should be defined.");
-        }
+
+      // Both or neither start and end must be specified
+      if (null == startstr ^ null == endstr) {
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Both " + Constants.HTTP_PARAM_START + " and " + Constants.HTTP_PARAM_END + " should be defined.");
+        return;
+      }
+
+      // Parse start and end parameters
+      if (null != startstr) { // also implies endstr is not null.
         if (startstr.contains("T")) {
           start = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(startstr);
         } else {
-          start = Long.valueOf(startstr);
+          start = Long.parseLong(startstr);
         }
-      }
-      
-      if (null != endstr) {
-        if (null == startstr) {
-          throw new IOException("Both " + Constants.HTTP_PARAM_START + " and " + Constants.HTTP_PARAM_END + " should be defined.");
-        }
+
         if (endstr.contains("T")) {
           end = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(endstr);
         } else {
-          end = Long.valueOf(endstr);
+          end = Long.parseLong(endstr);
         }
+
+        hasRange = true;
       }
 
-      if (Long.MIN_VALUE == start && Long.MAX_VALUE == end && (null == request.getParameter(Constants.HTTP_PARAM_DELETEALL) && !metaonly)) {
-        throw new IOException("Parameter " + Constants.HTTP_PARAM_DELETEALL + " or " + Constants.HTTP_PARAM_METAONLY + " should be set when no time range is specified.");
-      }
-      
-      if (Long.MIN_VALUE != start || Long.MAX_VALUE != end) {
-        hasRange = true;
+      if (!hasRange && (null == request.getParameter(Constants.HTTP_PARAM_DELETEALL) && !metaonly)) {
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Parameter " + Constants.HTTP_PARAM_DELETEALL + " or " + Constants.HTTP_PARAM_METAONLY + " should be set when no time range is specified.");
+        return;
       }
       
       if (metaonly && !Constants.DELETE_METAONLY_SUPPORT) {
@@ -1615,8 +1606,6 @@ public class Ingress extends AbstractHandler implements Runnable {
       
       labelsSelectors.putAll(extraLabels);
 
-      List<Metadata> metadatas = null;
-      
       List<String> clsSels = new ArrayList<String>();
       List<Map<String,String>> lblsSels = new ArrayList<Map<String,String>>();
       

@@ -58,7 +58,6 @@ public class Tokens {
   
   public static final Map<String,String> UUIDByIngressToken = new HashMap<String,String>();
   public static final Map<String,String> UUIDByEgressToken = new HashMap<String,String>();
-  public static final Map<String,String> OwnerByToken = new HashMap<String,String>();
   public static final Map<String,String> ApplicationByUUID = new HashMap<String,String>();
   
   private static KeyStore keystore;

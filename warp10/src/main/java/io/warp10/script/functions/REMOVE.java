@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -23,9 +23,10 @@ import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Remove an entry from a map, a list or a GTS.
@@ -43,10 +44,6 @@ public class REMOVE extends NamedWarpScriptFunction implements WarpScriptStackFu
     Object coll = stack.pop();
 
     if (coll instanceof Map) {
-      if (!(key instanceof String)) {
-        throw new WarpScriptException(getName() + " expects a string as key.");
-      }      
-      
       Object o = ((Map) coll).remove(key);
 
       stack.push(coll);
@@ -70,6 +67,11 @@ public class REMOVE extends NamedWarpScriptFunction implements WarpScriptStackFu
       
       stack.push(coll);
       stack.push(o);
+    } else if (coll instanceof Set) {
+      boolean found = ((Set) coll).remove(key);
+
+      stack.push(coll);
+      stack.push(found ? key : null);
     } else if (coll instanceof GeoTimeSerie) {
       if (!(key instanceof Long) && !(key instanceof Integer)) {
         throw new WarpScriptException(getName() + " expects an integer as key.");
@@ -104,6 +106,57 @@ public class REMOVE extends NamedWarpScriptFunction implements WarpScriptStackFu
 
       // Push the removed datapoint.
       stack.push(ATINDEX.getTupleAtIndex(gts, idx));
+    } else if (coll instanceof byte[]) {
+      byte[] bytes = (byte[]) coll;
+
+      if (!(key instanceof Long) && !(key instanceof Integer)) {
+        throw new WarpScriptException(getName() + " expects an integer as key.");
+      }
+      int idx = ((Number) key).intValue();
+
+      int size = bytes.length;
+
+      if (idx < 0) {
+        idx += size;
+      }
+
+      Object o = null;
+      byte[] pruned;
+      if (idx >= 0 && idx < size) {
+        o = bytes[idx];
+        pruned = new byte[size - 1];
+        System.arraycopy(bytes, 0, pruned, 0, idx);
+        System.arraycopy(bytes, idx + 1, pruned, idx, size - idx - 1);
+      } else {
+        // Index outside of valid range, simply return a copy.
+        pruned = Arrays.copyOf(bytes, size);
+      }
+
+      stack.push(pruned);
+      stack.push(o);
+    } else if (coll instanceof String) {
+      String str = (String) coll;
+
+      if (!(key instanceof Long) && !(key instanceof Integer)) {
+        throw new WarpScriptException(getName() + " expects an integer as key.");
+      }
+      int idx = ((Number) key).intValue();
+
+      int size = str.length();
+
+      if (idx < 0) {
+        idx += size;
+      }
+
+      Object o = null;
+      String pruned = str;
+      if (idx >= 0 && idx < size) {
+        o = String.valueOf(pruned.charAt(idx));
+        pruned = str.substring(0, idx) + str.substring(idx + 1);
+      }
+
+      stack.push(pruned);
+      stack.push(o);
     } else {
       throw new WarpScriptException(getName() + " operates on a map, a list or a GTS.");
     }

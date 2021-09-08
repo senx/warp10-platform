@@ -1,5 +1,5 @@
 //
-//   Copyright 2020  SenX S.A.S.
+//   Copyright 2020-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -20,7 +20,12 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
+import io.warp10.continuum.Tokens;
+import io.warp10.quasar.token.thrift.data.ReadToken;
+import io.warp10.quasar.token.thrift.data.WriteToken;
+import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
 /**
@@ -64,6 +69,47 @@ public class Capabilities {
     }
 
     return caps;
+  }
+
+  /**
+   * Add the capabilities from a token to a stack
+   *
+   * @param stack Stack which should be modified
+   * @param token Token representation containing the capabilities to add
+   * @throws WarpScriptException in case the token is invalid
+   */
+  public static void add(WarpScriptStack stack, String token) throws WarpScriptException {
+    Map<String,String> attributes = null;
+
+    try {
+      ReadToken rtoken = Tokens.extractReadToken(token);
+      attributes = rtoken.getAttributes();
+    } catch (Exception e) {
+      try {
+        WriteToken wtoken = Tokens.extractWriteToken(token);
+        attributes = wtoken.getAttributes();
+      } catch (Exception ee) {
+        throw new WarpScriptException("invalid token.");
+      }
+    }
+
+    if (null != attributes && !attributes.isEmpty()) {
+      Capabilities capabilities = null;
+
+      if (stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR) instanceof Capabilities) {
+        capabilities = (Capabilities) stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR);
+      }
+
+      for (Entry<String,String> entry: attributes.entrySet()) {
+        if (entry.getKey().startsWith(WarpScriptStack.CAPABILITIES_PREFIX)) {
+          if (null == capabilities) {
+            capabilities = new Capabilities();
+            stack.setAttribute(WarpScriptStack.CAPABILITIES_ATTR, capabilities);
+          }
+          capabilities.putIfAbsent(entry.getKey().substring(WarpScriptStack.CAPABILITIES_PREFIX.length()), entry.getValue());
+        }
+      }
+    }
   }
 
   public void clear() {

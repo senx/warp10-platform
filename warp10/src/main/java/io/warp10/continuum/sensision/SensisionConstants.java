@@ -1413,11 +1413,6 @@ public class SensisionConstants {
   public static final String SENSISION_LABEL_GROUPID = "groupid";
   
   /**
-   * Name of GeoDirectory
-   */
-  public static final String SENSISION_LABEL_GEODIR = "geodir";
-
-  /**
    * Type of something...
    */
   public static final String SENSISION_LABEL_TYPE = "type";

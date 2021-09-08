@@ -39,6 +39,7 @@ import javax.servlet.http.HttpServletResponse;
 import com.google.common.base.Preconditions;
 import com.google.common.primitives.Longs;
 
+import org.eclipse.jetty.io.EofException;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
@@ -47,7 +48,6 @@ import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
-import org.joda.time.format.ISODateTimeFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,7 +73,6 @@ import io.warp10.continuum.thrift.data.LoggingEvent;
 import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OrderPreservingBase64;
-import io.warp10.crypto.SipHashInline;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.script.WarpScriptException;
 import io.warp10.sensision.Sensision;
@@ -97,11 +96,6 @@ public class StandaloneDeleteHandler extends AbstractHandler {
    */
   private final byte[] datalogPSK;
 
-  private final long[] classKeyLongs;
-  private final long[] labelsKeyLongs;
-
-  private DateTimeFormatter fmt = ISODateTimeFormat.dateTimeParser();
-
   private final boolean datalogSync;
 
   private final File loggingDir;
@@ -122,10 +116,8 @@ public class StandaloneDeleteHandler extends AbstractHandler {
     this.directoryClient = directoryClient;
 
     this.classKey = this.keyStore.getKey(KeyStore.SIPHASH_CLASS);
-    this.classKeyLongs = SipHashInline.getKey(this.classKey);
 
     this.labelsKey = this.keyStore.getKey(KeyStore.SIPHASH_LABELS);
-    this.labelsKeyLongs = SipHashInline.getKey(this.labelsKey);
 
     String dirProp = WarpConfig.getProperty(Configuration.DATALOG_DIR);
     if (null != dirProp) {
@@ -461,39 +453,34 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       long start = Long.MIN_VALUE;
       long end = Long.MAX_VALUE;
 
-      if (null != startstr) {
-        if (null == endstr) {
-          response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Both " + Constants.HTTP_PARAM_START + " and " + Constants.HTTP_PARAM_END + " should be defined.");
-          return;
-        }
+      // Both or neither start and end must be specified
+      if (null == startstr ^ null == endstr) {
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Both " + Constants.HTTP_PARAM_START + " and " + Constants.HTTP_PARAM_END + " should be defined.");
+        return;
+      }
+
+      // Parse start and end parameters
+      if (null != startstr) { // also implies endstr is not null.
         if (startstr.contains("T")) {
           start = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(startstr);
         } else {
-          start = Long.valueOf(startstr);
+          start = Long.parseLong(startstr);
         }
-      }
 
-      if (null != endstr) {
-        if (null == startstr) {
-          response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Both " + Constants.HTTP_PARAM_START + " and " + Constants.HTTP_PARAM_END + " should be defined.");
-          return;
-        }
         if (endstr.contains("T")) {
           end = io.warp10.script.unary.TOTIMESTAMP.parseTimestamp(endstr);
         } else {
-          end = Long.valueOf(endstr);
+          end = Long.parseLong(endstr);
         }
+
+        hasRange = true;
       }
 
       boolean metaonly = null != request.getParameter(Constants.HTTP_PARAM_METAONLY);
 
-      if (Long.MIN_VALUE == start && Long.MAX_VALUE == end && (null == request.getParameter(Constants.HTTP_PARAM_DELETEALL) && !metaonly)) {
+      if (!hasRange && (null == request.getParameter(Constants.HTTP_PARAM_DELETEALL) && !metaonly)) {
         response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Parameter " + Constants.HTTP_PARAM_DELETEALL + " or " + Constants.HTTP_PARAM_METAONLY + " should be set when no time range is specified.");
         return;
-      }
-
-      if (Long.MIN_VALUE != start || Long.MAX_VALUE != end) {
-        hasRange = true;
       }
 
       if (metaonly && !Constants.DELETE_METAONLY_SUPPORT) {
@@ -675,6 +662,8 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         String prefix = "Error when deleting data: ";
         String msg = prefix + ThrowableUtils.getErrorMessage(thr, Constants.MAX_HTTP_REASON_LENGTH - prefix.length());
         response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msg);
+      } else if (thr.getCause() instanceof EofException) {
+        LOG.info((dryrun ? "Dry-run delete" : "Delete") + " request was aborted.");
       } else {
         throw new IOException(thr);
       }
