@@ -2435,6 +2435,10 @@ public class GTSHelper {
   }
 
   public static GTSEncoder parse(GTSEncoder encoder, String str, Map<String,String> extraLabels, Long now, long maxValueSize, AtomicBoolean parsedAttributes, Long maxpast, Long maxfuture, AtomicLong ignoredCount, boolean deltaAttributes) throws ParseException, IOException {
+    return parse(encoder, str, extraLabels, now, maxValueSize, parsedAttributes, maxpast, maxfuture, ignoredCount, deltaAttributes, 0);
+  }
+
+  public static GTSEncoder parse(GTSEncoder encoder, String str, Map<String,String> extraLabels, Long now, long maxValueSize, AtomicBoolean parsedAttributes, Long maxpast, Long maxfuture, AtomicLong ignoredCount, boolean deltaAttributes, long timeshift) throws ParseException, IOException {
 
     int idx = 0;
 
@@ -2472,6 +2476,8 @@ public class GTSHelper {
     } catch (NumberFormatException nfe) {
       throw new ParseException("Invalid timestamp.", tsoffset);
     }
+
+    timestamp += timeshift;
 
     boolean ignored = false;
 
