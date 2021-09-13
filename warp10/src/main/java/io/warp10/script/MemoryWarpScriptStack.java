@@ -61,6 +61,11 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   }
 
   /**
+   * Depth of the macros after openMacro was called.
+   */
+  private int forcedMacro = 0;
+
+  /**
    * Should we update per function metrics
    */
   private boolean functionMetrics = true;
@@ -694,7 +699,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             secureScript.append(" ");
             secureScript.append(stmt);
           } else if (WarpScriptStack.MACRO_END.equals(stmt)) {
-            if (macros.isEmpty()) {
+            if (macros.isEmpty() || macros.size() == forcedMacro) {
               throw new WarpScriptException("Not inside a macro definition.");
             } else {
               Macro lastmacro = macros.remove(0);
@@ -1745,5 +1750,39 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     }
     offset -= count;
     size += count;
+  }
+
+  @Override
+  public void macroOpen() throws WarpScriptException {
+    // We are already in a forced macro
+    if (0 != forcedMacro) {
+      throw new WarpScriptException("Already in a forced Macro.");
+    } else {
+      macros.add(0, new Macro());
+      forcedMacro = macros.size();
+    }
+  }
+
+  @Override
+  public void macroClose() throws WarpScriptException {
+    // If we are not in forced macro mode, do nothing
+    if (0 == forcedMacro) {
+      return;
+    }
+    if (inMultiline.get()) {
+      throw new WarpScriptException("Unbalanced " + WarpScriptStack.MULTILINE_START + " construct.");
+    }
+    if (inComment.get()) {
+      throw new WarpScriptException("Unbalanced " + WarpScriptStack.COMMENT_START + " construct.");
+    }
+    if (null != secureScript) {
+      throw new WarpScriptException("Unbalanced " + WarpScriptStack.SECURE_SCRIPT_START + " construct.");
+    }
+
+    if (macros.size() != forcedMacro) {
+      throw new WarpScriptException("Invalid level for closing forced Macro, check that all macros are correctly closed.");
+    }
+    this.push(macros.remove(0));
+    forcedMacro = 0;
   }
 }

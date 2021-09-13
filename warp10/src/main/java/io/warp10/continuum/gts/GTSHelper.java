@@ -55,6 +55,8 @@ import org.apache.commons.math3.fitting.PolynomialCurveFitter;
 import org.apache.commons.math3.fitting.WeightedObservedPoint;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.geoxp.GeoXPLib;
 import com.geoxp.GeoXPLib.GeoXPShape;
@@ -88,8 +90,6 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.functions.MACROMAPPER;
 import io.warp10.script.functions.TOQUATERNION;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import sun.nio.cs.ArrayEncoder;
 
 
@@ -2435,6 +2435,10 @@ public class GTSHelper {
   }
 
   public static GTSEncoder parse(GTSEncoder encoder, String str, Map<String,String> extraLabels, Long now, long maxValueSize, AtomicBoolean parsedAttributes, Long maxpast, Long maxfuture, AtomicLong ignoredCount, boolean deltaAttributes) throws ParseException, IOException {
+    return parse(encoder, str, extraLabels, now, maxValueSize, parsedAttributes, maxpast, maxfuture, ignoredCount, deltaAttributes, 0);
+  }
+
+  public static GTSEncoder parse(GTSEncoder encoder, String str, Map<String,String> extraLabels, Long now, long maxValueSize, AtomicBoolean parsedAttributes, Long maxpast, Long maxfuture, AtomicLong ignoredCount, boolean deltaAttributes, long timeshift) throws ParseException, IOException {
 
     int idx = 0;
 
@@ -2472,6 +2476,8 @@ public class GTSHelper {
     } catch (NumberFormatException nfe) {
       throw new ParseException("Invalid timestamp.", tsoffset);
     }
+
+    timestamp += timeshift;
 
     boolean ignored = false;
 
@@ -8042,7 +8048,7 @@ public class GTSHelper {
     // Sort gts
     //
 
-    Map<Object, Long> occurrences = new HashMap<Object, Long>();
+    Map<Object, Long> occurrences = new LinkedHashMap<Object, Long>();
 
     //
     // Count the actual values
