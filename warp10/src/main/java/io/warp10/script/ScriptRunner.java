@@ -479,6 +479,27 @@ public class ScriptRunner extends Thread {
             conn.setDoOutput(true);
             conn.setChunkedStreamingMode(8192);
             conn.setDoInput(true);
+
+            byte[] nonce = null;
+
+            //
+            // If a pre-shared key exists, generate a nonce. This is used to determine that
+            // an execution comes from a runner and to lift egress maxtime limits when calling an endpoint.
+            //
+
+            if (null != runnerPSK) {
+              //
+              // Generate a nonce by wrapping the current time jointly with random 64bits
+              //
+
+              byte[] now = Longs.toByteArray(TimeSource.getNanoTime());
+
+              nonce = OrderPreservingBase64.encode(CryptoHelper.wrapBlob(runnerPSK, now));
+
+              conn.setRequestProperty(Constants.HTTP_HEADER_RUNNER_NONCE, new String(nonce, StandardCharsets.US_ASCII));
+            }
+
+
             conn.setRequestMethod("POST");
 
             conn.connect();
@@ -519,17 +540,9 @@ public class ScriptRunner extends Thread {
             out.write(WarpScriptLib.STORE.getBytes(StandardCharsets.UTF_8));
             out.write('\n');
 
-            //
-            // Generate a nonce by wrapping the current time with random 64bits
-            //
-
-            if (null != runnerPSK) {
-              byte[] now = Longs.toByteArray(TimeSource.getTime());
-
-              byte[] nonce = CryptoHelper.wrapBlob(runnerPSK, now);
-
+            if (null != nonce) {
               out.write('\'');
-              out.write(OrderPreservingBase64.encode(nonce));
+              out.write(nonce);
               out.write('\'');
               out.write(' ');
               out.write('\'');
