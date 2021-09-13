@@ -139,6 +139,11 @@ public class Constants {
    */
   public static final String HTTP_HEADER_TIMEBOX = "X-Warp10-Timebox";
 
+  /*
+   * Header containing a timeshift to apply to parsed timestamps
+   */
+  public static final String HTTP_HEADER_TIMESHIFT = "X-Warp10-Timeshift";
+
   /**
    * Header containing a comma separated list of tokens with capabilities
    */
