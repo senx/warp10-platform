@@ -1436,18 +1436,12 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   }
 
   @Override
-  public void restore() throws WarpScriptException {
-    //
-    // Retrieve the object on top of the stack
-    //
-
-    Object top = this.pop();
-
-    if (!(top instanceof StackContext)) {
-      throw new WarpScriptException("Invalid stack context.");
+  public void restore(io.warp10.script.WarpScriptStack.StackContext ctxt) throws WarpScriptException {
+    if (!(ctxt instanceof StackContext)) {
+      throw new WarpScriptException("Invalid context type.");
     }
 
-    StackContext context = (StackContext) top;
+    StackContext context = (StackContext) ctxt;
 
     //
     // Restore symbol table and registers
@@ -1469,6 +1463,21 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     if (null != context.defined) {
       this.defined.putAll(context.defined);
     }
+  }
+
+  @Override
+  public void restore() throws WarpScriptException {
+    //
+    // Retrieve the object on top of the stack
+    //
+
+    Object top = this.pop();
+
+    if (!(top instanceof StackContext)) {
+      throw new WarpScriptException("Invalid stack context.");
+    }
+
+    StackContext context = (StackContext) top;
   }
 
   private long reclevel = 0;

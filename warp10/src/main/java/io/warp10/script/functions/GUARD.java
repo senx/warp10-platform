@@ -19,11 +19,12 @@ package io.warp10.script.functions;
 import java.util.List;
 
 import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptATCException;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
+import io.warp10.script.WarpScriptStack.StackContext;
 import io.warp10.script.WarpScriptStackFunction;
-import io.warp10.script.WarpScriptStopException;
 
 public class GUARD extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
@@ -45,9 +46,13 @@ public class GUARD extends NamedWarpScriptFunction implements WarpScriptStackFun
     }
 
     List<Object> symbols = null;
+    StackContext context = null;
 
     if (top instanceof List) {
       symbols = (List<Object>) top;
+      top = stack.pop();
+    } else if (top instanceof StackContext) {
+      context = (StackContext) top;
       top = stack.pop();
     }
 
@@ -75,6 +80,14 @@ public class GUARD extends NamedWarpScriptFunction implements WarpScriptStackFun
       // occurs
       //
       stack.clear();
+
+      throw new WarpScriptATCException("Exception in GUARDed macro.");
+    } finally {
+
+      //
+      // Clear the specified symbols or restore the context
+      //
+
       if (null != symbols) {
         if (symbols.isEmpty()) {
           // Clear all registers and symbols
@@ -94,10 +107,10 @@ public class GUARD extends NamedWarpScriptFunction implements WarpScriptStackFun
             }
           }
         }
+      } else if (null != context) {
+        stack.restore(context);
       }
 
-      throw new WarpScriptStopException("Exception in GUARDed macro.");
-    } finally {
       if (hasHide) {
         stack.show(hidden);
       }
