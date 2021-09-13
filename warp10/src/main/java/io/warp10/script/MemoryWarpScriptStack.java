@@ -1483,6 +1483,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     }
 
     StackContext context = (StackContext) top;
+
+    this.restore(context);
   }
 
   private long reclevel = 0;
