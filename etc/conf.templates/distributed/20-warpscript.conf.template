@@ -79,8 +79,8 @@ warpscript.maxops.hard = 2000
 // Maximum number of buckets which can result of a call to BUCKETIZE
 // Can be modified by MAXBUCKETS up to the hard limit below
 //
-warpscript.maxbuckets = 1000000
-warpscript.maxbuckets.hard = 100000
+warpscript.maxbuckets = 100000
+warpscript.maxbuckets.hard = 1000000
 
 //
 // Maximum number of cells in geographic shapes

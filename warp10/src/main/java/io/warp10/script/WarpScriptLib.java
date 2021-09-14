@@ -536,6 +536,7 @@ public class WarpScriptLib {
   public static final String FORGET = "FORGET";
   public static final String DEFINED = "DEFINED";
   public static final String REDEFS = "REDEFS";
+  public static final String GUARD = "GUARD";
   public static final String DEFINEDMACRO = "DEFINEDMACRO";
   public static final String CHECKMACRO = "CHECKMACRO";
   public static final String NAN = "NaN";
@@ -1370,6 +1371,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new RETHROW(RETHROW));
     addNamedWarpScriptFunction(new ERROR(ERROR));
     addNamedWarpScriptFunction(new TIMEBOX(TIMEBOX));
+    addNamedWarpScriptFunction(new GUARD(GUARD));
     addNamedWarpScriptFunction(new JSONSTRICT(JSONSTRICT));
     addNamedWarpScriptFunction(new JSONLOOSE(JSONLOOSE));;
     addNamedWarpScriptFunction(new JSONPRETTY(JSONPRETTY));
