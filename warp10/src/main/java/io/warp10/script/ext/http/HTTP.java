@@ -85,7 +85,6 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
   // Output
   //
 
-  public static final String RESPONSE = "response";
   public static final String STATUS_CODE = "status.code";
   public static final String STATUS_MESSAGE = "status.message";
   public static final String RESPONSE_HEADERS = "headers";

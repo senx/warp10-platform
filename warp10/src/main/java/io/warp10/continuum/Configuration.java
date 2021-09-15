@@ -117,6 +117,12 @@ public class Configuration {
   public static final String CONFIG_WARPSCRIPT_TIMEBOX_MAXTIME = "warpscript.timebox.maxtime";
 
   /**
+   * Capability name used for extending timebox maxtime, if set. The associated value is expressed as a number
+   * of milliseconds or an ISO8601 duration (PT....).
+   */
+  public static final String CONFIG_WARPSCRIPT_TIMEBOX_MAXTIME_CAPNAME = "warpscript.timebox.maxtime.capname";
+
+  /**
    * Comma separated list of WarpScriptExtension classes to instantiate to modify
    * the defined WarpScript functions.
    */
@@ -1591,6 +1597,16 @@ public class Configuration {
   public static final String STANDALONE_MAX_DELETE_BATCHSIZE = "standalone.max.delete.batchsize";
 
   /**
+   * Should the LevelDB cache be filled when scanning key space for deletes? Defaults to false.
+   */
+  public static final String LEVELDB_DELETE_FILLCACHE = "leveldb.delete.fillcache";
+
+  /**
+   * Should LevelDB checksums be verified when scanning key space for deletes? Defaults to true.
+   */
+  public static final String LEVELDB_DELETE_VERIFYCHECKSUMS = "leveldb.delete.verifychecksums";
+
+  /**
    * Maximum size in bytes of a value
    */
   public static final String STANDALONE_VALUE_MAXSIZE = "standalone.value.maxsize";
@@ -1962,6 +1978,17 @@ public class Configuration {
   //
   // E G R E S S
   //
+
+  /**
+   * Maximum allowed execution time per script execution (in ms). Can be modified
+   * via the token attribute .maxtime
+   */
+  public static final String EGRESS_MAXTIME = "egress.maxtime";
+
+  /**
+   * Validity (in ms) of a runner nonce. This is used to determine if timeboxing should be waived or not for a runner call.
+   */
+  public static final String EGRESS_RUNNER_NONCE_VALIDITY = "egress.runner.nonce.validity";
 
   /**
    * Number of threads in Jetty's Thread Pool
@@ -2342,6 +2369,11 @@ public class Configuration {
    * Header containing the request UUID when calling the endpoint
    */
   public static final String HTTP_HEADER_WEBCALL_UUIDX = "http.header.webcall.uuid";
+
+  /**
+   * Configuration key to modify the capabilities header
+   */
+  public static final String HTTP_HEADER_CAPABILITIES = "http.header.capabilities";
 
   /**
    * HTTP Header for elapsed time of WarpScript scripts

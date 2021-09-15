@@ -577,8 +577,6 @@ public class ThriftDirectoryClient implements ServiceCacheListener, DirectoryCli
     
     List<Future<DirectoryStatsResponse>> responses = new ArrayList<Future<DirectoryStatsResponse>>();
     
-    final AtomicBoolean transportException = new AtomicBoolean(false);
-
     TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
     
     byte[] bytes = null;
@@ -916,9 +914,6 @@ public class ThriftDirectoryClient implements ServiceCacheListener, DirectoryCli
   @Override
   public MetadataIterator iterator(DirectoryRequest request) throws IOException {
 
-    final List<String> classSelectors = request.getClassSelectors();
-    final List<Map<String,String>> labelsSelectors = request.getLabelsSelectors();
-    
     //
     // Extract the URLs we will use to retrieve the Metadata
     //

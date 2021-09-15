@@ -298,6 +298,11 @@ public interface WarpScriptStack {
   public static final String ATTRIBUTE_NAME = "stack.name";
 
   /**
+   * Stack attribute used to indicate the execution is currently timeboxed
+   */
+  public static final String ATTRIBUTE_TIMEBOXED = "stack.timeboxed";
+
+  /**
    * Index of RETURN_DEPTH counter
    */
   public static final int COUNTER_RETURN_DEPTH = 0;
@@ -874,6 +879,11 @@ public interface WarpScriptStack {
   public void restore() throws WarpScriptException;
 
   /**
+   * Restore the given stack context
+   */
+  public void restore(StackContext context) throws WarpScriptException;
+
+  /**
    * Hide all stack levels
    * @return The number of levels actually hidden
    */
@@ -898,4 +908,19 @@ public interface WarpScriptStack {
    * @param count Number of levels to show
    */
   public void show(int count);
+
+  /**
+   * Force the stack to create a macro with all following statements.
+   * The macro will be pushed onto the stack when macroClose is called.
+   * Calling this function multiple times without calling macroClose in between
+   * will throw an exception.
+   */
+  public void macroOpen() throws WarpScriptException;
+
+  /**
+   * Closes the currently open macro (after macroOpen was called) and
+   * push it onto the stack.
+   * If macroOpen was not previously called, this function has no effect.
+   */
+  public void macroClose() throws WarpScriptException;
 }

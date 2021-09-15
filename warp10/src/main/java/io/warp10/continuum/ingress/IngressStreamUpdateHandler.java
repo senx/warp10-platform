@@ -266,7 +266,6 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
                 encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, this.maxsize, hadAttributes, maxpast, maxfuture, ignoredCount, this.deltaAttributes);
                 
                 if (null != this.handler.ingress.plugin) {
-                  GTSEncoder enc = encoder;
                   if (!this.handler.ingress.plugin.update(this.handler.ingress, wtoken, line, encoder)) {
                     hadAttributes.set(false);
                     continue;
@@ -522,8 +521,6 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
       this.sensisionLabels.clear();
       this.sensisionLabels.put(SensisionConstants.SENSISION_LABEL_PRODUCER, producer);
 
-      long count = 0;
-      
       if (null == producer || null == owner) {
         throw new IOException("Invalid token.");
       }

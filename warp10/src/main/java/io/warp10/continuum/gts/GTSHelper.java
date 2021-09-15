@@ -58,6 +58,8 @@ import org.apache.commons.math3.fitting.WeightedObservedPoint;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.bouncycastle.util.encoders.Hex;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.geoxp.GeoXPLib;
 import com.geoxp.GeoXPLib.GeoXPShape;
@@ -90,8 +92,6 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.functions.MACROMAPPER;
 import io.warp10.script.functions.TOQUATERNION;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 
 /**
@@ -2436,6 +2436,10 @@ public class GTSHelper {
   }
 
   public static GTSEncoder parse(GTSEncoder encoder, String str, Map<String,String> extraLabels, Long now, long maxValueSize, AtomicBoolean parsedAttributes, Long maxpast, Long maxfuture, AtomicLong ignoredCount, boolean deltaAttributes) throws ParseException, IOException {
+    return parse(encoder, str, extraLabels, now, maxValueSize, parsedAttributes, maxpast, maxfuture, ignoredCount, deltaAttributes, 0);
+  }
+
+  public static GTSEncoder parse(GTSEncoder encoder, String str, Map<String,String> extraLabels, Long now, long maxValueSize, AtomicBoolean parsedAttributes, Long maxpast, Long maxfuture, AtomicLong ignoredCount, boolean deltaAttributes, long timeshift) throws ParseException, IOException {
 
     int idx = 0;
 
@@ -2474,6 +2478,8 @@ public class GTSHelper {
     } catch (NumberFormatException nfe) {
       throw new ParseException("Invalid timestamp.", tsoffset);
     }
+
+    timestamp += timeshift;
 
     boolean ignored = false;
 
@@ -3631,28 +3637,24 @@ public class GTSHelper {
   }
 
   public static void fillGTSIds(byte[] bytes, int offset, long classId, long labelsId) {
-    long id = classId;
-    int idx = offset;
-    
-    bytes[idx++] = (byte) ((id >> 56) & 0xffL);
-    bytes[idx++] = (byte) ((id >> 48) & 0xffL);
-    bytes[idx++] = (byte) ((id >> 40) & 0xffL);
-    bytes[idx++] = (byte) ((id >> 32) & 0xffL);
-    bytes[idx++] = (byte) ((id >> 24) & 0xffL);
-    bytes[idx++] = (byte) ((id >> 16) & 0xffL);
-    bytes[idx++] = (byte) ((id >> 8) & 0xffL);
-    bytes[idx++] = (byte) (id & 0xffL);
-    
-    id = labelsId;
+    // 128BITS
+    bytes[offset++] = (byte) ((classId >> 56) & 0xff);
+    bytes[offset++] = (byte) ((classId >> 48) & 0xff);
+    bytes[offset++] = (byte) ((classId >> 40) & 0xff);
+    bytes[offset++] = (byte) ((classId >> 32) & 0xff);
+    bytes[offset++] = (byte) ((classId >> 24) & 0xff);
+    bytes[offset++] = (byte) ((classId >> 16) & 0xff);
+    bytes[offset++] = (byte) ((classId >> 8) & 0xff);
+    bytes[offset++] = (byte) (classId & 0xff);
 
-    bytes[idx++] = (byte) ((id >> 56) & 0xffL);
-    bytes[idx++] = (byte) ((id >> 48) & 0xffL);
-    bytes[idx++] = (byte) ((id >> 40) & 0xffL);
-    bytes[idx++] = (byte) ((id >> 32) & 0xffL);
-    bytes[idx++] = (byte) ((id >> 24) & 0xffL);
-    bytes[idx++] = (byte) ((id >> 16) & 0xffL);
-    bytes[idx++] = (byte) ((id >> 8) & 0xffL);
-    bytes[idx++] = (byte) (id & 0xffL);
+    bytes[offset++] = (byte) ((labelsId >> 56) & 0xff);
+    bytes[offset++] = (byte) ((labelsId >> 48) & 0xff);
+    bytes[offset++] = (byte) ((labelsId >> 40) & 0xff);
+    bytes[offset++] = (byte) ((labelsId >> 32) & 0xff);
+    bytes[offset++] = (byte) ((labelsId >> 24) & 0xff);
+    bytes[offset++] = (byte) ((labelsId >> 16) & 0xff);
+    bytes[offset++] = (byte) ((labelsId >> 8) & 0xff);
+    bytes[offset] = (byte) (labelsId & 0xff);
   }
 
   /**
@@ -8051,7 +8053,7 @@ public class GTSHelper {
     // Sort gts
     //
 
-    Map<Object, Long> occurrences = new HashMap<Object, Long>();
+    Map<Object, Long> occurrences = new LinkedHashMap<Object, Long>();
 
     //
     // Count the actual values

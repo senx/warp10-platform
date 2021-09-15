@@ -388,13 +388,19 @@ public class WarpScriptLib {
   public static final String GEO_WKT_UNIFORM = "GEO.WKT.UNIFORM";
   public static final String GEO_WKB = "GEO.WKB";
   public static final String GEO_WKB_UNIFORM = "GEO.WKB.UNIFORM";
+  public static final String GEO_JSON = "GEO.JSON";
+  public static final String GEO_JSON_UNIFORM = "GEO.JSON.UNIFORM";
+  public static final String GEO_GML = "GEO.GML";
+  public static final String GEO_GML_UNIFORM = "GEO.GML.UNIFORM";
+  public static final String GEO_KML = "GEO.KML";
+  public static final String GEO_KML_UNIFORM = "GEO.KML.UNIFORM";
 
   public static final String TOGEOJSON = "->GEOJSON";
   public static final String TOWKT = "->WKT";
   public static final String TOWKB = "->WKB";
+  public static final String TOGML = "->GML";
+  public static final String TOKML = "->KML";
   public static final String GEO_BUFFER = "GEO.BUFFER";
-  public static final String GEO_JSON = "GEO.JSON";
-  public static final String GEO_JSON_UNIFORM = "GEO.JSON.UNIFORM";
   public static final String GEO_INTERSECTION = "GEO.INTERSECTION";
   public static final String GEO_DIFFERENCE = "GEO.DIFFERENCE";
   public static final String GEO_UNION = "GEO.UNION";
@@ -530,6 +536,7 @@ public class WarpScriptLib {
   public static final String FORGET = "FORGET";
   public static final String DEFINED = "DEFINED";
   public static final String REDEFS = "REDEFS";
+  public static final String GUARD = "GUARD";
   public static final String DEFINEDMACRO = "DEFINEDMACRO";
   public static final String CHECKMACRO = "CHECKMACRO";
   public static final String NAN = "NaN";
@@ -553,6 +560,8 @@ public class WarpScriptLib {
   public static final String LINEOFF = "LINEOFF";
   public static final String LMAP = "LMAP";
   public static final String MMAP = "MMAP";
+  public static final String LFILTER = "LFILTER";
+  public static final String MFILTER = "MFILTER";
   public static final String NONNULL = "NONNULL";
   public static final String LFLATMAP = "LFLATMAP";
   public static final String STACKTOLIST = "STACKTOLIST";
@@ -795,6 +804,8 @@ public class WarpScriptLib {
   public static final String SRANDPDF = "SRANDPDF";
   public static final String SINGLEEXPONENTIALSMOOTHING = "SINGLEEXPONENTIALSMOOTHING";
   public static final String DOUBLEEXPONENTIALSMOOTHING = "DOUBLEEXPONENTIALSMOOTHING";
+  public static final String POLYFIT = "POLYFIT";
+  public static final String POLYFUNC = "POLYFUNC";
   public static final String LOWESS = "LOWESS";
   public static final String RLOWESS = "RLOWESS";
   public static final String STL = "STL";
@@ -1360,6 +1371,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new RETHROW(RETHROW));
     addNamedWarpScriptFunction(new ERROR(ERROR));
     addNamedWarpScriptFunction(new TIMEBOX(TIMEBOX));
+    addNamedWarpScriptFunction(new GUARD(GUARD));
     addNamedWarpScriptFunction(new JSONSTRICT(JSONSTRICT));
     addNamedWarpScriptFunction(new JSONLOOSE(JSONLOOSE));;
     addNamedWarpScriptFunction(new JSONPRETTY(JSONPRETTY));
@@ -1371,6 +1383,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new LINEOFF(LINEOFF));
     addNamedWarpScriptFunction(new LMAP(LMAP));
     addNamedWarpScriptFunction(new MMAP(MMAP));
+    addNamedWarpScriptFunction(new LFILTER(LFILTER));
+    addNamedWarpScriptFunction(new MFILTER(MFILTER));
     addNamedWarpScriptFunction(new NONNULL(NONNULL));
     addNamedWarpScriptFunction(new LMAP(LFLATMAP, true));
     addNamedWarpScriptFunction(new EMPTYLIST(EMPTY_LIST));
@@ -1745,6 +1759,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new RANDPDF.Builder(SRANDPDF, true));
     addNamedWarpScriptFunction(new SINGLEEXPONENTIALSMOOTHING(SINGLEEXPONENTIALSMOOTHING));
     addNamedWarpScriptFunction(new DOUBLEEXPONENTIALSMOOTHING(DOUBLEEXPONENTIALSMOOTHING));
+    addNamedWarpScriptFunction(new POLYFIT(POLYFIT));
+    addNamedWarpScriptFunction(new POLYFUNC.Builder(POLYFUNC));
     addNamedWarpScriptFunction(new LOWESS(LOWESS));
     addNamedWarpScriptFunction(new RLOWESS(RLOWESS));
     addNamedWarpScriptFunction(new STL(STL));
@@ -2062,9 +2078,15 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new GeoWKB(GEO_WKB_UNIFORM, true));
     addNamedWarpScriptFunction(new GeoJSON(GEO_JSON, false));
     addNamedWarpScriptFunction(new GeoJSON(GEO_JSON_UNIFORM, true));
+    addNamedWarpScriptFunction(new GeoGML(GEO_GML, false));
+    addNamedWarpScriptFunction(new GeoGML(GEO_GML_UNIFORM, true));
+    addNamedWarpScriptFunction(new GeoKML(GEO_KML, false));
+    addNamedWarpScriptFunction(new GeoKML(GEO_KML_UNIFORM, true));
     addNamedWarpScriptFunction(new TOGEOJSON(TOGEOJSON));
     addNamedWarpScriptFunction(new TOWKT(TOWKT));
     addNamedWarpScriptFunction(new TOWKB(TOWKB));
+    addNamedWarpScriptFunction(new TOGML(TOGML));
+    addNamedWarpScriptFunction(new TOKML(TOKML));
     addNamedWarpScriptFunction(new GEOOPTIMIZE(GEO_OPTIMIZE));
     addNamedWarpScriptFunction(new GEONORMALIZE(GEO_NORMALIZE));
     addNamedWarpScriptFunction(new GEOSHIFT(GEOSHIFT));

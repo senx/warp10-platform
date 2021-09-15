@@ -85,8 +85,6 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
    */
   private static final int MAX_RECURSION_LEVEL = 16;
 
-  private static final String uuid = UUID.randomUUID().toString();
-
   private final boolean snapshotSymbols;
 
   private final boolean toMark;

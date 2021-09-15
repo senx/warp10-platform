@@ -58,9 +58,6 @@ public class TokenDump extends TokenGen {
     MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null, WarpConfig.getProperties());
     stack.maxLimits();
 
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-
-
     InputStream in = null;
 
     if ("-".equals(args[args.length - 2])) {

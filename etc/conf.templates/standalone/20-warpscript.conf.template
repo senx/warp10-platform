@@ -28,6 +28,8 @@
 
 // Maximum time that TIMEBOX can wait for an execution (in ms), defaults to 30s
 #warpscript.timebox.maxtime=30000
+// Capability name for extending the previous value per warpscript
+#warpscript.timebox.maxtime.capname=
 
 // Path of the 'bootstrap' WarpScript code for the interactive mode
 #warpscript.interactive.bootstrap.path =
@@ -76,7 +78,7 @@ warpscript.maxops.hard = 20000
 // Maximum number of buckets which can result of a call to BUCKETIZE
 // Can be modified by MAXBUCKETS up to the hard limit below
 //
-warpscript.maxbuckets = 1000000
+warpscript.maxbuckets = 100000
 warpscript.maxbuckets.hard = 1000000
 
 //
