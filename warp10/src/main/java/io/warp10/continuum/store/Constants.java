@@ -124,6 +124,27 @@ public class Constants {
   private static final Map<String,String> HEADERS = new HashMap<String,String>();
 
   /**
+   * Header to set to enable line numbering
+   */
+  public static final String HTTP_HEADER_LINES = "X-Warp10-Lines";
+
+  /**
+   * Header containing an encrypted nonce for executions triggered by runners
+   */
+  public static final String HTTP_HEADER_RUNNER_NONCE = "X-Warp10-Runner-Nonce";
+
+  /**
+   * Header which will force timeboxing of the execution. The value is either
+   * a number of milliseconds or an ISO 8601 period.
+   */
+  public static final String HTTP_HEADER_TIMEBOX = "X-Warp10-Timebox";
+
+  /*
+   * Header containing a timeshift to apply to parsed timestamps
+   */
+  public static final String HTTP_HEADER_TIMESHIFT = "X-Warp10-Timeshift";
+
+  /**
    * Header containing a comma separated list of tokens with capabilities
    */
   public static final String HTTP_HEADER_CAPABILITIES_DEFAULT = "X-Warp10-Capabilities";
