@@ -399,6 +399,8 @@ public class DatalogForwarder extends Thread {
 
         return success;
       } catch (IOException ioe) {
+        LOG.error("Error while forwarding datalog UPDATE request", ioe);
+
         Map<String,String> labels = new HashMap<String,String>();
 
         if (null != name) {
@@ -469,6 +471,8 @@ public class DatalogForwarder extends Thread {
 
         return success;
       } catch (IOException ioe) {
+
+        LOG.error("Error while forwarding datalog DELETE request", ioe);
         Map<String,String> labels = new HashMap<String,String>();
 
         if (null != name) {
@@ -582,6 +586,8 @@ public class DatalogForwarder extends Thread {
 
         return success;
       } catch (IOException ioe) {
+        LOG.error("Error while forwarding datalog META request", ioe);
+
         Map<String,String> labels = new HashMap<String,String>();
 
         if (null != name) {
