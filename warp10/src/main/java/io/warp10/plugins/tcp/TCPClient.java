@@ -28,6 +28,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -52,8 +53,6 @@ public class TCPClient implements Runnable {
     this.socket = socket;
     this.partitioner = partitioner;
     this.queues = queues;
-
-    // TODO(tce): set socket timeout?
 
     remoteHost = this.socket.getInetAddress().getHostAddress();
     remotePort = this.socket.getPort();
@@ -92,6 +91,8 @@ public class TCPClient implements Runnable {
           LOG.error("Partitioner failed.", e);
         }
       }
+    } catch (SocketTimeoutException ste) {
+      LOG.info("Socket timed out. Remote:" + remoteHost + ":" + remotePort + ". Local:" + socket.getLocalAddress().getHostName() + ":" + socket.getLocalPort());
     } catch (IOException e) {
       LOG.error("Problem when receiving text line from tcp on port " + socket.getPort(), e);
     } finally {
