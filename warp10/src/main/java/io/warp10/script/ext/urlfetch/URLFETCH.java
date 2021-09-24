@@ -138,7 +138,7 @@ public class URLFETCH extends NamedWarpScriptFunction implements WarpScriptStack
       throw new WarpScriptException(getName() + " is limited to " + UrlFetchWarpScriptExtension.getLongAttribute(stack, UrlFetchWarpScriptExtension.ATTRIBUTE_URLFETCH_LIMIT) + " calls.");
     }
 
-    List<Object> results = new ArrayList<Object>();
+    List<Object> results = new ArrayList<Object>(urls.size());
 
     for (URL url: urls) {
       // Recheck the count here in case of concurrent runs
@@ -195,7 +195,7 @@ public class URLFETCH extends NamedWarpScriptFunction implements WarpScriptStack
 
         urlfetchSize.addAndGet(baos.size());
 
-        List<Object> res = new ArrayList<Object>();
+        List<Object> res = new ArrayList<Object>(4);
 
         res.add(conn.getResponseCode());
         Map<String, List<String>> hdrs = conn.getHeaderFields();

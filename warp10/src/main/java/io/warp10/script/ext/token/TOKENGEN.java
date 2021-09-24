@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2020  SenX S.A.S.
+//   Copyright 2019-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -210,10 +210,10 @@ public class TOKENGEN extends NamedWarpScriptFunction implements WarpScriptStack
           rtoken.addToOwners(encoder.toByteBuffer(uuid.toString()));
         }
         if (0 == rtoken.getOwnersSize()) {
-          rtoken.setOwners(new ArrayList<ByteBuffer>());
+          rtoken.setOwners(new ArrayList<ByteBuffer>(0));
         }
       } else {
-        rtoken.setOwners(new ArrayList<ByteBuffer>());
+        rtoken.setOwners(new ArrayList<ByteBuffer>(0));
       }
 
       if (null != params.get(KEY_PRODUCERS)) {
@@ -224,10 +224,10 @@ public class TOKENGEN extends NamedWarpScriptFunction implements WarpScriptStack
           rtoken.addToProducers(encoder.toByteBuffer(uuid.toString()));
         }
         if (0 == rtoken.getProducersSize()) {
-          rtoken.setProducers(new ArrayList<ByteBuffer>());
+          rtoken.setProducers(new ArrayList<ByteBuffer>(0));
         }
       } else {
-        rtoken.setProducers(new ArrayList<ByteBuffer>());
+        rtoken.setProducers(new ArrayList<ByteBuffer>(0));
       }
 
       if (null != params.get(KEY_APPLICATIONS)) {
@@ -238,10 +238,10 @@ public class TOKENGEN extends NamedWarpScriptFunction implements WarpScriptStack
           rtoken.addToApps(app.toString());
         }
         if (0 == rtoken.getAppsSize()) {
-          rtoken.setApps(new ArrayList<String>());
+          rtoken.setApps(new ArrayList<String>(0));
         }
       } else {
-        rtoken.setApps(new ArrayList<String>());
+        rtoken.setApps(new ArrayList<String>(0));
       }
 
       if (null != params.get(KEY_ATTRIBUTES)) {
