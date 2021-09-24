@@ -52,9 +52,8 @@ public class HHCODEFUNC extends NamedWarpScriptFunction implements WarpScriptSta
     if (top instanceof Number) {
       resOverride = ((Number) top).intValue();
 
-      // TODO(tce) odd resolutions could be handled but HHCodeHelper.getCenter should be modified for that.
-      if (resOverride < 2 || resOverride > 32 || (0 != (resOverride & 1))) {
-        throw new WarpScriptException(getName() + " expects a resolution which is an even long between 2 and 32, inclusive.");
+      if (resOverride < 0 || resOverride > 32) {
+        throw new WarpScriptException(getName() + " expects a resolution which is an long between 0 and 32, inclusive.");
       }
 
       top = stack.pop();
