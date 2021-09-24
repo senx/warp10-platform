@@ -125,7 +125,7 @@ public class CEVAL extends NamedWarpScriptFunction implements WarpScriptStackFun
       // Submit each macro
       //
       
-      List<Future<List<Object>>> futures = new ArrayList<Future<List<Object>>>();
+      List<Future<List<Object>>> futures = new ArrayList<Future<List<Object>>>(((List) top).size());
       
       final AtomicBoolean aborted = new AtomicBoolean(false);
       final AtomicInteger pending = new AtomicInteger(0);

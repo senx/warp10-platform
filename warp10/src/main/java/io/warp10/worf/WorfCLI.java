@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -198,8 +198,8 @@ public class WorfCLI {
 
           // extract uuid with the pattern owner{owner1,owner2}
           if (matcher.matches()) {
-            authorizedProducersUID = new ArrayList<String>();
             String[] uuids = matcher.group(2).split(",");
+            authorizedProducersUID = new ArrayList<String>(uuids.length);
 
             // adds uuid to the list, fail otherwise
             for (String uuid : uuids) {
@@ -227,8 +227,8 @@ public class WorfCLI {
 
           // extract uuid with the pattern owner{owner1,owner2}
           if (matcher.matches()) {
-            authorizedOwnersUID = new ArrayList<String>();
             String[] uuids = matcher.group(2).split(",");
+            authorizedOwnersUID = new ArrayList<String>(uuids.length);
 
             // adds uuid to the list, fail otherwise
             for (String uuid : uuids) {
@@ -260,8 +260,8 @@ public class WorfCLI {
 
           // extract app names of pattern app{app,app1,app2}
           if (matcher.matches()) {
-            authorizedApplications = new ArrayList<String>();
             String[] apps = matcher.group(2).split(",");
+            authorizedApplications = new ArrayList<String>(apps.length);
 
             // adds uuid to the list, fail otherwise
             for (String app: apps) {

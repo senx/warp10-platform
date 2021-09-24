@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2020  SenX S.A.S.
+//   Copyright 2019-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -192,7 +192,7 @@ public class TOKENDUMP extends NamedWarpScriptFunction implements WarpScriptStac
 
 
       if (rtoken.getOwnersSize() > 0) {
-        List<String> owners = new ArrayList<String>();
+        List<String> owners = new ArrayList<String>(rtoken.getOwnersSize());
         params.put(TOKENGEN.KEY_OWNERS, owners);
         for (ByteBuffer bb: rtoken.getOwners()) {
           owners.add(Tokens.getUUID(bb));
@@ -200,7 +200,7 @@ public class TOKENDUMP extends NamedWarpScriptFunction implements WarpScriptStac
       }
 
       if (rtoken.getProducersSize() > 0) {
-        List<String> producers = new ArrayList<String>();
+        List<String> producers = new ArrayList<String>(rtoken.getProducersSize());
         params.put(TOKENGEN.KEY_PRODUCERS, producers);
         for (ByteBuffer bb: rtoken.getProducers()) {
           producers.add(Tokens.getUUID(bb));
@@ -208,7 +208,7 @@ public class TOKENDUMP extends NamedWarpScriptFunction implements WarpScriptStac
       }
 
       if (rtoken.getAppsSize() > 0) {
-        List<String> applications = new ArrayList<String>();
+        List<String> applications = new ArrayList<String>(rtoken.getAppsSize());
         params.put(TOKENGEN.KEY_APPLICATIONS, applications);
         for (String app: rtoken.getApps()) {
           applications.add(app);

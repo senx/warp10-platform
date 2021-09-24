@@ -1,5 +1,5 @@
 //
-//   Copyright 2020  SenX S.A.S.
+//   Copyright 2020-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -54,7 +54,7 @@ public class GEOSPLIT extends NamedWarpScriptFunction implements WarpScriptStack
     
     List<Coverage> clusters = CoverageHelper.clusters(coverage);
     
-    List<Object> shapes = new ArrayList<Object>();
+    List<Object> shapes = new ArrayList<Object>(clusters.size());
     
     for (Coverage cluster: clusters) {
       shapes.add(GeoXPLib.fromCells(cluster.toGeoCells(HHCodeHelper.MAX_RESOLUTION), false));

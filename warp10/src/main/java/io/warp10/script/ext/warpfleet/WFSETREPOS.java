@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -42,7 +42,7 @@ public class WFSETREPOS extends NamedWarpScriptFunction implements WarpScriptSta
     List<String> repos = null;
        
     if (null != top) {
-      repos = new ArrayList<String>();
+      repos = new ArrayList<String>(((List<Object>) top).size());
       for (Object elt: (List<Object>) top) {
         if (!(elt instanceof String)) {
           throw new WarpScriptException(getName() + " expects a list of repository URLs on top of the stack.");        
