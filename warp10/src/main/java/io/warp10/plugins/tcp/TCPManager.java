@@ -42,6 +42,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
@@ -177,7 +178,7 @@ public class TCPManager extends Thread {
 
     done = false;
 
-    clientsExecutor = new ThreadPoolExecutor(maxConnections, maxConnections, 30000L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(maxConnections), new CustomThreadFactory("Warp TCP Client for port " + port));
+    clientsExecutor = new ThreadPoolExecutor(maxConnections, maxConnections, 30000L, TimeUnit.MILLISECONDS, new SynchronousQueue<Runnable>(), new CustomThreadFactory("Warp TCP Client for port " + port));
     clientsExecutor.allowCoreThreadTimeOut(true);
 
     setDaemon(true);
