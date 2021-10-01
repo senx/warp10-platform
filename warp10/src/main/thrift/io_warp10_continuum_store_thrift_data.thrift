@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -310,6 +310,12 @@ struct DirectoryRequest {
    * Timestamp (in ms) after which a given Geo Time Series was quiet.
    */
   4: optional i64 quietAfter,  
+
+  /**
+   * Optional flag indicating the returned Metadata MUST absolutely be sorted.
+   * This is mainly so HFDUMP can create HFiles from sorted GTS
+   */
+  5: optional bool sorted = false,
 }
 
 struct GTSWrapper {
