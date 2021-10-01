@@ -17,6 +17,7 @@
 package io.warp10.continuum.egress;
 
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -44,7 +45,9 @@ public class MergeSortStreamingMetadataIterator extends MetadataIterator {
     metadatas = new Metadata[urls.size()];
 
     for (int i = 0; i < iterators.length; i++) {
-      iterators[i] = new StreamingMetadataIterator(SIPHASH_PSK, request, urls, noProxy);
+      List<URL> url = new ArrayList<URL>(1);
+      url.add(urls.get(i));
+      iterators[i] = new StreamingMetadataIterator(SIPHASH_PSK, request, url, noProxy);
     }
   }
 
