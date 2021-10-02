@@ -65,22 +65,24 @@ public class MergeSortStreamingMetadataIterator extends MetadataIterator {
     boolean hasNext = false;
 
     for (int i = 0; i < iterators.length; i++) {
-      if (null != iterators[i] && null == metadatas[i]) {
-        if (iterators[i].hasNext()) {
-          metadatas[i] = iterators[i].next();
-          hasNext = true;
-        } else {
-          // Iterator has no additional entry, close it and nullify it
-          // so it is skipped in further calls to hasNext
-          try {
-            iterators[i].close();
-          } catch (Exception e) {
-            throw new RuntimeException(e);
+      if (null != iterators[i]) {
+        if (null == metadatas[i]) {
+          if (iterators[i].hasNext()) {
+            metadatas[i] = iterators[i].next();
+            hasNext = true;
+          } else {
+            // Iterator has no additional entry, close it and nullify it
+            // so it is skipped in further calls to hasNext
+            try {
+              iterators[i].close();
+            } catch (Exception e) {
+              throw new RuntimeException(e);
+            }
+            iterators[i] = null;
           }
-          iterators[i] = null;
+        } else {
+          hasNext = true;
         }
-      } else if (null != iterators[i]) {
-        hasNext = true;
       }
     }
 
