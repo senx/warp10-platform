@@ -94,7 +94,7 @@ public class MergeSortStreamingMetadataIterator extends MetadataIterator {
   @Override
   public Metadata next() {
     //
-    // Iterate over the metadatas array and return the entry with the lowest id
+    // Iterate over the metadatas array and return the entry with the lowest gts id
     //
 
     int idx = -1;
