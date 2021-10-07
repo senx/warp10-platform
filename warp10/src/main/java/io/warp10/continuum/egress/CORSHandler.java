@@ -40,6 +40,7 @@ public class CORSHandler extends AbstractHandler {
     sb.append(Constants.getHeader(Configuration.HTTP_HEADER_TOKENX));
     sb.append(",");
     sb.append(StackPSWarpScriptExtension.HEADER_SESSION);
+    // Added to comply with private network access - https://wicg.github.io/private-network-access/
     sb.append(",Access-Control-Request-Private-Network");
     String corsHeadersProp = WarpConfig.getProperty(Configuration.CORS_HEADERS);
         
