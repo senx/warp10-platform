@@ -40,7 +40,7 @@ public class CORSHandler extends AbstractHandler {
     sb.append(Constants.getHeader(Configuration.HTTP_HEADER_TOKENX));
     sb.append(",");
     sb.append(StackPSWarpScriptExtension.HEADER_SESSION);
-    
+    sb.append(",Access-Control-Request-Private-Network");
     String corsHeadersProp = WarpConfig.getProperty(Configuration.CORS_HEADERS);
         
     if (null != corsHeadersProp) {
@@ -69,6 +69,7 @@ public class CORSHandler extends AbstractHandler {
     }    
     
     response.setHeader("Access-Control-Allow-Origin", "*");
+    response.setHeader("Access-Control-Allow-Private-Network", "true");
     response.setHeader("Access-Control-Allow-Methods", "OPTIONS,POST,GET");
     response.setHeader("Access-Control-Allow-Headers", headers);
     // Allow to cache preflight response for 30 days
