@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.NoSuchElementException;
 
 import io.warp10.continuum.MetadataUtils;
-import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.store.MetadataIterator;
 import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
@@ -31,7 +30,6 @@ public class MergeSortStreamingMetadataIterator extends MetadataIterator {
 
   private final StreamingMetadataIterator[] iterators;
   private final Metadata[] metadatas;
-  private boolean done = false;
   private Boolean lastHasNext = null;
 
   public MergeSortStreamingMetadataIterator(long[] SIPHASH_PSK, DirectoryRequest request, List<URL> urls, boolean noProxy) {
@@ -59,10 +57,6 @@ public class MergeSortStreamingMetadataIterator extends MetadataIterator {
   }
 
   private synchronized boolean hasNextInternal() {
-    if (done) {
-      return false;
-    }
-
     if (null != lastHasNext) {
       return lastHasNext;
     }
@@ -94,8 +88,6 @@ public class MergeSortStreamingMetadataIterator extends MetadataIterator {
         }
       }
     }
-
-    done = !hasNext;
 
     lastHasNext = hasNext;
 
