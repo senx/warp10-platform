@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 
 import io.warp10.continuum.MetadataUtils;
+import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.store.MetadataIterator;
 import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
@@ -31,6 +32,7 @@ public class MergeSortStreamingMetadataIterator extends MetadataIterator {
   private final StreamingMetadataIterator[] iterators;
   private final Metadata[] metadatas;
   private boolean done = false;
+  private Boolean lastHasNext = null;
 
   public MergeSortStreamingMetadataIterator(long[] SIPHASH_PSK, DirectoryRequest request, List<URL> urls, boolean noProxy) {
     //
@@ -53,9 +55,16 @@ public class MergeSortStreamingMetadataIterator extends MetadataIterator {
 
   @Override
   public boolean hasNext() {
+    return hasNextInternal();
+  }
 
+  private synchronized boolean hasNextInternal() {
     if (done) {
       return false;
+    }
+
+    if (null != lastHasNext) {
+      return lastHasNext;
     }
 
     //
@@ -88,11 +97,23 @@ public class MergeSortStreamingMetadataIterator extends MetadataIterator {
 
     done = !hasNext;
 
+    lastHasNext = hasNext;
+
     return hasNext;
   }
 
   @Override
-  public Metadata next() {
+  public Metadata next() throws NoSuchElementException {
+    return nextInternal();
+  }
+
+  private synchronized Metadata nextInternal() throws NoSuchElementException {
+
+    if (Boolean.FALSE.equals(lastHasNext) || null == lastHasNext && !hasNext()) {
+      lastHasNext = false;
+      throw new NoSuchElementException();
+    }
+
     //
     // Iterate over the metadatas array and return the entry with the lowest gts id
     //
@@ -108,13 +129,16 @@ public class MergeSortStreamingMetadataIterator extends MetadataIterator {
       }
     }
 
-    if (-1 != idx) {
-      Metadata metadata = metadatas[idx];
-      metadatas[idx] = null;
-      return metadata;
-    } else {
-      throw new NoSuchElementException();
-    }
+    //
+    // We know there is at least an element so idx cannot be -1
+    //
+
+    Metadata metadata = metadatas[idx];
+    metadatas[idx] = null;
+    // Clear lastHasNext so hasNext is called next time next() is called if hasNext() was not previously called
+    lastHasNext = null;
+
+    return metadata;
   }
 
   @Override
