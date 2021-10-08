@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -59,22 +59,6 @@ public class SlicedRowFilter extends FilterBase {
    * Cumulative length of slices in bytes
    */
   private int slicesLength;
-  
-  /**
-   * Ranges in which the concatenation of slices must fall
-   * NOTE: the end keys are included in their respective ranges.
-   */
-  private List<Pair<byte[],byte[]>> ranges;
-
-  /**
-   * Comparator to find insertion point of slice in a list of ranges
-   */
-  private Comparator<Pair<byte[], byte[]>> SLICE_RANGE_COMPARATOR = new Comparator<Pair<byte[],byte[]>>() {
-    @Override
-    public int compare(Pair<byte[], byte[]> o1, Pair<byte[], byte[]> o2) {
-      return Bytes.compareTo(o1.getFirst(), o2.getFirst());
-    }
-  };
   
   /**
    * Flag indicating we're done filtering rows since we've encountered a slice starting at offset 0
@@ -707,53 +691,31 @@ public class SlicedRowFilter extends FilterBase {
     
     return slice;
   }
-  
-  private int findInsertionPoint(byte[] subrow) {    
-    //
-    // Attempt to find the insertion point
-    //
-    
-    int nranges = this.rangekeys.length / this.slicesLength;
-    int insertionPoint = nranges;
-    
-    int left = 0;
-    int right = insertionPoint - 1;
-    
-    while(true) {
-      
-      if (left > right) {
-        left = right;
-      } else if (right < left) {
-        right = left;
-      }
-      
-      int mid = (left + right) / 2;
-            
-      int res = Bytes.compareTo(subrow, 0, subrow.length, this.rangekeys, mid * this.slicesLength, this.slicesLength);
 
-      if (0 == res) {
-        insertionPoint = mid;
-        break;
-      } else if (res < 0) {
-        // If left==right this means the insertion point is before 'right'
-        if (right == left) {
-          insertionPoint = -(right) - 1;
-          break;
-        }
-        right = mid - 1;
-        // TODO(hbs): should we use right = mid;
-      } else if (res > 0) {
-        // If left==right this means the insertion point is after left
-        if (right == left) {
-          insertionPoint = -(right + 1) - 1;
-          break;
-        }
-        left = mid + 1;
-        // TODO(hbs): should we use left = mid;
+  private int findInsertionPoint(byte[] subrow) {
+    int low = 0;
+    int high = (this.rangekeys.length / this.slicesLength) - 1;
+
+    // Look for subrow with binary search.
+    while (low <= high) {
+      int mid = (low + high) >>> 1;
+
+      int cmp = Bytes.compareTo(subrow, 0, subrow.length, this.rangekeys, mid * this.slicesLength, this.slicesLength);
+
+      if (cmp > 0) {
+        // subrow if after midpoint
+        low = mid + 1;
+      } else if (cmp < 0) {
+        // subrow is before midpoint
+        high = mid - 1;
+      } else {
+        // Key is found.
+        return mid;
       }
     }
-    
-    return insertionPoint;
+
+    // Key was not found.
+    return -(low + 1);
   }
   
   @Override
@@ -819,12 +781,8 @@ public class SlicedRowFilter extends FilterBase {
     //
     // If the first slice starts at offset 0 then we will be able to provide a key hint
     //
-    
-    if (0 == filter.bounds[0]) {
-      filter.hasHinting = true;
-    } else {
-      filter.hasHinting = false;
-    }
+
+    filter.hasHinting = (0 == filter.bounds[0]);
 
     filter.rangekeys = new byte[bb.getInt()];
     bb.get(filter.rangekeys);
