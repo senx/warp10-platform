@@ -13,6 +13,8 @@ Geo Time Series extend the notion of Time Series by merging the sequence of sens
 
 **If your data have no location information, Warp 10 will handle them as regular Time Series.**
 
+<p align="center"><a href="https://youtu.be/-5dAB7-dHaQ"><img src="https://warp10.io/assets/img/thumbnail_warp10_video.jpg" alt="Warp 10 simplifies sensor data management and analytics." width="50%"></a></p>
+
 ## Features
 
 The Warp 10 Platform provides a rich set of features to simplify your work around sensor data:
