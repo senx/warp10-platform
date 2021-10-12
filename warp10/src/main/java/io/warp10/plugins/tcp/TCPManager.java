@@ -42,6 +42,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
@@ -56,6 +57,7 @@ public class TCPManager extends Thread {
   private static final int DEFAULT_MAXCONNECTIONS = 1;
   private static final int DEFAULT_TCP_BACKLOG = 0;
   private static final Charset DEFAULT_CHARSET = StandardCharsets.UTF_8;
+  private static final int DEFAULT_SOCKETREADTIMEOUT = 0;
 
   private static final String PARAM_MODE = "mode";
   private static final String PARAM_RETRY = "retry";
@@ -70,21 +72,18 @@ public class TCPManager extends Thread {
   private static final String PARAM_MAXMESSAGES = "maxMessages";
   private static final String PARAM_MAXCONNECTIONS = "maxConnections";
   private static final String PARAM_CHARSET = "charset";
+  private static final String PARAM_SOCKETREADTIMEOUT = "socketReadTimeout";
 
-  private final MemoryWarpScriptStack stack;
-  private final String mode;
   private final long retry;
   private final Macro macro;
   private final Macro partitioner;
   private final String host;
   private final long timeout;
   private final int maxMessages;
-  private final int maxConnections;
   private final String charset;
-
   private final int parallelism;
   private final int port;
-  private final int tcpBacklog;
+  private final int socketReadTimeout;
 
   private Thread[] executors;
 
@@ -96,7 +95,7 @@ public class TCPManager extends Thread {
 
   private ServerSocket serverSocket;
 
-  private ThreadPoolExecutor clientsExecutor;
+  private final ThreadPoolExecutor clientsExecutor;
 
   private Socket clientSocket;
 
@@ -120,7 +119,7 @@ public class TCPManager extends Thread {
     in.close();
 
     warpscript = new String(baos.toByteArray(), StandardCharsets.UTF_8);
-    stack = new MemoryWarpScriptStack(AbstractWarp10Plugin.getExposedStoreClient(), AbstractWarp10Plugin.getExposedDirectoryClient(), new Properties());
+    MemoryWarpScriptStack stack = new MemoryWarpScriptStack(AbstractWarp10Plugin.getExposedStoreClient(), AbstractWarp10Plugin.getExposedDirectoryClient(), new Properties());
     stack.maxLimits();
 
     try {
@@ -141,18 +140,19 @@ public class TCPManager extends Thread {
     // Extract parameters
     //
 
-    mode = (String) config.get(PARAM_MODE);
+    String mode = (String) config.get(PARAM_MODE);
     retry = ((Number) config.getOrDefault(PARAM_RETRY, DEFAULT_RETRY)).longValue();
     macro = (Macro) config.get(PARAM_MACRO);
     partitioner = (Macro) config.get(PARAM_PARTITIONER);
     host = String.valueOf(config.get(PARAM_HOST));
     port = ((Number) config.get(PARAM_PORT)).intValue();
-    tcpBacklog = ((Number) config.getOrDefault(PARAM_TCP_BACKLOG, DEFAULT_TCP_BACKLOG)).intValue();
+    int tcpBacklog = ((Number) config.getOrDefault(PARAM_TCP_BACKLOG, DEFAULT_TCP_BACKLOG)).intValue();
     parallelism = ((Number) config.getOrDefault(PARAM_PARALLELISM, 1)).intValue();
     timeout = ((Number) config.getOrDefault(PARAM_TIMEOUT, 0L)).longValue();
     maxMessages = ((Number) config.getOrDefault(PARAM_MAXMESSAGES, DEFAULT_MAXMESSAGES)).intValue();
-    maxConnections = ((Number) config.getOrDefault(PARAM_MAXCONNECTIONS, DEFAULT_MAXCONNECTIONS)).intValue();
+    int maxConnections = ((Number) config.getOrDefault(PARAM_MAXCONNECTIONS, DEFAULT_MAXCONNECTIONS)).intValue();
     charset = String.valueOf(config.getOrDefault(PARAM_CHARSET, DEFAULT_CHARSET.name()));
+    socketReadTimeout = ((Number) config.getOrDefault(PARAM_SOCKETREADTIMEOUT, DEFAULT_SOCKETREADTIMEOUT)).intValue();
 
     int qsize = ((Number) config.getOrDefault(PARAM_QSIZE, DEFAULT_QSIZE)).intValue();
 
@@ -177,7 +177,7 @@ public class TCPManager extends Thread {
 
     done = false;
 
-    clientsExecutor = new ThreadPoolExecutor(maxConnections, maxConnections, 30000L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(maxConnections), new CustomThreadFactory("Warp TCP Client for port " + port));
+    clientsExecutor = new ThreadPoolExecutor(maxConnections, maxConnections, 30000L, TimeUnit.MILLISECONDS, new SynchronousQueue<Runnable>(), new CustomThreadFactory("Warp TCP Client for port " + port));
     clientsExecutor.allowCoreThreadTimeOut(true);
 
     setDaemon(true);
@@ -263,6 +263,7 @@ public class TCPManager extends Thread {
 
         // Execute a new TCPClient with the new Socket
         try {
+          clientSocket.setSoTimeout(socketReadTimeout);
           clientsExecutor.execute(new TCPClient(clientSocket, partitioner, queues, charset));
         } catch (RejectedExecutionException ree) {
           // If there are too many connections, immediately close this one.
