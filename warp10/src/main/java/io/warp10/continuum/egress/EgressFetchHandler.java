@@ -179,6 +179,8 @@ public class EgressFetchHandler extends AbstractHandler {
 
       long now = Long.MIN_VALUE;
       long then = Long.MIN_VALUE;
+      long gcount = Long.MAX_VALUE;
+      long gskip = 0;
       long count = -1;
       long skip = 0;
       long step = 1L;
@@ -194,6 +196,8 @@ public class EgressFetchHandler extends AbstractHandler {
       String timespanParam = null;
       String dedupParam = null;
       String showErrorsParam = null;
+      String gcountParam = null;
+      String gskipParam = null;
       String countParam = null;
       String skipParam = null;
       String stepParam = null;
@@ -228,6 +232,8 @@ public class EgressFetchHandler extends AbstractHandler {
         timespanParam = req.getParameter(Constants.HTTP_PARAM_TIMESPAN);
         dedupParam = req.getParameter(Constants.HTTP_PARAM_DEDUP);
         showErrorsParam = req.getParameter(Constants.HTTP_PARAM_SHOW_ERRORS);
+        gcountParam = req.getParameter(Constants.HTTP_PARAM_GCOUNT);
+        gskipParam = req.getParameter(Constants.HTTP_PARAM_GSKIP);
         countParam = req.getParameter(Constants.HTTP_PARAM_COUNT);
         skipParam = req.getParameter(Constants.HTTP_PARAM_SKIP);
         stepParam = req.getParameter(Constants.HTTP_PARAM_STEP);
@@ -347,6 +353,14 @@ public class EgressFetchHandler extends AbstractHandler {
 
       if (null != skipParam) {
         skip = Long.parseLong(skipParam);
+      }
+
+      if (null != gcountParam) {
+        gcount = Long.parseLong(gcountParam);
+      }
+
+      if (null != gskipParam) {
+        gskip = Long.parseLong(gskipParam);
       }
 
       if (null != stepParam) {
@@ -773,7 +787,19 @@ public class EgressFetchHandler extends AbstractHandler {
       for (Iterator<Metadata> itermeta: iterators){
         try {
           while(itermeta.hasNext()) {
+
             Metadata metadata = itermeta.next();
+
+            if (gskip >= 0) {
+              gskip--;
+              continue;
+            }
+
+            if (gcount <= 0) {
+              break;
+            }
+
+            gcount--;
 
             try {
               byte[] bytes = serializer.serialize(metadata);

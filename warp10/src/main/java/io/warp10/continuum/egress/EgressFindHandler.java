@@ -56,15 +56,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class EgressFindHandler extends AbstractHandler {
-  
+
   private static final Logger LOG = LoggerFactory.getLogger(EgressFindHandler.class);
 
   private final DirectoryClient directoryClient;
-  
+
   public EgressFindHandler(KeyStore keystore, DirectoryClient directoryClient) {
     this.directoryClient = directoryClient;
   }
-  
+
   @Override
   public void handle(String target, Request baseRequest, HttpServletRequest req, HttpServletResponse resp) throws IOException, ServletException {
 
@@ -81,32 +81,43 @@ public class EgressFindHandler extends AbstractHandler {
     resp.setHeader("Access-Control-Allow-Origin", "*");
 
     String selector = req.getParameter(Constants.HTTP_PARAM_SELECTOR);
-    
+
     String token = req.getParameter(Constants.HTTP_PARAM_TOKEN);
-    
+
+    long gskip = 0L;
+    long gcount = Long.MAX_VALUE;
+
+    if (null != req.getParameter(Constants.HTTP_PARAM_GSKIP)) {
+      gskip = Long.parseLong(req.getParameter(Constants.HTTP_PARAM_GSKIP));
+    }
+
+    if (null != req.getParameter(Constants.HTTP_PARAM_GCOUNT)) {
+      gcount = Long.parseLong(req.getParameter(Constants.HTTP_PARAM_GCOUNT));
+    }
+
     long limit = Long.MAX_VALUE;
-    
+
     if (null != req.getParameter(Constants.HTTP_PARAM_LIMIT)) {
       limit = Long.parseLong(req.getParameter(Constants.HTTP_PARAM_LIMIT));
     }
-    
+
     if (null == token) {
       token = req.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_TOKENX));
     }
-    
+
     if (null == token) {
       resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Missing token.");
       return;
     }
-    
+
     try {
       String format = req.getParameter(Constants.HTTP_PARAM_FORMAT);
       boolean json = "json".equals(format);
-      
-      boolean showErrors = null != req.getParameter(Constants.HTTP_PARAM_SHOW_ERRORS);    
+
+      boolean showErrors = null != req.getParameter(Constants.HTTP_PARAM_SHOW_ERRORS);
 
       boolean showUUID = "true".equals(req.getParameter(Constants.HTTP_PARAM_SHOWUUID));
-      
+
       boolean showAttr = !("false".equals(req.getParameter(Constants.HTTP_PARAM_SHOWATTR)));
       boolean sortMeta = "true".equals(req.getParameter(Constants.HTTP_PARAM_SORTMETA));
 
@@ -114,7 +125,7 @@ public class EgressFindHandler extends AbstractHandler {
       Long quietAfter = null == req.getParameter(Constants.HTTP_PARAM_QUIETAFTER) ? null : Long.parseLong(req.getParameter(Constants.HTTP_PARAM_QUIETAFTER));
 
       ReadToken rtoken;
-      
+
       try {
         rtoken = Tokens.extractReadToken(token);
 
@@ -132,43 +143,43 @@ public class EgressFindHandler extends AbstractHandler {
       boolean expose = rtoken.getAttributesSize() > 0 && rtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_EXPOSE);
 
       String[] selectors = selector.split("\\s+");
-          
+
       PrintWriter pw = resp.getWriter();
 
       if (json) {
         pw.println("[");
       }
-      
+
       StringBuilder sb = new StringBuilder();
 
       boolean first = true;
-      
+
       try {
         for (String sel: selectors) {
           Object[] elts = null;
-          
+
           try {
             elts = PARSESELECTOR.parse(sel);
           } catch (WarpScriptException ee) {
             throw new IOException(ee);
           }
-          
+
           //
           // Force app/owner/producer from token
           //
-          
+
           String classSelector = elts[0].toString();
           Map<String,String> labelsSelector = (Map<String,String>) elts[1];
-          
+
           labelsSelector.remove(Constants.PRODUCER_LABEL);
           labelsSelector.remove(Constants.OWNER_LABEL);
           labelsSelector.remove(Constants.APPLICATION_LABEL);
-          
+
           labelsSelector.putAll(Tokens.labelSelectorsFromReadToken(rtoken));
-          
+
           List<String> clsSels = new ArrayList<String>();
           List<Map<String,String>> lblsSels = new ArrayList<Map<String,String>>();
-          
+
           clsSels.add(classSelector);
           lblsSels.add(labelsSelector);
 
@@ -185,11 +196,16 @@ public class EgressFindHandler extends AbstractHandler {
 
           try (MetadataIterator iterator = directoryClient.iterator(request)) {
             while(iterator.hasNext()) {
-              if (limit <= 0) {
+              if (limit <= 0 || gcount <= 0) {
                 break;
               }
 
               Metadata metadata = iterator.next();
+
+              if (gskip >= 0) {
+                gskip--;
+                continue;
+              }
 
               if (showUUID) {
                 UUID uuid = new UUID(metadata.getClassId(), metadata.getLabelsId());
@@ -216,11 +232,11 @@ public class EgressFindHandler extends AbstractHandler {
                 JsonUtils.objectToJson(pw, metadata, true);
                 continue;
               }
-              
+
               sb.setLength(0);
-              
+
               GTSHelper.encodeName(sb, metadata.getName());
-              
+
               if (metadata.getLabelsSize() > 0) {
                 if (sortMeta) {
                   GTSHelper.labelsToString(sb, new TreeMap<String,String>(metadata.getLabels()), expose);
@@ -228,7 +244,7 @@ public class EgressFindHandler extends AbstractHandler {
                   GTSHelper.labelsToString(sb, metadata.getLabels(), expose);
                 }
               }
-              
+
               if (showAttr) {
                 if (metadata.getAttributesSize() > 0) {
                   // For attributes we force 'expose' to be true
@@ -241,23 +257,24 @@ public class EgressFindHandler extends AbstractHandler {
                   sb.append("{}");
                 }
               }
-              
+
               pw.println(sb.toString());
-              
-              limit--;              
-            }      
-          } catch (Throwable t) {        
+
+              limit--;
+              gcount--;
+            }
+          } catch (Throwable t) {
             throw t;
           }
-          
-          if (limit <= 0) {
+
+          if (limit <= 0 || gcount <= 0) {
             break;
           }
         }
         if (json) {
           pw.println();
           pw.println("]");
-        }      
+        }
       } catch (Throwable t) {
         LOG.error("",t);
         Sensision.update(SensisionConstants.CLASS_WARP_FIND_ERRORS, Sensision.EMPTY_LABELS, 1);
@@ -272,7 +289,7 @@ public class EgressFindHandler extends AbstractHandler {
           pw.println(Constants.EGRESS_FIND_ERROR_PREFIX + error);
         }
         throw new IOException(t);
-      }      
+      }
     } catch (Exception e) {
       if (!resp.isCommitted()) {
         resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, ThrowableUtils.getErrorMessage(e, Constants.MAX_HTTP_REASON_LENGTH));
