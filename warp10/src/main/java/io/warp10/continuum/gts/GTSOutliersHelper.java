@@ -153,7 +153,7 @@ public class GTSOutliersHelper {
     double std = musigma[1];
     
     if (0.0D == std) {
-      throw new WarpScriptException((useMedian ? "Standard": "Median Absolute") + " Deviation is null");
+      throw new WarpScriptException((useMedian ? "Median Absolute": "Standard") + " Deviation is null");
     }    
     
     GeoTimeSerie gts_ = inplace ? gts : gts.clone();
