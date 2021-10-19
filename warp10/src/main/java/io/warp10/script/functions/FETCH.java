@@ -536,7 +536,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
           break;
         }
 
-        Metadata meta = iter.next();
+        Metadata m = iter.next();
 
         if (gskip > 0) {
           gskip--;
@@ -545,7 +545,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
 
         gcount--;
 
-        metadatas.add(meta);
+        metadatas.add(m);
 
         if (gtscount.incrementAndGet() > gtsLimit) {
           throw new WarpScriptException(getName() + " exceeded limit of " + gtsLimit + " Geo Time Series, current count is " + gtscount);
