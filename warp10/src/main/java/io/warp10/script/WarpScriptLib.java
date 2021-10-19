@@ -2406,7 +2406,6 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new RMS("bucketizer.rms", false));
     addNamedWarpScriptFunction(new Variance.Builder("bucketizer.var", false));
     addNamedWarpScriptFunction(new Variance.Builder("bucketizer.var.welford", false, true));
-    addNamedWarpScriptFunction(new Variance.Builder("bucketizer.var.forbid-nulls", true));
     addNamedWarpScriptFunction(new StandardDeviation.Builder("bucketizer.sd", false));
     addNamedWarpScriptFunction(new StandardDeviation.Builder("bucketizer.sd.welford", false, true));
     addNamedWarpScriptFunction(new StandardDeviation.Builder("bucketizer.sd.forbid-nulls", true));
