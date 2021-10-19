@@ -5696,12 +5696,29 @@ public class GTSHelper {
       }
     }
 
-    Map<Map<String,String>, List<GeoTimeSerie>> partition = new HashMap<Map<String,String>, List<GeoTimeSerie>>();
+    Map<Map<String,String>, List<GeoTimeSerie>> partition = new HashMap<Map<String,String>, List<GeoTimeSerie>>(classes.size());
 
     for (Entry<Map<String, String>, List<GeoTimeSerie>> keyAndValue: classes.entrySet()) {
       partition.put(labelsbyclass.get(keyAndValue.getKey()), keyAndValue.getValue());
     }
     return partition;
+  }
+
+  public static Map<String, String> commonAttributes(List<GeoTimeSerie> lgts) {
+    HashMap<String, String> commonAttributes = null;
+
+    for (GeoTimeSerie gts: lgts) {
+      if (null == commonAttributes) {
+        commonAttributes = new HashMap<String, String>(gts.getMetadata().getAttributes());
+      } else {
+        commonAttributes.entrySet().retainAll(gts.getMetadata().getAttributes().entrySet());
+        if (commonAttributes.isEmpty()) {
+          break;
+        }
+      }
+    }
+
+    return commonAttributes;
   }
 
   /**
@@ -7083,6 +7100,7 @@ public class GTSHelper {
 
       result.setName("");
       result.setLabels(partitionLabels);
+      result.getMetadata().setAttributes(commonAttributes(partitionSeries));
 
       //
       // Sort all series in the partition so we can scan their ticks in order
