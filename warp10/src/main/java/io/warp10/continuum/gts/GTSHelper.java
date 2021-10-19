@@ -5704,14 +5704,19 @@ public class GTSHelper {
     return partition;
   }
 
+  /**
+   * Find common attributes, taking into account keys and values, in a list of GTSs.
+   * @param lgts List of GTSs to find common attributes from.
+   * @return The common attributes.
+   */
   public static Map<String, String> commonAttributes(List<GeoTimeSerie> lgts) {
-    HashMap<String, String> commonAttributes = null;
+    HashMap<String, String> commonAttributes = new HashMap<String, String>();
 
-    for (GeoTimeSerie gts: lgts) {
-      if (null == commonAttributes) {
-        commonAttributes = new HashMap<String, String>(gts.getMetadata().getAttributes());
+    for (int i = 0; i < lgts.size(); i++) {
+      if (0 == i) {
+        commonAttributes.putAll(lgts.get(i).getMetadata().getAttributes());
       } else {
-        commonAttributes.entrySet().retainAll(gts.getMetadata().getAttributes().entrySet());
+        commonAttributes.entrySet().retainAll(lgts.get(i).getMetadata().getAttributes().entrySet());
         if (commonAttributes.isEmpty()) {
           break;
         }
