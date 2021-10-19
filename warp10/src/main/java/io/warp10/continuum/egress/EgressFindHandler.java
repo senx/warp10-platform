@@ -91,14 +91,14 @@ public class EgressFindHandler extends AbstractHandler {
       gskip = Long.parseLong(req.getParameter(Constants.HTTP_PARAM_GSKIP));
     }
 
-    if (null != req.getParameter(Constants.HTTP_PARAM_GCOUNT)) {
-      gcount = Long.parseLong(req.getParameter(Constants.HTTP_PARAM_GCOUNT));
+    // 'limit' predates 'gcount', it may be overriden if 'gcount' is set too
+    if (null != req.getParameter(Constants.HTTP_PARAM_LIMIT)) {
+      gcount = Long.parseLong(req.getParameter(Constants.HTTP_PARAM_LIMIT));
     }
 
-    long limit = Long.MAX_VALUE;
-
-    if (null != req.getParameter(Constants.HTTP_PARAM_LIMIT)) {
-      limit = Long.parseLong(req.getParameter(Constants.HTTP_PARAM_LIMIT));
+    // 'gcount' overrides 'limit'
+    if (null != req.getParameter(Constants.HTTP_PARAM_GCOUNT)) {
+      gcount = Long.parseLong(req.getParameter(Constants.HTTP_PARAM_GCOUNT));
     }
 
     if (null == token) {
@@ -156,6 +156,10 @@ public class EgressFindHandler extends AbstractHandler {
 
       try {
         for (String sel: selectors) {
+          if (gcount <= 0) {
+            break;
+          }
+
           Object[] elts = null;
 
           try {
@@ -196,16 +200,18 @@ public class EgressFindHandler extends AbstractHandler {
 
           try (MetadataIterator iterator = directoryClient.iterator(request)) {
             while(iterator.hasNext()) {
-              if (limit <= 0 || gcount <= 0) {
+              if (gcount <= 0) {
                 break;
               }
 
               Metadata metadata = iterator.next();
 
-              if (gskip >= 0) {
+              if (gskip > 0) {
                 gskip--;
                 continue;
               }
+
+              gcount--;
 
               if (showUUID) {
                 UUID uuid = new UUID(metadata.getClassId(), metadata.getLabelsId());
@@ -259,15 +265,12 @@ public class EgressFindHandler extends AbstractHandler {
               }
 
               pw.println(sb.toString());
-
-              limit--;
-              gcount--;
             }
           } catch (Throwable t) {
             throw t;
           }
 
-          if (limit <= 0 || gcount <= 0) {
+          if (gcount <= 0) {
             break;
           }
         }

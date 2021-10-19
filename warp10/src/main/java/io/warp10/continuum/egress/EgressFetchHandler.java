@@ -784,19 +784,23 @@ public class EgressFetchHandler extends AbstractHandler {
 
       int padidx = 0;
 
-      for (Iterator<Metadata> itermeta: iterators){
+      for (Iterator<Metadata> itermeta: iterators) {
+        if (gcount <= 0) {
+          break;
+        }
+
         try {
           while(itermeta.hasNext()) {
 
-            Metadata metadata = itermeta.next();
-
-            if (gskip >= 0) {
-              gskip--;
-              continue;
-            }
-
             if (gcount <= 0) {
               break;
+            }
+
+            Metadata metadata = itermeta.next();
+
+            if (gskip > 0) {
+              gskip--;
+              continue;
             }
 
             gcount--;
