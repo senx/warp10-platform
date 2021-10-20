@@ -5696,12 +5696,42 @@ public class GTSHelper {
       }
     }
 
-    Map<Map<String,String>, List<GeoTimeSerie>> partition = new HashMap<Map<String,String>, List<GeoTimeSerie>>();
+    Map<Map<String,String>, List<GeoTimeSerie>> partition = new HashMap<Map<String,String>, List<GeoTimeSerie>>(classes.size());
 
     for (Entry<Map<String, String>, List<GeoTimeSerie>> keyAndValue: classes.entrySet()) {
       partition.put(labelsbyclass.get(keyAndValue.getKey()), keyAndValue.getValue());
     }
     return partition;
+  }
+
+  /**
+   * Find common attributes, taking into account keys and values, in a list of GTSs.
+   * @param lgts List of GTSs to find common attributes from.
+   * @return The common attributes.
+   */
+  public static Map<String, String> commonAttributes(List<GeoTimeSerie> lgts) {
+    HashMap<String, String> commonAttributes = new HashMap<String, String>();
+
+    for (int i = 0; i < lgts.size(); i++) {
+      Map<String, String> attributes = lgts.get(i).getMetadata().getAttributes();
+      
+      if (null == attributes || attributes.isEmpty()) {
+        commonAttributes.clear();
+        break;
+      }
+
+      if (0 == i) {
+        commonAttributes.putAll(attributes);
+      } else {
+        commonAttributes.entrySet().retainAll(attributes.entrySet());
+
+        if (commonAttributes.isEmpty()) {
+          break;
+        }
+      }
+    }
+
+    return commonAttributes;
   }
 
   /**
@@ -7083,6 +7113,7 @@ public class GTSHelper {
 
       result.setName("");
       result.setLabels(partitionLabels);
+      result.getMetadata().setAttributes(commonAttributes(partitionSeries));
 
       //
       // Sort all series in the partition so we can scan their ticks in order
