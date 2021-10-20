@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -553,7 +554,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
 
         stack.handleSignal();
 
-        if (metadatas.size() < EgressFetchHandler.FETCH_BATCHSIZE && iter.hasNext()) {
+        if (metadatas.size() < EgressFetchHandler.FETCH_BATCHSIZE && gcount > 0 && iter.hasNext()) {
           continue;
         }
 
@@ -564,7 +565,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
 
         if (params.containsKey(PARAM_EXTRA)) {
 
-          Set<Metadata> withextra = new HashSet<Metadata>();
+          Set<Metadata> withextra = new LinkedHashSet<Metadata>();
 
           withextra.addAll(metadatas);
 

@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -568,7 +569,7 @@ public class EgressFetchHandler extends AbstractHandler {
       // might have been re-encoded using percent encoding when passed as parameter
       //
 
-      Set<Metadata> metadatas = new HashSet<Metadata>();
+      Set<Metadata> metadatas = new LinkedHashSet<Metadata>();
       List<Iterator<Metadata>> iterators = new ArrayList<Iterator<Metadata>>();
 
       if (!splitFetch) {
