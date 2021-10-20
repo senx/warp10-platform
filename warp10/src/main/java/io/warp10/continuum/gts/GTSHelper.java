@@ -5713,10 +5713,18 @@ public class GTSHelper {
     HashMap<String, String> commonAttributes = new HashMap<String, String>();
 
     for (int i = 0; i < lgts.size(); i++) {
+      Map<String, String> attributes = lgts.get(i).getMetadata().getAttributes();
+      
+      if (null == attributes || attributes.isEmpty()) {
+        commonAttributes.clear();
+        break;
+      }
+
       if (0 == i) {
-        commonAttributes.putAll(lgts.get(i).getMetadata().getAttributes());
+        commonAttributes.putAll(attributes);
       } else {
-        commonAttributes.entrySet().retainAll(lgts.get(i).getMetadata().getAttributes().entrySet());
+        commonAttributes.entrySet().retainAll(attributes.entrySet());
+
         if (commonAttributes.isEmpty()) {
           break;
         }
