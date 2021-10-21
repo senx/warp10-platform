@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -384,7 +385,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       }
 
       nano = System.nanoTime() - nano;
-      
+
       LOG.info("Loaded " + count + " GTS in " + (nano / 1000000.0D) + " ms");
     } finally {
       Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, count);
@@ -417,7 +418,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     Collection<Metadata> requestedMetadatas;
 
     if (classExpr.size() > 1) {
-      requestedMetadatas = new HashSet<Metadata>();
+      requestedMetadatas = new LinkedHashSet<Metadata>();
     } else {
       requestedMetadatas = new ArrayList<Metadata>();
     }
@@ -466,7 +467,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
         if (!classids.containsKey(exactClassName)) {
           continue;
         }
-        classNames = new HashSet<String>();
+        classNames = new LinkedHashSet<String>();
         classNames.add(exactClassName);
       } else {
         classNames = metadatas.keySet();
@@ -617,13 +618,13 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       }
     }
 
-    if (classExpr.size() > 1) {
-      List<Metadata> metas = new ArrayList<Metadata>();
-      metas.addAll(requestedMetadatas);
-      return metas;
+    List<Metadata> metas = null;
+    if (requestedMetadatas instanceof List) {
+      metas = (List<Metadata>) requestedMetadatas;
     } else {
-      return (List<Metadata>) requestedMetadatas;
+      metas = new ArrayList<Metadata>(requestedMetadatas);
     }
+    return metas;
   }
 
   public void register(Metadata metadata) throws IOException {

@@ -346,6 +346,8 @@ public class Constants {
   public static final String HTTP_PARAM_ACTIVEAFTER = "activeafter";
   public static final String HTTP_PARAM_QUIETAFTER = "quietafter";
   public static final String HTTP_PARAM_LIMIT = "limit";
+  public static final String HTTP_PARAM_GCOUNT = "gcount";
+  public static final String HTTP_PARAM_GSKIP = "gskip";
   public static final String HTTP_PARAM_COUNT = "count";
   public static final String HTTP_PARAM_SKIP = "skip";
   public static final String HTTP_PARAM_STEP = "step";

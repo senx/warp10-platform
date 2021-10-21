@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -43,8 +44,7 @@ import org.joda.time.Instant;
 import org.joda.time.MutablePeriod;
 import org.joda.time.Period;
 import org.joda.time.ReadWritablePeriod;
-import org.joda.time.format.DateTimeFormatter;
-import org.joda.time.format.ISODateTimeFormat;
+import org.joda.time.format.ISOPeriodFormat;
 
 import io.warp10.WarpDist;
 import io.warp10.continuum.TimeSource;
@@ -78,8 +78,6 @@ import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.unary.TOTIMESTAMP;
 import io.warp10.sensision.Sensision;
 import io.warp10.standalone.AcceleratorConfig;
-
-import org.joda.time.format.ISOPeriodFormat;
 
 /**
  * Fetch GeoTimeSeries from the Warp 10 Storage Engine
@@ -130,6 +128,8 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
   public static final String PARAM_LABELS_PRIORITY = "priority";
   public static final String PARAM_ENCODERS = "encoders";
   public static final String PARAM_MERGE = "merge";
+  public static final String PARAM_GCOUNT = "gcount";
+  public static final String PARAM_GSKIP = "gskip";
 
   public static final String POSTFETCH_HOOK = "postfetch";
 
@@ -308,6 +308,17 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
 
     List<Metadata> metadatas = null;
     Iterator<Metadata> iter = null;
+
+    long gskip = 0L;
+    long gcount = Long.MAX_VALUE;
+
+    if (params.get(PARAM_GSKIP) instanceof Long) {
+      gskip = ((Long) params.get(PARAM_GSKIP)).longValue();
+    }
+
+    if (params.get(PARAM_GCOUNT) instanceof Long) {
+      gcount = ((Long) params.get(PARAM_GCOUNT)).longValue();
+    }
 
     if (params.containsKey(PARAM_METASET)) {
       metaset = (MetaSet) params.get(PARAM_METASET);
@@ -522,8 +533,20 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       Thread thread = Thread.currentThread();
 
       while(iter.hasNext() && !thread.isInterrupted()) {
+        if (gcount <= 0) {
+          break;
+        }
 
-        metadatas.add(iter.next());
+        Metadata m = iter.next();
+
+        if (gskip > 0) {
+          gskip--;
+          continue;
+        }
+
+        gcount--;
+
+        metadatas.add(m);
 
         if (gtscount.incrementAndGet() > gtsLimit) {
           throw new WarpScriptException(getName() + " exceeded limit of " + gtsLimit + " Geo Time Series, current count is " + gtscount);
@@ -531,17 +554,18 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
 
         stack.handleSignal();
 
-        if (metadatas.size() < EgressFetchHandler.FETCH_BATCHSIZE && iter.hasNext()) {
+        if (metadatas.size() < EgressFetchHandler.FETCH_BATCHSIZE && gcount > 0 && iter.hasNext()) {
           continue;
         }
 
         //
-        // Generate extra Metadata if PARAM_EXTRA is set
+        // Generate extra Metadata if PARAM_EXTRA is set.
+        // Those series are not counted towards gskip/gcount
         //
 
         if (params.containsKey(PARAM_EXTRA)) {
 
-          Set<Metadata> withextra = new HashSet<Metadata>();
+          Set<Metadata> withextra = new LinkedHashSet<Metadata>();
 
           withextra.addAll(metadatas);
 
@@ -946,7 +970,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
     return stack;
   }
 
-  private Map<String,Object> paramsFromMap(Map<String,Object> map) throws WarpScriptException {
+  public Map<String,Object> paramsFromMap(Map<String,Object> map) throws WarpScriptException {
     Map<String,Object> params = new HashMap<String, Object>();
 
     //
@@ -1352,6 +1376,32 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
 
     if (map.containsKey(PARAM_MERGE)) {
       params.put(PARAM_MERGE, Boolean.TRUE.equals(map.get(PARAM_MERGE)));
+    }
+
+    if (map.containsKey(PARAM_GSKIP)) {
+      Object o = map.get(PARAM_GSKIP);
+      if (!(o instanceof Long)) {
+        throw new WarpScriptException(getName() + " Invalid type for parameter '" + PARAM_GSKIP + "'.");
+      }
+      long gskip = ((Long) o).longValue();
+
+      if (gskip < 0L) {
+        throw new WarpScriptException(getName() + " Parameter '" + PARAM_GSKIP + "' must be >= 0.");
+      }
+      params.put(PARAM_GSKIP, gskip);
+    }
+
+    if (map.containsKey(PARAM_GCOUNT)) {
+      Object o = map.get(PARAM_GCOUNT);
+      if (!(o instanceof Long)) {
+        throw new WarpScriptException(getName() + " Invalid type for parameter '" + PARAM_GCOUNT + "'.");
+      }
+      long gcount = ((Long) o).longValue();
+
+      if (gcount < 0L) {
+        throw new WarpScriptException(getName() + " Parameter '" + PARAM_GCOUNT + "' must be >= 0.");
+      }
+      params.put(PARAM_GCOUNT, gcount);
     }
 
     return params;

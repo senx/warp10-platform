@@ -209,6 +209,9 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
 
     List<String> order = DEFAULT_LABELS_PRIORITY;
 
+    long gskip = 0L;
+    long gcount = Long.MAX_VALUE;
+
     if (mapparams) {
       top = stack.pop();
       Map<String,Object> params = paramsFromMap((Map) top);
@@ -236,6 +239,14 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
 
       if (params.containsKey(FETCH.PARAM_LABELS_PRIORITY)) {
         order = (List<String>) params.get(FETCH.PARAM_LABELS_PRIORITY);
+      }
+
+      if (params.get(FETCH.PARAM_GSKIP) instanceof Long) {
+        gskip = ((Long) params.get(FETCH.PARAM_GSKIP)).longValue();
+      }
+
+      if (params.get(FETCH.PARAM_GCOUNT) instanceof Long) {
+        gcount = ((Long) params.get(FETCH.PARAM_GCOUNT)).longValue();
       }
     } else {
       if (this.metaset) {
@@ -439,7 +450,18 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
     try {
       Thread thread = Thread.currentThread();
       while(iter.hasNext() && !thread.isInterrupted()) {
+        if (gcount <= 0) {
+          break;
+        }
+
         Metadata metadata = iter.next();
+
+        if (gskip > 0) {
+          gskip--;
+          continue;
+        }
+
+        gcount--;
 
         if (elements) {
           classes.add(metadata.getName());
@@ -640,7 +662,32 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
       params.put(FETCH.PARAM_LABELS_PRIORITY, prio);
     }
 
-    return params;
+    if (map.containsKey(FETCH.PARAM_GSKIP)) {
+      Object o = map.get(FETCH.PARAM_GSKIP);
+      if (!(o instanceof Long)) {
+        throw new WarpScriptException(getName() + " Invalid type for parameter '" + FETCH.PARAM_GSKIP + "'.");
+      }
+      long gskip = ((Long) o).longValue();
 
+      if (gskip < 0L) {
+        throw new WarpScriptException(getName() + " Parameter '" + FETCH.PARAM_GSKIP + "' must be >= 0.");
+      }
+      params.put(FETCH.PARAM_GSKIP, gskip);
+    }
+
+    if (map.containsKey(FETCH.PARAM_GCOUNT)) {
+      Object o = map.get(FETCH.PARAM_GCOUNT);
+      if (!(o instanceof Long)) {
+        throw new WarpScriptException(getName() + " Invalid type for parameter '" + FETCH.PARAM_GCOUNT + "'.");
+      }
+      long gcount = ((Long) o).longValue();
+
+      if (gcount < 0L) {
+        throw new WarpScriptException(getName() + " Parameter '" + FETCH.PARAM_GCOUNT + "' must be >= 0.");
+      }
+      params.put(FETCH.PARAM_GCOUNT, gcount);
+    }
+
+    return params;
   }
 }
