@@ -102,16 +102,14 @@ public class VarianceWelford extends NamedWarpScriptFunction implements WarpScri
     // Compute variance
     //
 
-    int n = nticks;
-    double variance = s / n;
+    double variance;
 
-    //
-    // Apply Bessel's correction
-    // @see <a href="http://en.wikipedia.org/wiki/Bessel's_correction">http://en.wikipedia.org/wiki/Bessel's_correction</a>
-    //
-
-    if (n > 1 && useBessel) {
-      variance = variance * ((double) n) / (((double) n) - 1.0D);
+    if (nticks > 1 && useBessel) {
+      // Apply Bessel's correction
+      // @see <a href="http://en.wikipedia.org/wiki/Bessel's_correction">http://en.wikipedia.org/wiki/Bessel's_correction</a>
+      variance = s / (nticks - 1);
+    } else {
+      variance = s / nticks;
     }
 
     return new Object[] { 0L, location, elevation, variance };
