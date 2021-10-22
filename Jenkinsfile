@@ -32,7 +32,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 notifyBuild('STARTED')
-                git poll: false, branch: "${getParam('gitBranch')}", url: "git@${getParam('gitHost')}:${getParam('gitOwner')}/${getParam('gitRepo')}.git"
+                checkout scm
                 script {
                     VERSION = getVersion()
                     TAG = getTag()
