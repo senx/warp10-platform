@@ -43,8 +43,7 @@ pipeline {
 
         stage('Build') {
             steps {
-                sh '$GRADLE_CMD clean build -x test'
-                sh '$GRADLE_CMD generateChangelog'
+                sh '$GRADLE_CMD build -x test'
                 archiveArtifacts allowEmptyArchive: true, artifacts: '**/build/libs/*.jar', fingerprint: true
             }
         }
