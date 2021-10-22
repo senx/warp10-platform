@@ -221,7 +221,7 @@ task generateChangelog(type: Exec) {
 
     String separator = "\uBEEF\uC0DE";
 
-    commandLine 'git', 'log', '--first-parent', 'master', '--decorate=short', '--decorate-refs=refs/tags/', '--format=%cs' + separator + '%D' + separator + '%s' + separator + '%b'
+    commandLine 'git', 'log', '--first-parent', '--decorate=short', '--decorate-refs=refs/tags/', '--format=%cs' + separator + '%D' + separator + '%s' + separator + '%b'
 
     standardOutput = new ByteArrayOutputStream()
 
