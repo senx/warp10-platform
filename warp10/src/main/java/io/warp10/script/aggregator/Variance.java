@@ -38,12 +38,18 @@ public class Variance extends NamedWarpScriptFunction implements WarpScriptMappe
   }
   
   public static class Builder extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-    
+
     private final boolean forbidNulls;
-    
+    private final boolean useWelford;
+
     public Builder(String name, boolean forbidNulls) {
+      this(name, forbidNulls, false);
+    }
+
+    public Builder(String name, boolean forbidNulls, boolean useWelford) {
       super(name);
       this.forbidNulls = forbidNulls;
+      this.useWelford = useWelford;
     }
     
     @Override
@@ -53,8 +59,12 @@ public class Variance extends NamedWarpScriptFunction implements WarpScriptMappe
       if (!(o instanceof Boolean)) {
         throw new WarpScriptException(getName() + " expects a boolean parameter to determine whether or not to apply Bessel's correction.");
       }
-      
-      stack.push(new Variance(getName(), (boolean) o, this.forbidNulls));
+
+      if (useWelford) {
+        stack.push(new VarianceWelford(getName(), (boolean) o, this.forbidNulls));
+      } else {
+        stack.push(new Variance(getName(), (boolean) o, this.forbidNulls));
+      }
       
       return stack;
     }
