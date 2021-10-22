@@ -120,7 +120,7 @@ dependencies {
     //
     // There are several jts-core (aka jts) packaging. The most up-to-date is org.locationtech.jts:jts-core but the versions
     // of the libs below use com.vividsolutions:jts/jts-core.
-    api('io.senx:geoxplib:1.0.2')
+    api('io.senx:geoxplib:1.0.4')
     api('org.wololo:jts2geojson:0.10.0') {
         // Conflicts with com.vividsolutions:jts pulled by io.senx:geoxplib
         exclude group: 'com.vividsolutions', module: 'jts-core'

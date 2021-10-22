@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -40,7 +40,8 @@ public class CORSHandler extends AbstractHandler {
     sb.append(Constants.getHeader(Configuration.HTTP_HEADER_TOKENX));
     sb.append(",");
     sb.append(StackPSWarpScriptExtension.HEADER_SESSION);
-    
+    // Added to comply with private network access - https://wicg.github.io/private-network-access/
+    sb.append(",Access-Control-Request-Private-Network");
     String corsHeadersProp = WarpConfig.getProperty(Configuration.CORS_HEADERS);
         
     if (null != corsHeadersProp) {
@@ -69,6 +70,7 @@ public class CORSHandler extends AbstractHandler {
     }    
     
     response.setHeader("Access-Control-Allow-Origin", "*");
+    response.setHeader("Access-Control-Allow-Private-Network", "true");
     response.setHeader("Access-Control-Allow-Methods", "OPTIONS,POST,GET");
     response.setHeader("Access-Control-Allow-Headers", headers);
     // Allow to cache preflight response for 30 days

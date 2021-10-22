@@ -251,6 +251,8 @@ public class DatalogForwarder extends Thread {
         return false;
       }
 
+      long nanos = System.nanoTime();
+
       BufferedReader br = null;
 
       HttpURLConnection conn = null;
@@ -399,6 +401,8 @@ public class DatalogForwarder extends Thread {
 
         return success;
       } catch (IOException ioe) {
+        LOG.error("Error while forwarding datalog UPDATE request after " + ((System.nanoTime() - nanos) / 1000000.0D) + " ms.", ioe);
+
         Map<String,String> labels = new HashMap<String,String>();
 
         if (null != name) {
@@ -423,6 +427,8 @@ public class DatalogForwarder extends Thread {
       if (!DatalogActionType.DELETE.equals(DatalogActionType.valueOf(action.request.getType()))) {
         return false;
       }
+
+      long nanos = System.nanoTime();
 
       HttpURLConnection conn = null;
 
@@ -469,6 +475,8 @@ public class DatalogForwarder extends Thread {
 
         return success;
       } catch (IOException ioe) {
+
+        LOG.error("Error while forwarding datalog DELETE request after " + ((System.nanoTime() - nanos) / 1000000.0D) + " ms.", ioe);
         Map<String,String> labels = new HashMap<String,String>();
 
         if (null != name) {
@@ -491,6 +499,8 @@ public class DatalogForwarder extends Thread {
       if (!DatalogActionType.META.equals(DatalogActionType.valueOf(action.request.getType()))) {
         return false;
       }
+
+      long nanos = System.nanoTime();
 
       BufferedReader br = null;
 
@@ -582,6 +592,8 @@ public class DatalogForwarder extends Thread {
 
         return success;
       } catch (IOException ioe) {
+        LOG.error("Error while forwarding datalog META request after " + ((System.nanoTime() - nanos) / 1000000.0D) + " ms.", ioe);
+
         Map<String,String> labels = new HashMap<String,String>();
 
         if (null != name) {
