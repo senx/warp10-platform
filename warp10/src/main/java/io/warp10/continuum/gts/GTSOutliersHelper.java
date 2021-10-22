@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -153,7 +153,7 @@ public class GTSOutliersHelper {
     double std = musigma[1];
     
     if (0.0D == std) {
-      throw new WarpScriptException((useMedian ? "Standard": "Median Absolute") + " Deviation is null");
+      throw new WarpScriptException((useMedian ? "Median Absolute": "Standard") + " Deviation is null");
     }    
     
     GeoTimeSerie gts_ = inplace ? gts : gts.clone();
