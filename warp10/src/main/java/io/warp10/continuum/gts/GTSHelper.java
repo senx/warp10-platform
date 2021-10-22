@@ -55,6 +55,8 @@ import org.apache.commons.math3.fitting.PolynomialCurveFitter;
 import org.apache.commons.math3.fitting.WeightedObservedPoint;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.geoxp.GeoXPLib;
 import com.geoxp.GeoXPLib.GeoXPShape;
@@ -88,8 +90,6 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.functions.MACROMAPPER;
 import io.warp10.script.functions.TOQUATERNION;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import sun.nio.cs.ArrayEncoder;
 
 
@@ -2435,6 +2435,10 @@ public class GTSHelper {
   }
 
   public static GTSEncoder parse(GTSEncoder encoder, String str, Map<String,String> extraLabels, Long now, long maxValueSize, AtomicBoolean parsedAttributes, Long maxpast, Long maxfuture, AtomicLong ignoredCount, boolean deltaAttributes) throws ParseException, IOException {
+    return parse(encoder, str, extraLabels, now, maxValueSize, parsedAttributes, maxpast, maxfuture, ignoredCount, deltaAttributes, 0);
+  }
+
+  public static GTSEncoder parse(GTSEncoder encoder, String str, Map<String,String> extraLabels, Long now, long maxValueSize, AtomicBoolean parsedAttributes, Long maxpast, Long maxfuture, AtomicLong ignoredCount, boolean deltaAttributes, long timeshift) throws ParseException, IOException {
 
     int idx = 0;
 
@@ -2472,6 +2476,8 @@ public class GTSHelper {
     } catch (NumberFormatException nfe) {
       throw new ParseException("Invalid timestamp.", tsoffset);
     }
+
+    timestamp += timeshift;
 
     boolean ignored = false;
 
@@ -5690,12 +5696,42 @@ public class GTSHelper {
       }
     }
 
-    Map<Map<String,String>, List<GeoTimeSerie>> partition = new HashMap<Map<String,String>, List<GeoTimeSerie>>();
+    Map<Map<String,String>, List<GeoTimeSerie>> partition = new HashMap<Map<String,String>, List<GeoTimeSerie>>(classes.size());
 
     for (Entry<Map<String, String>, List<GeoTimeSerie>> keyAndValue: classes.entrySet()) {
       partition.put(labelsbyclass.get(keyAndValue.getKey()), keyAndValue.getValue());
     }
     return partition;
+  }
+
+  /**
+   * Find common attributes, taking into account keys and values, in a list of GTSs.
+   * @param lgts List of GTSs to find common attributes from.
+   * @return The common attributes.
+   */
+  public static Map<String, String> commonAttributes(List<GeoTimeSerie> lgts) {
+    HashMap<String, String> commonAttributes = new HashMap<String, String>();
+
+    for (int i = 0; i < lgts.size(); i++) {
+      Map<String, String> attributes = lgts.get(i).getMetadata().getAttributes();
+      
+      if (null == attributes || attributes.isEmpty()) {
+        commonAttributes.clear();
+        break;
+      }
+
+      if (0 == i) {
+        commonAttributes.putAll(attributes);
+      } else {
+        commonAttributes.entrySet().retainAll(attributes.entrySet());
+
+        if (commonAttributes.isEmpty()) {
+          break;
+        }
+      }
+    }
+
+    return commonAttributes;
   }
 
   /**
@@ -7077,6 +7113,7 @@ public class GTSHelper {
 
       result.setName("");
       result.setLabels(partitionLabels);
+      result.getMetadata().setAttributes(commonAttributes(partitionSeries));
 
       //
       // Sort all series in the partition so we can scan their ticks in order
@@ -8042,7 +8079,7 @@ public class GTSHelper {
     // Sort gts
     //
 
-    Map<Object, Long> occurrences = new HashMap<Object, Long>();
+    Map<Object, Long> occurrences = new LinkedHashMap<Object, Long>();
 
     //
     // Count the actual values

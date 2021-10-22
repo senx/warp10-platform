@@ -40,6 +40,7 @@ import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.crypto.SipHashInline;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.script.WarpScriptException;
+import io.warp10.script.functions.DURATION;
 import io.warp10.sensision.Sensision;
 import io.warp10.warp.sdk.IngressPlugin;
 
@@ -74,6 +75,7 @@ import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
+import org.joda.time.Instant;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.slf4j.Logger;
@@ -518,6 +520,29 @@ public class StandaloneIngressHandler extends AbstractHandler {
             }
           }
         }
+
+
+        //
+        // Check the value of the timeshift header
+        //
+
+        String timeshiftstr = request.getHeader(Constants.HTTP_HEADER_TIMESHIFT);
+
+        long timeshift = 0L;
+
+        if (null != timeshiftstr) {
+          if (timeshiftstr.startsWith("P")) {
+            timeshift = DURATION.parseDuration(new Instant(), timeshiftstr, false, false);
+          } else {
+            try {
+              timeshift = Long.parseLong(timeshiftstr);
+            } catch (NumberFormatException nfe) {
+              httpStatusCode = HttpServletResponse.SC_BAD_REQUEST;
+              throw new IOException("Invalid timeshift.");
+            }
+          }
+        }
+
         //
         // Loop on all lines
         //
@@ -581,7 +606,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
           count++;
 
           try {
-            encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxsize, hadAttributes, maxpast, maxfuture, ignoredCount, deltaAttributes);
+            encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, maxsize, hadAttributes, maxpast, maxfuture, ignoredCount, deltaAttributes, timeshift);
             if (null != this.plugin) {
               if (!this.plugin.update(this, writeToken, line, encoder)) {
                 hadAttributes.set(false);

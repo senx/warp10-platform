@@ -536,6 +536,7 @@ public class WarpScriptLib {
   public static final String FORGET = "FORGET";
   public static final String DEFINED = "DEFINED";
   public static final String REDEFS = "REDEFS";
+  public static final String GUARD = "GUARD";
   public static final String DEFINEDMACRO = "DEFINEDMACRO";
   public static final String CHECKMACRO = "CHECKMACRO";
   public static final String NAN = "NaN";
@@ -1370,6 +1371,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new RETHROW(RETHROW));
     addNamedWarpScriptFunction(new ERROR(ERROR));
     addNamedWarpScriptFunction(new TIMEBOX(TIMEBOX));
+    addNamedWarpScriptFunction(new GUARD(GUARD));
     addNamedWarpScriptFunction(new JSONSTRICT(JSONSTRICT));
     addNamedWarpScriptFunction(new JSONLOOSE(JSONLOOSE));;
     addNamedWarpScriptFunction(new JSONPRETTY(JSONPRETTY));
@@ -2401,7 +2403,10 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new CircularMean.Builder("bucketizer.mean.circular", true));
     addNamedWarpScriptFunction(new CircularMean.Builder("bucketizer.mean.circular.exclude-nulls", false));
     addNamedWarpScriptFunction(new RMS("bucketizer.rms", false));
+    addNamedWarpScriptFunction(new Variance.Builder("bucketizer.var", false));
+    addNamedWarpScriptFunction(new Variance.Builder("bucketizer.var.welford", false, true));
     addNamedWarpScriptFunction(new StandardDeviation.Builder("bucketizer.sd", false));
+    addNamedWarpScriptFunction(new StandardDeviation.Builder("bucketizer.sd.welford", false, true));
     addNamedWarpScriptFunction(new StandardDeviation.Builder("bucketizer.sd.forbid-nulls", true));
 
     //
@@ -2431,7 +2436,9 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new VSpeed("mapper.vspeed"));
     addNamedWarpScriptFunction(new VDist("mapper.vdist"));
     addNamedWarpScriptFunction(new Variance.Builder("mapper.var", false));
+    addNamedWarpScriptFunction(new Variance.Builder("mapper.var.welford", false, true));
     addNamedWarpScriptFunction(new StandardDeviation.Builder("mapper.sd", false));
+    addNamedWarpScriptFunction(new StandardDeviation.Builder("mapper.sd.welford", false, true));
     addNamedWarpScriptFunction(new MapperAbs("mapper.abs"));
     addNamedWarpScriptFunction(new MapperCeil("mapper.ceil"));
     addNamedWarpScriptFunction(new MapperFloor("mapper.floor"));
@@ -2486,9 +2493,13 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new Join.Builder("reducer.join.nonnull", false, false, null));
     addNamedWarpScriptFunction(new Join.Builder("reducer.join.urlencoded", false, true, ""));
     addNamedWarpScriptFunction(new Variance.Builder("reducer.var", false));
-    addNamedWarpScriptFunction(new Variance.Builder("reducer.var.forbid-nulls", false));
+    addNamedWarpScriptFunction(new Variance.Builder("reducer.var.welford", false, true));
+    addNamedWarpScriptFunction(new Variance.Builder("reducer.var.forbid-nulls", true));
+    addNamedWarpScriptFunction(new Variance.Builder("reducer.var.welford.forbid-nulls", true, true));
     addNamedWarpScriptFunction(new StandardDeviation.Builder("reducer.sd", false));
-    addNamedWarpScriptFunction(new StandardDeviation.Builder("reducer.sd.forbid-nulls", false));
+    addNamedWarpScriptFunction(new StandardDeviation.Builder("reducer.sd.welford", false, true));
+    addNamedWarpScriptFunction(new StandardDeviation.Builder("reducer.sd.forbid-nulls", true));
+    addNamedWarpScriptFunction(new StandardDeviation.Builder("reducer.sd.welford.forbid-nulls", true, true));
     addNamedWarpScriptFunction(new Argminmax.Builder("reducer.argmin", true));
     addNamedWarpScriptFunction(new Argminmax.Builder("reducer.argmax", false));
     addNamedWarpScriptFunction(new MapperProduct("reducer.product"));

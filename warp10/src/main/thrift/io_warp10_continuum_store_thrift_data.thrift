@@ -310,6 +310,12 @@ struct DirectoryRequest {
    * Timestamp (in ms) after which a given Geo Time Series was quiet.
    */
   4: optional i64 quietAfter,  
+
+  /**
+   * Optional flag indicating the returned Metadata MUST absolutely be sorted.
+   * This is mainly so HFDUMP can create HFiles from sorted GTS
+   */
+  5: optional bool sorted = false,
 }
 
 struct GTSWrapper {

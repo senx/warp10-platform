@@ -40,6 +40,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
+import org.joda.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,22 +50,28 @@ import io.warp10.continuum.BootstrapManager;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.LogUtil;
 import io.warp10.continuum.TimeSource;
+import io.warp10.continuum.Tokens;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.continuum.thrift.data.LoggingEvent;
 import io.warp10.crypto.KeyStore;
+import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.script.MemoryWarpScriptStack;
 import io.warp10.script.StackUtils;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStack.Signal;
 import io.warp10.script.WarpScriptStack.StackContext;
 import io.warp10.script.WarpScriptStackRegistry;
 import io.warp10.script.WarpScriptStopException;
 import io.warp10.script.ext.stackps.StackPSWarpScriptExtension;
 import io.warp10.script.functions.AUTHENTICATE;
+import io.warp10.script.functions.DURATION;
+import io.warp10.script.functions.RUNNERNONCE;
+import io.warp10.script.functions.TIMEBOX;
 import io.warp10.sensision.Sensision;
 import io.warp10.warp.sdk.Capabilities;
 
@@ -82,7 +89,25 @@ public class EgressExecHandler extends AbstractHandler {
 
   private final BootstrapManager bootstrapManager;
 
+  // Our version of TIMEBOX will signal the stack with a KILL signal to ensure its
+  // execution is definitely aborted. It will also not enforce limits since limits are
+  // handled here.
+  private static final TIMEBOX TIMEBOX = new TIMEBOX(WarpScriptLib.TIMEBOX, Signal.KILL, false, true);
+
+  private static final RUNNERNONCE RUNNERNONCE = new RUNNERNONCE(WarpScriptLib.RUNNERNONCE);
+
+  private static final long RUNNER_NONCE_VALIDITY = Long.parseLong(WarpConfig.getProperty(Configuration.EGRESS_RUNNER_NONCE_VALIDITY, Long.toString(1000L)));
+  private static final long MAXTIME;
+
+  static {
+    MAXTIME = Long.parseLong(WarpConfig.getProperty(Configuration.EGRESS_MAXTIME, "0")) * Constants.TIME_UNITS_PER_MS;
+    if (MAXTIME < 0) {
+      throw new RuntimeException("Invalid negative value for " + Configuration.EGRESS_MAXTIME + ".");
+    }
+  }
+
   public EgressExecHandler(KeyStore keyStore, Properties properties, DirectoryClient directoryClient, StoreClient storeClient) {
+
     this.keyStore = keyStore;
     this.storeClient = storeClient;
     this.directoryClient = directoryClient;
@@ -217,6 +242,7 @@ public class EgressExecHandler extends AbstractHandler {
       //
       // Extract parameters from the path info and set their value as symbols
       //
+      // TODO(hbs): we should us an alternate stack for those executions and limit the number of ops and timebox the exec
 
       String pathInfo = req.getPathInfo();
 
@@ -285,6 +311,109 @@ public class EgressExecHandler extends AbstractHandler {
 
       boolean terminate = false;
 
+      //
+      // Timeboxing of the /exec requests is done in the following manner:
+      //
+      // If the configuration 'egress.maxtime' is set, the execution is
+      // bounded by the provided value (in ms).
+      //
+      // If a token with the capability specified in 'warpscript.timebox.maxtime.capname' is
+      // passed in the X-Warp10-Capabilities header and its value is above that specified in
+      // 'egress.maxtime', the value of the capability will be used as the new limit of the custom execution times.
+      //
+      // The header X-Warp10-Timebox is checked, if present, the value is interpreted as a
+      // limit in ms or as an ISO8601 period. This value is the requested maximum execution time
+      // of the /exec request. It will be capped to either egress.maxtime or the value provided in the
+      // token (see above).
+      //
+      // If the header X-Warp10-Runner-Nonce is set with a value which is within egress.runner.nonce.validity
+      // then the time boxing is waived.
+      //
+
+      String timebox = req.getHeader(Constants.HTTP_HEADER_TIMEBOX);
+
+      // Value set in 'egress.maxtime'
+      long maxtime = MAXTIME;
+
+      //
+      // Check the capability
+      //
+
+      long maxtimeCapability = MAXTIME;
+
+      if (maxtime > 0 && null != TIMEBOX.TIMEBOX_MAXTIME_CAPNAME && null != Capabilities.get(stack, TIMEBOX.TIMEBOX_MAXTIME_CAPNAME)) {
+        String val = Capabilities.get(stack, TIMEBOX.TIMEBOX_MAXTIME_CAPNAME).trim();
+
+        if (val.startsWith("P")) {
+          maxtimeCapability = DURATION.parseDuration(new Instant(), val, false, false);
+        } else {
+          try {
+            maxtimeCapability = Long.valueOf(Capabilities.get(stack, TIMEBOX.TIMEBOX_MAXTIME_CAPNAME)) * Constants.TIME_UNITS_PER_MS;
+          } catch (NumberFormatException nfe) {
+          }
+        }
+        // make sure value is positive
+        maxtimeCapability = Math.max(0, maxtimeCapability);
+
+        if (maxtimeCapability > 0) {
+          maxtime = Math.max(maxtime, maxtimeCapability);
+        } else {
+          maxtime = 0;
+        }
+      }
+
+      long maxtimeHeader = 0;
+
+      if (null != timebox) {
+        if (timebox.startsWith("P")) {
+          maxtimeHeader = DURATION.parseDuration(new Instant(), timebox, false, false);
+        } else {
+          try {
+            maxtimeHeader = Long.parseLong(timebox) * Constants.TIME_UNITS_PER_MS;
+          } catch (NumberFormatException nfe) {
+          }
+        }
+
+        maxtimeHeader = Math.max(0, maxtimeHeader);
+      }
+
+      if (maxtimeHeader > 0) {
+        if (maxtime > 0) {
+          maxtime = Math.min(maxtime, maxtimeHeader);
+        } else {
+          // No bound was set, use the limit provided in the header
+          maxtime = maxtimeHeader;
+        }
+      }
+
+      if (null != req.getHeader(Constants.HTTP_HEADER_RUNNER_NONCE)) {
+        try {
+          Long nonce = RUNNERNONCE.getNonce(req.getHeader(Constants.HTTP_HEADER_RUNNER_NONCE));
+
+          if (null != nonce) {
+            long delta = TimeSource.getTime() - nonce;
+
+            // Waive the time boxing if the nonce is still valid
+            if ((delta / Constants.TIME_UNITS_PER_MS) <= RUNNER_NONCE_VALIDITY) {
+              maxtime = 0;
+            } else {
+              LOG.warn("Runner nonce has expired.");
+            }
+          }
+        } catch (Exception e) {
+        }
+      }
+
+      boolean forcedMacro = maxtime > 0;
+
+      if (forcedMacro) {
+        stack.macroOpen();
+      }
+
+      if (null != req.getHeader(Constants.HTTP_HEADER_LINES)) {
+        stack.setAttribute(WarpScriptStack.ATTRIBUTE_LINENO, true);
+      }
+
       while(!terminate) {
         String line = br.readLine();
 
@@ -321,11 +450,23 @@ public class EgressExecHandler extends AbstractHandler {
         times.add(end - nano);
       }
 
+      if (forcedMacro) {
+        stack.macroClose();
+      }
+
       //
       // Make sure stack is balanced
       //
 
       stack.checkBalanced();
+
+      if (maxtime > 0) {
+        stack.push(maxtime);
+        TIMEBOX.apply(stack);
+      }
+
+      // Handle possible signals to determine if termination is normal or not
+      stack.handleSignal();
 
       //
       // Check the user defined headers and set them.
@@ -460,6 +601,7 @@ public class EgressExecHandler extends AbstractHandler {
         return;
       }
     } finally {
+      stack.signal(Signal.KILL);
       WarpConfig.clearThreadProperties();
       WarpScriptStackRegistry.unregister(stack);
 

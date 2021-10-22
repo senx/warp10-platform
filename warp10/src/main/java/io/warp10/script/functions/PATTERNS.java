@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -70,7 +70,7 @@ public class PATTERNS extends NamedWarpScriptFunction implements WarpScriptStack
     if (top instanceof GeoTimeSerie) {
       stack.push(GTSHelper.bSAX((GeoTimeSerie) top, alphabetSize, wordLen, windowLen, standardizePAA));
     } else if (top instanceof List) {
-      List<GeoTimeSerie> series = new ArrayList<GeoTimeSerie>();
+      List<GeoTimeSerie> series = new ArrayList<GeoTimeSerie>(((List<Object>) top).size());
       
       for (Object o: (List<Object>) top) {
         if (! (o instanceof GeoTimeSerie)) {

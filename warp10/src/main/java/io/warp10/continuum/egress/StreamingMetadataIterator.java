@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -42,40 +42,40 @@ import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.crypto.SipHashInline;
 
 public class StreamingMetadataIterator extends MetadataIterator {
-  
+
   /**
    * Index on classSelectors
    */
   int idx = 0;
-  
+
   /**
    * Index in URL list
    */
   int urlidx = 0;
-  
+
   InputStream stream = null;
-  
+
   HttpURLConnection conn = null;
-  
+
   BufferedReader reader = null;
-  
+
   Metadata metadata = null;
-  
-  private final long[] SIPHASH_PSK; 
-  
+
+  private final long[] SIPHASH_PSK;
+
   private final DirectoryRequest directoryRequest;
-  
+
   private final List<URL> urls;
 
   private final boolean noProxy;
-  
-  public StreamingMetadataIterator(long[] SIPHASH_PSK, DirectoryRequest request, List<URL> urls, boolean noProxy) {        
+
+  public StreamingMetadataIterator(long[] SIPHASH_PSK, DirectoryRequest request, List<URL> urls, boolean noProxy) {
     this.SIPHASH_PSK = SIPHASH_PSK;
     this.directoryRequest = request;
     this.urls = urls;
     this.noProxy = noProxy;
   }
-    
+
   @Override
   public boolean hasNext() {
     try {
@@ -84,27 +84,27 @@ public class StreamingMetadataIterator extends MetadataIterator {
       return false;
     }
   }
-    
+
   private synchronized boolean hasNextInternal() throws Exception {
-    
+
     //
     // If there is a pending Metadata, return true
     //
-    
+
     if (null != metadata) {
       return true;
     }
-    
+
     //
     // If we ran out of selectors, return false
     //
-    
+
     // TODO(hbs): swap idx and urlidx. Add support for multiple selectors in query string
-    
+
     if (idx >= directoryRequest.getClassSelectorsSize()) {
       return false;
     }
-            
+
     if (null == reader) {
       if (urlidx >= urls.size()) {
         urlidx = 0;
@@ -112,19 +112,19 @@ public class StreamingMetadataIterator extends MetadataIterator {
         // Call us recursively
         return hasNext();
       }
-      
+
       // Compute request signature
-      
+
       long now = System.currentTimeMillis();
-      
+
       // Rebuild selector
-      
+
       StringBuilder selector = new StringBuilder();
       selector.append(WarpURLEncoder.encode(directoryRequest.getClassSelectors().get(idx), StandardCharsets.UTF_8));
       selector.append("{");
-      
+
       boolean first = true;
-      
+
       for (Entry<String,String> entry: directoryRequest.getLabelsSelectors().get(idx).entrySet()) {
         if (!first) {
           selector.append(","); // ','
@@ -141,19 +141,19 @@ public class StreamingMetadataIterator extends MetadataIterator {
           selector.append(WarpURLEncoder.encode(entry.getValue(), StandardCharsets.UTF_8));
         }
         first = false;
-      }        
-      
+      }
+
       selector.append("}");
 
       String tssel = now + ":" + selector.toString();
 
       byte[] data = tssel.getBytes(StandardCharsets.UTF_8);
       long hash = SipHashInline.hash24(SIPHASH_PSK[0], SIPHASH_PSK[1], data, 0, data.length);
-      
+
       String signature = Long.toHexString(now) + ":" + Long.toHexString(hash);
-      
+
       // Open connection
-      
+
       String qs = Constants.HTTP_PARAM_SELECTOR + "=" + new String(OrderPreservingBase64.encode(selector.toString().getBytes(StandardCharsets.UTF_8)), StandardCharsets.US_ASCII);
 
       if (directoryRequest.isSetActiveAfter()) {
@@ -166,28 +166,28 @@ public class StreamingMetadataIterator extends MetadataIterator {
 
       //URL url = new URL(urls.get(urlidx) + "?" + qs);
       URL url = urls.get(urlidx);
-      
+
       conn = (HttpURLConnection) (this.noProxy ? url.openConnection(Proxy.NO_PROXY) : url.openConnection());
-      
-      conn.setRequestMethod("POST");      
+
+      conn.setRequestMethod("POST");
       conn.setChunkedStreamingMode(8192);
       conn.setRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_DIRECTORY_SIGNATURE), signature);
       conn.setDoInput(true);
       conn.setDoOutput(true);
-      
+
       OutputStream out = conn.getOutputStream();
       out.write(qs.getBytes(StandardCharsets.US_ASCII));
       out.flush();
-      
-      reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));          
+
+      reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
     }
-    
+
     //
     // Attempt to read the next line
     //
-    
+
     String line = reader.readLine();
-    
+
     if (null == line) {
       reader.close();
       conn.disconnect();
@@ -196,26 +196,26 @@ public class StreamingMetadataIterator extends MetadataIterator {
       urlidx++;
       return hasNext();
     }
-    
+
     //
     // Decode Metadata
     //
-    
+
     byte[] bytes = OrderPreservingBase64.decode(line.getBytes(StandardCharsets.US_ASCII));
-    
+
     TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
-    
+
     Metadata meta = new Metadata();
-    
+
     deserializer.deserialize(meta, bytes);
-    
+
     metadata = meta;
-    
+
     return true;
   }
-    
+
   @Override
-  public Metadata next() throws NoSuchElementException {        
+  public Metadata next() throws NoSuchElementException {
     if (!hasNext()) {
       throw new NoSuchElementException();
     }
@@ -227,7 +227,7 @@ public class StreamingMetadataIterator extends MetadataIterator {
       return meta;
     }
   }
-  
+
   @Override
   public void close() throws Exception {
     if (null != this.reader) {
@@ -241,6 +241,14 @@ public class StreamingMetadataIterator extends MetadataIterator {
     if (null != this.conn) {
       try { this.conn.disconnect(); } catch (Exception e) {}
       this.conn = null;
+    }
+  }
+
+  public static MetadataIterator getIterator(long[] SIPHASH_PSK, DirectoryRequest request, List<URL> urls, boolean noProxy) {
+    if (request.isSorted()) {
+      return new MergeSortStreamingMetadataIterator(SIPHASH_PSK, request, urls, noProxy);
+    } else {
+      return new StreamingMetadataIterator(SIPHASH_PSK, request, urls, noProxy);
     }
   }
 }

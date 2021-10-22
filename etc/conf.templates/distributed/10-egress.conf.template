@@ -192,3 +192,21 @@ egress.hbase.filter = true
 // Defaults to 16. 
 //
 #egress.hbase.parallelscanners.max.parallel.scanners =
+
+//
+// Maximum execution time of requests to the /exec endpoint (in ms).
+// This value may be overriden by specifying a token with the capability specified in
+// warpscript.timebox.maxtime.capname set to a limit in ms and passing this token in
+// the X-Warp10-Capabilities header.
+// By default the maximum execution time is not bounded.
+//
+#egress.maxtime = 1000
+
+//
+// Maximum validity of runner nonces (in ms). Runner scripts are submitted to the /exec endpoint
+// with the header X-Warp10-Runner-Nonce set to a nonce containing the time of execution in ns since
+// the epoch. If the nonce is correct and less than this many ms in the past, the time boxing is
+// waived for the execution.
+// The default value if 1000 ms
+//
+#egress.runner.nonce.validity = 1000

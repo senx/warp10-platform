@@ -879,6 +879,11 @@ public interface WarpScriptStack {
   public void restore() throws WarpScriptException;
 
   /**
+   * Restore the given stack context
+   */
+  public void restore(StackContext context) throws WarpScriptException;
+
+  /**
    * Hide all stack levels
    * @return The number of levels actually hidden
    */

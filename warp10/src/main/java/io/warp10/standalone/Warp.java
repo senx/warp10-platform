@@ -302,7 +302,7 @@ public class Warp extends WarpDist implements Runnable {
       throw new RuntimeException("Missing '" + Configuration.STANDALONE_PORT + "' or '" + Configuration.STANDALONE_PREFIX + Configuration._SSL_PORT + "' configuration");
     }
 
-    List<Connector> connectors = new ArrayList<Connector>();
+    List<Connector> connectors = new ArrayList<Connector>(2);
 
     if (useHTTP) {
       int acceptors = Integer.valueOf(properties.getProperty(Configuration.STANDALONE_ACCEPTORS, DEFAULT_HTTP_ACCEPTORS));
