@@ -175,6 +175,7 @@ import io.warp10.script.mapper.MapperNPDF;
 import io.warp10.script.mapper.MapperParseDouble;
 import io.warp10.script.mapper.MapperPow;
 import io.warp10.script.mapper.MapperProduct;
+import io.warp10.script.mapper.MapperRegEx;
 import io.warp10.script.mapper.MapperReplace;
 import io.warp10.script.mapper.MapperRound;
 import io.warp10.script.mapper.MapperSecondOfMinute;
@@ -2465,6 +2466,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new CircularMean.Builder("mapper.mean.circular.exclude-nulls", false));
     addNamedWarpScriptFunction(new MapperMod.Builder("mapper.mod"));
     addNamedWarpScriptFunction(new RMS("mapper.rms", false));
+    addNamedWarpScriptFunction(new MapperRegEx.Builder("mapper.regex.match"));
 
     //
     // Reducers
