@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@
 package io.warp10.hadoop;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -25,15 +24,12 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.JobContext;
@@ -145,6 +141,23 @@ public class WarpScriptInputFormat extends InputFormat<Object, Object> {
    * which was passed as parameter.
    */
   public WarpScriptExecutor getWarpScriptExecutor(Configuration conf, String code) throws IOException,WarpScriptException {
+    Map<String,Object> symbols = new HashMap<String,Object>();
+    Map<String, List<String>> config = new HashMap<String,List<String>>();
+
+    Iterator<Entry<String,String>> iter = conf.iterator();
+
+    while(iter.hasNext()) {
+      Entry<String,String> entry = iter.next();
+      List<String> target = config.get(entry.getKey());
+      if (null == target) {
+        target = new ArrayList<String>();
+        config.put(entry.getKey(), target);
+      }
+      target.add(entry.getValue());
+    }
+
+    symbols.put(CONFIG_SYMBOL, config);
+
     if (code.startsWith("@") || code.startsWith("%")) {
 
       //
@@ -154,23 +167,6 @@ public class WarpScriptInputFormat extends InputFormat<Object, Object> {
       String originalfilePath = code.substring(1);
 
       String mc2 = parseWarpScript(originalfilePath);
-
-      Map<String,Object> symbols = new HashMap<String,Object>();
-      Map<String, List<String>> config = new HashMap<String,List<String>>();
-
-      Iterator<Entry<String,String>> iter = conf.iterator();
-
-      while(iter.hasNext()) {
-        Entry<String,String> entry = iter.next();
-        List<String> target = config.get(entry.getKey());
-        if (null == target) {
-          target = new ArrayList<String>();
-          config.put(entry.getKey(), target);
-        }
-        target.add(entry.getValue());
-      }
-
-      symbols.put(CONFIG_SYMBOL, config);
 
       WarpScriptExecutor executor = new WarpScriptExecutor(StackSemantics.PERTHREAD, mc2, symbols, null, code.startsWith("@"));
       return executor;
@@ -184,7 +180,7 @@ public class WarpScriptInputFormat extends InputFormat<Object, Object> {
       // Compute the hash against String content to identify this run
       //
 
-      WarpScriptExecutor executor = new WarpScriptExecutor(StackSemantics.PERTHREAD, code, null, null);
+      WarpScriptExecutor executor = new WarpScriptExecutor(StackSemantics.PERTHREAD, code, symbols, null);
       return executor;
     }
 
