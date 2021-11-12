@@ -27,7 +27,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
-public class MapperRegEx extends NamedWarpScriptFunction implements WarpScriptMapperFunction {
+public class MapperRegExpMatch extends NamedWarpScriptFunction implements WarpScriptMapperFunction {
 
   private Matcher matcher;
 
@@ -42,7 +42,7 @@ public class MapperRegEx extends NamedWarpScriptFunction implements WarpScriptMa
       Object value = stack.pop();
 
       if (!(value instanceof String)) {
-        throw new WarpScriptException(getName() + " expects a regex STRING.");
+        throw new WarpScriptException(getName() + " expects a regexp STRING.");
       }
 
       Matcher matcher;
@@ -50,16 +50,16 @@ public class MapperRegEx extends NamedWarpScriptFunction implements WarpScriptMa
         Pattern pattern = Pattern.compile((String) value);
         matcher = pattern.matcher("");
       } catch (PatternSyntaxException pse) {
-        throw new WarpScriptException(getName() + " expects a valid regex.", pse);
+        throw new WarpScriptException(getName() + " expects a valid regexp.", pse);
       }
 
-      stack.push(new MapperRegEx(getName(), matcher));
+      stack.push(new MapperRegExpMatch(getName(), matcher));
 
       return stack;
     }
   }
 
-  public MapperRegEx(String name, Matcher matcher) {
+  public MapperRegExpMatch(String name, Matcher matcher) {
     super(name);
     this.matcher = matcher;
   }
