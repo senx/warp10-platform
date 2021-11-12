@@ -30,6 +30,11 @@ out/
 .metadata
 bin/
 
+# VS Code
+# -------
+.vscode/
+.history/
+
 # macOS
 # -----
 .DS_Store
