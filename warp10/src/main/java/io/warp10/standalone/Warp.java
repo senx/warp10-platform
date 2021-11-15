@@ -67,6 +67,7 @@ import io.warp10.continuum.store.ParallelGTSDecoderIteratorWrapper;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OSSKeyStore;
+import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.crypto.UnsecureKeyStore;
 import io.warp10.quasar.filter.QuasarTokenFilter;
 import io.warp10.script.ScriptRunner;
@@ -175,15 +176,30 @@ public class Warp extends WarpDist implements Runnable {
     // keys.
     //
 
-    for (Entry<Object, Object> entry: properties.entrySet()) {
+    Map<String,String> secrets = new HashMap<String,String>();
+    for (Entry<Object,Object> entry: properties.entrySet()) {
       if (entry.getKey().toString().startsWith(Configuration.WARP_KEY_PREFIX)) {
         byte[] key = keystore.decodeKey(entry.getValue().toString());
         if (null == key) {
           throw new RuntimeException("Unable to decode key '" + entry.getKey() + "'.");
         }
         keystore.setKey(entry.getKey().toString().substring(Configuration.WARP_KEY_PREFIX.length()), key);
+        // Remove the key definition
+        properties.remove(entry.getKey());
+      } else if (entry.getKey().toString().startsWith(Configuration.WARP_SECRET_PREFIX)) {
+        byte[] secret = keystore.decodeKey(entry.getValue().toString());
+        if (null == secret) {
+          throw new RuntimeException("Unable to decode secret '" + entry.getKey() + "'.");
+        }
+        // Encode secret as OPB64 and store it
+        secrets.put(entry.getKey().toString().substring(Configuration.WARP_SECRET_PREFIX.length()), OrderPreservingBase64.encodeToString(secret));
+        // Remove the secret from the properties
+        properties.remove(entry.getKey());
       }
     }
+
+    // Inject the secrets
+    properties.putAll(secrets);
 
     extractKeys(keystore, properties);
 
