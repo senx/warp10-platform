@@ -29,7 +29,7 @@ import java.util.regex.PatternSyntaxException;
 
 public class MapperRegExpMatch extends NamedWarpScriptFunction implements WarpScriptMapperFunction {
 
-  private Matcher matcher;
+  private final Pattern pattern;
 
   public static class Builder extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
@@ -42,26 +42,25 @@ public class MapperRegExpMatch extends NamedWarpScriptFunction implements WarpSc
       Object value = stack.pop();
 
       if (!(value instanceof String)) {
-        throw new WarpScriptException(getName() + " expects a regexp STRING.");
+        throw new WarpScriptException(getName() + " expects a regular expression STRING.");
       }
 
-      Matcher matcher;
+      Pattern pattern;
       try {
-        Pattern pattern = Pattern.compile((String) value);
-        matcher = pattern.matcher("");
+        pattern = Pattern.compile((String) value);
       } catch (PatternSyntaxException pse) {
-        throw new WarpScriptException(getName() + " expects a valid regexp.", pse);
+        throw new WarpScriptException(getName() + " expects a valid regular expression.", pse);
       }
 
-      stack.push(new MapperRegExpMatch(getName(), matcher));
+      stack.push(new MapperRegExpMatch(getName(), pattern));
 
       return stack;
     }
   }
 
-  public MapperRegExpMatch(String name, Matcher matcher) {
+  public MapperRegExpMatch(String name, Pattern pattern) {
     super(name);
-    this.matcher = matcher;
+    this.pattern = pattern;
   }
 
   @Override
@@ -72,7 +71,8 @@ public class MapperRegExpMatch extends NamedWarpScriptFunction implements WarpSc
     Object[] values = (Object[]) args[6];
 
     for (int i = 0; i < values.length; i++) {
-      if (values[i] instanceof String && matcher.reset((String) values[i]).matches()) {
+      Matcher matcher = pattern.matcher((String) values[i]);
+      if (values[i] instanceof String && matcher.matches()) {
         return new Object[] {tick, locations[i], elevations[i], values[i]};
       }
     }

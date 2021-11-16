@@ -28,8 +28,8 @@ import java.util.regex.PatternSyntaxException;
 
 public class MapperRegExpReplace extends NamedWarpScriptFunction implements WarpScriptMapperFunction {
 
-  private Matcher matcher;
-  private String replacement;
+  private final Pattern pattern;
+  private final String replacement;
 
   public static class Builder extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
@@ -50,26 +50,25 @@ public class MapperRegExpReplace extends NamedWarpScriptFunction implements Warp
       top = stack.pop();
 
       if (!(top instanceof String)) {
-        throw new WarpScriptException(getName() + " expects a regexp STRING.");
+        throw new WarpScriptException(getName() + " expects a regular expression STRING.");
       }
 
-      Matcher matcher;
+      Pattern pattern;
       try {
-        Pattern pattern = Pattern.compile((String) top);
-        matcher = pattern.matcher("");
+        pattern = Pattern.compile((String) top);
       } catch (PatternSyntaxException pse) {
-        throw new WarpScriptException(getName() + " expects a valid regexp.", pse);
+        throw new WarpScriptException(getName() + " expects a valid regular expression.", pse);
       }
 
-      stack.push(new MapperRegExpReplace(getName(), matcher, replacement));
+      stack.push(new MapperRegExpReplace(getName(), pattern, replacement));
 
       return stack;
     }
   }
 
-  public MapperRegExpReplace(String name, Matcher matcher, String replacement) {
+  public MapperRegExpReplace(String name, Pattern pattern, String replacement) {
     super(name);
-    this.matcher = matcher;
+    this.pattern = pattern;
     this.replacement = replacement;
   }
 
@@ -84,7 +83,7 @@ public class MapperRegExpReplace extends NamedWarpScriptFunction implements Warp
       throw new WarpScriptException(getName() + " can only be applied to a single value.");
     }
 
-    matcher.reset((String) values[0]);
+    Matcher matcher = pattern.matcher((String) values[0]);
     return new Object[] {tick, locations[0], elevations[0], matcher.replaceAll(replacement)};
   }
 }
