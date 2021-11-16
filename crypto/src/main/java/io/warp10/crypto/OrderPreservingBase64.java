@@ -56,7 +56,7 @@ public class OrderPreservingBase64 {
   }
 
   public static String encodeToString(byte[] data) {
-    return new String(encode(data), StandardCharsets.US_ASCII);
+    return new String(encode(data), StandardCharsets.UTF_8);
   }
 
   /**

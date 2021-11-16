@@ -177,6 +177,7 @@ public class Warp extends WarpDist implements Runnable {
     //
 
     Map<String,String> secrets = new HashMap<String,String>();
+    Set<Object> keys = new HashSet<Object>();
     for (Entry<Object,Object> entry: properties.entrySet()) {
       if (entry.getKey().toString().startsWith(Configuration.WARP_KEY_PREFIX)) {
         byte[] key = keystore.decodeKey(entry.getValue().toString());
@@ -184,8 +185,7 @@ public class Warp extends WarpDist implements Runnable {
           throw new RuntimeException("Unable to decode key '" + entry.getKey() + "'.");
         }
         keystore.setKey(entry.getKey().toString().substring(Configuration.WARP_KEY_PREFIX.length()), key);
-        // Remove the key definition
-        properties.remove(entry.getKey());
+        keys.add(entry.getKey());
       } else if (entry.getKey().toString().startsWith(Configuration.WARP_SECRET_PREFIX)) {
         byte[] secret = keystore.decodeKey(entry.getValue().toString());
         if (null == secret) {
@@ -193,9 +193,15 @@ public class Warp extends WarpDist implements Runnable {
         }
         // Encode secret as OPB64 and store it
         secrets.put(entry.getKey().toString().substring(Configuration.WARP_SECRET_PREFIX.length()), OrderPreservingBase64.encodeToString(secret));
-        // Remove the secret from the properties
-        properties.remove(entry.getKey());
+        keys.add(entry.getKey());
       }
+    }
+
+    //
+    // Remove keys and secrets from the properties
+    //
+    for (Object key: keys) {
+      properties.remove(key);
     }
 
     // Inject the secrets
