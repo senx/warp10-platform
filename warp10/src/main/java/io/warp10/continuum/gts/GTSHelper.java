@@ -316,7 +316,7 @@ public class GTSHelper {
     GTSEncoder enc = null;
 
     //
-    // Split the encoder in 5 GTS, one per type, in this order:
+    // Split the encoder in 6 GTS, one per type, in this order:
     //
     // LONG, DOUBLE, BOOLEAN, STRING, BINARY, DELETE MARKERS
     //
@@ -373,7 +373,9 @@ public class GTSHelper {
     // The GTS with deletion markers is handled separately
     int[] idx = new int[gts.length - 1];
 
-    // Add the deletion markers at the beginning of the encoder
+    // Add the deletion markers at the beginning of the encoder. This way the semantics of the deletions
+    // is preserved if merging the encoders as the values of this encoder which should have been deleted already
+    // were and the values of any preceding encoder which should be deleted will.
     for (int i = 0; i < gts[5].values; i++) {
       enc.addValue(GTSHelper.tickAtIndex(gts[5], i), GTSHelper.locationAtIndex(gts[5], i), GTSHelper.elevationAtIndex(gts[5], i), MARKERS.DELETE);
     }
