@@ -16,6 +16,7 @@
 
 package io.warp10.continuum.gts;
 
+import io.warp10.continuum.gts.GTSEncoder.MARKERS;
 import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
 import io.warp10.continuum.store.thrift.data.Metadata;
 
@@ -508,6 +509,7 @@ public class GTSDecoder {
       case STRING:
         return lastStringValue;
       default:
+        // DELETE markers will return null
         return null;
     }
   }
@@ -546,7 +548,7 @@ public class GTSDecoder {
       Class lastClass = null;
 
       while(next()) {
-        // TODO(hbs): may differentiate STRING and binary values if the use case ever arises
+        // We retrieve the value, not the binary value since we are populating a GTS
         Object value = getValue();
         Class valClass = null == value ? null : value.getClass();
         // getValue could return a BigDecimal, we need to smooth the comparison so
@@ -560,13 +562,21 @@ public class GTSDecoder {
         if (null != valClass) {
           lastClass = valClass;
         }
-        // If value is null, overwrite so the deletion happens
-        GTSHelper.setValue(gts, getTimestamp(), getLocation(), getElevation(), value, null == value);
+        // If value is null, call replaceValue so we delete all occurrences of the timestamp
+        if (null == value) {
+          GTSHelper.replaceValue(gts, getTimestamp(), GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, MARKERS.DELETE, true);
+        } else {
+          GTSHelper.setValue(gts, getTimestamp(), getLocation(), getElevation(), value, false);
+        }
       }
     } else {
       while(next()) {
         Object value = getValue();
-        GTSHelper.setValue(gts, getTimestamp(), getLocation(), getElevation(), value, null == value);
+        if (null == value) {
+          GTSHelper.replaceValue(gts, getTimestamp(), GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, MARKERS.DELETE, true);
+        } else {
+          GTSHelper.setValue(gts, getTimestamp(), getLocation(), getElevation(), value, false);
+        }
       }
     }
 

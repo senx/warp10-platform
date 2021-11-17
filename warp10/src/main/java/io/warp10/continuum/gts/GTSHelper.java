@@ -68,6 +68,7 @@ import io.warp10.WarpURLDecoder;
 import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.MetadataUtils;
 import io.warp10.continuum.TimeSource;
+import io.warp10.continuum.gts.GTSEncoder.MARKERS;
 import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.thrift.data.GTSWrapper;
@@ -1407,22 +1408,172 @@ public class GTSHelper {
    * @param timestamp The timestamp at which to remove the value
    * @param all Boolean indicating whether or not we should remove all occurrences or simply the first one found
    */
-  public static void removeValue(GeoTimeSerie gts, long timestamp, boolean all) {
-    GeoTimeSerie altered = gts.cloneEmpty(gts.values);
+  public static int replaceValue(GeoTimeSerie gts, long timestamp, long location, long elevation, Object value, boolean all) {
 
-    int todelete = Integer.MAX_VALUE;
+    //
+    // If the gts is empty, return immediately
+    //
 
-    if (all) {
-      todelete = 1;
+    if (0 == gts.values || null == gts.ticks) {
+      return 0;
     }
+
+    //
+    // Adjust the value
+    //
+
+    // Convert byte arrays to STRING
+    if (value instanceof byte[]) {
+      value = new String((byte[]) value, StandardCharsets.ISO_8859_1);
+    }
+
+    TYPE type = gts.type;
+
+    if (value instanceof Boolean) {
+      if (TYPE.LONG == gts.type) {
+        value = ((Boolean) value).booleanValue() ? 1L : 0L;
+      } else if (TYPE.DOUBLE == gts.type) {
+        value = ((Boolean) value).booleanValue() ? 1.0D : 0.0D;
+      } else if (TYPE.STRING == gts.type) {
+        value = ((Boolean) value).booleanValue() ? "T" : "F";
+      } else if (TYPE.BOOLEAN == gts.type) {
+        value = ((Boolean) value).booleanValue();
+      }
+    } else if (value instanceof Long || value instanceof Integer || value instanceof Short || value instanceof Byte || value instanceof BigInteger) {
+      if (TYPE.LONG == gts.type) {
+        value = ((Number) value).longValue();
+      } else if (TYPE.DOUBLE == gts.type) {
+        value = ((Number) value).doubleValue();
+      } else if (TYPE.STRING == gts.type) {
+        value = ((Number) value).toString();
+      } else if (TYPE.BOOLEAN == gts.type) {
+        value = 0L != ((Number) value).longValue();
+      }
+    } else if (value instanceof Double || value instanceof Float || value instanceof BigDecimal) {
+      if (TYPE.LONG == gts.type) {
+        value = ((Number) value).longValue();
+      } else if (TYPE.DOUBLE == gts.type) {
+        value = ((Number) value).doubleValue();
+      } else if (TYPE.STRING == gts.type) {
+        value = value.toString();
+      } else if (TYPE.BOOLEAN == gts.type) {
+        value = 0.0D != ((Number) value).doubleValue();
+      }
+    } else if (value instanceof String) {
+      if (TYPE.LONG == gts.type) {
+        try {
+          value = Long.parseLong((String) value);
+        } catch (NumberFormatException nfe) {
+          //
+          // Attempt to parse a double
+          //
+          try {
+            value = (long) Double.parseDouble((String) value);
+          } catch (NumberFormatException nfe2) {
+            value = 0L;
+          }
+        }
+      } else if (TYPE.DOUBLE == gts.type) {
+        try {
+          value = Double.parseDouble((String) value);
+        } catch (NumberFormatException nfe) {
+          try {
+            value = (double) Long.parseLong((String) value);
+          } catch (NumberFormatException nfe2) {
+            value = 0.0D;
+          }
+        }
+      } else if (TYPE.STRING == gts.type) {
+        // Using intern is really CPU intensive
+        value = (String) value; //.toString().intern();
+      } else if (TYPE.BOOLEAN == gts.type) {
+        value = !"".equals(value);
+      }
+    } else if (null == value || MARKERS.DELETE == value) {
+      value = MARKERS.DELETE;
+      // clear location/elevation so we do not allocate useless arrays when
+      // calling provision
+      location = GeoTimeSerie.NO_LOCATION;
+      elevation = GeoTimeSerie.NO_ELEVATION;
+    } else {
+      value = null;
+    }
+
+    int toreplace = Integer.MAX_VALUE;
+
+    if (!all) {
+      toreplace = 1;
+    }
+
+    // offset for copying data after we deleted elements
+    int offset = 0;
+
+    // Ensure possible allocation of location/elevation
+    provision(gts, value, location, elevation);
+
+    boolean hasLocation = null != gts.locations;
+    boolean hasElevation = null != gts.elevations;
+
 
     for (int i = 0; i < gts.values; i++) {
-      if (todelete > 1 && timestamp == gts.ticks[i]) {
-        todelete--;
-        continue;
+      if (toreplace > 1 && timestamp == gts.ticks[i]) {
+        if (MARKERS.DELETE == value) {
+          offset--;
+          continue;
+        } else {
+          switch (gts.type) {
+            case LONG:
+              gts.longValues[i + offset] = ((Long) value).longValue();
+              break;
+            case DOUBLE:
+              gts.doubleValues[i + offset] = ((Double) value).doubleValue();
+              break;
+            case STRING:
+              gts.stringValues[i + offset] = (String) value;
+              break;
+            case BOOLEAN:
+              gts.booleanValues.set(i + offset, (Boolean) value);
+              break;
+          }
+          if (hasLocation) {
+            gts.locations[i + offset] = location;
+          }
+          if (hasElevation) {
+            gts.elevations[i + offset] = elevation;
+          }
+          gts.ticks[i + offset] = timestamp;
+        }
+      } else {
+        // copy existing value if offset is not 0
+        if (0 != offset) {
+          gts.ticks[i + offset] = gts.ticks[i];
+          if (hasLocation) {
+            gts.locations[i + offset] = gts.locations[i];
+          }
+          if (hasElevation) {
+            gts.elevations[i + offset] = gts.elevations[i];
+          }
+          switch (gts.type) {
+            case LONG:
+              gts.longValues[i + offset] = gts.longValues[i];
+              break;
+            case DOUBLE:
+              gts.doubleValues[i + offset] = gts.doubleValues[i];
+              break;
+            case STRING:
+              gts.stringValues[i + offset] = gts.stringValues[i];
+              break;
+            case BOOLEAN:
+              gts.booleanValues.set(i + offset, gts.booleanValues.get(i));
+              break;
+          }
+        }
       }
-      GTSHelper.setValue(altered, gts.ticks[i], GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i), GTSHelper.valueAtIndex(gts, i), false);
     }
+
+    gts.values = gts.values + offset;
+
+    return gts.values;
   }
 
   /**
@@ -5764,7 +5915,7 @@ public class GTSHelper {
 
     for (int i = 0; i < lgts.size(); i++) {
       Map<String, String> attributes = lgts.get(i).getMetadata().getAttributes();
-      
+
       if (null == attributes || attributes.isEmpty()) {
         commonAttributes.clear();
         break;
