@@ -70,8 +70,15 @@ public class MapperRegExpMatch extends NamedWarpScriptFunction implements WarpSc
     long[] elevations = (long[]) args[5];
     Object[] values = (Object[]) args[6];
 
+    Matcher matcher = null;
     for (int i = 0; i < values.length; i++) {
-      Matcher matcher = pattern.matcher((String) values[i]);
+      if (null == matcher) {
+        // Initialize Matcher
+        matcher = pattern.matcher((String) values[i]);
+      } else {
+        // Reuse Matcher
+        matcher.reset((String) values[i]);
+      }
       if (values[i] instanceof String && matcher.matches()) {
         return new Object[] {tick, locations[i], elevations[i], values[i]};
       }
