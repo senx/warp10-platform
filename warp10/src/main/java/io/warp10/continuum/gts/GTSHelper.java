@@ -1402,13 +1402,18 @@ public class GTSHelper {
   }
 
   /**
-   * Remove a datapoint from a GTS.
+   * Replace or remove values from a GTS
    *
    * @param gts The GTS to alter
-   * @param timestamp The timestamp at which to remove the value
-   * @param all Boolean indicating whether or not we should remove all occurrences or simply the first one found
+   * @param timestamp The timestamp at which to replace or remove the value
+   * @param location Location to use for replacement
+   * @param elevation Elevation to use for replacement
+   * @param value Value to use for replacement or null or MARKERS.DELETE for deletions
+   * @param all Boolean indicating whether or not we should consider all occurrences of the timestamp or just the first
+   *
+   * @return the new size of gts
    */
-  public static int replaceValue(GeoTimeSerie gts, long timestamp, long location, long elevation, Object value, boolean all) {
+  public static int replaceValue(GeoTimeSerie gts, long timestamp, Long location, Long elevation, Object value, boolean all) {
 
     //
     // If the gts is empty, return immediately
@@ -1426,8 +1431,6 @@ public class GTSHelper {
     if (value instanceof byte[]) {
       value = new String((byte[]) value, StandardCharsets.ISO_8859_1);
     }
-
-    TYPE type = gts.type;
 
     if (value instanceof Boolean) {
       if (TYPE.LONG == gts.type) {
@@ -1509,13 +1512,15 @@ public class GTSHelper {
     int offset = 0;
 
     // Ensure possible allocation of location/elevation
-    provision(gts, value, location, elevation);
+    provision(gts, value, null == location ? GeoTimeSerie.NO_LOCATION : location, null == elevation ? GeoTimeSerie.NO_ELEVATION : elevation);
 
     boolean hasLocation = null != gts.locations;
     boolean hasElevation = null != gts.elevations;
 
 
     for (int i = 0; i < gts.values; i++) {
+      // TODO(hbs): if the GTS is sorted and we no longer have possibility to encounter 'timestamp' and we did not
+      // delete anything, we are done
       if (toreplace > 1 && timestamp == gts.ticks[i]) {
         if (MARKERS.DELETE == value) {
           offset--;
@@ -1523,25 +1528,25 @@ public class GTSHelper {
         } else {
           switch (gts.type) {
             case LONG:
-              gts.longValues[i + offset] = ((Long) value).longValue();
+              gts.longValues[i] = ((Long) value).longValue();
               break;
             case DOUBLE:
-              gts.doubleValues[i + offset] = ((Double) value).doubleValue();
+              gts.doubleValues[i] = ((Double) value).doubleValue();
               break;
             case STRING:
-              gts.stringValues[i + offset] = (String) value;
+              gts.stringValues[i] = (String) value;
               break;
             case BOOLEAN:
-              gts.booleanValues.set(i + offset, (Boolean) value);
+              gts.booleanValues.set(i, (Boolean) value);
               break;
           }
-          if (hasLocation) {
-            gts.locations[i + offset] = location;
+          if (hasLocation && null != location) {
+            gts.locations[i] = location;
           }
-          if (hasElevation) {
-            gts.elevations[i + offset] = elevation;
+          if (hasElevation && null != elevation) {
+            gts.elevations[i] = elevation;
           }
-          gts.ticks[i + offset] = timestamp;
+          gts.ticks[i] = timestamp;
         }
       } else {
         // copy existing value if offset is not 0
@@ -1567,6 +1572,9 @@ public class GTSHelper {
               gts.booleanValues.set(i + offset, gts.booleanValues.get(i));
               break;
           }
+        } else {
+          // No more replacements and offset is 0, we are done
+          break;
         }
       }
     }
@@ -4058,7 +4066,7 @@ public class GTSHelper {
     } else if (value instanceof byte[]) {
       sb.append("b64:");
       sb.append(Base64.encodeBase64URLSafeString((byte[]) value));
-    } else if (null == value) {
+    } else if (null == value || MARKERS.DELETE == value) {
       sb.append("!");
     }
   }
