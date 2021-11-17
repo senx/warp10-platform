@@ -1514,7 +1514,7 @@ public class GTSHelper {
       location = GeoTimeSerie.NO_LOCATION;
       elevation = GeoTimeSerie.NO_ELEVATION;
     } else {
-      value = null;
+      throw new RuntimeException("Invalid value type specified.");
     }
 
     int toreplace = Integer.MAX_VALUE;
@@ -1531,7 +1531,6 @@ public class GTSHelper {
 
     boolean hasLocation = null != gts.locations;
     boolean hasElevation = null != gts.elevations;
-
 
     for (int i = 0; i < gts.values; i++) {
       // TODO(hbs): if the GTS is sorted and we no longer have possibility to encounter 'timestamp' and we did not
