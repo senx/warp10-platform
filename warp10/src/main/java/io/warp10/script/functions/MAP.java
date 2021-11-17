@@ -118,7 +118,7 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
       }
     }
 
-    List<Object> series = new ArrayList<Object>();
+    List<Object> series = new ArrayList<Object>(nseries);
 
     for (int i = 0; i < nseries; i++) {
       series.add(params.get(i));

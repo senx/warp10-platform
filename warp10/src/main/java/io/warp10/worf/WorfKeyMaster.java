@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -127,7 +127,7 @@ public class WorfKeyMaster {
       token.setApps(Arrays.asList(writeToken.getAppName()));
 
       token.addToOwners(ByteBuffer.wrap(writeToken.getOwnerId()));
-      token.setProducers(new ArrayList<ByteBuffer>());
+      token.setProducers(new ArrayList<ByteBuffer>(0));
 
       // Billing
       token.setBilledId(writeToken.getProducerId());

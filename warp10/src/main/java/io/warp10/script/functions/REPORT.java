@@ -46,29 +46,29 @@ import io.warp10.sensision.Sensision;
 import io.warp10.warp.sdk.AbstractWarp10Plugin;
 
 public class REPORT extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   private static final Logger LOG = LoggerFactory.getLogger(REPORT.class);
-  
+
   private static final String SECRET;
 
   private static final AtomicLong seq = new AtomicLong(0L);
-  
+
   private static final AtomicBoolean success = new AtomicBoolean(false);
-  
+
   private static final String uuid = UUID.randomUUID().toString();
 
   private static boolean initialized = false;
-  
+
   static {
     String defaultSecret = UUID.randomUUID().toString();
     SECRET = WarpConfig.getProperty(Configuration.WARP10_REPORT_SECRET, defaultSecret);
-    
+
     if (defaultSecret.equals(SECRET)) {
       LOG.info("REPORT secret not set, using '" + defaultSecret + "'.");
       System.out.println("REPORT secret not set, using '" + defaultSecret + "'.");
-    }    
+    }
   }
-  
+
   public REPORT(String name) {
     super(name);
     if (!initialized && !"false".equals(WarpConfig.getProperty(Configuration.WARP10_TELEMETRY))) {
@@ -79,9 +79,9 @@ public class REPORT extends NamedWarpScriptFunction implements WarpScriptStackFu
 
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    
+
     Object top = stack.pop();
-    
+
     if (!SECRET.equals(top.toString())) {
       throw new WarpScriptException(getName() + " invalid secret.");
     }
@@ -91,14 +91,14 @@ public class REPORT extends NamedWarpScriptFunction implements WarpScriptStackFu
     } catch (WarpScriptException wse) {
       throw new WarpScriptException(getName() + " failed.", wse);
     }
-        
+
     return stack;
   }
-  
+
   public static String genReport(boolean includeConf) throws WarpScriptException {
     try {
       StringBuilder sb = new StringBuilder();
-      
+
       sb.append("\n[revision]\n");
       sb.append(Revision.REVISION);
       sb.append("\n");
@@ -116,72 +116,74 @@ public class REPORT extends NamedWarpScriptFunction implements WarpScriptStackFu
       sb.append("cpus=");
       sb.append(Runtime.getRuntime().availableProcessors());
       sb.append("\n");
-      
+
       sb.append("\n[sensision]\n");
-      
+
       StringWriter sw = new StringWriter();
       PrintWriter pw = new PrintWriter(sw);
-      
+
       Sensision.dump(pw);
-      
+
       pw.close();
       sb.append(sw.toString());
-      
+
       sb.append("\n[extensions]\n");
-      
+
       for (String extension: WarpScriptLib.extensions()) {
         sb.append(extension);
         sb.append("\n");
       }
-      
+
       sb.append("\n[plugins]\n");
-      
+
       for (String plugin: AbstractWarp10Plugin.plugins()) {
         sb.append(plugin);
         sb.append("\n");
       }
-      
+
       if (includeConf) {
         sb.append("\n[config]\n");
 
         Properties properties = WarpConfig.getProperties();
-        
+
         for (Entry<Object,Object> entry: properties.entrySet()) {
           String key = entry.getKey().toString();
-          
+
           //
           // Skip crypto related properties
           //
-          
+
           if (key.contains(".key")
               || key.contains(".aes")
               || key.contains(".hash")
               || key.contains(".mac")
               || key.contains(".psk")
-              || key.contains(".secret")) {
+              || key.contains(".secret")
+              // Ignore deciphered secrets
+              || properties.contains(Configuration.WARP_SECRET_PREFIX + key)) {
             continue;
           }
 
           sb.append(key);
           sb.append("=");
-          
+
           String value = entry.getValue().toString();
           sb.append(value);
           sb.append("\n");
-        }        
+        }
       }
-      
+
       byte[] data = sb.toString().getBytes(StandardCharsets.UTF_8);
-      
+
       int lines = 0;
       for (byte b: data) {
         if ('\n' == b) {
           lines++;
         }
       }
-      
+
       long sip = SipHashInline.hash24(data.length, data.length, data, 0, data.length);
-      
+
       sb.insert(0, "\n");
       sb.insert(0, Long.toHexString(sip));
       sb.insert(0, ".");
@@ -189,13 +191,13 @@ public class REPORT extends NamedWarpScriptFunction implements WarpScriptStackFu
       sb.insert(0, ".");
       sb.insert(0, System.currentTimeMillis());
       sb.insert(0, "[report]\n");
-      
+
       return sb.toString();
     } catch (Exception e) {
       throw new WarpScriptException("Error while generating report.", e);
     }
   }
-  
+
   private static final void telinit() {
     try {
       Thread telemetry = new Thread() {
@@ -204,26 +206,26 @@ public class REPORT extends NamedWarpScriptFunction implements WarpScriptStackFu
           boolean first = true;
           long delay = 8 * 3600L * 1000000000L;
           while(true) {
-            
+
             if (!first) {
               LockSupport.parkNanos(delay);
             }
-            
+
             first = false;
 
             long newdelay = REPORT.telemetry();
-            
+
             if (newdelay > 0) {
               delay = newdelay;
             }
           }
         }
       };
-      
+
       telemetry.setDaemon(true);
       telemetry.setName("Warp Telemetry Thread");
       telemetry.start();
-      
+
       Runtime.getRuntime().addShutdownHook(new Thread() {
         @Override
         public void run() {
@@ -233,18 +235,18 @@ public class REPORT extends NamedWarpScriptFunction implements WarpScriptStackFu
           }
         }
       });
-    } catch (Throwable t) {      
+    } catch (Throwable t) {
     }
   }
-  
+
   private static long telemetry() {
     HttpURLConnection conn = null;
-    
+
     try {
       String report = genReport(false);
-      
+
       success.set(false);
-      
+
       conn = (HttpURLConnection) new URL("https://telemetry.senx.io/report").openConnection();
       conn.setDoOutput(true);
       if (0 == seq.get()) {
@@ -253,7 +255,7 @@ public class REPORT extends NamedWarpScriptFunction implements WarpScriptStackFu
         conn.addRequestProperty("X-Warp10-Telemetry-Event", "stop");
       } else {
         conn.addRequestProperty("X-Warp10-Telemetry-Event", "report");
-      }      
+      }
       seq.addAndGet(1L);
       conn.addRequestProperty("X-Warp10-Telemetry-UUID", uuid);
       conn.addRequestProperty("Content-Type", "application/gzip");
@@ -263,16 +265,16 @@ public class REPORT extends NamedWarpScriptFunction implements WarpScriptStackFu
       zout.close();
       out.close();
       String newdelay = conn.getHeaderField("X-Warp10-Telemetry-Delay");
-      
+
       success.set(true);
-      
+
       if (null != newdelay) {
         try {
           return Long.parseLong(newdelay);
-        } catch (Throwable t) {                  
+        } catch (Throwable t) {
         }
       }
-    } catch (Throwable t) {   
+    } catch (Throwable t) {
     } finally {
       if (null != conn) {
         try { conn.disconnect(); } catch (Throwable t) {}

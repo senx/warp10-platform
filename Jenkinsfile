@@ -32,7 +32,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 notifyBuild('STARTED')
-                git poll: false, branch: "${getParam('gitBranch')}", url: "git@${getParam('gitHost')}:${getParam('gitOwner')}/${getParam('gitRepo')}.git"
+                checkout scm
                 script {
                     VERSION = getVersion()
                     TAG = getTag()
@@ -43,8 +43,7 @@ pipeline {
 
         stage('Build') {
             steps {
-                sh '$GRADLE_CMD clean build -x test'
-                sh '$GRADLE_CMD generateChangelog'
+                sh '$GRADLE_CMD build -x test'
                 archiveArtifacts allowEmptyArchive: true, artifacts: '**/build/libs/*.jar', fingerprint: true
             }
         }

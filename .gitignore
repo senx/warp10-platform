@@ -1,20 +1,50 @@
+# Warp 10 Platform
+# -------------------
+warp10/src/main/resources/REVISION
+/CHANGELOG.md
+archive/
+generated/
+
+# Gradle
+# ------
 .gradle/
-build
-build-eclipse
-classes
-bin/
-out/
+build/
+
+# IDEA
+# ----
+.idea/
+#!/.idea
+#/.idea/*
+#!/.idea/codeStyles
+#!/.idea/inspectionProfiles
 *.iml
 *.ipr
 *.iws
-.DS_Store
-.project
+out/
+
+# Eclipse
+# -------
 .classpath
-.metadata
+.project
 .settings/
-.idea/
-generated/
-warp10/src/main/resources/REVISION
-gradle.properties
-archive
-/CHANGELOG.md
+.metadata
+bin/
+
+# VS Code
+# -------
+.vscode/
+.history/
+
+# macOS
+# -----
+.DS_Store
+
+# Logs
+# ----
+*.log
+
+# Backup
+# ------
+*.tmp
+*.bak
+*.swp
