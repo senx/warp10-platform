@@ -18,6 +18,7 @@ package io.warp10.script.functions;
 
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
+import io.warp10.continuum.gts.GTSEncoder.MARKERS;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GTSWrapperHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
@@ -133,6 +134,14 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
         while (decoder.next()) {
           Object value = decoder.getBinaryValue();
 
+          if (null == value) {
+            // Deletion marker, remove values from all GTS
+            for (GeoTimeSerie g: series.values()) {
+              GTSHelper.replaceValue(g, decoder.getTimestamp(), GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, MARKERS.DELETE, true);
+            }
+            continue;
+          }
+
           String type = "DOUBLE";
 
           if (value instanceof String) {
@@ -213,6 +222,12 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
         }
         while (decoder.next()) {
           Object value = decoder.getBinaryValue();
+
+          if (null == value) {
+            GTSHelper.replaceValue(gts, decoder.getTimestamp(), GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, MARKERS.DELETE, true);
+            continue;
+          }
+
           GTSHelper.setValue(gts, decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), value, false);
           // Test here the value type, because GTS do not handle BINARY type.
           if (mustGuessTypeFromFirstValue) {

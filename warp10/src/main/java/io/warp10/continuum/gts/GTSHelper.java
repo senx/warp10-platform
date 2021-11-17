@@ -318,10 +318,10 @@ public class GTSHelper {
     //
     // Split the encoder in 5 GTS, one per type, in this order:
     //
-    // LONG, DOUBLE, BOOLEAN, STRING, BINARY
+    // LONG, DOUBLE, BOOLEAN, STRING, BINARY, DELETE MARKERS
     //
 
-    GeoTimeSerie[] gts = new GeoTimeSerie[5];
+    GeoTimeSerie[] gts = new GeoTimeSerie[6];
 
     for (int i = 0; i < gts.length; i++) {
       gts[i] = new GeoTimeSerie();
@@ -346,10 +346,19 @@ public class GTSHelper {
         GTSHelper.setValue(gts[3], ts, location, elevation, value, false);
       } else if (value instanceof byte[]) {
         GTSHelper.setValue(gts[4], ts, location, elevation, value, false);
+      } else if (null == value) {
+        // Delete from all GTS
+        GTSHelper.replaceValue(gts[0], ts, location, elevation, value, true);
+        GTSHelper.replaceValue(gts[1], ts, location, elevation, value, true);
+        GTSHelper.replaceValue(gts[2], ts, location, elevation, value, true);
+        GTSHelper.replaceValue(gts[3], ts, location, elevation, value, true);
+        GTSHelper.replaceValue(gts[4], ts, location, elevation, value, true);
+        // Add the marker as a boolean in the last GTS
+        GTSHelper.setValue(gts[5], ts, location, elevation, true, false);
       }
     }
 
-    // Sort the 5 GTS using fullsort so we get a deterministic order
+    // Sort all GTS using fullsort so we get a deterministic order
     // in the presence of duplicate ticks
 
     for (int i = 0; i < gts.length; i++) {
@@ -361,14 +370,20 @@ public class GTSHelper {
     enc = new GTSEncoder(baseTimestamp);
     enc.setMetadata(encoder.getMetadata());
 
-    int[] idx = new int[gts.length];
+    // The GTS with deletion markers is handled separately
+    int[] idx = new int[gts.length - 1];
+
+    // Add the deletion markers at the beginning of the encoder
+    for (int i = 0; i < gts[5].values; i++) {
+      enc.addValue(GTSHelper.tickAtIndex(gts[5], i), GTSHelper.locationAtIndex(gts[5], i), GTSHelper.elevationAtIndex(gts[5], i), MARKERS.DELETE);
+    }
 
     while (true) {
       // Determine the next GTS to add from its timestamp, lowest first
       int gtsidx = -1;
 
       long ts = Long.MAX_VALUE;
-      for (int i = 0; i < gts.length; i++) {
+      for (int i = 0; i < idx.length; i++) {
         if (idx[i] >= GTSHelper.nvalues(gts[i])) {
           continue;
         }
