@@ -44,10 +44,10 @@ public class REMOVE extends NamedWarpScriptFunction implements WarpScriptStackFu
     Object coll = stack.pop();
 
     if (coll instanceof Map) {
-      Object o = ((Map) coll).remove(key);
+      Object removed = ((Map) coll).remove(key);
 
       stack.push(coll);
-      stack.push(o);
+      stack.push(removed);
     } else if (coll instanceof List) {
       if (!(key instanceof Long) && !(key instanceof Integer)) {
         throw new WarpScriptException(getName() + " expects an integer as key.");
@@ -60,13 +60,13 @@ public class REMOVE extends NamedWarpScriptFunction implements WarpScriptStackFu
         idx += size;
       }
 
-      Object o = null;
+      Object removed = null;
       if (idx >= 0 && idx < size) {
-        o = ((List) coll).remove(idx);
+        removed = ((List) coll).remove(idx);
       }
       
       stack.push(coll);
-      stack.push(o);
+      stack.push(removed);
     } else if (coll instanceof Set) {
       boolean found = ((Set) coll).remove(key);
 
@@ -120,10 +120,10 @@ public class REMOVE extends NamedWarpScriptFunction implements WarpScriptStackFu
         idx += size;
       }
 
-      Object o = null;
+      Long removed = null;
       byte[] pruned;
       if (idx >= 0 && idx < size) {
-        o = bytes[idx];
+        removed = bytes[idx] & 0xFFL;
         pruned = new byte[size - 1];
         System.arraycopy(bytes, 0, pruned, 0, idx);
         System.arraycopy(bytes, idx + 1, pruned, idx, size - idx - 1);
@@ -133,7 +133,7 @@ public class REMOVE extends NamedWarpScriptFunction implements WarpScriptStackFu
       }
 
       stack.push(pruned);
-      stack.push(o);
+      stack.push(removed);
     } else if (coll instanceof String) {
       String str = (String) coll;
 
@@ -148,15 +148,15 @@ public class REMOVE extends NamedWarpScriptFunction implements WarpScriptStackFu
         idx += size;
       }
 
-      Object o = null;
+      String removed = null;
       String pruned = str;
       if (idx >= 0 && idx < size) {
-        o = String.valueOf(pruned.charAt(idx));
+        removed = String.valueOf(pruned.charAt(idx));
         pruned = str.substring(0, idx) + str.substring(idx + 1);
       }
 
       stack.push(pruned);
-      stack.push(o);
+      stack.push(removed);
     } else {
       throw new WarpScriptException(getName() + " operates on a map, a list or a GTS.");
     }
