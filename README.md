@@ -33,7 +33,7 @@ The Warp 10 Platform provides a rich set of features to simplify your work on se
 * Replication and sharding of standalone instances using the **Datalog mechanism**
 * **Distributed version**, based on Hadoop HBase for the most demanding environments
 * Integration with [Pig](https://github.com/senx/warp10-pig), [Spark](https://github.com/senx/warp10-spark2), [Flink](https://github.com/senx/warp10-flink), [NiFi](https://github.com/senx/nifi-warp10-processor), [Kafka Streams](https://github.com/senx/warp10-plugin-kstreams) and [Storm](https://github.com/senx/warp10-storm) for batch and streaming analysis.
-* An easy integration into a large ecosystem of existing tools, such as Jupyter, Python, HTTP, Json, NodeRed, R, Zeppelin, Tableau, Pytorch, MQTT, LevelDB, Avro and more.
+* An easy integration into a **large ecosystem** of existing tools, such as Jupyter, Python, HTTP, Json, NodeRed, R, Zeppelin, Tableau, Pytorch, MQTT, LevelDB, Avro and more.
 
 A collection of tools that complete the Platform and ease your work on time series data:
 * [WarpStudio](https://studio.senx.io/), a web editor, to edit and execute your WarpScript and FLoWS code.
