@@ -65,7 +65,6 @@ public class REPORT extends NamedWarpScriptFunction implements WarpScriptStackFu
 
     if (defaultSecret.equals(SECRET)) {
       LOG.info("REPORT secret not set, using '" + defaultSecret + "'.");
-      System.out.println("REPORT secret not set, using '" + defaultSecret + "'.");
     }
   }
 
