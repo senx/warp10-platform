@@ -29,7 +29,7 @@ The Warp 10 Platform provides a rich set of features to simplify your work on se
 * **Plasma and Mobius**, streaming engines allowing to cascade the Warp 10 Platform with Complex Event Processing solutions and to build dynamic dashboards
 * **Runner**, a system for scheduling WarpScript program executions on the server side
 * [**Sensision**](https://github.com/senx/sensision), a framework for exposing metrics and pushing them into Warp 10
-* **Standalone version** running on a Raspberry Pi as well as on a beefy server, with no external dependencies
+* **Standalone version** running on a [Raspberry Pi](https://blog.senx.io/warp-10-raspberry-bench-for-industrial-iot/) as well as on a beefy server, with no external dependencies
 * Replication and sharding of standalone instances using the **Datalog mechanism**
 * **Distributed version**, based on Hadoop HBase for the most demanding environments
 * Integration with [Pig](https://github.com/senx/warp10-pig), [Spark](https://github.com/senx/warp10-spark2), [Flink](https://github.com/senx/warp10-flink), [NiFi](https://github.com/senx/nifi-warp10-processor), [Kafka Streams](https://github.com/senx/warp10-plugin-kstreams) and [Storm](https://github.com/senx/warp10-storm) for batch and streaming analysis.
