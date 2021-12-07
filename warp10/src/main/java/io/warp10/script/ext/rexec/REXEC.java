@@ -134,11 +134,8 @@ public class REXEC extends NamedWarpScriptFunction implements WarpScriptStackFun
       out.write(WarpScriptLib.TOOPB64.getBytes(StandardCharsets.UTF_8));
       out.write('\n');
       
-      if (this.compress) {
-        out.close();
-      }
-      
-      connout.flush();
+      out.flush();
+      out.close();
 
       if (HttpURLConnection.HTTP_OK != conn.getResponseCode()) {
         String errorMessage = conn.getHeaderField(Constants.getHeader(Configuration.HTTP_HEADER_ERROR_MESSAGEX));
