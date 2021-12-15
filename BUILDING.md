@@ -1,10 +1,62 @@
 # Warp 10 Setup & Build  
 
+All commands examples below are valid for latest ubuntu or other debian based release.
+
+## Install Java 8 jdk
+```bash
+sudo apt install openjdk-8-jdk
+```
+
 ## Install Thrift
 You need Thrift in order to build the Warp 10 platform.
-Currently, Warp 10 use Thrift release 0.11.0.
+Currently, Warp 10 use Thrift release 0.11.0, to be compatible with some Hbase libs. 
+All major distributions now ships Thrift 0.13+, so you need to compile Thrift.
 
-It needs to be available either on your `PATH` or with the `THRIFT_HOME` environment variable (example: `export THRIFT_HOME=/<path_to_thrift>/thrift-0.11.0`).
+Make sure Thrift is not already installed:
+```bash
+sudo apt remove thrift-compiler
+sudo apt remove libthrift-java
+```
+
+Download Thrift 0.11, compile and install it:
+```bash
+sudo apt install libtool g++ libboost-all-dev build-essential bison
+wget "http://archive.apache.org/dist/thrift/0.11.0/thrift-0.11.0.tar.gz"
+tar -xf thrift-0.11.0.tar.gz
+cd thrift-0.11.0
+./bootstrap.sh
+./configure --with-qt4=no --with-qt5=no --with-c_glib=no --with-csharp=no --with-java=no --with-erlang=no --with-nodejs=no --with-lua=no --with-python=no --with-perl=no --with-php=no --with-php_extension=no --with-dart=no --with-ruby=no --with-haskell=no --with-go=no --with-rs=no --with-haxe=no --with-dotnetcore=no --with-d=no  --with-cpp=no
+make -j$(nproc)
+sudo make install
+thrift -version
+```
+
+`thrift -version` should return "Thrift version 0.11.0".
+
+If you need several thrift versions on your system, you can use the `THRIFT_HOME` environment variable (example: `export THRIFT_HOME=/<path_to_thrift>/thrift-0.11.0`).
+
+## Build and replace jar in an existing Warp 10 instance
+
+Clone the repo master branch, compile, and copy the jar to your Warp 10 bin directory.
+```bash
+cd
+sudo apt install git
+git clone https://github.com/senx/warp10-platform.git
+cd warp10-platform
+./gradlew pack
+```
+The jar file should be suffixed with the latest tag.
+```bash
+cp warp10/build/libs/warp10-$(git describe).jar /opt/warp10/bin/
+```
+
+Then, patch /opt/warp10/bin/warp10-standalone.sh with the version number you just compiled.
+```bash
+sed -i "s/WARP10_REVISION=.*/WARP10_REVISION=$(git describe)/g" /home/pierre/test
+```
+
+You can now restart Warp 10.
+
 
 ## IDE Setup
 
