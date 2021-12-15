@@ -12,12 +12,6 @@ You need Thrift in order to build the Warp 10 platform.
 Currently, Warp 10 uses Thrift 0.11.0, to be compatible with some Hbase libs. 
 All major distributions now ships Thrift 0.13+, so you need to compile Thrift.
 
-Make sure Thrift is not already installed:
-```bash
-sudo apt remove thrift-compiler
-sudo apt remove libthrift-java
-```
-
 Download Thrift 0.11, compile and install it:
 ```bash
 sudo apt install libtool g++ libboost-all-dev build-essential bison
