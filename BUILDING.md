@@ -24,11 +24,12 @@ sudo apt install libtool g++ libboost-all-dev build-essential bison
 wget "http://archive.apache.org/dist/thrift/0.11.0/thrift-0.11.0.tar.gz"
 tar -xf thrift-0.11.0.tar.gz
 cd thrift-0.11.0
+sudo mkdir -p /opt/thrift-0.11.0
 ./bootstrap.sh
-./configure --with-qt4=no --with-qt5=no --with-c_glib=no --with-csharp=no --with-java=no --with-erlang=no --with-nodejs=no --with-lua=no --with-python=no --with-perl=no --with-php=no --with-php_extension=no --with-dart=no --with-ruby=no --with-haskell=no --with-go=no --with-rs=no --with-haxe=no --with-dotnetcore=no --with-d=no  --with-cpp=no
+./configure --prefix=/opt/thrift-0.11.0 --with-qt4=no --with-qt5=no --with-c_glib=no --with-csharp=no --with-java=no --with-erlang=no --with-nodejs=no --with-lua=no --with-python=no --with-perl=no --with-php=no --with-php_extension=no --with-dart=no --with-ruby=no --with-haskell=no --with-go=no --with-rs=no --with-haxe=no --with-dotnetcore=no --with-d=no  --with-cpp=no
 make -j$(nproc)
 sudo make install
-thrift -version
+/opt/thrift-0.11.0/bin/thrift -version
 ```
 
 `thrift -version` should return "Thrift version 0.11.0".
@@ -43,14 +44,20 @@ cd
 sudo apt install git
 git clone https://github.com/senx/warp10-platform.git
 cd warp10-platform
+export THRIFT_HOME=/opt/thrift-0.11.0
 ./gradlew pack
 ```
-The jar file should be suffixed with the latest tag.
+The jar file should be suffixed with the latest tag. 
+Copy the jar from `warp10/build/libs/` to `/opt/warp10/bin`. 
+
+If Warp 10 is running on the same machine that the one you are building on: 
 ```bash
 cp warp10/build/libs/warp10-$(git describe).jar /opt/warp10/bin/
 ```
 
-Then, patch /opt/warp10/bin/warp10-standalone.sh with the version number you just compiled.
+Then, update WARP10_REVISION in /opt/warp10/bin/warp10-standalone.sh with the version number you just compiled.
+
+If Warp 10 is running on the same machine that the one you are building on:
 ```bash
 sed -i "s/WARP10_REVISION=.*/WARP10_REVISION=$(git describe)/g" /opt/warp10/bin/warp10-standalone.sh
 ```
