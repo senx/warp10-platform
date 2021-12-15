@@ -9,7 +9,7 @@ sudo apt install openjdk-8-jdk
 
 ## Install Thrift
 You need Thrift in order to build the Warp 10 platform.
-Currently, Warp 10 use Thrift release 0.11.0, to be compatible with some Hbase libs. 
+Currently, Warp 10 uses Thrift 0.11.0, to be compatible with some Hbase libs. 
 All major distributions now ships Thrift 0.13+, so you need to compile Thrift.
 
 Make sure Thrift is not already installed:
@@ -52,7 +52,7 @@ cp warp10/build/libs/warp10-$(git describe).jar /opt/warp10/bin/
 
 Then, patch /opt/warp10/bin/warp10-standalone.sh with the version number you just compiled.
 ```bash
-sed -i "s/WARP10_REVISION=.*/WARP10_REVISION=$(git describe)/g" /home/pierre/test
+sed -i "s/WARP10_REVISION=.*/WARP10_REVISION=$(git describe)/g" /opt/warp10/bin/warp10-standalone.sh
 ```
 
 You can now restart Warp 10.
