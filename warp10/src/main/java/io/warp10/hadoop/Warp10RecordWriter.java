@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.HashMap;
 import java.util.Properties;
 import java.util.zip.GZIPOutputStream;
 
@@ -44,26 +45,26 @@ import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.OrderPreservingBase64;
 
 public class Warp10RecordWriter extends RecordWriter<Writable, Writable> {
-  
+
   public static final String WARP10_GZIP = "warp10.gzip";
   public static final String WARP10_ENDPOINT = "warp10.endpoint";
   public static final String WARP10_TOKEN = "warp10.token";
   public static final String WARP10_MAXRATE = "warp10.maxrate";
-  
+
   private final Properties props;
-  
+
   private boolean init = false;
-  
+
   private HttpURLConnection conn = null;
 
   private PrintWriter pw = null;
-  
+
   private RateLimiter limiter = null;
-  
+
   public Warp10RecordWriter(Properties props) {
-    this.props = props;    
+    this.props = props;
   }
-  
+
   @Override
   public void close(TaskAttemptContext context) throws IOException, InterruptedException {
     try {
@@ -71,17 +72,17 @@ public class Warp10RecordWriter extends RecordWriter<Writable, Writable> {
         pw.flush();
         pw.close();
         int respcode = conn.getResponseCode();
-        
+
         if (HttpURLConnection.HTTP_OK != respcode) {
           throw new IOException("HTTP code: " + respcode + " - " + conn.getResponseMessage());
-        }        
+        }
       }
     } finally {
       if (null != pw) { try { pw.close(); } catch (Exception e) {} }
       if (null != conn) { try { conn.disconnect(); } catch (Exception e) {} }
-    }    
+    }
   }
-  
+
   @Override
   public void write(Writable key, Writable value) throws IOException, InterruptedException {
     if (!init) {
@@ -91,11 +92,11 @@ public class Warp10RecordWriter extends RecordWriter<Writable, Writable> {
         }
       }
     }
-    
+
     //
     // Assume the value is a GTSWrapper
     //
-    
+
     long count = 0L;
 
     TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
@@ -115,7 +116,7 @@ public class Warp10RecordWriter extends RecordWriter<Writable, Writable> {
     }
 
     Metadata metadataChunk;
-    
+
     if (gtsWrapper.isSetMetadata()) {
       metadataChunk = new Metadata(gtsWrapper.getMetadata());
     } else {
@@ -127,7 +128,11 @@ public class Warp10RecordWriter extends RecordWriter<Writable, Writable> {
     StringBuilder metasb = new StringBuilder();
     // We don't care about exposing labels since they are forced by the token
     GTSHelper.metadataToString(metasb, metadataChunk.getName(), metadataChunk.getLabels(), false);
-
+    // Force attributes if they are not set
+    if (null == metadataChunk.getAttributes()) {
+      metadataChunk.setAttributes(new HashMap<String,String>());
+    }
+    GTSHelper.metadataToString(metasb, "", metadataChunk.getAttributes(), true);
     boolean first = true;
 
     while (decoder.next()) {
@@ -144,19 +149,19 @@ public class Warp10RecordWriter extends RecordWriter<Writable, Writable> {
       }
       count++;
     }
-  }  
-  
+  }
+
   private void init() throws IOException {
-    
+
     boolean gzip = "true".equals(props.getProperty(WARP10_GZIP));
     String endpoint = props.getProperty(WARP10_ENDPOINT);
     String token = props.getProperty(WARP10_TOKEN);
     String maxrate = props.getProperty(WARP10_MAXRATE);
-    
+
     if (null != maxrate) {
       this.limiter = RateLimiter.create(Double.parseDouble(maxrate));
     }
-    
+
     conn = (HttpURLConnection) new URL(endpoint).openConnection();
     conn.setRequestMethod("POST");
     conn.setDoOutput(true);
@@ -177,7 +182,7 @@ public class Warp10RecordWriter extends RecordWriter<Writable, Writable> {
     }
 
     pw = new PrintWriter(out);
-    
+
     this.init = true;
   }
 }
