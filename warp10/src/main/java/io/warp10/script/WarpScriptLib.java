@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2021  SenX S.A.S.
+//   Copyright 2019-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -765,7 +765,6 @@ public class WarpScriptLib {
   public static final String FIRSTTICK = "FIRSTTICK";
   public static final String LASTTICK = "LASTTICK";
   public static final String MERGE = "MERGE";
-  public static final String SMERGE = "SMERGE";
   public static final String RESETS = "RESETS";
   public static final String MONOTONIC = "MONOTONIC";
   public static final String TIMESPLIT = "TIMESPLIT";
@@ -1719,7 +1718,6 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new FIRSTTICK(FIRSTTICK));
     addNamedWarpScriptFunction(new LASTTICK(LASTTICK));
     addNamedWarpScriptFunction(new MERGE(MERGE));
-    addNamedWarpScriptFunction(new SMERGE(SMERGE));
     addNamedWarpScriptFunction(new RESETS(RESETS));
     addNamedWarpScriptFunction(new MONOTONIC(MONOTONIC));
     addNamedWarpScriptFunction(new TIMESPLIT(TIMESPLIT));
