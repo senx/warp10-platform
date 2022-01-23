@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2021  SenX S.A.S.
+//   Copyright 2019-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.bouncycastle.util.encoders.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,11 +54,11 @@ public class WarpFleetMacroRepository {
 
   private static final Logger LOG = LoggerFactory.getLogger(WarpFleetMacroRepository.class);
 
-  private static final MSGFAIL MSGFAIL_FUNC = new MSGFAIL("MSGFAIL");
-  private static final NOW NOW_FUNC = new NOW("NOW");
+  private static final MSGFAIL MSGFAIL_FUNC = new MSGFAIL(WarpScriptLib.MSGFAIL);
+  private static final NOW NOW_FUNC = new NOW(WarpScriptLib.NOW);
   private static final SUB SUB_FUNC = new SUB("-");
-  private static final ADD ADD_FUNC = new ADD("+");
-  private static final HUMANDURATION HUMANDURATION_FUNC = new HUMANDURATION("HUMANDURATION");
+  private static final ADD ADD_FUNC = new ADD(WarpScriptLib.ADD);
+  private static final HUMANDURATION HUMANDURATION_FUNC = new HUMANDURATION(WarpScriptLib.HUMANDURATION);
 
   private static final int FINGERPRINT_UNKNOWN = -1;
 
@@ -211,15 +212,23 @@ public class WarpFleetMacroRepository {
 
         MemoryWarpScriptStack stack = null;
 
-        try {
-          URL url = new URL(macroURL + ".mc2");
+        HttpURLConnection hconn = null;
 
+        try {
+          hconn = null;
+          URL url = new URL(macroURL + ".mc2");
           URLConnection conn = url.openConnection();
 
           if (conn instanceof HttpURLConnection) {
-            ((HttpURLConnection) conn).setRequestProperty("X-Warp10-Revision", Revision.REVISION);
-            ((HttpURLConnection) conn).setReadTimeout(readTimeout);
-            ((HttpURLConnection) conn).setConnectTimeout(connectTimeout);
+            hconn = (HttpURLConnection) conn;
+            hconn.setRequestProperty("X-Warp10-Revision", Revision.REVISION);
+            hconn.setReadTimeout(readTimeout);
+            hconn.setConnectTimeout(connectTimeout);
+            if (null != url.getUserInfo()) {
+              hconn.setRequestProperty("Authorization", "Basic " + new String(Base64.encode(url.getUserInfo().getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8));
+            }
+          } else {
+            throw new IOException("Invalid URL type.");
           }
 
           in = conn.getInputStream();
@@ -244,6 +253,7 @@ public class WarpFleetMacroRepository {
           sb.append("\n");
 
           stack = new MemoryWarpScriptStack(null, null);
+          // WARN(hbs): this will leak any authentication info in the stack name
           stack.setAttribute(WarpScriptStack.ATTRIBUTE_NAME, "[WarpFleetMacroRepository " + url.toString() + "]");
 
           stack.maxLimits();
@@ -324,6 +334,9 @@ public class WarpFleetMacroRepository {
           WarpScriptStackRegistry.unregister(stack);
           if (null != in) {
             try { in.close(); } catch (Exception e) {}
+          }
+          if (null != hconn) {
+            try { hconn.disconnect(); } catch (Exception e) {}
           }
         }
       }
