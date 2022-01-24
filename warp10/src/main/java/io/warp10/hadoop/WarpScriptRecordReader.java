@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -35,23 +35,23 @@ import io.warp10.script.WarpScriptExecutor.StackSemantics;
 public class WarpScriptRecordReader extends RecordReader<Object, Object> {
 
   private final RecordReader reader;
-  
+
   private Object key = null;
   private Object value = null;
-  
+
   /**
    * List of pending records not yet returned
    */
   private List<List<Object>> records = new ArrayList<List<Object>>();
-  
+
   private int recordidx = 0;
-  
+
   private final String suffix;
-  
+
   private WarpScriptExecutor executor;
-  
+
   private boolean done;
-  
+
   private final WarpScriptInputFormat inputFormat;
 
   public WarpScriptRecordReader(WarpScriptInputFormat inputFormat) {
@@ -59,12 +59,12 @@ public class WarpScriptRecordReader extends RecordReader<Object, Object> {
     this.suffix = inputFormat.getSuffix();
     this.reader = inputFormat.getWrappedRecordReader();
   }
-  
+
   @Override
   public void close() throws IOException {
     this.reader.close();
   }
-  
+
   @Override
   public Object getCurrentKey() throws IOException, InterruptedException {
     return key;
@@ -77,31 +77,40 @@ public class WarpScriptRecordReader extends RecordReader<Object, Object> {
   public float getProgress() throws IOException, InterruptedException {
     return reader.getProgress();
   }
-  
+
   @Override
   public void initialize(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
     // Initialize wrapped reader
     reader.initialize(split, context);
-    
+
     Configuration conf = context.getConfiguration();
-    
+
     String code = Warp10InputFormat.getProperty(conf, this.suffix, WarpScriptInputFormat.WARPSCRIPT_INPUTFORMAT_SCRIPT, null);
+    String macroCode = Warp10InputFormat.getProperty(conf, this.suffix, WarpScriptInputFormat.WARPSCRIPT_INPUTFORMAT_MACRO, null);
+
+    if (null != code && null != macroCode) {
+      throw new IOException("Cannot define both '" + WarpScriptInputFormat.WARPSCRIPT_INPUTFORMAT_SCRIPT + "' and '" + WarpScriptInputFormat.WARPSCRIPT_INPUTFORMAT_MACRO +"'.");
+    } else if (null == code && null == macroCode) {
+      throw new IOException("Must define one of '" + WarpScriptInputFormat.WARPSCRIPT_INPUTFORMAT_SCRIPT + "' or '" + WarpScriptInputFormat.WARPSCRIPT_INPUTFORMAT_MACRO +"'.");
+    }
+
+    boolean isMacro = null != macroCode;
 
     // Record the current path in the configuration if the split is a FileSplit
     if (split instanceof FileSplit) {
-      conf.set(WarpScriptInputFormat.PATH_CONFIG_KEY, ((FileSplit) split).getPath().toString());      
+      conf.set(WarpScriptInputFormat.PATH_CONFIG_KEY, ((FileSplit) split).getPath().toString());
     }
-    
+
     // Initialize WarpScriptExecutor
     try {
-      this.executor = inputFormat.getWarpScriptExecutor(conf, code);
+      this.executor = inputFormat.getWarpScriptExecutor(conf, code, isMacro);
     } catch (WarpScriptException wse) {
       throw new IOException("Error while instatiating WarpScript executor", wse);
     }
-    
+
     done = false;
   }
-  
+
   @Override
   public boolean nextKeyValue() throws IOException, InterruptedException {
     // If we have pending records, get the next one and return true
@@ -114,43 +123,43 @@ public class WarpScriptRecordReader extends RecordReader<Object, Object> {
 
       key = kv.get(0);
       value = kv.get(1);
-            
+
       return true;
     }
-    
+
     if (done) {
       return false;
     }
-    
+
     //
     // Request the next K/V from the wrapped reader
     // and pass them to the WarpScript code until
     // the code actually returns records.
     //
-    
+
     while(true) {
       boolean nkv = this.reader.nextKeyValue();
-      
+
       if (nkv) {
         Object k = this.reader.getCurrentKey();
         Object v = this.reader.getCurrentValue();
-        
+
         List<Object> input = new ArrayList<Object>();
-        
+
         // This is not the last K/V we feed to the executor
         input.add(done);
         input.add(WritableUtils.fromWritable(v));
         input.add(WritableUtils.fromWritable(k));
-        
+
         try {
           List<Object> results = this.executor.exec(input);
-          
+
           // If there are no results on the stack, continue
           // calling the wrapped reader
           if (results.isEmpty()) {
             continue;
           }
-          
+
           // push the records onto 'records', the deepest first,
           // ensuring each is a [ key value ] pair
           for (int i = results.size() - 1; i >= 0; i--) {
@@ -163,7 +172,7 @@ public class WarpScriptRecordReader extends RecordReader<Object, Object> {
             record.add(WritableUtils.toWritable(((List) result).get(1)));
             records.add(record);
           }
-          
+
           return nextKeyValue();
         } catch (WarpScriptException wse) {
           throw new IOException(wse);
@@ -172,22 +181,22 @@ public class WarpScriptRecordReader extends RecordReader<Object, Object> {
         done = true;
         // Call the WarpScript with true on top of the stack, meaning
         // we reached the end of the wrapped reader
-        
+
         List<Object> input = new ArrayList<Object>();
-        
+
         // This is the last K/V we feed to the executor
         input.add(true);
-        
+
         try {
           List<Object> results = this.executor.exec(input);
-         
+
           // If there are no results on the stack, return false,
           // because there are not pending records to consume
           // and we did not return anything
           if (results.isEmpty()) {
             return false;
           }
-          
+
           // push the records onto 'records', the deepest first,
           // ensuring each is a [ key value ] pair
           for (int i = results.size() - 1; i >= 0; i--) {
@@ -200,12 +209,12 @@ public class WarpScriptRecordReader extends RecordReader<Object, Object> {
             record.add(WritableUtils.toWritable(((List) result).get(1)));
             records.add(record);
           }
-          
+
           return nextKeyValue();
         } catch (WarpScriptException wse) {
           throw new IOException(wse);
-        }      
+        }
       }
-    }    
+    }
   }
 }
