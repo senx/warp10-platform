@@ -1,5 +1,5 @@
 //
-//   Copyright 2020  SenX S.A.S.
+//   Copyright 2020-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -31,6 +31,7 @@ import io.warp10.script.WarpScriptStackFunction;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
+import org.bouncycastle.util.Arrays;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -49,6 +50,8 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
 
   private static final String TYPE_LABEL_NAME_PARAMETER = "label.type";
   private static final String DEFAULT_TYPE_LABEL_NAME = ".type";
+
+  private static final String[] TYPES = { "LONG", "DOUBLE", "BOOLEAN", "STRING", "BINARY" };
 
   public TOGTS(String name) {
     super(name);
@@ -127,47 +130,61 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
     // if there is no type map, the output is a map of GTS (v2.3.0 signature), or a map of lists of GTS
     if (null == typeMap) {
       Map<String, ArrayList<GeoTimeSerie>> result = new HashMap<String, ArrayList<GeoTimeSerie>>();
+      GeoTimeSerie[] series = new GeoTimeSerie[5];
+
       for (GTSDecoder decoder: decodersInput) {
-        Map<String, GeoTimeSerie> series = new HashMap<String, GeoTimeSerie>();
+        Arrays.fill(series, null);
+
         GeoTimeSerie gts;
         while (decoder.next()) {
           Object value = decoder.getBinaryValue();
 
-          String type = "DOUBLE";
+          int typeidx = 0; // LONG
 
-          if (value instanceof String) {
-            type = "STRING";
-          } else if (value instanceof Boolean) {
-            type = "BOOLEAN";
-          } else if (value instanceof Long) {
-            type = "LONG";
+          if (value instanceof Long) {
+            typeidx = 0;
           } else if (value instanceof Double || value instanceof BigDecimal) {
-            type = "DOUBLE";
+            typeidx = 1;
+          } else if (value instanceof Boolean) {
+            typeidx = 2;
+          } else if (value instanceof String) {
+            typeidx = 3;
           } else if (value instanceof byte[]) {
-            type = "BINARY";
+            typeidx = 4;
           }
 
-          gts = series.get(type);
+          gts = series[typeidx];
 
           if (null == gts) {
             gts = new GeoTimeSerie();
             gts.setMetadata(decoder.getMetadata());
-            series.put(type, gts);
+            series[typeidx] = gts;
           }
 
           GTSHelper.setValue(gts, decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), value, false);
         }
+
         // exit here if input is not a list.
         if (!listInput) {
-          stack.push(series);
+          Map<String,GeoTimeSerie> tseries = new LinkedHashMap<String,GeoTimeSerie>(5);
+          for (int i = 0; i < series.length; i++) {
+            if (null != series[i]) {
+              tseries.put(TYPES[i], series[i]);
+            }
+          }
+          stack.push(tseries);
           return stack;
         }
+
         // merge the series Map into the big one
-        for (Entry<String, GeoTimeSerie> entry: series.entrySet()) {
-          if (!result.containsKey(entry.getKey())) {
-            result.put(entry.getKey(), new ArrayList<GeoTimeSerie>());
+        for (int i = 0; i < series.length; i++) {
+          if (null == series[i]) {
+            continue;
           }
-          result.get(entry.getKey()).add(entry.getValue());
+          if (!result.containsKey(TYPES[i])) {
+            result.put(TYPES[i], new ArrayList<GeoTimeSerie>());
+          }
+          result.get(TYPES[i]).add(series[i]);
         }
       }
       stack.push(result);
