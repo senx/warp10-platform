@@ -79,7 +79,7 @@ public class GOLDWRAP extends ListRecursiveStackFunction {
             deser.deserialize(wrapper, bytes);
             encoder = GTSWrapperHelper.fromGTSWrapperToGTSEncoder(wrapper);
           } else {
-            throw new WarpScriptException(getName() + " can only be applied to Geo Time Series™, GTS Encoders or wrapped instances of those types.");
+            return UNHANDLED;
           }
 
           GTSEncoder enc = null;
