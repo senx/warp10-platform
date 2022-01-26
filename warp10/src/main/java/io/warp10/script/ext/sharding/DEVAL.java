@@ -66,7 +66,7 @@ import io.warp10.script.functions.SNAPSHOT;
  * Distributed EVAL
  */
 public class DEVAL extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   private static final ExecutorService executor;
 
   private static final int maxThreadsPerRequest;
@@ -260,7 +260,7 @@ public class DEVAL extends NamedWarpScriptFunction implements WarpScriptStackFun
               out.write(snapshot);
               out.write('\n');
 
-              connout.flush();
+              out.close();
 
               InputStream in = conn.getInputStream();
 
