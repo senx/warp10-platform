@@ -53,7 +53,7 @@ public class Warp10RecordReader extends RecordReader<Text, BytesWritable> implem
   private Progressable progress = null;
 
   private final String suffix;
-  
+
   public Warp10RecordReader() {
     this.suffix = "";
   }
@@ -61,7 +61,7 @@ public class Warp10RecordReader extends RecordReader<Text, BytesWritable> implem
   public Warp10RecordReader(String suffix) {
     this.suffix = suffix;
   }
-  
+
   @Override
   public void initialize(InputSplit split, TaskAttemptContext context)
       throws IOException, InterruptedException {
@@ -89,7 +89,7 @@ public class Warp10RecordReader extends RecordReader<Text, BytesWritable> implem
     String sample = getProperty(context, Warp10InputFormat.PROPERTY_WARP10_FETCH_SAMPLE);
     String preboundary = getProperty(context, Warp10InputFormat.PROPERTY_WARP10_FETCH_PREBOUNDARY);
     String postboundary = getProperty(context, Warp10InputFormat.PROPERTY_WARP10_FETCH_POSTBOUNDARY);
-    
+
     int connectTimeout = Integer.valueOf(getProperty(context, Warp10InputFormat.PROPERTY_WARP10_HTTP_CONNECT_TIMEOUT, Warp10InputFormat.DEFAULT_WARP10_HTTP_CONNECT_TIMEOUT));
     int readTimeout = Integer.valueOf(getProperty(context, Warp10InputFormat.PROPERTY_WARP10_HTTP_READ_TIMEOUT, Warp10InputFormat.DEFAULT_WARP10_HTTP_READ_TIMEOUT));
 
@@ -125,13 +125,13 @@ public class Warp10RecordReader extends RecordReader<Text, BytesWritable> implem
         conn.setChunkedStreamingMode(16384);
         conn.setDoInput(true);
         conn.setDoOutput(true);
-        
+
         //
         // We are issueing a POST Request, so we pass the parameters via headers instead
         // of parameters
         //
-        
-        if (null != now) {          
+
+        if (null != now) {
           conn.setRequestProperty(Warp10InputFormat.HTTP_HEADER_NOW, now);
         }
         if (null != timespan) {
@@ -178,6 +178,8 @@ public class Warp10RecordReader extends RecordReader<Text, BytesWritable> implem
 
         out.write(((Warp10InputSplit)split).getBytes());
 
+        out.close();
+
         if (HttpURLConnection.HTTP_OK != conn.getResponseCode()) {
           System.err.println(url + " failed - error code: " + conn.getResponseCode());
           InputStream is = conn.getErrorStream();
@@ -212,7 +214,7 @@ public class Warp10RecordReader extends RecordReader<Text, BytesWritable> implem
     }
 
     String line = br.readLine();
-    
+
     if (null == line) {
       return false;
     }
@@ -220,7 +222,7 @@ public class Warp10RecordReader extends RecordReader<Text, BytesWritable> implem
     if (line.startsWith(Constants.EGRESS_FETCH_ERROR_PREFIX)) {
       throw new IOException("Fetcher reported an error, aborting: " + line);
     }
-    
+
     // Format: GTSWrapperId <WSP> HASH <WSP> GTSWrapper
 
     String[] tokens = line.split("\\s+");
@@ -239,12 +241,12 @@ public class Warp10RecordReader extends RecordReader<Text, BytesWritable> implem
 
     value.setCapacity(wrapper.length);
     value.set(wrapper, 0, wrapper.length);
-    
+
     count++;
-    
+
     return true;
   }
-  
+
   @Override
   public void close() throws IOException {
     if (null != this.br) {
@@ -264,7 +266,7 @@ public class Warp10RecordReader extends RecordReader<Text, BytesWritable> implem
   public BytesWritable getCurrentValue() {
     return value;
   }
-  
+
   @Override
   public float getProgress() throws IOException {
     return -1.0F;
@@ -275,14 +277,14 @@ public class Warp10RecordReader extends RecordReader<Text, BytesWritable> implem
       this.progress.progress();
     }
   }
-  
+
   private String getProperty(JobContext context, String property) {
     return getProperty(context, property, null);
   }
-  
+
   private String getProperty(JobContext context, String property, String defaultValue) {
     if (null != context.getConfiguration().get(property + suffix)) {
-      return context.getConfiguration().get(property + suffix);      
+      return context.getConfiguration().get(property + suffix);
     } else if (null != context.getConfiguration().get(property)) {
       return context.getConfiguration().get(property);
     } else if (null != defaultValue) {
