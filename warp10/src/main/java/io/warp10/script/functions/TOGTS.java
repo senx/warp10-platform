@@ -172,6 +172,8 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
           Map<String,GeoTimeSerie> tseries = new LinkedHashMap<String,GeoTimeSerie>(5);
           for (int i = 0; i < series.length; i++) {
             if (null != series[i]) {
+              // Attempt to regain wasted space
+              GTSHelper.shrink(series[i], 1.0D);
               tseries.put(TYPES[i], series[i]);
             }
           }
@@ -187,6 +189,8 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
           if (!result.containsKey(TYPES[i])) {
             result.put(TYPES[i], new ArrayList<GeoTimeSerie>());
           }
+          // Attempt to regain wasted space
+          GTSHelper.shrink(series[i], 1.0D);
           result.get(TYPES[i]).add(series[i]);
         }
       }
@@ -231,24 +235,22 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
             gts.setType(GeoTimeSerie.TYPE.BOOLEAN);
           }
         }
-        while (decoder.next()) {
+        if (decoder.next()) {
           Object value = decoder.getBinaryValue();
-          GTSHelper.setValue(gts, decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), value, false);
-          // Test here the value type, because GTS do not handle BINARY type.
-          if (mustGuessTypeFromFirstValue) {
-            if (value instanceof String) {
-              enforcedType = "STRING";
-            } else if (value instanceof Boolean) {
-              enforcedType = "BOOLEAN";
-            } else if (value instanceof Long) {
-              enforcedType = "LONG";
-            } else if (value instanceof Double || value instanceof BigDecimal) {
-              enforcedType = "DOUBLE";
-            } else if (value instanceof byte[]) {
-              enforcedType = "BINARY";
-            }
-            mustGuessTypeFromFirstValue = false;
+          if (value instanceof String) {
+            enforcedType = "STRING";
+          } else if (value instanceof Boolean) {
+            enforcedType = "BOOLEAN";
+          } else if (value instanceof Long) {
+            enforcedType = "LONG";
+          } else if (value instanceof Double || value instanceof BigDecimal) {
+            enforcedType = "DOUBLE";
+          } else if (value instanceof byte[]) {
+            enforcedType = "BINARY";
           }
+          do {
+            GTSHelper.setValue(gts, decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue(), false);
+          } while(decoder.next());
         }
         // also set an extra label with the enforced type, or UNDEFINED if there is no type enforcement match AND the encoder was empty.
         if (null != extraLabel) {
