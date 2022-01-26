@@ -282,6 +282,7 @@ public class BUCKETIZECALENDAR extends NamedWarpScriptFunction implements WarpSc
     Object[] aggregated;
     if (null != stack) {
       stack.push(subgts);
+      stack.exec((Macro) aggregator);
       Object res = stack.peek();
 
       if (res instanceof List) {
