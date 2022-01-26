@@ -152,6 +152,8 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
             typeidx = 3;
           } else if (value instanceof byte[]) {
             typeidx = 4;
+          } else {
+            continue; // Handle deletion markers when they become available
           }
 
           gts = series[typeidx];
