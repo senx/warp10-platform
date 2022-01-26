@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -23,15 +23,15 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 
 public class EVAL extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   public EVAL(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object o = stack.pop();
-    
+
     if (o instanceof String) {
       // Execute single statement which may span multiple lines
       stack.execMulti((String) o);
@@ -40,7 +40,7 @@ public class EVAL extends NamedWarpScriptFunction implements WarpScriptStackFunc
     } else if (o instanceof WarpScriptStackFunction) {
       ((WarpScriptStackFunction) o).apply(stack);
     } else {
-      throw new WarpScriptException(getName() + " expects a Macro, a function of a String.");
+      throw new WarpScriptException(getName() + " expects a Macro, a function or a String.");
     }
     return stack;
   }
