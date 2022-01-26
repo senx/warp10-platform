@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -1899,12 +1899,45 @@ public class GTSHelper {
 
     // We know how many data will the new GTS so we provision arrays to receive the data.
     int count = lastidx - firstidx + 1;
+    // Allocate locations/elevations arrays so they get expanded by the call to multiProvision
+    if (null != gts.locations) {
+      subgts.locations = new long[0];
+    }
+    if (null != gts.elevations) {
+      subgts.elevations = new long[0];
+    }
     GTSHelper.multiProvision(subgts, gts.type, count, count);
 
-    for (int i = firstidx; i <= lastidx; i++) {
-      setValue(subgts, gts.ticks[i], null != gts.locations ? gts.locations[i] : GeoTimeSerie.NO_LOCATION, null != gts.elevations ? gts.elevations[i] : GeoTimeSerie.NO_ELEVATION, valueAtIndex(gts, i), overwrite);
+    if (!overwrite) {
+      if (null != subgts.locations) {
+        System.arraycopy(gts.locations, firstidx, subgts.locations, 0, count);
+      }
+      if (null != subgts.locations) {
+        System.arraycopy(gts.locations, firstidx, subgts.locations, 0, count);
+      }
+      if (null != subgts.ticks) {
+        System.arraycopy(gts.ticks, firstidx, subgts.ticks, 0, count);
+      }
+      if (null != subgts.longValues) {
+        System.arraycopy(gts.longValues, firstidx, subgts.longValues, 0, count);
+      }
+      if (null != subgts.doubleValues) {
+        System.arraycopy(gts.doubleValues, firstidx, subgts.doubleValues, 0, count);
+      }
+      if (null != subgts.stringValues) {
+        System.arraycopy(gts.stringValues, firstidx, subgts.stringValues, 0, count);
+      }
+      if (null != gts.booleanValues) {
+        subgts.booleanValues = gts.booleanValues.get(firstidx, lastidx + 1);
+      }
+      subgts.values = count;
+      subgts.sorted = gts.sorted;
+      subgts.reversed = gts.reversed;
+    } else {
+      for (int i = firstidx; i <= lastidx; i++) {
+        setValue(subgts, gts.ticks[i], null != gts.locations ? gts.locations[i] : GeoTimeSerie.NO_LOCATION, null != gts.elevations ? gts.elevations[i] : GeoTimeSerie.NO_ELEVATION, valueAtIndex(gts, i), overwrite);
+      }
     }
-
     return subgts;
   }
 
@@ -5714,7 +5747,7 @@ public class GTSHelper {
 
     for (int i = 0; i < lgts.size(); i++) {
       Map<String, String> attributes = lgts.get(i).getMetadata().getAttributes();
-      
+
       if (null == attributes || attributes.isEmpty()) {
         commonAttributes.clear();
         break;
