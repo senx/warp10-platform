@@ -134,10 +134,11 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
 
       for (GTSDecoder decoder: decodersInput) {
         Arrays.fill(series, null);
-
+        long remaining = decoder.getCount();
         GeoTimeSerie gts;
         while (decoder.next()) {
           Object value = decoder.getBinaryValue();
+          remaining--;
 
           int typeidx = 0; // LONG
 
@@ -156,7 +157,7 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
           gts = series[typeidx];
 
           if (null == gts) {
-            gts = new GeoTimeSerie();
+            gts = new GeoTimeSerie((int) Math.min(Integer.MAX_VALUE, remaining));
             gts.setMetadata(decoder.getMetadata());
             series[typeidx] = gts;
           }
