@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -53,7 +53,7 @@ public class Warp10RecordWriter extends RecordWriter<Writable, Writable> {
 
   private final Properties props;
 
-  private boolean init = false;
+  private volatile boolean init = false;
 
   private HttpURLConnection conn = null;
 
@@ -96,8 +96,6 @@ public class Warp10RecordWriter extends RecordWriter<Writable, Writable> {
     //
     // Assume the value is a GTSWrapper
     //
-
-    long count = 0L;
 
     TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
 
@@ -147,7 +145,6 @@ public class Warp10RecordWriter extends RecordWriter<Writable, Writable> {
         pw.println(GTSHelper.tickToString(metasb, decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue()));
         first = false;
       }
-      count++;
     }
   }
 
