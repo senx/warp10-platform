@@ -1,5 +1,5 @@
 //
-//   Copyright 2020  SenX S.A.S.
+//   Copyright 2020-2021  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -185,7 +185,7 @@ public abstract class ComparisonOperation extends NamedWarpScriptFunction implem
       } else {
         throw new WarpScriptException(getName() + "can only operate on two GTS with NUMBER or STRING values.");
       }
-    } else if (op1 instanceof GeoTimeSerie && GeoTimeSerie.TYPE.UNDEFINED == ((GeoTimeSerie) op1).getType() && (op2 instanceof String || op2 instanceof Number)) {
+    } else if (op1 instanceof GeoTimeSerie && GeoTimeSerie.TYPE.UNDEFINED == ((GeoTimeSerie) op1).getType() && (op2 instanceof String || op2 instanceof Number || op2 instanceof Boolean)) {
       // empty gts compared to a string or a number
       stack.push(((GeoTimeSerie) op1).cloneEmpty());
     } else if ((op1 instanceof GeoTimeSerie && op2 instanceof String && GeoTimeSerie.TYPE.STRING == ((GeoTimeSerie) op1).getType()) ||
@@ -293,8 +293,37 @@ public abstract class ComparisonOperation extends NamedWarpScriptFunction implem
         }
         stack.push(result);
       }
+    } else if ((op1 instanceof GeoTimeSerie && op2 instanceof Boolean && GeoTimeSerie.TYPE.BOOLEAN == ((GeoTimeSerie) op1).getType()) ||
+               (op2 instanceof GeoTimeSerie && op1 instanceof Boolean && GeoTimeSerie.TYPE.BOOLEAN == ((GeoTimeSerie) op2).getType())) {
+    // one Boolean gts compared to a boolean
+    GeoTimeSerie gts;
+    Boolean compOperand;
+    int orderFactor;
+
+    if (op1 instanceof GeoTimeSerie) {
+      gts = (GeoTimeSerie) op1;
+      compOperand = (Boolean) op2;
+      orderFactor = 1;
     } else {
-      throw new WarpScriptException(getName() + " can only operate when GTS values and the top stack operand have the same type. Booleans are not supported.");
+      gts = (GeoTimeSerie) op2;
+      compOperand = (Boolean) op1;
+      orderFactor = -1;
+    }
+
+    GeoTimeSerie result = gts.cloneEmpty();
+    result.setType(GeoTimeSerie.TYPE.BOOLEAN);
+
+    for (int i = 0; i < GTSHelper.nvalues(gts); i++) {
+      GTSHelper.setValue(result, GTSHelper.tickAtIndex(gts, i), GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i),
+          operator(Boolean.compare((Boolean) GTSHelper.valueAtIndex(gts, i), compOperand) * orderFactor, 0) ? GTSHelper.valueAtIndex(gts, i) : null, false);
+    }
+    // If result is empty, set type and sizehint to default.
+    if (0 == result.size()) {
+      result = result.cloneEmpty();
+    }
+    stack.push(result);
+  } else {
+      throw new WarpScriptException(getName() + " can only operate when GTS values and the top stack operand have the same type.");
     }
     
     return stack;

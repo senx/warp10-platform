@@ -124,7 +124,7 @@ public class Percentile extends NamedWarpScriptFunction implements WarpScriptMap
     }
 
     if (nullCounter != 0 && this.forbidNulls) {
-      throw new WarpScriptException(this.getName() + " cannot compute median of null values.");
+      throw new WarpScriptException(this.getName() + " cannot compute percentile of null values.");
     }
 
     // Safeguard against all null values. Should not happen but just in case return null value.
@@ -275,7 +275,7 @@ public class Percentile extends NamedWarpScriptFunction implements WarpScriptMap
     }
   }
 
-  private Object[] interpolate(int nonNullLength, int j, double gamma, Integer indices[], long[] ticks, long[] locations, long[] elevations, Object[] values) throws WarpScriptException {
+  private Object[] interpolate(int nonNullLength, int j, double gamma, Integer[] indices, long[] ticks, long[] locations, long[] elevations, Object[] values) throws WarpScriptException {
     if (j < 0) {
       // j is -1, directly return the lowest value
       return new Object[] {ticks[indices[0]], locations[indices[0]], elevations[indices[0]], ((Number) values[indices[0]]).doubleValue()};
@@ -296,7 +296,7 @@ public class Percentile extends NamedWarpScriptFunction implements WarpScriptMap
     }
 
     // Check values are numeric
-    if (!(values[0] instanceof Number)) {
+    if (!(values[indices[0]] instanceof Number)) {
       throw new WarpScriptException(getName() + " can only interpolate on numeric values");
     }
 

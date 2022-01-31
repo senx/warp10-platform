@@ -291,7 +291,7 @@ task generateChangelog(type: Exec) {
 // Tasks dependencies
 //
 compileJava.dependsOn("generateThrift")
-pack.dependsOn("generateChangelog")
+createTarArchive.dependsOn("generateChangelog")
 pack.dependsOn(":crypto:jar")
 pack.dependsOn(":token:jar")
 pack.dependsOn(":hbaseFilters:jar")
