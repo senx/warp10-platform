@@ -46,15 +46,15 @@ import org.slf4j.LoggerFactory;
 public class InfluxDBHandler extends AbstractHandler {
 
   private static final Logger LOG = LoggerFactory.getLogger(InfluxDBHandler.class);
-  
+
   private final URL url;
   private final String token;
-  
+
   public InfluxDBHandler(URL url, String token) {
     this.url = url;
     this.token = token;
   }
-  
+
   @Override
   public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
     baseRequest.setHandled(true);
@@ -63,22 +63,22 @@ public class InfluxDBHandler extends AbstractHandler {
     if(DispatcherType.REQUEST != baseRequest.getDispatcherType()){
       return;
     }
-    
+
     long nsPerTimeUnit = 1;
-    
+
     String qs = request.getQueryString();
-    
+
     Map<String,String> params = null;
-    
+
     if (null != qs) {
-      params = Splitter.on("&").withKeyValueSeparator("=").split(qs);  
+      params = Splitter.on("&").withKeyValueSeparator("=").split(qs);
     } else {
       params = new HashMap();
     }
-    
+
     String precision = params.get("precision");
-    
-    if (null != precision) { 
+
+    if (null != precision) {
       if ("n".equals(precision)) {
         nsPerTimeUnit = 1;
       } else if ("u".equals(precision)) {
@@ -97,9 +97,9 @@ public class InfluxDBHandler extends AbstractHandler {
     }
 
     String token = this.token;
-    
+
     String basicAuth = request.getHeader("Authorization");
-    
+
     if (null != basicAuth) {
       String[] userpass = new String(Base64.decodeBase64(basicAuth.substring(6))).split(":");
       token = userpass[1];
@@ -110,13 +110,13 @@ public class InfluxDBHandler extends AbstractHandler {
     if (null == token) {
       throw new IOException("Missing password and no default token.");
     }
-    
+
     HttpURLConnection conn = null;
-    
+
     try {
-      
+
       conn = (HttpURLConnection) url.openConnection();
-      
+
       conn.setDoOutput(true);
       conn.setDoInput(true);
       conn.setRequestMethod("POST");
@@ -124,21 +124,21 @@ public class InfluxDBHandler extends AbstractHandler {
       //conn.setRequestProperty("Content-Type", "application/gzip");
       conn.setChunkedStreamingMode(16384);
       conn.connect();
-      
+
       OutputStream os = conn.getOutputStream();
       //GZIPOutputStream out = new GZIPOutputStream(os);
       PrintWriter pw = new PrintWriter(os);
 
-      String contentType = request.getHeader("Content-Type"); 
+      String contentType = request.getHeader("Content-Type");
       BufferedReader br;
-      
+
       if (null == contentType || !"application/gzip".equals(contentType)) {
         br = request.getReader();
       } else {
         GZIPInputStream gzin = new GZIPInputStream(request.getInputStream());
         br = new BufferedReader(new InputStreamReader(gzin));
       }
-      
+
       while(true) {
         String line = br.readLine();
         if (null == line) {
@@ -151,11 +151,11 @@ public class InfluxDBHandler extends AbstractHandler {
           throw t;
         }
       }
-      
+
       br.close();
-      
-      pw.flush();
-      
+
+      pw.close();
+
       if (HttpServletResponse.SC_OK != conn.getResponseCode()) {
         throw new IOException(conn.getResponseMessage());
       }
@@ -165,20 +165,20 @@ public class InfluxDBHandler extends AbstractHandler {
       }
     }
   }
-  
+
   private static void parse(PrintWriter pw, String line, long nsPerTimeUnit) throws IOException {
-    
+
     line = line.trim();
-    
+
     // Skip comments and empty lines
     if ("".equals(line) || line.startsWith("#")) {
       return;
     }
-    
+
     //
     // Replace escape sequences
     //
-    
+
     if (line.indexOf('\\') >= 0) {
       line = line.replaceAll("%", "%25").replaceAll("\\\\=", "%3D").replaceAll("\\\\,", "%2C").replaceAll("\\\\ ", "%20").replaceAll("\\\\\"", "%22").replaceAll("\\\\\\{", "%7B").replaceAll("\\\\\\}", "%7D");
     }
@@ -198,24 +198,24 @@ public class InfluxDBHandler extends AbstractHandler {
         idx0 = idx + 1;
         idx = line.indexOf('\"', idx0);
       }
-      
+
       if (idx0 <= line.length()) {
         sb.append(line.substring(idx0));
       }
       line = sb.toString();
     }
-    
+
     String[] tokens = line.split(" ");
-    
+
     String measurementtags = tokens[0];
     String[] fields = tokens[1].split(",");
-    
+
     long timestamp = tokens.length > 2 ? Long.parseLong(tokens[2]) * nsPerTimeUnit : TimeSource.getNanoTime();
 
     timestamp = timestamp / (1000000000L / Constants.TIME_UNITS_PER_S);
-    
+
     int comma = measurementtags.indexOf(',');
-    
+
     String measurement = measurementtags.substring(0, comma);
     String labels = measurementtags.substring(comma + 1);
 
@@ -224,9 +224,9 @@ public class InfluxDBHandler extends AbstractHandler {
     for (String field: fields) {
       sb.setLength(0);
       int equal = field.indexOf('=');
-      
+
       String name = field.substring(0, equal);
-      
+
       sb.append(timestamp);
       sb.append("// ");
       sb.append(measurement);
@@ -238,7 +238,7 @@ public class InfluxDBHandler extends AbstractHandler {
       sb.append(" ");
 
       String val = field.substring(equal + 1);
-      
+
       if ("t".equals(val) || "T".equals(val) || "true".equals(val) || "TRUE".equals(val)) {
         sb.append("T");
       } else if ("f".equals(val) || "F".equals(val) || "false".equals(val) || "FALSE".equals(val)) {

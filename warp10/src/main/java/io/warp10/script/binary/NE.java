@@ -19,6 +19,7 @@ package io.warp10.script.binary;
 import java.util.Arrays;
 
 import com.geoxp.GeoXPLib;
+
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
@@ -43,9 +44,9 @@ public class NE extends ComparisonOperation {
     Object op1 = stack.pop();
 
     if ((op1 instanceof Number && op2 instanceof Number)
-        || (op1 instanceof GeoTimeSerie && op2 instanceof GeoTimeSerie)
-        || (op1 instanceof GeoTimeSerie && (op2 instanceof Number || op2 instanceof String))
-        || (op2 instanceof GeoTimeSerie && (op1 instanceof Number || op1 instanceof String))) {
+      || (op1 instanceof GeoTimeSerie && op2 instanceof GeoTimeSerie)
+      || (op1 instanceof GeoTimeSerie && (op2 instanceof Number || op2 instanceof String || op2 instanceof Boolean))
+      || (op2 instanceof GeoTimeSerie && (op1 instanceof Number || op1 instanceof String || op1 instanceof Boolean))) {
       // both numbers, both GTSs or one GTS and one String or Number
       comparison(stack, op1, op2);
     } else if (op1 instanceof GeoXPLib.GeoXPShape && op2 instanceof GeoXPLib.GeoXPShape) {
