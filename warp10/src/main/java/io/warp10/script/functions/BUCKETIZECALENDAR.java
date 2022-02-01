@@ -1,5 +1,5 @@
 //
-//   Copyright 2020  SenX S.A.S.
+//   Copyright 2020-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -282,6 +282,7 @@ public class BUCKETIZECALENDAR extends NamedWarpScriptFunction implements WarpSc
     Object[] aggregated;
     if (null != stack) {
       stack.push(subgts);
+      stack.exec((Macro) aggregator);
       Object res = stack.peek();
 
       if (res instanceof List) {
