@@ -177,7 +177,7 @@ public class StreamingMetadataIterator extends MetadataIterator {
 
       OutputStream out = conn.getOutputStream();
       out.write(qs.getBytes(StandardCharsets.US_ASCII));
-      out.flush();
+      out.close();
 
       reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
     }

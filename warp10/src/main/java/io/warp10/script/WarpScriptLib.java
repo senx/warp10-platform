@@ -492,6 +492,7 @@ public class WarpScriptLib {
   public static final String SIZE = "SIZE";
   public static final String SHRINK = "SHRINK";
   public static final String REMOVE = "REMOVE";
+  public static final String INDEXOF = "INDEXOF";
   public static final String UNIQUE = "UNIQUE";
   public static final String CONTAINS = "CONTAINS";
   public static final String CONTAINSKEY = "CONTAINSKEY";
@@ -1303,6 +1304,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new SIZE(SIZE));
     addNamedWarpScriptFunction(new SHRINK(SHRINK));
     addNamedWarpScriptFunction(new REMOVE(REMOVE));
+    addNamedWarpScriptFunction(new INDEXOF(INDEXOF));
     addNamedWarpScriptFunction(new UNIQUE(UNIQUE));
     addNamedWarpScriptFunction(new CONTAINS(CONTAINS));
     addNamedWarpScriptFunction(new CONTAINSKEY(CONTAINSKEY));

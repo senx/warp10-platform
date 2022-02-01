@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -65,6 +65,7 @@ sourceSets {
             include 'io/warp10/hadoop/**'
             include 'io/warp10/standalone/AcceleratorConfig.*'
             include 'io/warp10/standalone/AcceleratorConfig$*.*'
+            include 'io/warp10/standalone/StandalonePlasmaHandlerInterface.*'
 
             srcDir new File(project(':warp10').projectDir, "src/generated/thrift/gen-java")
             include 'io/warp10/continuum/thrift/data/**'
