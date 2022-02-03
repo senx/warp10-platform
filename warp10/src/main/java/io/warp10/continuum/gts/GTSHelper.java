@@ -1897,8 +1897,9 @@ public class GTSHelper {
     // Extract values/locations/elevations that lie in the requested interval
     //
 
-    // We know how many data will the new GTS so we provision arrays to receive the data.
+    // We know how many data the new GTS will have so we provision arrays to receive the data.
     int count = lastidx - firstidx + 1;
+
     // Allocate locations/elevations arrays so they get expanded by the call to multiProvision
     if (null != gts.locations) {
       subgts.locations = new long[0];
@@ -1906,14 +1907,15 @@ public class GTSHelper {
     if (null != gts.elevations) {
       subgts.elevations = new long[0];
     }
+
     GTSHelper.multiProvision(subgts, gts.type, count, count);
 
     if (!overwrite) {
       if (null != subgts.locations) {
         System.arraycopy(gts.locations, firstidx, subgts.locations, 0, count);
       }
-      if (null != subgts.locations) {
-        System.arraycopy(gts.locations, firstidx, subgts.locations, 0, count);
+      if (null != subgts.elevations) {
+        System.arraycopy(gts.elevations, firstidx, subgts.elevations, 0, count);
       }
       if (null != subgts.ticks) {
         System.arraycopy(gts.ticks, firstidx, subgts.ticks, 0, count);
