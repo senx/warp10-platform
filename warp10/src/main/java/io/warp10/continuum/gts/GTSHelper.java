@@ -1900,52 +1900,58 @@ public class GTSHelper {
     // We know how many data the new GTS will have so we provision arrays to receive the data.
     int count = lastidx - firstidx + 1;
 
-    // Allocate locations/elevations arrays so they get expanded by the call to multiProvision
-    if (null != gts.locations) {
-      subgts.locations = new long[0];
-    }
-    if (null != gts.elevations) {
-      subgts.elevations = new long[0];
-    }
-
     GTSHelper.multiProvision(subgts, gts.type, count, count);
 
     if (!overwrite) {
-      if (null != subgts.locations) {
-        System.arraycopy(gts.locations, firstidx, subgts.locations, 0, count);
-      }
-      if (null != subgts.elevations) {
-        System.arraycopy(gts.elevations, firstidx, subgts.elevations, 0, count);
-      }
-      if (null != subgts.ticks) {
-        System.arraycopy(gts.ticks, firstidx, subgts.ticks, 0, count);
-      }
+      if (count > 0) {
+        if (null != gts.locations) {
+          if (null != subgts.locations && subgts.locations.length >= count) {
+            System.arraycopy(gts.locations, firstidx, subgts.locations, 0, count);
+          } else {
+            subgts.locations = Arrays.copyOf(gts.locations, count);
+          }
+        } else {
+          subgts.locations = null;
+        }
+        if (null != gts.elevations) {
+          if (null != subgts.elevations && subgts.elevations.length >= count) {
+            System.arraycopy(gts.elevations, firstidx, subgts.elevations, 0, count);
+          } else {
+            subgts.elevations = Arrays.copyOf(gts.elevations, count);
+          }
+        } else {
+          subgts.elevations = null;
+        }
+        if (null != subgts.ticks) {
+          System.arraycopy(gts.ticks, firstidx, subgts.ticks, 0, count);
+        }
 
-      switch(gts.type) {
-        case LONG:
-          if (null != subgts.longValues) {
-            subgts.type = TYPE.LONG;
-            System.arraycopy(gts.longValues, firstidx, subgts.longValues, 0, count);
-          }
-          break;
-        case DOUBLE:
-          if (null != subgts.doubleValues) {
-            subgts.type = TYPE.DOUBLE;
-            System.arraycopy(gts.doubleValues, firstidx, subgts.doubleValues, 0, count);
-          }
-          break;
-        case BOOLEAN:
-          if (null != gts.booleanValues) {
-            subgts.type = TYPE.BOOLEAN;
-            subgts.booleanValues = gts.booleanValues.get(firstidx, lastidx + 1);
-          }
-          break;
-        case STRING:
-          if (null != subgts.stringValues) {
-            subgts.type = TYPE.STRING;
-            System.arraycopy(gts.stringValues, firstidx, subgts.stringValues, 0, count);
-          }
-          break;
+        switch(gts.type) {
+          case LONG:
+            if (null != subgts.longValues) {
+              subgts.type = TYPE.LONG;
+              System.arraycopy(gts.longValues, firstidx, subgts.longValues, 0, count);
+            }
+            break;
+          case DOUBLE:
+            if (null != subgts.doubleValues) {
+              subgts.type = TYPE.DOUBLE;
+              System.arraycopy(gts.doubleValues, firstidx, subgts.doubleValues, 0, count);
+            }
+            break;
+          case BOOLEAN:
+            if (null != gts.booleanValues) {
+              subgts.type = TYPE.BOOLEAN;
+              subgts.booleanValues = gts.booleanValues.get(firstidx, lastidx + 1);
+            }
+            break;
+          case STRING:
+            if (null != subgts.stringValues) {
+              subgts.type = TYPE.STRING;
+              System.arraycopy(gts.stringValues, firstidx, subgts.stringValues, 0, count);
+            }
+            break;
+        }
       }
       subgts.values = count;
       subgts.sorted = gts.sorted;
