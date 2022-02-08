@@ -49,7 +49,7 @@ public class MERGE extends NamedWarpScriptFunction implements WarpScriptStackFun
     }
 
     if (!(top instanceof List)) {
-      throw new WarpScriptException(getName() + " expects a list as input.");
+      throw new WarpScriptException(getName() + " operates on a LIST containing GTS or ENCODERs.");
     }
 
     List<Object> params = (List<Object>) top;

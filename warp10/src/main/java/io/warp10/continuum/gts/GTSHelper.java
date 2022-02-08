@@ -4225,17 +4225,19 @@ public class GTSHelper {
       } else if (params.get(i) instanceof List) {
         for (Object o: (List) params.get(i)) {
           if (o instanceof GeoTimeSerie) {
-            if (!GTSHelper.isSorted((GeoTimeSerie) o)) {
-              throw new WarpScriptException("GTS " + GTSHelper.buildSelector((GeoTimeSerie) o, false) + " is not sorted.");
-            }
-            if (GTSHelper.isReversed((GeoTimeSerie) o) != reversed) {
-              throw  new WarpScriptException("GTS " + GTSHelper.buildSelector((GeoTimeSerie) o, false) + " is not sorted in the expected order.");
+            if (GTSHelper.nvalues((GeoTimeSerie) o) > 0) {
+              if (!GTSHelper.isSorted((GeoTimeSerie) o)) {
+                throw new WarpScriptException("GTS " + GTSHelper.buildSelector((GeoTimeSerie) o, false) + " is not sorted.");
+              }
+              if (GTSHelper.isReversed((GeoTimeSerie) o) != reversed) {
+                throw  new WarpScriptException("GTS " + GTSHelper.buildSelector((GeoTimeSerie) o, false) + " is not sorted in the expected order.");
+              }
             }
             series.add((GeoTimeSerie) o);
           } else if (o instanceof GTSEncoder) {
             encoders.add((GTSEncoder) o);
           } else {
-            throw new WarpScriptException("expects a list of Geo Time Series or encoders or of lists therefos.");
+            throw new WarpScriptException("expects a list of Geo Time Series or encoders or of lists thereof.");
           }
         }
       }
@@ -4243,7 +4245,6 @@ public class GTSHelper {
 
     // Index at which the GTS start
     int gtsidx = encoders.size();
-    BitSet eligible = new BitSet(encoders.size() + series.size());
     // Decoders used to scan the ENCODERS
     final boolean freversed = reversed;
     PriorityQueue<Object> decoders = new PriorityQueue<Object>(new Comparator<Object>() {
