@@ -1927,29 +1927,24 @@ public class GTSHelper {
         }
 
         switch(gts.type) {
+          //
+          // Array for the type is known to be non null since multiProvision allocated it
+          //
           case LONG:
-            if (null != subgts.longValues) {
-              subgts.type = TYPE.LONG;
-              System.arraycopy(gts.longValues, firstidx, subgts.longValues, 0, count);
-            }
+            subgts.type = TYPE.LONG;
+            System.arraycopy(gts.longValues, firstidx, subgts.longValues, 0, count);
             break;
           case DOUBLE:
-            if (null != subgts.doubleValues) {
-              subgts.type = TYPE.DOUBLE;
-              System.arraycopy(gts.doubleValues, firstidx, subgts.doubleValues, 0, count);
-            }
+            subgts.type = TYPE.DOUBLE;
+            System.arraycopy(gts.doubleValues, firstidx, subgts.doubleValues, 0, count);
             break;
           case BOOLEAN:
-            if (null != gts.booleanValues) {
-              subgts.type = TYPE.BOOLEAN;
-              subgts.booleanValues = gts.booleanValues.get(firstidx, lastidx + 1);
-            }
+            subgts.type = TYPE.BOOLEAN;
+            subgts.booleanValues = gts.booleanValues.get(firstidx, lastidx + 1);
             break;
           case STRING:
-            if (null != subgts.stringValues) {
-              subgts.type = TYPE.STRING;
-              System.arraycopy(gts.stringValues, firstidx, subgts.stringValues, 0, count);
-            }
+            subgts.type = TYPE.STRING;
+            System.arraycopy(gts.stringValues, firstidx, subgts.stringValues, 0, count);
             break;
         }
       }
