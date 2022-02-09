@@ -238,16 +238,20 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
         }
         if (decoder.next()) {
           Object value = decoder.getBinaryValue();
-          if (value instanceof String) {
-            enforcedType = "STRING";
-          } else if (value instanceof Boolean) {
-            enforcedType = "BOOLEAN";
-          } else if (value instanceof Long) {
-            enforcedType = "LONG";
-          } else if (value instanceof Double || value instanceof BigDecimal) {
-            enforcedType = "DOUBLE";
-          } else if (value instanceof byte[]) {
-            enforcedType = "BINARY";
+          if (mustGuessTypeFromFirstValue) {
+            if (value instanceof String) {
+              enforcedType = "STRING";
+            } else if (value instanceof Boolean) {
+              enforcedType = "BOOLEAN";
+            } else if (value instanceof Long) {
+              enforcedType = "LONG";
+            } else if (value instanceof Double || value instanceof BigDecimal) {
+              enforcedType = "DOUBLE";
+            } else if (value instanceof byte[]) {
+              enforcedType = "BINARY";
+            }
+            // TODO(hbs): when deletion markers are fully supported, we need to loop until we
+            // find a real value.
           }
           do {
             GTSHelper.setValue(gts, decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue(), false);
