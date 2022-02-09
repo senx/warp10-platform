@@ -39,8 +39,8 @@ public class MAXGEOCELLS extends NamedWarpScriptFunction implements WarpScriptSt
     
     Object top = stack.pop();
     
-    if (!(top instanceof Long)) {
-      throw new WarpScriptException(getName() + " expects a numeric (long) limit.");
+    if (!(top instanceof Number)) {
+      throw new WarpScriptException(getName() + " expects a numeric limit.");
     }
     
     long limit = ((Number) top).longValue();
