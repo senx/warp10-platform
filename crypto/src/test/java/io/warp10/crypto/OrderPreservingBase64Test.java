@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -32,20 +32,20 @@ public class OrderPreservingBase64Test {
   public void testEncode() {
     byte[] data = new byte[] { -1 };
     byte[] encoded = OrderPreservingBase64.encode(data);
-    
+
     Assert.assertEquals(2, encoded.length);
     Assert.assertEquals("zk", new String(encoded));
-    
+
     data = new byte[] { -1, -1 };
     encoded = OrderPreservingBase64.encode(data);
     Assert.assertEquals(3, encoded.length);
     Assert.assertEquals("zzw", new String(encoded));
-    
+
     data = new byte[] { -1, -1, -1 };
     encoded = OrderPreservingBase64.encode(data);
     Assert.assertEquals(4, encoded.length);
     Assert.assertEquals("zzzz", new String(encoded));
-    
+
     data = new byte[] { -1, -1, -1, -1 };
     encoded = OrderPreservingBase64.encode(data);
     Assert.assertEquals(6, encoded.length);
@@ -56,7 +56,7 @@ public class OrderPreservingBase64Test {
     Assert.assertEquals(7, encoded.length);
     Assert.assertEquals("zzzzzzw", new String(encoded));
   }
-  
+
   @Test
   public void testDecode() {
     byte[] data = "zk".getBytes();
@@ -85,42 +85,71 @@ public class OrderPreservingBase64Test {
     Assert.assertEquals(-1, decoded[2]);
     Assert.assertEquals(-1, decoded[3]);
   }
-  
+
+  @Test
+  public void testDecodeString() {
+    String data = "zk";
+    byte[] decoded = OrderPreservingBase64.decode(data);
+    Assert.assertEquals(1, decoded.length);
+    Assert.assertEquals(-1, decoded[0]);
+
+    data = "zzw";
+    decoded = OrderPreservingBase64.decode(data);
+    Assert.assertEquals(2, decoded.length);
+    Assert.assertEquals(-1, decoded[0]);
+    Assert.assertEquals(-1, decoded[1]);
+
+    data = "zzzz";
+    decoded = OrderPreservingBase64.decode(data);
+    Assert.assertEquals(3, decoded.length);
+    Assert.assertEquals(-1, decoded[0]);
+    Assert.assertEquals(-1, decoded[1]);
+    Assert.assertEquals(-1, decoded[2]);
+
+    data = "zzzzzk";
+    decoded = OrderPreservingBase64.decode(data);
+    Assert.assertEquals(4, decoded.length);
+    Assert.assertEquals(-1, decoded[0]);
+    Assert.assertEquals(-1, decoded[1]);
+    Assert.assertEquals(-1, decoded[2]);
+    Assert.assertEquals(-1, decoded[3]);
+  }
+
   @Test
   public void testOrder() {
     Random rand = new Random();
     long nano = System.nanoTime();
     int n = 1000000;
-    
+
     for (int i = 0; i < n; i++) {
       byte[] a = new byte[(int) (Math.random() * 16)];
       byte[] b = new byte[(int) (Math.random() * 16)];
       rand.nextBytes(a);
       rand.nextBytes(b);
-      
+
       int bytecomp = compareTo(a, 0, a.length, b, 0, b.length);
       int b64comp = new String(OrderPreservingBase64.encode(a), StandardCharsets.US_ASCII).compareTo(new String(OrderPreservingBase64.encode(b), StandardCharsets.US_ASCII));
-      
+
       Assert.assertTrue((bytecomp == 0 && b64comp == 0) || (bytecomp * b64comp > 0));
     }
-    
+
     System.out.println((System.nanoTime() - nano) / (double) n);
   }
-  
+
   @Test
   public void testPerf() {
     byte[] bytes = new byte[100000];
     SecureRandom sr = new SecureRandom();
     sr.nextBytes(bytes);
-    
+
     int n = 100000;
-    
+
     for (int i = 0; i < n; i++) {
       byte[] enc = OrderPreservingBase64.encode(bytes);
     }
-    
+
   }
-  
+
   @Test
   public void testStream() throws Exception {
     SecureRandom sr = new SecureRandom();
