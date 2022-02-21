@@ -1933,18 +1933,30 @@ public class GTSHelper {
           //
           case LONG:
             subgts.type = TYPE.LONG;
+            if (null == subgts.longValues || subgts.longValues.length < count) {
+              subgts.longValues = new long[count];
+            }
             System.arraycopy(gts.longValues, firstidx, subgts.longValues, 0, count);
             break;
           case DOUBLE:
             subgts.type = TYPE.DOUBLE;
+            if (null == subgts.doubleValues || subgts.doubleValues.length < count) {
+              subgts.doubleValues = new double[coutn];
+            }
             System.arraycopy(gts.doubleValues, firstidx, subgts.doubleValues, 0, count);
             break;
           case BOOLEAN:
             subgts.type = TYPE.BOOLEAN;
+            if (null == subgts.booleanValues) {
+              subgts.booleanValues = new BitSet(count);
+            }
             subgts.booleanValues = gts.booleanValues.get(firstidx, lastidx + 1);
             break;
           case STRING:
             subgts.type = TYPE.STRING;
+            if (null == subgts.stringValues || subgts.stringValues.length < count) {
+              subgts.stringValues = new String[count];
+            }
             System.arraycopy(gts.stringValues, firstidx, subgts.stringValues, 0, count);
             break;
         }
