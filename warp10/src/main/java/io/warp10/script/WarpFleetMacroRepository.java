@@ -60,6 +60,8 @@ public class WarpFleetMacroRepository {
   private static final ADD ADD_FUNC = new ADD(WarpScriptLib.ADD);
   private static final HUMANDURATION HUMANDURATION_FUNC = new HUMANDURATION(WarpScriptLib.HUMANDURATION);
 
+  private static final String MACRO_PLACEHOLDER = "{macro}";
+
   private static final int FINGERPRINT_UNKNOWN = -1;
 
   /**
@@ -180,7 +182,11 @@ public class WarpFleetMacroRepository {
         // Check the macro cache
         //
 
-        macroURL = repo + (repo.endsWith("/") ? "" : "/") + name;
+        if (repo.contains(MACRO_PLACEHOLDER)) {
+          macroURL = repo.replace(MACRO_PLACEHOLDER, name + ".mc2");
+        } else {
+          macroURL = repo + (repo.endsWith("/") ? "" : "/") + name + ".mc2";
+        }
 
         synchronized(macros) {
           macro = macros.get(macroURL);
@@ -216,7 +222,7 @@ public class WarpFleetMacroRepository {
 
         try {
           hconn = null;
-          URL url = new URL(macroURL + ".mc2");
+          URL url = new URL(macroURL);
           URLConnection conn = url.openConnection();
 
           if (conn instanceof HttpURLConnection) {

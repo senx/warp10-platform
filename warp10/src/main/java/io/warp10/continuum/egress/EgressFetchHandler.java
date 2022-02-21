@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -104,6 +104,7 @@ import io.warp10.script.functions.ADDDURATION;
 import io.warp10.script.functions.FETCH;
 import io.warp10.sensision.Sensision;
 import io.warp10.standalone.AcceleratorConfig;
+import io.warp10.standalone.Warp;
 
 public class EgressFetchHandler extends AbstractHandler {
 
@@ -572,12 +573,20 @@ public class EgressFetchHandler extends AbstractHandler {
       Set<Metadata> metadatas = new LinkedHashSet<Metadata>();
       List<Iterator<Metadata>> iterators = new ArrayList<Iterator<Metadata>>();
 
-      if (!splitFetch) {
+      boolean cacheGTS = false;
 
+      if (!splitFetch) {
         if (null == selector) {
           httpStatusCode = HttpServletResponse.SC_BAD_REQUEST;
           throw new IOException("Missing '" + Constants.HTTP_PARAM_SELECTOR + "' parameter.");
         }
+
+        //
+        // If we are in a standalone instance, we do not need to cache the GTS on disk since
+        // the directory is not accessed via the network and therefore cannot time out
+        //
+
+        cacheGTS = !Warp.isStandaloneMode();
 
         String[] selectors = selector.split("\\s+");
 
@@ -646,6 +655,9 @@ public class EgressFetchHandler extends AbstractHandler {
         }
       } else {
         // split fetch
+
+        // We need to cache the GTS because the network connection may timeout
+        cacheGTS = true;
 
         //
         // Add an iterator which reads splits from the request body
@@ -768,153 +780,155 @@ public class EgressFetchHandler extends AbstractHandler {
         iterators.add(metas.iterator());
       }
 
-      //
-      // Loop over the iterators, storing the read metadata to a temporary file encrypted on disk
-      // Data is encrypted using a onetime pad
-      //
+      if (cacheGTS) {
+        //
+        // Loop over the iterators, storing the read metadata to a temporary file encrypted on disk
+        // Data is encrypted using a onetime pad
+        //
 
-      final byte[] onetimepad = new byte[(int) Math.min(65537, System.currentTimeMillis() % 100000)];
-      ThreadLocalRandom.current().nextBytes(onetimepad);
+        final byte[] onetimepad = new byte[(int) Math.min(65537, System.currentTimeMillis() % 100000)];
+        ThreadLocalRandom.current().nextBytes(onetimepad);
 
-      final File cache = File.createTempFile(Long.toHexString(System.currentTimeMillis()) + "-" + Long.toHexString(System.nanoTime()), ".dircache");
-      cache.deleteOnExit();
+        final File cache = File.createTempFile(Long.toHexString(System.currentTimeMillis()) + "-" + Long.toHexString(System.nanoTime()), ".dircache");
+        cache.deleteOnExit();
 
-      FileWriter writer = new FileWriter(cache);
+        FileWriter writer = new FileWriter(cache);
 
-      TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+        TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
 
-      int padidx = 0;
+        int padidx = 0;
 
-      for (Iterator<Metadata> itermeta: iterators) {
-        if (gcount <= 0) {
-          break;
+        for (Iterator<Metadata> itermeta: iterators) {
+          if (gcount <= 0) {
+            break;
+          }
+
+          try {
+            while(itermeta.hasNext()) {
+
+              if (gcount <= 0) {
+                break;
+              }
+
+              Metadata metadata = itermeta.next();
+
+              if (gskip > 0) {
+                gskip--;
+                continue;
+              }
+
+              gcount--;
+
+              try {
+                byte[] bytes = serializer.serialize(metadata);
+                // Apply onetimepad
+                for (int i = 0; i < bytes.length; i++) {
+                  bytes[i] = (byte) (bytes[i] ^ onetimepad[padidx++]);
+                  if (padidx >= onetimepad.length) {
+                    padidx = 0;
+                  }
+                }
+                OrderPreservingBase64.encodeToWriter(bytes, writer);
+                writer.write('\n');
+              } catch (TException te) {
+              }
+            }
+
+            if (itermeta instanceof MetadataIterator) {
+              try {
+                ((MetadataIterator) itermeta).close();
+              } catch (Exception e) {
+              }
+            }
+          } catch (Throwable t) {
+            throw t;
+          } finally {
+            if (itermeta instanceof MetadataIterator) {
+              try {
+                ((MetadataIterator) itermeta).close();
+              } catch (Exception e) {
+              }
+            }
+          }
         }
 
-        try {
-          while(itermeta.hasNext()) {
+        writer.close();
 
-            if (gcount <= 0) {
-              break;
+        //
+        // Create an iterator based on the cache
+        //
+
+        MetadataIterator cacheiterator = new MetadataIterator() {
+
+          BufferedReader reader = new BufferedReader(new FileReader(cache));
+
+          private Metadata current = null;
+          private boolean done = false;
+
+          private TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
+
+          int padidx = 0;
+
+          @Override
+          public boolean hasNext() {
+            if (done) {
+              return false;
             }
 
-            Metadata metadata = itermeta.next();
-
-            if (gskip > 0) {
-              gskip--;
-              continue;
+            if (null != current) {
+              return true;
             }
-
-            gcount--;
 
             try {
-              byte[] bytes = serializer.serialize(metadata);
-              // Apply onetimepad
-              for (int i = 0; i < bytes.length; i++) {
-                bytes[i] = (byte) (bytes[i] ^ onetimepad[padidx++]);
+              String line = reader.readLine();
+              if (null == line) {
+                done = true;
+                return false;
+              }
+              byte[] raw = OrderPreservingBase64.decode(line.getBytes(StandardCharsets.US_ASCII));
+              // Apply one time pad
+              for (int i = 0; i < raw.length; i++) {
+                raw[i] = (byte) (raw[i] ^ onetimepad[padidx++]);
                 if (padidx >= onetimepad.length) {
                   padidx = 0;
                 }
               }
-              OrderPreservingBase64.encodeToWriter(bytes, writer);
-              writer.write('\n');
-            } catch (TException te) {
+              Metadata metadata = new Metadata();
+              try {
+                deserializer.deserialize(metadata, raw);
+                this.current = metadata;
+                return true;
+              } catch (TException te) {
+                LOG.error("", te);
+              }
+            } catch (IOException ioe) {
+              LOG.error("", ioe);
             }
-          }
 
-          if (itermeta instanceof MetadataIterator) {
-            try {
-              ((MetadataIterator) itermeta).close();
-            } catch (Exception e) {
-            }
-          }
-        } catch (Throwable t) {
-          throw t;
-        } finally {
-          if (itermeta instanceof MetadataIterator) {
-            try {
-              ((MetadataIterator) itermeta).close();
-            } catch (Exception e) {
-            }
-          }
-        }
-      }
-
-      writer.close();
-
-      //
-      // Create an iterator based on the cache
-      //
-
-      MetadataIterator cacheiterator = new MetadataIterator() {
-
-        BufferedReader reader = new BufferedReader(new FileReader(cache));
-
-        private Metadata current = null;
-        private boolean done = false;
-
-        private TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
-
-        int padidx = 0;
-
-        @Override
-        public boolean hasNext() {
-          if (done) {
             return false;
           }
 
-          if (null != current) {
-            return true;
+          @Override
+          public Metadata next() {
+            if (null != this.current) {
+              Metadata metadata = this.current;
+              this.current = null;
+              return metadata;
+            } else {
+              throw new NoSuchElementException();
+            }
           }
 
-          try {
-            String line = reader.readLine();
-            if (null == line) {
-              done = true;
-              return false;
-            }
-            byte[] raw = OrderPreservingBase64.decode(line.getBytes(StandardCharsets.US_ASCII));
-            // Apply one time pad
-            for (int i = 0; i < raw.length; i++) {
-              raw[i] = (byte) (raw[i] ^ onetimepad[padidx++]);
-              if (padidx >= onetimepad.length) {
-                padidx = 0;
-              }
-            }
-            Metadata metadata = new Metadata();
-            try {
-              deserializer.deserialize(metadata, raw);
-              this.current = metadata;
-              return true;
-            } catch (TException te) {
-              LOG.error("", te);
-            }
-          } catch (IOException ioe) {
-            LOG.error("", ioe);
+          @Override
+          public void close() throws Exception {
+            this.reader.close();
+            cache.delete();
           }
+        };
 
-          return false;
-        }
-
-        @Override
-        public Metadata next() {
-          if (null != this.current) {
-            Metadata metadata = this.current;
-            this.current = null;
-            return metadata;
-          } else {
-            throw new NoSuchElementException();
-          }
-        }
-
-        @Override
-        public void close() throws Exception {
-          this.reader.close();
-          cache.delete();
-        }
-      };
-
-      iterators.clear();
-      iterators.add(cacheiterator);
+        iterators.clear();
+        iterators.add(cacheiterator);
+      }
 
       metas = new ArrayList<Metadata>();
 
