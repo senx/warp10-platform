@@ -1941,7 +1941,7 @@ public class GTSHelper {
           case DOUBLE:
             subgts.type = TYPE.DOUBLE;
             if (null == subgts.doubleValues || subgts.doubleValues.length < count) {
-              subgts.doubleValues = new double[coutn];
+              subgts.doubleValues = new double[count];
             }
             System.arraycopy(gts.doubleValues, firstidx, subgts.doubleValues, 0, count);
             break;
