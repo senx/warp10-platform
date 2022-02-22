@@ -1898,14 +1898,77 @@ public class GTSHelper {
     // Extract values/locations/elevations that lie in the requested interval
     //
 
-    // We know how many data will the new GTS so we provision arrays to receive the data.
+    // We know how many data the new GTS will have so we provision arrays to receive the data.
     int count = lastidx - firstidx + 1;
+
     GTSHelper.multiProvision(subgts, gts.type, count, count);
 
-    for (int i = firstidx; i <= lastidx; i++) {
-      setValue(subgts, gts.ticks[i], null != gts.locations ? gts.locations[i] : GeoTimeSerie.NO_LOCATION, null != gts.elevations ? gts.elevations[i] : GeoTimeSerie.NO_ELEVATION, valueAtIndex(gts, i), overwrite);
-    }
+    if (!overwrite) {
+      if (count > 0) {
+        if (null != gts.locations) {
+          if (null != subgts.locations && subgts.locations.length >= count) {
+            System.arraycopy(gts.locations, firstidx, subgts.locations, 0, count);
+          } else {
+            subgts.locations = Arrays.copyOf(gts.locations, count);
+          }
+        } else {
+          subgts.locations = null;
+        }
+        if (null != gts.elevations) {
+          if (null != subgts.elevations && subgts.elevations.length >= count) {
+            System.arraycopy(gts.elevations, firstidx, subgts.elevations, 0, count);
+          } else {
+            subgts.elevations = Arrays.copyOf(gts.elevations, count);
+          }
+        } else {
+          subgts.elevations = null;
+        }
+        if (null != subgts.ticks) {
+          System.arraycopy(gts.ticks, firstidx, subgts.ticks, 0, count);
+        }
 
+        switch(gts.type) {
+          //
+          // Array for the type is known to be non null since multiProvision allocated it
+          //
+          case LONG:
+            subgts.type = TYPE.LONG;
+            if (null == subgts.longValues || subgts.longValues.length < count) {
+              subgts.longValues = new long[count];
+            }
+            System.arraycopy(gts.longValues, firstidx, subgts.longValues, 0, count);
+            break;
+          case DOUBLE:
+            subgts.type = TYPE.DOUBLE;
+            if (null == subgts.doubleValues || subgts.doubleValues.length < count) {
+              subgts.doubleValues = new double[count];
+            }
+            System.arraycopy(gts.doubleValues, firstidx, subgts.doubleValues, 0, count);
+            break;
+          case BOOLEAN:
+            subgts.type = TYPE.BOOLEAN;
+            if (null == subgts.booleanValues) {
+              subgts.booleanValues = new BitSet(count);
+            }
+            subgts.booleanValues = gts.booleanValues.get(firstidx, lastidx + 1);
+            break;
+          case STRING:
+            subgts.type = TYPE.STRING;
+            if (null == subgts.stringValues || subgts.stringValues.length < count) {
+              subgts.stringValues = new String[count];
+            }
+            System.arraycopy(gts.stringValues, firstidx, subgts.stringValues, 0, count);
+            break;
+        }
+      }
+      subgts.values = count;
+      subgts.sorted = gts.sorted;
+      subgts.reversed = gts.reversed;
+    } else {
+      for (int i = firstidx; i <= lastidx; i++) {
+        setValue(subgts, gts.ticks[i], null != gts.locations ? gts.locations[i] : GeoTimeSerie.NO_LOCATION, null != gts.elevations ? gts.elevations[i] : GeoTimeSerie.NO_ELEVATION, valueAtIndex(gts, i), overwrite);
+      }
+    }
     return subgts;
   }
 
