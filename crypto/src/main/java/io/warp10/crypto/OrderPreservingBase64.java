@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -53,6 +53,10 @@ public class OrderPreservingBase64 {
    */
   public static byte[] encode(byte[] data) {
     return encode(data, 0, data.length);
+  }
+
+  public static String encodeToString(byte[] data) {
+    return new String(encode(data), StandardCharsets.UTF_8);
   }
 
   /**
@@ -249,6 +253,54 @@ public class OrderPreservingBase64 {
           break;
         case 3:
           value |= TEBAHPLA[data[offset + i]];
+          decoded[idx++] = value;
+          break;
+      }
+    }
+
+    // FIXME(hbs)
+    if (idx < decoded.length) {
+      decoded[idx++] = value;
+    }
+
+    return decoded;
+  }
+
+  public static byte[] decode(String data) {
+    return decode(data, 0, data.length());
+  }
+
+  /**
+   * Decode byte [ ].
+   *
+   * @param data   the data
+   * @param offset the offset
+   * @param len    the len
+   * @return the byte [ ]
+   */
+  public static byte[] decode(String data, int offset, int len) {
+    byte[] decoded = new byte[3 * (len / 4) + (len % 4 != 0 ? (len % 4 - 1) : 0)];
+
+    int idx = 0;
+    byte value = 0;
+
+    for (int i = 0; i < len; i++) {
+      switch (i % 4) {
+        case 0:
+          value = (byte) (TEBAHPLA[data.charAt(offset + i)] << 2);
+          break;
+        case 1:
+          value |= (byte) ((TEBAHPLA[data.charAt(offset + i)] >> 4) & 0x3);
+          decoded[idx++] = value;
+          value = (byte) ((TEBAHPLA[data.charAt(offset + i)] << 4) & 0xf0);
+          break;
+        case 2:
+          value |= (byte) ((TEBAHPLA[data.charAt(offset + i)] >> 2) & 0xf);
+          decoded[idx++] = value;
+          value = (byte) ((TEBAHPLA[data.charAt(offset + i)] << 6) & 0xc0);
+          break;
+        case 3:
+          value |= TEBAHPLA[data.charAt(offset + i)];
           decoded[idx++] = value;
           break;
       }

@@ -31,6 +31,7 @@ import io.warp10.continuum.store.Store;
 import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OSSKeyStore;
+import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.crypto.UnsecureKeyStore;
 import io.warp10.script.ScriptRunner;
 import io.warp10.script.WarpScriptLib;
@@ -53,20 +54,20 @@ import com.google.common.base.Preconditions;
  * Main class for launching components of the Continuum geo time series storage system
  */
 public class WarpDist {
-      
+
   //
   // We create an instance of SensisionConstants so Sensision gets its instance name set
   // before any metric or event is pushed. Otherwise registration won't take into account
   // the instance name.
   //
-   
+
   static {
     SensisionConstants constant = new SensisionConstants();
   }
 
   private static KeyStore keystore = null;
   private static Properties properties = null;
-  
+
   public static final String[] REQUIRED_PROPERTIES = {
     Configuration.WARP_COMPONENTS,
     Configuration.WARP_HASH_CLASS,
@@ -81,20 +82,20 @@ public class WarpDist {
   };
 
   private static boolean initialized = false;
-  
+
   /**
    * Do we run an 'egress' service. Used in WarpScript MacroRepository to bail out if not
    */
   private static boolean hasEgress = false;
-  
+
   public static void setProperties(Properties props) {
     if (null != properties) {
       throw new RuntimeException("Properties already set.");
     }
-    
+
     properties = props;
   }
- 
+
   public static void setProperties(String[] files) throws IOException {
     try {
       WarpConfig.setProperties(false, files);
@@ -105,7 +106,7 @@ public class WarpDist {
       System.exit(-1);
     }
   }
-  
+
   public static void setProperties(String file) throws IOException {
     try {
       WarpConfig.setProperties(false, file);
@@ -116,27 +117,27 @@ public class WarpDist {
       System.exit(-1);
     }
   }
-  
+
   public static void setKeyStore(KeyStore ks) {
     if (null != keystore) {
       throw new RuntimeException("KeyStore already set.");
     }
     keystore = ks.clone();
   }
-    
+
   public static void main(String[] args) throws Exception {
 
     System.out.println();
     System.out.println(Constants.WARP10_BANNER);
     System.out.println("  Revision " + Revision.REVISION);
     System.out.println();
-    
+
     System.setProperty("java.awt.headless", "true");
 
     if (StandardCharsets.UTF_8 != Charset.defaultCharset()) {
       throw new RuntimeException("Default encoding MUST be UTF-8 but it is " + Charset.defaultCharset() + ". Aborting.");
     }
-    
+
     if (args.length > 0) {
       setProperties(args);
     } else if (null != System.getenv(WarpConfig.WARP10_CONFIG_ENV)) {
@@ -144,18 +145,18 @@ public class WarpDist {
     } else if (null != System.getProperty(WarpConfig.WARP10_CONFIG)) {
       setProperties(System.getProperty(WarpConfig.WARP10_CONFIG));
     }
-        
+
     //
     // Extract components to spawn
     //
-    
+
     String[] components = properties.getProperty(Configuration.WARP_COMPONENTS).split(",");
-    
+
     Set<String> subprocesses = new HashSet<String>();
-    
+
     for (String component: components) {
       component = component.trim();
-           
+
       subprocesses.add(component);
     }
 
@@ -168,17 +169,19 @@ public class WarpDist {
     //
     // Set SIPHASH keys for class/labels/index
     //
-    
+
     for (String property: REQUIRED_PROPERTIES) {
       Preconditions.checkNotNull(properties.getProperty(property), "Property '" + property + "' MUST be set.");
     }
 
     //
-    // Decode generic keys
+    // Decode generic keys and secrets
     // We do that first so those keys do not have precedence over the specific
     // keys.
     //
-    
+
+    Map<String,String> secrets = new HashMap<String,String>();
+    Set<Object> keys = new HashSet<Object>();
     for (Entry<Object,Object> entry: properties.entrySet()) {
       if (entry.getKey().toString().startsWith(Configuration.WARP_KEY_PREFIX)) {
         byte[] key = keystore.decodeKey(entry.getValue().toString());
@@ -186,8 +189,27 @@ public class WarpDist {
           throw new RuntimeException("Unable to decode key '" + entry.getKey() + "'.");
         }
         keystore.setKey(entry.getKey().toString().substring(Configuration.WARP_KEY_PREFIX.length()), key);
+        keys.add(entry.getKey());
+      } else if (entry.getKey().toString().startsWith(Configuration.WARP_SECRET_PREFIX)) {
+        byte[] secret = keystore.decodeKey(entry.getValue().toString());
+        if (null == secret) {
+          throw new RuntimeException("Unable to decode secret '" + entry.getKey() + "'.");
+        }
+        // Encode secret as OPB64 and store it
+        secrets.put(entry.getKey().toString().substring(Configuration.WARP_SECRET_PREFIX.length()), OrderPreservingBase64.encodeToString(secret));
+        keys.add(entry.getKey());
       }
     }
+
+    //
+    // Remove keys and secrets from the properties
+    //
+    for (Object key: keys) {
+      properties.remove(key);
+    }
+
+    // Inject the secrets
+    properties.putAll(secrets);
 
     extractKeys(keystore, properties);
 
@@ -195,19 +217,19 @@ public class WarpDist {
     KeyStore.checkAndSetKey(keystore, KeyStore.AES_RUNNER_PSK, properties, Configuration.RUNNER_PSK, 128, 192, 256);
 
     WarpScriptLib.registerExtensions();
-    
+
     KafkaWebCallService.initKeys(keystore, properties);
-        
+
     //
     // Initialize ThrottlingManager
     //
-    
+
     ThrottlingManager.init();
-    
+
     if (subprocesses.contains("egress") && subprocesses.contains("fetcher")) {
       throw new RuntimeException("'fetcher' and 'egress' cannot be specified together as components to run.");
     }
-    
+
     for (String subprocess: subprocesses) {
       if ("ingress".equals(subprocess)) {
         Ingress ingress = new Ingress(getKeyStore(), getProperties());
@@ -224,7 +246,7 @@ public class WarpDist {
         Egress egress = new Egress(getKeyStore(), getProperties(), true);
         Map<String,String> labels = new HashMap<String, String>();
         labels.put(SensisionConstants.SENSISION_LABEL_COMPONENT, "fetcher");
-        Sensision.set(SensisionConstants.SENSISION_CLASS_WARP_REVISION, labels, Revision.REVISION);        
+        Sensision.set(SensisionConstants.SENSISION_CLASS_WARP_REVISION, labels, Revision.REVISION);
       } else if ("store".equals(subprocess)) {
         int nthreads = Integer.valueOf(properties.getProperty(Configuration.STORE_NTHREADS));
         for (int i = 0; i < nthreads; i++) {
@@ -266,29 +288,29 @@ public class WarpDist {
         continue;
       }
     }
-    
+
     // Clear master key from memory
     keystore.forget();
-    
+
     //
     // Register the plugins after we've cleared the master key
     //
-    
+
     AbstractWarp10Plugin.registerPlugins();
-    
+
     setInitialized(true);
-    
+
     //
     // We're done, let's sleep endlessly
     //
-    
+
     try {
       while (true) {
         try {
           Thread.sleep(60000L);
-        } catch (InterruptedException ie) {        
+        } catch (InterruptedException ie) {
         }
-      }      
+      }
     } catch (Throwable t) {
       System.err.println(t.getMessage());
     }
@@ -300,26 +322,26 @@ public class WarpDist {
     }
     return keystore.clone();
   }
-  
+
   public static Properties getProperties() {
     if (null == properties) {
       return null;
     }
     return (Properties) properties.clone();
   }
-  
+
   public static synchronized void setInitialized(boolean initialized) {
     WarpDist.initialized = initialized;
   }
-  
+
   public static synchronized boolean isInitialized() {
     return initialized;
   }
-  
+
   public static boolean isEgress() {
     return hasEgress;
   }
-  
+
   public static void setEgress(boolean egress) {
     hasEgress = egress;
   }

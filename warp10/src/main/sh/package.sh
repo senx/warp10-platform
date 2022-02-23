@@ -60,7 +60,7 @@ sed -e "s/@VERSION@/${VERSION}/g" ../src/main/sh/warp10-standalone.sh >> ${WARP1
 # Copy log4j README, config, runner, bootstrap...
 cp ../../etc/bootstrap/*.mc2 ${WARP10_HOME}/etc/bootstrap
 cp ../../etc/install/README.md ${WARP10_HOME}
-cp ${WARP_ROOT_PATH}/build/changelog.* ${WARP10_HOME}
+cp ../../CHANGELOG.md ${WARP10_HOME}
 cp ../../etc/warpscripts/*.mc2* ${WARP10_HOME}/warpscripts/test/60000
 cp ../../etc/calls/*.sh ${WARP10_HOME}/calls
 cp ../../etc/calls/*.py ${WARP10_HOME}/calls

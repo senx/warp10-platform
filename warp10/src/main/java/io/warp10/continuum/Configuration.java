@@ -55,6 +55,15 @@ public class Configuration {
    */
   public static final String WARP_KEY_PREFIX = "warp.key.";
 
+  /**
+   * Prefix used for configuration keys containing secrets.
+   * At startup any property warp.secret.FOO will be deciphered
+   * and the result (a byte array) used as the value for key FOO.
+   * This allows for storing secrets in the configuration file and
+   * retrieving them via MACROCONFIG.
+   */
+  public static final String WARP_SECRET_PREFIX = "warp.secret.";
+
   public static final String WARP_IDENT = "warp.ident";
 
   public static final String WARP10_QUIET = "warp10.quiet";

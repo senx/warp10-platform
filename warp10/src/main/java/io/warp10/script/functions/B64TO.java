@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -27,21 +27,21 @@ import com.google.common.io.BaseEncoding;
  * Decode a String in base64
  */
 public class B64TO extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   public B64TO(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object o = stack.pop();
-    
+
     if (!(o instanceof String)) {
       throw new WarpScriptException(getName() + " operates on a String.");
     }
-    
-    stack.push(BaseEncoding.base64().decode(o.toString()));
-    
+
+    stack.push(BaseEncoding.base64().decode(o.toString().replace("\n","").replace("\r","").replace(" ", "")));
+
     return stack;
   }
 }

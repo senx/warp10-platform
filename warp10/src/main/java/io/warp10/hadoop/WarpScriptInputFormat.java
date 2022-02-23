@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@
 package io.warp10.hadoop;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -25,15 +24,12 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.JobContext;
@@ -72,9 +68,16 @@ public class WarpScriptInputFormat extends InputFormat<Object, Object> {
   public static final String WARPSCRIPT_INPUTFORMAT_CLASS = "warpscript.inputformat.class";
 
   /**
-   * WarpScript™ code fragment to apply
+   * WarpScript code fragment to apply, this code will be wrapped in a macro <% ... %>
+   * If code starts by @ or % then the rest of its content is assumed to be a file path to load.
+   * If code starts by @ the content of the file will be wrapped in <% ... %>
    */
   public static final String WARPSCRIPT_INPUTFORMAT_SCRIPT = "warpscript.inputformat.script";
+
+  /**
+   * WarpScript code fragment producing a macro which will be applied
+   */
+  public static final String WARPSCRIPT_INPUTFORMAT_MACRO = "warpscript.inputformat.macro";
 
   /**
    * Suffix to remove from configuration keys to override or create specific configuration entries
@@ -143,9 +146,27 @@ public class WarpScriptInputFormat extends InputFormat<Object, Object> {
   /**
    * Return the actual WarpScript code executor given the script
    * which was passed as parameter.
+   * If isMacro is true, the script in 'code' is expected to produce a macro.
    */
-  public WarpScriptExecutor getWarpScriptExecutor(Configuration conf, String code) throws IOException,WarpScriptException {
-    if (code.startsWith("@") || code.startsWith("%")) {
+  public WarpScriptExecutor getWarpScriptExecutor(Configuration conf, String code, boolean isMacro) throws IOException,WarpScriptException {
+    Map<String,Object> symbols = new HashMap<String,Object>();
+    Map<String, List<String>> config = new HashMap<String,List<String>>();
+
+    Iterator<Entry<String,String>> iter = conf.iterator();
+
+    while(iter.hasNext()) {
+      Entry<String,String> entry = iter.next();
+      List<String> target = config.get(entry.getKey());
+      if (null == target) {
+        target = new ArrayList<String>();
+        config.put(entry.getKey(), target);
+      }
+      target.add(entry.getValue());
+    }
+
+    symbols.put(CONFIG_SYMBOL, config);
+
+    if (!isMacro && (code.startsWith("@") || code.startsWith("%"))) {
 
       //
       // delete the @/% character
@@ -154,23 +175,6 @@ public class WarpScriptInputFormat extends InputFormat<Object, Object> {
       String originalfilePath = code.substring(1);
 
       String mc2 = parseWarpScript(originalfilePath);
-
-      Map<String,Object> symbols = new HashMap<String,Object>();
-      Map<String, List<String>> config = new HashMap<String,List<String>>();
-
-      Iterator<Entry<String,String>> iter = conf.iterator();
-
-      while(iter.hasNext()) {
-        Entry<String,String> entry = iter.next();
-        List<String> target = config.get(entry.getKey());
-        if (null == target) {
-          target = new ArrayList<String>();
-          config.put(entry.getKey(), target);
-        }
-        target.add(entry.getValue());
-      }
-
-      symbols.put(CONFIG_SYMBOL, config);
 
       WarpScriptExecutor executor = new WarpScriptExecutor(StackSemantics.PERTHREAD, mc2, symbols, null, code.startsWith("@"));
       return executor;
@@ -184,7 +188,7 @@ public class WarpScriptInputFormat extends InputFormat<Object, Object> {
       // Compute the hash against String content to identify this run
       //
 
-      WarpScriptExecutor executor = new WarpScriptExecutor(StackSemantics.PERTHREAD, code, null, null);
+      WarpScriptExecutor executor = new WarpScriptExecutor(StackSemantics.PERTHREAD, code, symbols, null, !isMacro);
       return executor;
     }
 
