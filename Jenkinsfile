@@ -47,7 +47,7 @@ pipeline {
 
         stage('Build') {
             steps {
-                sh '$GRADLE_CMD build -x test'
+                sh "$GRADLE_CMD build -x test"
                 archiveArtifacts allowEmptyArchive: true, artifacts: '**/build/libs/*.jar', fingerprint: true
             }
         }
@@ -55,7 +55,7 @@ pipeline {
         stage('Test') {
             options { retry(3) }
             steps {
-                sh '$GRADLE_CMD -Djava.security.egd=file:/dev/urandom test'
+                sh "$GRADLE_CMD -Djava.security.egd=file:/dev/urandom test"
                 junit allowEmptyResults: true, keepLongStdio: true, testResults: '**/build/test-results/**/*.xml'
                 step([$class: 'JUnitResultArchiver', allowEmptyResults: true, keepLongStdio: true, testResults: '**/build/test-results/**/*.xml'])
             }
@@ -63,7 +63,7 @@ pipeline {
 
         stage('Tar') {
             steps {
-                sh '$GRADLE_CMD createTarArchive -x test'
+                sh "$GRADLE_CMD createTarArchive -x test"
                 archiveArtifacts allowEmptyArchive: true, artifacts: '**/build/libs/*.tar.gz', fingerprint: true
             }
         }
@@ -76,7 +76,7 @@ pipeline {
                 message "Should we deploy libs?"
             }
             steps {
-                sh '$GRADLE_CMD publishMavenPublicationToNexusRepository -x test'
+                sh "$GRADLE_CMD publishMavenPublicationToNexusRepository -x test"
             }
         }
 
@@ -110,9 +110,9 @@ pipeline {
                 message "Should we deploy libs?"
             }
             steps {
-                sh '$GRADLE_CMD publish'
-                sh '$GRADLE_CMD closeRepository'
-                sh '$GRADLE_CMD releaseRepository'
+                sh "$GRADLE_CMD publish"
+                sh "$GRADLE_CMD closeRepository"
+                sh "$GRADLE_CMD releaseRepository"
                 notifyBuild('PUBLISHED')
             }
         }
