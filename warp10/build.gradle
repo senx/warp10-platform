@@ -226,7 +226,6 @@ task generateChangelog(type: Exec) {
     standardOutput = new ByteArrayOutputStream()
 
     File changelogFile = new File(project.parent.projectDir, "CHANGELOG.md")
-    outputs.file changelogFile
 
     doLast {
         changelogFile.write("# Warp 10 Changelog\n")
