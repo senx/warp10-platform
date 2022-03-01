@@ -1909,7 +1909,8 @@ public class GTSHelper {
           if (null != subgts.locations && subgts.locations.length >= count) {
             System.arraycopy(gts.locations, firstidx, subgts.locations, 0, count);
           } else {
-            subgts.locations = Arrays.copyOf(gts.locations, count);
+            subgts.locations = new long[count];
+            System.arraycopy(gts.locations, firstidx, subgts.locations, 0, count);
           }
         } else {
           subgts.locations = null;
@@ -1918,7 +1919,8 @@ public class GTSHelper {
           if (null != subgts.elevations && subgts.elevations.length >= count) {
             System.arraycopy(gts.elevations, firstidx, subgts.elevations, 0, count);
           } else {
-            subgts.elevations = Arrays.copyOf(gts.elevations, count);
+            subgts.elevations = new long[count];
+            System.arraycopy(gts.elevations, firstidx, subgts.elevations, 0, count);
           }
         } else {
           subgts.elevations = null;
