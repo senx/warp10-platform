@@ -21,6 +21,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
@@ -37,6 +39,7 @@ import org.slf4j.LoggerFactory;
 
 import io.warp10.Revision;
 import io.warp10.ThrowableUtils;
+import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
@@ -61,6 +64,15 @@ public class WarpFleetMacroRepository {
   private static final HUMANDURATION HUMANDURATION_FUNC = new HUMANDURATION(WarpScriptLib.HUMANDURATION);
 
   private static final String MACRO_PLACEHOLDER = "{macro}";
+  private static final String MACRO_PLACEHOLDER_ENCODED;
+
+  static {
+    try {
+      MACRO_PLACEHOLDER_ENCODED = WarpURLEncoder.encode(MACRO_PLACEHOLDER, StandardCharsets.UTF_8);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
 
   private static final int FINGERPRINT_UNKNOWN = -1;
 
@@ -522,13 +534,19 @@ public class WarpFleetMacroRepository {
 
     repo = repo.trim();
 
-    if (repo.startsWith("http://")) {
-      String host = repo.substring(7).replaceAll("/.*", "").toLowerCase();
-      repo = "http://" + host + repo.substring(host.length() + 7);
-    } else if (repo.startsWith("https://")) {
-      String host = repo.substring(8).replaceAll("/.*", "").toLowerCase();
-      repo = "https://" + host + repo.substring(host.length() + 8);
+    if (repo.startsWith("http://") || repo.startsWith("https://")) {
+      try {
+        URL url = new URL(repo);
+        // Force the host to be LC
+        URI uri = new URI(url.getProtocol(), url.getUserInfo(), url.getHost().toLowerCase(), url.getPort(), url.getPath(), url.getQuery(), url.getRef());
+        String canonical = uri.toString().replaceAll(WarpFleetMacroRepository.MACRO_PLACEHOLDER_ENCODED, WarpFleetMacroRepository.MACRO_PLACEHOLDER);
+        repo = canonical;
+      } catch (MalformedURLException|URISyntaxException e) {
+        e.printStackTrace();
+        return null;
+      }
     } else {
+      // Ignore non http/https URLs
       repo = null;
     }
 
