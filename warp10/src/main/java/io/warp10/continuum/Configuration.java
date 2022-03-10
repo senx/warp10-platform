@@ -1536,22 +1536,30 @@ public class Configuration {
    * Compression type to use for leveldb (SNAPPY/NONE)
    */
   public static final String LEVELDB_COMPRESSION_TYPE = "leveldb.compression.type";
- 
+
   /**
    * Datalog Manager Fully Qualified Class Name
    */
   public static final String DATALOG_MANAGER = "datalog.manager";
-  
+
   /**
    * Comma separated list of consumer names
    */
   public static final String DATALOG_CONSUMERS = "datalog.consumers";
-  
+
   /**
    * Class name of consumer.
    */
   public static final String DATALOG_CONSUMER_CLASS = "datalog.consumer.class";
-  
+
+  /**
+   * Flag indicating whether register events should be transmitted systematically (true)
+   * or simply when the local Directory actually stored the Metadata (false, the default).
+   * This will prevent architectures with multiple endpoints to miss Metadata creations when
+   * the feeds lag behind.
+   */
+  public static final String DATALOG_REGISTER_ALL = "datalog.register.all";
+
   /**
    * Size of write buffer (in bytes) - defaults to 4194304
    */

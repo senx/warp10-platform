@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2021  SenX S.A.S.
+//   Copyright 2020-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -21,16 +21,20 @@ import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
 
+import io.warp10.WarpConfig;
+import io.warp10.continuum.Configuration;
 import io.warp10.continuum.store.MetadataIterator;
 import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.standalone.StandaloneDirectoryClient;
 
 public class DatalogStandaloneDirectoryClient extends StandaloneDirectoryClient {
-  
+
   private final DatalogManager manager;
   private final StandaloneDirectoryClient directory;
-  
+
+  private final boolean registerAll = "true".equals(WarpConfig.getProperty(Configuration.DATALOG_REGISTER_ALL, "false"));
+
   public DatalogStandaloneDirectoryClient(DatalogManager manager, StandaloneDirectoryClient sdc) {
     this.manager = manager;
     this.directory = sdc;
@@ -42,8 +46,8 @@ public class DatalogStandaloneDirectoryClient extends StandaloneDirectoryClient 
     Metadata original = new Metadata(metadata);
     boolean stored = directory.register(metadata);
     // Only record the metadata update in the WAL if the directory
-    // actually persisted it
-    if (stored) {
+    // actually persisted it or if systematic recording was requested.
+    if (stored || registerAll) {
       // Copy class/labels Id and lastactivity
       original.setClassId(metadata.getClassId());
       original.setLabelsId(metadata.getLabelsId());
