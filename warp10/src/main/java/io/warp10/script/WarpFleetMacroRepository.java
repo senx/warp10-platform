@@ -68,6 +68,8 @@ public class WarpFleetMacroRepository {
 
   static {
     try {
+      // Encoded macro placeholder which we must revert to the non encoded version in the canonical URL
+      // so it can be used properly
       MACRO_PLACEHOLDER_ENCODED = WarpURLEncoder.encode(MACRO_PLACEHOLDER, StandardCharsets.UTF_8);
     } catch (Exception e) {
       throw new RuntimeException(e);
@@ -542,7 +544,6 @@ public class WarpFleetMacroRepository {
         String canonical = uri.toString().replaceAll(WarpFleetMacroRepository.MACRO_PLACEHOLDER_ENCODED, WarpFleetMacroRepository.MACRO_PLACEHOLDER);
         repo = canonical;
       } catch (MalformedURLException|URISyntaxException e) {
-        e.printStackTrace();
         return null;
       }
     } else {
