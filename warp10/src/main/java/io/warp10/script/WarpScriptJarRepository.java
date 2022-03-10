@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -45,54 +45,54 @@ import org.bouncycastle.util.encoders.Hex;
  * Class which manages WarpScript functions stored in jar files from a directory
  */
 public class WarpScriptJarRepository extends Thread {
-  
+
   /**
    * Default refresh delay is 60 minutes
    */
   private static final long DEFAULT_DELAY = 3600000L;
 
   private static final String JAR_EXTENSION = ".jar";
-  
+
   /**
    * Directory where the '.jar' files are
    */
   private final String directory;
-  
+
   /**
    * How often to check for changes
    */
   private final long delay;
-  
+
   /**
    * Active Class Loaders and their associated fingerprint.
    */
   private final static Map<ClassLoader,String> classLoadersFingerprints = new LinkedHashMap<ClassLoader,String>();
-  
+
   private static ClassLoader classPathClassLoader = null;
-  
+
   private final static Map<String,WarpScriptJavaFunction> cachedUDFs = new HashMap<String, WarpScriptJavaFunction>();
-  
-  public WarpScriptJarRepository(String directory, long delay) {        
+
+  public WarpScriptJarRepository(String directory, long delay) {
     this.directory = directory;
     this.delay = delay;
-    
+
     if (null != directory) {
       this.setName("[Warp Jar Repository (" + directory + ")]");
       this.setDaemon(true);
       this.start();
     }
   }
-    
+
   @Override
   public void run() {
     while(true) {
-      
+
       String rootdir = new File(this.directory).getAbsolutePath();
-      
+
       //
       // Open directory
       //
-      
+
       File[] files = new File(rootdir).listFiles(new FilenameFilter() {
         @Override
         public boolean accept(File dir, String name) {
@@ -108,35 +108,35 @@ public class WarpScriptJarRepository extends Thread {
       // Loop over the files, creating the class loaders
       //
 
-      // Map of CL to fingerprint 
+      // Map of CL to fingerprint
       Map<ClassLoader,String> newClassLoadersFingerprints = new LinkedHashMap<ClassLoader,String>();
-      
+
       byte[] buf = new byte[8192];
-      
+
       if (null != files) {
         try {
           MessageDigest md = MessageDigest.getInstance("SHA-1");
 
           for (File file: files) {
-            
+
             //
             // Compute hash of content
             //
-            
+
             FileInputStream in = new FileInputStream(file);
-             
+
             while(true) {
               int len = in.read(buf);
-              
+
               if (len < 0) {
                 break;
               }
-              
+
               md.update(buf, 0, len);
             }
 
             in.close();
-            
+
             String hash = new String(Hex.encode(md.digest()), StandardCharsets.US_ASCII);
 
             if(!newClassLoadersFingerprints.containsValue(hash)) {
@@ -149,19 +149,19 @@ public class WarpScriptJarRepository extends Thread {
                 }
               } else {
                 ClassLoader parentCL = this.getClass().getClassLoader();
-                newClassLoadersFingerprints.put(new WarpClassLoader(file.getCanonicalPath(), parentCL), hash);
+                newClassLoadersFingerprints.put(new WarpClassLoader("[WarpClassLoader for " + file + "]", file.getCanonicalPath(), parentCL), hash);
               }
             }
-          }  
+          }
         } catch (NoSuchAlgorithmException nsae) {
-        } catch (IOException ioe) {        
-        }        
+        } catch (IOException ioe) {
+        }
       }
-      
+
       //
       // Replace the previous classLoaders
       //
-      
+
       synchronized(classLoadersFingerprints) {
         classLoadersFingerprints.clear();
         classLoadersFingerprints.putAll(newClassLoadersFingerprints);
@@ -170,31 +170,31 @@ public class WarpScriptJarRepository extends Thread {
           classLoadersFingerprints.put(classPathClassLoader, "");
         }
       }
-      
+
       //
       // Update jar count
       //
-      
+
       Sensision.set(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_REPOSITORY_JARS, Sensision.EMPTY_LABELS, classLoadersFingerprints.size());
-      
+
       //
       // Sleep a while
       //
-      
+
       LockSupport.parkNanos(this.delay * 1000000L);
     }
   }
-  
+
   /**
    * Load an instance of a UDF, possibly checking the cache.
    */
   public static WarpScriptJavaFunction load(String name, boolean cached) throws WarpScriptException {
-    
+
     WarpScriptJavaFunction udf = null;
-    
+
     if (cached) {
       udf = cachedUDFs.get(name);
-      
+
       if (null != udf && validate(udf)) {
         return udf;
       } else {
@@ -203,71 +203,71 @@ public class WarpScriptJarRepository extends Thread {
         udf = null;
       }
     }
-    
+
     for (Entry<ClassLoader,String> entry: classLoadersFingerprints.entrySet()) {
       try {
         ClassLoader cl = entry.getKey();
         Class cls = cl.loadClass(name);
-        
+
         Object o = cls.newInstance();
-        
+
         if (!(o instanceof WarpScriptJavaFunction)) {
           throw new WarpScriptException(name + " does not appear to be of type " + WarpScriptJavaFunction.class.getCanonicalName());
         }
-        
+
         udf = (WarpScriptJavaFunction) o;
-        
+
         //
         // If the UDF was loaded from the class path class loader, wrap it so it is unprotected
         //
-        
+
         if (cl.equals(classPathClassLoader)) {
           final WarpScriptJavaFunction innerUDF = udf;
-          
+
           if (udf instanceof WarpScriptRawJavaFunction) {
-            udf = new WarpScriptRawJavaFunction() {            
+            udf = new WarpScriptRawJavaFunction() {
               @Override
               public boolean isProtected() { return false; }
-              
+
               @Override
               public int argDepth() { return innerUDF.argDepth(); }
-              
+
               @Override
               public List<Object> apply(List<Object> args) throws WarpScriptJavaFunctionException { return innerUDF.apply(args); }
             };
 
           } else {
-            udf = new WarpScriptJavaFunction() {            
+            udf = new WarpScriptJavaFunction() {
               @Override
               public boolean isProtected() { return false; }
-              
+
               @Override
               public int argDepth() { return innerUDF.argDepth(); }
-              
+
               @Override
               public List<Object> apply(List<Object> args) throws WarpScriptJavaFunctionException { return innerUDF.apply(args); }
-            };            
+            };
           }
         }
-        
+
         break;
       } catch (Exception e) {
         continue;
       }
     }
-    
+
     if (cached && null != udf) {
       cachedUDFs.put(name, udf);
     }
-    
+
     if (null == udf) {
       throw new WarpScriptException("Class '" + name + "' was not found in any of the current WarpScript jars.");
     }
     return udf;
   }
-    
+
   /**
-   * Validates an instance of WarpScriptJavaFunction by checking that its class loader is still active 
+   * Validates an instance of WarpScriptJavaFunction by checking that its class loader is still active
    * @param func Instance to check
    * @return
    */
@@ -278,41 +278,41 @@ public class WarpScriptJarRepository extends Thread {
 
     return classLoadersFingerprints.containsKey(func.getClass().getClassLoader());
   }
-  
+
   public static void init(Properties properties) {
-    
+
     //
     // Extract root directory
     //
-    
+
     String dir = properties.getProperty(Configuration.JARS_DIRECTORY);
-    
+
     if (null == dir && !"true".equals(properties.getProperty(Configuration.JARS_FROMCLASSPATH))) {
       return;
     }
-    
+
     //
     // Simply add a class loader to access the current classpath
     //
-    
+
     if (null == dir) {
-      classPathClassLoader = WarpScriptJarRepository.class.getClassLoader();      
+      classPathClassLoader = WarpScriptJarRepository.class.getClassLoader();
       classLoadersFingerprints.put(classPathClassLoader, "");
       return;
     }
-    
+
     //
     // Extract refresh interval
     //
-    
+
     long delay = DEFAULT_DELAY;
-    
+
     String refresh = properties.getProperty(Configuration.JARS_REFRESH);
 
     if (null != refresh) {
       try {
         delay = Long.parseLong(refresh.toString());
-      } catch (Exception e) {            
+      } catch (Exception e) {
       }
     }
 
