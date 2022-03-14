@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2020  SenX S.A.S.
+//   Copyright 2019-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -51,10 +51,10 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
   public ASREGS(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    
+
     Object top = stack.pop();
 
     List vars = null;
@@ -86,20 +86,24 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
 
     // Bitset to determine the used registers
     BitSet inuse = new BitSet(nregs);
-    
+
     //
     // Inspect the macro to determine the registers which are already used
     //
     List<Macro> allmacros = new ArrayList<Macro>();
     allmacros.add(macro);
-    
+
     boolean abort = false;
-    
+
     while(!abort && !allmacros.isEmpty()) {
       Macro m = allmacros.remove(0);
-      
+
+      if (m.isSecure()) {
+        throw new WarpScriptException(getName() + " cannot operate on a secure Macro.");
+      }
+
       List<Object> statements = new ArrayList<Object>(m.statements());
-                
+
       for (int i = 0; i < statements.size(); i++) {
         Object currentSymbol = statements.get(i);
 
@@ -157,7 +161,7 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
                 abort = true;
                 break;
               }
-            }            
+            }
           } else if (!(previousSymbol instanceof String)) {
             // We encountered a STORE with something that is neither a register, a string or
             // a list, so we cannot determine if a register is involved or not, so we abort
@@ -168,7 +172,7 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
         }
       }
     }
-    
+
     if (abort) {
       throw new WarpScriptException(getName() + " was unable to convert variables to registers.");
     }
@@ -176,20 +180,20 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
     Map<String, Integer> varregs = new HashMap<String, Integer>();
 
     for (Object v: vars) {
-      
+
       if (v instanceof Long) {
         continue;
       }
-      
+
       // Stop processing variables if we already assigned all the registers
       if (inuse.cardinality() == nregs) {
         break;
       }
-      
+
       if (!(v instanceof String)) {
-        throw new WarpScriptException(getName() + " expects a list of variable names on top of the stack.");        
+        throw new WarpScriptException(getName() + " expects a list of variable names on top of the stack.");
       }
-      
+
       if (null == varregs.get(v.toString())) {
         int regidx = inuse.nextClearBit(0);
         inuse.set(regidx);
@@ -201,15 +205,15 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
     // Now loop over the macro statement, replacing occurrences of X LOAD/STORE/CSTORE/RUN by the use
     // of the assigned register
     //
-    
+
     allmacros.clear();
     allmacros.add((Macro) top);
-    
+
     while(!abort && !allmacros.isEmpty()) {
       Macro m = allmacros.remove(0);
-      
+
       List<Object> statements = new ArrayList<Object>(m.statements());
-                
+
       for (int i = 0; i < statements.size(); i++) {
         Object currentSymbol = statements.get(i);
 
@@ -358,8 +362,8 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
             break;
           }
         }
-      }      
-      
+      }
+
       if (!abort) {
         List<Object> macstmt = m.statements();
         // Ignore the NOOPs
@@ -379,7 +383,7 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
       throw new WarpScriptException(getName() + " was unable to convert variables to registers.");
     }
     stack.push(top);
-    
+
     return stack;
   }
 }
