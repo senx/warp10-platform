@@ -39,7 +39,6 @@ import org.slf4j.LoggerFactory;
 
 import io.warp10.Revision;
 import io.warp10.ThrowableUtils;
-import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
@@ -64,17 +63,7 @@ public class WarpFleetMacroRepository {
   private static final HUMANDURATION HUMANDURATION_FUNC = new HUMANDURATION(WarpScriptLib.HUMANDURATION);
 
   private static final String MACRO_PLACEHOLDER = "{macro}";
-  private static final String MACRO_PLACEHOLDER_ENCODED;
-
-  static {
-    try {
-      // Encoded macro placeholder which we must revert to the non encoded version in the canonical URL
-      // so it can be used properly
-      MACRO_PLACEHOLDER_ENCODED = WarpURLEncoder.encode(MACRO_PLACEHOLDER, StandardCharsets.UTF_8);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
+  private static final String MACRO_PLACEHOLDER_ENCODED = "%7Bmacro%7D";
 
   private static final int FINGERPRINT_UNKNOWN = -1;
 
