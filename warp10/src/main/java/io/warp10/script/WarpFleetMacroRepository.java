@@ -544,6 +544,8 @@ public class WarpFleetMacroRepository {
         String canonical = uri.toString().replaceAll(WarpFleetMacroRepository.MACRO_PLACEHOLDER_ENCODED, WarpFleetMacroRepository.MACRO_PLACEHOLDER);
         repo = canonical;
       } catch (MalformedURLException|URISyntaxException e) {
+        // We do not output the URL as it may leak some confidential information
+        LOG.warn("Error while parsing repo URL, will be ignored.", e);
         return null;
       }
     } else {
