@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2020  SenX S.A.S.
+//   Copyright 2019-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -39,7 +39,13 @@ import java.util.Map;
  */
 public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  private static final NOOP NOOP = new NOOP(WarpScriptLib.NOOP);
+  private static class XNOOP extends NOOP {
+    public XNOOP(String name) {
+      super(name);
+    }
+  }
+
+  private static final XNOOP XNOOP = new XNOOP(WarpScriptLib.NOOP);
   // DROP used for NULL or duplicate registers in STORE lists.
   private static final DROP DROP = new DROP(WarpScriptLib.DROP);
 
@@ -51,10 +57,10 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
   public ASREGS(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    
+
     Object top = stack.pop();
 
     List vars = null;
@@ -86,20 +92,20 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
 
     // Bitset to determine the used registers
     BitSet inuse = new BitSet(nregs);
-    
+
     //
     // Inspect the macro to determine the registers which are already used
     //
     List<Macro> allmacros = new ArrayList<Macro>();
     allmacros.add(macro);
-    
+
     boolean abort = false;
-    
+
     while(!abort && !allmacros.isEmpty()) {
       Macro m = allmacros.remove(0);
-      
+
       List<Object> statements = new ArrayList<Object>(m.statements());
-                
+
       for (int i = 0; i < statements.size(); i++) {
         Object currentSymbol = statements.get(i);
 
@@ -157,7 +163,7 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
                 abort = true;
                 break;
               }
-            }            
+            }
           } else if (!(previousSymbol instanceof String)) {
             // We encountered a STORE with something that is neither a register, a string or
             // a list, so we cannot determine if a register is involved or not, so we abort
@@ -168,7 +174,7 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
         }
       }
     }
-    
+
     if (abort) {
       throw new WarpScriptException(getName() + " was unable to convert variables to registers.");
     }
@@ -176,20 +182,20 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
     Map<String, Integer> varregs = new HashMap<String, Integer>();
 
     for (Object v: vars) {
-      
+
       if (v instanceof Long) {
         continue;
       }
-      
+
       // Stop processing variables if we already assigned all the registers
       if (inuse.cardinality() == nregs) {
         break;
       }
-      
+
       if (!(v instanceof String)) {
-        throw new WarpScriptException(getName() + " expects a list of variable names on top of the stack.");        
+        throw new WarpScriptException(getName() + " expects a list of variable names on top of the stack.");
       }
-      
+
       if (null == varregs.get(v.toString())) {
         int regidx = inuse.nextClearBit(0);
         inuse.set(regidx);
@@ -201,15 +207,15 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
     // Now loop over the macro statement, replacing occurrences of X LOAD/STORE/CSTORE/RUN by the use
     // of the assigned register
     //
-    
+
     allmacros.clear();
     allmacros.add((Macro) top);
-    
+
     while(!abort && !allmacros.isEmpty()) {
       Macro m = allmacros.remove(0);
-      
+
       List<Object> statements = new ArrayList<Object>(m.statements());
-                
+
       for (int i = 0; i < statements.size(); i++) {
         Object currentSymbol = statements.get(i);
 
@@ -222,13 +228,13 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
           if (previousSymbol instanceof String) {
             Integer regno = varregs.get(previousSymbol.toString());
             if (null != regno) {
-              statements.set(i - 1, NOOP);
+              statements.set(i - 1, XNOOP);
               PUSHR pushr = PUSHRX.computeIfAbsent(regno, r -> new PUSHR(WarpScriptLib.PUSHR + r, r));
               statements.set(i, pushr);
             }
           } else if (previousSymbol instanceof Long) {
             // Also optimize LOAD on a long with PUSHR which is much faster
-            statements.set(i - 1, NOOP);
+            statements.set(i - 1, XNOOP);
             PUSHR pushr = PUSHRX.computeIfAbsent(((Long) previousSymbol).intValue(), r -> new PUSHR(WarpScriptLib.PUSHR + r, r));
             statements.set(i, pushr);
           } else {
@@ -241,13 +247,13 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
           if (previousSymbol instanceof String) {
             Integer regno = varregs.get(previousSymbol.toString());
             if (null != regno) {
-              statements.set(i - 1, NOOP);
+              statements.set(i - 1, XNOOP);
               RUNR runr = RUNRX.computeIfAbsent(regno, r -> new RUNR(WarpScriptLib.RUNR + r, r));
               statements.set(i, runr);
             }
           } else if (previousSymbol instanceof Long) {
             // Also optimize RUN on a long with RUNR which is faster
-            statements.set(i - 1, NOOP);
+            statements.set(i - 1, XNOOP);
             RUNR runr = RUNRX.computeIfAbsent(((Long) previousSymbol).intValue(), r -> new RUNR(WarpScriptLib.RUNR + r, r));
             statements.set(i, runr);
           } else {
@@ -259,7 +265,7 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
           if (previousSymbol instanceof String) {
             Integer regno = varregs.get(previousSymbol.toString());
             if (null != regno) {
-              statements.set(i - 1, NOOP);
+              statements.set(i - 1, XNOOP);
               POPR popr = POPRX.computeIfAbsent(regno, r -> new POPR(WarpScriptLib.POPR + r, r));
               statements.set(i, popr);
             }
@@ -294,9 +300,9 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
             // For instance, replace [ 3 7 NULL 9 ] STORE by NOOP POPR9 DROP POPR7 POPR3 NOOP NOOP.
             int listLength = i - idx - 2;
             if (nbOfRegOrNull == listLength) {
-              statements.set(idx, NOOP); // replace MARK
-              statements.set(i - 1, NOOP); // replace ENDLIST
-              statements.set(i, NOOP); // replace STORE
+              statements.set(idx, XNOOP); // replace MARK
+              statements.set(i - 1, XNOOP); // replace ENDLIST
+              statements.set(i, XNOOP); // replace STORE
 
               // Set of register numbers to detect duplicates.
               HashSet<Integer> regset = new HashSet<Integer>(listLength);
@@ -332,7 +338,7 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
             }
           } else if (previousSymbol instanceof Long) {
             // Also optimize STORE on a long with POPR which is much faster
-            statements.set(i - 1, NOOP);
+            statements.set(i - 1, XNOOP);
             POPR popr = POPRX.computeIfAbsent(((Long) previousSymbol).intValue(), r -> new POPR(WarpScriptLib.POPR + r, r));
             statements.set(i, popr);
           } else {
@@ -344,13 +350,13 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
           if (previousSymbol instanceof String) {
             Integer regno = varregs.get(previousSymbol.toString());
             if (null != regno) {
-              statements.set(i - 1, NOOP);
+              statements.set(i - 1, XNOOP);
               POPR cpopr = CPOPRX.computeIfAbsent(regno, r -> new POPR(WarpScriptLib.CPOPR + r, r, true));
               statements.set(i, cpopr);
             }
           } else if (previousSymbol instanceof Long) {
             // Also optimize CSTORE on a long with CPOPR which is much faster
-            statements.set(i - 1, NOOP);
+            statements.set(i - 1, XNOOP);
             POPR cpopr = CPOPRX.computeIfAbsent(((Long) previousSymbol).intValue(), r -> new POPR(WarpScriptLib.CPOPR + r, r, true));
             statements.set(i, cpopr);
           } else {
@@ -358,20 +364,20 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
             break;
           }
         }
-      }      
-      
+      }
+
       if (!abort) {
         List<Object> macstmt = m.statements();
-        // Ignore the NOOPs
-        int noops = 0;
+        // Ignore the XNOOPs
+        int xnoops = 0;
         for (int i = 0; i < statements.size(); i++) {
-          if (statements.get(i) instanceof NOOP) {
-            noops++;
+          if (statements.get(i) instanceof XNOOP) {
+            xnoops++;
             continue;
           }
-          macstmt.set(i - noops, statements.get(i));
+          macstmt.set(i - xnoops, statements.get(i));
         }
-        m.setSize(statements.size() - noops);
+        m.setSize(statements.size() - xnoops);
       }
     }
 
@@ -379,7 +385,7 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
       throw new WarpScriptException(getName() + " was unable to convert variables to registers.");
     }
     stack.push(top);
-    
+
     return stack;
   }
 }
