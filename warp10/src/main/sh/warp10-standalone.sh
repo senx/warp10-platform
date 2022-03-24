@@ -561,6 +561,10 @@ worf() {
 }
 
 tokengen() {
+  if [ "$#" -ne 2 ]; then
+    echo "Usage: $0 tokengen envelope.mc2"
+    exit 1
+  fi
   getConfigFiles
   ${JAVACMD} -cp ${WARP10_JAR} -Dlog4j.configuration=file:${LOG4J_CONF} -Dfile.encoding=UTF-8 io.warp10.worf.TokenGen ${CONFIG_FILES} $2 -
 }
