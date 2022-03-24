@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-#   Copyright 2016-2021  SenX S.A.S.
+#   Copyright 2016-2022  SenX S.A.S.
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -560,6 +560,15 @@ worf() {
   ${JAVACMD} -cp ${WARP10_JAR} -Dfile.encoding=UTF-8 io.warp10.worf.Worf ${WARP10_SECRETS} -puidg -t -a $2 -ttl $3
 }
 
+tokengen() {
+  if [ "$#" -ne 2 ]; then
+    echo "Usage: $0 tokengen envelope.mc2"
+    exit 1
+  fi
+  getConfigFiles
+  ${JAVACMD} -cp ${WARP10_JAR} -Dlog4j.configuration=file:${LOG4J_CONF} -Dfile.encoding=UTF-8 io.warp10.worf.TokenGen ${CONFIG_FILES} $2 -
+}
+
 repair() {
 
   #
@@ -613,6 +622,9 @@ case "${1:-}" in
   worf)
   worf "$@"
   ;;
+  tokengen)
+  tokengen "$@"
+  ;;
   snapshot)
   snapshot "$@"
   ;;
@@ -620,7 +632,7 @@ case "${1:-}" in
   repair
   ;;
   *)
-  echo $"Usage: $0 {bootstrap|start|jmxstart|stop|status|worf appName ttl(ms)|snapshot 'snapshot_name'|repair|restart|jmxrestart}"
+  echo $"Usage: $0 {bootstrap|start|jmxstart|stop|status|worf appName ttl(ms)|snapshot 'snapshot_name'|tokengen envelope.mc2|repair|restart|jmxrestart}"
   exit 2
 esac
 
