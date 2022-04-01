@@ -54,7 +54,13 @@ public class WarpRun {
           config = System.getenv(WarpConfig.WARP10_CONFIG_ENV);
         }
 
-        WarpConfig.safeSetProperties((String) config);
+        String[] files = null;
+
+        if (null != config) {
+          files = config.split("[, ]");
+        }
+
+        WarpConfig.safeSetProperties(files);
         WarpScriptLib.registerExtensions();
       } catch (Exception e) {
         throw new RuntimeException(e);
