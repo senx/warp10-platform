@@ -569,6 +569,11 @@ tokengen() {
   ${JAVACMD} -cp ${WARP10_JAR} -Dlog4j.configuration=file:${LOG4J_CONF} -Dfile.encoding=UTF-8 io.warp10.worf.TokenGen ${CONFIG_FILES} $2 -
 }
 
+run() {
+  getConfigFiles
+  ${JAVACMD} -cp ${WARP10_JAR} -Dlog4j.configuration=file:${LOG4J_CONF} -Dfile.encoding=UTF-8 -Dwarp10.config="${CONFIG_FILES}" io.warp10.WarpRun $1
+}
+
 repair() {
 
   #
@@ -625,6 +630,9 @@ case "${1:-}" in
   tokengen)
   tokengen "$@"
   ;;
+  run)
+  run "$@"
+  ;;
   snapshot)
   snapshot "$@"
   ;;
@@ -632,7 +640,7 @@ case "${1:-}" in
   repair
   ;;
   *)
-  echo $"Usage: $0 {bootstrap|start|jmxstart|stop|status|worf appName ttl(ms)|snapshot 'snapshot_name'|tokengen envelope.mc2|repair|restart|jmxrestart}"
+  echo $"Usage: $0 {bootstrap|start|jmxstart|stop|status|worf appName ttl(ms)|snapshot 'snapshot_name'|tokengen envelope.mc2|repair|restart|jmxrestart|run file.mc2}"
   exit 2
 esac
 
