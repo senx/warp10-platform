@@ -140,10 +140,10 @@ public class WarpDist {
 
     if (args.length > 0) {
       setProperties(args);
-    } else if (null != System.getenv(WarpConfig.WARP10_CONFIG_ENV)) {
-      setProperties(System.getenv(WarpConfig.WARP10_CONFIG_ENV));
     } else if (null != System.getProperty(WarpConfig.WARP10_CONFIG)) {
-      setProperties(System.getProperty(WarpConfig.WARP10_CONFIG));
+      setProperties(System.getProperty(WarpConfig.WARP10_CONFIG).split("[, ]"));
+    } else if (null != System.getenv(WarpConfig.WARP10_CONFIG_ENV)) {
+      setProperties(System.getenv(WarpConfig.WARP10_CONFIG_ENV).split("[, ]"));
     }
 
     //
