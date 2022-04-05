@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -116,9 +116,11 @@ public class StandaloneScriptRunner extends ScriptRunner {
           long nano = System.nanoTime();
 
           WarpScriptStack stack = new MemoryWarpScriptStack(storeClient, directoryClient, props);
-          stack.setAttribute(WarpScriptStack.ATTRIBUTE_NAME, "[StandloneScriptRunner " + script + "]");
+          stack.setAttribute(WarpScriptStack.ATTRIBUTE_NAME, "[StandaloneScriptRunner " + script + "]");
 
           ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+          long periodicityForNextRun = periodicity;
 
           try {
             WarpConfig.setThreadProperty(WarpConfig.THREAD_PROPERTY_SESSION, UUID.randomUUID().toString());
@@ -224,13 +226,18 @@ public class StandaloneScriptRunner extends ScriptRunner {
             m.appendTail(mc2WithReplacement);
 
             stack.execMulti(mc2WithReplacement.toString());
+
+            // Did the user asked to reschedule script to another period with RUNNERNEXT ?
+            if (stack.getAttribute(WarpScriptStack.ATTRIBUTE_RUNNER_RESCHEDULE_PERIOD) != null) {
+              periodicityForNextRun = (Long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_RUNNER_RESCHEDULE_PERIOD);
+            }
           } catch (Exception e) {
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_FAILURES, labels, 1);
           } finally {
             WarpConfig.clearThreadProperties();
             WarpScriptStackRegistry.unregister(stack);
             currentThread().setName(name);
-            nextrun.put(script, nowns + periodicity * 1000000L);
+            nextrun.put(script, nowns + periodicityForNextRun * 1000000L);
             nano = System.nanoTime() - nano;
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_TIME_US, labels, ttl, nano / 1000L);
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_ELAPSED, labels, ttl, nano);
