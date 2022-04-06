@@ -43,12 +43,16 @@ public class RUNNERNEXT extends NamedWarpScriptFunction implements WarpScriptSta
     }
 
     // rescheduling capability is defined in milliseconds (as runners subdirectories)
-    Long minPeriod = Long.valueOf(Capabilities.get(stack, WarpScriptStack.CAPNAME_RUNNER_RESCHEDULE_MIN_PERIOD));
-
-    if (minPeriod<=0) {
-      throw new WarpScriptException(getName() + " requires capability " + WarpScriptStack.CAPNAME_RUNNER_RESCHEDULE_MIN_PERIOD + " strictly greater than 0ms.");
+    Long minPeriod = Long.MAX_VALUE;
+    try {
+      minPeriod = Long.parseLong(Capabilities.get(stack, WarpScriptStack.CAPNAME_RUNNER_RESCHEDULE_MIN_PERIOD));
+    } catch (NumberFormatException e) {
+      throw new WarpScriptException(getName() + " cannot parse capability " + WarpScriptStack.CAPNAME_RUNNER_RESCHEDULE_MIN_PERIOD + ": '" + Capabilities.get(stack, WarpScriptStack.CAPNAME_RUNNER_RESCHEDULE_MIN_PERIOD) + "' is not a valid LONG");
     }
-    
+    if (minPeriod <= 0) {
+      throw new WarpScriptException(getName() + " requires capability " + WarpScriptStack.CAPNAME_RUNNER_RESCHEDULE_MIN_PERIOD + " strictly greater than 0 ms.");
+    }
+
     Object o = stack.pop();
     if (!(o instanceof Long)) {
       throw new WarpScriptException(getName() + " expects a LONG period as parameter.");
@@ -56,7 +60,7 @@ public class RUNNERNEXT extends NamedWarpScriptFunction implements WarpScriptSta
     // convert to milliseconds    
     Long p = ((Long) o) / Constants.TIME_UNITS_PER_MS;
     if (p < minPeriod) {
-      throw new WarpScriptException(getName() + " cannot set period below " + minPeriod + "ms defined in " + WarpScriptStack.CAPNAME_RUNNER_RESCHEDULE_MIN_PERIOD + " capability.");
+      throw new WarpScriptException(getName() + " cannot set period below " + minPeriod + " ms defined in " + WarpScriptStack.CAPNAME_RUNNER_RESCHEDULE_MIN_PERIOD + " capability.");
     }
 
     // store required period as a stack attribute
