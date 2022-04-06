@@ -50,7 +50,7 @@ public class RUNNERNEXT extends NamedWarpScriptFunction implements WarpScriptSta
       throw new WarpScriptException(getName() + " cannot parse capability " + WarpScriptStack.CAPNAME_RUNNER_RESCHEDULE_MIN_PERIOD + ": '" + Capabilities.get(stack, WarpScriptStack.CAPNAME_RUNNER_RESCHEDULE_MIN_PERIOD) + "' is not a valid LONG");
     }
     if (minPeriod <= 0) {
-      throw new WarpScriptException(getName() + " requires capability " + WarpScriptStack.CAPNAME_RUNNER_RESCHEDULE_MIN_PERIOD + " strictly greater than 0 ms.");
+      throw new WarpScriptException(getName() + " requires capability " + WarpScriptStack.CAPNAME_RUNNER_RESCHEDULE_MIN_PERIOD + " to be set to a value strictly greater than 0 ms.");
     }
 
     Object o = stack.pop();
