@@ -97,7 +97,7 @@ public class WarpScriptExecutor implements Serializable {
         config = System.getenv(WarpConfig.WARP10_CONFIG_ENV);
       }
 
-      WarpConfig.safeSetProperties(config.split("[, ]"));
+      WarpConfig.safeSetProperties(config.split("[, ]+"));
       properties = WarpConfig.getProperties();
       WarpScriptLib.registerExtensions();
     } catch (Exception e) {
