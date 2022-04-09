@@ -311,7 +311,12 @@ public interface WarpScriptStack {
    * Stack attribute for runner rescheduling period in millisecond
    */
   public static final String ATTRIBUTE_RUNNER_RESCHEDULE_PERIOD = "runner.reschedule.period";
-  
+
+  /**
+   * Stack attribute for runner rescheduling period in millisecond
+   */
+  public static final String ATTRIBUTE_RUNNER_RESCHEDULE_TIMESTAMP = "runner.reschedule.timestamp";
+
   /**
    * Index of RETURN_DEPTH counter
    */

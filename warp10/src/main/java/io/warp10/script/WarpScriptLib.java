@@ -678,6 +678,7 @@ public class WarpScriptLib {
   public static final String AESWRAP = "AESWRAP";
   public static final String AESUNWRAP = "AESUNWRAP";
   public static final String RUNNERNONCE = "RUNNERNONCE";
+  public static final String RUNNERPROG = "RUNNERPROG";
   public static final String RUNNERNEXT = "RUNNERNEXT";
   public static final String GZIP = "GZIP";
   public static final String UNGZIP = "UNGZIP";
@@ -1576,6 +1577,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new AESWRAP(AESWRAP));
     addNamedWarpScriptFunction(new AESUNWRAP(AESUNWRAP));
     addNamedWarpScriptFunction(new RUNNERNONCE(RUNNERNONCE));
+    addNamedWarpScriptFunction(new RUNNERPROG(RUNNERPROG));
     addNamedWarpScriptFunction(new RUNNERNEXT(RUNNERNEXT));
     addNamedWarpScriptFunction(new GZIP(GZIP));
     addNamedWarpScriptFunction(new UNGZIP(UNGZIP));
