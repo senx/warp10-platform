@@ -21,17 +21,14 @@ import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
-import io.warp10.script.ext.http.HttpWarpScriptExtension;
 import io.warp10.warp.sdk.Capabilities;
 
 /**
  * Extract the content of a Runner Nonce
  */
-public class RUNNERNEXT extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class RUNNERPROG extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  private byte[] runnerPSK;
-
-  public RUNNERNEXT(String name) {
+  public RUNNERPROG(String name) {
     super(name);
   }
 
@@ -55,16 +52,18 @@ public class RUNNERNEXT extends NamedWarpScriptFunction implements WarpScriptSta
 
     Object o = stack.pop();
     if (!(o instanceof Long)) {
-      throw new WarpScriptException(getName() + " expects a LONG period as parameter.");
+      throw new WarpScriptException(getName() + " expects a LONG timestamp as parameter.");
     }
     // convert to milliseconds    
-    Long p = ((Long) o) / Constants.TIME_UNITS_PER_MS;
-    if (p < minPeriod) {
-      throw new WarpScriptException(getName() + " cannot set period below " + minPeriod + " ms defined in " + WarpScriptStack.CAPNAME_RUNNER_RESCHEDULE_MIN_PERIOD + " capability.");
+    Long progTs = ((Long) o) / Constants.TIME_UNITS_PER_MS;
+    // check if not less than capability
+    long nowms = System.currentTimeMillis();
+    if (progTs < (nowms + minPeriod)) {
+      throw new WarpScriptException(getName() + " cannot schedule a task before now + " + minPeriod + " ms defined in " + WarpScriptStack.CAPNAME_RUNNER_RESCHEDULE_MIN_PERIOD + " capability.");
     }
 
-    // store required period as a stack attribute
-    stack.setAttribute(WarpScriptStack.ATTRIBUTE_RUNNER_RESCHEDULE_PERIOD, p);
+    // store required timestamp as a stack attribute
+    stack.setAttribute(WarpScriptStack.ATTRIBUTE_RUNNER_RESCHEDULE_TIMESTAMP, progTs);
 
     return stack;
   }

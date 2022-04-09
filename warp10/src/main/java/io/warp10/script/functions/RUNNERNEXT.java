@@ -29,8 +29,6 @@ import io.warp10.warp.sdk.Capabilities;
  */
 public class RUNNERNEXT extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  private byte[] runnerPSK;
-
   public RUNNERNEXT(String name) {
     super(name);
   }
