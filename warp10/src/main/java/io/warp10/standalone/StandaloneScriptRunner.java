@@ -237,7 +237,11 @@ public class StandaloneScriptRunner extends ScriptRunner {
             WarpConfig.clearThreadProperties();
             WarpScriptStackRegistry.unregister(stack);
             currentThread().setName(name);
-            nextrun.put(script, nowns + periodicityForNextRun * 1000000L);
+            long prog = nowns + periodicityForNextRun * 1000000L;
+            if (prog <= nowns) { // when calling MAXLONG RUNNERNEXT, it will overflow. 
+              prog = Long.MAX_VALUE;
+            }
+            nextrun.put(script, prog);
             nano = System.nanoTime() - nano;
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_TIME_US, labels, ttl, nano / 1000L);
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_ELAPSED, labels, ttl, nano);
