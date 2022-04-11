@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
@@ -63,6 +64,12 @@ public class StandaloneScriptRunner extends ScriptRunner {
   private final byte[] runnerPSK;
 
   private static final Pattern VAR = Pattern.compile("\\$\\{([^}]+)\\}");
+
+  /**
+   * runContexts < script path , hashmap > can store context objects for next runner iteration.
+   * Currently stores only runner.execution.counter, but can be extended later.
+   */
+  final Map<String, HashMap> runContexts = new ConcurrentHashMap<String, HashMap>();
 
   public StandaloneScriptRunner(Properties properties, KeyStore keystore, StoreClient storeClient, DirectoryClient directoryClient, Properties props) throws IOException {
     super(keystore, props);
@@ -115,6 +122,9 @@ public class StandaloneScriptRunner extends ScriptRunner {
 
           long nano = System.nanoTime();
 
+          HashMap runContext = runContexts.getOrDefault(script, new HashMap());
+          Long execCount = (Long) runContext.getOrDefault(Constants.RUNNER_CONTEXT_EXEC_COUNT, 0L);
+
           WarpScriptStack stack = new MemoryWarpScriptStack(storeClient, directoryClient, props);
           stack.setAttribute(WarpScriptStack.ATTRIBUTE_NAME, "[StandaloneScriptRunner " + script + "]");
 
@@ -166,6 +176,7 @@ public class StandaloneScriptRunner extends ScriptRunner {
             stack.store(Constants.RUNNER_PERIODICITY, periodicity);
             stack.store(Constants.RUNNER_PATH, path);
             stack.store(Constants.RUNNER_SCHEDULEDAT, scheduledat);
+            stack.store(Constants.RUNNER_CONTEXT_EXEC_COUNT, execCount);
 
             //
             // Generate a nonce by wrapping the current time jointly with random 64bits
@@ -263,6 +274,8 @@ public class StandaloneScriptRunner extends ScriptRunner {
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_OPS, labels, ttl, (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_OPS));
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_FETCHED, labels, ttl, ((AtomicLong) stack.getAttribute(WarpScriptStack.ATTRIBUTE_FETCH_COUNT)).get());
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_CURRENT, Sensision.EMPTY_LABELS, -1);
+            runContext.put(Constants.RUNNER_CONTEXT_EXEC_COUNT, execCount + 1);
+            runContexts.put(script, runContext);
           }
         }
       });

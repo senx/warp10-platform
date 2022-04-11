@@ -120,7 +120,8 @@ public class Constants {
   public static final String RUNNER_PATH = "runner.path";
   public static final String RUNNER_SCHEDULEDAT = "runner.scheduledat";
   public static final String RUNNER_NONCE = "runner.nonce";
-
+  public static final String RUNNER_CONTEXT_EXEC_COUNT = "runner.execution.counter";
+  
   private static final Map<String,String> HEADERS = new HashMap<String,String>();
 
   /**
