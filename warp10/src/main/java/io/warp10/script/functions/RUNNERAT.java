@@ -26,9 +26,9 @@ import io.warp10.warp.sdk.Capabilities;
 /**
  * Extract the content of a Runner Nonce
  */
-public class RUNNERPROG extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class RUNNERAT extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  public RUNNERPROG(String name) {
+  public RUNNERAT(String name) {
     super(name);
   }
 
