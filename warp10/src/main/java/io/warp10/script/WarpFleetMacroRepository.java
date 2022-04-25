@@ -21,6 +21,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
@@ -61,6 +63,7 @@ public class WarpFleetMacroRepository {
   private static final HUMANDURATION HUMANDURATION_FUNC = new HUMANDURATION(WarpScriptLib.HUMANDURATION);
 
   private static final String MACRO_PLACEHOLDER = "{macro}";
+  private static final String MACRO_PLACEHOLDER_ENCODED = "%7Bmacro%7D";
 
   private static final int FINGERPRINT_UNKNOWN = -1;
 
@@ -523,13 +526,20 @@ public class WarpFleetMacroRepository {
 
     repo = repo.trim();
 
-    if (repo.startsWith("http://")) {
-      String host = repo.substring(7).replaceAll("/.*", "").toLowerCase();
-      repo = "http://" + host + repo.substring(host.length() + 7);
-    } else if (repo.startsWith("https://")) {
-      String host = repo.substring(8).replaceAll("/.*", "").toLowerCase();
-      repo = "https://" + host + repo.substring(host.length() + 8);
+    if (repo.startsWith("http://") || repo.startsWith("https://")) {
+      try {
+        URL url = new URL(repo);
+        // Force the host to be LC
+        URI uri = new URI(url.getProtocol(), url.getUserInfo(), url.getHost().toLowerCase(), url.getPort(), url.getPath(), url.getQuery(), url.getRef());
+        String canonical = uri.toString().replaceAll(WarpFleetMacroRepository.MACRO_PLACEHOLDER_ENCODED, WarpFleetMacroRepository.MACRO_PLACEHOLDER);
+        repo = canonical;
+      } catch (MalformedURLException|URISyntaxException e) {
+        // We do not output the URL as it may leak some confidential information
+        LOG.warn("Error while parsing repo URL, will be ignored.", e);
+        return null;
+      }
     } else {
+      // Ignore non http/https URLs
       repo = null;
     }
 

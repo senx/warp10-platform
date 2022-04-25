@@ -39,7 +39,13 @@ import java.util.Map;
  */
 public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  private static final NOOP NOOP = new NOOP(WarpScriptLib.NOOP);
+  private static class XNOOP extends NOOP {
+    public XNOOP(String name) {
+      super(name);
+    }
+  }
+
+  private static final XNOOP XNOOP = new XNOOP(WarpScriptLib.NOOP);
   // DROP used for NULL or duplicate registers in STORE lists.
   private static final DROP DROP = new DROP(WarpScriptLib.DROP);
 
@@ -226,13 +232,13 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
           if (previousSymbol instanceof String) {
             Integer regno = varregs.get(previousSymbol.toString());
             if (null != regno) {
-              statements.set(i - 1, NOOP);
+              statements.set(i - 1, XNOOP);
               PUSHR pushr = PUSHRX.computeIfAbsent(regno, r -> new PUSHR(WarpScriptLib.PUSHR + r, r));
               statements.set(i, pushr);
             }
           } else if (previousSymbol instanceof Long) {
             // Also optimize LOAD on a long with PUSHR which is much faster
-            statements.set(i - 1, NOOP);
+            statements.set(i - 1, XNOOP);
             PUSHR pushr = PUSHRX.computeIfAbsent(((Long) previousSymbol).intValue(), r -> new PUSHR(WarpScriptLib.PUSHR + r, r));
             statements.set(i, pushr);
           } else {
@@ -245,13 +251,13 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
           if (previousSymbol instanceof String) {
             Integer regno = varregs.get(previousSymbol.toString());
             if (null != regno) {
-              statements.set(i - 1, NOOP);
+              statements.set(i - 1, XNOOP);
               RUNR runr = RUNRX.computeIfAbsent(regno, r -> new RUNR(WarpScriptLib.RUNR + r, r));
               statements.set(i, runr);
             }
           } else if (previousSymbol instanceof Long) {
             // Also optimize RUN on a long with RUNR which is faster
-            statements.set(i - 1, NOOP);
+            statements.set(i - 1, XNOOP);
             RUNR runr = RUNRX.computeIfAbsent(((Long) previousSymbol).intValue(), r -> new RUNR(WarpScriptLib.RUNR + r, r));
             statements.set(i, runr);
           } else {
@@ -263,7 +269,7 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
           if (previousSymbol instanceof String) {
             Integer regno = varregs.get(previousSymbol.toString());
             if (null != regno) {
-              statements.set(i - 1, NOOP);
+              statements.set(i - 1, XNOOP);
               POPR popr = POPRX.computeIfAbsent(regno, r -> new POPR(WarpScriptLib.POPR + r, r));
               statements.set(i, popr);
             }
@@ -298,9 +304,9 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
             // For instance, replace [ 3 7 NULL 9 ] STORE by NOOP POPR9 DROP POPR7 POPR3 NOOP NOOP.
             int listLength = i - idx - 2;
             if (nbOfRegOrNull == listLength) {
-              statements.set(idx, NOOP); // replace MARK
-              statements.set(i - 1, NOOP); // replace ENDLIST
-              statements.set(i, NOOP); // replace STORE
+              statements.set(idx, XNOOP); // replace MARK
+              statements.set(i - 1, XNOOP); // replace ENDLIST
+              statements.set(i, XNOOP); // replace STORE
 
               // Set of register numbers to detect duplicates.
               HashSet<Integer> regset = new HashSet<Integer>(listLength);
@@ -336,7 +342,7 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
             }
           } else if (previousSymbol instanceof Long) {
             // Also optimize STORE on a long with POPR which is much faster
-            statements.set(i - 1, NOOP);
+            statements.set(i - 1, XNOOP);
             POPR popr = POPRX.computeIfAbsent(((Long) previousSymbol).intValue(), r -> new POPR(WarpScriptLib.POPR + r, r));
             statements.set(i, popr);
           } else {
@@ -348,13 +354,13 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
           if (previousSymbol instanceof String) {
             Integer regno = varregs.get(previousSymbol.toString());
             if (null != regno) {
-              statements.set(i - 1, NOOP);
+              statements.set(i - 1, XNOOP);
               POPR cpopr = CPOPRX.computeIfAbsent(regno, r -> new POPR(WarpScriptLib.CPOPR + r, r, true));
               statements.set(i, cpopr);
             }
           } else if (previousSymbol instanceof Long) {
             // Also optimize CSTORE on a long with CPOPR which is much faster
-            statements.set(i - 1, NOOP);
+            statements.set(i - 1, XNOOP);
             POPR cpopr = CPOPRX.computeIfAbsent(((Long) previousSymbol).intValue(), r -> new POPR(WarpScriptLib.CPOPR + r, r, true));
             statements.set(i, cpopr);
           } else {
@@ -366,16 +372,16 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
 
       if (!abort) {
         List<Object> macstmt = m.statements();
-        // Ignore the NOOPs
-        int noops = 0;
+        // Ignore the XNOOPs
+        int xnoops = 0;
         for (int i = 0; i < statements.size(); i++) {
-          if (statements.get(i) instanceof NOOP) {
-            noops++;
+          if (statements.get(i) instanceof XNOOP) {
+            xnoops++;
             continue;
           }
-          macstmt.set(i - noops, statements.get(i));
+          macstmt.set(i - xnoops, statements.get(i));
         }
-        m.setSize(statements.size() - noops);
+        m.setSize(statements.size() - xnoops);
       }
     }
 

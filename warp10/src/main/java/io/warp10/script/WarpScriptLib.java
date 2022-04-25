@@ -2658,7 +2658,7 @@ public class WarpScriptLib {
 
           // If the jar differs from that from which WarpScriptLib was loaded, create a dedicated class loader
           if (!jarfile.equals(wsljar) && !"true".equals(props.getProperty(Configuration.CONFIG_WARPSCRIPT_DEFAULTCL_PREFIX + extension))) {
-            cl = new WarpClassLoader(jarfile, WarpScriptLib.class.getClassLoader());
+            cl = new WarpClassLoader("[WarpClassLoader for " + extension + "]", jarfile, WarpScriptLib.class.getClassLoader());
           }
 
           cls = Class.forName(extension, true, cl);
