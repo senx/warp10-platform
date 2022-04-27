@@ -61,7 +61,7 @@ public class FLOAD extends NamedWarpScriptFunction implements WarpScriptStackFun
       out.close();
       stack.push(out.toByteArray());
     } catch (IOException ioe) {
-      new WarpScriptException(getName() + " error loading '" + path + "'.", ioe);
+      throw new WarpScriptException(getName() + " error loading '" + path + "'.", ioe);
     } finally {
       if (null != in) {
         try { in.close(); } catch (Exception e) { throw new WarpScriptException(getName() + " error closing '" + path + "'.", e); }

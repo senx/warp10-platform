@@ -73,7 +73,7 @@ public class FREAD extends NamedWarpScriptFunction implements WarpScriptStackFun
       stack.push(false);
       FOREACH.apply(stack);
     } catch (IOException ioe) {
-      new WarpScriptException(getName() + " error processing '" + path + "'.", ioe);
+      throw new WarpScriptException(getName() + " error processing '" + path + "'.", ioe);
     } finally {
       if (null != in) {
         try { in.close(); } catch (Exception e) { throw new WarpScriptException(getName() + " error closing '" + path + "'.", e); }

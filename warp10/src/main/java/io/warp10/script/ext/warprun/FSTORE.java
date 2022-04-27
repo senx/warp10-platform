@@ -50,6 +50,8 @@ public class FSTORE extends NamedWarpScriptFunction implements WarpScriptStackFu
       throw new WarpScriptException(getName() + " expects a target file path.");
     }
 
+    Path path = new Path((String) top);
+
     top = stack.pop();
 
     byte[] data = null;
@@ -62,8 +64,6 @@ public class FSTORE extends NamedWarpScriptFunction implements WarpScriptStackFu
       throw new WarpScriptException(getName() + " operates on a STRING or BYTES.");
     }
 
-    Path path = new Path((String) top);
-
     Configuration conf = new Configuration();
     conf.set("fs.hdfs.impl", org.apache.hadoop.hdfs.DistributedFileSystem.class.getName());
     conf.set("fs.file.impl", org.apache.hadoop.fs.LocalFileSystem.class.getName());
@@ -75,7 +75,7 @@ public class FSTORE extends NamedWarpScriptFunction implements WarpScriptStackFu
       out = fs.create(path, overwrite);
       out.write(data);
     } catch (IOException ioe) {
-      new WarpScriptException(getName() + " error writing '" + path + "'.", ioe);
+      throw new WarpScriptException(getName() + " error writing '" + path + "'.", ioe);
     } finally {
       if (null != out) {
         try { out.close(); } catch (Exception e) { throw new WarpScriptException(getName() + " error closing '" + path + "'.", e); }
