@@ -57,7 +57,7 @@ public class WarpRun {
         String[] files = null;
 
         if (null != config) {
-          files = config.split("[, ]");
+          files = config.split("[, ]+");
         }
 
         WarpConfig.safeSetProperties(files);
