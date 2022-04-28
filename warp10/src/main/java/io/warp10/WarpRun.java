@@ -16,6 +16,7 @@
 package io.warp10;
 
 import java.io.BufferedReader;
+import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
@@ -85,7 +86,7 @@ public class WarpRun {
       if ("-".equals(args[0])) {
         br = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
       } else {
-        br = new BufferedReader(new FileReader(args[0]));
+        br = new BufferedReader(new InputStreamReader(new FileInputStream(args[0]), StandardCharsets.UTF_8));
       }
 
       while(true) {
