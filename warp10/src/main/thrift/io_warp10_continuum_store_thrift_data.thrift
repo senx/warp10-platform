@@ -544,6 +544,10 @@ struct FetchRequest {
    * GTS list.
    */
   14: optional bool parallelScanners = true,
+  /**
+   * Map of attributes. This is used to pass information between client and backend if needed.
+   */
+  15: optional map<string,string> attributes,
 }
 
 enum DatalogRecordType {

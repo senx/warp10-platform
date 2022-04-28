@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -140,7 +140,7 @@ public abstract class AbstractWarp10Plugin {
           // If the jar differs from that from which AbstractWarp10Plugin was loaded, create a dedicated class loader
           // unless a 'plugin.defaultcl.XXX' property for the class exists
           if (!jarfile.equals(wsljar) && !"true".equals(WarpConfig.getProperty(Configuration.CONFIG_PLUGIN_DEFAULTCL_PREFIX + plugin))) {
-            cl = new WarpClassLoader(jarfile, AbstractWarp10Plugin.class.getClassLoader());
+            cl = new WarpClassLoader("[WarpClassLoader for " + plugin + "]", jarfile, AbstractWarp10Plugin.class.getClassLoader());
           }
 
           cls = Class.forName(plugin, true, cl);

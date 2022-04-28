@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -29,19 +29,21 @@ import org.slf4j.LoggerFactory;
 public class WarpClassLoader extends ClassLoader {
 
   private static final Logger LOG = LoggerFactory.getLogger(WarpClassLoader.class);
-  
+
+  private final String name;
   private final String jarpath;
-  
+
   private final Map<String,Class> knownClasses;
-  
-  public WarpClassLoader(String jarpath, ClassLoader parent) {
+
+  public WarpClassLoader(String name, String jarpath, ClassLoader parent) {
     super(parent);
+    this.name = name;
     this.jarpath = jarpath;
     this.knownClasses = new HashMap<String,Class>();
     registerAsParallelCapable();
   }
-  
-  
+
+
   @Override
   public Class<?> loadClass(String name) throws ClassNotFoundException {
     return loadClass(name, false);
@@ -60,47 +62,47 @@ public class WarpClassLoader extends ClassLoader {
     } finally {
     }
   }
-  
+
   @Override
   protected Class<?> findClass(String name) throws ClassNotFoundException {
-    
+
     Class knownClass = this.knownClasses.get(name);
-    
+
     if (null != knownClass) {
       return knownClass;
     }
-    
+
     String clsFile = name.replace('.', '/') + ".class";
-    
+
     JarFile jf = null;
-    
+
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     InputStream in = null;
-    
+
     try {
-    
+
       jf = new JarFile(this.jarpath);
       ZipEntry entry = jf.getEntry(clsFile);
-      
+
       if (null == entry) {
         throw new ClassNotFoundException();
       }
-      
+
       in = jf.getInputStream(entry);
-      
+
       if (null == in) {
         return null;
       }
-      
+
       byte[] buffer = new byte[1024];
 
       while (true) {
         int len = in.read(buffer, 0, buffer.length);
-        
+
         if (-1 == len) {
           break;
         }
-        
+
         out.write(buffer, 0, len);
       }
     } catch (IOException ioe) {
@@ -109,7 +111,7 @@ public class WarpClassLoader extends ClassLoader {
       if (null != in) {
         try { in.close(); } catch (IOException ioe) {}
       }
-      if (null != jf) {        
+      if (null != jf) {
         try { jf.close(); } catch (IOException ioe) {}
       }
     }
@@ -119,17 +121,17 @@ public class WarpClassLoader extends ClassLoader {
     //
     // Return class
     //
-    
+
     try {
       Class c = null;
-      
+
       // Synchronize on the interned class name so we tolerate parallel executions but prevent
       // the same class from being loaded multiple times.
       synchronized(name.intern()) {
         // Check again if the class is known now that we
         // are in the critical section
         knownClass = this.knownClasses.get(name);
-        
+
         if (null != knownClass) {
           return knownClass;
         }
@@ -137,14 +139,19 @@ public class WarpClassLoader extends ClassLoader {
         c = defineClass(name, data, 0, data.length);
         //
         // Store the class in the cache
-        //      
+        //
         this.knownClasses.put(name, c);
       }
-    
-      
+
+
       return c;
     } catch (Throwable t) {
       throw new ClassNotFoundException("Error calling defineClass(" + name + ")", t);
     }
+  }
+
+  @Override
+  public String toString() {
+    return this.name;
   }
 }
