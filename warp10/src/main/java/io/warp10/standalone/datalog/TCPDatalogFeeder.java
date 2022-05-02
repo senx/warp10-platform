@@ -1,5 +1,5 @@
 //
-//   Copyright 2020  SenX S.A.S.
+//   Copyright 2020-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -31,12 +31,17 @@ public class TCPDatalogFeeder extends Thread {
 
   private static final Logger LOG = LoggerFactory.getLogger(TCPDatalogFeeder.class);
 
-  private final FileBasedDatalogManager manager;
-  private final int port = 4321;
-  private final InetAddress addr;
-  private final int backlog = 2;
+  public static final String DEFAULT_HOST = "127.0.0.1";
+  public static final String DEFAULT_PORT = "3564"; // speeds 'DLNG', DataLog Next Generation
+  private static final String DEFAULT_MAXCLIENTS = "2";
+  private static final String DEFAULT_BACKLOG = "2";
 
-  private static final int MAX_CLIENTS = 2;
+  private final FileBasedDatalogManager manager;
+  private final int port; // = 4321;
+  private final InetAddress addr;
+  private final int backlog;
+
+  private final int maxclients;
 
   private final String checkmacro;
 
@@ -49,11 +54,19 @@ public class TCPDatalogFeeder extends Thread {
       throw new RuntimeException("Missing '" + FileBasedDatalogManager.CONFIG_DATALOG_FEEDER_CHECKMACRO + "' configuration.");
     }
 
+    String host = WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_FEEDER_HOST, DEFAULT_HOST);
+
     try {
-      this.addr = InetAddress.getByName("127.0.0.1");
+      this.addr = InetAddress.getByName(host);
     } catch (Exception e) {
-      throw new RuntimeException("Error initializing Datalog TCP Feeder.", e);
+      throw new RuntimeException("Error initializing Datalog TCP Feeder on host " + host + ".", e);
     }
+
+    this.port = Integer.parseInt(WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_FEEDER_PORT, DEFAULT_PORT));
+
+    this.maxclients = Integer.parseInt(WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_FEEDER_MAXCLIENTS, DEFAULT_MAXCLIENTS));
+    this.backlog = Integer.parseInt(WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_FEEDER_BACKLOG, DEFAULT_BACKLOG));
+
     this.setDaemon(true);
     this.setName("[Datalog TCP Feeder on port " + port + "]");
     this.start();
@@ -78,7 +91,7 @@ public class TCPDatalogFeeder extends Thread {
    while(true) {
      try {
        Socket socket = server.accept();
-       if (clients.incrementAndGet() > MAX_CLIENTS) {
+       if (clients.incrementAndGet() > maxclients) {
          clients.decrementAndGet();
          socket.close();
        }

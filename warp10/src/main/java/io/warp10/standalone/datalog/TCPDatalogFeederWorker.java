@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2021  SenX S.A.S.
+//   Copyright 2020-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -72,10 +72,17 @@ import io.warp10.sensision.Sensision;
 
 public class TCPDatalogFeederWorker extends Thread {
 
-  static final int MAX_BLOB_SIZE = 1024 * 1024;
+  private static final String DEFAULT_MAXSIZE = Integer.toString(1024 * 1024);
+  private static final String DEFAULT_INFLIGT = Long.toString(1000000L);
+  private static final String DEFAULT_TIMEOUT = Integer.toString(300000);
 
-  private static final long MAX_INFLIGHT_SIZE = 1000000L;
-  private static final int SOCKET_TIMEOUT = 300000;
+  static final int MAX_BLOB_SIZE;
+  private final long MAX_INFLIGHT_SIZE;
+  private final int SOCKET_TIMEOUT;
+
+  static {
+    MAX_BLOB_SIZE = Integer.parseInt(WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_FEEDER_MAXSIZE, DEFAULT_MAXSIZE));
+  }
 
   private static final Logger LOG = LoggerFactory.getLogger(TCPDatalogFeederWorker.class);
 
@@ -97,6 +104,9 @@ public class TCPDatalogFeederWorker extends Thread {
     this.socket = socket;
     this.clients = clients;
     this.checkmacro = checkmacro;
+
+    this.MAX_INFLIGHT_SIZE = Long.parseLong(WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_FEEDER_INFLIGHT, DEFAULT_INFLIGT));
+    this.SOCKET_TIMEOUT = Integer.parseInt(WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_FEEDER_TIMEOUT, DEFAULT_TIMEOUT));
 
     this.setName("[Datalog Feeder Worker]");
     this.setDaemon(true);

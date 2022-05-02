@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2021  SenX S.A.S.
+//   Copyright 2020-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -77,6 +77,13 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
   public static final String CONFIG_DATALOG_MANAGER_FORWARD = "datalog.manager.forward";
 
   public static final String CONFIG_DATALOG_FEEDER_ID = "datalog.feeder.id";
+  public static final String CONFIG_DATALOG_FEEDER_HOST = "datalog.feeder.host";
+  public static final String CONFIG_DATALOG_FEEDER_PORT = "datalog.feeder.port";
+  public static final String CONFIG_DATALOG_FEEDER_MAXCLIENTS = "datalog.feeder.maxclients";
+  public static final String CONFIG_DATALOG_FEEDER_BACKLOG = "datalog.feeder.backlog";
+  public static final String CONFIG_DATALOG_FEEDER_MAXSIZE = "datalog.feeder.maxsize";
+  public static final String CONFIG_DATALOG_FEEDER_INFLIGHT = "datalog.feeder.inflight";
+  public static final String CONFIG_DATALOG_FEEDER_TIMEOUT = "datalog.feeder.timeout";
   public static final String CONFIG_DATALOG_FEEDER_DIR = "datalog.feeder.dir";
   public static final String CONFIG_DATALOG_FEEDER_ECC_PRIVATE = "datalog.feeder.ecc.private";
   public static final String CONFIG_DATALOG_FEEDER_ECC_PUBLIC = "datalog.feeder.ecc.public";
@@ -539,6 +546,7 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
         }
         size.addAndGet(value.length);
       } else {
+        // FIXME(hbs): seems weird
         if (!syncAll) {
           datalog.hsync();
         }

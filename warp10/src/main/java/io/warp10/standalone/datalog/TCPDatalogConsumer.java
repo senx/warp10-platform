@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2021  SenX S.A.S.
+//   Copyright 2020-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -127,8 +127,8 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
   @Override
   public void run() {
 
-    String host = WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_CONSUMER_FEEDER_HOST + suffix);
-    int port = Integer.parseInt(WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_CONSUMER_FEEDER_PORT + suffix));
+    String host = WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_CONSUMER_FEEDER_HOST + suffix, TCPDatalogFeeder.DEFAULT_HOST);
+    int port = Integer.parseInt(WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_CONSUMER_FEEDER_PORT + suffix, TCPDatalogFeeder.DEFAULT_PORT));
 
     String feederShardsSpec = WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_CONSUMER_FEEDER_SHARDS + suffix);
 
@@ -629,6 +629,7 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
               // Call the macro with the encoder and the record type
               stack.push(encoder);
               stack.push(record.getType().name());
+              stack.push(macro);
               RUN.apply(stack);
               // Skip if the macro returned an invalid number of values (!= 1) or if it returned a boolean with value false
               boolean skip = (1 != stack.depth()) ||  (1 == stack.depth() && stack.peek() instanceof Boolean && !Boolean.TRUE.equals(stack.peek()));
