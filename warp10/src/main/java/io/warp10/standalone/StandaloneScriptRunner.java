@@ -240,11 +240,11 @@ public class StandaloneScriptRunner extends ScriptRunner {
             stack.execMulti(mc2WithReplacement.toString());
 
             // Did the user asked to reschedule script to another period with RUNNERNEXT ?
-            if (stack.getAttribute(WarpScriptStack.ATTRIBUTE_RUNNER_RESCHEDULE_PERIOD) != null) {
+            if (stack.getAttribute(WarpScriptStack.ATTRIBUTE_RUNNER_RESCHEDULE_PERIOD) instanceof Long) {
               periodicityForNextRun = (Long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_RUNNER_RESCHEDULE_PERIOD);
             }
             // Did the user asked to reschedule script to another absolute time with RUNNERPROG ? (absolute milliseconds)
-            if (stack.getAttribute(WarpScriptStack.ATTRIBUTE_RUNNER_RESCHEDULE_TIMESTAMP) != null) {
+            if (stack.getAttribute(WarpScriptStack.ATTRIBUTE_RUNNER_RESCHEDULE_TIMESTAMP) instanceof Long) {
               progForNextRun = (Long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_RUNNER_RESCHEDULE_TIMESTAMP);
             }
           } catch (Exception e) {

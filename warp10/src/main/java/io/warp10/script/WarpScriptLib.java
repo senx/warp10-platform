@@ -678,8 +678,8 @@ public class WarpScriptLib {
   public static final String AESWRAP = "AESWRAP";
   public static final String AESUNWRAP = "AESUNWRAP";
   public static final String RUNNERNONCE = "RUNNERNONCE";
-  public static final String RUNNERAT = "RUNNERPROG";
-  public static final String RUNNERIN = "RUNNERNEXT";
+  public static final String RUNNERAT = "RUNNERAT";
+  public static final String RUNNERIN = "RUNNERIN";
   public static final String GZIP = "GZIP";
   public static final String UNGZIP = "UNGZIP";
   public static final String DEFLATE = "DEFLATE";

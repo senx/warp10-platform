@@ -303,7 +303,7 @@ public interface WarpScriptStack {
   public static final String ATTRIBUTE_TIMEBOXED = "stack.timeboxed";
 
   /**
-   * Cap name for runner rescheduling minimum period
+   * Cap name for runner rescheduling minimum period in millisecond
    */
   public static final String CAPNAME_RUNNER_RESCHEDULE_MIN_PERIOD = "runner.reschedule.min.period";
 
@@ -313,7 +313,7 @@ public interface WarpScriptStack {
   public static final String ATTRIBUTE_RUNNER_RESCHEDULE_PERIOD = "runner.reschedule.period";
 
   /**
-   * Stack attribute for runner rescheduling period in millisecond
+   * Stack attribute for runner rescheduling absolute timestamp in millisecond
    */
   public static final String ATTRIBUTE_RUNNER_RESCHEDULE_TIMESTAMP = "runner.reschedule.timestamp";
 
