@@ -130,8 +130,8 @@ public class StandaloneScriptRunner extends ScriptRunner {
 
           ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-          long periodicityForNextRun = periodicity;
-          long progForNextRun = Long.MAX_VALUE;
+          long periodicityForNextRun = periodicity;  // can be overriden by RUNNERIN
+          long runnerAtForNextRun = Long.MAX_VALUE;  // can be overriden by RUNNERAT
 
           try {
             WarpConfig.setThreadProperty(WarpConfig.THREAD_PROPERTY_SESSION, UUID.randomUUID().toString());
@@ -239,13 +239,13 @@ public class StandaloneScriptRunner extends ScriptRunner {
 
             stack.execMulti(mc2WithReplacement.toString());
 
-            // Did the user asked to reschedule script to another period with RUNNERNEXT ?
+            // Did the user asked to reschedule script to another period with RUNNERIN ?
             if (stack.getAttribute(WarpScriptStack.ATTRIBUTE_RUNNER_RESCHEDULE_PERIOD) instanceof Long) {
               periodicityForNextRun = (Long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_RUNNER_RESCHEDULE_PERIOD);
             }
-            // Did the user asked to reschedule script to another absolute time with RUNNERPROG ? (absolute milliseconds)
+            // Did the user asked to reschedule script to another absolute time with RUNNERAT ? (absolute milliseconds)
             if (stack.getAttribute(WarpScriptStack.ATTRIBUTE_RUNNER_RESCHEDULE_TIMESTAMP) instanceof Long) {
-              progForNextRun = (Long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_RUNNER_RESCHEDULE_TIMESTAMP);
+              runnerAtForNextRun = (Long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_RUNNER_RESCHEDULE_TIMESTAMP);
             }
           } catch (Exception e) {
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_FAILURES, labels, 1);
@@ -253,21 +253,22 @@ public class StandaloneScriptRunner extends ScriptRunner {
             WarpConfig.clearThreadProperties();
             WarpScriptStackRegistry.unregister(stack);
             currentThread().setName(name);
-            // manage possible overflow (MAXLONG RUNNERNEXT)
-            long progByPeriod = Long.MAX_VALUE;
+            // manage possible overflow (MAXLONG RUNNERIN in all possible platform time unit)
+            long runnerInTime = Long.MAX_VALUE;
             if (periodicityForNextRun < (Long.MAX_VALUE / 1000000L) && (nowns + periodicityForNextRun * 1000000L) > nowns) {
-              progByPeriod = nowns + periodicityForNextRun * 1000000L;
+              runnerInTime = nowns + periodicityForNextRun * 1000000L;
             }
 
-            // progForNextRun is absolute time, not jvm relative time
+            // runnerAtForNextRun is absolute time in milliseconds
+            // System.nanoTime()  is jvm relative time in nanoseconds
             long jvmStartTimeOffset = System.currentTimeMillis() - (System.nanoTime() / 1000000L);
-            long progByTime = progForNextRun - jvmStartTimeOffset;
-            if (progByTime >= (Long.MAX_VALUE / 1000000L)) {
-              progByTime = Long.MAX_VALUE; // overflow
+            long runnerAtTime = runnerAtForNextRun - jvmStartTimeOffset;
+            if (runnerAtTime >= (Long.MAX_VALUE / 1000000L)) {
+              runnerAtTime = Long.MAX_VALUE; // overflow
             } else {
-              progByTime = progByTime * 1000000L;
+              runnerAtTime = runnerAtTime * 1000000L;
             }
-            nextrun.put(script, Math.min(progByPeriod, progByTime));
+            nextrun.put(script, Math.min(runnerInTime, runnerAtTime));
             nano = System.nanoTime() - nano;
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_TIME_US, labels, ttl, nano / 1000L);
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_ELAPSED, labels, ttl, nano);
