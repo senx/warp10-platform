@@ -253,21 +253,15 @@ public class StandaloneScriptRunner extends ScriptRunner {
             WarpConfig.clearThreadProperties();
             WarpScriptStackRegistry.unregister(stack);
             currentThread().setName(name);
-            // manage possible overflow (MAXLONG RUNNERIN in all possible platform time unit)
+            // Manage possible overflow (MAXLONG RUNNERIN in all possible platform time unit)
             long runnerInTime = Long.MAX_VALUE;
             if (periodicityForNextRun < (Long.MAX_VALUE / 1000000L) && (nowns + periodicityForNextRun * 1000000L) > nowns) {
               runnerInTime = nowns + periodicityForNextRun * 1000000L;
             }
-
-            // runnerAtForNextRun is absolute time in milliseconds
-            // System.nanoTime()  is jvm relative time in nanoseconds
-            long jvmStartTimeOffset = System.currentTimeMillis() - (System.nanoTime() / 1000000L);
-            long runnerAtTime = runnerAtForNextRun - jvmStartTimeOffset;
-            if (runnerAtTime >= (Long.MAX_VALUE / 1000000L)) {
-              runnerAtTime = Long.MAX_VALUE; // overflow
-            } else {
-              runnerAtTime = runnerAtTime * 1000000L;
-            }
+            // Convert absolute time in millisecond to jvm nano time
+            long runnerAtTime = TimeSource.currentTimeMillisToNanoTime(runnerAtForNextRun);
+            // Next script is scheduled at min(RUNNERAT, RUNNERIN)
+            // if none of these functions are used, it is scheduled at period defined by script path.
             nextrun.put(script, Math.min(runnerInTime, runnerAtTime));
             nano = System.nanoTime() - nano;
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_TIME_US, labels, ttl, nano / 1000L);
