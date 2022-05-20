@@ -16,6 +16,8 @@
 
 package io.warp10.crypto;
 
+import com.google.common.primitives.Bytes;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Writer;
@@ -35,6 +37,7 @@ public class OrderPreservingBase64 {
    */
   private static final byte[] ALPHABET = ".0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz".getBytes(StandardCharsets.US_ASCII);
 
+  private static final byte[] ALPHABET12 = new byte[8192];
   private static final byte[] TEBAHPLA = new byte[256];
 
   static {
@@ -43,8 +46,32 @@ public class OrderPreservingBase64 {
     for (int i = 0; i < ALPHABET.length; i++) {
       TEBAHPLA[ALPHABET[i]] = (byte) i;
     }
+
+    for (int i = 0; i < 64; i++) {
+      for (int j = 0; j < 64; j++) {
+        ALPHABET12[(i * 64 + j) * 2] = ALPHABET[i];
+        ALPHABET12[(i * 64 + j) * 2 + 1] = ALPHABET[j];
+      }
+    }
   }
 
+  public static byte[] encodebis(byte[] data) {
+    byte[] encoded = new byte[4 * (data.length / 3) + (data.length % 3 != 0 ? 1 + (data.length % 3) : 0)];
+
+    int o;
+    int idx = 0;
+    for (int i = 0; i < ((data.length / 3) * 3); i += 3) {
+      o = ((((data[i]) << 4) | ((data[i + 1] & 0xFF) >>> 4)) << 1) & 0x1FFF;
+      //System.out.println(o);
+      encoded[idx++] = ALPHABET12[o];
+      encoded[idx++] = ALPHABET12[o + 1];
+      o = ((((data[i + 1]) << 8) | ((data[i + 2] & 0xFF))) << 1) & 0x1FFF;
+      //System.out.println(o);
+      encoded[idx++] = ALPHABET12[o];
+      encoded[idx++] = ALPHABET12[o + 1];
+    }
+    return encoded;
+  }
   /**
    * Encode byte [ ].
    *
