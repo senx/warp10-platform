@@ -167,18 +167,26 @@ public class OrderPreservingBase64 {
    * @throws IOException the io exception
    */
   public static void encodeToStream(OutputStream out, byte[] data, int offset, int datalen, int buflen) throws IOException {
-    int i = 0;
-
     int len = 4 * (datalen / 3) + (datalen % 3 != 0 ? 1 + (datalen % 3) : 0);
-
-    int dataidx = 0;
 
     if (buflen < 1024) {
       buflen = 1024;
     }
 
     byte[] buf = new byte[buflen > len ? len : buflen];
+
+    encodeToStream(out, data, offset, datalen, buf);
+  }
+
+  public static void encodeToStream(OutputStream out, byte[] data, int offset, int datalen, byte[] buf) throws IOException {
+
+    int len = 4 * (datalen / 3) + (datalen % 3 != 0 ? 1 + (datalen % 3) : 0);
+
+    int dataidx = 0;
+
     int bufidx = 0;
+
+    int i = 0;
 
     for (i = offset; i < offset + datalen; i++) {
       // Ensure we have at least 2 slots free for case 2
@@ -284,17 +292,24 @@ public class OrderPreservingBase64 {
    * @throws IOException the io exception
    */
   public static void encodeToWriter(Writer out, byte[] data, int offset, int datalen, int buflen) throws IOException {
-    int i = 0;
-
     int len = 4 * (datalen / 3) + (datalen % 3 != 0 ? 1 + (datalen % 3) : 0);
-
-    int dataidx = 0;
 
     if (buflen < 1024) {
       buflen = 1024;
     }
 
     byte[] buf = new byte[buflen > len ? len : buflen];
+
+    encodeToWriter(out, data, offset, datalen, buf);
+  }
+
+  public static void encodeToWriter(Writer out, byte[] data, int offset, int datalen, byte[] buf) throws IOException {
+    int i = 0;
+
+    int len = 4 * (datalen / 3) + (datalen % 3 != 0 ? 1 + (datalen % 3) : 0);
+
+    int dataidx = 0;
+
     int bufidx = 0;
 
     for (i = offset; i < offset + datalen; i++) {
