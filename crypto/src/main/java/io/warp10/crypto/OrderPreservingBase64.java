@@ -38,6 +38,7 @@ public class OrderPreservingBase64 {
   private static final byte[] ALPHABET = ".0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz".getBytes(StandardCharsets.US_ASCII);
 
   private static final byte[] ALPHABET12 = new byte[8192];
+  private static final byte[] ALPHABET24 = new byte[1<<26];
   private static final byte[] TEBAHPLA = new byte[256];
 
   static {
@@ -53,20 +54,56 @@ public class OrderPreservingBase64 {
         ALPHABET12[(i * 64 + j) * 2 + 1] = ALPHABET[j];
       }
     }
+    int index;
+    System.out.print("building OPB64 lut, size="+ALPHABET24.length+" ");
+    long t = System.currentTimeMillis();
+    for (int i = 0; i < 64; i++) {
+      for (int j = 0; j < 64; j++) {
+        for (int k = 0; k < 64; k++) {
+          for (int l = 0; l < 64; l++) {
+            index = ((i << 18) + (j << 12) + (k << 6) + l) * 4;
+            ALPHABET24[index] = ALPHABET[i];
+            ALPHABET24[index + 1] = ALPHABET[j];
+            ALPHABET24[index + 2] = ALPHABET[k];
+            ALPHABET24[index + 3] = ALPHABET[l];
+          }
+        }
+      }
+    }
+    System.out.println((System.currentTimeMillis()-t)+" milliseconds");
+
   }
 
+
+  public static byte[] encodeter(byte[] data) {
+    byte[] encoded = new byte[4 * (data.length / 3) + (data.length % 3 != 0 ? 1 + (data.length % 3) : 0)];
+
+    int o=0;
+    int idx = 0;
+    for (int i = 0; i < ((data.length / 3) * 3); i += 3) {
+      // 4ms to access data[x] with data size = 100 000
+      o = (((data[i] & 0xFF) << 16 | (data[i + 1] & 0xFF) << 8 | (data[i + 2] & 0xFF))) & 0x3FFFFFF;
+      // 35ms because lut does not fit in 6MB cpu cache
+      //encoded[idx++] = ALPHABET24[o];
+     // encoded[idx++] = ALPHABET24[o + 1];
+      //encoded[idx++] = ALPHABET24[o + 2];
+      //encoded[idx++] = ALPHABET24[o + 3];
+    }
+    return encoded;
+  }
   public static byte[] encodebis(byte[] data) {
     byte[] encoded = new byte[4 * (data.length / 3) + (data.length % 3 != 0 ? 1 + (data.length % 3) : 0)];
 
-    int o;
-    int idx = 0;
+    int o=0;
+    int idx = 0; 
     for (int i = 0; i < ((data.length / 3) * 3); i += 3) {
+      // around 9 to 12 ms to convert 100 000 random bytes
+      // 5.2ms to access data and do the o computing for data size 100 000
+      // 8ms to fill encoded from ALPHABET12
       o = ((((data[i]) << 4) | ((data[i + 1] & 0xFF) >>> 4)) << 1) & 0x1FFF;
-      //System.out.println(o);
       encoded[idx++] = ALPHABET12[o];
       encoded[idx++] = ALPHABET12[o + 1];
       o = ((((data[i + 1]) << 8) | ((data[i + 2] & 0xFF))) << 1) & 0x1FFF;
-      //System.out.println(o);
       encoded[idx++] = ALPHABET12[o];
       encoded[idx++] = ALPHABET12[o + 1];
     }
