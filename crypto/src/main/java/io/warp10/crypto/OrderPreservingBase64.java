@@ -16,8 +16,6 @@
 
 package io.warp10.crypto;
 
-import com.google.common.primitives.Bytes;
-
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Writer;
@@ -47,7 +45,11 @@ public class OrderPreservingBase64 {
       TEBAHPLA[ALPHABET[i]] = (byte) i;
     }
 
-    // also build a 12bit lut. Encoding per 12bits double speed. (now reaching 30MB/s)
+    // also build a 12bit look up table. Encoding per 12bits double speed. (now reaching 30MB/s)
+    // output is the list of two bytes representing the 12 bits input:
+    // ...0.1.2.3.4.5.6  (...)  zmznzozpzqzrzsztzuzvzwzxzyzz
+    // 12 bits at zero => output is '..'
+    // 12 bits at one  => output is 'zz'
     for (int i = 0; i < 64; i++) {
       for (int j = 0; j < 64; j++) {
         ALPHABET12[(i * 64 + j) * 2] = ALPHABET[i];
@@ -87,13 +89,16 @@ public class OrderPreservingBase64 {
     byte[] encoded = new byte[len];
     
     int idx = 0;
-    
-    // first, process input per 3 bytes
+
+    // first, process input per 3 bytes X Y Z
     int len24b = (datalen / 3) * 3; // length of 24 bits multiple
     for (i = offset; i < (offset + len24b); i += 3) {
-      o = ((((data[i]) << 4) | ((data[i + 1] & 0xFF) >>> 4)) << 1) & 0x1FFF;
+      // take the first 12 bits (8 bits of X, 4 msb of Y), multiply by two to get the look up table index
+      // ((((data[i]) << 4) | ((data[i + 1] & 0xF0) >>> 4)) << 1) & 0x1FFF is simplified into:
+      o = (((data[i]) << 5) | ((data[i + 1] & 0xF0) >>> 3)) & 0x1FFF;
       encoded[idx++] = ALPHABET12[o];
       encoded[idx++] = ALPHABET12[o + 1];
+      // take the next 12 bits (4 lsb bits of Y, 8 bits of Z), multiply by two to get the look up table index
       o = ((((data[i + 1]) << 8) | ((data[i + 2] & 0xFF))) << 1) & 0x1FFF;
       encoded[idx++] = ALPHABET12[o];
       encoded[idx++] = ALPHABET12[o + 1];
