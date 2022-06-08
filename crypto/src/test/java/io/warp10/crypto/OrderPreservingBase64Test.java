@@ -19,6 +19,7 @@ package io.warp10.crypto;
 import io.warp10.crypto.OrderPreservingBase64;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
@@ -53,6 +54,90 @@ public class OrderPreservingBase64Test {
 
     data = new byte[] { -1, -1, -1, -1, -1 };
     encoded = OrderPreservingBase64.encode(data);
+    Assert.assertEquals(7, encoded.length);
+    Assert.assertEquals("zzzzzzw", new String(encoded));
+  }
+
+  @Test
+  public void testEncodeToWriter() throws IOException {
+
+    StringWriter sw = new StringWriter();
+
+    byte[] data = new byte[] { -1 };
+    OrderPreservingBase64.encodeToWriter(data, sw);
+    String str = sw.toString();
+
+    Assert.assertEquals(2, str.length());
+    Assert.assertEquals("zk", str);
+
+    data = new byte[] { -1, -1 };
+    sw = new StringWriter();
+    OrderPreservingBase64.encodeToWriter(data, sw);
+    str = sw.toString();
+
+    Assert.assertEquals(3, str.length());
+    Assert.assertEquals("zzw", str);
+
+    data = new byte[] { -1, -1, -1 };
+    sw = new StringWriter();
+    OrderPreservingBase64.encodeToWriter(data, sw);
+    str = sw.toString();
+
+    Assert.assertEquals(4, str.length());
+    Assert.assertEquals("zzzz", str);
+
+    data = new byte[] { -1, -1, -1, -1 };
+    sw = new StringWriter();
+    OrderPreservingBase64.encodeToWriter(data, sw);
+    str = sw.toString();
+
+    Assert.assertEquals(6, str.length());
+    Assert.assertEquals("zzzzzk", str);
+
+    data = new byte[] { -1, -1, -1, -1, -1 };
+    sw = new StringWriter();
+    OrderPreservingBase64.encodeToWriter(data, sw);
+    str = sw.toString();
+
+    Assert.assertEquals(7, str.length());
+    Assert.assertEquals("zzzzzzw", str);
+  }
+
+  @Test
+  public void testEncodeToStream() throws IOException {
+    byte[] data = new byte[] { -1 };
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    OrderPreservingBase64.encodeToStream(data, out);
+    byte[] encoded = out.toByteArray();
+
+    Assert.assertEquals(2, encoded.length);
+    Assert.assertEquals("zk", new String(encoded));
+
+    data = new byte[] { -1, -1 };
+    out.reset();
+    OrderPreservingBase64.encodeToStream(data, out);
+    encoded = out.toByteArray();
+    Assert.assertEquals(3, encoded.length);
+    Assert.assertEquals("zzw", new String(encoded));
+
+    data = new byte[] { -1, -1, -1 };
+    out.reset();
+    OrderPreservingBase64.encodeToStream(data, out);
+    encoded = out.toByteArray();
+    Assert.assertEquals(4, encoded.length);
+    Assert.assertEquals("zzzz", new String(encoded));
+
+    data = new byte[] { -1, -1, -1, -1 };
+    out.reset();
+    OrderPreservingBase64.encodeToStream(data, out);
+    encoded = out.toByteArray();
+    Assert.assertEquals(6, encoded.length);
+    Assert.assertEquals("zzzzzk", new String(encoded));
+
+    data = new byte[] { -1, -1, -1, -1, -1 };
+    out.reset();
+    OrderPreservingBase64.encodeToStream(data, out);
+    encoded = out.toByteArray();
     Assert.assertEquals(7, encoded.length);
     Assert.assertEquals("zzzzzzw", new String(encoded));
   }
