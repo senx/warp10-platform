@@ -1061,6 +1061,8 @@ public class EgressFetchHandler extends AbstractHandler {
     Metadata lastMetadata = lastMeta.get();
     long currentCount = lastCount.get();
 
+    byte[] buf = new byte[100000];
+
     while(iter.hasNext()) {
       GTSDecoder decoder = iter.next();
 
@@ -1153,7 +1155,7 @@ public class EgressFetchHandler extends AbstractHandler {
 
         //pw.println(new String(OrderPreservingBase64.encode(encoder.getBytes())));
         byte[] encoded = encoder.getBytes();
-        OrderPreservingBase64.encodeToWriter(pw, encoded, 0, encoded.length, 100000);
+        OrderPreservingBase64.encodeToWriter(pw, encoded, 0, encoded.length, buf);
         pw.write('\r');
         pw.write('\n');
       }
