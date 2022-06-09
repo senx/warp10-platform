@@ -30,7 +30,6 @@ import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -1062,6 +1061,8 @@ public class EgressFetchHandler extends AbstractHandler {
     Metadata lastMetadata = lastMeta.get();
     long currentCount = lastCount.get();
 
+    byte[] buf = new byte[100000];
+
     while(iter.hasNext()) {
       GTSDecoder decoder = iter.next();
 
@@ -1153,7 +1154,8 @@ public class EgressFetchHandler extends AbstractHandler {
         pw.print(" ");
 
         //pw.println(new String(OrderPreservingBase64.encode(encoder.getBytes())));
-        OrderPreservingBase64.encodeToWriter(encoder.getBytes(), pw);
+        byte[] encoded = encoder.getBytes();
+        OrderPreservingBase64.encodeToWriter(pw, encoded, 0, encoded.length, buf);
         pw.write('\r');
         pw.write('\n');
       }

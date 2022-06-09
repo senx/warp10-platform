@@ -159,6 +159,75 @@ public class OrderPreservingBase64 {
   /**
    * Encode to writer.
    *
+   * @param out     the out
+   * @param data    the data
+   * @param offset  the offset
+   * @param datalen the datalen
+   * @param buflen  size of internal buffer
+   * @throws IOException the io exception
+   */
+  public static void encodeToStream(OutputStream out, byte[] data, int offset, int datalen, int buflen) throws IOException {
+    int len = 4 * (datalen / 3) + (datalen % 3 != 0 ? 1 + (datalen % 3) : 0);
+
+    if (buflen < 1024) {
+      buflen = 1024;
+    }
+
+    byte[] buf = new byte[buflen > len ? len : buflen];
+
+    encodeToStream(out, data, offset, datalen, buf);
+  }
+
+  public static void encodeToStream(OutputStream out, byte[] data, int offset, int datalen, byte[] buf) throws IOException {
+
+    int len = 4 * (datalen / 3) + (datalen % 3 != 0 ? 1 + (datalen % 3) : 0);
+
+    int dataidx = 0;
+
+    int bufidx = 0;
+
+    int i = 0;
+
+    for (i = offset; i < offset + datalen; i++) {
+      // Ensure we have at least 2 slots free for case 2
+      if (buf.length  - bufidx < 2) {
+        out.write(buf, 0, bufidx);
+        bufidx = 0;
+      }
+      switch (dataidx % 3) {
+        case 0:
+          buf[bufidx++] = ALPHABET[(data[i] >> 2) & 0x3f];
+          break;
+        case 1:
+          buf[bufidx++] = ALPHABET[((data[i - 1] & 0x3) << 4) | ((data[i] >> 4) & 0xf)];
+          break;
+        case 2:
+          buf[bufidx++] = ALPHABET[((data[i - 1] & 0xf) << 2) | ((data[i] >> 6) & 0x3)];
+          buf[bufidx++] = ALPHABET[data[i] & 0x3f];
+          break;
+      }
+      dataidx++;
+    }
+
+    if (bufidx > 0) {
+      out.write(buf, 0, bufidx);
+    }
+
+    if (dataidx < len) {
+      switch (datalen % 3) {
+        case 1:
+          out.write(ALPHABET[(data[offset + datalen - 1] << 4) & 0x30]);
+          break;
+        case 2:
+          out.write(ALPHABET[(data[offset + datalen - 1] << 2) & 0x3c]);
+          break;
+      }
+    }
+  }
+
+  /**
+   * Encode to writer.
+   *
    * @param data the data
    * @param out  the out
    * @throws IOException the io exception
@@ -201,6 +270,74 @@ public class OrderPreservingBase64 {
     }
 
     if (bufidx < len) {
+      switch (datalen % 3) {
+        case 1:
+          out.write(ALPHABET[(data[offset + datalen - 1] << 4) & 0x30]);
+          break;
+        case 2:
+          out.write(ALPHABET[(data[offset + datalen - 1] << 2) & 0x3c]);
+          break;
+      }
+    }
+  }
+
+  /**
+   * Encode to writer.
+   *
+   * @param out     the out
+   * @param data    the data
+   * @param offset  the offset
+   * @param datalen the datalen
+   * @param buflen  size of internal buffer
+   * @throws IOException the io exception
+   */
+  public static void encodeToWriter(Writer out, byte[] data, int offset, int datalen, int buflen) throws IOException {
+    int len = 4 * (datalen / 3) + (datalen % 3 != 0 ? 1 + (datalen % 3) : 0);
+
+    if (buflen < 1024) {
+      buflen = 1024;
+    }
+
+    byte[] buf = new byte[buflen > len ? len : buflen];
+
+    encodeToWriter(out, data, offset, datalen, buf);
+  }
+
+  public static void encodeToWriter(Writer out, byte[] data, int offset, int datalen, byte[] buf) throws IOException {
+    int i = 0;
+
+    int len = 4 * (datalen / 3) + (datalen % 3 != 0 ? 1 + (datalen % 3) : 0);
+
+    int dataidx = 0;
+
+    int bufidx = 0;
+
+    for (i = offset; i < offset + datalen; i++) {
+      // Ensure we have at least 2 slots free for case 2
+      if (buf.length  - bufidx < 2) {
+        out.write(new String(buf, 0, bufidx, StandardCharsets.US_ASCII));
+        bufidx = 0;
+      }
+      switch (dataidx % 3) {
+        case 0:
+          buf[bufidx++] = ALPHABET[(data[i] >> 2) & 0x3f];
+          break;
+        case 1:
+          buf[bufidx++] = ALPHABET[((data[i - 1] & 0x3) << 4) | ((data[i] >> 4) & 0xf)];
+          break;
+        case 2:
+          buf[bufidx++] = ALPHABET[((data[i - 1] & 0xf) << 2) | ((data[i] >> 6) & 0x3)];
+          buf[bufidx++] = ALPHABET[data[i] & 0x3f];
+          break;
+      }
+      dataidx++;
+    }
+
+    if (bufidx > 0) {
+      out.write(new String(buf, 0, bufidx, StandardCharsets.US_ASCII));
+    }
+
+    if (dataidx < len) {
       switch (datalen % 3) {
         case 1:
           out.write(ALPHABET[(data[offset + datalen - 1] << 4) & 0x30]);
