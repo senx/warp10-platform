@@ -25,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Random;
 
+import org.bouncycastle.util.Arrays;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -186,6 +187,49 @@ public class OrderPreservingBase64Test {
 
     Assert.assertEquals(7, str.length());
     Assert.assertEquals("zzzzzzw", str);
+
+
+    buf = new byte[4];
+    data = new byte[4];
+    Arrays.fill(data, (byte) -1);
+    sw = new StringWriter();
+    OrderPreservingBase64.encodeToWriter(sw, data, 0, data.length, buf);
+    str = sw.toString();
+
+    Assert.assertEquals(6, str.length());
+    Assert.assertEquals("zzzzzk", str);
+
+    data = new byte[5];
+    Arrays.fill(data, (byte) -1);
+    sw = new StringWriter();
+    OrderPreservingBase64.encodeToWriter(sw, data, 0, data.length, buf);
+    str = sw.toString();
+    Assert.assertEquals(7, str.length());
+    Assert.assertEquals("zzzzzzw", str);
+
+    data = new byte[6];
+    Arrays.fill(data, (byte) -1);
+    sw = new StringWriter();
+    OrderPreservingBase64.encodeToWriter(sw, data, 0, data.length, buf);
+    str = sw.toString();
+    Assert.assertEquals(8, str.length());
+    Assert.assertEquals("zzzzzzzz", str);
+
+    data = new byte[7];
+    Arrays.fill(data, (byte) -1);
+    sw = new StringWriter();
+    OrderPreservingBase64.encodeToWriter(sw, data, 0, data.length, buf);
+    str = sw.toString();
+    Assert.assertEquals(10, str.length());
+    Assert.assertEquals("zzzzzzzzzk", str);
+
+    data = new byte[8];
+    Arrays.fill(data, (byte) -1);
+    sw = new StringWriter();
+    OrderPreservingBase64.encodeToWriter(sw, data, 0, data.length, buf);
+    str = sw.toString();
+    Assert.assertEquals(11, str.length());
+    Assert.assertEquals("zzzzzzzzzzw", str);
   }
 
   @Test
@@ -227,6 +271,52 @@ public class OrderPreservingBase64Test {
     encoded = out.toByteArray();
     Assert.assertEquals(7, encoded.length);
     Assert.assertEquals("zzzzzzw", new String(encoded));
+
+    //
+    // Now check with input data larger than the buffer
+    //
+
+    buf = new byte[4];
+    data = new byte[4];
+    Arrays.fill(data, (byte) -1);
+    out.reset();
+    OrderPreservingBase64.encodeToStream(out, data, 0, data.length, buf);
+    encoded = out.toByteArray();
+
+    Assert.assertEquals(6, encoded.length);
+    Assert.assertEquals("zzzzzk", new String(encoded));
+
+    data = new byte[5];
+    Arrays.fill(data, (byte) -1);
+    out.reset();
+    OrderPreservingBase64.encodeToStream(out, data, 0, data.length, buf);
+    encoded = out.toByteArray();
+    Assert.assertEquals(7, encoded.length);
+    Assert.assertEquals("zzzzzzw", new String(encoded));
+
+    data = new byte[6];
+    Arrays.fill(data, (byte) -1);
+    out.reset();
+    OrderPreservingBase64.encodeToStream(out, data, 0, data.length, buf);
+    encoded = out.toByteArray();
+    Assert.assertEquals(8, encoded.length);
+    Assert.assertEquals("zzzzzzzz", new String(encoded));
+
+    data = new byte[7];
+    Arrays.fill(data, (byte) -1);
+    out.reset();
+    OrderPreservingBase64.encodeToStream(out, data, 0, data.length, buf);
+    encoded = out.toByteArray();
+    Assert.assertEquals(10, encoded.length);
+    Assert.assertEquals("zzzzzzzzzk", new String(encoded));
+
+    data = new byte[8];
+    Arrays.fill(data, (byte) -1);
+    out.reset();
+    OrderPreservingBase64.encodeToStream(out, data, 0, data.length, buf);
+    encoded = out.toByteArray();
+    Assert.assertEquals(11, encoded.length);
+    Assert.assertEquals("zzzzzzzzzzw", new String(encoded));
   }
 
 
@@ -291,7 +381,6 @@ public class OrderPreservingBase64Test {
   @Test
   public void testOrder() {
     Random rand = new Random();
-    long nano = System.nanoTime();
     int n = 1000000;
 
     for (int i = 0; i < n; i++) {
@@ -305,12 +394,11 @@ public class OrderPreservingBase64Test {
 
       Assert.assertTrue((bytecomp == 0 && b64comp == 0) || (bytecomp * b64comp > 0));
     }
-
-    System.out.println((System.nanoTime() - nano) / (double) n);
   }
 
   @Test
   public void testPerf() {
+    /*
     byte[] bytes = new byte[100000];
     SecureRandom sr = new SecureRandom();
     sr.nextBytes(bytes);
@@ -320,7 +408,7 @@ public class OrderPreservingBase64Test {
     for (int i = 0; i < n; i++) {
       byte[] enc = OrderPreservingBase64.encode(bytes);
     }
-
+    */
   }
 
   @Test
