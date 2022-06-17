@@ -40,7 +40,7 @@ public class RUNNERAT extends NamedWarpScriptFunction implements WarpScriptStack
     }
 
     // rescheduling capability is defined in milliseconds (as runners subdirectories)
-    Long minPeriod = Long.MAX_VALUE;
+    long minPeriod = Long.MAX_VALUE;
     try {
       minPeriod = Long.parseLong(Capabilities.get(stack, WarpScriptStack.CAPNAME_RUNNER_RESCHEDULE_MIN_PERIOD));
     } catch (NumberFormatException e) {
@@ -55,7 +55,7 @@ public class RUNNERAT extends NamedWarpScriptFunction implements WarpScriptStack
       throw new WarpScriptException(getName() + " expects a LONG timestamp as parameter.");
     }
     // convert to milliseconds    
-    Long progTs = ((Long) o) / Constants.TIME_UNITS_PER_MS;
+    long progTs = ((Long) o).longValue() / Constants.TIME_UNITS_PER_MS;
     // check if not less than capability
     long nowms = System.currentTimeMillis();
     if (progTs < (nowms + minPeriod)) {

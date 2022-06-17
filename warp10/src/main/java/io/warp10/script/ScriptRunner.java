@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -321,6 +321,15 @@ public class ScriptRunner extends Thread {
     this.id = config.getProperty(Configuration.RUNNER_ID);
   }
 
+  /**
+   * When a script is removed from disk, call this function to remove the attached context.
+   * This is not applicable for distributed scheduler, as it cannot store context for one script.
+   *
+   * @param scriptName
+   */
+  protected void removeRunnerContext(String scriptName) {
+  }
+  
   @Override
   public void run() {
 
@@ -368,7 +377,7 @@ public class ScriptRunner extends Thread {
       if (now - lastscan > this.scanperiod * 1000000L) {
         Map<String, Long> newscripts = scanSuperRoot(this.root);
 
-        Set<String> currentScripts = scripts.keySet();
+        Set<String> currentScripts = new HashSet<String>(scripts.keySet()); // copy object
         scripts.clear();
         scripts.putAll(newscripts);
 
@@ -380,6 +389,7 @@ public class ScriptRunner extends Thread {
         for (String prevscript: currentScripts) {
           if (!scripts.containsKey(prevscript)) {
             nextrun.remove(prevscript);
+            removeRunnerContext(prevscript);
           }
         }
 

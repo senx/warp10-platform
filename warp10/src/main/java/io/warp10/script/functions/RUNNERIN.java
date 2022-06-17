@@ -56,7 +56,7 @@ public class RUNNERIN extends NamedWarpScriptFunction implements WarpScriptStack
       throw new WarpScriptException(getName() + " expects a LONG period as parameter.");
     }
     // convert to milliseconds    
-    Long p = ((Long) o) / Constants.TIME_UNITS_PER_MS;
+    long p = ((Long) o).longValue() / Constants.TIME_UNITS_PER_MS;
     if (p < minPeriod) {
       throw new WarpScriptException(getName() + " cannot set period below " + minPeriod + " ms defined in " + WarpScriptStack.CAPNAME_RUNNER_RESCHEDULE_MIN_PERIOD + " capability.");
     }

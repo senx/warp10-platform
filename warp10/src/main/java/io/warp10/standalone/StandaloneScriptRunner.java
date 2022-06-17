@@ -279,4 +279,14 @@ public class StandaloneScriptRunner extends ScriptRunner {
       nextrun.put(script, System.nanoTime());
     }
   }
+
+  /**
+   * When a script is removed from disk, call this function to remove the attached context
+   *
+   * @param scriptName
+   */
+  @Override
+  protected void removeRunnerContext(String scriptName) {
+    runContexts.remove(scriptName);
+  }
 }
