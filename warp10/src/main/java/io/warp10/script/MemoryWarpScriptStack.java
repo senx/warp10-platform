@@ -609,7 +609,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
           // End execution on encountering a comment
           //
 
-          if (!inMultiline.get() && !inComment.get() && stmt.length() > 0 && (stmt.charAt(0) == '#' || (stmt.charAt(0) == '/' && stmt.length() >= 2 && stmt.charAt(1) == '/'))) {
+          if (stmt.length() > 0 && (stmt.charAt(0) == '#' || (stmt.charAt(0) == '/' && stmt.length() >= 2 && stmt.charAt(1) == '/')) && !inMultiline.get() && !inComment.get()) {
             // Skip comments and blank lines
             return;
           }
