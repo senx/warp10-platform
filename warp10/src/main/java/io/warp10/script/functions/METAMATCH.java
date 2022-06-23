@@ -16,6 +16,9 @@
 
 package io.warp10.script.functions;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.continuum.gts.MetadataSelectorMatcher;
@@ -47,8 +50,20 @@ public class METAMATCH extends NamedWarpScriptFunction implements WarpScriptStac
       stack.push(matcher.matches(((GeoTimeSerie) top).getMetadata()));
     } else if (top instanceof GTSEncoder) {
       stack.push(matcher.matches(((GTSEncoder) top).getRawMetadata()));
+    } else if (top instanceof List) {
+      List<Object> results = new ArrayList<Object>(((List) top).size());
+      for (Object o: (List) top) {
+        if (o instanceof GeoTimeSerie) {
+          results.add(matcher.matches(((GeoTimeSerie) o).getMetadata()));
+        } else if (o instanceof GTSEncoder) {
+          results.add(matcher.matches(((GTSEncoder) o).getRawMetadata()));
+        } else {
+          throw new WarpScriptException(getName() + " can only be applied to a LIST containing GTS or ENCODER elements.");
+        }
+      }
+      stack.push(results);
     } else {
-      throw new WarpScriptException(getName() + " operates on a GTS or ENCODER.");
+      throw new WarpScriptException(getName() + " operates on a GTS or ENCODER or a list thereof.");
     }
 
     return stack;
