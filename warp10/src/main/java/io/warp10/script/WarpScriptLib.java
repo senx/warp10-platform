@@ -843,6 +843,7 @@ public class WarpScriptLib {
   public static final String ACCEL_REPORT = "ACCEL.REPORT";
   public static final String UPDATE = "UPDATE";
   public static final String META = "META";
+  public static final String METAMATCH = "METAMATCH";
   public static final String METADIFF = "METADIFF";
   public static final String DELETE = "DELETE";
   public static final String WEBCALL = "WEBCALL";
@@ -1799,6 +1800,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new ACCELREPORT(ACCEL_REPORT));
     addNamedWarpScriptFunction(new UPDATE(UPDATE));
     addNamedWarpScriptFunction(new META(META));
+    addNamedWarpScriptFunction(new METAMATCH(METAMATCH));
     addNamedWarpScriptFunction(new META(METADIFF, true));
     addNamedWarpScriptFunction(new DELETE(DELETE));
     addNamedWarpScriptFunction(new WEBCALL(WEBCALL));
