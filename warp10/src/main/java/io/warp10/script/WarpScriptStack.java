@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -372,6 +372,27 @@ public interface WarpScriptStack {
 
     public void setSecure(boolean secure) {
       this.secure = secure;
+    }
+
+    /**
+     * Set the secure flag of the current macro and set the same flag for
+     * all included macros.
+     *
+     * @param secure
+     */
+    public void setSecureRecursive(boolean secure) {
+      List<Macro> macros = new ArrayList<Macro>();
+      macros.add(this);
+
+      while(!macros.isEmpty()) {
+        Macro m = macros.remove(0);
+        m.setSecure(secure);
+        for (Object stmt: m.statements) {
+          if (stmt instanceof Macro) {
+            macros.add((Macro) stmt);
+          }
+        }
+      }
     }
 
     public boolean isSecure() {
