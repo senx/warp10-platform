@@ -178,6 +178,12 @@ public class EgressFetchHandler extends AbstractHandler {
 
       resp.setHeader("Access-Control-Allow-Origin", "*");
 
+      //
+      // Add header with the platform time unit
+      //
+
+      resp.setHeader(Constants.HTTP_HEADER_TIMEUNIT, Long.toString(Constants.TIME_UNITS_PER_S));
+
       long now = Long.MIN_VALUE;
       long then = Long.MIN_VALUE;
       long gcount = Long.MAX_VALUE;
