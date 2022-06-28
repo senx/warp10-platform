@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -50,14 +50,12 @@ import io.warp10.continuum.BootstrapManager;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.LogUtil;
 import io.warp10.continuum.TimeSource;
-import io.warp10.continuum.Tokens;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.continuum.thrift.data.LoggingEvent;
 import io.warp10.crypto.KeyStore;
-import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.script.MemoryWarpScriptStack;
 import io.warp10.script.StackUtils;
 import io.warp10.script.WarpScriptException;
@@ -149,11 +147,16 @@ public class EgressExecHandler extends AbstractHandler {
 
     resp.setHeader("Access-Control-Allow-Origin", "*");
 
+    resp.setHeader(Constants.HTTP_HEADER_TIMEUNIT, Long.toString(Constants.TIME_UNITS_PER_S));
+
     //
     // Making the Elapsed header available in cross-domain context
     //
 
-    resp.addHeader("Access-Control-Expose-Headers", Constants.getHeader(Configuration.HTTP_HEADER_ELAPSEDX) + "," + Constants.getHeader(Configuration.HTTP_HEADER_OPSX) + "," + Constants.getHeader(Configuration.HTTP_HEADER_FETCHEDX));
+    resp.addHeader("Access-Control-Expose-Headers", Constants.getHeader(Configuration.HTTP_HEADER_ELAPSEDX)
+        + "," + Constants.getHeader(Configuration.HTTP_HEADER_OPSX)
+        + "," + Constants.getHeader(Configuration.HTTP_HEADER_FETCHEDX)
+        + "," + Constants.HTTP_HEADER_TIMEUNIT);
 
     //
     // Generate UUID for this script execution
@@ -202,6 +205,7 @@ public class EgressExecHandler extends AbstractHandler {
       //
       // Expose the headers if instructed to do so
       //
+
       String expose = req.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_EXPOSE_HEADERS));
 
       if (null != expose) {
