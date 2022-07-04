@@ -24,6 +24,7 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.warp.sdk.Capabilities;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +41,6 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantLock;
-
 /**
  * Call a subprogram
  */
@@ -246,10 +246,10 @@ public class CALL extends NamedWarpScriptFunction implements WarpScriptStackFunc
         // Ignore previous possible unexpected output from the process, warn user in the logs
         //
         BufferedReader br = subprograms.get(subprogram).getReader(proc);
-        String o;
+        String sbr;
         while (br.ready()) {
-          o = br.readLine();
-          LOG.warn("skipping unexpected CALL output from " + subprogram.toString() + " (" + o.substring(0, 1000) + "...)");
+          sbr = br.readLine();
+          LOG.warn("skipping unexpected CALL output from " + subprogram.toString() + " (" + StringUtils.substring(sbr, 0, 1000) + "...)");
         }
 
         //
