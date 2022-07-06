@@ -97,6 +97,24 @@ directory.kafka.metadata.groupid = directory.metadata-localhost
 directory.kafka.metadata.commitperiod = 1000
 
 //
+// Maximum message size for the 'metadata' topic 
+// Used by directory when used as a producer to clean Warp10 metadata
+//
+# directory.kafka.metadata.maxsize
+
+//
+// Kafka broker list for the 'meta' topic 
+// Used by directory when used as a producer to clean Warp10 metadata
+//
+# directory.kafka.metadata.brokerlist
+
+//
+// Size of Kafka Producer pool for the 'metadata' topic
+// Used by directory when used as a producer to clean Warp10 metadata
+//
+# directory.kafka.metadata.poolsize
+
+//
 // Maximum byte size we allow the pending Puts list to grow to
 //
 directory.hbase.metadata.pendingputs.size = 1000000
@@ -289,3 +307,27 @@ directory.hbase.filter = false
 // Should we ignore the proxy settings when doing a streaming request?
 //
 #directory.streaming.noproxy =
+
+//
+// Boolean indicating whether or not we should activate a last activity check for all applications of the directory
+//
+# directory.cleaner.activate.all = false
+
+//
+// Inactivity period (in ms) to consider before deleting a series with the directory cleaner
+// This value shoud be above 0
+//
+# directory.cleaner.default.activity.window =
+
+//
+// Custom subset of applications to clean with a custom inactive period
+// This inactivity period value shoud be above 0
+// Application key and window value should be split by :
+// Each items should be split by a ",", ex app1:7889400000, app2:31557600000, app3: 34187400000
+//
+# directory.cleaner.custom.applications = 
+
+//
+// Boolean indicating whether or not we should stop the Directory after reading HBase
+//
+# directory.cleaner.stop = true

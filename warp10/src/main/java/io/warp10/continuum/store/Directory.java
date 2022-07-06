@@ -109,6 +109,7 @@ import io.warp10.SmartPattern;
 import io.warp10.continuum.DirectoryUtil;
 import io.warp10.continuum.JettyUtil;
 import io.warp10.continuum.KafkaOffsetCounters;
+import io.warp10.continuum.KafkaProducerPool;
 import io.warp10.continuum.LogUtil;
 import io.warp10.continuum.MetadataUtils;
 import io.warp10.continuum.MetadataUtils.MetadataID;
@@ -139,6 +140,9 @@ import kafka.consumer.ConsumerIterator;
 import kafka.consumer.KafkaStream;
 import kafka.javaapi.consumer.ConsumerConnector;
 import kafka.message.MessageAndMetadata;
+import kafka.javaapi.producer.Producer;
+import kafka.producer.KeyedMessage;
+import kafka.producer.ProducerConfig;
 
 /**
  * Manages Metadata for a subset of known GTS.
@@ -324,6 +328,10 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
   private final long[] SIPHASH_CLASS_LONGS;
   private final long[] SIPHASH_LABELS_LONGS;
   private final long[] SIPHASH_PSK_LONGS;
+  final byte[] AES_KAFKA_META;
+  final long[] SIPHASH_KAFKA_META;
+  final long[] classKey;
+  final long[] labelsKey;
 
   /**
    * Maximum age of a Find request
@@ -389,6 +397,30 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
 
   private int METADATA_CACHE_SIZE = 1000000;
 
+
+  /**
+   * Directory clean properties
+   */
+  private boolean CLEAN_ACTIVATE_ALL = false;
+
+  private long CLEAN_DEFAULT_ACTIVITY_WINDOW = -1L;
+
+  private Map<String,Long> CLEAN_CUSTOM_APPLICATIONS = new MapMaker().concurrencyLevel(64).makeMap();
+
+  private boolean CLEAN_STOP = false;
+
+  /**
+   * Pool of producers for the 'metadata' topic
+   */
+  private final KafkaProducerPool metaProducerPool;
+
+  /**
+   * Size threshold after which we flush metadataMessages into Kafka
+   */
+  private final long METADATA_MESSAGES_THRESHOLD;
+
+  private final String metaTopic;
+
   /**
    * Cache to keep a serialized version of recently returned Metadata.
    */
@@ -406,7 +438,31 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     SIPHASH_CLASS_LONGS = SipHashInline.getKey(this.keystore.getKey(KeyStore.SIPHASH_CLASS));
     SIPHASH_LABELS_LONGS = SipHashInline.getKey(this.keystore.getKey(KeyStore.SIPHASH_LABELS));
 
+    this.classKey = SIPHASH_CLASS_LONGS;
+    this.labelsKey = SIPHASH_LABELS_LONGS;
+
+    this.METADATA_MESSAGES_THRESHOLD = Long.parseLong(props.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_MAXSIZE));
+    this.metaTopic = props.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_TOPIC);
+
     this.properties = (Properties) props.clone();
+
+    Properties metaProps = new Properties();
+    // @see <a href="http://kafka.apache.org/documentation.html#producerconfigs">http://kafka.apache.org/documentation.html#producerconfigs</a>
+    metaProps.setProperty("metadata.broker.list", props.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_META_BROKERLIST));
+    if (null != props.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_PRODUCER_CLIENTID)) {
+      metaProps.setProperty("client.id", props.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_PRODUCER_CLIENTID));
+    }
+    metaProps.setProperty("request.required.acks", "-1");
+    metaProps.setProperty("producer.type","sync");
+    metaProps.setProperty("serializer.class", "kafka.serializer.DefaultEncoder");
+    metaProps.setProperty("partitioner.class", io.warp10.continuum.KafkaPartitioner.class.getName());
+
+    ProducerConfig metaConfig = new ProducerConfig(metaProps);
+
+    this.metaProducerPool = new KafkaProducerPool(metaConfig,
+        Integer.parseInt(props.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_POOLSIZE)),
+        SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_KAFKA_METADATA_PRODUCER_POOL_GET,
+        SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_KAFKA_METADATA_PRODUCER_WAIT_NANO);
 
     this.sourceAttribute = props.getProperty(io.warp10.continuum.Configuration.DIRECTORY_PLUGIN_SOURCEATTR);
 
@@ -448,6 +504,33 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
 
     if (properties.containsKey(io.warp10.continuum.Configuration.DIRECTORY_STATS_LABELS_MAXCARDINALITY)) {
       this.LIMIT_LABELS_CARDINALITY = Long.parseLong(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_STATS_LABELS_MAXCARDINALITY));
+    }
+
+    // Clean properties
+    if (properties.containsKey(io.warp10.continuum.Configuration.DIRECTORY_CLEANER_ACTIVATE_ALL)) {
+      this.CLEAN_ACTIVATE_ALL = "true".equals(props.getProperty(io.warp10.continuum.Configuration.DIRECTORY_CLEANER_ACTIVATE_ALL));
+    }
+
+    if (properties.containsKey(io.warp10.continuum.Configuration.DIRECTORY_CLEANER_DEFAULT_ACTIVITY_WINDOW)) {
+      this.CLEAN_DEFAULT_ACTIVITY_WINDOW = Long.parseLong(props.getProperty(io.warp10.continuum.Configuration.DIRECTORY_CLEANER_DEFAULT_ACTIVITY_WINDOW));
+    }
+
+    if (properties.containsKey(io.warp10.continuum.Configuration.DIRECTORY_CLEANER_CUSTOM_APPLICATIONS)) {
+      String[] customApplications = props.getProperty(io.warp10.continuum.Configuration.DIRECTORY_CLEANER_CUSTOM_APPLICATIONS).split(",");
+
+      for (String apps: customApplications) {
+        String[] appWithLa = apps.trim().split(":");
+
+        if (appWithLa.length != 2) {
+          throw new RuntimeException("Missing LA or application ID in " + io.warp10.continuum.Configuration.DIRECTORY_CLEANER_CUSTOM_APPLICATIONS + " configuration parameter");
+        } else {
+          this.CLEAN_CUSTOM_APPLICATIONS.put(appWithLa[0],Long.parseLong(appWithLa[1]));
+        }
+      }
+    }
+
+    if (properties.containsKey(io.warp10.continuum.Configuration.DIRECTORY_CLEANER_STOP)) {
+      this.CLEAN_STOP = "true".equals(props.getProperty(io.warp10.continuum.Configuration.DIRECTORY_CLEANER_STOP));
     }
 
     this.initNThreads = Integer.parseInt(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_INIT_NTHREADS, DIRECTORY_INIT_NTHREADS_DEFAULT));
@@ -500,6 +583,9 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     extractKeys(properties);
 
     SIPHASH_PSK_LONGS = SipHashInline.getKey(this.keystore.getKey(KeyStore.SIPHASH_DIRECTORY_PSK));
+
+    this.AES_KAFKA_META = this.keystore.getKey(KeyStore.AES_KAFKA_METADATA);
+    this.SIPHASH_KAFKA_META = SipHashInline.getKey(this.keystore.getKey(KeyStore.SIPHASH_KAFKA_METADATA));
 
     //
     // Load Directory plugin
@@ -619,6 +705,47 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
                 int rem = ((int) ((labelsId >>> 56) & 0xffL)) % self.modulus;
 
                 if (self.remainder != rem) {
+                  continue;
+                }
+
+                //
+                // Case of directory CLEAN
+                // 
+                String appName = metadata.getLabels().get(Constants.APPLICATION_LABEL);
+                if (appName != null && (CLEAN_ACTIVATE_ALL == true || CLEAN_CUSTOM_APPLICATIONS.containsKey(appName))) {
+                  long maxActivityWindow = CLEAN_DEFAULT_ACTIVITY_WINDOW; 
+                  if (CLEAN_CUSTOM_APPLICATIONS.containsKey(appName)) {
+                    maxActivityWindow = CLEAN_CUSTOM_APPLICATIONS.get(appName);
+                  }
+
+                  long nowms = System.currentTimeMillis();
+                  if (maxActivityWindow >= 0L && nowms - metadata.getLastActivity() > maxActivityWindow) {
+
+                    if (!metadata.isSetAttributes()) {
+                      metadata.setAttributes(new HashMap<String,String>());
+                    }
+
+                    Metadata meta = new Metadata(metadata);
+                    meta.setSource(io.warp10.continuum.Configuration.INGRESS_METADATA_DELETE_SOURCE);
+
+                    GTS gts = new GTS(
+                        new UUID(meta.getClassId(), meta.getLabelsId()),
+                        meta.getName(),
+                        meta.getLabels(),
+                        meta.getAttributes());
+
+                    LOG.debug("Deleting GTS: " + gts + ",la=" + meta.getLastActivity()+ ",source=" + meta.getSource());
+
+                    try {
+                      pushMetadataMessage(meta);
+                    } catch (Exception e) {
+                      throw new RuntimeException("Error deleting GTS " + gts + " using directory clean");
+                    }
+                    continue;
+                  } else if (CLEAN_STOP == true ) {
+                    continue;
+                  }
+                } else if (CLEAN_STOP == true ) {
                   continue;
                 }
 
@@ -1125,6 +1252,15 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     // Let's call GC once after populating so we take the trash out.
     //
 
+
+    //
+    // Stop directory
+    //
+    if (CLEAN_STOP == true) {
+      LOG.info("Stopping dictory");
+      System.exit(0);
+    }
+
     LOG.info("Triggering a GC to clean up after initial loading.");
     long nano = System.nanoTime();
     Runtime.getRuntime().gc();
@@ -1446,7 +1582,6 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
 
             //
             // We do an early selection check based on the Kafka key.
-            // Since 20151104 we now correctly push the Kafka key (cf Ingress bug in pushMetadataMessage(k,v))
             //
 
             int r = (((int) msg.key()[8]) & 0xff) % directory.modulus;
@@ -2809,5 +2944,119 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     Sensision.update(SensisionConstants.CLASS_WARP_DIRECTORY_METADATA_CACHE_HITS, Sensision.EMPTY_LABELS, hits);
     nano = System.nanoTime() - nano;
     Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_STREAMING_TIME_US, Sensision.EMPTY_LABELS, nano / 1000);
+  }
+
+  /**
+   * List of pending Kafka messages containing metadata (one per Thread)
+   */
+  private final ThreadLocal<List<KeyedMessage<byte[], byte[]>>> metadataMessages = new ThreadLocal<List<KeyedMessage<byte[], byte[]>>>() {
+    protected java.util.List<kafka.producer.KeyedMessage<byte[],byte[]>> initialValue() {
+      return new ArrayList<KeyedMessage<byte[], byte[]>>();
+    };
+  };
+
+  /**
+   * Byte size of metadataMessages
+   */
+  private ThreadLocal<AtomicLong> metadataMessagesSize = new ThreadLocal<AtomicLong>() {
+    protected AtomicLong initialValue() {
+      return new AtomicLong();
+    };
+  };
+
+  void pushMetadataMessage(Metadata metadata) throws IOException {
+
+    if (null == metadata) {
+      pushMetadataMessage(null, null);
+      return;
+    }
+
+    //
+    // Compute class/labels Id
+    //
+    // 128bits
+    metadata.setClassId(GTSHelper.classId(this.classKey, metadata.getName()));
+    metadata.setLabelsId(GTSHelper.labelsId(this.labelsKey, metadata.getLabels()));
+
+    TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+    try {
+      byte[] bytes = new byte[16];
+      GTSHelper.fillGTSIds(bytes, 0, metadata.getClassId(), metadata.getLabelsId());
+      pushMetadataMessage(bytes, serializer.serialize(metadata));
+    } catch (TException te) {
+      throw new IOException("Unable to push metadata.");
+    }
+  }
+
+  /**
+   * Push a metadata message onto the buffered list of Kafka messages
+   * and flush the list to Kafka if it has reached a threshold.
+   *
+   * @param key Key of the message to queue
+   * @param value Value of the message to queue
+   */
+  private void pushMetadataMessage(byte[] key, byte[] value) throws IOException {
+
+    AtomicLong mms = this.metadataMessagesSize.get();
+    List<KeyedMessage<byte[], byte[]>> msglist = this.metadataMessages.get();
+
+    if (null != key && null != value) {
+
+      //
+      // Add key as a prefix of value
+      //
+
+      byte[] kv = Arrays.copyOf(key, key.length + value.length);
+      System.arraycopy(value, 0, kv, key.length, value.length);
+      value = kv;
+
+      //
+      // Encrypt value if the AES key is defined
+      //
+
+      if (null != this.AES_KAFKA_META) {
+        value = CryptoUtils.wrap(this.AES_KAFKA_META, value);
+      }
+
+      //
+      // Compute MAC if the SipHash key is defined
+      //
+
+      if (null != this.SIPHASH_KAFKA_META) {
+        value = CryptoUtils.addMAC(this.SIPHASH_KAFKA_META, value);
+      }
+
+      KeyedMessage<byte[], byte[]> message = new KeyedMessage<byte[], byte[]>(this.metaTopic, Arrays.copyOf(key, key.length), value);
+      msglist.add(message);
+      mms.addAndGet(key.length + value.length);
+
+      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_KAFKA_META_MESSAGES, Sensision.EMPTY_LABELS, 1);
+    }
+
+    if (msglist.size() > 0 && (null == key || null == value || mms.get() > METADATA_MESSAGES_THRESHOLD)) {
+      Producer<byte[],byte[]> producer = this.metaProducerPool.getProducer();
+      try {
+
+        //
+        // How long it takes to send messages to Kafka
+        //
+
+        long nano = System.nanoTime();
+
+        producer.send(msglist);
+
+        nano = System.nanoTime() - nano;
+        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_KAFKA_METADATA_PRODUCER_SEND, Sensision.EMPTY_LABELS, nano);
+
+      } catch (Throwable t) {
+        throw t;
+      } finally {
+        this.metaProducerPool.recycleProducer(producer);
+      }
+
+      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_KAFKA_META_SEND, Sensision.EMPTY_LABELS, 1);
+      msglist.clear();
+      mms.set(0L);
+    }
   }
 }

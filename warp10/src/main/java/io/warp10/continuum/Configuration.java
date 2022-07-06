@@ -397,6 +397,21 @@ public class Configuration {
   public static final String DIRECTORY_KAFKA_METADATA_AES = "directory.kafka.metadata.aes";
 
   /**
+   * Maximum message size for the 'metadata' topic
+   */
+  public static final String DIRECTORY_KAFKA_METADATA_MAXSIZE = "directory.kafka.metadata.maxsize";
+
+  /**
+   * Kafka broker list for the 'meta' topic
+   */
+  public static final String DIRECTORY_KAFKA_META_BROKERLIST = "directory.kafka.metadata.brokerlist";
+
+  /**
+   * Size of Kafka Producer pool for the 'metadata' topic
+   */
+  public static final String DIRECTORY_KAFKA_METADATA_POOLSIZE = "directory.kafka.metadata.poolsize";
+
+  /**
    * Key to use for encrypting metadata in HBase (128/192/256 bits in hex or OSS reference)
    */
   public static final String DIRECTORY_HBASE_METADATA_AES = "directory.hbase.metadata.aes";
@@ -410,6 +425,11 @@ public class Configuration {
    * Kafka client.id to use for the metadata topic consumer
    */
   public static final String DIRECTORY_KAFKA_METADATA_CONSUMER_CLIENTID = "directory.kafka.metadata.consumer.clientid";
+
+  /**
+   * Kafka client.id to use for the metadata topic producer
+   */
+  public static final String DIRECTORY_KAFKA_METADATA_PRODUCER_CLIENTID = "directory.kafka.metadata.producer.clientid";
 
   /**
    * Name of partition assignment strategy to use
@@ -600,6 +620,26 @@ public class Configuration {
    * Activity window (in ms) to consider when deciding to store a Metadata we already know into HBase
    */
   public static final String DIRECTORY_ACTIVITY_WINDOW = "directory.activity.window";
+
+  /**
+   * Boolean indicating whether or not we should activate a last activity check for all applications of the directory
+   */
+  public static final String DIRECTORY_CLEANER_ACTIVATE_ALL = "directory.cleaner.activate.all";
+
+  /**
+   * Long value in ms indicating the lastactivity value to check if a series should be kept in directory
+   */
+  public static final String DIRECTORY_CLEANER_DEFAULT_ACTIVITY_WINDOW = "directory.cleaner.default.activity.window";
+
+  /**
+   * Custom application map to clean only a subset of applications per their last activity
+   */
+  public static final String DIRECTORY_CLEANER_CUSTOM_APPLICATIONS = "directory.cleaner.custom.applications";
+
+  /**
+   * Boolean indicating whether or not we should stop the directory after reading HBase
+   */
+  public static final String DIRECTORY_CLEANER_STOP = "directory.cleaner.stop";
 
   //
   // I N G R E S S

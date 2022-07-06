@@ -731,6 +731,31 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_CONTINUUM_DIRECTORY_KAFKA_FAILEDDECRYPTS = "warp.directory.kafka.faileddecrypts";
 
   /**
+   * Number of calls to Kafka send by 'Directory' for messages containing metadata
+   */
+  public static final String SENSISION_CLASS_CONTINUUM_DIRECTORY_KAFKA_META_SEND = "warp.directory.kafka.meta.send";
+
+  /**
+   * Total number of nanoseconds spent sending a list of metadata by a producer
+   */
+  public static final String SENSISION_CLASS_CONTINUUM_DIRECTORY_KAFKA_METADATA_PRODUCER_SEND = "warp.directory.kafka.metadata.producer.send.nanos";
+
+  /**
+   * Number of Producer get from the metadata producer pool
+   */
+  public static final String SENSISION_CLASS_CONTINUUM_DIRECTORY_KAFKA_METADATA_PRODUCER_POOL_GET = "warp.directory.kafka.metadata.producer.pool.get";
+
+ /**
+   * Total number of nanoseconds spent waiting for a metadata producer to be available
+   */
+  public static final String SENSISION_CLASS_CONTINUUM_DIRECTORY_KAFKA_METADATA_PRODUCER_WAIT_NANO = "warp.directory.kafka.metadata.producer.wait.nanos";
+
+  /**
+   * Number of Kafka messages containing data produced by 'Directory'
+   */
+  public static final String SENSISION_CLASS_CONTINUUM_DIRECTORY_KAFKA_META_MESSAGES = "warp.directory.kafka.meta.messages";
+
+  /**
    * Number of HBase Puts done in 'Directory'
    */
   public static final String SENSISION_CLASS_CONTINUUM_DIRECTORY_HBASE_PUTS = "warp.directory.hbase.puts";
