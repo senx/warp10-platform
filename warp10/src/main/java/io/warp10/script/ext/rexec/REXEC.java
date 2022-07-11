@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -36,12 +36,13 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WebAccessController;
+import io.warp10.warp.sdk.Capabilities;
 
 /**
  * Execute WarpScript on a remote endpoint
  */
 public class REXEC extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   private final boolean compress;
 
   /**
@@ -62,14 +63,14 @@ public class REXEC extends NamedWarpScriptFunction implements WarpScriptStackFun
   private int connReadTimeout;
 
   private final WebAccessController webAccessController;
-  
+
   public REXEC(String name) {
     this(name, false);
   }
-  
+
   public REXEC(String name, boolean compress) {
     super(name);
-  
+
     String patternConf = WarpConfig.getProperty(WARPSCRIPT_REXEC_ENDPOINT_PATTERNS, DEFAULT_ENDPOINT_PATTERNS);
     String readTimeout = WarpConfig.getProperty(WARPSCRIPT_REXEC_READ_TIMEOUT, DEFAULT_REXEC_READ_TIMEOUT);
     this.connReadTimeout= Integer.parseInt(readTimeout);
@@ -77,14 +78,22 @@ public class REXEC extends NamedWarpScriptFunction implements WarpScriptStackFun
     this.connConnectTimeout = Integer.parseInt(connectTimeout);
     this.webAccessController = new WebAccessController(patternConf);
 
-    this.compress = compress;    
+    this.compress = compress;
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    
-    String endpoint = stack.pop().toString();
-    
+
+    boolean capability = false;
+
+    String endpoint = Capabilities.get(stack, RexecWarpScriptExtension.CAPABILITY);
+
+    if (RexecWarpScriptExtension.useCapability() && null != endpoint) {
+      capability = true;
+    } else {
+      endpoint = stack.pop().toString();
+    }
+
     Object top = stack.pop();
 
     String warpscript = top.toString();
@@ -92,37 +101,37 @@ public class REXEC extends NamedWarpScriptFunction implements WarpScriptStackFun
     if (top instanceof Macro) {
       warpscript = warpscript + " " + WarpScriptLib.EVAL;
     }
-    
+
     HttpURLConnection conn = null;
-    
+
     try {
       URL url = new URL(endpoint);
 
       if (!"http".equals(url.getProtocol()) && !"https".equals(url.getProtocol())) {
         throw new WarpScriptException(getName() + " invalid endpoint protocol.");
       }
-      
-      if (!webAccessController.checkURL(url)) {
+
+      if (!capability && !webAccessController.checkURL(url)) {
         throw new WarpScriptException(getName() + " encountered a forbidden URL '" + url + "'");
       }
-      
+
       conn = (HttpURLConnection) url.openConnection();
       conn.setReadTimeout(this.connReadTimeout);
       conn.setConnectTimeout(this.connConnectTimeout);
       conn.setChunkedStreamingMode(8192);
       conn.setRequestProperty("Accept-Encoding", "gzip");
-      
+
       if (this.compress) {
         conn.setRequestProperty("Content-Type", "application/gzip");
       }
-      
+
       conn.setDoInput(true);
       conn.setDoOutput(true);
       conn.setRequestMethod("POST");
-      
+
       OutputStream connout = conn.getOutputStream();
       OutputStream out = connout;
-      
+
       if (this.compress) {
         out = new GZIPOutputStream(out);
       }
@@ -133,7 +142,7 @@ public class REXEC extends NamedWarpScriptFunction implements WarpScriptStackFun
       out.write('\n');
       out.write(WarpScriptLib.TOOPB64.getBytes(StandardCharsets.UTF_8));
       out.write('\n');
-      
+
       out.close();
 
       if (HttpURLConnection.HTTP_OK != conn.getResponseCode()) {
@@ -144,17 +153,17 @@ public class REXEC extends NamedWarpScriptFunction implements WarpScriptStackFun
           throw new WarpScriptException(getName() + " remote execution failed with HTTP code " + conn.getResponseCode() + ".'");
         }
       }
-      
+
       InputStream in = conn.getInputStream();
-      
+
       if ("gzip".equals(conn.getContentEncoding())) {
         in = new GZIPInputStream(in);
       }
-      
+
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
-      
+
       byte[] buf = new byte[1024];
-      
+
       while(true) {
         int len = in.read(buf);
         if (len < 0) {
@@ -164,17 +173,17 @@ public class REXEC extends NamedWarpScriptFunction implements WarpScriptStackFun
       }
 
       byte[] bytes = baos.toByteArray();
-      
+
       // Strip '[ ' ' ]'
       String result = new String(bytes, 2, bytes.length - 4, StandardCharsets.US_ASCII);
-      
+
       stack.push(result);
-      
+
       stack.exec(WarpScriptLib.OPB64TO);
       stack.push(StandardCharsets.UTF_8.name());
       stack.exec(WarpScriptLib.BYTESTO);
       stack.exec(WarpScriptLib.EVAL);
-      
+
     } catch (WarpScriptException e) {
       throw e;
     } catch(SocketTimeoutException e) {
@@ -186,7 +195,7 @@ public class REXEC extends NamedWarpScriptFunction implements WarpScriptStackFun
         conn.disconnect();
       }
     }
-    
+
     return stack;
   }
 }
