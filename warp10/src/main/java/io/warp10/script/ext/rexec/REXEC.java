@@ -84,15 +84,14 @@ public class REXEC extends NamedWarpScriptFunction implements WarpScriptStackFun
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
 
-    boolean capability = false;
+    String capability = Capabilities.get(stack, RexecWarpScriptExtension.CAPABILITY);
 
-    String endpoint = Capabilities.get(stack, RexecWarpScriptExtension.CAPABILITY);
-
-    if (RexecWarpScriptExtension.useCapability() && null != endpoint) {
-      capability = true;
-    } else {
-      endpoint = stack.pop().toString();
+    // Discard capability if we are not using capabilities
+    if (!RexecWarpScriptExtension.useCapability() && null != capability) {
+      capability = null;
     }
+
+    String endpoint = stack.pop().toString();
 
     Object top = stack.pop();
 
@@ -111,8 +110,13 @@ public class REXEC extends NamedWarpScriptFunction implements WarpScriptStackFun
         throw new WarpScriptException(getName() + " invalid endpoint protocol.");
       }
 
-      if (!capability && !webAccessController.checkURL(url)) {
+      if (null == capability && !webAccessController.checkURL(url)) {
         throw new WarpScriptException(getName() + " encountered a forbidden URL '" + url + "'");
+      } else if (null != capability) {
+        WebAccessController wac = new WebAccessController(capability);
+        if (!wac.checkURL(url)) {
+          throw new WarpScriptException(getName() + " encountered a URL '" + url + "' forbidden by capability.");
+        }
       }
 
       conn = (HttpURLConnection) url.openConnection();
