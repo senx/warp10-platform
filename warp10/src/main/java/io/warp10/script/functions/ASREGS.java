@@ -104,6 +104,10 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
     while(!abort && !allmacros.isEmpty()) {
       Macro m = allmacros.remove(0);
 
+      if (m.isSecure()) {
+        throw new WarpScriptException(getName() + " cannot operate on a secure Macro.");
+      }
+
       List<Object> statements = new ArrayList<Object>(m.statements());
 
       for (int i = 0; i < statements.size(); i++) {

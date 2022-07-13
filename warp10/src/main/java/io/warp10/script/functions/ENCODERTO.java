@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package io.warp10.script.functions;
 
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,40 +41,40 @@ import io.warp10.script.WarpScriptStackFunction;
  * Decodes an encoder into an array of [ ts lat lon elev value ] arrays.
  */
 public class ENCODERTO extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   public ENCODERTO(String name) {
     super(name);
-  }  
+  }
 
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
-    
+
     if (!(top instanceof String) && !(top instanceof byte[]) && !(top instanceof GTSEncoder)) {
       throw new WarpScriptException(getName() + " operates on a string, byte array or encoder.");
     }
-    
+
     List<Object> elements = new ArrayList<Object>();
-    
+
     GTSDecoder decoder;
-    
+
     if (top instanceof GTSEncoder) {
       decoder = ((GTSEncoder) top).getDecoder(true);
     } else {
       try {
         byte[] bytes = top instanceof String ? OrderPreservingBase64.decode(top.toString().getBytes(StandardCharsets.US_ASCII)) : (byte[]) top;
-        
+
         TDeserializer deser = new TDeserializer(new TCompactProtocol.Factory());
-        
+
         GTSWrapper wrapper = new GTSWrapper();
-        
+
         deser.deserialize(wrapper, bytes);
 
         decoder = GTSWrapperHelper.fromGTSWrapperToGTSDecoder(wrapper);
-        
+
       } catch (TException te) {
         throw new WarpScriptException(getName() + " failed to unwrap encoder.", te);
-      }            
+      }
     }
 
     while(decoder.next()) {
@@ -94,15 +95,19 @@ public class ENCODERTO extends NamedWarpScriptFunction implements WarpScriptStac
       } else {
         element.add(elevation);
       }
-      element.add(decoder.getBinaryValue());
+      Object value = decoder.getBinaryValue();
+      if (value instanceof BigDecimal) {
+        value = ((BigDecimal) value).doubleValue();
+      }
+      element.add(value);
       elements.add(element);
     }
-    
+
     stack.push(decoder.getName());
     stack.push(decoder.getLabels());
     stack.push(decoder.getMetadata().getAttributes());
     stack.push(elements);
 
     return stack;
-  }  
+  }
 }
