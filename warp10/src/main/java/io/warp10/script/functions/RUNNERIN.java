@@ -41,7 +41,7 @@ public class RUNNERIN extends NamedWarpScriptFunction implements WarpScriptStack
     }
 
     // rescheduling capability is defined in milliseconds (as runners subdirectories)
-    Long minPeriod = Long.MAX_VALUE;
+    long minPeriod = Long.MAX_VALUE;
     try {
       minPeriod = Long.parseLong(Capabilities.get(stack, WarpScriptStack.CAPNAME_RUNNER_RESCHEDULE_MIN_PERIOD));
     } catch (NumberFormatException e) {
