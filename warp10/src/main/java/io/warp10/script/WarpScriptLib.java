@@ -346,6 +346,8 @@ public class WarpScriptLib {
 
   public static final String EVAL = "EVAL";
   public static final String EVALSECURE = "EVALSECURE";
+  public static final String MSEC = "MSEC";
+  public static final String MRSEC = "MRSEC";
   public static final String FUNCREF = "FUNCREF";
   public static final String SNAPSHOT = "SNAPSHOT";
   public static final String SNAPSHOTALL = "SNAPSHOTALL";
@@ -1410,6 +1412,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new SECURE(SECURE));
     addNamedWarpScriptFunction(new UNSECURE(UNSECURE, true));
     addNamedWarpScriptFunction(new EVALSECURE(EVALSECURE));
+    addNamedWarpScriptFunction(new MSEC(MSEC, false));
+    addNamedWarpScriptFunction(new MSEC(MRSEC, true));
     addNamedWarpScriptFunction(new NOOP(NOOP));
     addNamedWarpScriptFunction(new DOC(DOC));
     addNamedWarpScriptFunction(new DOCMODE(DOCMODE));

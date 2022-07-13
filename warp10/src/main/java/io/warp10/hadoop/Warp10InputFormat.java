@@ -118,6 +118,16 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
    */
   public static final String PROPERTY_WARP10_SPLITS_ACTIVEAFTER = "warp10.splits.activeafter";
 
+  /*
+   * GTS skip parameter
+   */
+  public static final String PROPERTY_WARP10_SPLITS_GSKIP = "warp10.splits.gskip";
+
+  /**
+   * GTS count parameter
+   */
+  public static final String PROPERTY_WARP10_SPLITS_GCOUNT = "warp10.splits.gcount";
+
   /**
    * Connection timeout to the splits and sfetch endpoints, defaults to 10000 ms
    */
@@ -249,6 +259,20 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
       sb.append(Constants.HTTP_PARAM_QUIETAFTER);
       sb.append("=");
       sb.append(getProperty(context, PROPERTY_WARP10_SPLITS_QUIETAFTER));
+    }
+
+    if (null != getProperty(context, PROPERTY_WARP10_SPLITS_GSKIP)) {
+      sb.append("&");
+      sb.append(Constants.HTTP_PARAM_GSKIP);
+      sb.append("=");
+      sb.append(getProperty(context, PROPERTY_WARP10_SPLITS_GSKIP));
+    }
+
+    if (null != getProperty(context, PROPERTY_WARP10_SPLITS_GCOUNT)) {
+      sb.append("&");
+      sb.append(Constants.HTTP_PARAM_GCOUNT);
+      sb.append("=");
+      sb.append(getProperty(context, PROPERTY_WARP10_SPLITS_GCOUNT));
     }
 
     URL url = new URL(sb.toString());

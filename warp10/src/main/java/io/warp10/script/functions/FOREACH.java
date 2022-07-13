@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,18 +16,7 @@
 
 package io.warp10.script.functions;
 
-import io.warp10.continuum.gts.GTSDecoder;
-import io.warp10.continuum.gts.GTSEncoder;
-import io.warp10.continuum.gts.GTSHelper;
-import io.warp10.continuum.gts.GeoTimeSerie;
-import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
-import io.warp10.script.WarpScriptException;
-import io.warp10.script.WarpScriptLoopBreakException;
-import io.warp10.script.WarpScriptLoopContinueException;
-import io.warp10.script.WarpScriptStack;
-import io.warp10.script.WarpScriptStack.Macro;
-
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -36,20 +25,32 @@ import java.util.Map.Entry;
 
 import com.geoxp.GeoXPLib;
 
+import io.warp10.continuum.gts.GTSDecoder;
+import io.warp10.continuum.gts.GTSEncoder;
+import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.gts.GeoTimeSerie;
+import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptLoopBreakException;
+import io.warp10.script.WarpScriptLoopContinueException;
+import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStack.Macro;
+import io.warp10.script.WarpScriptStackFunction;
+
 /**
  * Implements a 'foreach' loop on a list or map
- * 
+ *
  * 2: LIST or MAP
  * 1: RUN-macro
  * FOREACH
- * 
+ *
  */
 public class FOREACH extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   public FOREACH(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
 
@@ -64,23 +65,23 @@ public class FOREACH extends NamedWarpScriptFunction implements WarpScriptStackF
     Object macro = top;// RUN-macro
 
     Object obj = stack.pop(); // LIST or MAP
-    
+
     if (!(macro instanceof Macro)) {
       throw new WarpScriptException(getName() + " expects a macro on top of the stack.");
     }
-    
+
     if (!(obj instanceof Map) && !(obj instanceof Iterator) && !(obj instanceof Iterable) && !(obj instanceof GeoTimeSerie) && !(obj instanceof GTSEncoder) && !(obj instanceof String)) {
       throw new WarpScriptException(getName() + " operates on a list, map, Geo Time Series™, ENCODER, STRING, iterator or iterable.");
     }
 
     long index = 0;
-    
+
     if (obj instanceof String) {
       final String s = (String) obj;
-      
-      obj = new Iterator<String>() {        
+
+      obj = new Iterator<String>() {
         int idx = 0;
-        
+
         @Override
         public boolean hasNext() {
           return idx < s.length();
@@ -91,7 +92,7 @@ public class FOREACH extends NamedWarpScriptFunction implements WarpScriptStackF
         }
       };
     }
-   
+
     if (obj instanceof List) {
       for (Object o: ((List<Object>) obj)) {
         stack.push(o);
@@ -100,7 +101,7 @@ public class FOREACH extends NamedWarpScriptFunction implements WarpScriptStackF
         }
         //
         // Execute RUN-macro
-        //        
+        //
         try {
           stack.exec((Macro) macro);
         } catch (WarpScriptLoopBreakException elbe) {
@@ -171,7 +172,7 @@ public class FOREACH extends NamedWarpScriptFunction implements WarpScriptStackF
           break;
         } catch (WarpScriptLoopContinueException elbe) {
           // Do nothing!
-        }        
+        }
       }
     } else { // obj instanceof GTSEncoder
       GTSDecoder decoder = ((GTSEncoder) obj).getDecoder();
@@ -193,7 +194,11 @@ public class FOREACH extends NamedWarpScriptFunction implements WarpScriptStackF
         } else {
           elt.add(elevation);
         }
-        elt.add(decoder.getBinaryValue());
+        Object value = decoder.getBinaryValue();
+        if (value instanceof BigDecimal) {
+          value = ((BigDecimal) value).doubleValue();
+        }
+        elt.add(value);
         stack.push(elt);
         if (pushIndex) {
           stack.push(index++);
@@ -204,8 +209,8 @@ public class FOREACH extends NamedWarpScriptFunction implements WarpScriptStackF
           break;
         } catch (WarpScriptLoopContinueException elbe) {
           // Do nothing!
-        }        
-      }      
+        }
+      }
     }
 
     return stack;
