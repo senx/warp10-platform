@@ -108,6 +108,17 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
   public static final String PROPERTY_WARP10_SPLITS_TOKEN = "warp10.splits.token";
 
   /**
+   * Quiet after parameter when selecting GTS
+   */
+  public static final String PROPERTY_WARP10_SPLITS_QUIETAFTER = "warp10.splits.quietafter";
+
+
+  /**
+   * Active after parameter when selecting GTS
+   */
+  public static final String PROPERTY_WARP10_SPLITS_ACTIVEAFTER = "warp10.splits.activeafter";
+
+  /*
    * GTS skip parameter
    */
   public static final String PROPERTY_WARP10_SPLITS_GSKIP = "warp10.splits.gskip";
@@ -236,6 +247,20 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
     sb.append("=");
     sb.append(getProperty(context, PROPERTY_WARP10_SPLITS_TOKEN));
 
+    if (null != getProperty(context, PROPERTY_WARP10_SPLITS_ACTIVEAFTER)) {
+      sb.append("&");
+      sb.append(Constants.HTTP_PARAM_ACTIVEAFTER);
+      sb.append("=");
+      sb.append(getProperty(context, PROPERTY_WARP10_SPLITS_ACTIVEAFTER));
+    }
+
+    if (null != getProperty(context, PROPERTY_WARP10_SPLITS_QUIETAFTER)) {
+      sb.append("&");
+      sb.append(Constants.HTTP_PARAM_QUIETAFTER);
+      sb.append("=");
+      sb.append(getProperty(context, PROPERTY_WARP10_SPLITS_QUIETAFTER));
+    }
+
     if (null != getProperty(context, PROPERTY_WARP10_SPLITS_GSKIP)) {
       sb.append("&");
       sb.append(Constants.HTTP_PARAM_GSKIP);
@@ -249,7 +274,6 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
       sb.append("=");
       sb.append(getProperty(context, PROPERTY_WARP10_SPLITS_GCOUNT));
     }
-
 
     URL url = new URL(sb.toString());
 
