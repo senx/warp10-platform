@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -106,6 +106,16 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
    * Token to use for selecting GTS
    */
   public static final String PROPERTY_WARP10_SPLITS_TOKEN = "warp10.splits.token";
+
+  /**
+   * GTS skip parameter
+   */
+  public static final String PROPERTY_WARP10_SPLITS_GSKIP = "warp10.splits.gskip";
+
+  /**
+   * GTS count parameter
+   */
+  public static final String PROPERTY_WARP10_SPLITS_GCOUNT = "warp10.splits.gcount";
 
   /**
    * Connection timeout to the splits and sfetch endpoints, defaults to 10000 ms
@@ -225,6 +235,21 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
     sb.append(Constants.HTTP_PARAM_TOKEN);
     sb.append("=");
     sb.append(getProperty(context, PROPERTY_WARP10_SPLITS_TOKEN));
+
+    if (null != getProperty(context, PROPERTY_WARP10_SPLITS_GSKIP)) {
+      sb.append("&");
+      sb.append(Constants.HTTP_PARAM_GSKIP);
+      sb.append("=");
+      sb.append(getProperty(context, PROPERTY_WARP10_SPLITS_GSKIP));
+    }
+
+    if (null != getProperty(context, PROPERTY_WARP10_SPLITS_GCOUNT)) {
+      sb.append("&");
+      sb.append(Constants.HTTP_PARAM_GCOUNT);
+      sb.append("=");
+      sb.append(getProperty(context, PROPERTY_WARP10_SPLITS_GCOUNT));
+    }
+
 
     URL url = new URL(sb.toString());
 
