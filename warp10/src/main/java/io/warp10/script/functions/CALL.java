@@ -24,6 +24,9 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.warp.sdk.Capabilities;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -35,15 +38,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantLock;
-
 /**
  * Call a subprogram
  */
 public class CALL extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+
+  private static final Logger LOG = LoggerFactory.getLogger(CALL.class);
 
   private static int maxCapacity;
 
@@ -72,6 +75,25 @@ public class CALL extends NamedWarpScriptFunction implements WarpScriptStackFunc
 
     public ProcessPool(String path) {
       this.builder = new ProcessBuilder(path);
+
+      // Make sure to terminate child processes
+      Thread hook = new Thread() {
+        @Override
+        public void run() {
+          Process proc = null;
+          try {
+            while (!processes.isEmpty()) {
+              proc = processes.remove(0);
+              LOG.info("Ending CALL subprocess " + path);
+              proc.destroy();
+            }
+          } catch (Exception e) {
+            LOG.warn("Error ending CALL subprocess" + path);
+          }
+        }
+      };
+
+      Runtime.getRuntime().addShutdownHook(hook);
     }
 
     public void provision() throws IOException {
@@ -208,7 +230,7 @@ public class CALL extends NamedWarpScriptFunction implements WarpScriptStackFunc
       maxWait = Long.parseLong(Capabilities.get(stack, MAXWAIT_CAPABILITY));
     }
 
-    while(attempts > 0) {
+    while (attempts > 0) {
       Process proc = null;
 
       try {
@@ -220,6 +242,16 @@ public class CALL extends NamedWarpScriptFunction implements WarpScriptStackFunc
           throw new WarpScriptException(getName() + " unable to acquire subprogram.");
         }
 
+        // 
+        // Ignore previous possible unexpected output from the process, warn user in the logs
+        //
+        BufferedReader br = subprograms.get(subprogram).getReader(proc);
+        String sbr;
+        while (br.ready()) {
+          sbr = br.readLine();
+          LOG.warn("skipping unexpected CALL output from " + subprogram.toString() + " (" + StringUtils.substring(sbr, 0, 1000) + "...)");
+        }
+
         //
         // Output the URLencoded string to the subprogram
         //
@@ -227,8 +259,6 @@ public class CALL extends NamedWarpScriptFunction implements WarpScriptStackFunc
         proc.getOutputStream().write(WarpURLEncoder.encode(args.toString(), StandardCharsets.UTF_8).getBytes(StandardCharsets.UTF_8));
         proc.getOutputStream().write('\n');
         proc.getOutputStream().flush();
-
-        BufferedReader br = subprograms.get(subprogram).getReader(proc);
 
         String ret = br.readLine();
 
