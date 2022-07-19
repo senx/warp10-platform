@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2021  SenX S.A.S.
+//   Copyright 2020-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -609,7 +609,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
           // End execution on encountering a comment
           //
 
-          if (!inMultiline.get() && stmt.length() > 0 && (stmt.charAt(0) == '#' || (stmt.charAt(0) == '/' && stmt.length() >= 2 && stmt.charAt(1) == '/'))) {
+          if (stmt.length() > 0 && (stmt.charAt(0) == '#' || (stmt.charAt(0) == '/' && stmt.length() >= 2 && stmt.charAt(1) == '/')) && !inMultiline.get() && !inComment.get()) {
             // Skip comments and blank lines
             return;
           }
@@ -646,7 +646,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             multiline.append(stmt);
             continue;
           } else if (!allowLooseBlockComments && WarpScriptStack.COMMENT_END.equals(stmt)) {
-            // Legacy comments block: Comments block must start with <* and end with *> .
+            // Legacy comments block: Comments block must start with /* and end with */ .
             if (!inComment.get()) {
               throw new WarpScriptException("Not inside a comment.");
             }
