@@ -181,6 +181,10 @@ warpscript.delete.endpoint = http://127.0.0.1:8080/api/v0/delete
 //
 #warpscript.call.maxcapacity = 1
 
+//
+// Maximum amount of time each attempt to access a process will wait (in ms). Defaults to 10000 ms.
+//
+#warpscript.call.maxwait = 10000
 
 //
 // Path of the 'bootstrap' WarpScript code for Mobius
