@@ -155,14 +155,30 @@ public class OrderPreservingBase64 {
    * @throws IOException the io exception
    */
   public static void encodeToStream(OutputStream out, byte[] data, int offset, int datalen) throws IOException {
+    
     int i = 0;
+    int o = 0;
 
     int len = 4 * (datalen / 3) + (datalen % 3 != 0 ? 1 + (datalen % 3) : 0);
 
+    // first, process input per 3 bytes X Y Z
+    int len24b = (datalen / 3) * 3; // length of 24 bits multiple
+
+    for (i = offset; i < (offset + len24b); i += 3) {
+      // take the first 12 bits (8 bits of X, 4 msb of Y), multiply by two to get the look up table index
+      // ((((data[i]) << 4) | ((data[i + 1] & 0xF0) >>> 4)) << 1) & 0x1FFF is simplified into:
+      o = (((data[i]) << 5) | ((data[i + 1] & 0xF0) >>> 3)) & 0x1FFF;
+      out.write(ALPHABET12[o]);
+      out.write(ALPHABET12[o + 1]);
+      // take the next 12 bits (4 lsb bits of Y, 8 bits of Z), multiply by two to get the look up table index
+      o = ((((data[i + 1]) << 8) | ((data[i + 2] & 0xFF))) << 1) & 0x1FFF;
+      out.write(ALPHABET12[o]);
+      out.write(ALPHABET12[o + 1]);
+    }
+
     int bufidx = 0;
-
-    for (i = offset; i < offset + datalen; i++) {
-
+    // then, encode last input bytes
+    for (; i < (offset + datalen); i++) {
       switch (bufidx % 3) {
         case 0:
           out.write(ALPHABET[(data[i] >> 2) & 0x3f]);
@@ -178,15 +194,14 @@ public class OrderPreservingBase64 {
       bufidx++;
     }
 
-    if (bufidx < len) {
-      switch (datalen % 3) {
-        case 1:
-          out.write(ALPHABET[(data[offset + datalen - 1] << 4) & 0x30]);
-          break;
-        case 2:
-          out.write(ALPHABET[(data[offset + datalen - 1] << 2) & 0x3c]);
-          break;
-      }
+    // fill the last byte of output
+    switch (datalen % 3) {
+      case 1:
+        out.write(ALPHABET[(data[offset + datalen - 1] << 4) & 0x30]);
+        break;
+      case 2:
+        out.write(ALPHABET[(data[offset + datalen - 1] << 2) & 0x3c]);
+        break;
     }
   }
 
@@ -280,14 +295,30 @@ public class OrderPreservingBase64 {
    * @throws IOException the io exception
    */
   public static void encodeToWriter(Writer out, byte[] data, int offset, int datalen) throws IOException {
+    // strict copy paste of encodeToStream... no common interface between Writer and OutputStream
     int i = 0;
+    int o = 0;
 
     int len = 4 * (datalen / 3) + (datalen % 3 != 0 ? 1 + (datalen % 3) : 0);
 
+    // first, process input per 3 bytes X Y Z
+    int len24b = (datalen / 3) * 3; // length of 24 bits multiple
+
+    for (i = offset; i < (offset + len24b); i += 3) {
+      // take the first 12 bits (8 bits of X, 4 msb of Y), multiply by two to get the look up table index
+      // ((((data[i]) << 4) | ((data[i + 1] & 0xF0) >>> 4)) << 1) & 0x1FFF is simplified into:
+      o = (((data[i]) << 5) | ((data[i + 1] & 0xF0) >>> 3)) & 0x1FFF;
+      out.write(ALPHABET12[o]);
+      out.write(ALPHABET12[o + 1]);
+      // take the next 12 bits (4 lsb bits of Y, 8 bits of Z), multiply by two to get the look up table index
+      o = ((((data[i + 1]) << 8) | ((data[i + 2] & 0xFF))) << 1) & 0x1FFF;
+      out.write(ALPHABET12[o]);
+      out.write(ALPHABET12[o + 1]);
+    }
+
     int bufidx = 0;
-
-    for (i = offset; i < offset + datalen; i++) {
-
+    // then, encode last input bytes
+    for (; i < (offset + datalen); i++) {
       switch (bufidx % 3) {
         case 0:
           out.write(ALPHABET[(data[i] >> 2) & 0x3f]);
@@ -303,15 +334,14 @@ public class OrderPreservingBase64 {
       bufidx++;
     }
 
-    if (bufidx < len) {
-      switch (datalen % 3) {
-        case 1:
-          out.write(ALPHABET[(data[offset + datalen - 1] << 4) & 0x30]);
-          break;
-        case 2:
-          out.write(ALPHABET[(data[offset + datalen - 1] << 2) & 0x3c]);
-          break;
-      }
+    // fill the last byte of output
+    switch (datalen % 3) {
+      case 1:
+        out.write(ALPHABET[(data[offset + datalen - 1] << 4) & 0x30]);
+        break;
+      case 2:
+        out.write(ALPHABET[(data[offset + datalen - 1] << 2) & 0x3c]);
+        break;
     }
   }
 
