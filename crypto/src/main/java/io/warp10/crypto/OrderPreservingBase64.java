@@ -235,9 +235,32 @@ public class OrderPreservingBase64 {
 
     int bufidx = 0;
 
-    int i = 0;
+    int i = offset;
+    int o = 0;
 
-    for (i = offset; i < offset + datalen; i++) {
+    // if buf len >= 4, we can fill it processing bytes 3 by 3 with ALPHABET12.
+    if (buf.length >= 4) {
+      int len24b = (datalen / 3) * 3; // length of 24 bits multiple
+      for (i = offset; i < (offset + len24b); i += 3) {
+        // take the first 12 bits (8 bits of X, 4 msb of Y), multiply by two to get the look up table index
+        // ((((data[i]) << 4) | ((data[i + 1] & 0xF0) >>> 4)) << 1) & 0x1FFF is simplified into:
+        o = (((data[i]) << 5) | ((data[i + 1] & 0xF0) >>> 3)) & 0x1FFF;
+        buf[bufidx++] = ALPHABET12[o];
+        buf[bufidx++] = ALPHABET12[o + 1];
+        // take the next 12 bits (4 lsb bits of Y, 8 bits of Z), multiply by two to get the look up table index
+        o = ((((data[i + 1]) << 8) | ((data[i + 2] & 0xFF))) << 1) & 0x1FFF;
+        buf[bufidx++] = ALPHABET12[o];
+        buf[bufidx++] = ALPHABET12[o + 1];
+        if (buf.length - bufidx < 4) {
+          out.write(buf, 0, bufidx);
+          bufidx = 0;
+        }
+      }
+      dataidx = i - offset;
+    }
+
+
+    for (; i < offset + datalen; i++) {
       // Ensure we have at least 2 slots free for case 2
       if (buf.length  - bufidx < 2) {
         out.write(buf, 0, bufidx);
@@ -368,7 +391,6 @@ public class OrderPreservingBase64 {
   }
 
   public static void encodeToWriter(Writer out, byte[] data, int offset, int datalen, byte[] buf) throws IOException {
-    int i = 0;
 
     int len = 4 * (datalen / 3) + (datalen % 3 != 0 ? 1 + (datalen % 3) : 0);
 
@@ -376,7 +398,31 @@ public class OrderPreservingBase64 {
 
     int bufidx = 0;
 
-    for (i = offset; i < offset + datalen; i++) {
+    int i = offset;
+    int o = 0;
+
+    // if buf len >= 4, we can fill it processing bytes 3 by 3 with ALPHABET12.
+    if (buf.length >= 4) {
+      int len24b = (datalen / 3) * 3; // length of 24 bits multiple
+      for (i = offset; i < (offset + len24b); i += 3) {
+        // take the first 12 bits (8 bits of X, 4 msb of Y), multiply by two to get the look up table index
+        // ((((data[i]) << 4) | ((data[i + 1] & 0xF0) >>> 4)) << 1) & 0x1FFF is simplified into:
+        o = (((data[i]) << 5) | ((data[i + 1] & 0xF0) >>> 3)) & 0x1FFF;
+        buf[bufidx++] = ALPHABET12[o];
+        buf[bufidx++] = ALPHABET12[o + 1];
+        // take the next 12 bits (4 lsb bits of Y, 8 bits of Z), multiply by two to get the look up table index
+        o = ((((data[i + 1]) << 8) | ((data[i + 2] & 0xFF))) << 1) & 0x1FFF;
+        buf[bufidx++] = ALPHABET12[o];
+        buf[bufidx++] = ALPHABET12[o + 1];
+        if (buf.length - bufidx < 4) {
+          out.write(new String(buf, 0, bufidx, StandardCharsets.US_ASCII));
+          bufidx = 0;
+        }
+      }
+      dataidx = i - offset;
+    }
+
+    for (; i < offset + datalen; i++) {
       // Ensure we have at least 2 slots free for case 2
       if (buf.length  - bufidx < 2) {
         out.write(new String(buf, 0, bufidx, StandardCharsets.US_ASCII));
