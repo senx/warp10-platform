@@ -106,7 +106,7 @@ public class OrderPreservingBase64 {
     
     // then, encode last input bytes
     for (; i < (offset + datalen); i++) {
-      switch (i % 3) {
+      switch ((i - offset) % 3) {
         case 0:
           encoded[idx++] = ALPHABET[(data[i] >> 2) & 0x3f];
           break;
@@ -124,10 +124,10 @@ public class OrderPreservingBase64 {
     if (idx < encoded.length) {
       switch (datalen % 3) {
         case 1:
-          encoded[idx] = ALPHABET[(data[datalen - 1] << 4) & 0x30];
+          encoded[idx] = ALPHABET[(data[offset + datalen - 1] << 4) & 0x30];
           break;
         case 2:
-          encoded[idx] = ALPHABET[(data[datalen - 1] << 2) & 0x3c];
+          encoded[idx] = ALPHABET[(data[offset + datalen - 1] << 2) & 0x3c];
           break;
       }
     }
@@ -256,7 +256,7 @@ public class OrderPreservingBase64 {
           bufidx = 0;
         }
       }
-      dataidx = i - offset;
+      dataidx = (i > offset ? i - offset : 0);
     }
 
 
