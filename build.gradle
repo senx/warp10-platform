@@ -1,0 +1,158 @@
+//
+//   Copyright 2019 - 2021  SenX S.A.S.
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+//
+
+plugins {
+  id 'java-library'
+  id 'maven-publish'
+  id 'signing'
+  id 'com.github.johnrengelman.shadow' version '7.0.0'
+  id 'net.nemerosa.versioning' version '2.14.0'
+  id 'io.github.gradle-nexus.publish-plugin' version '1.1.0'
+}
+
+project.group = 'io.warp10.ext.commonsmath'
+project.description = 'Apache Commons Math library functions for WarpLib'
+
+// If the current tag is set, then it's a new release. Don't add build number
+project.version = versioning.info.lastTag + ((versioning.info.tag != null) ? '' : '-' + versioning.info.build)
+
+//
+// Repositories for the project dependencies
+//
+
+repositories {
+  mavenCentral()
+}
+
+//
+// Dependencies of the project
+//
+
+dependencies {
+  //
+  // Insert your dependencies here
+  //
+  //implementation group: 'GROUP', name: 'NAME', version: 'VERSION', classifier: 'CLASSIFIER'
+  // implementation 'org.apache.commons:math'
+  //provided 'io.warp10:warpscript:2.+'
+
+  // Use JUnit test framework.
+  testImplementation 'junit:junit:4.13'
+
+  // Compile time only dependencies, not used at runtime, or provided by other dependencies.
+  compileOnly group: 'io.warp10', name: 'warpscript', version: '2.+'
+}
+
+java {
+  withJavadocJar()
+  withSourcesJar()
+}
+
+jar {
+  manifest {
+   attributes('WarpFleet-Description': project.description)
+   attributes('WarpFleet-Group': project.group)
+   attributes('WarpFleet-Artifact': project.name)
+   attributes('WarpFleet-Version': project.version)
+  }
+
+  from('src/main/warpscript') {
+    //
+    // Only consider macros which are in our namespace
+    //
+    include project.group + '/' + project.name + '/*.mc2'
+    include project.group + '/' + project.name + '/**/*.mc2'
+  }
+
+  from('.') {
+    include 'README.md'
+    include project.group + '-' + project.name + '.conf'
+  }
+}
+
+shadowJar {
+  archiveClassifier.set('uberjar')
+
+  from('src/main/warpscript') {
+    //
+    // Only consider macros which are in our namespace
+    //
+    include project.group + '/' + project.name + '/*.mc2'
+    include project.group + '/' + project.name + '/**/*.mc2'
+  }
+
+  from('.') {
+    include 'README.md'
+    include project.group + '-' + project.name + '.conf'
+  }
+}
+
+
+//
+// Maven related config
+//
+
+publishing {
+  publications {
+    module(MavenPublication) {
+      from components.java
+
+      pom {
+        name = project.name
+        description = project.description
+        url = 'https://github.com/senx/' + project.name
+
+        scm {
+          connection = 'scm:git:git://github.com/senx/' + project.name
+          developerConnection = 'scm:git:ssh://github.com/senx/' + project.name
+          url = 'https://github.com/senx/' + project.name
+        }
+
+        licenses {
+          license {
+            name = 'The Apache License, Version 2.0'
+            url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+          }
+        }
+
+        developers {
+          developer {
+            id = 'senx'
+            name = 'SenX'
+            email = 'contact@senx.io'
+          }
+        }
+      }
+    }
+  }
+}
+
+nexusPublishing {
+  repositories {
+    sonatype()
+  }
+}
+
+//
+// Artifact Signing only if signing key name is in the properties
+//
+
+if (project.hasProperty("signing.gnupg.keyName")) {
+  signing {
+    useGpgCmd()
+    sign publishing.publications
+  }
+}

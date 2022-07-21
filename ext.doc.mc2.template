@@ -1,0 +1,81 @@
+// this is a function documentation. Documentation of WarpScript is in WarpScript.
+<%
+  {
+    'name' 'PleaseRenameFunction'   // in this example, EUCLIDIANDIVISION
+    'since' '2.0.0'
+    'deprecated' ''
+    'deleted' ''
+    'version' 'all'
+    'tags' [ 'extensions' ]
+    'desc' 
+<'
+This function does **marvelous things**. For example, EUCLIDIANDIVISION performs an euclidian division.
+- Markdown is allowed here
+
+@MODULE_DESCRIPTION@
+
+'>
+
+    'sig' [ 
+
+      // The signature lists the parameter your function expect on the stack, and the result your function will push to the stack
+      // There could be multiple signatures.
+      //
+      // Beware of the order in the signature !
+      //   true 'toto' MYFUNCTION 'outstring' STORE 'outboolean' STORE
+      //   [ [ 'top:STRING'  'n-1:BOOLEAN'  ] [ 'output_top:STRING'  'out_n-1:BOOLEAN'  ] ]
+      // If you have a LIST as input or output, you must also reverse parameters inside :
+      //   [ [ [ 'span:LONG' 'end:LONG' 'labels:MAP' 'class:STRING' 'token:STRING' ] ]  [ 'data:LIST<GTS>' ]  ]
+      // You must give a type to the LIST types:
+      //   LIST<GTS>     LIST<LIST<ANY>>
+
+      // for example, for EUCLIDIANDIVISION:
+      // 'sig' [ [ [ 'a:LONG' 'b:LONG' ] [ 'q:LONG' 'r:LONG' ] ] ]
+      
+      [ [  ]  [  ] ] 
+      [ [  ]  [  ] ] 
+
+    ]
+
+    // this sections describes each parameters of your function signature. for example, for EUCLIDIANDIVISION:
+    // 
+    // 'params' {
+    //   // Signature params description
+    //   'b' 'parameter b TOP of the stack'
+    //   'a' 'parameter a just below on the stack'
+    //   'q' 'the quotient of a/b, N-1 on the stack'
+    //   'r' 'the remainder of a/b, on the TOP of the stack'
+    // }
+
+    'params' {
+
+    }
+
+    // relate do other interesting/close WarpScript functions
+    // for example, for EUCLIDIANDIVISION:
+    // 'related' [ '/' ]  
+    'related' [ ]
+    
+
+    // Examples of your function use. Their could be several examples in the list. 
+    'examples' [ 
+<'
+// Example 1
+10 3 EUCLIDIANDIVISION [ 'q' 'r' ] STORE
+'quotient is:  ' $q TOSTRING +
+'remainder is: ' $r TOSTRING +
+'>
+<'
+// Example 2
+'>
+    ]
+
+    // if your extension needs more configurations, add the configuration keys in this list:
+    'conf' [ ]
+    // your also need to add and document these configuration in your @MODULE_GROUP@-@MODULE_ARTIFACT@.conf file
+
+    'ext' '@MODULE_GROUP@.PleaseRenameWarpScriptExtension' 
+
+  } INFO
+  
+%>

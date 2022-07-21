@@ -1,0 +1,15 @@
+{
+  "type": "ext",
+  "group": "io.warp10.ext.commonsmath",
+  "artifact": "warp10-ext-commonsmath",
+  "version": "0.0.1",
+  "description": "Apache Commons Math library functions for WarpLib",
+  "author": "Jean-Charles Vialatte",
+  "email": "contact@senx.io",
+  "license": "Apache-2.0",
+  "git": "https://github.com/senx/warp10-ext-commonsmath",
+  "repoUrl": "https://repo.maven.apache.org/maven2",
+  "tags": [
+    "math"
+  ]
+}
