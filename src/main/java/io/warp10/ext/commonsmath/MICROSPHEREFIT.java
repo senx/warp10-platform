@@ -52,11 +52,11 @@ public class MICROSPHEREFIT extends NamedWarpScriptFunction implements WarpScrip
     defaultInterpolationParams.put(NOINTERPOLATIONTOLERANCE, Math.ulp(1d));
   }
 
-  public static class MULTIVARIATEFUNCTION extends NamedWarpScriptFunction implements WarpScriptStackFunction, WarpScriptReducerFunction {
+  private static class MICROSPHERE extends NamedWarpScriptFunction implements WarpScriptStackFunction, WarpScriptReducerFunction {
     private final MultivariateFunction func;
 
-    public MULTIVARIATEFUNCTION(MultivariateFunction function) {
-      super("MULTIVARIATEFUNCTION");
+    private MICROSPHERE(MultivariateFunction function) {
+      super("MICROSPHERE");
       func = function;
     }
 
@@ -224,7 +224,7 @@ public class MICROSPHEREFIT extends NamedWarpScriptFunction implements WarpScrip
     MicrosphereProjectionInterpolator interpolator = new MicrosphereProjectionInterpolator(xval[0].length, xval.length, maxDarkFraction, darkThreshold, background, exponent, false, noInterpolationTolerance);
     MultivariateFunction func = interpolator.interpolate(xval, yval);
 
-    stack.push(new MULTIVARIATEFUNCTION(func));
+    stack.push(new MICROSPHERE(func));
 
     return stack;
   }
