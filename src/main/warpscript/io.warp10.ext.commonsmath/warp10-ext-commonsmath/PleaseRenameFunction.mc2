@@ -74,7 +74,7 @@ Apache Commons Math library functions for WarpLib
     'conf' [ ]
     // your also need to add and document these configuration in your io.warp10.ext.commonsmath-warp10-ext-commonsmath.conf file
 
-    'ext' 'io.warp10.ext.commonsmath.PleaseRenameWarpScriptExtension' 
+    'ext' 'io.warp10.ext.commonsmath.CommonsMathWarpScriptExtension'
 
   } INFO
   
