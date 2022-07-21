@@ -1,0 +1,60 @@
+//
+//   Copyright 2022  SenX S.A.S.
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+//
+
+<%
+  {
+    'name' 'SMICROSPHEREFIT'
+    'since' '2.0.0'
+    'deprecated' ''
+    'deleted' ''
+    'version' 'all'
+    'tags' [ 'extensions' ]
+    'desc' 
+<'
+  Fit an interpolating micro-sphere to create a multivariate function.
+  The multivariate function is pushed onto the stack and can be used as a WarpScript function.
+
+  The initialization for the fit is deterministic. The stack random number generator must have been seeded using PRNG.
+
+  see http://www.dudziak.com/microsphere.pdf
+'>
+
+    'sig' [
+      [ [ 'points:LIST<LIST<DOUBLE>>' 'values:LIST<DOUBLE>' ] REVERSE  [ 'function:FUNCTION' ] ]
+      [ [ 'points:LIST<LIST<DOUBLE>>' 'values:LIST<DOUBLE>' 'interpolationParameters:MAP' ] REVERSE  [ 'function:FUNCTION' ] ]
+
+      [ [ 'gtsCoords:LIST<GTS>' 'gtsValue:GTS' ] REVERSE  [ 'function:FUNCTION' ] ]
+      [ [ 'gtsCoords:LIST<GTS>' 'gtsValue:GTS' 'interpolationParameters:MAP' ] REVERSE  [ 'function:FUNCTION' ] ]
+    ]
+
+    'params' {
+      'function' 'The fitted multivariate function'
+      'interpolationParameters'
+      'gtsValue' 'The GTS containing the interpolation points'
+      'gtsCoords' 'The list of GTS containing each one dimension of the arguments for the interpolation points. For example, in a 3D space (x,y,z), the first GTS of the list contains the x coordinates, the second one the y coordinates, and the last one the z coordinates.'
+      'values' 'The values for the interpolation points'
+      'points' 'The arguments for the interpolation points. points[i][j] is the j-th component of interpolation point i'
+    }
+
+    'related' [ 'PRNG' 'POLYFIT' 'POLYFUNC' ]
+
+    'examples' [ ]
+    'conf' [ ]
+    'ext' 'io.warp10.ext.commonsmath.CommonsMathWarpScriptExtension'
+
+  } INFO
+  
+%>

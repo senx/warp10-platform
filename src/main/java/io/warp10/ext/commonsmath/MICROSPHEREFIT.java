@@ -23,12 +23,18 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptReducerFunction;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.functions.PRNG;
 import org.apache.commons.math3.analysis.MultivariateFunction;
+import org.apache.commons.math3.analysis.interpolation.InterpolatingMicrosphere;
 import org.apache.commons.math3.analysis.interpolation.MicrosphereProjectionInterpolator;
+import org.apache.commons.math3.random.JDKRandomGenerator;
+import org.apache.commons.math3.random.RandomGenerator;
+import org.apache.commons.math3.random.UnitSphereRandomVectorGenerator;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 /**
  * Fit an interpolating micro sphere as described in http://www.dudziak.com/microsphere.pdf
@@ -100,9 +106,11 @@ public class MICROSPHEREFIT extends NamedWarpScriptFunction implements WarpScrip
       throw new RuntimeException(getName() + " snapshotability not implemented yet");
     }
   }
-  
-  public MICROSPHEREFIT(String name) {
+
+  final private boolean seeded;
+  public MICROSPHEREFIT(String name, boolean seeded) {
     super(name);
+    this.seeded = seeded;
   }
 
   @Override
@@ -218,7 +226,26 @@ public class MICROSPHEREFIT extends NamedWarpScriptFunction implements WarpScrip
     double exponent = ((Number) interpolationParams.get(EXPONENT)).doubleValue();
     double noInterpolationTolerance = ((Number) interpolationParams.get(NOINTERPOLATIONTOLERANCE)).doubleValue();
 
-    MicrosphereProjectionInterpolator interpolator = new MicrosphereProjectionInterpolator(xval[0].length, xval.length, maxDarkFraction, darkThreshold, background, exponent, false, noInterpolationTolerance);
+
+    MicrosphereProjectionInterpolator interpolator;
+
+    if (!seeded) {
+      interpolator = new MicrosphereProjectionInterpolator(xval[0].length, xval.length, maxDarkFraction, darkThreshold, background, exponent, false, noInterpolationTolerance);
+
+    } else {
+      Random prng = (Random) stack.getAttribute(PRNG.ATTRIBUTE_SEEDED_PRNG);
+
+      if (null == prng) {
+        throw new WarpScriptException(getName() + " seeded PRNG was not initialized.");
+      }
+
+      RandomGenerator prng2 = new JDKRandomGenerator(prng.nextInt());
+      UnitSphereRandomVectorGenerator rvg = new UnitSphereRandomVectorGenerator(xval[0].length, prng2);
+      InterpolatingMicrosphere microsphere = new InterpolatingMicrosphere(xval[0].length, xval.length, maxDarkFraction, darkThreshold, background, rvg);
+
+      interpolator = new MicrosphereProjectionInterpolator(microsphere, exponent, false, noInterpolationTolerance);
+    }
+
     MultivariateFunction func = interpolator.interpolate(xval, yval);
 
     stack.push(new MICROSPHERE(func));

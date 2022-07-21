@@ -12,7 +12,8 @@ public class CommonsMathWarpScriptExtension extends WarpScriptExtension {
   static {
     functions = new HashMap<String,Object>();
     
-    functions.put("MICROSPHEREFIT", new MICROSPHEREFIT("MICROSPHEREFIT"));
+    functions.put("MICROSPHEREFIT", new MICROSPHEREFIT("MICROSPHEREFIT", false));
+    functions.put("SMICROSPHEREFIT", new MICROSPHEREFIT("SMICROSPHEREFIT", true));
   }
   
   @Override
