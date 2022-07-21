@@ -110,13 +110,10 @@ public class MICROSPHEREFIT extends NamedWarpScriptFunction implements WarpScrip
 
     Object o = stack.pop();
 
-    Map<String, Object> interpolationParams = null;
+    Map<String, Object> interpolationParams = defaultInterpolationParams;
     if (o instanceof Map) {
-      interpolationParams = (Map<String, Object>) o;
+      interpolationParams.putAll((Map<String, Object>) o);
       o = stack.pop();
-
-    } else {
-      interpolationParams = defaultInterpolationParams;
     }
 
     double[][] xval;
