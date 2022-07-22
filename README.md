@@ -1,3 +1,3 @@
-# warp10-ext-commonsmath
+# warp10-ext-interpolation
 
-Apache Commons Math library functions for WarpLib
+Advanced interpolation functionalities

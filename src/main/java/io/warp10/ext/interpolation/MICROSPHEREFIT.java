@@ -14,7 +14,7 @@
 //   limitations under the License.
 //
 
-package io.warp10.ext.commonsmath;
+package io.warp10.ext.interpolation;
 
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;

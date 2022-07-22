@@ -23,8 +23,8 @@ plugins {
   id 'io.github.gradle-nexus.publish-plugin' version '1.1.0'
 }
 
-project.group = 'io.warp10.ext.commonsmath'
-project.description = 'Apache Commons Math library functions for WarpLib'
+project.group = 'io.warp10.ext.interpolation'
+project.description = 'Advanced interpolation functionalities'
 
 // If the current tag is set, then it's a new release. Don't add build number
 project.version = versioning.info.lastTag + ((versioning.info.tag != null) ? '' : '-' + versioning.info.build)
@@ -46,8 +46,6 @@ dependencies {
   // Insert your dependencies here
   //
   //implementation group: 'GROUP', name: 'NAME', version: 'VERSION', classifier: 'CLASSIFIER'
-  // implementation 'org.apache.commons:math'
-  //provided 'io.warp10:warpscript:2.+'
 
   // Use JUnit test framework.
   testImplementation 'junit:junit:4.13'
