@@ -30,6 +30,7 @@ public class InterpolationWarpScriptExtension extends WarpScriptExtension {
     
     functions.put("MICROSPHEREFIT", new MICROSPHEREFIT("MICROSPHEREFIT", false));
     functions.put("SMICROSPHEREFIT", new MICROSPHEREFIT("SMICROSPHEREFIT", true));
+    functions.put("TRICUBICFIT", new TRICUBICFIT("TRICUBICFIT"));
   }
   
   @Override
