@@ -41,7 +41,7 @@
       'xval' 'All the x-coordinates of the interpolation points, sorted in increasing order'
     }
 
-    'related' [ 'BICUBICFIT' 'MICROSPHEREFIT' 'POLYFIT' 'POLYFUNC' ]
+    'related' [ 'BICUBICFIT' 'MICROSPHEREFIT' 'POLYFIT' ] REVERSE
 
     'examples' [ ]
     'conf' [ ]

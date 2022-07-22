@@ -47,7 +47,7 @@
       'points' 'The arguments for the interpolation points. points[i][j] is the j-th component of interpolation point i'
     }
 
-    'related' [ 'POLYFIT' 'POLYFUNC' ]
+    'related' [ 'SMICROSPHEREFIT' 'BICUBICFIT' 'TRICUBICFIT' 'POLYFIT' ] REVERSE
 
     'examples' [ ]
     'conf' [ ]
