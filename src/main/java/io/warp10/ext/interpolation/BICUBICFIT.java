@@ -21,6 +21,7 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptReducerFunction;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.functions.SNAPSHOT;
 import org.apache.commons.math3.analysis.interpolation.BicubicInterpolatingFunction;
 import org.apache.commons.math3.analysis.interpolation.BicubicInterpolator;
 
@@ -32,11 +33,16 @@ import java.util.List;
 public class BICUBICFIT extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
   private static class BICUBE extends NamedWarpScriptFunction implements WarpScriptStackFunction, WarpScriptReducerFunction {
-    private final BicubicInterpolatingFunction func;
 
-    private BICUBE(BicubicInterpolatingFunction function) {
+    private final BicubicInterpolatingFunction func;
+    private final Object[] snapshotElements;
+    private final String generatedFrom;
+
+    private BICUBE(BicubicInterpolatingFunction function, Object[] fittingArguments, String interpolatorName) {
       super("BICUBE");
       func = function;
+      snapshotElements = fittingArguments;
+      generatedFrom = interpolatorName;
     }
 
     @Override
@@ -83,7 +89,17 @@ public class BICUBICFIT extends NamedWarpScriptFunction implements WarpScriptSta
 
     @Override
     public String toString() {
-      throw new RuntimeException(getName() + " snapshotability not implemented yet");
+      StringBuilder sb = new StringBuilder();
+      try {
+        for (int i = 0; i < snapshotElements.length; i++) {
+          SNAPSHOT.addElement(sb, snapshotElements[i]);
+        }
+      } catch (WarpScriptException wse) {
+        throw new RuntimeException("Error building argument snapshot", wse);
+      }
+      sb.append(generatedFrom);
+
+      return sb.toString();
     }
   }
 
@@ -155,7 +171,9 @@ public class BICUBICFIT extends NamedWarpScriptFunction implements WarpScriptSta
       }
     }
 
-    stack.push(new BICUBE((new BicubicInterpolator()).interpolate(xval, yval, fval)));
+    BicubicInterpolatingFunction function = (new BicubicInterpolator()).interpolate(xval, yval, fval);
+    BICUBE warpscriptFunction = new BICUBE(function, new Object[]{o1,o2,o3}, getName());
+    stack.push(warpscriptFunction);
 
     return stack;
   }
