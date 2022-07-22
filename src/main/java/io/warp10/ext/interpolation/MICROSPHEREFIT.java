@@ -24,6 +24,7 @@ import io.warp10.script.WarpScriptReducerFunction;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.functions.PRNG;
+import io.warp10.script.functions.SNAPSHOT;
 import org.apache.commons.math3.analysis.MultivariateFunction;
 import org.apache.commons.math3.analysis.interpolation.InterpolatingMicrosphere;
 import org.apache.commons.math3.analysis.interpolation.MicrosphereProjectionInterpolator;
@@ -31,6 +32,8 @@ import org.apache.commons.math3.random.JDKRandomGenerator;
 import org.apache.commons.math3.random.RandomGenerator;
 import org.apache.commons.math3.random.UnitSphereRandomVectorGenerator;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -62,10 +65,14 @@ public class MICROSPHEREFIT extends NamedWarpScriptFunction implements WarpScrip
 
   private static class MICROSPHERE extends NamedWarpScriptFunction implements WarpScriptStackFunction, WarpScriptReducerFunction {
     private final MultivariateFunction func;
+    private final Object[] snapshotElements;
+    private final String generatedFrom;
 
-    private MICROSPHERE(MultivariateFunction function) {
+    private MICROSPHERE(MultivariateFunction function, Object[] fittingArguments, String interpolatorName) {
       super("MICROSPHERE");
       func = function;
+      snapshotElements = fittingArguments;
+      generatedFrom = interpolatorName;
     }
 
     @Override
@@ -105,7 +112,18 @@ public class MICROSPHEREFIT extends NamedWarpScriptFunction implements WarpScrip
 
     @Override
     public String toString() {
-      throw new RuntimeException(getName() + " snapshotability not implemented yet");
+      StringBuilder sb = new StringBuilder();
+      try {
+        for (int i = 0; i < snapshotElements.length; i++) {
+          SNAPSHOT.addElement(sb, snapshotElements[i]);
+        }
+      } catch (WarpScriptException wse) {
+        throw new RuntimeException("Error building argument snapshot", wse);
+      }
+      sb.append(" ");
+      sb.append(generatedFrom);
+
+      return sb.toString();
     }
   }
 
@@ -118,12 +136,16 @@ public class MICROSPHEREFIT extends NamedWarpScriptFunction implements WarpScrip
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
 
+    List<Object> arguments = new ArrayList<Object>();
+
     Object o = stack.pop();
+    arguments.add(o);
 
     Map<String, Object> interpolationParams = defaultInterpolationParams;
     if (o instanceof Map) {
       interpolationParams.putAll((Map<String, Object>) o);
       o = stack.pop();
+      arguments.add(o);
     }
 
     double[][] xval;
@@ -137,6 +159,7 @@ public class MICROSPHEREFIT extends NamedWarpScriptFunction implements WarpScrip
       }
 
       o = stack.pop();
+      arguments.add(o);
       if (!(o instanceof List)) {
         throw new WarpScriptException(getName() + " expects a List of GTS as first argument.");
       }
@@ -180,6 +203,7 @@ public class MICROSPHEREFIT extends NamedWarpScriptFunction implements WarpScrip
       List<Double> yList = (List<Double>) o;
 
       o = stack.pop();
+      arguments.add(o);
       if (!(o instanceof List)) {
         throw new WarpScriptException(getName() + " expects a List of List as first argument.");
       }
@@ -251,7 +275,8 @@ public class MICROSPHEREFIT extends NamedWarpScriptFunction implements WarpScrip
 
     MultivariateFunction func = interpolator.interpolate(xval, yval);
 
-    stack.push(new MICROSPHERE(func));
+    Collections.reverse(arguments);
+    stack.push(new MICROSPHERE(func, arguments.toArray(), getName()));
 
     return stack;
   }
