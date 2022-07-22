@@ -72,7 +72,7 @@
 
     'examples' [ ]
     'conf' [ ]
-    'ext' 'io.warp10.ext.interpolation.InterpolationfWarpScriptExtension'
+    'ext' 'io.warp10.ext.interpolation.InterpolationWarpScriptExtension'
 
   } INFO
   
