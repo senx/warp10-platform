@@ -21,6 +21,7 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptReducerFunction;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.functions.SNAPSHOT;
 import org.apache.commons.math3.analysis.interpolation.TricubicInterpolatingFunction;
 import org.apache.commons.math3.analysis.interpolation.TricubicInterpolator;
 
@@ -33,11 +34,16 @@ import java.util.List;
 public class TRICUBICFIT extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
   private static class TRICUBE extends NamedWarpScriptFunction implements WarpScriptStackFunction, WarpScriptReducerFunction {
-    private final TricubicInterpolatingFunction func;
 
-    private TRICUBE(TricubicInterpolatingFunction function) {
+    private final TricubicInterpolatingFunction func;
+    private final Object[] snapshotElements;
+    private final String generatedFrom;
+
+    private TRICUBE(TricubicInterpolatingFunction function, Object[] fittingArguments, String interpolatorName) {
       super("TRICUBE");
       func = function;
+      snapshotElements = fittingArguments;
+      generatedFrom = interpolatorName;
     }
 
     @Override
@@ -86,7 +92,18 @@ public class TRICUBICFIT extends NamedWarpScriptFunction implements WarpScriptSt
 
     @Override
     public String toString() {
-      throw new RuntimeException(getName() + " snapshotability not implemented yet");
+      StringBuilder sb = new StringBuilder();
+      try {
+        for (int i = 0; i < snapshotElements.length; i++) {
+          SNAPSHOT.addElement(sb, snapshotElements[i]);
+        }
+      } catch (WarpScriptException wse) {
+        throw new RuntimeException("Error building argument snapshot", wse);
+      }
+      sb.append(" ");
+      sb.append(generatedFrom);
+
+      return sb.toString();
     }
   }
 
@@ -183,7 +200,9 @@ public class TRICUBICFIT extends NamedWarpScriptFunction implements WarpScriptSt
       }
     }
 
-    stack.push(new TRICUBE((new TricubicInterpolator()).interpolate(xval, yval, zval, fval)));
+    TricubicInterpolatingFunction function = (new TricubicInterpolator()).interpolate(xval, yval, zval, fval);
+    TRICUBE warpscriptFunction = new TRICUBE(function, new Object[]{o1,o2,o3,o4}, getName());
+    stack.push(warpscriptFunction);
 
     return stack;
   }

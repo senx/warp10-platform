@@ -97,6 +97,7 @@ public class BICUBICFIT extends NamedWarpScriptFunction implements WarpScriptSta
       } catch (WarpScriptException wse) {
         throw new RuntimeException("Error building argument snapshot", wse);
       }
+      sb.append(" ");
       sb.append(generatedFrom);
 
       return sb.toString();
