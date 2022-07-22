@@ -42,6 +42,7 @@ import java.util.Random;
  */
 public class MICROSPHEREFIT extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
+  public static final String ELEMENTS = "elements";
   public static final String MAXDARKFRACTION = "max.dark.fraction";
   public static final String DARKTHRESHOLD = "dark.threshold";
   public static final String BACKGROUND = "background";
@@ -51,6 +52,7 @@ public class MICROSPHEREFIT extends NamedWarpScriptFunction implements WarpScrip
   private static final Map<String, Object> defaultInterpolationParams;
   static {
     defaultInterpolationParams = new HashMap<String, Object>();
+    defaultInterpolationParams.put(ELEMENTS, 500);
     defaultInterpolationParams.put(MAXDARKFRACTION, 0.5);
     defaultInterpolationParams.put(DARKTHRESHOLD, 1e-2);
     defaultInterpolationParams.put(BACKGROUND, Double.NaN);
@@ -220,6 +222,7 @@ public class MICROSPHEREFIT extends NamedWarpScriptFunction implements WarpScrip
       throw new WarpScriptException(getName() + ": wrong argument type");
     }
 
+    int elements = ((Number) interpolationParams.get(ELEMENTS)).intValue();
     double maxDarkFraction = ((Number) interpolationParams.get(MAXDARKFRACTION)).doubleValue();
     double darkThreshold = ((Number) interpolationParams.get(DARKTHRESHOLD)).doubleValue();
     double background = ((Number) interpolationParams.get(BACKGROUND)).doubleValue();
@@ -230,7 +233,7 @@ public class MICROSPHEREFIT extends NamedWarpScriptFunction implements WarpScrip
     MicrosphereProjectionInterpolator interpolator;
 
     if (!seeded) {
-      interpolator = new MicrosphereProjectionInterpolator(xval[0].length, xval.length, maxDarkFraction, darkThreshold, background, exponent, false, noInterpolationTolerance);
+      interpolator = new MicrosphereProjectionInterpolator(xval[0].length, elements, maxDarkFraction, darkThreshold, background, exponent, false, noInterpolationTolerance);
 
     } else {
       Random prng = (Random) stack.getAttribute(PRNG.ATTRIBUTE_SEEDED_PRNG);
@@ -241,7 +244,7 @@ public class MICROSPHEREFIT extends NamedWarpScriptFunction implements WarpScrip
 
       RandomGenerator prng2 = new JDKRandomGenerator(prng.nextInt());
       UnitSphereRandomVectorGenerator rvg = new UnitSphereRandomVectorGenerator(xval[0].length, prng2);
-      InterpolatingMicrosphere microsphere = new InterpolatingMicrosphere(xval[0].length, xval.length, maxDarkFraction, darkThreshold, background, rvg);
+      InterpolatingMicrosphere microsphere = new InterpolatingMicrosphere(xval[0].length, elements, maxDarkFraction, darkThreshold, background, rvg);
 
       interpolator = new MicrosphereProjectionInterpolator(microsphere, exponent, false, noInterpolationTolerance);
     }
