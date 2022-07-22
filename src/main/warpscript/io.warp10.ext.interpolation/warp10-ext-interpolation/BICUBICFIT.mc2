@@ -33,7 +33,7 @@
     ]
 
     'params' {
-      'function' 'The fitted bivariate interpolating function'
+      'function' 'The fitted bivariate interpolating function(LIST<DOUBLE>): DOUBLE'
       'fval' 'The values of the interpolation points on all the grid knots: fval[i][j] = f(xval[i], yval[j])'
       'yval' 'All the y-coordinates of the interpolation points, sorted in increasing order'
       'xval' 'All the x-coordinates of the interpolation points, sorted in increasing order'

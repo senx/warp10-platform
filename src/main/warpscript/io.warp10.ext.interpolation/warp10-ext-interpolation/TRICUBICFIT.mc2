@@ -34,7 +34,7 @@
     ]
 
     'params' {
-      'function' 'The fitted trivariate interpolating function'
+      'function' 'The fitted trivariate interpolating function(LIST<DOUBLE>): DOUBLE'
       'fval' 'The values of the interpolation points on all the grid knots: fval[i][j][k] = f(xval[i], yval[j], zval[k]).'
       'yval' 'All the z-coordinates of the interpolation points, sorted in increasing order'
       'yval' 'All the y-coordinates of the interpolation points, sorted in increasing order'

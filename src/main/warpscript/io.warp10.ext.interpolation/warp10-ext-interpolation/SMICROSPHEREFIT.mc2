@@ -55,7 +55,7 @@
     ]
 
     'params' {
-      'function' 'The fitted multivariate function'
+      'function' 'The fitted multivariate function(LIST<DOUBLE>): DOUBLE'
       'no.interpolation.tolerance' 'When the distance between an interpolated point and one of the sample points is less than this value, no interpolation will be performed (the value of the sample will be returned). Default to 0'
       'exponent' 'Exponent used in the power law that computes the weights (distance dimming factor) of the sample data. Default to 1.1'
       'background' 'Value returned when the maxDarkFraction threshold is exceeded. Default to NAN'
