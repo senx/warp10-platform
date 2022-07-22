@@ -32,15 +32,34 @@
 
     'sig' [
       [ [ 'points:LIST<LIST<DOUBLE>>' 'values:LIST<DOUBLE>' ] REVERSE  [ 'function:FUNCTION' ] ]
-      [ [ 'points:LIST<LIST<DOUBLE>>' 'values:LIST<DOUBLE>' 'interpolationParameters:MAP' ] REVERSE  [ 'function:FUNCTION' ] ]
+      [ [ 'points:LIST<LIST<DOUBLE>>' 'values:LIST<DOUBLE>' {
+        'no.interpolation.tolerance' 'no.interpolation.tolerance:DOUBLE'
+        'exponent' 'exponent:DOUBLE'
+        'background' 'background:DOUBLE'
+        'dark.threshold' 'dark.threshold:DOUBLE'
+        'max.dark.fraction' 'max.dark.fraction:DOUBLE'
+        'elements' 'elements:LONG'
+       } ] REVERSE  [ 'function:FUNCTION' ] ]
 
       [ [ 'gtsCoords:LIST<GTS>' 'gtsValue:GTS' ] REVERSE  [ 'function:FUNCTION' ] ]
-      [ [ 'gtsCoords:LIST<GTS>' 'gtsValue:GTS' 'interpolationParameters:MAP' ] REVERSE  [ 'function:FUNCTION' ] ]
+      [ [ 'gtsCoords:LIST<GTS>' 'gtsValue:GTS' {
+        'no.interpolation.tolerance' 'no.interpolation.tolerance:DOUBLE'
+        'exponent' 'exponent:DOUBLE'
+        'background' 'background:DOUBLE'
+        'dark.threshold' 'dark.threshold:DOUBLE'
+        'max.dark.fraction' 'max.dark.fraction:DOUBLE'
+        'elements' 'elements:LONG'
+       } ] REVERSE  [ 'function:FUNCTION' ] ]
     ]
 
     'params' {
       'function' 'The fitted multivariate function'
-      'interpolationParameters' ''
+      'no.interpolation.tolerance' 'When the distance between an interpolated point and one of the sample points is less than this value, no interpolation will be performed (the value of the sample will be returned). Default to 0'
+      'exponent' 'Exponent used in the power law that computes the weights (distance dimming factor) of the sample data. Default to 1.1'
+      'background' 'Value returned when the maxDarkFraction threshold is exceeded. Default to NAN'
+      'dark.threshold' 'Value of the illumination below which a facet is considered dark. Default to 0.01'
+      'max.dark.fraction' 'Maximum fraction of the facets that can be dark. If the fraction of "non-illuminated" facets is larger, no estimation of the value will be performed, and the background value will be returned instead. Default to 0.5'
+      'elements' 'Number of surface elements of the microsphere. Default to 500'
       'gtsValue' 'The GTS containing the interpolation points'
       'gtsCoords' 'The list of GTS containing each one dimension of the arguments for the interpolation points. For example, in a 3D space (x,y,z), the first GTS of the list contains the x coordinates, the second one the y coordinates, and the last one the z coordinates.'
       'values' 'The values for the interpolation points'
