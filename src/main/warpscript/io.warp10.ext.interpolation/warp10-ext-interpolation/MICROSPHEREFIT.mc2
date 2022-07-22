@@ -40,7 +40,7 @@
 
     'params' {
       'function' 'The fitted multivariate function'
-      'interpolationParameters'
+      'interpolationParameters' ''
       'gtsValue' 'The GTS containing the interpolation points'
       'gtsCoords' 'The list of GTS containing each one dimension of the arguments for the interpolation points. For example, in a 3D space (x,y,z), the first GTS of the list contains the x coordinates, the second one the y coordinates, and the last one the z coordinates.'
       'values' 'The values for the interpolation points'
