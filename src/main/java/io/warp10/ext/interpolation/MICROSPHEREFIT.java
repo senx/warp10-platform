@@ -147,12 +147,16 @@ public class MICROSPHEREFIT extends NamedWarpScriptFunction implements WarpScrip
       sb.append(WarpScriptLib.LIST_END);
       sb.append(" ");
 
-      try {
-        SNAPSHOT.addElement(sb, interpolationParams);
-      } catch (WarpScriptException wse) {
-        throw new RuntimeException("Error building argument snapshot", wse);
+      // additional params
+      if (null != interpolationParams) {
+        try {
+          SNAPSHOT.addElement(sb, interpolationParams);
+        } catch (WarpScriptException wse) {
+          throw new RuntimeException("Error building argument snapshot", wse);
+        }
       }
 
+      // interpolator
       sb.append(generatedFrom);
 
       return sb.toString();
