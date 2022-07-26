@@ -18,10 +18,11 @@ package io.warp10.ext.interpolation;
 
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptReducerFunction;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
-import io.warp10.script.functions.SNAPSHOT;
+import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.commons.math3.analysis.interpolation.TricubicInterpolatingFunction;
 import org.apache.commons.math3.analysis.interpolation.TricubicInterpolator;
 
@@ -36,13 +37,11 @@ public class TRICUBICFIT extends NamedWarpScriptFunction implements WarpScriptSt
   private static class TRICUBE extends NamedWarpScriptFunction implements WarpScriptStackFunction, WarpScriptReducerFunction {
 
     private final TricubicInterpolatingFunction func;
-    private final Object[] snapshotElements;
     private final String generatedFrom;
 
-    private TRICUBE(TricubicInterpolatingFunction function, Object[] fittingArguments, String interpolatorName) {
+    private TRICUBE(TricubicInterpolatingFunction function, String interpolatorName) {
       super("TRICUBE");
       func = function;
-      snapshotElements = fittingArguments;
       generatedFrom = interpolatorName;
     }
 
@@ -94,13 +93,60 @@ public class TRICUBICFIT extends NamedWarpScriptFunction implements WarpScriptSt
     public String toString() {
       StringBuilder sb = new StringBuilder();
       try {
-        for (int i = 0; i < snapshotElements.length; i++) {
-          SNAPSHOT.addElement(sb, snapshotElements[i]);
+        double[] xval = (double[]) FieldUtils.readField(func, "xval", true);
+        sb.append(WarpScriptLib.LIST_START);
+        sb.append(" ");
+        for (int i = 0; i < xval.length; i++) {
+          sb.append(xval[i]);
+          sb.append(" ");
         }
-      } catch (WarpScriptException wse) {
-        throw new RuntimeException("Error building argument snapshot", wse);
+        sb.append(WarpScriptLib.LIST_END);
+        sb.append(" ");
+
+        double[] yval = (double[]) FieldUtils.readField(func, "yval", true);
+        sb.append(WarpScriptLib.LIST_START);
+        sb.append(" ");
+        for (int i = 0; i < yval.length; i++) {
+          sb.append(yval[i]);
+          sb.append(" ");
+        }
+        sb.append(WarpScriptLib.LIST_END);
+        sb.append(" ");
+
+        double[] zval = (double[]) FieldUtils.readField(func, "zval", true);
+        sb.append(WarpScriptLib.LIST_START);
+        sb.append(" ");
+        for (int i = 0; i < zval.length; i++) {
+          sb.append(zval[i]);
+          sb.append(" ");
+        }
+        sb.append(WarpScriptLib.LIST_END);
+        sb.append(" ");
+
+        // fval
+        sb.append(WarpScriptLib.LIST_START);
+        sb.append(" ");
+        for (int i = 0; i < xval.length; i++) {
+          sb.append(WarpScriptLib.LIST_START);
+          sb.append(" ");
+          for (int j = 0; j < yval.length; j++) {
+            sb.append(WarpScriptLib.LIST_START);
+            sb.append(" ");
+            for (int k = 0; k < zval.length; k++) {
+              sb.append(func.value(xval[i], yval[j], zval[k]));
+              sb.append(" ");
+            }
+            sb.append(WarpScriptLib.LIST_END);
+            sb.append(" ");
+          }
+          sb.append(WarpScriptLib.LIST_END);
+          sb.append(" ");
+        }
+        sb.append(WarpScriptLib.LIST_END);
+        sb.append(" ");
+      } catch (Exception e) {
+        throw new RuntimeException("Error building argument snapshot", e);
       }
-      sb.append(" ");
       sb.append(generatedFrom);
 
       return sb.toString();
@@ -201,7 +247,7 @@ public class TRICUBICFIT extends NamedWarpScriptFunction implements WarpScriptSt
     }
 
     TricubicInterpolatingFunction function = (new TricubicInterpolator()).interpolate(xval, yval, zval, fval);
-    TRICUBE warpscriptFunction = new TRICUBE(function, new Object[]{o1,o2,o3,o4}, getName());
+    TRICUBE warpscriptFunction = new TRICUBE(function, getName());
     stack.push(warpscriptFunction);
 
     return stack;
