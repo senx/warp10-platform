@@ -91,7 +91,6 @@ public class BICUBICFIT extends NamedWarpScriptFunction implements WarpScriptSta
       StringBuilder sb = new StringBuilder();
 
       try {
-
         double[] xval = (double[]) FieldUtils.readField(func, "xval", true);
         sb.append(WarpScriptLib.LIST_START);
         sb.append(" ");
