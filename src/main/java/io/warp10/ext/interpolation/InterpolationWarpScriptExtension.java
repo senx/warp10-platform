@@ -19,10 +19,17 @@ package io.warp10.ext.interpolation;
 import java.util.HashMap;
 import java.util.Map;
 
+import io.warp10.WarpConfig;
+import io.warp10.script.WarpScriptStack;
+import io.warp10.warp.sdk.Capabilities;
 import io.warp10.warp.sdk.WarpScriptExtension;
 
 public class InterpolationWarpScriptExtension extends WarpScriptExtension {
-  
+
+  //
+  // Functions
+  //
+
   private static final Map<String,Object> functions;
   
   static {
@@ -33,7 +40,30 @@ public class InterpolationWarpScriptExtension extends WarpScriptExtension {
     functions.put("BICUBICFIT", new BICUBICFIT("BICUBICFIT"));
     functions.put("TRICUBICFIT", new TRICUBICFIT("TRICUBICFIT"));
   }
-  
+
+  //
+  // Function special configuration
+  //
+
+  static int getIntLimitValue(WarpScriptStack stack, String limitName, int defaultValue) {
+
+    // this is the default limit value
+    int val = defaultValue;
+
+    // if the config exists with the limit name, it is used to determine the value of the limit
+    if (null != WarpConfig.getProperty(limitName)) {
+      val = Integer.parseInt(limitName);
+    }
+
+    // if the capability with the limit name is present within the stack, its value supersedes the default or configured limit
+    String capValue = Capabilities.get(stack, limitName);
+    if (null != capValue) {
+      val = Integer.parseInt(capValue);
+    }
+
+    return val;
+  }
+
   @Override
   public Map<String, Object> getFunctions() {
     return functions;
