@@ -20,6 +20,7 @@ import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptReducerFunction;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
@@ -32,8 +33,6 @@ import org.apache.commons.math3.random.JDKRandomGenerator;
 import org.apache.commons.math3.random.RandomGenerator;
 import org.apache.commons.math3.random.UnitSphereRandomVectorGenerator;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -56,7 +55,7 @@ public class MICROSPHEREFIT extends NamedWarpScriptFunction implements WarpScrip
   public final static int DEFAULT_MAX_ELEMENTS = 50;
   public final static String CONFIG_OR_CAPNAME_MAX_ELEMENTS = "interpolation.microsphere.max.elements";
 
-  private static final Map<String, Object> defaultInterpolationParams;
+  private final static Map<String, Object> defaultInterpolationParams;
   static {
     defaultInterpolationParams = new HashMap<String, Object>();
     defaultInterpolationParams.put(ELEMENTS, 2);
@@ -69,13 +68,17 @@ public class MICROSPHEREFIT extends NamedWarpScriptFunction implements WarpScrip
 
   private static class MICROSPHERE extends NamedWarpScriptFunction implements WarpScriptStackFunction, WarpScriptReducerFunction {
     private final MultivariateFunction func;
-    private final Object[] snapshotElements;
+    private final double[][] xval;
+    private final double[] yval;
+    private final Map<String, Object> interpolationParams;
     private final String generatedFrom;
 
-    private MICROSPHERE(MultivariateFunction function, Object[] fittingArguments, String interpolatorName) {
+    private MICROSPHERE(MultivariateFunction function, double[][] xval, double[] yval, Map<String, Object> interpolationParams, String interpolatorName) {
       super("MICROSPHERE");
       func = function;
-      snapshotElements = fittingArguments;
+      this.xval =xval;
+      this.yval =yval;
+      this.interpolationParams = interpolationParams;
       generatedFrom = interpolatorName;
     }
 
@@ -117,14 +120,39 @@ public class MICROSPHEREFIT extends NamedWarpScriptFunction implements WarpScrip
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder();
-      try {
-        for (int i = 0; i < snapshotElements.length; i++) {
-          SNAPSHOT.addElement(sb, snapshotElements[i]);
+
+      // xval
+      sb.append(WarpScriptLib.LIST_START);
+      sb.append(" ");
+      for (int i = 0; i < xval.length; i++) {
+        sb.append(WarpScriptLib.LIST_START);
+        sb.append(" ");
+        for (int j = 0; j < xval[0].length; j++) {
+          sb.append(xval[i][j]);
+          sb.append(" ");
         }
+        sb.append(WarpScriptLib.LIST_END);
+        sb.append(" ");
+      }
+      sb.append(WarpScriptLib.LIST_END);
+      sb.append(" ");
+
+      // yval
+      sb.append(WarpScriptLib.LIST_START);
+      sb.append(" ");
+      for (int i = 0; i < yval.length; i++) {
+        sb.append(yval[i]);
+        sb.append(" ");
+      }
+      sb.append(WarpScriptLib.LIST_END);
+      sb.append(" ");
+
+      try {
+        SNAPSHOT.addElement(sb, interpolationParams);
       } catch (WarpScriptException wse) {
         throw new RuntimeException("Error building argument snapshot", wse);
       }
-      sb.append(" ");
+
       sb.append(generatedFrom);
 
       return sb.toString();
@@ -139,17 +167,16 @@ public class MICROSPHEREFIT extends NamedWarpScriptFunction implements WarpScrip
 
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-
-    List<Object> arguments = new ArrayList<Object>();
-
     Object o = stack.pop();
-    arguments.add(o);
 
-    Map<String, Object> interpolationParams = defaultInterpolationParams;
+    Map<String, Object> additionalParams;
+    Map<String, Object> interpolationParams = new HashMap<String, Object>(defaultInterpolationParams);
     if (o instanceof Map) {
-      interpolationParams.putAll((Map<String, Object>) o);
+      additionalParams = new HashMap<String, Object>((Map<String, Object>) o);
+      interpolationParams.putAll(additionalParams);
       o = stack.pop();
-      arguments.add(o);
+    } else {
+      additionalParams = null;
     }
 
     double[][] xval;
@@ -163,7 +190,6 @@ public class MICROSPHEREFIT extends NamedWarpScriptFunction implements WarpScrip
       }
 
       o = stack.pop();
-      arguments.add(o);
       if (!(o instanceof List)) {
         throw new WarpScriptException(getName() + " expects a List of GTS as first argument.");
       }
@@ -207,7 +233,6 @@ public class MICROSPHEREFIT extends NamedWarpScriptFunction implements WarpScrip
       List<Double> yList = (List<Double>) o;
 
       o = stack.pop();
-      arguments.add(o);
       if (!(o instanceof List)) {
         throw new WarpScriptException(getName() + " expects a List of List as first argument.");
       }
@@ -262,8 +287,9 @@ public class MICROSPHEREFIT extends NamedWarpScriptFunction implements WarpScrip
 
     MicrosphereProjectionInterpolator interpolator;
 
+    // Note that sharedSphere need not be false since this microsphere is used only by this interpolator
     if (!seeded) {
-      interpolator = new MicrosphereProjectionInterpolator(xval[0].length, elements, maxDarkFraction, darkThreshold, background, exponent, false, noInterpolationTolerance);
+      interpolator = new MicrosphereProjectionInterpolator(xval[0].length, elements, maxDarkFraction, darkThreshold, background, exponent, true, noInterpolationTolerance);
 
     } else {
       Random prng = (Random) stack.getAttribute(PRNG.ATTRIBUTE_SEEDED_PRNG);
@@ -276,13 +302,13 @@ public class MICROSPHEREFIT extends NamedWarpScriptFunction implements WarpScrip
       UnitSphereRandomVectorGenerator rvg = new UnitSphereRandomVectorGenerator(xval[0].length, prng2);
       InterpolatingMicrosphere microsphere = new InterpolatingMicrosphere(xval[0].length, elements, maxDarkFraction, darkThreshold, background, rvg);
 
-      interpolator = new MicrosphereProjectionInterpolator(microsphere, exponent, false, noInterpolationTolerance);
+      interpolator = new MicrosphereProjectionInterpolator(microsphere, exponent, true, noInterpolationTolerance);
     }
 
+    // note that it is not memory inefficient to keep references to xval and yval in MICROSPHERE
+    // since they are not used to fit the sphere but as arguments by the interpolating function.
     MultivariateFunction func = interpolator.interpolate(xval, yval);
-
-    Collections.reverse(arguments);
-    stack.push(new MICROSPHERE(func, arguments.toArray(), getName()));
+    stack.push(new MICROSPHERE(func, xval, yval, additionalParams, getName()));
 
     return stack;
   }
