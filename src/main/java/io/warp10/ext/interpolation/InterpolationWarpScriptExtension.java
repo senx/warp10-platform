@@ -52,7 +52,7 @@ public class InterpolationWarpScriptExtension extends WarpScriptExtension {
 
     // if the config exists with the limit name, it is used to determine the value of the limit
     if (null != WarpConfig.getProperty(limitName)) {
-      val = Integer.parseInt(limitName);
+      val = Integer.parseInt(WarpConfig.getProperty(limitName));
     }
 
     // if the capability with the limit name is present within the stack, its value supersedes the default or configured limit
