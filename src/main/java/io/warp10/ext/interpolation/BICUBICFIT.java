@@ -18,12 +18,13 @@ package io.warp10.ext.interpolation;
 
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptReducerFunction;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
-import io.warp10.script.functions.SNAPSHOT;
 import org.apache.commons.math3.analysis.interpolation.BicubicInterpolatingFunction;
 import org.apache.commons.math3.analysis.interpolation.BicubicInterpolator;
+import org.apache.commons.lang3.reflect.FieldUtils;
 
 import java.util.List;
 
@@ -35,13 +36,11 @@ public class BICUBICFIT extends NamedWarpScriptFunction implements WarpScriptSta
   private static class BICUBE extends NamedWarpScriptFunction implements WarpScriptStackFunction, WarpScriptReducerFunction {
 
     private final BicubicInterpolatingFunction func;
-    private final Object[] snapshotElements;
     private final String generatedFrom;
 
-    private BICUBE(BicubicInterpolatingFunction function, Object[] fittingArguments, String interpolatorName) {
+    private BICUBE(BicubicInterpolatingFunction function, String interpolatorName) {
       super("BICUBE");
       func = function;
-      snapshotElements = fittingArguments;
       generatedFrom = interpolatorName;
     }
 
@@ -90,14 +89,49 @@ public class BICUBICFIT extends NamedWarpScriptFunction implements WarpScriptSta
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder();
+
       try {
-        for (int i = 0; i < snapshotElements.length; i++) {
-          SNAPSHOT.addElement(sb, snapshotElements[i]);
+
+        double[] xval = (double[]) FieldUtils.readField(func, "xval", true);
+        sb.append(WarpScriptLib.LIST_START);
+        sb.append(" ");
+        for (int i = 0; i < xval.length; i++) {
+          sb.append(xval[i]);
+          sb.append(" ");
         }
-      } catch (WarpScriptException wse) {
-        throw new RuntimeException("Error building argument snapshot", wse);
+        sb.append(WarpScriptLib.LIST_END);
+        sb.append(" ");
+
+        double[] yval = (double[]) FieldUtils.readField(func, "yval", true);
+        sb.append(WarpScriptLib.LIST_START);
+        sb.append(" ");
+        for (int i = 0; i < yval.length; i++) {
+          sb.append(yval[i]);
+          sb.append(" ");
+        }
+        sb.append(WarpScriptLib.LIST_END);
+        sb.append(" ");
+
+        // fval
+        sb.append(WarpScriptLib.LIST_START);
+        sb.append(" ");
+        for (int i = 0; i < xval.length; i++) {
+          sb.append(WarpScriptLib.LIST_START);
+          sb.append(" ");
+          for (int j = 0; j < yval.length; j++) {
+            sb.append(func.value(xval[i], yval[j]));
+            sb.append(" ");
+          }
+          sb.append(WarpScriptLib.LIST_END);
+          sb.append(" ");
+        }
+        sb.append(WarpScriptLib.LIST_END);
+        sb.append(" ");
+
+      } catch (Exception e) {
+        throw new RuntimeException("Error building argument snapshot", e);
       }
-      sb.append(" ");
+
       sb.append(generatedFrom);
 
       return sb.toString();
@@ -173,7 +207,7 @@ public class BICUBICFIT extends NamedWarpScriptFunction implements WarpScriptSta
     }
 
     BicubicInterpolatingFunction function = (new BicubicInterpolator()).interpolate(xval, yval, fval);
-    BICUBE warpscriptFunction = new BICUBE(function, new Object[]{o1,o2,o3}, getName());
+    BICUBE warpscriptFunction = new BICUBE(function, getName());
     stack.push(warpscriptFunction);
 
     return stack;
