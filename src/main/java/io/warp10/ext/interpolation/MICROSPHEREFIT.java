@@ -54,7 +54,7 @@ public class MICROSPHEREFIT extends NamedWarpScriptFunction implements WarpScrip
 
   // limits
   public final static int DEFAULT_MAX_ELEMENTS = 50;
-  public final static String CONFIG_OR_CAPNAME_MAX_ELEMENTS = "interpolation.microsphere.max.element";
+  public final static String CONFIG_OR_CAPNAME_MAX_ELEMENTS = "interpolation.microsphere.max.elements";
 
   private static final Map<String, Object> defaultInterpolationParams;
   static {
