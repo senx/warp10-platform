@@ -55,11 +55,11 @@ public class MICROSPHEREFIT extends NamedWarpScriptFunction implements WarpScrip
   private static final Map<String, Object> defaultInterpolationParams;
   static {
     defaultInterpolationParams = new HashMap<String, Object>();
-    defaultInterpolationParams.put(ELEMENTS, 500);
+    defaultInterpolationParams.put(ELEMENTS, 2);
     defaultInterpolationParams.put(MAXDARKFRACTION, 0.5);
     defaultInterpolationParams.put(DARKTHRESHOLD, 1e-2);
     defaultInterpolationParams.put(BACKGROUND, Double.NaN);
-    defaultInterpolationParams.put(EXPONENT, 1.1);
+    defaultInterpolationParams.put(EXPONENT, 2);
     defaultInterpolationParams.put(NOINTERPOLATIONTOLERANCE, Math.ulp(1d));
   }
 
