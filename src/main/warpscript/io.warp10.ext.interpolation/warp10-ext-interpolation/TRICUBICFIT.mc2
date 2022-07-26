@@ -26,7 +26,8 @@
 <'
   Function that implements the tricubic spline interpolation, as proposed in
   Tricubic interpolation in three dimensions, F. Lekien and J. Marsden, Int. J. Numer. Meth. Eng 2005; 63:455-471
-  The trivariate function is pushed onto the stack and can be used as a WarpScript function.
+
+  The trivariate function is pushed onto the stack and can be used as a WarpScript function or as a reducer.
 '>
 
     'sig' [

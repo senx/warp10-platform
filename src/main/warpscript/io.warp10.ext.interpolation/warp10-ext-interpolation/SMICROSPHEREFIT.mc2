@@ -25,7 +25,7 @@
     'desc' 
 <'
   Fit an interpolating micro-sphere to create a multivariate function.
-  The multivariate function is pushed onto the stack and can be used as a WarpScript function.
+  The multivariate function is pushed onto the stack and can be used as a WarpScript function or as a reducer.
 
   The initialization for the fit is deterministic. The stack random number generator must have been seeded using PRNG.
 

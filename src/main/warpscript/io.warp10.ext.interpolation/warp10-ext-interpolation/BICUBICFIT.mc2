@@ -25,7 +25,7 @@
     'desc'
 <'
   Function that implements the bicubic spline interpolation.
-  The bivariate function is pushed onto the stack and can be used as a WarpScript function.
+  The bivariate function is pushed onto the stack and can be used as a WarpScript function or as a reducer.
 '>
 
     'sig' [

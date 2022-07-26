@@ -25,7 +25,7 @@
     'desc' 
 <'
   Fit an interpolating micro-sphere to create a multivariate function.
-  The multivariate function is pushed onto the stack and can be used as a WarpScript function.
+  The multivariate function is pushed onto the stack and can be used as a WarpScript function or as a reducer.
 
   see http://www.dudziak.com/microsphere.pdf
 '>
