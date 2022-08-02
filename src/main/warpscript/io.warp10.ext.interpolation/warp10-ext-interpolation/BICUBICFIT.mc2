@@ -24,7 +24,7 @@
     'tags' [ 'extensions' ]
     'desc'
 <'
-  Function that implements the bicubic spline interpolation.
+  Function that implements the bicubic spline interpolation. Sample points need to be located on knots of a 2D grid.
   The bivariate function is pushed onto the stack and can be used as a WarpScript function or as a reducer.
 '>
 
