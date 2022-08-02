@@ -11,5 +11,5 @@ Functions added to WarpLib
 Configurations
 * interpolation.microsphere.max.elements
 
-Capability
+Capabilities
 * interpolation.microsphere.max.elements
