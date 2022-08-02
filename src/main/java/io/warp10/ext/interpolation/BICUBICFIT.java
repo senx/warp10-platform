@@ -44,6 +44,14 @@ public class BICUBICFIT extends NamedWarpScriptFunction implements WarpScriptSta
       generatedFrom = interpolatorName;
     }
 
+    private double value(double x, double y) {
+      if (!func.isValidPoint(x,y)) {
+         return Double.NaN;
+      } else {
+        return func.value(x,y);
+      }
+    }
+
     @Override
     public Object apply(WarpScriptStack stack) throws WarpScriptException {
       Object o = stack.pop();
@@ -58,12 +66,7 @@ public class BICUBICFIT extends NamedWarpScriptFunction implements WarpScriptSta
 
       double x = ((Number) l.get(0)).doubleValue();
       double y = ((Number) l.get(1)).doubleValue();
-
-      if (!func.isValidPoint(x,y)) {
-        stack.push(Double.NaN);
-      } else {
-        stack.push(func.value(x,y));
-      }
+      stack.push(value(x,y));
 
       return stack;
     }
@@ -81,7 +84,7 @@ public class BICUBICFIT extends NamedWarpScriptFunction implements WarpScriptSta
 
       double x = ((Number) values[0]).doubleValue();
       double y = ((Number) values[1]).doubleValue();
-      double res = func.value(x,y);
+      double res = value(x,y);
 
       return new Object[] { tick, locations[0], elevations[0], res };
     }
