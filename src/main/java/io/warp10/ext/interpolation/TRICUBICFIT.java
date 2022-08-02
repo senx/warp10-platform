@@ -45,6 +45,14 @@ public class TRICUBICFIT extends NamedWarpScriptFunction implements WarpScriptSt
       generatedFrom = interpolatorName;
     }
 
+    private double value(double x, double y, double z) {
+      if (!func.isValidPoint(x,y,z)) {
+        return Double.NaN;
+      } else {
+        return func.value(x,y,z);
+      }
+    }
+
     @Override
     public Object apply(WarpScriptStack stack) throws WarpScriptException {
       Object o = stack.pop();
@@ -60,12 +68,7 @@ public class TRICUBICFIT extends NamedWarpScriptFunction implements WarpScriptSt
       double x = ((Number) l.get(0)).doubleValue();
       double y = ((Number) l.get(1)).doubleValue();
       double z = ((Number) l.get(2)).doubleValue();
-
-      if (!func.isValidPoint(x,y,z)) {
-        stack.push(Double.NaN);
-      } else {
-        stack.push(func.value(x,y,z));
-      }
+      stack.push(value(x,y,z));
 
       return stack;
     }
@@ -84,7 +87,7 @@ public class TRICUBICFIT extends NamedWarpScriptFunction implements WarpScriptSt
       double x = ((Number) values[0]).doubleValue();
       double y = ((Number) values[1]).doubleValue();
       double z = ((Number) values[2]).doubleValue();
-      double res = func.value(x,y,z);
+      double res = value(x,y,z);
 
       return new Object[] { tick, locations[0], elevations[0], res };
     }
