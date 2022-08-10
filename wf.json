@@ -1,8 +1,8 @@
 {
   "type": "ext",
-  "group": "io.warp10.ext.interpolation",
+  "group": "io.warp10",
   "artifact": "warp10-ext-interpolation",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "description": "Advanced interpolation functionalities",
   "author": "Jean-Charles Vialatte",
   "email": "contact@senx.io",
