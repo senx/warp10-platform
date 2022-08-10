@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -40,6 +40,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.PriorityQueue;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
@@ -1897,14 +1898,79 @@ public class GTSHelper {
     // Extract values/locations/elevations that lie in the requested interval
     //
 
-    // We know how many data will the new GTS so we provision arrays to receive the data.
+    // We know how many data the new GTS will have so we provision arrays to receive the data.
     int count = lastidx - firstidx + 1;
+
     GTSHelper.multiProvision(subgts, gts.type, count, count);
 
-    for (int i = firstidx; i <= lastidx; i++) {
-      setValue(subgts, gts.ticks[i], null != gts.locations ? gts.locations[i] : GeoTimeSerie.NO_LOCATION, null != gts.elevations ? gts.elevations[i] : GeoTimeSerie.NO_ELEVATION, valueAtIndex(gts, i), overwrite);
-    }
+    if (!overwrite) {
+      if (count > 0) {
+        if (null != gts.locations) {
+          if (null != subgts.locations && subgts.locations.length >= count) {
+            System.arraycopy(gts.locations, firstidx, subgts.locations, 0, count);
+          } else {
+            subgts.locations = new long[count];
+            System.arraycopy(gts.locations, firstidx, subgts.locations, 0, count);
+          }
+        } else {
+          subgts.locations = null;
+        }
+        if (null != gts.elevations) {
+          if (null != subgts.elevations && subgts.elevations.length >= count) {
+            System.arraycopy(gts.elevations, firstidx, subgts.elevations, 0, count);
+          } else {
+            subgts.elevations = new long[count];
+            System.arraycopy(gts.elevations, firstidx, subgts.elevations, 0, count);
+          }
+        } else {
+          subgts.elevations = null;
+        }
+        if (null != subgts.ticks) {
+          System.arraycopy(gts.ticks, firstidx, subgts.ticks, 0, count);
+        }
 
+        switch(gts.type) {
+          //
+          // Array for the type is known to be non null since multiProvision allocated it
+          //
+          case LONG:
+            subgts.type = TYPE.LONG;
+            if (null == subgts.longValues || subgts.longValues.length < count) {
+              subgts.longValues = new long[count];
+            }
+            System.arraycopy(gts.longValues, firstidx, subgts.longValues, 0, count);
+            break;
+          case DOUBLE:
+            subgts.type = TYPE.DOUBLE;
+            if (null == subgts.doubleValues || subgts.doubleValues.length < count) {
+              subgts.doubleValues = new double[count];
+            }
+            System.arraycopy(gts.doubleValues, firstidx, subgts.doubleValues, 0, count);
+            break;
+          case BOOLEAN:
+            subgts.type = TYPE.BOOLEAN;
+            if (null == subgts.booleanValues) {
+              subgts.booleanValues = new BitSet(count);
+            }
+            subgts.booleanValues = gts.booleanValues.get(firstidx, lastidx + 1);
+            break;
+          case STRING:
+            subgts.type = TYPE.STRING;
+            if (null == subgts.stringValues || subgts.stringValues.length < count) {
+              subgts.stringValues = new String[count];
+            }
+            System.arraycopy(gts.stringValues, firstidx, subgts.stringValues, 0, count);
+            break;
+        }
+      }
+      subgts.values = count;
+      subgts.sorted = gts.sorted;
+      subgts.reversed = gts.reversed;
+    } else {
+      for (int i = firstidx; i <= lastidx; i++) {
+        setValue(subgts, gts.ticks[i], null != gts.locations ? gts.locations[i] : GeoTimeSerie.NO_LOCATION, null != gts.elevations ? gts.elevations[i] : GeoTimeSerie.NO_ELEVATION, valueAtIndex(gts, i), overwrite);
+      }
+    }
     return subgts;
   }
 
@@ -4198,6 +4264,208 @@ public class GTSHelper {
   }
 
   /**
+   * Merge sorted GTS or encoders
+   */
+  public static GTSEncoder sortedMerge(List<Object> params, boolean reversed) throws WarpScriptException {
+
+    final class GTSAndIndex {
+      private GeoTimeSerie gts;
+      private int idx;
+    }
+
+    List<GeoTimeSerie> series = new ArrayList<GeoTimeSerie>();
+    List<GTSEncoder> encoders = new ArrayList<GTSEncoder>();
+
+    for (int i = 0; i < params.size(); i++) {
+      if (params.get(i) instanceof GeoTimeSerie) {
+        if (!GTSHelper.isSorted((GeoTimeSerie) params.get(i))) {
+          throw new WarpScriptException("GTS " + GTSHelper.buildSelector((GeoTimeSerie) params.get(i), false) + " is not sorted.");
+        }
+        if (GTSHelper.isReversed((GeoTimeSerie) params.get(i)) != reversed) {
+          throw  new WarpScriptException("GTS " + GTSHelper.buildSelector((GeoTimeSerie) params.get(i), false) + " is not sorted in the expected order.");
+        }
+        series.add((GeoTimeSerie) params.get(i));
+      } else if (params.get(i) instanceof GTSEncoder) {
+        encoders.add((GTSEncoder) params.get(i));
+      } else if (params.get(i) instanceof List) {
+        for (Object o: (List) params.get(i)) {
+          if (o instanceof GeoTimeSerie) {
+            if (GTSHelper.nvalues((GeoTimeSerie) o) > 0) {
+              if (!GTSHelper.isSorted((GeoTimeSerie) o)) {
+                throw new WarpScriptException("GTS " + GTSHelper.buildSelector((GeoTimeSerie) o, false) + " is not sorted.");
+              }
+              if (GTSHelper.isReversed((GeoTimeSerie) o) != reversed) {
+                throw  new WarpScriptException("GTS " + GTSHelper.buildSelector((GeoTimeSerie) o, false) + " is not sorted in the expected order.");
+              }
+            }
+            series.add((GeoTimeSerie) o);
+          } else if (o instanceof GTSEncoder) {
+            encoders.add((GTSEncoder) o);
+          } else {
+            throw new WarpScriptException("expects a list of Geo Time Series or encoders or of lists thereof.");
+          }
+        }
+      }
+    }
+
+    // Index at which the GTS start
+    int gtsidx = encoders.size();
+    // Decoders used to scan the ENCODERS
+    final boolean freversed = reversed;
+    PriorityQueue<Object> decoders = new PriorityQueue<Object>(new Comparator<Object>() {
+      @Override
+      public int compare(Object o1, Object o2) {
+        Long ts1 = null;
+        Long ts2 = null;
+
+        if (o1 instanceof GTSDecoder) {
+          ts1 = ((GTSDecoder) o1).getTimestamp();
+        } else { // GTSAndIndex
+          GTSAndIndex gtsi = (GTSAndIndex) o1;
+          if (gtsi.idx < gtsi.gts.size()) {
+            ts1 = GTSHelper.tickAtIndex(gtsi.gts, gtsi.idx);
+          }
+        }
+
+        if (o2 instanceof GTSDecoder) {
+          ts2 = ((GTSDecoder) o2).getTimestamp();
+        } else { // GTSAndIndex
+          GTSAndIndex gtsi = (GTSAndIndex) o2;
+          if (gtsi.idx < gtsi.gts.size()) {
+            ts2 = GTSHelper.tickAtIndex(gtsi.gts, gtsi.idx);
+          }
+        }
+
+        if (null == ts1 && null == ts2) {
+          return 0;
+        } else if (null == ts1) {
+          if (freversed) {
+            return -1;
+          } else {
+            return 1;
+          }
+        } else if (null == ts2) {
+          if (freversed) {
+            return 1;
+          } else {
+            return -1;
+          }
+        } else {
+          if (!freversed) {
+            return Long.compare(ts1, ts2);
+          } else {
+            return Long.compare(ts2, ts1);
+          }
+        }
+      }
+    });
+
+    for (int i = 0; i < encoders.size(); i++) {
+      GTSDecoder decoder = encoders.get(i).getDecoder(true);
+      // Nullify decoders[i] if the decoder is exhausted
+      if (decoder.next()) {
+        decoders.add(decoder);
+      }
+    }
+
+    for (int i = 0; i < series.size(); i++) {
+      if (0 == series.get(i).size()) {
+        continue;
+      }
+      GTSAndIndex gtsi = new GTSAndIndex();
+      gtsi.gts = series.get(i);
+      gtsi.idx = 0;
+      decoders.add(gtsi);
+    }
+
+    GTSEncoder merged = new GTSEncoder(0);
+
+    if (!encoders.isEmpty()) {
+      merged.setMetadata(encoders.get(0).getMetadata());
+    } else if (!series.isEmpty()) {
+      merged.setMetadata(series.get(0).getMetadata());
+    }
+
+    try {
+      while(!decoders.isEmpty()) {
+        Object first = decoders.peek();
+        Long ts = null;
+        Long lastTs = null;
+
+        if (first instanceof GTSDecoder) {
+          GTSDecoder decoder = (GTSDecoder) first;
+          lastTs = decoder.getTimestamp();
+        } else {
+          GTSAndIndex gtsi = (GTSAndIndex) first;
+          if (gtsi.idx < gtsi.gts.size()) {
+            lastTs = GTSHelper.tickAtIndex(gtsi.gts, gtsi.idx);
+          }
+        }
+        if (null == lastTs) {
+          break;
+        }
+
+        boolean done = false;
+        // Iterate over the elements of the Queue
+        while(!decoders.isEmpty() && !done) {
+          Object elt = decoders.remove();
+          if (elt instanceof GTSDecoder) {
+            GTSDecoder decoder = (GTSDecoder) elt;
+            ts = decoder.getTimestamp();
+            if (!lastTs.equals(ts)) { // The first timestamp does not equal lastTs, so we are done for this loop
+              decoders.add(elt);
+              done = true;
+              continue;
+            }
+            boolean exhausted = false;
+            while(lastTs.equals(ts)) {
+              merged.addValue(ts, decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue());
+              if (decoder.next()) {
+                ts = decoder.getTimestamp();
+                // Ensure the ENCODER is sorted correctly
+                if (reversed && ts > lastTs) {
+                  throw new WarpScriptException("ENCODER " + GTSHelper.buildSelector(decoder.getMetadata(), false) + " is not sorted in expected order.");
+                } else if (!reversed && ts < lastTs) {
+                  throw new WarpScriptException("ENCODER " + GTSHelper.buildSelector(decoder.getMetadata(), false) + " is not sorted in expected order.");
+                }
+              } else {
+                ts = null;
+                exhausted = true;
+              }
+            }
+            if (!exhausted) {
+              decoders.add(decoder);
+            }
+          } else { // GTSAndIndex
+            GTSAndIndex gtsi = (GTSAndIndex) elt;
+            ts = GTSHelper.tickAtIndex(gtsi.gts, gtsi.idx);
+            if (!lastTs.equals(ts)) {
+              decoders.add(elt);
+              done = true;
+              continue;
+            }
+            while(lastTs.equals(ts)) {
+              merged.addValue(ts, GTSHelper.locationAtIndex(gtsi.gts, gtsi.idx), GTSHelper.elevationAtIndex(gtsi.gts, gtsi.idx), GTSHelper.valueAtIndex(gtsi.gts, gtsi.idx));
+              gtsi.idx++;
+              if (gtsi.idx >= gtsi.gts.size()) {
+                break;
+              }
+              ts = GTSHelper.tickAtIndex(gtsi.gts, gtsi.idx);
+            }
+            if (gtsi.idx < gtsi.gts.size()) {
+              decoders.add(gtsi);
+            }
+          }
+        }
+      }
+    } catch (IOException ioe) {
+      throw new WarpScriptException("encountered an error while merging.");
+    }
+
+    return merged;
+  }
+
+  /**
    * Fill missing values/locations/elevations in a bucketized GTS with the previously
    * encountered one.
    *
@@ -5714,7 +5982,7 @@ public class GTSHelper {
 
     for (int i = 0; i < lgts.size(); i++) {
       Map<String, String> attributes = lgts.get(i).getMetadata().getAttributes();
-      
+
       if (null == attributes || attributes.isEmpty()) {
         commonAttributes.clear();
         break;

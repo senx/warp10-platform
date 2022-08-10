@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -57,6 +57,15 @@ public class Configuration {
    * name "FOO".
    */
   public static final String WARP_KEY_PREFIX = "warp.key.";
+
+  /**
+   * Prefix used for configuration keys containing secrets.
+   * At startup any property warp.secret.FOO will be deciphered
+   * and the result (a byte array) used as the value for key FOO.
+   * This allows for storing secrets in the configuration file and
+   * retrieving them via MACROCONFIG.
+   */
+  public static final String WARP_SECRET_PREFIX = "warp.secret.";
 
   public static final String WARP_IDENT = "warp.ident";
 
@@ -2350,6 +2359,11 @@ public class Configuration {
    * Maximum number of subprogram instances which can be spawned
    */
   public static final String WARPSCRIPT_CALL_MAXCAPACITY = "warpscript.call.maxcapacity";
+
+  /**
+   * Maximum amount of time each attempt to access a process will wait (in ms). Defaults to 10000 ms.
+   */
+  public static final String WARPSCRIPT_CALL_MAXWAIT = "warpscript.call.maxwait";
 
   /**
    * Secret to use for setting configuration accessible via MACROCONFIG

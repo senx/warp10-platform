@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2021  SenX S.A.S.
+//   Copyright 2019-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -175,6 +175,8 @@ import io.warp10.script.mapper.MapperNPDF;
 import io.warp10.script.mapper.MapperParseDouble;
 import io.warp10.script.mapper.MapperPow;
 import io.warp10.script.mapper.MapperProduct;
+import io.warp10.script.mapper.MapperRegExpMatch;
+import io.warp10.script.mapper.MapperRegExpReplace;
 import io.warp10.script.mapper.MapperReplace;
 import io.warp10.script.mapper.MapperRound;
 import io.warp10.script.mapper.MapperSecondOfMinute;
@@ -344,6 +346,8 @@ public class WarpScriptLib {
 
   public static final String EVAL = "EVAL";
   public static final String EVALSECURE = "EVALSECURE";
+  public static final String MSEC = "MSEC";
+  public static final String MRSEC = "MRSEC";
   public static final String FUNCREF = "FUNCREF";
   public static final String SNAPSHOT = "SNAPSHOT";
   public static final String SNAPSHOTALL = "SNAPSHOTALL";
@@ -490,6 +494,7 @@ public class WarpScriptLib {
   public static final String SIZE = "SIZE";
   public static final String SHRINK = "SHRINK";
   public static final String REMOVE = "REMOVE";
+  public static final String INDEXOF = "INDEXOF";
   public static final String UNIQUE = "UNIQUE";
   public static final String CONTAINS = "CONTAINS";
   public static final String CONTAINSKEY = "CONTAINSKEY";
@@ -675,6 +680,8 @@ public class WarpScriptLib {
   public static final String AESWRAP = "AESWRAP";
   public static final String AESUNWRAP = "AESUNWRAP";
   public static final String RUNNERNONCE = "RUNNERNONCE";
+  public static final String RUNNERAT = "RUNNERAT";
+  public static final String RUNNERIN = "RUNNERIN";
   public static final String GZIP = "GZIP";
   public static final String UNGZIP = "UNGZIP";
   public static final String DEFLATE = "DEFLATE";
@@ -840,6 +847,7 @@ public class WarpScriptLib {
   public static final String ACCEL_REPORT = "ACCEL.REPORT";
   public static final String UPDATE = "UPDATE";
   public static final String META = "META";
+  public static final String METAMATCH = "METAMATCH";
   public static final String METADIFF = "METADIFF";
   public static final String DELETE = "DELETE";
   public static final String WEBCALL = "WEBCALL";
@@ -1301,6 +1309,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new SIZE(SIZE));
     addNamedWarpScriptFunction(new SHRINK(SHRINK));
     addNamedWarpScriptFunction(new REMOVE(REMOVE));
+    addNamedWarpScriptFunction(new INDEXOF(INDEXOF));
     addNamedWarpScriptFunction(new UNIQUE(UNIQUE));
     addNamedWarpScriptFunction(new CONTAINS(CONTAINS));
     addNamedWarpScriptFunction(new CONTAINSKEY(CONTAINSKEY));
@@ -1405,6 +1414,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new SECURE(SECURE));
     addNamedWarpScriptFunction(new UNSECURE(UNSECURE, true));
     addNamedWarpScriptFunction(new EVALSECURE(EVALSECURE));
+    addNamedWarpScriptFunction(new MSEC(MSEC, false));
+    addNamedWarpScriptFunction(new MSEC(MRSEC, true));
     addNamedWarpScriptFunction(new NOOP(NOOP));
     addNamedWarpScriptFunction(new DOC(DOC));
     addNamedWarpScriptFunction(new DOCMODE(DOCMODE));
@@ -1571,6 +1582,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new AESWRAP(AESWRAP));
     addNamedWarpScriptFunction(new AESUNWRAP(AESUNWRAP));
     addNamedWarpScriptFunction(new RUNNERNONCE(RUNNERNONCE));
+    addNamedWarpScriptFunction(new RUNNERAT(RUNNERAT));
+    addNamedWarpScriptFunction(new RUNNERIN(RUNNERIN));
     addNamedWarpScriptFunction(new GZIP(GZIP));
     addNamedWarpScriptFunction(new UNGZIP(UNGZIP));
     addNamedWarpScriptFunction(new DEFLATE(DEFLATE));
@@ -1795,6 +1808,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new ACCELREPORT(ACCEL_REPORT));
     addNamedWarpScriptFunction(new UPDATE(UPDATE));
     addNamedWarpScriptFunction(new META(META));
+    addNamedWarpScriptFunction(new METAMATCH(METAMATCH));
     addNamedWarpScriptFunction(new META(METADIFF, true));
     addNamedWarpScriptFunction(new DELETE(DELETE));
     addNamedWarpScriptFunction(new WEBCALL(WEBCALL));
@@ -2465,6 +2479,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new CircularMean.Builder("mapper.mean.circular.exclude-nulls", false));
     addNamedWarpScriptFunction(new MapperMod.Builder("mapper.mod"));
     addNamedWarpScriptFunction(new RMS("mapper.rms", false));
+    addNamedWarpScriptFunction(new MapperRegExpMatch.Builder("mapper.regexp.match"));
+    addNamedWarpScriptFunction(new MapperRegExpReplace.Builder("mapper.regexp.replace"));
 
     //
     // Reducers
@@ -2648,7 +2664,7 @@ public class WarpScriptLib {
 
           // If the jar differs from that from which WarpScriptLib was loaded, create a dedicated class loader
           if (!jarfile.equals(wsljar) && !"true".equals(props.getProperty(Configuration.CONFIG_WARPSCRIPT_DEFAULTCL_PREFIX + extension))) {
-            cl = new WarpClassLoader(jarfile, WarpScriptLib.class.getClassLoader());
+            cl = new WarpClassLoader("[WarpClassLoader for " + extension + "]", jarfile, WarpScriptLib.class.getClassLoader());
           }
 
           cls = Class.forName(extension, true, cl);

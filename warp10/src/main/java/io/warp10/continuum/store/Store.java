@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -113,9 +113,9 @@ import io.warp10.sensision.Sensision;
  * HBase
  */
 public class Store extends Thread {
-  
+
   private static final Logger LOG = LoggerFactory.getLogger(Store.class);
-  
+
   /**
    * Set of required parameters, those MUST be set
    */
@@ -140,7 +140,7 @@ public class Store extends Thread {
   private final KeyStore keystore;
 
   private final Properties properties;
-  
+
   /**
    * Column family under which to store the readings
    */
@@ -155,7 +155,7 @@ public class Store extends Thread {
    * CyclicBarrier for synchronizing producers prior to committing the offsets
    */
   private CyclicBarrier barrier;
-  
+
   /**
    * Number of milliseconds between offsets commits
    */
@@ -165,56 +165,56 @@ public class Store extends Thread {
    * Maximum number of milliseconds between offsets commits. This limit is there so we detect hang calls to htable.batch
    */
   private final long maxTimeBetweenCommits;
-  
+
   /**
    * Maximum size we allow the pending Puts list to grow
    */
   private final long maxPendingPutsSize;
-  
+
   /**
    * Pool used to retrieve HTableInterface instances
    */
   //private final HTablePool htpool;
-  
+
   /**
    * Connection to HBase
    */
   private Connection conn;
-  
+
   /**
    * Boolean indicating that we should recreate the connection to HBase
    * due to IOErrors (such as regions which cannot be found due to region location cache not being updated)
    */
   private AtomicBoolean connReset = new AtomicBoolean(false);
-  
+
   /**
    * HBase table where readings should be stored
    */
   private final TableName hbaseTable;
-  
+
   private final boolean SKIP_WRITE;
-  
+
   private int generation = 0;
-  
+
   private UUID uuid = UUID.randomUUID();
-  
+
   private static Map<String,Connection> connections = new HashMap<String,Connection>();
-  
+
   /**
    * Optional executor service for deletions
    */
   private ExecutorService deleteExecutor = null;
-  
+
   private final int nthreadsDelete;
-  
+
   private AtomicInteger inflightDeletions = new AtomicInteger(0);
   private AtomicInteger deletionErrors = new AtomicInteger(0);
-  
+
   /**
    * Rate limit to slow consumption down
    */
   private Double rateLimit = null;
-  
+
   private long throttlingDelay = 10000000L;
   
   /**
@@ -231,28 +231,28 @@ public class Store extends Thread {
   public Store(KeyStore keystore, final Properties properties, Integer nthr) throws IOException {
     this.keystore = keystore;
     this.properties = properties;
-    
+
     if ("true".equals(properties.getProperty("store.skip.write"))) {
       this.SKIP_WRITE = true;
     } else {
       this.SKIP_WRITE = false;
     }
-    
+
     //
     // Check mandatory parameters
     //
-    
+
     for (String required: REQUIRED_PROPERTIES) {
-      Preconditions.checkNotNull(properties.getProperty(required), "Missing configuration parameter '%s'.", required);          
+      Preconditions.checkNotNull(properties.getProperty(required), "Missing configuration parameter '%s'.", required);
     }
 
     //
     // Extract parameters
     //
-            
+
     final String topic = properties.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_TOPIC);
     final int nthreads = null != nthr ? nthr.intValue() : Integer.valueOf(properties.getProperty(io.warp10.continuum.Configuration.STORE_NTHREADS_KAFKA, "1"));
-    
+
     nthreadsDelete = Integer.parseInt(properties.getProperty(io.warp10.continuum.Configuration.STORE_NTHREADS_DELETE, "0"));
     
     this.useBulkDeleteEndpoint = !"false".equals(properties.getProperty(io.warp10.continuum.Configuration.STORE_BULKDELETEENDPOINT));
@@ -262,17 +262,17 @@ public class Store extends Thread {
     //
     // If instructed to do so, launch a thread which will read the throttling file periodically
     //
-    
+
     if (null != properties.getProperty(io.warp10.continuum.Configuration.STORE_THROTTLING_FILE)) {
-      
+
       if (null != properties.getProperty(io.warp10.continuum.Configuration.STORE_THROTTLING_DELAY)) {
         throttlingDelay = Long.parseLong(properties.getProperty(io.warp10.continuum.Configuration.STORE_THROTTLING_DELAY));
       }
-      
+
       final File throttlingFile = new File(properties.getProperty(io.warp10.continuum.Configuration.STORE_THROTTLING_FILE));
-      final long period = Long.parseLong(properties.getProperty(io.warp10.continuum.Configuration.STORE_THROTTLING_PERIOD, "60000"));      
+      final long period = Long.parseLong(properties.getProperty(io.warp10.continuum.Configuration.STORE_THROTTLING_PERIOD, "60000"));
       final Store self = this;
-      
+
       Thread t = new Thread() {
         @Override
         public void run() {
@@ -281,9 +281,9 @@ public class Store extends Thread {
             try {
               if (throttlingFile.exists()) {
                 br = new BufferedReader(new FileReader(throttlingFile));
-                
+
                 String line = br.readLine();
-                
+
                 if (null == line) {
                   self.rateLimit = null;
                 } else {
@@ -305,41 +305,41 @@ public class Store extends Thread {
                 Sensision.set(SensisionConstants.CLASS_WARP_STORE_THROTTLING_RATE, Sensision.EMPTY_LABELS, self.rateLimit);
               }
             }
-            
+
             LockSupport.parkNanos(period * 1000000L);
           }
         }
       };
-      
+
       t.setName("[Store Throttling Reader]");
       t.setDaemon(true);
       t.start();
     }
-    
+
     //
     // Retrieve the connection singleton for this set of properties
     //
-    
+
     this.conn = Store.getHBaseConnection(properties);
-    
+
     this.hbaseTable = TableName.valueOf(properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_DATA_TABLE));
     this.colfam = properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_DATA_COLFAM).getBytes(StandardCharsets.UTF_8);
 
     //
     // Extract keys
     //
-    
+
     extractKeys(properties);
-    
+
     final Store self = this;
-    
+
     commitPeriod = Long.parseLong(properties.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_COMMITPERIOD));
     maxTimeBetweenCommits = Long.parseLong(properties.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_INTERCOMMITS_MAXTIME));
-    
+
     if (maxTimeBetweenCommits <= commitPeriod) {
       throw new RuntimeException(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_INTERCOMMITS_MAXTIME + " MUST be set to a value above that of " + io.warp10.continuum.Configuration.STORE_KAFKA_DATA_COMMITPERIOD);
     }
-    
+
     maxPendingPutsSize = Long.parseLong(properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_DATA_MAXPENDINGPUTSSIZE));
 
     final String groupid = properties.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_GROUPID);
@@ -349,13 +349,14 @@ public class Store extends Thread {
     Thread t = new Thread(new Runnable() {
       @Override
       public void run() {
-        
+
         ExecutorService executor = null;
+
         KafkaConsumer<byte[], byte[]>[] kconsumers = null;
         
         StoreConsumer[] consumers = new StoreConsumer[nthreads];
         Table[] tables = new Table[nthreads];
-        
+
         for (int i = 0; i < nthreads; i++) {
           try {
             tables[i] = conn.getTable(hbaseTable);
@@ -372,7 +373,7 @@ public class Store extends Thread {
             // happens while talking to HBase, to get a chance to re-read data from the
             // previous snapshot).
             //
-            
+
             Properties props = new Properties();
             
             // Load explicit configuration 
@@ -401,6 +402,7 @@ public class Store extends Thread {
             // This is VERY important, offset MUST be reset to 'earliest' so we get a chance to store as many datapoints
             // as we can when the lag gets beyond the history Kafka maintains.
             //
+
             props.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
             props.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArrayDeserializer");
             props.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArrayDeserializer");
@@ -411,31 +413,31 @@ public class Store extends Thread {
             self.barrier = new CyclicBarrier(nthreads + 1);
             
             executor = Executors.newFixedThreadPool(nthreads);
-    
+
             if (nthreadsDelete > 0) {
               deleteExecutor = new ThreadPoolExecutor(nthreadsDelete, nthreadsDelete, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(1), new CustomThreadFactory("Warp Store Thread"));
             }
-            
+
             //
             // Reset deletion counters
             //
-            
+
             inflightDeletions = new AtomicInteger(0);
             deletionErrors = new AtomicInteger(0);
-                                    
+
             //
             // now create runnables which will consume messages
             // We reset the counters when we re-allocate the consumers
             //
-            
+
             counters.reset();
-                        
+
             int idx = 0;
-            
+
             //
             // Wait until HBase has been reset if need be
             //
-            
+
             while(self.connReset.get()) {
               LockSupport.parkNanos(100000L);
             }
@@ -444,14 +446,14 @@ public class Store extends Thread {
               if (null != consumers[idx] && consumers[idx].getHBaseReset()) {
                 try {
                   tables[idx].close();
-                } catch (Throwable t) {    
+                } catch (Throwable t) {
                   LOG.error("Caught throwable while closing HBase table.", t);
                 }
                 try {
                   tables[idx] = conn.getTable(hbaseTable);
                 } catch (Throwable t) {
                   LOG.error("Caught throwable while getting new HBase connection.", t);
-                  // Force connection reset 
+                  // Force connection reset
                   connReset.set(true);
                   throw new RuntimeException(t);
                 }
@@ -461,10 +463,10 @@ public class Store extends Thread {
               consumers[idx] = new StoreConsumer(tables[idx], self, kconsumers[i], counters);
               executor.submit(consumers[idx]);
               idx++;
-            }      
-                
+            }
+
             long lastBarrierSync = System.currentTimeMillis();
-            
+
             while(!abort.get() && !Thread.currentThread().isInterrupted()) {
               try {
                 if (nthreads == barrier.getNumberWaiting()) {
@@ -473,17 +475,17 @@ public class Store extends Thread {
                   // an exception was thrown when flushing the commits just before
                   // entering the barrier
                   //
-                    
+
                   if (abort.get()) {
                     break;
                   }
-                   
+
                   //
                   // All processing threads are waiting on the barrier, this means we can flush the offsets because
                   // they have all processed data successfully for the given activity period and none is currently calling
                   // KafkaConsumer.poll
                   //
-                    
+
                   // Commit offsets
                   
                   for (KafkaConsumer kconsumer: kconsumers) {
@@ -492,7 +494,7 @@ public class Store extends Thread {
                   
                   counters.sensisionPublish();
                   Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_KAFKA_COMMITS, Sensision.EMPTY_LABELS, 1);
-                  
+
                   // Release the waiting threads
                   try {
                     if (LOG.isDebugEnabled()) {
@@ -519,12 +521,12 @@ public class Store extends Thread {
                     consumers[i].setHBaseReset(true);
                   }
                   abort.set(true);
-                }                
+                }
               } catch (Throwable t) {
                 LOG.error("", t);
                 abort.set(true);
               }
-              
+
               LockSupport.parkNanos(1000000L);
             }
 
@@ -535,7 +537,7 @@ public class Store extends Thread {
             if (LOG.isDebugEnabled()) {
               LOG.debug("Spawner reinitializing.");
             }
-            
+
             //
             // We exited the loop, this means one of the threads triggered an abort,
             // we will shut down the executor and shut down the connector to start over.
@@ -564,7 +566,7 @@ public class Store extends Thread {
                   while(consumer.getSynchronizer().isAlive()) {
                     consumer.getSynchronizer().interrupt();
                     LockSupport.parkNanos(100000000L);
-                  }   
+                  }
                   //
                   // We need to shut down the executor prior to waiting for the
                   // consumer threads to die, otherwise they will never die!
@@ -574,44 +576,44 @@ public class Store extends Thread {
                     consumer.getConsumerThread().interrupt();
                     LockSupport.parkNanos(100000000L);
                   }
-                  
+
                   //
                   // Force shutdown of deletion executor
                   //
                   if (null != deleteExecutor) {
                     deleteExecutor.shutdownNow();
-                    
+
                     //
                     // Wait for the pending deletions to terminate
                     //
                     while(inflightDeletions.get() > 0) {
                       LockSupport.parkNanos(10000000L);
-                    }                    
+                    }
                   }
-                }                
+                }
               } catch (Exception e) {
                 LOG.error("Error while closing executor", e);
               }
             }
-            
+
             //
             // Reset barrier
             //
-            
+
             if (null != barrier) {
               if (LOG.isDebugEnabled()) {
                 LOG.debug("Resetting barrier.");
               }
               barrier.reset();
             }
-            
+
             if (LOG.isDebugEnabled()) {
               LOG.debug("Increasing generation.");
             }
             generation++;
-            
+
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_ABORTS, Sensision.EMPTY_LABELS, 1);
-            
+
             abort.set(false);
 
             LockSupport.parkNanos(100000000L);
@@ -619,88 +621,88 @@ public class Store extends Thread {
         }
       }
     });
-    
+
     t.setName("[Continuum Store Spawner " + this.uuid + "]");
     t.setDaemon(true);
     t.start();
-    
+
     this.setName("[Continuum Store " + this.uuid + "]");
     this.setDaemon(true);
     this.start();
   }
-  
+
   @Override
   public void run() {
 
-    while (true){      
+    while (true){
       LockSupport.parkNanos(500000000L);
-      
+
       if (!this.connReset.get()) {
         continue;
       }
-      
+
       if (null != this.conn) {
         try {
           this.conn.close();
-          
+
           //
           // Wait for the connection to be closed
           //
-          
+
           long nano = System.nanoTime();
-          
+
           int loop = 0;
-          
+
           LOG.info("Closing HBase connection.");
-          
+
           while(!this.conn.isClosed() && !this.conn.isAborted()) {
             LockSupport.parkNanos(100000000L);
             loop++;
-            
+
             if (0 == loop % 10) {
               LOG.info("Still waiting for HBase connection to be closed... " + ((System.nanoTime() - nano) / 1000000.0D) + " ms elapsed.");
             }
           }
-          
+
           nano = System.nanoTime() - nano;
-          
+
           LOG.info("HBase connection closed after " + (nano / 1000000.0D) + " ms.");
-        } catch (Exception e) {        
-        }        
+        } catch (Exception e) {
+        }
       }
-      
+
       try {
         this.conn = getHBaseConnection(this.properties);
       } catch (Exception e) {
         this.conn = null;
       }
-      
+
       if (null != this.conn) {
         this.connReset.set(false);
       }
-      
+
       //ConnectionHelper.clearMetaCache(this.conn);
 
 //      //
 //      // Regenerate the HBase connection
 //      //
-//      
+//
 //      Connection newconn = null;
 //      Connection oldconn = this.conn;
-//      
+//
 //      try {
 //        newconn = ConnectionFactory.createConnection(this.config);
 //      } catch (IOException ioe) {
 //        LOG.error("Error while creating HBase connection.", ioe);
 //        continue;
 //      }
-//      
+//
 //      if (null != newconn) {
 //        this.conn = newconn;
 //      } else {
 //        continue;
 //      }
-//      
+//
 //      try {
 //        if (null != oldconn) {
 //          oldconn.close();
@@ -708,11 +710,11 @@ public class Store extends Thread {
 //      } catch (IOException ioe) {
 //        LOG.error("Error closing previous HBase connection.", ioe);
 //      }
-      
+
       Sensision.update(SensisionConstants.CLASS_WARP_STORE_HBASE_CONN_RESETS, Sensision.EMPTY_LABELS, 1);
     }
   }
-  
+
   private static class StoreConsumer implements Runnable {
 
     private boolean resetHBase = false;
@@ -723,7 +725,7 @@ public class Store extends Thread {
     private Table table = null;
     private final AtomicLong lastPut = new AtomicLong(0L);
     private final List<Put> puts;
-    
+
     /**
      * Lock for protecting the access to the 'puts' list.
      * This lock is also used to mutex the synchronization and the processing of
@@ -735,14 +737,14 @@ public class Store extends Thread {
      * lesser performance.
      */
     private final ReentrantLock putslock = new ReentrantLock(true);
-    
+
     private final AtomicLong putsSize = new AtomicLong(0L);
     private final AtomicBoolean localabort = new AtomicBoolean(false);
     private final AtomicBoolean forcecommit = new AtomicBoolean(false);
     private final Semaphore flushsem = new Semaphore(0);
     private final KafkaOffsetCounters counters;
-    
-    private Thread synchronizer = null;    
+
+    private Thread synchronizer = null;
 
     // Indicates there is a message currently being processed
     final AtomicBoolean inflightMessage = new AtomicBoolean(false);
@@ -759,53 +761,53 @@ public class Store extends Thread {
       this.table = table;
       this.hbaseAESKey = store.keystore.getKey(KeyStore.AES_HBASE_DATA);
     }
-    
+
     private Thread getSynchronizer() {
       return this.synchronizer;
     }
-    
+
     private Thread getConsumerThread() {
       return Thread.currentThread();
     }
-    
+
     private boolean isDone() {
       return this.done;
     }
-    
+
     private boolean getHBaseReset() {
       return this.resetHBase;
     }
-    
+
     private void setHBaseReset(boolean reset) {
       this.resetHBase = reset;
     }
-    
+
     @Override
     public void run() {
-      
+
       Thread.currentThread().setName("[Store Consumer - gen " + this.store.uuid + "/" + store.generation + "]");
 
       long count = 0L;
-            
+
       try {
         byte[] siphashKey = store.keystore.getKey(KeyStore.SIPHASH_KAFKA_DATA);
         byte[] aesKey = store.keystore.getKey(KeyStore.AES_KAFKA_DATA);
-        
+
         final Table ht = table;
-        
+
         //
         // AtomicLong with the timestamp of the last Put or 0 if
         // none were added since the last flush
         //
-        
+
         final StoreConsumer self = this;
-        
+
         //
         // Start the synchronization Thread. There is one such thread per Store instance
         //
-        
+
         final CyclicBarrier ourbarrier = store.barrier;
-                
+
         synchronizer = new Thread(new Runnable() {
           @Override
           public void run() {
@@ -834,7 +836,7 @@ public class Store extends Thread {
                   //
                   // We synchronize on 'puts' so the main Thread does not add Puts to ht
                   //
-                  
+
                   try {
                     putslock.lockInterruptibly();
                     
@@ -887,7 +889,7 @@ public class Store extends Thread {
                           }                            
                         }
                       }
-                      
+
                       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_PUTS_COMMITTED, Sensision.EMPTY_LABELS, puts.size());
 
                       puts.clear();
@@ -905,12 +907,13 @@ public class Store extends Thread {
                       // If an exception is thrown, abort
                       store.abort.set(true);
                       LOG.error("Received InterruptedException", ie);
-                      return;                    
+                      return;
                     } catch (Throwable t) {
                       if (t.getCause() instanceof RejectedExecutionException) {
                         store.connReset.set(true);
                       }
                       // Clear list of Puts
+                      int nputs = puts.size();
                       puts.clear();
                       putsSize.set(0L);
                       // If an exception is thrown, abort
@@ -1053,9 +1056,9 @@ public class Store extends Thread {
               //if (null != ht) {
               //  try {
               //    ht.close();
-              //  } catch (Exception e) {                  
+              //  } catch (Exception e) {
               // }
-              //} 
+              //}
               if (LOG.isDebugEnabled()) {
                 LOG.debug("Synchronizer done.");
               }
@@ -1122,23 +1125,23 @@ public class Store extends Thread {
             //
             // If throttling is defined, check if we should consume this message
             //
-            
+
             if (null != store.rateLimit) {
               double rand = Math.random();
-              
+
               if (rand >= store.rateLimit) {
                 // Wait 1us and continue
                 LockSupport.parkNanos(store.throttlingDelay);
                 continue;
               }
             }
-            
+
             //
             // Indicate we have a message currently being processed.
             // We change the value of the flag while holding putsLock so we know
             // we are not currently synchronizing.
             //
-            
+
             try {
               putslock.lockInterruptibly();
               // Continue the loop if we need to synchronize
@@ -1160,11 +1163,11 @@ public class Store extends Thread {
                 putslock.unlock();
               }
             }
-            
+
             //
             // Synchronize with the synchronizer so we know the committed offsets will only include the processed messages
             //
-            
+
             count++;
             self.counters.count(record.partition(), record.offset());
             
@@ -1172,43 +1175,43 @@ public class Store extends Thread {
 
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_KAFKA_COUNT, Sensision.EMPTY_LABELS, 1);
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_KAFKA_BYTES, Sensision.EMPTY_LABELS, data.length);
-            
+
             if (null != siphashKey) {
               data = CryptoUtils.removeMAC(siphashKey, data);
             }
-            
+
             // Skip data whose MAC was not verified successfully
             if (null == data) {
               Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_KAFKA_FAILEDMACS, Sensision.EMPTY_LABELS, 1);
               // TODO(hbs): increment Sensision metric
               continue;
             }
-            
+
             // Unwrap data if need be
             if (null != aesKey) {
               data = CryptoUtils.unwrap(aesKey, data);
             }
-            
+
             // Skip data that was not unwrapped successfuly
             if (null == data) {
               Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_KAFKA_FAILEDDECRYPTS, Sensision.EMPTY_LABELS, 1);
               // TODO(hbs): increment Sensision metric
               continue;
             }
-            
+
             //
             // Extract KafkaDataMessage
             //
-            
+
             KafkaDataMessage tmsg = new KafkaDataMessage();
             deserializer.deserialize(tmsg, data);
-            
+
             switch(tmsg.getType()) {
               case STORE:
-                handleStore(ht, tmsg);              
+                handleStore(ht, tmsg);
                 break;
               case DELETE:
-                handleDelete(ht, tmsg);              
+                handleDelete(ht, tmsg);
                 break;
               default:
                 throw new RuntimeException("Invalid message type.");
@@ -1248,55 +1251,55 @@ public class Store extends Thread {
         //}
       }
     }
-    
+
     private boolean resetInflight() {
       inflightMessage.set(false);
       return true;
     }
-    
+
     private void handleStore(Table ht, KafkaDataMessage msg) throws IOException {
-      
+
       if (KafkaDataMessageType.STORE != msg.getType()) {
         return;
       }
-      
+
       // Skip if there are no data to decode
       if (null == msg.getData() || 0 == msg.getData().length) {
         return;
       }
-            
+
       //
       // Create a GTSDecoder with the given readings (@see Ingress.java for the packed format)
       //
-      
+
       GTSDecoder decoder = new GTSDecoder(0L, ByteBuffer.wrap(msg.getData()));
-      
+
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_GTSDECODERS,  Sensision.EMPTY_LABELS, 1);
-      
+
       long datapoints = 0L;
-      
+
       //
       // Extract message attributes
       //
-      
+
       long ttl = -1L;
       boolean useDatapointTs = false;
-      
+
       if (msg.getAttributesSize() > 0) {
         ttl = Long.parseLong(msg.getAttributes().getOrDefault(Constants.STORE_ATTR_TTL, Long.toString(ttl)));
         String attr = msg.getAttributes().get(Constants.STORE_ATTR_USEDATAPOINTTS);
-        useDatapointTs = "true".equals(attr) || "t".equals(attr);       
+        useDatapointTs = "true".equals(attr) || "t".equals(attr);
       }
-      
+
       // We will store each reading separately, this makes readings storage idempotent
       // If BLOCK_ENCODING is enabled, prefix encoding will be used to shrink column qualifiers
-      
+
       while(decoder.next()) {
         // FIXME(hbs): allow for encrypting readings
         long basets = decoder.getTimestamp();
         GTSEncoder encoder = new GTSEncoder(basets, hbaseAESKey);
         encoder.addValue(basets, decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue());
-        
+
         // Prefix + classId + labelsId + timestamp
         // 128 bits
         byte[] rowkey = new byte[Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
@@ -1308,11 +1311,11 @@ public class Store extends Thread {
         // Copy timestamp % DEFAULT_MODULUS
         // It could be useful to have per GTS modulus BUT we don't do lookups for metadata, so we can't access a per GTS
         // modulus.... This means we will use the default.
-        
+
         Put put = null;
 
         byte[] bytes = encoder.getBytes();
-        
+
         if (1 == Constants.DEFAULT_MODULUS) {
           System.arraycopy(Longs.toByteArray(Long.MAX_VALUE - basets), 0, rowkey, Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 16, 8);
           put = new Put(rowkey);
@@ -1326,7 +1329,7 @@ public class Store extends Thread {
           } else {
             put.addColumn(store.colfam, null, bytes);
           }
-          
+
           // Force the ttl if set
           if (-1L != ttl) {
             put.setTTL(ttl);
@@ -1346,10 +1349,10 @@ public class Store extends Thread {
           //
           put.addColumn(store.colfam, Longs.toByteArray(Long.MAX_VALUE - basets), bytes);
         }
-                
+
         try {
           putslock.lockInterruptibly();
-          
+
           //
           // Wait until all deletions have finished.
           // This is kinda overkill since we wait for all deletions
@@ -1357,7 +1360,7 @@ public class Store extends Thread {
           // and pragmatism since we will wait anyway for all deletions to
           // complete before batching mutations to HBase.
           //
-          
+
           while(store.inflightDeletions.get() > 0) {
             LockSupport.parkNanos(10000000L);
           }
@@ -1365,7 +1368,7 @@ public class Store extends Thread {
           puts.add(put);
           datapoints++;
           // We should use put.heapSize()
-          putsSize.addAndGet(bytes.length);          
+          putsSize.addAndGet(bytes.length);
           lastPut.set(System.currentTimeMillis());
         } catch (InterruptedException ie) {
           localabort.set(true);
@@ -1376,19 +1379,19 @@ public class Store extends Thread {
           }
         }
 //        synchronized (puts) {
-//        }                
+//        }
       }
-      
+
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_PUTS, Sensision.EMPTY_LABELS, datapoints);
 
     }
-    
+
     private void handleDelete(Table ht, final KafkaDataMessage msg) throws Throwable {
-      
+
       if (KafkaDataMessageType.DELETE != msg.getType()) {
         return;
       }
-      
+
       if (1 != Constants.DEFAULT_MODULUS) {
         throw new IOException("Delete not implemented for modulus != 1");
       }
@@ -1425,7 +1428,7 @@ public class Store extends Thread {
       //
       // @see <a href="https://hbase.apache.org/apidocs/org/apache/hadoop/hbase/coprocessor/example/BulkDeleteEndpoint.html">https://hbase.apache.org/apidocs/org/apache/hadoop/hbase/coprocessor/example/BulkDeleteEndpoint.html</a>
       //
-      
+
       //
       // The Coprocessor MUST be declared on each RegionServer using the following property in the configuration file:
       //
@@ -1454,7 +1457,7 @@ public class Store extends Thread {
 
       long start = msg.getDeletionStartTimestamp();
       long end = msg.getDeletionEndTimestamp();
-      
+
       byte[] startkey = Arrays.copyOf(rowkey, rowkey.length);
       // Endkey is one extra byte long so we include the most ancient ts in the deletion
       byte[] endkey = Arrays.copyOf(rowkey, rowkey.length + 1);
@@ -1467,7 +1470,7 @@ public class Store extends Thread {
         System.arraycopy(Longs.toByteArray(Long.MAX_VALUE - end), 0, startkey, Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8, 8);
         System.arraycopy(Longs.toByteArray(Long.MAX_VALUE - start), 0, endkey, Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8, 8);
       }
-      
+
       scan.setStartRow(startkey);
       scan.setStopRow(endkey);
       scan.setMaxVersions();
@@ -1475,27 +1478,27 @@ public class Store extends Thread {
       // Set 'raw' to true so we correctly delete the cells still in memstore.
       //
       scan.setRaw(true);
-      
+
       //
       // Do not pollute the block cache
       //
       scan.setCacheBlocks(false);
-      
+
       final long minage = msg.getDeletionMinAge();
-      
+
       //
       // Add a timestamp range if 'minage' is > 0
       //
-      
+
       if (minage > 0) {
         long maxts = System.currentTimeMillis() - minage + 1;
         scan.setTimeRange(0, maxts);
       }
-      
+
       //
       // Call the Coprocessor endpoint on each RegionServer
       //
-      
+
       final AtomicBoolean error = new AtomicBoolean(false);
 
       final Batch.Call<BulkDeleteService, BulkDeleteResponse> callable;
@@ -1540,7 +1543,7 @@ public class Store extends Thread {
           store.inflightDeletions.addAndGet(1);
 
           long nano = System.nanoTime();
-          
+
           try {
             long noOfDeletedRows = 0L;
             long noOfDeletedVersions = 0L;
@@ -1585,11 +1588,11 @@ public class Store extends Thread {
                 noOfDeletedVersions += size;
               }
             }
-            
+
             //
             // Update Sensision metrics for deletion
             //
-            
+
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_TIME_NANOS, Sensision.EMPTY_LABELS, nano);
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_OPS, Sensision.EMPTY_LABELS, 1);
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_REGIONS, Sensision.EMPTY_LABELS, noOfRegions);
@@ -1601,7 +1604,7 @@ public class Store extends Thread {
               labels.put(SensisionConstants.SENSISION_LABEL_OWNER, meta.getLabels().get(Constants.OWNER_LABEL));
               labels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, meta.getLabels().get(Constants.APPLICATION_LABEL));
               Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_DATAPOINTS_PEROWNERAPP, labels, noOfDeletedVersions);
-            }            
+            }
           } catch (Throwable t) {
             LOG.error("Error while processing delete request", t);
             if (t instanceof Exception) {
@@ -1635,7 +1638,7 @@ public class Store extends Thread {
             try {
               store.deleteExecutor.submit(deleteCallable);
               submitted = true;
-            } catch (RejectedExecutionException ree) {              
+            } catch (RejectedExecutionException ree) {
             }
           }
         } finally {
@@ -1651,7 +1654,7 @@ public class Store extends Thread {
         // it is > 0
         //
         try {
-          putslock.lockInterruptibly();          
+          putslock.lockInterruptibly();
           store.inflightDeletions.addAndGet(1);
         } finally {
           if (putslock.isHeldByCurrentThread()) {
@@ -1670,11 +1673,11 @@ public class Store extends Thread {
       }
     }
   }
-  
-  
+
+
   /**
    * Extract Store related keys and populate the KeyStore with them.
-   * 
+   *
    * @param props Properties from which to extract the key specs
    */
   private void extractKeys(Properties props) {
@@ -1684,36 +1687,36 @@ public class Store extends Thread {
 
     this.keystore.forget();
   }
-  
+
   private static synchronized Connection getHBaseConnection(Properties properties) throws IOException {
-    
+
     //
     // Compute two SipHash of the properties which will be used as a key in the singleton map
     //
-    
+
     Map<String,String> props = new HashMap<String,String>();
-    
+
     for (Entry<Object,Object> prop: properties.entrySet()) {
       props.put(prop.getKey().toString(), prop.getValue().toString());
     }
-    
+
     long msb = GTSHelper.labelsId(0xAC1C573839114320L, 0x8638D30B3E5E3491L, props);
     long lsb = GTSHelper.labelsId(0xC4DFC7F5A82D4626L, 0x9AB1748AF5EC0C16L, props);
-    
+
     String uuid = new UUID(msb,lsb).toString();
-    
+
     Connection conn = connections.get(uuid);
-    
+
     if (null != conn && !conn.isClosed() && !conn.isAborted()) {
       return conn;
     } else {
       try { conn.close(); } catch (Throwable t) {}
     }
-    
+
     //
     // We need to create a new connection
     //
-    
+
     Configuration config = new Configuration();
     
     for (Entry<Object,Object> entry: io.warp10.continuum.Configuration.extractPrefixed(properties, properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_CONF_PREFIX)).entrySet()) {
@@ -1740,7 +1743,7 @@ public class Store extends Thread {
     if (properties.containsKey(io.warp10.continuum.Configuration.STORE_HBASE_CLIENT_IPC_POOL_SIZE)) {
       config.set(HConstants.HBASE_CLIENT_IPC_POOL_SIZE, properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_CLIENT_IPC_POOL_SIZE));
     }
-    
+
     if (properties.containsKey(io.warp10.continuum.Configuration.STORE_HBASE_CLIENT_OPERATION_TIMEOUT)) {
       config.set(HConstants.HBASE_CLIENT_OPERATION_TIMEOUT, properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_CLIENT_OPERATION_TIMEOUT));
     }
@@ -1753,11 +1756,11 @@ public class Store extends Thread {
     if (properties.containsKey(io.warp10.continuum.Configuration.STORE_HBASE_CLIENT_PAUSE)) {
       config.set(HConstants.HBASE_CLIENT_PAUSE, properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_CLIENT_PAUSE));
     }
-    
+
     //
     // Handle additional HBase configurations
     //
-    
+
     if (properties.containsKey(io.warp10.continuum.Configuration.STORE_HBASE_CONFIG)) {
       String[] keys = properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_CONFIG).split(",");
       for (String key: keys) {
@@ -1767,11 +1770,11 @@ public class Store extends Thread {
         config.set(key, properties.getProperty("store." + key.trim()));
       }
     }
-    
+
     conn = ConnectionFactory.createConnection(config);
 
     connections.put(uuid,conn);
-    
+
     return conn;
   }
 }

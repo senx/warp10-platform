@@ -1,5 +1,5 @@
 //
-//   Copyright 2021  SenX S.A.S.
+//   Copyright 2021-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -19,7 +19,8 @@ package io.warp10.script.functions;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -32,7 +33,6 @@ import org.bouncycastle.jce.spec.ECParameterSpec;
 import org.bouncycastle.math.ec.ECPoint;
 import org.bouncycastle.util.Arrays;
 
-import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
@@ -44,6 +44,11 @@ import io.warp10.warp.sdk.Capabilities;
  */
 public class ECRECOVER extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
+  private static final String KEY_Q = "Q";
+  private static final String KEY_PUBKEY = "pubkey";
+  private static final String KEY_RX = "R.x";
+  private static final String KEY_RY = "R.y";
+
   private static final String KEY_R = "r";
   private static final String KEY_S = "s";
   private static final String KEY_I = "i";
@@ -51,6 +56,7 @@ public class ECRECOVER extends NamedWarpScriptFunction implements WarpScriptStac
   private static final String KEY_SIG = "sig";
   private static final String KEY_HASH = "hash";
   private static final String KEY_CURVE = "curve";
+  private static final String KEY_COORDS = "coords";
 
   private static final String CAP_COFACTOR = "ecc.h";
 
@@ -176,10 +182,10 @@ public class ECRECOVER extends NamedWarpScriptFunction implements WarpScriptStac
 
     if (params.get(KEY_I) instanceof Long) {
       minH = ((Long) params.get(KEY_I)).intValue();
-      maxH = minH + 1;
+      maxH = minH;
     }
 
-    if (maxH - minH > MAX_COFACTOR) {
+    if (maxH - minH + 1 > MAX_COFACTOR) {
       String hmaxCap = Capabilities.get(stack, CAP_COFACTOR);
       try {
         int hmax = Integer.valueOf(hmaxCap);
@@ -191,7 +197,7 @@ public class ECRECOVER extends NamedWarpScriptFunction implements WarpScriptStac
       }
     }
 
-    Set<String> candidates = new HashSet<String>();
+    Set<Object> candidates = new LinkedHashSet<Object>();
 
     int mintype = 0x02;
     int maxtype = 0x03;
@@ -206,7 +212,9 @@ public class ECRECOVER extends NamedWarpScriptFunction implements WarpScriptStac
       }
     }
 
-    for (int j = minH; j < maxH; j++) {
+    boolean coords = Boolean.TRUE.equals(params.get(KEY_COORDS));
+
+    for (int j = minH; j <= maxH; j++) {
       // Iterate over the type of encoded points 0x02 and 0x03
       // 0x02 is for even key
       // 0x03 is for odd key
@@ -239,11 +247,29 @@ public class ECRECOVER extends NamedWarpScriptFunction implements WarpScriptStac
 
           // 𝑟−1(𝑠𝑅−𝑧𝐺)
           final ECPoint Q1 = R.multiply(s).subtract(spec.getG().multiply(z)).multiply(rinv).normalize();
-          candidates.add(new String(Q1.getEncoded(false), StandardCharsets.ISO_8859_1));
+
+          if (coords) {
+            Map<Object,Object> candidate = new LinkedHashMap<Object,Object>(3);
+            candidate.put(KEY_Q, new String(Q1.getEncoded(false), StandardCharsets.ISO_8859_1));
+            candidate.put(KEY_RX, "0x" + R.getXCoord().toBigInteger().toString(16));
+            candidate.put(KEY_RY, "0x" + R.getYCoord().toBigInteger().toString(16));
+            candidates.add(candidate);
+          } else {
+            candidates.add(new String(Q1.getEncoded(false), StandardCharsets.ISO_8859_1));
+          }
 
           // 𝑟−1(𝑠𝑅′−𝑧𝐺)
           final ECPoint Q2 = Rprime.multiply(s).subtract(spec.getG().multiply(z)).multiply(rinv).normalize();
-          candidates.add(new String(Q2.getEncoded(false), StandardCharsets.ISO_8859_1));
+
+          if (coords) {
+            Map<Object,Object> candidate = new LinkedHashMap<Object,Object>(3);
+            candidate.put(KEY_Q, new String(Q2.getEncoded(false), StandardCharsets.ISO_8859_1));
+            candidate.put(KEY_RX, "0x" + Rprime.getXCoord().toBigInteger().toString(16));
+            candidate.put(KEY_RY, "0x" + Rprime.getYCoord().toBigInteger().toString(16));
+            candidates.add(candidate);
+          } else {
+            candidates.add(new String(Q2.getEncoded(false), StandardCharsets.ISO_8859_1));
+          }
         } catch (IllegalArgumentException iae) {
           // May be thrown when x is not valid
           continue;
@@ -256,16 +282,33 @@ public class ECRECOVER extends NamedWarpScriptFunction implements WarpScriptStac
 
     List<Object> keys = new ArrayList<Object>(candidates.size());
 
-    for (String qstr: candidates) {
+    for (Object candidate: candidates) {
+
+      String qstr;
+
+      if (coords) {
+        qstr = (String) ((Map<Object,Object>) candidate).remove(KEY_Q);
+      } else {
+        qstr = (String) candidate;
+      }
+
       byte[] encoded = qstr.getBytes(StandardCharsets.ISO_8859_1);
       ECPoint Q = spec.getCurve().decodePoint(encoded);
-      keys.add(new ECPublicKey() {
+
+      ECPublicKey pk = new ECPublicKey() {
         public String getFormat() { return "PKCS#8"; }
         public byte[] getEncoded() { return encoded; }
         public String getAlgorithm() { return "EC"; }
         public ECPoint getQ() { return Q; }
         public ECParameterSpec getParameters() { return spec; }
-      });
+      };
+
+      if (coords) {
+        ((Map<Object,Object>) candidate).put(KEY_PUBKEY, pk);
+        keys.add(candidate);
+      } else {
+        keys.add(pk);
+      }
     }
 
     stack.push(keys);

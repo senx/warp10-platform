@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -29,12 +29,14 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
+import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Properties;
@@ -48,6 +50,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPOutputStream;
@@ -334,6 +337,15 @@ public class ScriptRunner extends Thread {
     this.id = config.getProperty(Configuration.RUNNER_ID);
   }
 
+  /**
+   * When a script is removed from disk, call this function to remove the attached context.
+   * This is not applicable for distributed scheduler, as it cannot store context for one script.
+   *
+   * @param scriptName
+   */
+  protected void removeRunnerContext(String scriptName) {
+  }
+  
   @Override
   public void run() {
 
@@ -381,7 +393,7 @@ public class ScriptRunner extends Thread {
       if (now - lastscan > this.scanperiod * 1000000L) {
         Map<String, Long> newscripts = scanSuperRoot(this.root);
 
-        Set<String> currentScripts = scripts.keySet();
+        Set<String> currentScripts = new HashSet<String>(scripts.keySet()); // copy object
         scripts.clear();
         scripts.putAll(newscripts);
 
@@ -392,6 +404,7 @@ public class ScriptRunner extends Thread {
         for (String prevscript: currentScripts) {
           if (!scripts.containsKey(prevscript)) {
             nextrun.remove(prevscript);
+            removeRunnerContext(prevscript);
           }
         }
 
@@ -830,12 +843,23 @@ public class ScriptRunner extends Thread {
           continue;
         }
 
-        try (DirectoryStream<Path> subpathes = Files.newDirectoryStream(f.toPath(), "*.mc2")) {
-          for (Path subpath: subpathes) {
-            File script = subpath.toFile();
-            scripts.put(script.getAbsolutePath(), period);
-          }
-        } catch (IOException ioe) {
+        Iterator<Path> iter = null;
+        try {
+          iter = Files.walk(f.toPath(), FileVisitOption.FOLLOW_LINKS)
+              //.filter(path -> path.toString().endsWith(".mc2"))
+              .filter(new Predicate<Path>() {
+                @Override
+                public boolean test(Path t) {
+                  return t.toString().endsWith(".mc2");
+                }
+              })
+              .iterator();
+        } catch (IOException e) {
+        }
+
+        while (null != iter && iter.hasNext()) {
+          Path p = iter.next();
+          scripts.put(p.toString(), period);
         }
       }
 

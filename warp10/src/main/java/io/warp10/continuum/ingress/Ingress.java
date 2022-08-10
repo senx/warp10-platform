@@ -1591,6 +1591,17 @@ public class Ingress extends AbstractHandler implements Runnable {
         throw new IOException("Invalid time range specification.");
       }
 
+      long gskip = 0L;
+      long gcount = Long.MAX_VALUE;
+
+      if (null != request.getParameter(Constants.HTTP_PARAM_GSKIP)) {
+        gskip = Long.parseLong(request.getParameter(Constants.HTTP_PARAM_GSKIP));
+      }
+
+      if (null != request.getParameter(Constants.HTTP_PARAM_GCOUNT)) {
+        gcount = Long.parseLong(request.getParameter(Constants.HTTP_PARAM_GCOUNT));
+      }
+
       //
       // Extract selector
       //
@@ -1687,7 +1698,18 @@ public class Ingress extends AbstractHandler implements Runnable {
 
         try (MetadataIterator iterator = directoryClient.iterator(drequest)) {
           while(iterator.hasNext()) {
+            if (gcount <= 0) {
+              break;
+            }
+
             Metadata metadata = iterator.next();
+
+            if (gskip > 0) {
+              gskip--;
+              continue;
+            }
+
+            gcount--;
 
             try {
               byte[] bytes = serializer.serialize(metadata);
@@ -1879,7 +1901,18 @@ public class Ingress extends AbstractHandler implements Runnable {
 
         try (MetadataIterator iterator = directoryClient.iterator(drequest)) {
           while(iterator.hasNext()) {
+            if (gcount <= 0) {
+              break;
+            }
+
             Metadata metadata = iterator.next();
+
+            if (gskip > 0) {
+              gskip--;
+              continue;
+            }
+
+            gcount--;
 
             if (!dryrun) {
               if (null != this.plugin) {

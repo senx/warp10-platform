@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import io.warp10.continuum.TimeSource;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
@@ -33,84 +32,84 @@ import io.warp10.script.WarpScriptStackFunction;
  * so as to minimize backtracking.
  */
 public class REOPTALT extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   public REOPTALT(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
-    
+
     if (!(top instanceof List)) {
       throw new WarpScriptException(getName() + " expects a list of strings on top of the stack.");
     }
-    
+
     List<String> alternatives = new ArrayList<String>();
-    
+
     for (Object o: (List) top) {
       alternatives.add(String.valueOf(o));
     }
-    
+
     stack.push(buildOptAlt(alternatives));
     return stack;
   }
-  
+
   private static final String buildOptAlt(List<String> alternatives) {
-    
+
     if (alternatives.isEmpty()) {
       return "";
     } else if (alternatives.size() == 1) {
       return alternatives.get(0);
     }
-    
+
     //
     // Make sure we do not have duplicates
     //
-    
+
     Set<String> uniques = new HashSet<String>(alternatives);
-    
+
     boolean hasEmpty = uniques.remove("");
-    
+
     if (uniques.isEmpty()) {
       return "";
     }
-    
+
     alternatives = new ArrayList<String>(uniques);
-    
+
     //
     // Sort the strings
     //
-    
+
     Collections.sort(alternatives);
-    
+
     //
     // Now extract the maximum prefix length, i.e. the one that produces prefixes with the same cardinality
     // as the previous length (i.e. -1)
     //
-    
+
     int len = 1;
-    
+
     int prevcard = Integer.MAX_VALUE;
     int cardinality = 0;
-    
+
     int minlen = alternatives.get(0).length();
-    
-    while(cardinality <= prevcard && len <= minlen) {      
+
+    while(cardinality <= prevcard && len <= minlen) {
       cardinality = 1;
       int idx = 1;
-      
+
       while(idx < alternatives.size() && cardinality <= prevcard) {
         String previous = alternatives.get(idx - 1);
         String current = alternatives.get(idx);
-    
+
         if (1 == len) {
           int mlen = current.length();
           if (mlen < minlen) {
             minlen = mlen;
           }
         }
-        
+
         for (int i = 0; i < len; i++) {
           // If one character is different
           if (previous.charAt(i) != current.charAt(i)) {
@@ -120,7 +119,7 @@ public class REOPTALT extends NamedWarpScriptFunction implements WarpScriptStack
         }
         idx++;
       }
-      
+
       if (cardinality <= prevcard) {
         prevcard = cardinality;
         len++;
@@ -129,29 +128,29 @@ public class REOPTALT extends NamedWarpScriptFunction implements WarpScriptStack
         // While loop will end because cardinality > prevcard
       }
     }
-    
+
     if (len > minlen) {
       len = minlen;
     }
 
     // len now contains the prefix len which minimizes the cardinality
-    
+
     StringBuilder regexp = new StringBuilder("(");
-    
+
     if (hasEmpty) {
-      regexp.append("|");          
+      regexp.append("|");
     }
-    
+
     String prefix = alternatives.get(0).substring(0, len);
-    
+
     int idx = 0;
     int nprefixes = 0;
-    
+
     Set<String> suffixes = new HashSet<String>();
-    
+
     while(idx < alternatives.size()) {
       String alternative = alternatives.get(idx);
-      
+
       if (alternative.startsWith(prefix)) {
         suffixes.add(alternative.substring(len));
       } else {
@@ -162,13 +161,13 @@ public class REOPTALT extends NamedWarpScriptFunction implements WarpScriptStack
         regexp.append(escape(prefix));
         // add the subregexp
         List<String> subalts = new ArrayList<String>(suffixes);
-        
+
         //
         // Check if all suffixes are of the same size and share a common end
         //
-        
+
         int length = -1;
-        
+
         if (subalts.size() > 1) {
           for (String suffix: subalts) {
             if (-1 == length) {
@@ -178,53 +177,53 @@ public class REOPTALT extends NamedWarpScriptFunction implements WarpScriptStack
               length = -1;
               break;
             }
-          }      
+          }
         }
-        
+
         String end = "";
 
         int endlen = 0;
 
         if (-1 != length) {
           endlen = length - 1;
-          
+
           boolean done = false;
-          
+
           while (!done && endlen > 0) {
             end = subalts.get(0).substring(length - endlen);
-            
+
             done = true;
-            
+
             for (String suffix: subalts) {
               if (!suffix.endsWith(end)) {
                 done = false;
                 break;
               }
             }
-            
+
             if (!done) {
               endlen--;
             }
           }
-          
+
           //
           // Shorten all alternatives by the length of their common suffix
           //
-          
+
           if (endlen > 0) {
             for (int i = 0; i < subalts.size(); i++) {
               String subalt = subalts.get(i);
               subalts.set(i, subalt.substring(0, subalt.length() - endlen));
-            }        
+            }
           }
         }
-        
+
         regexp.append(buildOptAlt(subalts));
-        
+
         if (endlen > 0) {
           regexp.append(end);
         }
-        
+
         suffixes.clear();
         suffixes.add(alternative.substring(len));
         // Change the prefix
@@ -240,13 +239,13 @@ public class REOPTALT extends NamedWarpScriptFunction implements WarpScriptStack
     regexp.append(escape(prefix));
     // add the subregexp
     List<String> subalts = new ArrayList<String>(suffixes);
-    
+
     //
     // Check if all suffixes are of the same size and share a common end
     //
-    
+
     int length = -1;
-    
+
     if (subalts.size() > 1) {
       for (String suffix: subalts) {
         if (-1 == length) {
@@ -256,70 +255,76 @@ public class REOPTALT extends NamedWarpScriptFunction implements WarpScriptStack
           length = -1;
           break;
         }
-      }      
+      }
     }
-    
+
     String end = "";
 
     int endlen = 0;
 
     if (-1 != length) {
       endlen = length - 1;
-      
+
       boolean done = false;
-      
+
       while (!done && endlen > 0) {
         end = subalts.get(0).substring(length - endlen);
-        
+
         done = true;
-        
+
         for (String suffix: subalts) {
           if (!suffix.endsWith(end)) {
             done = false;
             break;
           }
         }
-        
+
         if (!done) {
           endlen--;
         }
       }
-      
+
       //
       // Shorten all alternatives by the length of their common suffix
       //
-      
+
       if (endlen > 0) {
         for (int i = 0; i < subalts.size(); i++) {
           String subalt = subalts.get(i);
           subalts.set(i, subalt.substring(0, subalt.length() - endlen));
-        }        
+        }
       }
     }
-    
+
     regexp.append(buildOptAlt(subalts));
     if (endlen > 0) {
       regexp.append(end);
     }
     regexp.append(")");
-      
+
 
     //
     // Check if the regexp if of the form (x|y|z|...) where each alternative is a single
     // char, if it is the case, replace this by [xyz...]
     //
-    
-    // Count the number of '|'
-    int count = 0;
-    for (int i = 0; i < regexp.length(); i++) {
+
+    boolean valid = true;
+    // Expected number of '|' if the regexp is similar to (x|y|z)
+    int count = (regexp.length() - 2 - 1) / 2;
+    for (int i = 1; i < regexp.length() - 1; i++) {
       if ('|' ==  regexp.charAt(i)) {
-        count++;
+        count--;
+        // The '|' should be on even indices
+        if (i % 2 != 0) {
+          valid = false;
+          break;
+        }
       }
     }
-    
+
     // If the regexp is of the right shape AND does not contain '-' as an alternative,
     // rewrite it
-    if (regexp.length() - 2 == count + count + 1 && -1 == regexp.indexOf("-")) {
+    if (valid && 0 == count && -1 == regexp.indexOf("-")) {
       regexp.deleteCharAt(0);
       regexp.deleteCharAt(regexp.length() - 1);
       while(regexp.indexOf("|") >= 0) {
@@ -328,10 +333,10 @@ public class REOPTALT extends NamedWarpScriptFunction implements WarpScriptStack
       regexp.insert(0, "[");
       regexp.append("]");
     }
-    
+
     return regexp.toString();
   }
-  
+
   private static final String escape(String str) {
     str = str.replaceAll("\\\\", "\\\\");
     str = str.replaceAll("\\[", "\\[");

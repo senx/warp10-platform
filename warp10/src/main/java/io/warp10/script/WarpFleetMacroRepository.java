@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2021  SenX S.A.S.
+//   Copyright 2019-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -21,6 +21,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
@@ -31,6 +33,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.bouncycastle.util.encoders.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,11 +56,14 @@ public class WarpFleetMacroRepository {
 
   private static final Logger LOG = LoggerFactory.getLogger(WarpFleetMacroRepository.class);
 
-  private static final MSGFAIL MSGFAIL_FUNC = new MSGFAIL("MSGFAIL");
-  private static final NOW NOW_FUNC = new NOW("NOW");
+  private static final MSGFAIL MSGFAIL_FUNC = new MSGFAIL(WarpScriptLib.MSGFAIL);
+  private static final NOW NOW_FUNC = new NOW(WarpScriptLib.NOW);
   private static final SUB SUB_FUNC = new SUB("-");
-  private static final ADD ADD_FUNC = new ADD("+");
-  private static final HUMANDURATION HUMANDURATION_FUNC = new HUMANDURATION("HUMANDURATION");
+  private static final ADD ADD_FUNC = new ADD(WarpScriptLib.ADD);
+  private static final HUMANDURATION HUMANDURATION_FUNC = new HUMANDURATION(WarpScriptLib.HUMANDURATION);
+
+  private static final String MACRO_PLACEHOLDER = "{macro}";
+  private static final String MACRO_PLACEHOLDER_ENCODED = "%7Bmacro%7D";
 
   private static final int FINGERPRINT_UNKNOWN = -1;
 
@@ -179,7 +185,11 @@ public class WarpFleetMacroRepository {
         // Check the macro cache
         //
 
-        macroURL = repo + (repo.endsWith("/") ? "" : "/") + name;
+        if (repo.contains(MACRO_PLACEHOLDER)) {
+          macroURL = repo.replace(MACRO_PLACEHOLDER, name + ".mc2");
+        } else {
+          macroURL = repo + (repo.endsWith("/") ? "" : "/") + name + ".mc2";
+        }
 
         synchronized(macros) {
           macro = macros.get(macroURL);
@@ -211,15 +221,23 @@ public class WarpFleetMacroRepository {
 
         MemoryWarpScriptStack stack = null;
 
-        try {
-          URL url = new URL(macroURL + ".mc2");
+        HttpURLConnection hconn = null;
 
+        try {
+          hconn = null;
+          URL url = new URL(macroURL);
           URLConnection conn = url.openConnection();
 
           if (conn instanceof HttpURLConnection) {
-            ((HttpURLConnection) conn).setRequestProperty("X-Warp10-Revision", Revision.REVISION);
-            ((HttpURLConnection) conn).setReadTimeout(readTimeout);
-            ((HttpURLConnection) conn).setConnectTimeout(connectTimeout);
+            hconn = (HttpURLConnection) conn;
+            hconn.setRequestProperty("X-Warp10-Revision", Revision.REVISION);
+            hconn.setReadTimeout(readTimeout);
+            hconn.setConnectTimeout(connectTimeout);
+            if (null != url.getUserInfo()) {
+              hconn.setRequestProperty("Authorization", "Basic " + new String(Base64.encode(url.getUserInfo().getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8));
+            }
+          } else {
+            throw new IOException("Invalid URL type.");
           }
 
           in = conn.getInputStream();
@@ -244,6 +262,7 @@ public class WarpFleetMacroRepository {
           sb.append("\n");
 
           stack = new MemoryWarpScriptStack(null, null);
+          // WARN(hbs): this will leak any authentication info in the stack name
           stack.setAttribute(WarpScriptStack.ATTRIBUTE_NAME, "[WarpFleetMacroRepository " + url.toString() + "]");
 
           stack.maxLimits();
@@ -291,6 +310,7 @@ public class WarpFleetMacroRepository {
             macro.setExpiry(Long.MAX_VALUE - 1);
           }
 
+          macro.setSecure(true);
           macro.setNameRecursive(name);
 
           synchronized(macros) {
@@ -324,6 +344,9 @@ public class WarpFleetMacroRepository {
           WarpScriptStackRegistry.unregister(stack);
           if (null != in) {
             try { in.close(); } catch (Exception e) {}
+          }
+          if (null != hconn) {
+            try { hconn.disconnect(); } catch (Exception e) {}
           }
         }
       }
@@ -503,13 +526,20 @@ public class WarpFleetMacroRepository {
 
     repo = repo.trim();
 
-    if (repo.startsWith("http://")) {
-      String host = repo.substring(7).replaceAll("/.*", "").toLowerCase();
-      repo = "http://" + host + repo.substring(host.length() + 7);
-    } else if (repo.startsWith("https://")) {
-      String host = repo.substring(8).replaceAll("/.*", "").toLowerCase();
-      repo = "https://" + host + repo.substring(host.length() + 8);
+    if (repo.startsWith("http://") || repo.startsWith("https://")) {
+      try {
+        URL url = new URL(repo);
+        // Force the host to be LC
+        URI uri = new URI(url.getProtocol(), url.getUserInfo(), url.getHost().toLowerCase(), url.getPort(), url.getPath(), url.getQuery(), url.getRef());
+        String canonical = uri.toString().replaceAll(WarpFleetMacroRepository.MACRO_PLACEHOLDER_ENCODED, WarpFleetMacroRepository.MACRO_PLACEHOLDER);
+        repo = canonical;
+      } catch (MalformedURLException|URISyntaxException e) {
+        // We do not output the URL as it may leak some confidential information
+        LOG.warn("Error while parsing repo URL, will be ignored.", e);
+        return null;
+      }
     } else {
+      // Ignore non http/https URLs
       repo = null;
     }
 

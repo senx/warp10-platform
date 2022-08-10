@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -120,8 +120,14 @@ public class Constants {
   public static final String RUNNER_PATH = "runner.path";
   public static final String RUNNER_SCHEDULEDAT = "runner.scheduledat";
   public static final String RUNNER_NONCE = "runner.nonce";
-
+  public static final String RUNNER_CONTEXT_EXEC_COUNT = "runner.execution.count";
+  
   private static final Map<String,String> HEADERS = new HashMap<String,String>();
+
+  /**
+   * Header to indicate the platform time unit (in time units per second)
+   */
+  public static final String HTTP_HEADER_TIMEUNIT = "X-Warp10-Timeunit";
 
   /**
    * Header to set to enable line numbering
@@ -515,10 +521,24 @@ public class Constants {
 
   static {
     if (1 != Constants.DEFAULT_MODULUS) {
-      throw new RuntimeException("DEFAULT_MODULUS cannot be diffrent than 1.");
+      throw new RuntimeException("DEFAULT_MODULUS cannot be different from 1.");
     }
 
     String tu = WarpConfig.getProperty(Configuration.WARP_TIME_UNITS);
+
+    //
+    // If the time units were not set in the config or the configuration not loaded
+    // we will attempt to use the System property. This is to allow some classes
+    // which depend on other constants in this class to still work even though no
+    // Warp 10 config was loaded. Before introducing this the lack of Warp 10 configuration
+    // would trigger a RuntimeException reporting missing time units and attempts to
+    // access any other constant from this class would throw a NoClassDefFoundException.
+    // Adding support for reading time units from system properties
+    //
+
+    if (null == tu) {
+      tu = System.getProperty(Configuration.WARP_TIME_UNITS);
+    }
 
     EXPOSE_OWNER_PRODUCER = "true".equals(WarpConfig.getProperty(Configuration.WARP10_EXPOSE_OWNER_PRODUCER));
 
