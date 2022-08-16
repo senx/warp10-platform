@@ -45,8 +45,15 @@ public class OrderPreservingBase64 {
       TEBAHPLA[ALPHABET[i]] = (byte) i;
     }
 
-    // also build a 12bit look up table. Encoding per 12bits double speed. (now reaching 30MB/s)
-    // output is the list of two bytes representing the 12 bits input:
+    // Order Preserving Base 64 encoding substitutes an ascii character for 6 bits. 3 bytes input will generate 4 characters.
+    // - The ALPHABET lookup table is 64 bits long. Once loaded in L1 cache, cpu will spend time to shift bits during encoding
+    //   to process data per 6 bits chunks.
+    // - The ALPHABET12 is a 8192 bits lookup table. It will also fit in L1 cache of most modern cpu (32KB since haswell)
+    //   During encoding with ALPHABET12, cpu will do less bit shifting. Encoding per 12bits chunks doubles the speed. (now reaching 30MB/s on kaby lake)
+    // Note that a 24 bit lookup table (~33MB) cannot fit in cache. Cache misses defeat the purpose of a lookup table, and encoding
+    // will be a lot slower.
+    //
+    // ALPHABET12 is the list of two bytes representing the 12 bits input:
     // ...0.1.2.3.4.5.6  (...)  zmznzozpzqzrzsztzuzvzwzxzyzz
     // 12 bits at zero => output is '..'
     // 12 bits at one  => output is 'zz'
