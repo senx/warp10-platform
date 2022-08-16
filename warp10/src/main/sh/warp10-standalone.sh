@@ -228,6 +228,16 @@ bootstrap() {
   fi
 
   #
+  # Make sure warp10 user is not using another shell that does unexpected expansion
+  #
+  WARP10_USER_SHELL=$(su ${WARP10_USER} -c 'echo $SHELL')
+  if [[ $WARP10_USER_SHELL != *"/bash" ]]; then
+    echo "ERROR: ${WARP10_USER} user is not using bash as default shell. Please fix this manually with:"
+    echo " sudo chsh -s /bin/bash ${WARP10_USER}"
+    exit 1
+  fi
+
+  #
   # If config file already exists then.. exit
   #
   getConfigFiles
