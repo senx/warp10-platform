@@ -47,6 +47,11 @@
 #warpscript.extension.rexec = io.warp10.script.ext.rexec.RexecWarpScriptExtension
 // Comma separated list of included and excluded (! prefixed) host patterns
 #warpscript.rexec.endpoint.patterns = .*
+// Flag indicating whether or not to enable support for capabilities.
+// When used, the 'rexec' capability should contain a pattern of authorized endpoints.
+// If capability is enabled but no capability is currently present in the execution environment,
+// REXEC will consider the patterns in 'warpscript.rexec.endpoint.patterns'.
+#warpscript.rexec.capability = true
 // REXEC connect timeout in ms (default = 0, no timeout)
 #warpscript.rexec.timeout.connect = 0
 // REXEC read timeout in ms (default = 0, no timeout)

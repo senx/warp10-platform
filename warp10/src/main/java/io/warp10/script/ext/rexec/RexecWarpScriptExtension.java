@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -18,20 +18,31 @@ package io.warp10.script.ext.rexec;
 import java.util.HashMap;
 import java.util.Map;
 
+import io.warp10.WarpConfig;
 import io.warp10.warp.sdk.WarpScriptExtension;
 
 public class RexecWarpScriptExtension extends WarpScriptExtension {
-  
+
   private static final Map<String,Object> functions;
-  
+
+  private static final boolean useCapability;
+  public static String CAPABILITY = "rexec";
+  private static String CONF_CAPABILITY = "warpscript.rexec.capability";
+
   static {
     functions = new HashMap<String,Object>();
 
     functions.put("REXEC", new REXEC("REXEC"));
-    functions.put("REXECZ", new REXEC("REXECZ", true));    
+    functions.put("REXECZ", new REXEC("REXECZ", true));
+
+    useCapability = "true".equals(WarpConfig.getProperty(CONF_CAPABILITY));
   }
-  
+
   public java.util.Map<String,Object> getFunctions() {
     return functions;
+  }
+
+  public static boolean useCapability() {
+    return useCapability;
   }
 }
