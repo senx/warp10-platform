@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -23,11 +23,13 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptMapperFunction;
 import io.warp10.script.WarpScriptReducerFunction;
+import io.warp10.script.WarpScriptAggregatorOnListsFunction;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStackFunction;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -36,7 +38,7 @@ import com.geoxp.GeoXPLib;
 
 public class MACROMAPPER extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  public static class MacroMapperWrapper extends NamedWarpScriptFunction implements WarpScriptMapperFunction, WarpScriptReducerFunction, WarpScriptBucketizerFunction {
+  public static class MacroMapperWrapper extends NamedWarpScriptFunction implements WarpScriptMapperFunction, WarpScriptReducerFunction, WarpScriptBucketizerFunction, WarpScriptAggregatorOnListsFunction {
 
     private final WarpScriptStack stack;
     private final Macro macro;
@@ -168,7 +170,40 @@ public class MACROMAPPER extends NamedWarpScriptFunction implements WarpScriptSt
         return stackToObjects(stack);
       }
     }
-    
+
+    @Override
+    public Object applyOnSubLists(Object[] sublists) throws WarpScriptException {
+
+      // Push arguments onto the stack
+      stack.push(Arrays.asList(sublists));
+
+      // Execute macro
+      stack.exec(this.macro);
+
+      // Check type of result
+      Object res = stack.peek();
+
+      if (res instanceof List) {
+        stack.drop();
+
+        return listToObjects((List) res);
+      } else if (res instanceof Map) {
+        stack.drop();
+
+        Set<Object> keys = ((Map) res).keySet();
+
+        for (Object key: keys) {
+          Object[] ores2 = listToObjects((List) ((Map) res).get(key));
+          ((Map) res).put(key, ores2);
+        }
+
+        return res;
+      } else {
+        // Retrieve result
+        return stackToObjects(stack);
+      }
+    }
+
     public Macro getMacro() {
       return macro;
     }
