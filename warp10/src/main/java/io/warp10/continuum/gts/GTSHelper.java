@@ -2209,7 +2209,6 @@ public class GTSHelper {
       // early exit if input is empty, or bucketize time window is obviously not in input
       if (gts.values == 0 || firsttick > lastbucket || lasttick < (lastbucket - bucketspan * bucketcount + 1)) {
         // either input is empty, either the last bucket is before the first tick.
-        System.out.println("either input is empty, there is obviously no buckets");
         return bucketized;
       }
 
@@ -2239,7 +2238,6 @@ public class GTSHelper {
         i = Arrays.binarySearch(gts.ticks, 0, gts.values, lastBucketTs);
         if (-1 == i) {
           // should not be there, this case leads to early exit before.
-          System.out.println("should not be there, this case was tested for early exit");
           return bucketized;
         } else if (i < 0) {
           // just before the insertion point
@@ -2354,9 +2352,9 @@ public class GTSHelper {
           throw new WarpScriptException("Invalid bucketizer function.");
         }
 
-        // the mapper is cabable to take an array of List instead of an array of array
+        // second case: the mapper is cabable to take an array of List instead of an array of array
         // sublists is an array of List (ready to push on stack by a MACROMAPPER) 
-        // it saves a copy that was done by MacroMapperWrapper apply(). 
+        // it uses a special class for lists that saves a memory allocation (but lists are readonly)
         if (aggregator instanceof WarpScriptAggregatorOnListsFunction) {
           
           // build a structure ready to use:
@@ -2393,10 +2391,7 @@ public class GTSHelper {
             parms[0] = currentBucketEnd;
 
             // ticks list
-            parms[3] = new ArrayList<Long>();
-            for (int j = currentBucketStartPosition; j <= currentBucketEndPosition; j++) {
-              ((ArrayList) parms[3]).add(gts.ticks[j]);
-            }
+            parms[3] = new ReadOnlySubArrayAsList(gts.ticks,currentBucketStartPosition,count);
 
             // if there are no elevations or locations we must present an array filled with NaN.
             // as count grows, we will build bigger size NaN tables.
@@ -2450,34 +2445,18 @@ public class GTSHelper {
             
             switch (gts.type) {
               case LONG:
-                ArrayList<Object> lvalues = new ArrayList<Object>();
-                for (int j = currentBucketStartPosition; j <= currentBucketEndPosition; j++) {
-                  lvalues.add(gts.longValues[j]);
-                }
-                parms[7]=lvalues;
+                parms[7]= new ReadOnlySubArrayAsList(gts.longValues,currentBucketStartPosition,count);
                 break;
               case DOUBLE: 
-                ArrayList<Object> dvalues = new ArrayList<Object>();
-                for (int j = currentBucketStartPosition; j <= currentBucketEndPosition; j++) {
-                  dvalues.add(gts.doubleValues[j]);
-                }
-                parms[7]=dvalues;
+                parms[7]= new ReadOnlySubArrayAsList(gts.doubleValues,currentBucketStartPosition,count);
                 break;
               case STRING:
                 // here we could have done a shallow copy, with Arrays.asList(gts.stringValues).subList(currentBucketStartPosition,currentBucketEndPosition)
                 // it is a risk for the user, better deep copy.
-                ArrayList<Object> svalues = new ArrayList<Object>();
-                for (int j = currentBucketStartPosition; j <= currentBucketEndPosition; j++) {
-                  svalues.add(gts.stringValues[j]);
-                }
-                parms[7]=svalues;
+                parms[7]= new ReadOnlySubArrayAsList(gts.stringValues,currentBucketStartPosition,count);
                 break;
               case BOOLEAN:
-                ArrayList<Object> bvalues = new ArrayList<Object>();
-                for (int j = currentBucketStartPosition; j <= currentBucketEndPosition; j++) {
-                  bvalues.add(gts.booleanValues.get(j));
-                }
-                parms[7]=bvalues;
+                parms[7]= new ReadOnlySubArrayAsList(gts.booleanValues,currentBucketStartPosition,count);
                 break;
             }
 
@@ -2572,7 +2551,9 @@ public class GTSHelper {
                 }
                 break;
             }
-
+        
+            parms[7]=new long[] {0, -bucketspan, currentBucketEnd - bucketspan, currentBucketEnd};
+            
             // apply the aggregator, collect the result
             aggregated = (Object[]) ((WarpScriptBucketizerFunction) aggregator).apply(parms);
             
