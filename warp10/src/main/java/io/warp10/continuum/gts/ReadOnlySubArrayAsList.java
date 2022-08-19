@@ -31,6 +31,9 @@ import java.util.Spliterator;
 import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 
+/**
+ * Read Only List object that can wrap arrays or bitset into sublists
+ */
 public class ReadOnlySubArrayAsList implements List {
 
   private final int size;
@@ -46,10 +49,15 @@ public class ReadOnlySubArrayAsList implements List {
     LONG, DOUBLE, BOOLEAN, STRING
   }
 
-  ;
-
   public final TYPE elementDataType;
 
+  /**
+   * Wrap an array of long (primitive) into a subList
+   *
+   * @param elementData array of long
+   * @param startidx    index of the first element
+   * @param length      length of the subList. startidx+length cannot exceed elementData.length
+   */
   public ReadOnlySubArrayAsList(long[] elementData, int startidx, int length) {
     this.elementDataLong = elementData;
     this.size = elementData.length;
@@ -59,6 +67,13 @@ public class ReadOnlySubArrayAsList implements List {
     this.virtualsize = length;
   }
 
+  /**
+   * Wrap an array of double (primitive) into a subList
+   *
+   * @param elementData array of double
+   * @param startidx    index of the first element
+   * @param length      length of the subList. startidx+length cannot exceed elementData.length
+   */
   public ReadOnlySubArrayAsList(double[] elementData, int startidx, int length) {
     this.elementDataDouble = elementData;
     this.size = elementData.length;
@@ -68,6 +83,13 @@ public class ReadOnlySubArrayAsList implements List {
     this.virtualsize = length;
   }
 
+  /**
+   * Wrap a BitSet into a subList
+   *
+   * @param elementData BitSet
+   * @param startidx    index of the first element
+   * @param length      length of the subList. startidx+length cannot exceed BitSet size
+   */
   public ReadOnlySubArrayAsList(BitSet elementData, int startidx, int length) {
     this.elementDataBoolean = elementData;
     this.size = elementData.size();
@@ -77,6 +99,13 @@ public class ReadOnlySubArrayAsList implements List {
     this.virtualsize = length;
   }
 
+  /**
+   * Wrap an array of String into a subList
+   *
+   * @param elementData array of String
+   * @param startidx    index of the first element
+   * @param length      length of the subList. startidx+length cannot exceed elementData.length
+   */
   public ReadOnlySubArrayAsList(String[] elementData, int startidx, int length) {
     this.elementDataString = elementData;
     this.size = elementData.length;
@@ -169,7 +198,7 @@ public class ReadOnlySubArrayAsList implements List {
     public boolean hasNext() {
       return cursor != virtualsize;
     }
-    
+
     public Object next() {
       int i = cursor;
       if (i >= virtualsize) {
@@ -197,7 +226,7 @@ public class ReadOnlySubArrayAsList implements List {
     public void remove() {
       // not applicable
     }
-    
+
   }
 
   @Override
@@ -205,41 +234,72 @@ public class ReadOnlySubArrayAsList implements List {
     return new Itr();
   }
 
+  /**
+   * Modification of the underlying array or bitset is forbidden. add will raise a runtime exception.
+   */
   @Override
   public boolean add(Object o) {
     throw new RuntimeException("this is a read only list, cannot add element");
   }
 
+  /**
+   * Modification of the underlying array or bitset is forbidden. remove will raise a runtime exception.
+   */
   @Override
   public boolean remove(Object o) {
     throw new RuntimeException("this is a read only list, cannot remove element");
   }
 
+  /**
+   * Modification of the underlying array or bitset is forbidden. addAll will raise a runtime exception.
+   */
   @Override
   public boolean addAll(Collection c) {
     throw new RuntimeException("this is a read only list, cannot add element");
   }
 
+
+  /**
+   * Modification of the underlying array or bitset is forbidden. addAll will raise a runtime exception.
+   */
   @Override
   public boolean addAll(int index, Collection c) {
     throw new RuntimeException("this is a read only list, cannot add element");
   }
 
+
+  /**
+   * Modification of the underlying array or bitset is forbidden. replaceAll will raise a runtime exception.
+   */
   @Override
   public void replaceAll(UnaryOperator operator) {
     throw new RuntimeException("this is a read only list, cannot overwrite element");
   }
 
+
+  /**
+   * Modification of the underlying array or bitset is forbidden. sort will raise a runtime exception.
+   */
   @Override
   public void sort(Comparator c) {
     throw new RuntimeException("this is a read only list, cannot sort elements");
   }
 
+
+  /**
+   * Modification of the underlying array or bitset is forbidden. clear will raise a runtime exception.
+   */
   @Override
   public void clear() {
     throw new RuntimeException("this is a read only list, cannot remove elements");
   }
 
+  /**
+   * get will return the element at index + startidx of the underlying array or bitset.
+   *
+   * @param index cannot be less than 0 or greater than list length
+   * @return
+   */
   @Override
   public Object get(int index) {
     rangeCheck(index);
@@ -256,16 +316,28 @@ public class ReadOnlySubArrayAsList implements List {
     return null; // impossible
   }
 
+
+  /**
+   * Modification of the underlying array or bitset is forbidden. set will raise a runtime exception.
+   */
   @Override
   public Object set(int index, Object element) {
     throw new RuntimeException("this is a read only list, cannot overwrite element");
   }
 
+
+  /**
+   * Modification of the underlying array or bitset is forbidden. add will raise a runtime exception.
+   */
   @Override
   public void add(int index, Object element) {
     throw new RuntimeException("this is a read only list, cannot overwrite element");
   }
 
+
+  /**
+   * Modification of the underlying array or bitset is forbidden. remove will raise a runtime exception.
+   */
   @Override
   public Object remove(int index) {
     throw new RuntimeException("this is a read only list, cannot remove element");
@@ -309,7 +381,7 @@ public class ReadOnlySubArrayAsList implements List {
     return -1;
   }
 
-    
+
   @Override
   public ListIterator listIterator() {
     throw new RuntimeException("this is a read only list, cannot make a listIterator");
@@ -320,9 +392,36 @@ public class ReadOnlySubArrayAsList implements List {
     return null;
   }
 
+  /**
+   * create a new Read Only subList from existing one, backed by the original array.
+   * Returns a view of the portion of this list between the specified
+   * {@code fromIndex}, inclusive, and {@code toIndex}, exclusive.  (If
+   * {@code fromIndex} and {@code toIndex} are equal, the returned list is
+   * empty.)
+   */
   @Override
   public List subList(int fromIndex, int toIndex) {
-    throw new RuntimeException("this is a read only list, cannot make a sublist");
+    rangeCheck(fromIndex);
+    int subsize = toIndex - fromIndex;
+    if (subsize < 0 || subsize + toIndex > virtualsize) {
+      throw new IndexOutOfBoundsException("start index(" + fromIndex + ") + length(" + subsize + ") greater than original array size(" + virtualsize + "), cannot create sublist");
+    }
+    List r = null;
+    switch (elementDataType) {
+      case LONG:
+        r = new ReadOnlySubArrayAsList(elementDataLong, fromIndex + startidx, subsize);
+        break;
+      case DOUBLE:
+        r = new ReadOnlySubArrayAsList(elementDataDouble, fromIndex + startidx, subsize);
+        break;
+      case STRING:
+        r = new ReadOnlySubArrayAsList(elementDataString, fromIndex + startidx, subsize);
+        break;
+      case BOOLEAN:
+        r = new ReadOnlySubArrayAsList(elementDataBoolean, fromIndex + startidx, subsize);
+        break;
+    }
+    return r;
   }
 
   @Override
@@ -345,6 +444,10 @@ public class ReadOnlySubArrayAsList implements List {
     throw new RuntimeException("this is a read only list, containsAll is not supported");
   }
 
+  /**
+   * creates a new long/double/String/boolean array from the current subList (deep copy).
+   * if the array provided as {@code a} is not big enough, toArray allocates and returns a new array
+   */
   @Override
   public Object[] toArray(Object[] a) {
     Object[] r = a;
@@ -376,6 +479,9 @@ public class ReadOnlySubArrayAsList implements List {
     return r;
   }
 
+  /**
+   * creates a new long/double/String/boolean array from the current subList (deep copy).
+   */
   @Override
   public Object[] toArray() {
     return toArray(new Object[virtualsize]);
