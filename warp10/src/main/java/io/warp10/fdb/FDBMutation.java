@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -14,5 +14,18 @@
 //   limitations under the License.
 //
 
-include "io_warp10_continuum_thrift_data.thrift"
-namespace java io.warp10.continuum.thrift.service
+package io.warp10.fdb;
+
+import com.apple.foundationdb.Transaction;
+
+public interface FDBMutation {
+  /**
+   * Apply the mutation to a Transaction
+   */
+  public void apply(Transaction txn);
+
+  /**
+   * Return an approximate size contribution to Transaction size
+   */
+  public int size();
+}

@@ -51,7 +51,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.codec.binary.Hex;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
@@ -69,6 +68,7 @@ import org.slf4j.LoggerFactory;
 import com.geoxp.GeoXPLib;
 import com.google.common.primitives.Longs;
 
+import io.warp10.BytesUtils;
 import io.warp10.ThrowableUtils;
 import io.warp10.WarpURLDecoder;
 import io.warp10.continuum.Configuration;
@@ -975,9 +975,6 @@ public class EgressFetchHandler extends AbstractHandler {
             freq.setStep(step);
             freq.setTimestep(timestep);
             freq.setSample(sample);
-            // We force writeTimestamp and TTL to false since they cannot be specified in the /fetch URL
-            freq.setWriteTimestamp(false);
-            freq.setTTL(false);
             freq.setPreBoundary(preBoundary);
             freq.setPostBoundary(postBoundary);
 
@@ -1454,7 +1451,7 @@ public class EgressFetchHandler extends AbstractHandler {
                 dup = false;
               }
             } else if (newValue instanceof byte[]) {
-              if (!(value instanceof byte[]) || 0 != Bytes.compareTo((byte[]) newValue, (byte[]) value)) {
+              if (!(value instanceof byte[]) || 0 != BytesUtils.compareTo((byte[]) newValue, (byte[]) value)) {
                 dup = false;
               }
             }
@@ -1877,7 +1874,7 @@ public class EgressFetchHandler extends AbstractHandler {
                 dup = false;
               }
             } else if (newValue instanceof byte[]) {
-              if (!(value instanceof byte[]) || 0 != Bytes.compareTo((byte[]) value, (byte[]) newValue)) {
+              if (!(value instanceof byte[]) || 0 != BytesUtils.compareTo((byte[]) value, (byte[]) newValue)) {
                 dup = false;
               }
             } else if (newValue instanceof Boolean) {

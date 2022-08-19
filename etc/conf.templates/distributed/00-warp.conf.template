@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -53,12 +53,7 @@ max.encoder.size = 100000
 // Comma separated list of components to run in distributed mode
 // Valid values are 'ingress', 'directory', 'store', 'egress', 'fetcher', 'plasmaFE', 'plasmaBE', 'runner', 'webcall'
 //
-warp.components =
-
-//
-// How often (in ms) should we refetch the region start/end keys
-//
-#warp.hbase.regionkeys.updateperiod = 
+warp.components = ${components}
 
 //
 // String returned by the IDENT function
@@ -132,6 +127,11 @@ warp.components =
 //
 //
 # warp.trl.startup.delay = 60000
+
+//
+// Maximum length of class names - Defaults to 1024
+//
+#warp.class.maxsize = 1014
 
 //
 // Maximum length of labels (names + values) - Defaults to 2048

@@ -34,9 +34,6 @@
 // LOGMSG, NOLOG, STDERR, STDOUT, TDESCRIBE
 #warpscript.extension.debug = io.warp10.script.ext.debug.DebugWarpScriptExtension
 
-// HLOCATE
-#warpscript.extension.hbase = io.warp10.script.ext.debug.HBaseWarpScriptExtension
-
 // FUNCTIONS
 #warpscript.extension.inventory = io.warp10.script.ext.inventory.InventoryWarpScriptExtension
 

@@ -253,7 +253,7 @@ bootstrap() {
   chmod 755 ${WARP10_HOME}/jars
   chmod 755 ${WARP10_HOME}/lib
   chmod 755 ${WARP10_HOME}/templates
-  chmod 755 ${WARP10_HOME}/warpscripts
+  chmod 755 ${WARP10_HOME}/runners
   chmod 755 ${WARP10_HOME}/etc/throttle
   chmod 755 ${WARP10_HOME}/etc/trl
   chmod 755 ${WARP10_HOME}/etc/bootstrap
@@ -317,7 +317,7 @@ bootstrap() {
     moveDir macros
     moveDir jars
     moveDir lib
-    moveDir warpscripts
+    moveDir runners
 
   fi
 

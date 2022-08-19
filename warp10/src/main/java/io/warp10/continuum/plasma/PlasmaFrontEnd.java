@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,31 +16,9 @@
 
 package io.warp10.continuum.plasma;
 
-import java.time.temporal.ChronoUnit;
-
-import io.warp10.SSLUtils;
-import io.warp10.continuum.Configuration;
-import io.warp10.continuum.JettyUtil;
-import io.warp10.continuum.KafkaOffsetCounters;
-import io.warp10.continuum.KafkaSynchronizedConsumerPool;
-import io.warp10.continuum.KafkaSynchronizedConsumerPool.ConsumerFactory;
-import io.warp10.continuum.KafkaSynchronizedConsumerPool.Hook;
-import io.warp10.continuum.egress.ThriftDirectoryClient;
-import io.warp10.continuum.gts.GTSEncoder;
-import io.warp10.continuum.sensision.SensisionConstants;
-import io.warp10.continuum.store.Directory;
-import io.warp10.continuum.store.DirectoryClient;
-import io.warp10.continuum.store.thrift.data.KafkaDataMessage;
-import io.warp10.crypto.CryptoUtils;
-import io.warp10.crypto.KeyStore;
-import io.warp10.crypto.SipHashInline;
-import io.warp10.sensision.Sensision;
-import io.warp10.standalone.StandalonePlasmaHandler;
-
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -50,11 +28,11 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.LockSupport;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.zookeeper.CreateMode;
@@ -67,9 +45,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.netflix.curator.framework.CuratorFramework;
-import com.netflix.curator.framework.CuratorFrameworkFactory;
-import com.netflix.curator.retry.RetryNTimes;
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.CuratorFrameworkFactory;
+import org.apache.curator.retry.RetryNTimes;
 
 import io.warp10.SSLUtils;
 import io.warp10.continuum.Configuration;
@@ -121,8 +99,8 @@ public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable,
     Configuration.PLASMA_FRONTEND_HOST,
     Configuration.PLASMA_FRONTEND_PORT,
     Configuration.PLASMA_FRONTEND_MAXZNODESIZE,
-    Configuration.PLASMA_FRONTEND_ZKCONNECT,
-    Configuration.PLASMA_FRONTEND_ZNODE,
+    Configuration.PLASMA_FRONTEND_ZK_QUORUM,
+    Configuration.PLASMA_FRONTEND_ZK_ZNODE,
     Configuration.PLASMA_FRONTEND_SUBSCRIBE_DELAY,
     Configuration.PLASMA_FRONTEND_ACCEPTORS,
     Configuration.PLASMA_FRONTEND_SELECTORS,
@@ -147,7 +125,7 @@ public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable,
       Preconditions.checkNotNull(properties.getProperty(required), "Missing configuration parameter '%s'.", required);
     }
 
-    this.znoderoot = properties.getProperty(Configuration.PLASMA_FRONTEND_ZNODE);
+    this.znoderoot = properties.getProperty(Configuration.PLASMA_FRONTEND_ZK_ZNODE);
 
     this.maxZnodeSize = Integer.parseInt(properties.getProperty(Configuration.PLASMA_FRONTEND_MAXZNODESIZE));
 
@@ -171,7 +149,7 @@ public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable,
     subscriptionCuratorFramework = CuratorFrameworkFactory.builder()
         .connectionTimeoutMs(5000)
         .retryPolicy(new RetryNTimes(10, 500))
-        .connectString(properties.getProperty(Configuration.PLASMA_FRONTEND_ZKCONNECT))
+        .connectString(properties.getProperty(Configuration.PLASMA_FRONTEND_ZK_QUORUM))
         .build();
     subscriptionCuratorFramework.start();
 
@@ -385,7 +363,7 @@ public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable,
 
     while(true) {
       if (!this.subscriptionChanged.get()) {
-        try { Thread.sleep(this.subscribeDelay); } catch (InterruptedException ie) {}
+        LockSupport.parkNanos(1000000L * this.subscribeDelay);
         continue;
       }
 

@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@ package io.warp10.continuum.plasma;
 
 import java.io.IOException;
 import java.math.BigInteger;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -34,12 +33,14 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.CuratorFrameworkFactory;
+import org.apache.curator.framework.recipes.cache.NodeCache;
+import org.apache.curator.framework.recipes.cache.NodeCacheListener;
+import org.apache.curator.retry.RetryNTimes;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -55,14 +56,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.netflix.curator.framework.CuratorFramework;
-import com.netflix.curator.framework.CuratorFrameworkFactory;
-import com.netflix.curator.framework.recipes.cache.NodeCache;
-import com.netflix.curator.framework.recipes.cache.NodeCacheListener;
-import com.netflix.curator.retry.RetryNTimes;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+import io.warp10.BytesUtils;
 import io.warp10.continuum.KafkaOffsetCounters;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.thrift.data.KafkaDataMessage;
@@ -70,7 +65,6 @@ import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.SipHashInline;
 import io.warp10.sensision.Sensision;
-import jline.internal.Log;
 
 /**
  * Reads GTS updates in Kafka and pushes them to PlasmaFrontEnd instances via Kafka
@@ -78,15 +72,15 @@ import jline.internal.Log;
 public class PlasmaBackEnd extends Thread implements NodeCacheListener {
 
   private static final Logger LOG = LoggerFactory.getLogger(PlasmaBackEnd.class);
-  
+
   private final KeyStore keystore;
 
   //
   // Flag indicating whether or not we should update the subscriptions
   //
-  
+
   private final AtomicBoolean updateSubscriptions = new AtomicBoolean(true);
-  
+
   /**
    * Set of required parameters, those MUST be set
    */
@@ -97,9 +91,8 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
     io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_IN_COMMITPERIOD,
     io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_IN_NTHREADS,
     io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_OUT_PRODUCER_BOOTSTRAP_SERVERS,
-    io.warp10.continuum.Configuration.PLASMA_BACKEND_SUBSCRIPTIONS_ZKCONNECT,
-    io.warp10.continuum.Configuration.PLASMA_BACKEND_SUBSCRIPTIONS_ZNODE,
-    io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_OUT_MAXSIZE,
+    io.warp10.continuum.Configuration.PLASMA_BACKEND_SUBSCRIPTIONS_ZK_QUORUM,
+    io.warp10.continuum.Configuration.PLASMA_BACKEND_SUBSCRIPTIONS_ZK_ZNODE,
   };
 
   /**
@@ -110,44 +103,44 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
   private final Properties properties;
 
   private NodeCache cache;
-  
+
   private Map<String,Set<BigInteger>> subscriptions = null;
-  
+
   private boolean identicalSipHashKeys = false;
   private boolean identicalAESKeys = false;
-  
+
   private final KafkaProducer<byte[],byte[]> kafkaProducer;
-  
+
   private final List<ProducerRecord<byte[], byte[]>> msglist = new ArrayList<ProducerRecord<byte[],byte[]>>();
-  
+
   private final AtomicLong msgsize = new AtomicLong();
-  
+
   private final long KAFKA_OUT_MAXSIZE;
-  
+
   private byte[] lastKnownData = null;
-  
+
   private CuratorFramework curatorFramework = null;
-  
+
   private String rootznode = null;
-  
+
   /**
    * Barrier to synchronize the polling threads and the commit of offsets
    */
   private CyclicBarrier barrier = null;
-  
+
   private AtomicBoolean mustSync = new AtomicBoolean(false);
-  
+
   public PlasmaBackEnd(KeyStore keystore, final Properties props) {
     this.keystore = keystore;
 
     this.properties = (Properties) props.clone();
-    
+
     //
     // Check mandatory parameters
     //
-    
+
     for (String required: REQUIRED_PROPERTIES) {
-      Preconditions.checkNotNull(properties.getProperty(required), "Missing configuration parameter '%s'.", required);          
+      Preconditions.checkNotNull(properties.getProperty(required), "Missing configuration parameter '%s'.", required);
     }
 
     //
@@ -156,22 +149,19 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
 
     this.KAFKA_OUT_MAXSIZE = Long.parseLong(properties.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_OUT_MAXSIZE, "900000"));
     final int nthreads = Integer.valueOf(properties.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_IN_NTHREADS));
-    
-    Configuration conf = new Configuration();
-    conf.set("hbase.zookeeper.quorum", properties.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_IN_CONSUMER_BOOTSTRAP_SERVERS));
-    
+
     //
     // Extract keys
     //
-    
+
     extractKeys(properties);
-  
+
     //
     // Create the outbound producer
     //
-    
+
     Properties dataProps = new Properties();
-    
+
     properties.putAll(io.warp10.continuum.Configuration.extractPrefixed(props, props.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_OUT_PRODUCER_CONF_PREFIX)));
 
     // @see <a href="http://kafka.apache.org/documentation.html#producerconfigs">http://kafka.apache.org/documentation.html#producerconfigs</a>
@@ -201,28 +191,28 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
     final String topic = properties.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_IN_TOPIC);
     final String strategy = properties.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_IN_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY);
     final String clientid = properties.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_IN_CONSUMER_CLIENTID);
-    
+
     final long commitPeriod = 1000L;
     final KafkaOffsetCounters counters = new KafkaOffsetCounters(topic, groupid, commitPeriod * 2);
-    
+
     Thread t = new Thread(new Runnable() {
       @Override
       public void run() {
-        
+
         //
         // Enter an endless loop which will spawn 'nthreads' threads
         // each time the Kafka consumer is shut down.
         //
-        
+
         while (true) {
           try {
             Map<String,Integer> topicCountMap = new HashMap<String, Integer>();
-            
+
             topicCountMap.put(properties.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_IN_TOPIC), nthreads);
-                    
+
             Properties props = new Properties();
-            
-            // Load explicit configuration 
+
+            // Load explicit configuration
             props.putAll(io.warp10.continuum.Configuration.extractPrefixed(properties, properties.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_IN_CONF_PREFIX)));
 
             props.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, properties.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_KAFKA_IN_CONSUMER_BOOTSTRAP_SERVERS));
@@ -237,47 +227,47 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
             if (null != strategy) {
               props.setProperty(ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, strategy);
             }
-            
+
             props.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,"org.apache.kafka.common.serialization.ByteArrayDeserializer");
             props.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,"org.apache.kafka.common.serialization.ByteArrayDeserializer");
 
             props.setProperty(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "1");
-            
+
             org.apache.kafka.clients.consumer.KafkaConsumer<byte[], byte[]>[] consumers = null;
 
             // Reset the counters
             counters.reset();
-            
+
             ExecutorService executor = Executors.newFixedThreadPool(nthreads);
 
             //
             // Barrier and flag for synchronizing during offset commits
             //
-            
+
             barrier = new CyclicBarrier(nthreads + 1);
             mustSync.set(false);
-            
+
             //
             // now create runnables which will consume messages
             //
-            
+
             consumers = new org.apache.kafka.clients.consumer.KafkaConsumer[nthreads];
-            
+
             for (int i = 0; i < nthreads; i++) {
               consumers[i] = new org.apache.kafka.clients.consumer.KafkaConsumer<byte[], byte[]>(props);
               consumers[i].subscribe(Collections.singletonList(topic));
               executor.submit(new KafkaConsumer(self, consumers[i], counters));
-            }      
-            
+            }
+
             long lastsync = 0L;
-            
+
             while(!abort.get() && !Thread.currentThread().isInterrupted()) {
               LockSupport.parkNanos(100000000L);
-              
+
               //
               // Publish offsets every second to Sensision, after flushing the offsets
               //
-              
+
               if (System.currentTimeMillis() - lastsync > commitPeriod) {
                 mustSync.set(true);
                 while(nthreads != barrier.getNumberWaiting()) {
@@ -302,13 +292,13 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
             // We exited the loop, this means one of the threads triggered an abort,
             // we will shut down the executor and shut down the connector to start over.
             //
-            
+
             executor.shutdownNow();
-            
+
             for (org.apache.kafka.clients.consumer.KafkaConsumer<byte[], byte[]> consumer: consumers) {
               try {
                 consumer.close();
-              } catch (Exception e) {                
+              } catch (Exception e) {
               }
             }
             abort.set(false);
@@ -317,52 +307,52 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
           } finally {
             LockSupport.parkNanos(1000000L);
           }
-        }          
+        }
       }
     });
-    
+
     t.setName("Plasma Backend Spawner");
     t.setDaemon(true);
     t.start();
-    
+
     this.setName("Plasma Backend");
     this.setDaemon(true);
     this.start();
   }
-  
+
   @Override
   public void run() {
     //
     // Initialize Curator
     //
-    
+
     this.curatorFramework = CuratorFrameworkFactory.builder()
         .connectionTimeoutMs(5000)
         .retryPolicy(new RetryNTimes(10, 500))
-        .connectString(properties.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_SUBSCRIPTIONS_ZKCONNECT))
+        .connectString(properties.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_SUBSCRIPTIONS_ZK_QUORUM))
         .build();
     this.curatorFramework.start();
 
     //
     // Create the subscription path if it does not exist
     //
-    
+
     try {
-      Stat stat = this.curatorFramework.checkExists().forPath(properties.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_SUBSCRIPTIONS_ZNODE));
+      Stat stat = this.curatorFramework.checkExists().forPath(properties.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_SUBSCRIPTIONS_ZK_ZNODE));
       if (null == stat) {
-        this.curatorFramework.create().creatingParentsIfNeeded().forPath(properties.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_SUBSCRIPTIONS_ZNODE));
+        this.curatorFramework.create().creatingParentsIfNeeded().forPath(properties.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_SUBSCRIPTIONS_ZK_ZNODE));
       }
-    } catch (Exception e) {      
+    } catch (Exception e) {
       LOG.error("Error while creating subscription znode", e);
     }
 
     //
     // Create a Path Cache
     //
-    
-    this.cache = new NodeCache(curatorFramework, properties.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_SUBSCRIPTIONS_ZNODE));
+
+    this.cache = new NodeCache(curatorFramework, properties.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_SUBSCRIPTIONS_ZK_ZNODE));
     cache.getListenable().addListener(this);
-    
+
     try {
       cache.start(true);
     } catch (Exception e) {
@@ -372,20 +362,20 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
     //
     // Endlessly update the subscriptions, at most once every second
     //
-    
+
     while(true) {
       LockSupport.parkNanos(1000000L);
-      
+
       boolean update = this.updateSubscriptions.getAndSet(false);
-      
+
       if (!update) {
         continue;
       }
-      
+
       subscriptionUpdate();
     }
   }
-  
+
   /**
    * Update the subscriptions
    */
@@ -393,9 +383,9 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
     //
     // Update number of subscription updates
     //
-    
+
     Sensision.update(SensisionConstants.SENSISION_CLASS_PLASMA_BACKEND_SUBSCRIPTIONS_UPDATES, Sensision.EMPTY_LABELS, 1);
-    
+
     //
     // Reread current data
     // FIXME(hbs): this should be improved when running many PlasmaFE
@@ -404,18 +394,18 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
     List<String> entries = null;
 
     try {
-      entries = this.curatorFramework.getChildren().forPath(properties.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_SUBSCRIPTIONS_ZNODE));
+      entries = this.curatorFramework.getChildren().forPath(properties.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_SUBSCRIPTIONS_ZK_ZNODE));
     } catch (Exception e) {
       LOG.error("Error while retrieving subscriptions", e);
     }
-    
+
     if (null == entries) {
       return;
     }
-    
+
     // Subscriptions by topic
     Map<String, Set<BigInteger>> subsbytopic = new HashMap<String, Set<BigInteger>>();
-    
+
     for (String entry: entries) {
       try {
         // Strip subscriptions znode
@@ -425,17 +415,17 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
 
         UUID uuid = UUID.fromString(tokens[1]);
         String topic = tokens[2];
-        
+
         long hash = new BigInteger(tokens[4], 16).longValue();
 
-        String path = properties.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_SUBSCRIPTIONS_ZNODE) + "/" + entry;
+        String path = properties.getProperty(io.warp10.continuum.Configuration.PLASMA_BACKEND_SUBSCRIPTIONS_ZK_ZNODE) + "/" + entry;
 
         // Extract content
         byte[] content = this.curatorFramework.getData().forPath(path);
-        
+
         // Compute SipHash of content
         long sip = SipHashInline.hash24(uuid.getMostSignificantBits(), uuid.getLeastSignificantBits(), content, 0, content.length);
-        
+
         if (hash != sip) {
           Map<String,String> labels = new HashMap<String, String>();
           labels.put(SensisionConstants.SENSISION_LABEL_TOPIC, topic);
@@ -446,55 +436,55 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
         //
         // Get subscription map for topic
         //
-        
+
         Set<BigInteger> subs = subsbytopic.get(topic);
-        
+
         if (null == subs) {
           subs = new HashSet<BigInteger>();
           subsbytopic.put(topic, subs);
         }
-        
+
         byte[] bytes = new byte[16];
-        
+
         for (int i = 0; i < content.length; i += 16) {
           System.arraycopy(content, i, bytes, 0, 16);
           BigInteger id = new BigInteger(bytes);
           subs.add(id);
-        }              
+        }
       } catch (Exception e) {
         LOG.error("Error while scanning subscriptions", e);
       }
     }
-    
+
     //
     // Update number of subscriptions per topic
     //
-    
+
     for (Map.Entry<String, Set<BigInteger>> topicAndSubs: subsbytopic.entrySet()) {
       Map<String,String> labels = new HashMap<String, String>();
       labels.put(SensisionConstants.SENSISION_LABEL_TOPIC, topicAndSubs.getKey());
       Sensision.set(SensisionConstants.SENSISION_CLASS_PLASMA_BACKEND_SUBSCRIPTIONS, labels, topicAndSubs.getValue().size());
-    }    
+    }
 
     // Reset number of subscriptions per topic absent from 'subsbytopic'
-    
+
     if (null != this.subscriptions) {
       for (String topic: this.subscriptions.keySet()) {
         if (!subsbytopic.containsKey(topic)) {
           Map<String,String> labels = new HashMap<String, String>();
           labels.put(SensisionConstants.SENSISION_LABEL_TOPIC, topic);
-          Sensision.set(SensisionConstants.SENSISION_CLASS_PLASMA_BACKEND_SUBSCRIPTIONS, labels, 0);        
+          Sensision.set(SensisionConstants.SENSISION_CLASS_PLASMA_BACKEND_SUBSCRIPTIONS, labels, 0);
         }
-      }      
+      }
     }
-    
+
     //
     // Replace subscriptions
     //
-    
-    this.subscriptions = subsbytopic.isEmpty() ? null : subsbytopic;    
+
+    this.subscriptions = subsbytopic.isEmpty() ? null : subsbytopic;
   }
-  
+
   @Override
   public void nodeChanged() throws Exception {
     //
@@ -502,16 +492,16 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
     //
 
     byte[] data = this.cache.getCurrentData().getData();
-          
-    if (null == lastKnownData || null == data || 0 != Bytes.compareTo(lastKnownData, data)) {
+
+    if (null == lastKnownData || null == data || 0 != BytesUtils.compareTo(lastKnownData, data)) {
       lastKnownData = null == data ? null : Arrays.copyOf(data, data.length);
       this.updateSubscriptions.set(true);
-    }    
+    }
   }
-  
+
   /**
    * Extract Directory related keys and populate the KeyStore with them.
-   * 
+   *
    * @param props Properties from which to extract the key specs
    */
   private void extractKeys(Properties props) {
@@ -524,9 +514,9 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
     //
     // Check if the inbound and outbound SipHash/AES keys are identical this is to speed up dispatching
     //
-    
+
     if (null != this.keystore.getKey(KeyStore.SIPHASH_KAFKA_PLASMA_BACKEND_IN) && null != this.keystore.getKey(KeyStore.SIPHASH_KAFKA_PLASMA_BACKEND_OUT)) {
-      if (0 == Bytes.compareTo(this.keystore.getKey(KeyStore.SIPHASH_KAFKA_PLASMA_BACKEND_IN), this.keystore.getKey(KeyStore.SIPHASH_KAFKA_PLASMA_BACKEND_OUT))) {
+      if (0 == BytesUtils.compareTo(this.keystore.getKey(KeyStore.SIPHASH_KAFKA_PLASMA_BACKEND_IN), this.keystore.getKey(KeyStore.SIPHASH_KAFKA_PLASMA_BACKEND_OUT))) {
         this.identicalSipHashKeys = true;
       }
     } else if (null == this.keystore.getKey(KeyStore.SIPHASH_KAFKA_PLASMA_BACKEND_IN) && null == this.keystore.getKey(KeyStore.SIPHASH_KAFKA_PLASMA_BACKEND_OUT)) {
@@ -536,7 +526,7 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
     }
 
     if (null != this.keystore.getKey(KeyStore.AES_KAFKA_PLASMA_BACKEND_IN) && null != this.keystore.getKey(KeyStore.AES_KAFKA_PLASMA_BACKEND_OUT)) {
-      if (0 == Bytes.compareTo(this.keystore.getKey(KeyStore.AES_KAFKA_PLASMA_BACKEND_IN), this.keystore.getKey(KeyStore.AES_KAFKA_PLASMA_BACKEND_OUT))) {
+      if (0 == BytesUtils.compareTo(this.keystore.getKey(KeyStore.AES_KAFKA_PLASMA_BACKEND_IN), this.keystore.getKey(KeyStore.AES_KAFKA_PLASMA_BACKEND_OUT))) {
         this.identicalAESKeys = true;
       }
     } else if (null == this.keystore.getKey(KeyStore.AES_KAFKA_PLASMA_BACKEND_IN) && null == this.keystore.getKey(KeyStore.AES_KAFKA_PLASMA_BACKEND_OUT)) {
@@ -552,19 +542,19 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
     private final PlasmaBackEnd backend;
     private final org.apache.kafka.clients.consumer.KafkaConsumer<byte[],byte[]> consumer;
     private final KafkaOffsetCounters counters;
-    
+
     public KafkaConsumer(PlasmaBackEnd backend, org.apache.kafka.clients.consumer.KafkaConsumer<byte[], byte[]> consumer, KafkaOffsetCounters counters) {
       this.backend = backend;
       this.consumer = consumer;
       this.counters = counters;
     }
-    
+
     @Override
     public void run() {
       long count = 0L;
-      
+
       byte[] clslbls = new byte[16];
-      
+
       try {
         byte[] inSipHashKey = backend.keystore.getKey(KeyStore.SIPHASH_KAFKA_PLASMA_BACKEND_IN);
         byte[] inAESKey = backend.keystore.getKey(KeyStore.AES_KAFKA_PLASMA_BACKEND_IN);
@@ -579,9 +569,9 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
 
         //Kafka 2.x Duration delay = Duration.of(500L, ChronoUnit.MILLIS);
         long delay = 500L;
-        
+
         boolean polling = false;
-        
+
         while (!backend.abort.get()) {
           //
           // If synchronization should happen, wait on the synchronization barrier
@@ -591,69 +581,69 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
           }
 
           ConsumerRecords<byte[], byte[]> records = consumer.poll(delay);
-          
+
           boolean first = true;
-          
+
           for (ConsumerRecord<byte[], byte[]> record : records) {
-            
+
             if (!first) {
               throw new RuntimeException("Invalid input, expected a single record, got " + records.count());
             }
-            
+
             first = false;
 
             count++;
             counters.count(record.partition(), record.offset());
-                        
+
             // Do nothing if there are no subscriptions
             if (null == backend.subscriptions || backend.subscriptions.isEmpty()) {
               continue;
             }
-            
+
             byte[] data = record.value();
 
             Sensision.update(SensisionConstants.SENSISION_CLASS_PLASMA_BACKEND_KAFKA_IN_MESSAGES, Sensision.EMPTY_LABELS, 1);
             Sensision.update(SensisionConstants.SENSISION_CLASS_PLASMA_BACKEND_KAFKA_IN_BYTES, Sensision.EMPTY_LABELS, data.length);
-            
+
             if (null != inSipHashKey) {
               data = CryptoUtils.removeMAC(inSipHashKey, data);
             }
-            
+
             // Skip data whose MAC was not verified successfully
             if (null == data) {
               Sensision.update(SensisionConstants.SENSISION_CLASS_PLASMA_BACKEND_KAFKA_IN_INVALIDMACS, Sensision.EMPTY_LABELS, 1);
               continue;
             }
-            
+
             // Unwrap data if need be
             if (null != inAESKey) {
               data = CryptoUtils.unwrap(inAESKey, data);
             }
-            
+
             // Skip data that was not unwrapped successfully
             if (null == data) {
               Sensision.update(SensisionConstants.SENSISION_CLASS_PLASMA_BACKEND_KAFKA_IN_INVALIDCIPHERS, Sensision.EMPTY_LABELS, 1);
               continue;
             }
-            
+
             //
             // Extract KafkaDataMessage
             //
-            
+
             KafkaDataMessage tmsg = new KafkaDataMessage();
             deserializer.deserialize(tmsg, data);
-            
+
             switch(tmsg.getType()) {
               case STORE:
-                backend.dispatch(clslbls, record, tmsg, outSipHashKey, outAESKey);              
+                backend.dispatch(clslbls, record, tmsg, outSipHashKey, outAESKey);
                 break;
               case DELETE:
                 break;
               default:
                 throw new RuntimeException("Invalid message type.");
-            }            
-          }          
-        }        
+            }
+          }
+        }
       } catch (Throwable t) {
         LOG.error("Error processing subscription messages from Kafka.", t);
       } finally {
@@ -665,14 +655,16 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
 
   /**
    * Dispatch the message to the various topics
-   * 
+   *
    * @param clslbls stable array to extract classId/labelsId
    * @param record Original record, its key/value will be re-used if SipHash/AES keys match
    * @param msg payload of the original message, in case we need to re-hash/re-encrypt it
    */
   private void dispatch(byte[] clslbls, ConsumerRecord<byte[], byte[]> record, KafkaDataMessage msg, byte[] outSipHashKey, byte[] outAESKey) {
-    
-    System.out.println("DISPATCHING " + record);
+
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("DISPATCHING " + record);
+    }
 
     if (null == this.subscriptions || this.subscriptions.isEmpty()) {
       return;
@@ -680,7 +672,7 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
 
     long classid = msg.getClassId();
     long labelsid = msg.getLabelsId();
-    
+
     for (int i = 0; i < 8; i++) {
       // 128bits
       clslbls[7 - i] = (byte) (classid & 0xff);
@@ -688,19 +680,19 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
       classid >>>= 8;
       labelsid >>>= 8;
     }
-    
+
     BigInteger id = new BigInteger(clslbls);
 
     Map<String,Set<BigInteger>> subs = this.subscriptions;
 
     // Is the record ready to be sent?
     boolean msgReady = this.identicalAESKeys && this.identicalSipHashKeys;
-        
+
     byte[] key = record.key();
     byte[] value = null;
-    
+
     Map<String,String> labels = new HashMap<String, String>();
-    
+
     for (Map.Entry<String, Set<BigInteger>> topicAndSubs: subs.entrySet()) {
       String topic = topicAndSubs.getKey();
 
@@ -708,11 +700,14 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
         continue;
       }
 
-      System.out.println("DISPATCHING TO TOPIC " + topic);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("DISPATCHING TO TOPIC " + topic);
+      }
+
       //
       // Repackage the record
       //
-    
+
       ProducerRecord<byte[],byte[]> outmsg = null;
 
       if (msgReady) {
@@ -721,26 +716,26 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
       } else {
         if (null == value) {
           TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
-          
+
           try {
             value = serializer.serialize(msg);
           } catch (TException te) {
             // Ignore the error
             continue;
           }
-          
+
           //
           // Encrypt value if the AES key is defined
           //
-            
+
           if (null != outAESKey) {
-            value = CryptoUtils.wrap(outAESKey, value);               
+            value = CryptoUtils.wrap(outAESKey, value);
           }
-            
+
           //
           // Compute MAC if the SipHash key is defined
           //
-            
+
           if (null != outSipHashKey) {
             value = CryptoUtils.addMAC(outSipHashKey, value);
           }
@@ -750,20 +745,20 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
 
       try {
         sendDataMessage(outmsg);
-      } catch (IOException ioe) {        
+      } catch (IOException ioe) {
       }
     }
-    
+
     // Force flushing of KafkaMessages, this will trigger the actual push to Kafka
     // so we send all outgoing messages at once
     try {
       sendDataMessage(null);
-    } catch (IOException ioe) {      
+    } catch (IOException ioe) {
     }
   }
-  
+
   private synchronized void sendDataMessage(ProducerRecord<byte[], byte[]> msg) throws IOException {
-    
+
     long thismsg = 0L;
     if (null != msg) {
       thismsg = msg.key().length + msg.value().length;
@@ -772,16 +767,16 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
     // FIXME(hbs): we check if the size would outgrow the maximum, if so we flush the message before.
     // in Ingress we add the message first, which could lead to a msg too big for Kafka, we will need
     // to fix Ingress at some point.
-    
+
     if (msglist.size() > 0 && (null == msg || msgsize.get() + thismsg > KAFKA_OUT_MAXSIZE)) {
       Future[] futures = new Future[msglist.size()];
-      
+
       int idx = 0;
       for (ProducerRecord record: msglist) {
         futures[idx++] = this.kafkaProducer.send(record);
       }
       this.kafkaProducer.flush();
-      
+
       for (Future future: futures) {
         try {
           future.get();
@@ -789,7 +784,7 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
           throw new IOException(e);
         }
       }
-      
+
       Sensision.update(SensisionConstants.SENSISION_CLASS_PLASMA_BACKEND_KAFKA_OUT_SENT, Sensision.EMPTY_LABELS, 1);
       msglist.clear();
       msgsize.set(0L);

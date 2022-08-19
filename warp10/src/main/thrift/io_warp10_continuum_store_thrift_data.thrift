@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -162,74 +162,8 @@ struct GTSData {
   5: binary data,
 }
 
-struct DirectoryFindRequest {
-  /**
-   * Pattern for selecting GTS class.
-   */
-  1: list<string> classSelector,
-  
-  /**
-   * Patterns for selecting labels
-   */
-  2: list<map<string,string>> labelsSelectors,
-  
-  /**
-   * Timestamp at which the request object was created
-   */
-  3: i64 timestamp,
-  
-  /**
-   * SipHash of the request, used to ensure the requester has
-   * the pre-shared key of the Directory instance.
-   *
-   * This hash is computed on timestamp/classSelector/labelsSelectors
-   */
-  4: i64 hash,
-}
-
-struct DirectoryFindResponse {
-  /**
-   * List of matching Metadata instances
-   */
-  1: list<Metadata> metadatas,
-  
-  /**
-   * Error message
-   */
-  2: string error,
-  
-  /**
-   * Map of common labels
-   */
-  3: optional map<string,string> commonLabels,
-  
-  /**
-   * Compressed embedded DiectoryFindResponse
-   */
-  4: optional binary compressed,
-}
-
-struct DirectoryGetRequest {
-  /**
-   * Class Id for which to retrieve the Metadata
-   */
-  1: i64 classId,
-  
-  /**
-   * Labels Id for which to retrieve the Metadata
-   */
-  2: i64 labelsId,
-}
-
-struct DirectoryGetResponse {
-  /**
-   * Returned metadata, not set if not found
-   */
-  1: Metadata metadata,
-}
-
 /**
- * StatsRequest is identical for now to FindRequest
+ * StatsRequest
  */
 struct DirectoryStatsRequest {
   /**
@@ -509,9 +443,9 @@ struct FetchRequest {
    */
   9: optional double sample = 1.0,
   /**
-   * Flag indicating to return the HBase cell timestamp instead of the value.
+   * REMOVED - was used for HBase write timestamp retrieval
    */
-  10: optional bool writeTimestamp = false,
+  //10: optional bool writeTimestamp = false,
   /**
    * Size of the pre boundary in number of data points.
    */
@@ -521,22 +455,9 @@ struct FetchRequest {
    */
   12: optional i64 postBoundary = 0,
   /**
-   * Flag indicating we want to return the HBase cells TTL instead of the value
-   *
-   * This only works if the HBase client is configured with:
-   *
-   *    hbase.client.rpc.codec = org.apache.hadoop.hbase.codec.KeyValueCodecWithTags
-   *
-   * This can be achieved in Warp 10 using the following egress config:
-   *
-   *    egress.hbase.config = hbase.client.rpc.codec
-   *    egress.hbase.client.rpc.codec = org.apache.hadoop.hbase.codec.KeyValueCodecWithTags
-   *
-   * Beware that changing the RPC Codec will change it for all calls to HBase, meaning that tags will
-   * be transfered between the RegionServer and the Client for each cell, even if there is no interest
-   * in the tags. Overall performance may therefore degrade.
+   * REMOVED - was used for HBase Cell TTL retrieval
    */
-  13: optional bool TTL = false,
+  //13: optional bool TTL = false,
   /**
    * Flag indicating whether or not to use parallel scanners if available. This may be
    * needed when the order of the returned GTS is important. Performing parallel

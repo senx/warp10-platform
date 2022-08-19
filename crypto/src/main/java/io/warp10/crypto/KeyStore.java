@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2022 SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -57,12 +57,12 @@ public interface KeyStore {
   /**
    * Name of key for wrapping metadata
    */
-  public static final String AES_HBASE_METADATA = "warp.aes.hbase.metadata";
+  public static final String AES_FDB_METADATA = "warp.aes.fdb.metadata";
 
   /**
    * Name of key for wrapping data (readings)
    */
-  public static final String AES_HBASE_DATA = "warp.aes.hbase.data";
+  public static final String AES_FDB_DATA = "warp.aes.fdb.data";
 
   /**
    * Name of key for wrapping Tokens

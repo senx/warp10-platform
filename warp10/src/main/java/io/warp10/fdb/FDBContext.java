@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -14,29 +14,27 @@
 //   limitations under the License.
 //
 
-package io.warp10.script.ext.hbase;
+package io.warp10.fdb;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.nio.charset.StandardCharsets;
 
-import io.warp10.warp.sdk.WarpScriptExtension;
+import com.apple.foundationdb.Database;
 
-/**
- * Extension which defines functions around concurrent execution
- * of WarpScript code.
- */
-public class HBaseWarpScriptExtension extends WarpScriptExtension {
-  
-  private static final Map<String,Object> functions;
-  
-  static {
-    functions = new HashMap<String, Object>();
+public class FDBContext {
 
-    functions.put("HLOCATE", new HLOCATE("HLOCATE"));
+  private final String clusterFile;
+  private final byte[] tenant;
+
+  public FDBContext(String clusterFile, String tenant) {
+    this.clusterFile = clusterFile;
+    this.tenant = null != tenant ? tenant.getBytes(StandardCharsets.UTF_8) : null;
   }
-  
-  @Override
-  public Map<String, Object> getFunctions() {
-    return functions;
+
+  public Database getDatabase() {
+    return FDBUtils.getFDB().open(this.clusterFile);
+  }
+
+  public byte[] getTenant() {
+    return this.tenant;
   }
 }

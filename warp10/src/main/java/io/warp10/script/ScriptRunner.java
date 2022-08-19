@@ -68,10 +68,10 @@ import org.slf4j.LoggerFactory;
 import com.geoxp.oss.CryptoHelper;
 import com.google.common.base.Preconditions;
 import com.google.common.primitives.Longs;
-import com.netflix.curator.framework.CuratorFramework;
-import com.netflix.curator.framework.CuratorFrameworkFactory;
-import com.netflix.curator.framework.recipes.leader.LeaderLatch;
-import com.netflix.curator.retry.RetryNTimes;
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.CuratorFrameworkFactory;
+import org.apache.curator.framework.recipes.leader.LeaderLatch;
+import org.apache.curator.retry.RetryNTimes;
 
 import io.warp10.WarpConfig;
 import io.warp10.WarpDist;
@@ -96,7 +96,7 @@ import io.warp10.sensision.Sensision;
 public class ScriptRunner extends Thread {
 
   private static final Logger LOG = LoggerFactory.getLogger(ScriptRunner.class);
-  
+
   /*
    * CLEAR footer, used to remove all symbols and clear the stack so no output is returned
    * even if EXPORT was called
@@ -290,7 +290,7 @@ public class ScriptRunner extends Thread {
       this.topic = config.getProperty(Configuration.RUNNER_KAFKA_TOPIC);
 
       Properties props = new Properties();
-      
+
       props.putAll(Configuration.extractPrefixed(config, config.getProperty(Configuration.RUNNER_KAFKA_PRODUCER_CONF_PREFIX)));
 
       // @see <a href="http://kafka.apache.org/documentation.html#producerconfigs">http://kafka.apache.org/documentation.html#producerconfigs</a>
@@ -328,7 +328,7 @@ public class ScriptRunner extends Thread {
         LOG.error("Error starting leader latch", e);
         throw new IOException(e);
       }
-      
+
       this.setDaemon(true);
       this.setName("[Warp ScriptRunner]");
       this.start();
@@ -345,7 +345,7 @@ public class ScriptRunner extends Thread {
    */
   protected void removeRunnerContext(String scriptName) {
   }
-  
+
   @Override
   public void run() {
 

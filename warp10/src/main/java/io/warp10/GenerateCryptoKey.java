@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2021  SenX S.A.S.
+//   Copyright 2020-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
+
 package io.warp10;
 
 import io.warp10.continuum.Configuration;
@@ -53,10 +54,10 @@ public class GenerateCryptoKey {
     keys.put(Configuration.RUNNER_KAFKA_MAC, 128);
     keys.put(Configuration.STORE_KAFKA_DATA_MAC, 128);
     keys.put(Configuration.STORE_KAFKA_DATA_AES, 256);
-    keys.put(Configuration.STORE_HBASE_DATA_AES, 256);
+    keys.put(Configuration.STORE_FDB_DATA_AES, 256);
     keys.put(Configuration.DIRECTORY_KAFKA_METADATA_MAC, 128);
     keys.put(Configuration.DIRECTORY_KAFKA_METADATA_AES, 256);
-    keys.put(Configuration.DIRECTORY_HBASE_METADATA_AES, 256);
+    keys.put(Configuration.DIRECTORY_FDB_METADATA_AES, 256);
     keys.put(Configuration.DIRECTORY_PSK, 128);
     keys.put(Configuration.PLASMA_FRONTEND_KAFKA_MAC, 128);
     keys.put(Configuration.PLASMA_FRONTEND_KAFKA_AES, 256);
@@ -68,7 +69,7 @@ public class GenerateCryptoKey {
     keys.put(Configuration.INGRESS_KAFKA_DATA_MAC, 128);
     keys.put(Configuration.INGRESS_KAFKA_META_AES, 256);
     keys.put(Configuration.INGRESS_KAFKA_DATA_AES, 256);
-    keys.put(Configuration.EGRESS_HBASE_DATA_AES, 256);
+    keys.put(Configuration.EGRESS_FDB_DATA_AES, 256);
     keys.put(Configuration.EGRESS_FETCHER_AES, 256);
     keys.put(Configuration.WEBCALL_KAFKA_AES, 256);
     keys.put(Configuration.WEBCALL_KAFKA_MAC, 128);
