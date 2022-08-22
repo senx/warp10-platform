@@ -2200,8 +2200,7 @@ public class GTSHelper {
     //
     // Loop on all buckets
     //
-
-    // ************************************************************************************************************************************* REWORK ***********
+    
     if (memoryOptimized) {
       // to keep compatibility, BUCKETIZE will still browse buckets from the most recent to the oldest
       // a bucket is all values between (bucketEnd - bucketspan + 1) and bucketEnd.
@@ -2567,8 +2566,7 @@ public class GTSHelper {
 
       }
     }
-    // ************************************************************************************************************************************* REWORK END ***********
-    
+
     else {
       //
       // We can't skip buckets which are before the first tick or after the last one
@@ -2675,6 +2673,9 @@ public class GTSHelper {
       }
     }
     GTSHelper.shrink(bucketized);
+    // by construction, output is reverse sorted
+    bucketized.sorted = true;
+    bucketized.reversed = true;
     return bucketized;
   }
 
