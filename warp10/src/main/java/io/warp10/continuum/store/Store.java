@@ -610,7 +610,8 @@ public class Store extends Thread {
           @Override
           public void run() {
             try {
-              long lastsync = System.currentTimeMillis();
+              // Last time we synced the Kafka offsets
+              long lastKafkaOffsetCommit = System.currentTimeMillis();
 
               //
               // Check for how long we've been storing readings, if we've reached the commitperiod,
@@ -621,7 +622,7 @@ public class Store extends Thread {
 
               while(!localabort.get() && !synchronizer.isInterrupted()) {
                 long now = System.currentTimeMillis();
-                if (now - lastsync > store.commitPeriod // We've committed too long ago
+                if (now - lastKafkaOffsetCommit > store.commitPeriod // We've committed too long ago
                     && (!inflightMessage.get() // There is no message currently being processed
                         || !needToSync.get()   // We do not need to sync offsets
                         || !((0L != lastMutation.get() // there is at least one mutation to persist
@@ -633,17 +634,18 @@ public class Store extends Thread {
                   try {
                     mutationslock.lockInterruptibly();
 
-                    needToSync.set(true);
-
                     //
                     // If a message processing is ongoing we need to delay synchronization
                     //
 
                     if (inflightMessage.get()) {
+                      needToSync.set(true);
                       // Indicate we should pause after we've relinquished the lock
                       doPause = true;
                       continue;
                     }
+
+                    needToSync.set(false);
 
                     //
                     // Attempt to flush to FoundationDB
@@ -686,7 +688,6 @@ public class Store extends Thread {
                       // We wait at most maxTimeBetweenCommits so we can abort in case the synchronization was too long ago
                       ourbarrier.await(store.maxTimeBetweenCommits, TimeUnit.MILLISECONDS);
                       needToSync.set(false);
-
                       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_BARRIER_SYNCS, Sensision.EMPTY_LABELS, 1);
                     } catch (Exception e) {
                       store.abort.set(true);
@@ -695,7 +696,7 @@ public class Store extends Thread {
                       }
                       return;
                     } finally {
-                      lastsync = System.currentTimeMillis();
+                      lastKafkaOffsetCommit = System.currentTimeMillis();
                     }
                   } catch (InterruptedException ie) {
                     store.abort.set(true);
@@ -777,7 +778,6 @@ public class Store extends Thread {
             long retries = store.fdbRetryLimit;
 
             do {
-              System.out.println("RETRIES == " + retries);
               try {
                 retry = false;
                 // TODO(hbs): use a ThreadLocal with a tenant to avoid opening one each time
@@ -800,9 +800,7 @@ public class Store extends Thread {
                   mutation.apply(txn);
                 }
 
-                System.out.println("COMMITING " + mutations.size() + " SETS=" + sets + " CLEAR=" + clearranges);
                 txn.commit().get();
-                System.out.println("COMMITTED");
                 Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_FDB_SETS_COMMITTED, Sensision.EMPTY_LABELS, sets);
                 Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_FDB_CLEARRANGES_COMMITTED, Sensision.EMPTY_LABELS, clearranges);
               } catch (Throwable t) {
@@ -871,7 +869,7 @@ public class Store extends Thread {
 
           Iterator<ConsumerRecord<byte[],byte[]>> iter = consumerRecords.iterator();
 
-          while(iter.hasNext()) {
+          while(resetInflight() && iter.hasNext()) {
 
             ConsumerRecord<byte[],byte[]> record = null;
 
