@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.sensision.Sensision;
+import io.warp10.warp.sdk.Capabilities;
 
 import java.util.List;
 import java.util.Map;
@@ -29,23 +30,27 @@ import java.util.Map;
  * Produces a Sensision event
  */
 public class SENSISIONEVENT extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   public SENSISIONEVENT(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    
+
+    if (SensisionWarpScriptExtension.useCapability() && null == Capabilities.get(stack, SensisionWarpScriptExtension.WRITE_CAPABILITY)) {
+      throw new WarpScriptException(getName() + " missing capability '" + SensisionWarpScriptExtension.WRITE_CAPABILITY +"'");
+    }
+
     Object top = stack.pop();
 
     if (!(top instanceof List)) {
       throw new WarpScriptException(getName() + " expects a list on top of the stack.");
     }
-    
+
     List<Object> args = (List<Object>) top;
-        
-    
+
+
     if (3 == args.size()) { // class,labels,value
       String cls = args.get(0).toString();
       Map<String,String> labels = (Map<String,String>) args.get(1);
@@ -60,8 +65,8 @@ public class SENSISIONEVENT extends NamedWarpScriptFunction implements WarpScrip
     } else {
       throw new WarpScriptException(getName() + " unsupported number of arguments.");
     }
-    
+
     return stack;
   }
-  
+
 }

@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -25,40 +25,45 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.sensision.Sensision;
+import io.warp10.warp.sdk.Capabilities;
 
 /**
  * Retrieve a string representation of all current Sensision metrics
  */
 public class SENSISIONDUMP extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   public SENSISIONDUMP(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
 
     Object top = stack.pop();
 
-    if (!(top instanceof Boolean)) {
-      throw new WarpScriptException(getName() + " expects a flag (BOOLEAN) on top of the stack indicating whether to use the metrics update timestamps or the current timestamp when generating Geo Time Series™.");
+    if (SensisionWarpScriptExtension.useCapability() && null == Capabilities.get(stack, SensisionWarpScriptExtension.READ_CAPABILITY)) {
+      throw new WarpScriptException(getName() + " missing capability '" + SensisionWarpScriptExtension.READ_CAPABILITY +"'");
     }
-    
+
+    if (!(top instanceof Boolean)) {
+      throw new WarpScriptException(getName() + " expects a flag (BOOLEAN) indicating whether to use the metrics update timestamps or the current timestamp when generating Geo Time Series™.");
+    }
+
     boolean useMetricsTimestamps = Boolean.TRUE.equals(top);
-    
+
     StringWriter sw = new StringWriter();
     PrintWriter pw = new PrintWriter(sw);
-    
+
     try {
       Sensision.dump(pw, useMetricsTimestamps);
       pw.flush();
-      
+
       stack.push(sw.toString());
     } catch (IOException ioe) {
       throw new WarpScriptException(getName() + " error while fetching metrics.", ioe);
     }
-        
+
     return stack;
   }
-  
+
 }
