@@ -66,17 +66,7 @@ subprojects {
     // Repositories for dependency resolution for all subprojects
     //
     repositories {
-        mavenCentral()
-        // Repository for MapR DB/Streams
-        if (null != System.getProperty("mapr-db") || null != System.getProperty("mapr-streams")) {
-          maven {
-              url "http://repository.mapr.com/maven/"
-          }
-          // For xerces:xercesImpl
-          maven {
-              url "https://repository.jboss.org/nexus/content/repositories/thirdparty-releases"
-          }
-        }
+      mavenCentral()
     }
 
     //
