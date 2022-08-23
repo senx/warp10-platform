@@ -29,6 +29,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -1164,10 +1165,21 @@ public class Directory extends AbstractHandler implements Runnable {
 
     private final AtomicBoolean localabort = new AtomicBoolean(false);
 
+    // Boolean indicating that the last call to poll returned records which
+    // must be stored prior to committing the offsets, if pending is true
+    // then we will not trigger a commit
+    private final AtomicBoolean pending = new AtomicBoolean(false);
+
+
     public DirectoryConsumer(Directory directory, KafkaConsumer<byte[], byte[]> consumer, KafkaOffsetCounters counters) {
       this.directory = directory;
       this.consumer = consumer;
       this.counters = counters;
+    }
+
+    private boolean resetPending() {
+      pending.set(false);
+      return true;
     }
 
     @Override
@@ -1194,11 +1206,6 @@ public class Directory extends AbstractHandler implements Runnable {
         // Boolean indicating that we should commit the offsets. This is used
         // to ensure that we do not call poll when a commit must be performed
         final AtomicBoolean mustCommit = new AtomicBoolean(false);
-
-        // Boolean indicating that the last call to poll returned records which
-        // must be stored prior to committing the offsets, if pending is true
-        // then we will not trigger a commit
-        final AtomicBoolean pending = new AtomicBoolean(false);
 
         //
         // Start the synchronization Thread
@@ -1322,6 +1329,7 @@ public class Directory extends AbstractHandler implements Runnable {
               directory.abort.set(true);
             }
           }
+
           private void flushMutations() throws IOException {
             Tenant tenant = null;
             Transaction txn = null;
@@ -1406,12 +1414,33 @@ public class Directory extends AbstractHandler implements Runnable {
 
           boolean first = true;
 
-          for(ConsumerRecord<byte[], byte[]> record : consumerRecords) {
-            if (!first) {
-              throw new RuntimeException("Invalid input, expected a single record, got " + consumerRecords.count());
-            }
+          Iterator<ConsumerRecord<byte[],byte[]>> iter = consumerRecords.iterator();
 
-            first = false;
+          while(resetPending() && iter.hasNext()) {
+
+            ConsumerRecord<byte[],byte[]> record = null;
+
+            try {
+              mutationsLock.lockInterruptibly();
+
+              // Do not read record if we must commit the offsets
+              if (mustCommit.get()) {
+                continue;
+              }
+
+              if (!first) {
+                throw new RuntimeException("Invalid input, expected a single record, got " + consumerRecords.count());
+              }
+
+              first = false;
+
+              record = iter.next();
+              pending.set(true);
+            } finally {
+              if (mutationsLock.isHeldByCurrentThread()) {
+                mutationsLock.unlock();
+              }
+            }
 
             if (!counters.safeCount(record.partition(), record.offset())) {
               continue;
