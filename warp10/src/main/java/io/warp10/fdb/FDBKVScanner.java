@@ -103,8 +103,6 @@ public class FDBKVScanner implements Iterator<FDBKeyValue> {
       byte[] endKey = this.scan.getEndKey();
       boolean startPrefixed = false;
       boolean endPrefixed = false;
-      //System.out.println("xSTART=" + new String(startKey));
-      //System.out.println("xEND=" + new String(endKey));
 
       if (null != lastKey) {
         if (!this.scan.isReverse()) {
