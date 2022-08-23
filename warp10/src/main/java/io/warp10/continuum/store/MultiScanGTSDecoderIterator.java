@@ -302,10 +302,7 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
     }
 
     try {
-      long nanos = System.nanoTime();
       this.scanner = scan.getScanner(pool.getContext(), pool.getDatabase(), mode, persistentTransaction);
-      nanos = System.nanoTime() - nanos;
-      System.out.println(System.currentTimeMillis() + "  GET SCANNER took " + (nanos / 1000000.0D) + " ms");
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FDB_CLIENT_SCANNERS, Sensision.EMPTY_LABELS, 1);
     } catch (IOException ioe) {
       ioe.printStackTrace();
@@ -323,10 +320,7 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
     // care of all the dirty details.
     //
 
-    long nanos = System.nanoTime();
     if (this.scanner.hasNext()) {
-      nanos = System.nanoTime() - nanos;
-      System.out.println(System.currentTimeMillis() + "  SCANNER hasNext took " + (nanos / 1000000.0D) + " ms");
       return true;
     } else {
       return hasNext();
@@ -348,7 +342,7 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
     //
 
     GTSEncoder encoder = new GTSEncoder(0L);
-long nanos = System.nanoTime();
+
     while(encoder.size() < Constants.MAX_ENCODER_SIZE && (nvalues > 0 || preBoundaryScan || postBoundaryScan) && scanner.hasNext()) {
       //
       // Extract next result from scanner
@@ -470,8 +464,7 @@ long nanos = System.nanoTime();
     }
 
     encoder.setMetadata(metadatas.get(idx));
-nanos = System.nanoTime() - nanos;
-System.out.println(encoder.getCount() + " in " + (nanos / 1000000.0D) + " ms -> " + (encoder.getCount() / (nanos / 1000000000.0D)) + " / s");
+
     //
     // Update Sensision
     //
