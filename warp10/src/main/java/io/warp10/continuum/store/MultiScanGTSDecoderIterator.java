@@ -96,7 +96,7 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
   private boolean hasTimestep = false;
   private FDBPool pool;
   private final boolean FDBUseTenantPrefix;
-  private byte[] tenantPrefix;
+  private byte[] tenantPrefix = null;
   private AtomicReference<Transaction> persistentTransaction = null;
 
   public MultiScanGTSDecoderIterator(boolean fdbUseTenantPrefix, FetchRequest req, FDBPool pool, KeyStore keystore) throws IOException {
@@ -123,6 +123,8 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
 
     if (fdbUseTenantPrefix) {
       this.tenantPrefix = OrderPreservingBase64.decode(req.getAttributes().get(Constants.TOKEN_ATTR_FDB_TENANT_PREFIX));
+    } else {
+      this.tenantPrefix = pool.getContext().getTenant();
     }
 
     // If we are fetching up to Long.MIN_VALUE, then don't fetch a pre boundary
@@ -254,9 +256,7 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
     StreamingMode mode = StreamingMode.ITERATOR;
 
     try {
-      if (FDBUseTenantPrefix) {
-        scan.setTenant(this.tenantPrefix);
-      }
+      scan.setTenant(this.tenantPrefix);
 
       if (postBoundaryScan) {
         scan.setReverse(true);

@@ -21,16 +21,22 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import com.apple.foundationdb.Database;
 import com.apple.foundationdb.FDB;
 import com.apple.foundationdb.FDBException;
+import com.apple.foundationdb.Transaction;
 
 import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
+import io.warp10.json.JsonUtils;
 import io.warp10.sensision.Sensision;
 
 public class FDBUtils {
+
+  public static final String KEY_ID = "id";
+  public static final String KEY_PREFIX = "prefix";
 
   public static final int MAX_VALUE_SIZE = 100000;
   public static final long MAX_TXN_SIZE = 10000000;
@@ -54,6 +60,7 @@ public class FDBUtils {
   public static byte[] getNextKey(byte[] key) {
     return getNextKey(key, 0, key.length);
   }
+
   public static byte[] getNextKey(byte[] key, int offset, int len) {
     if (0 != len) {
       // Return a byte array which is 'one bit after' prefix
@@ -91,5 +98,63 @@ public class FDBUtils {
     labels.put(SensisionConstants.SENSISION_LABEL_COMPONENT, component);
     labels.put(SensisionConstants.SENSISION_LABEL_CODE, Integer.toString(fdbe.getCode()));
     Sensision.update(SensisionConstants.CLASS_FDB_ERRORS, labels, 1);
+  }
+
+  public static Map<String,Object> getTenantInfo(FDBContext context, String tenant) {
+    Database db = context.getDatabase();
+    try {
+      return getTenantInfo(db, tenant);
+    } finally {
+      try { db.close(); } catch (Throwable t) {}
+    }
+  }
+
+  public static Map<String,Object> getTenantInfo(Database db, String tenant) {
+    Transaction txn = db.createTransaction();
+    txn.options().setRawAccess();
+    txn.options().setAccessSystemKeys();
+
+    Map<String,Object> map = new LinkedHashMap<String,Object>();
+
+    // Retrieve the system key for the given tenant
+    try {
+      byte[] tenantMap = txn.get(getTenantSystemKey(tenant)).get();
+      if (null != tenantMap) {
+        Object json = JsonUtils.jsonToObject(new String(tenantMap, StandardCharsets.UTF_8));
+
+        map.put(KEY_ID, ((Number) ((Map) json).get(KEY_ID)).longValue());
+        map.put(KEY_PREFIX, ((String) ((Map) json).get(KEY_PREFIX)).getBytes(StandardCharsets.ISO_8859_1));
+      }
+    } catch (Throwable t) {
+    } finally {
+      try { txn.close(); } catch (Throwable t) {}
+    }
+
+    return map;
+  }
+
+  private static byte[] getTenantSystemKey(String tenant) {
+    // Tenant key is '\xff\xff/management/tenant_map/TENANT'
+    byte[] systemKey = ("xx/management/tenant_map/" + tenant).getBytes(StandardCharsets.UTF_8);
+    systemKey[0] = (byte) 0xff;
+    systemKey[1] = (byte) 0xff;
+    return systemKey;
+  }
+
+  public static long getEstimatedRangeSizeBytes(FDBContext context, byte[] from, byte[] to) {
+    Database db = context.getDatabase();
+    Transaction txn = db.createTransaction();
+    long size = 0L;
+
+    try {
+      txn.options().setRawAccess();
+      size = txn.getEstimatedRangeSizeBytes(from, to).get().longValue();
+    } catch (Throwable t) {
+    } finally {
+      try { txn.close(); } catch (Throwable t) {}
+      try { db.close(); } catch (Throwable t) {}
+    }
+
+    return size;
   }
 }

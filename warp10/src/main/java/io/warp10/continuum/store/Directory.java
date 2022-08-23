@@ -546,9 +546,9 @@ public class Directory extends AbstractHandler implements Runnable {
                 if (self.remainder != rem) {
                   continue;
                 }
-
                 ByteBuffer bb = ByteBuffer.wrap(kv.getKeyArray(), kv.getKeyOffset(), kv.getKeyLength()).order(ByteOrder.BIG_ENDIAN);
-                bb.position(1);
+                // Skip key prefix
+                bb.position(bb.position() + Constants.FDB_METADATA_KEY_PREFIX.length);
                 long hbClassId = bb.getLong();
                 long hbLabelsId = bb.getLong();
 
@@ -694,6 +694,7 @@ public class Directory extends AbstractHandler implements Runnable {
               //
 
               FDBScan scan = new FDBScan();
+              scan.setTenant(fdbContext.getTenant());
 
               if (null != lastrow) {
                 scan.setStartKey(FDBUtils.getNextKey(lastrow, lastrowoffset, lastrowlength));
@@ -1614,7 +1615,7 @@ public class Directory extends AbstractHandler implements Runnable {
               bb.putLong(classId);
               bb.putLong(labelsId);
 
-              FDBClear clear = new FDBClear(rowkey);
+              FDBClear clear = new FDBClear(fdbContext.getTenant(), rowkey);
 
               try {
                 mutationsLock.lockInterruptibly();
@@ -1816,10 +1817,10 @@ public class Directory extends AbstractHandler implements Runnable {
             if (directory.store) {
               if (null != fdbAESKey) {
                 encrypted = CryptoUtils.wrap(fdbAESKey, metadataBytes);
-                put = new FDBSet(rowkey, encrypted);
+                put = new FDBSet(fdbContext.getTenant(), rowkey, encrypted);
               } else {
                 encrypted = metadataBytes;
-                put = new FDBSet(rowkey, metadataBytes);
+                put = new FDBSet(fdbContext.getTenant(), rowkey, metadataBytes);
               }
             }
 

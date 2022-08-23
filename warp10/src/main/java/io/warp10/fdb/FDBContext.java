@@ -17,6 +17,7 @@
 package io.warp10.fdb;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 import com.apple.foundationdb.Database;
 
@@ -27,9 +28,26 @@ public class FDBContext {
 
   public FDBContext(String clusterFile, String tenant) {
     this.clusterFile = clusterFile;
-    this.tenant = null != tenant ? tenant.getBytes(StandardCharsets.UTF_8) : null;
-    if (null != this.tenant) {
-      throw new RuntimeException("Tenants are not yet supported.");
+
+    if (null != tenant) {
+      Database db = null;
+
+      try {
+        db = FDBUtils.getFDB().open(clusterFile);
+        Map<String,Object> map = FDBUtils.getTenantInfo(db, tenant);
+        if (map.isEmpty()) {
+          throw new RuntimeException("Unknown FoundationDB tenant '" + tenant + "'.");
+        }
+        this.tenant = (byte[]) map.get(FDBUtils.KEY_PREFIX);
+      } catch (Throwable t) {
+        throw t;
+      } finally {
+        if (null != db) {
+          try { db.close(); } catch (Throwable t) {}
+        }
+      }
+    } else {
+      this.tenant = null;
     }
   }
 

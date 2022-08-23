@@ -1015,18 +1015,20 @@ public class Store extends Thread {
 
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_GTSDECODERS,  Sensision.EMPTY_LABELS, 1);
 
-      byte[] tenantPrefix = null;
+      byte[] tenantPrefix = store.fdbContext.getTenant();
 
-      if (msg.getAttributesSize() > 0 && msg.getAttributes().containsKey(Constants.STORE_ATTR_FDB_TENANT_PREFIX)) {
-        tenantPrefix = OrderPreservingBase64.decode(msg.getAttributes().get(Constants.STORE_ATTR_FDB_TENANT_PREFIX));
-      }
-
-      if (null != tenantPrefix && !store.FDBUseTenantPrefix) {
-        LOG.error("Incoherent configuration, Store has no tenant support but the current Kafka STORE message has a tenant prefix set, aborting.");
-        throw new RuntimeException("Incoherent configuration, Store has no tenant support and the current Kafka STORE message has a tenant prefix set.");
-      } else if (null == tenantPrefix && store.FDBUseTenantPrefix) {
-        LOG.error("Incoherent configuration, Store mandates a tenant but the current Kafka STORE message did not have a tenant prefix set, aborting.");
-        throw new RuntimeException("Incoherent configuration, Store mandates a tenant but the current Kafka STORE message did not have a tenant prefix set, aborting.");
+      if (store.FDBUseTenantPrefix) {
+        if (msg.getAttributesSize() > 0 && msg.getAttributes().containsKey(Constants.STORE_ATTR_FDB_TENANT_PREFIX)) {
+          tenantPrefix = OrderPreservingBase64.decode(msg.getAttributes().get(Constants.STORE_ATTR_FDB_TENANT_PREFIX));
+        } else {
+          LOG.error("Incoherent configuration, Store mandates a tenant but the current Kafka STORE message did not have a tenant prefix set, aborting.");
+          throw new RuntimeException("Incoherent configuration, Store mandates a tenant but the current Kafka STORE message did not have a tenant prefix set, aborting.");
+        }
+      } else {
+        if (msg.getAttributesSize() > 0 && msg.getAttributes().containsKey(Constants.STORE_ATTR_FDB_TENANT_PREFIX)) {
+          LOG.error("Incoherent configuration, Store has no tenant support but the current Kafka STORE message has a tenant prefix set, aborting.");
+          throw new RuntimeException("Incoherent configuration, Store has no tenant support and the current Kafka STORE message has a tenant prefix set.");
+        }
       }
 
       long datapoints = 0L;
@@ -1116,18 +1118,20 @@ public class Store extends Thread {
         System.arraycopy(Longs.toByteArray(Long.MAX_VALUE - start), 0, endkey, Constants.FDB_RAW_DATA_KEY_PREFIX.length + 8 + 8, 8);
       }
 
-      byte[] tenantPrefix = null;
+      byte[] tenantPrefix = store.fdbContext.getTenant();
 
-      if (msg.getAttributesSize() > 0 && msg.getAttributes().containsKey(Constants.STORE_ATTR_FDB_TENANT_PREFIX)) {
-        tenantPrefix = OrderPreservingBase64.decode(msg.getAttributes().get(Constants.STORE_ATTR_FDB_TENANT_PREFIX));
-      }
-
-      if (null != tenantPrefix && !store.FDBUseTenantPrefix) {
-        LOG.error("Incoherent configuration, Store has no tenant support but the current Kafka STORE message has a tenant prefix set, aborting.");
-        throw new RuntimeException("Incoherent configuration, Store has no tenant support and the current Kafka STORE message has a tenant prefix set.");
-      } else if (null == tenantPrefix && store.FDBUseTenantPrefix) {
-        LOG.error("Incoherent configuration, Store mandates a tenant but the current Kafka STORE message did not have a tenant prefix set, aborting.");
-        throw new RuntimeException("Incoherent configuration, Store mandates a tenant but the current Kafka STORE message did not have a tenant prefix set, aborting.");
+      if (store.FDBUseTenantPrefix) {
+        if (msg.getAttributesSize() > 0 && msg.getAttributes().containsKey(Constants.STORE_ATTR_FDB_TENANT_PREFIX)) {
+          tenantPrefix = OrderPreservingBase64.decode(msg.getAttributes().get(Constants.STORE_ATTR_FDB_TENANT_PREFIX));
+        } else {
+          LOG.error("Incoherent configuration, Store mandates a tenant but the current Kafka DELETE message did not have a tenant prefix set, aborting.");
+          throw new RuntimeException("Incoherent configuration, Store mandates a tenant but the current Kafka DELETE message did not have a tenant prefix set, aborting.");
+        }
+      } else {
+        if (msg.getAttributesSize() > 0 && msg.getAttributes().containsKey(Constants.STORE_ATTR_FDB_TENANT_PREFIX)) {
+          LOG.error("Incoherent configuration, Store has no tenant support but the current Kafka DELETE message has a tenant prefix set, aborting.");
+          throw new RuntimeException("Incoherent configuration, Store has no tenant support and the current Kafka DELETE message has a tenant prefix set.");
+        }
       }
 
       FDBClearRange clearRange = new FDBClearRange(tenantPrefix, startkey, endkey);
