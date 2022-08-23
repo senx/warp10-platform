@@ -17,11 +17,13 @@
 package io.warp10.fdb;
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.codec.binary.Hex;
 
 import com.apple.foundationdb.Database;
 import com.apple.foundationdb.StreamingMode;
+import com.apple.foundationdb.Transaction;
 
 public class FDBScan {
 
@@ -85,11 +87,15 @@ public class FDBScan {
   }
 
   public FDBKVScanner getScanner(FDBContext fdbContext, Database db, StreamingMode mode) throws IOException {
+    return getScanner(fdbContext, db, mode, null);
+  }
+
+  public FDBKVScanner getScanner(FDBContext fdbContext, Database db, StreamingMode mode, AtomicReference<Transaction> persistentTransaction) throws IOException {
     if (null == reverse) {
       reverse = false;
     }
 
-    return new FDBKVScanner(fdbContext, db, this, mode);
+    return new FDBKVScanner(fdbContext, db, this, mode, persistentTransaction);
   }
 
   @Override

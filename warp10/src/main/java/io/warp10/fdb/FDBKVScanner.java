@@ -18,6 +18,7 @@ package io.warp10.fdb;
 
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +29,6 @@ import com.apple.foundationdb.KeyValue;
 import com.apple.foundationdb.Range;
 import com.apple.foundationdb.ReadTransaction;
 import com.apple.foundationdb.StreamingMode;
-import com.apple.foundationdb.Tenant;
 import com.apple.foundationdb.Transaction;
 import com.apple.foundationdb.async.AsyncIterator;
 
@@ -37,7 +37,6 @@ public class FDBKVScanner implements Iterator<FDBKeyValue> {
   private static final Logger LOG = LoggerFactory.getLogger(FDBKVScanner.class);
 
   private final Database db;
-  private final Tenant tenant;
   private final StreamingMode mode;
 
   private Transaction txn = null;
@@ -51,15 +50,20 @@ public class FDBKVScanner implements Iterator<FDBKeyValue> {
 
   private AsyncIterator<KeyValue> iter = null;
 
+  private AtomicReference<Transaction> transaction = null;
+
   public FDBKVScanner(FDBContext fdbContext, Database db, FDBScan scan, StreamingMode mode) {
+    this(fdbContext, db, scan, mode, null);
+  }
+
+  public FDBKVScanner(FDBContext fdbContext, Database db, FDBScan scan, StreamingMode mode, AtomicReference<Transaction> transaction) {
     this.db = db;
-    if (null != fdbContext.getTenant()) {
-      this.tenant = db.openTenant(fdbContext.getTenant());
-    } else {
-      this.tenant = null;
-    }
     this.mode = mode;
     this.scan = scan;
+    this.transaction = transaction;
+    if (null != this.transaction) {
+      this.txn = this.transaction.get();
+    }
   }
 
   @Override
@@ -73,12 +77,13 @@ public class FDBKVScanner implements Iterator<FDBKeyValue> {
     }
 
     if (null == txn) {
-      this.txn = null == this.tenant ? db.createTransaction() : tenant.createTransaction();
-      if (null == this.tenant) {
-        this.txn.options().setRawAccess();
-      }
+      this.txn = db.createTransaction();
+      this.txn.options().setRawAccess();
       this.txn.options().setCausalReadRisky();
       this.txn.options().setReadYourWritesDisable();
+      if (null != this.transaction) {
+        this.transaction.set(txn);
+      }
       this.iter = null;
     }
 
@@ -126,6 +131,9 @@ public class FDBKVScanner implements Iterator<FDBKeyValue> {
           try { this.txn.close(); } catch (Throwable tt) {}
           this.iter = null;
           this.txn = null;
+          if (null != this.transaction) {
+            this.transaction.set(null);
+          }
           return hasNext();
         }
       }
@@ -156,18 +164,11 @@ public class FDBKVScanner implements Iterator<FDBKeyValue> {
 
   public void close() {
     this.done = true;
-    if (null != this.txn) {
+    if (null == this.transaction && null != this.txn) {
       try {
         this.txn.close();
       } catch (Throwable t) {
         LOG.error("Error closing FoundationDB transaction, will continue anyway.", t);
-      }
-    }
-    if (null != this.tenant) {
-      try {
-        this.tenant.close();
-      } catch (Throwable t) {
-        LOG.error("Error closing FoundationDB tenant, will continue anyway.", t);
       }
     }
   }

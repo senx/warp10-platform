@@ -25,9 +25,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.apple.foundationdb.KeyValue;
 import com.apple.foundationdb.StreamingMode;
+import com.apple.foundationdb.Transaction;
 import com.google.common.primitives.Longs;
 
 import io.warp10.continuum.Tokens;
@@ -95,6 +97,7 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
   private FDBPool pool;
   private final boolean FDBUseTenantPrefix;
   private byte[] tenantPrefix;
+  private AtomicReference<Transaction> persistentTransaction = null;
 
   public MultiScanGTSDecoderIterator(boolean fdbUseTenantPrefix, FetchRequest req, FDBPool pool, KeyStore keystore) throws IOException {
     this.pool = pool;
@@ -129,6 +132,8 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
 
     this.postBoundaryScan = 0 != this.postBoundary;
     this.postBoundaryCount = this.postBoundary;
+
+    this.persistentTransaction = new AtomicReference<Transaction>();
   }
 
   /**
@@ -297,7 +302,10 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
     }
 
     try {
-      this.scanner = scan.getScanner(pool.getContext(), pool.getDatabase(), mode);
+      long nanos = System.nanoTime();
+      this.scanner = scan.getScanner(pool.getContext(), pool.getDatabase(), mode, persistentTransaction);
+      nanos = System.nanoTime() - nanos;
+      System.out.println(System.currentTimeMillis() + "  GET SCANNER took " + (nanos / 1000000.0D) + " ms");
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FDB_CLIENT_SCANNERS, Sensision.EMPTY_LABELS, 1);
     } catch (IOException ioe) {
       ioe.printStackTrace();
@@ -315,7 +323,10 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
     // care of all the dirty details.
     //
 
+    long nanos = System.nanoTime();
     if (this.scanner.hasNext()) {
+      nanos = System.nanoTime() - nanos;
+      System.out.println(System.currentTimeMillis() + "  SCANNER hasNext took " + (nanos / 1000000.0D) + " ms");
       return true;
     } else {
       return hasNext();
@@ -529,6 +540,15 @@ System.out.println(encoder.getCount() + " in " + (nanos / 1000000.0D) + " ms -> 
     Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FDB_CLIENT_ITERATORS, Sensision.EMPTY_LABELS, 1);
     if (null != this.scanner) {
       this.scanner.close();
+    }
+    if (null != this.persistentTransaction) {
+      Transaction txn = this.persistentTransaction.get();
+      if (null != txn) {
+        try {
+          txn.close();
+        } catch (Throwable t) {
+        }
+      }
     }
   }
 

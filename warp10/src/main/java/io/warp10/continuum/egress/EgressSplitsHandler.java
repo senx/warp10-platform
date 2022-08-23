@@ -170,11 +170,6 @@ public class EgressSplitsHandler extends AbstractHandler {
 
     FDBPool fdbPool = this.storeClient.getPool();
     Database db = fdbPool.getDatabase();
-    Tenant tenant = null;
-
-    if (null != fdbPool.getContext().getTenant()) {
-      tenant = db.openTenant(fdbPool.getContext().getTenant());
-    }
 
     Transaction txn = null;
 
@@ -264,7 +259,7 @@ public class EgressSplitsHandler extends AbstractHandler {
           retry = false;
           try {
             if (null == txn) {
-              txn = null != tenant ? tenant.createTransaction() : db.createTransaction();
+              txn = db.createTransaction();
             }
             addresses = LocalityUtil.getAddressesForKey(txn, row).get();
           } catch (Throwable t) {
@@ -335,12 +330,6 @@ public class EgressSplitsHandler extends AbstractHandler {
       if (null != txn) {
         try {
           txn.close();
-        } catch (Throwable t) {
-        }
-      }
-      if (null != tenant) {
-        try {
-          tenant.close();
         } catch (Throwable t) {
         }
       }

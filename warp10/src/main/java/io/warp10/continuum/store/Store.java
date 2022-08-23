@@ -51,7 +51,6 @@ import org.slf4j.LoggerFactory;
 
 import com.apple.foundationdb.Database;
 import com.apple.foundationdb.FDBException;
-import com.apple.foundationdb.Tenant;
 import com.apple.foundationdb.Transaction;
 import com.google.common.base.Preconditions;
 import com.google.common.primitives.Longs;
@@ -771,7 +770,6 @@ public class Store extends Thread {
           }
 
           private void flushMutations() throws IOException {
-            Tenant tenant = null;
             Transaction txn = null;
 
             boolean retry = false;
@@ -780,14 +778,8 @@ public class Store extends Thread {
             do {
               try {
                 retry = false;
-                // TODO(hbs): use a ThreadLocal with a tenant to avoid opening one each time
-                if (null != store.fdbContext.getTenant()) {
-                  tenant = db.openTenant(store.fdbContext.getTenant());
-                }
-                txn = null == tenant ? db.createTransaction() : tenant.createTransaction();
-                if (null == tenant) {
-                  txn.options().setRawAccess();
-                }
+                txn = db.createTransaction();
+                txn.options().setRawAccess();
                 int sets = 0;
                 int clearranges = 0;
 
@@ -813,9 +805,6 @@ public class Store extends Thread {
               } finally {
                 if (null != txn) {
                   try { txn.close(); } catch (Throwable t) {}
-                }
-                if (null != tenant) {
-                  try { tenant.close(); } catch (Throwable t) {}
                 }
               }
             } while(retry);

@@ -83,7 +83,6 @@ import org.slf4j.LoggerFactory;
 import com.apple.foundationdb.Database;
 import com.apple.foundationdb.FDBException;
 import com.apple.foundationdb.StreamingMode;
-import com.apple.foundationdb.Tenant;
 import com.apple.foundationdb.Transaction;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.MapMaker;
@@ -1331,7 +1330,6 @@ public class Directory extends AbstractHandler implements Runnable {
           }
 
           private void flushMutations() throws IOException {
-            Tenant tenant = null;
             Transaction txn = null;
 
             boolean retry = false;
@@ -1340,10 +1338,7 @@ public class Directory extends AbstractHandler implements Runnable {
             do {
               try {
                 retry = false;
-                if (null != fdbContext.getTenant()) {
-                  tenant = db.openTenant(fdbContext.getTenant());
-                }
-                txn = null == tenant ? db.createTransaction() : tenant.createTransaction();
+                txn = db.createTransaction();
 
                 for (FDBMutation mutation: mutations) {
                   mutation.apply(txn);
@@ -1360,9 +1355,6 @@ public class Directory extends AbstractHandler implements Runnable {
               } finally {
                 if (null != txn) {
                   txn.close();
-                }
-                if (null != tenant) {
-                  tenant.close();
                 }
               }
             } while(retry);

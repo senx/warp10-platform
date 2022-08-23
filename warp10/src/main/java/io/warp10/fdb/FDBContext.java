@@ -28,6 +28,9 @@ public class FDBContext {
   public FDBContext(String clusterFile, String tenant) {
     this.clusterFile = clusterFile;
     this.tenant = null != tenant ? tenant.getBytes(StandardCharsets.UTF_8) : null;
+    if (null != this.tenant) {
+      throw new RuntimeException("Tenants are not yet supported.");
+    }
   }
 
   public Database getDatabase() {
