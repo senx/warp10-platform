@@ -171,7 +171,7 @@ public class Ingress extends AbstractHandler implements Runnable {
   /**
    * Do we support specifying a tenant prefix in the token?
    */
-  private final boolean FDBUseTenantPrefix;
+  final boolean FDBUseTenantPrefix;
 
   /**
    * List of pending Kafka messages containing metadata (one per Thread)
@@ -776,7 +776,13 @@ public class Ingress extends AbstractHandler implements Runnable {
             throw new IOException("Invalid token, tenant not supported.");
           }
           kafkaDataMessageAttributes = new LinkedHashMap<String,String>();
-          kafkaDataMessageAttributes.put(Constants.STORE_ATTR_FDB_TENANT_PREFIX, writeToken.getAttributes().get(Constants.TOKEN_ATTR_FDB_TENANT_PREFIX));
+          String encodedPrefix = writeToken.getAttributes().get(Constants.TOKEN_ATTR_FDB_TENANT_PREFIX);
+          if (8 != OrderPreservingBase64.decode(encodedPrefix).length) {
+            throw new IOException("Invalid tenant prefix, length should be 8 bytes.");
+          }
+          kafkaDataMessageAttributes.put(Constants.STORE_ATTR_FDB_TENANT_PREFIX, encodedPrefix);
+        } else if (FDBUseTenantPrefix) {
+          throw new IOException("Invalid token, missing tenant.");
         }
       }
 
