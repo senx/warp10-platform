@@ -27,7 +27,7 @@ import com.apple.foundationdb.Transaction;
 
 public class FDBScan {
 
-  private byte[] tenant = null;
+  private byte[] tenantPrefix = null;
 
   /**
    * First key, included
@@ -44,11 +44,11 @@ public class FDBScan {
    */
   private Boolean reverse = null;
 
-  public void setTenant(byte[] tenant) throws IOException {
-    if (null != this.tenant) {
+  public void setTenantPrefix(byte[] tenant) throws IOException {
+    if (null != this.tenantPrefix) {
       throw new IOException("Tenant already set.");
     }
-    this.tenant = tenant;
+    this.tenantPrefix = tenant;
   }
 
   public void setStartKey(byte[] key) throws IOException {
@@ -72,8 +72,8 @@ public class FDBScan {
     this.reverse = reverse;
   }
 
-  public byte[] getTenant() {
-    return this.tenant;
+  public byte[] getTenantPrefix() {
+    return this.tenantPrefix;
   }
 
   public byte[] getEndKey() {
@@ -101,8 +101,8 @@ public class FDBScan {
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder("Scan\n");
-    if (null != tenant) {
-      sb.append("  tenant = " + Hex.encodeHexString(tenant) + "\n");
+    if (null != tenantPrefix) {
+      sb.append("  tenantPrefix = " + Hex.encodeHexString(tenantPrefix) + "\n");
     }
     sb.append("  start  = " + Hex.encodeHexString(startKey) + "\n");
     sb.append("  end    = " + Hex.encodeHexString(endKey) + "\n");

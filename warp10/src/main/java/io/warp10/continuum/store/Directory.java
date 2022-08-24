@@ -694,7 +694,7 @@ public class Directory extends AbstractHandler implements Runnable {
               //
 
               FDBScan scan = new FDBScan();
-              scan.setTenant(fdbContext.getTenant());
+              scan.setTenantPrefix(fdbContext.getTenant());
 
               if (null != lastrow) {
                 scan.setStartKey(FDBUtils.getNextKey(lastrow, lastrowoffset, lastrowlength));

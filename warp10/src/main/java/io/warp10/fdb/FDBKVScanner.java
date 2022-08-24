@@ -115,7 +115,7 @@ public class FDBKVScanner implements Iterator<FDBKeyValue> {
           endPrefixed = true;
         }
       }
-      Range range = new Range(startPrefixed ? startKey : FDBUtils.addPrefix(this.scan.getTenant(), startKey), endPrefixed ? endKey : FDBUtils.addPrefix(this.scan.getTenant(), endKey));
+      Range range = new Range(startPrefixed ? startKey : FDBUtils.addPrefix(this.scan.getTenantPrefix(), startKey), endPrefixed ? endKey : FDBUtils.addPrefix(this.scan.getTenantPrefix(), endKey));
       this.iter = txn.snapshot().getRange(range, ReadTransaction.ROW_LIMIT_UNLIMITED, scan.isReverse(), mode).iterator();
       return this.hasNext();
     } catch (Throwable t) {
@@ -150,8 +150,8 @@ public class FDBKVScanner implements Iterator<FDBKeyValue> {
       lastkv = null;
 
       // Strip tenant prefix
-      if (null != this.scan.getTenant()) {
-        return new FDBKeyValue(kv, this.scan.getTenant().length, kv.getKey().length - this.scan.getTenant().length, 0, kv.getValue().length);
+      if (null != this.scan.getTenantPrefix()) {
+        return new FDBKeyValue(kv, this.scan.getTenantPrefix().length, kv.getKey().length - this.scan.getTenantPrefix().length, 0, kv.getValue().length);
       } else {
         return new FDBKeyValue(kv);
       }

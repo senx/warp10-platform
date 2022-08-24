@@ -259,7 +259,7 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
     StreamingMode mode = StreamingMode.ITERATOR;
 
     try {
-      scan.setTenant(this.tenantPrefix);
+      scan.setTenantPrefix(this.tenantPrefix);
 
       if (postBoundaryScan) {
         scan.setReverse(true);
