@@ -28,6 +28,7 @@ import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.thrift.data.Metadata;
+import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.sensision.Sensision;
 import io.warp10.standalone.StandaloneIngressHandler;
@@ -38,6 +39,7 @@ import java.io.StringReader;
 import java.math.BigInteger;
 import java.text.ParseException;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.UUID;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -545,12 +547,24 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
         sensisionLabels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, application);
       }
 
-      if (wtoken.getAttributesSize() > 0) {
-        //
-        // Extract KafkaDataMessage attributes
-        //
+      //
+      // Extract KafkaDataMessage attributes
+      //
 
-        kafkaDataMessageAttributes = null;
+      kafkaDataMessageAttributes = null;
+
+      if (this.handler.ingress.FDBUseTenantPrefix) {
+        if (0 == wtoken.getAttributesSize() || !wtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_FDB_TENANT_PREFIX)) {
+          throw new IOException("Invalid token, missing tenant.");
+        }
+        kafkaDataMessageAttributes = new LinkedHashMap<String,String>();
+        String encodedPrefix = wtoken.getAttributes().get(Constants.TOKEN_ATTR_FDB_TENANT_PREFIX);
+        if (8 != OrderPreservingBase64.decode(encodedPrefix).length) {
+          throw new IOException("Invalid tenant prefix, length should be 8 bytes.");
+        }
+        kafkaDataMessageAttributes.put(Constants.STORE_ATTR_FDB_TENANT_PREFIX, encodedPrefix);
+      } else if (wtoken.getAttributesSize() > 0 && wtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_FDB_TENANT_PREFIX)) {
+        throw new IOException("Invalid token, tenant not supported.");
       }
 
       this.ignoor = ignoor;
