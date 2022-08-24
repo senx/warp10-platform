@@ -26,6 +26,7 @@ public class FDBContext {
   private final String clusterFile;
   private final byte[] tenant;
 
+  // TODO(hbs): support creating context from tenant key prefix (for 6.x compatibility)?
   public FDBContext(String clusterFile, String tenant) {
     this.clusterFile = clusterFile;
 
