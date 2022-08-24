@@ -123,6 +123,9 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
 
     if (fdbUseTenantPrefix) {
       this.tenantPrefix = OrderPreservingBase64.decode(req.getAttributes().get(Constants.TOKEN_ATTR_FDB_TENANT_PREFIX));
+      if (8 != this.tenantPrefix.length) {
+        throw new IOException("Invalid tenant prefix, length should be 8 bytes.");
+      }
     } else {
       this.tenantPrefix = pool.getContext().getTenant();
     }
