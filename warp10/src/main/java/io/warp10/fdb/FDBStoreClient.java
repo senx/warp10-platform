@@ -32,6 +32,7 @@ import io.warp10.continuum.store.thrift.data.FetchRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.KeyStore;
 import io.warp10.quasar.token.thrift.data.WriteToken;
+import io.warp10.script.WarpScriptLib;
 import io.warp10.standalone.StandalonePlasmaHandlerInterface;
 
 public class FDBStoreClient implements StoreClient {
@@ -43,6 +44,15 @@ public class FDBStoreClient implements StoreClient {
   private final boolean FDBUseTenantPrefix;
 
   private static final String EGRESS_FDB_POOLSIZE_DEFAULT = Integer.toString(1);
+
+  static {
+    //
+    // Add the functions related to FoundationDB when we know we have an FDBStoreClient instance
+    //
+
+    WarpScriptLib.addNamedWarpScriptFunction(new FDBTENANT("FDBTENANT"));
+    WarpScriptLib.addNamedWarpScriptFunction(new FDBSIZE("FDBSIZE"));
+  }
 
   public FDBStoreClient(KeyStore keystore, Properties properties) throws IOException {
     this.keystore = keystore;

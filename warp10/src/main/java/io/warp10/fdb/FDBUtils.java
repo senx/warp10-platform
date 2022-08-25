@@ -29,11 +29,12 @@ import com.apple.foundationdb.Transaction;
 import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.sensision.SensisionConstants;
-import io.warp10.continuum.store.Constants;
 import io.warp10.json.JsonUtils;
 import io.warp10.sensision.Sensision;
 
 public class FDBUtils {
+
+  public static final String CAPABILITY_ADMIN = "fdbadmin";
 
   public static final String KEY_ID = "id";
   public static final String KEY_PREFIX = "prefix";
