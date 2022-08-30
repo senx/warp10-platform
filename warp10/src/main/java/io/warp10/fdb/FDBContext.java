@@ -24,7 +24,8 @@ import com.apple.foundationdb.Database;
 public class FDBContext {
 
   private final String clusterFile;
-  private final byte[] tenant;
+  private final byte[] tenantPrefix;
+  private final byte[] tenantName;
 
   // TODO(hbs): support creating context from tenant key prefix (for 6.x compatibility)?
   public FDBContext(String clusterFile, String tenant) {
@@ -39,7 +40,8 @@ public class FDBContext {
         if (map.isEmpty()) {
           throw new RuntimeException("Unknown FoundationDB tenant '" + tenant + "'.");
         }
-        this.tenant = (byte[]) map.get(FDBUtils.KEY_PREFIX);
+        this.tenantPrefix = (byte[]) map.get(FDBUtils.KEY_PREFIX);
+        this.tenantName = tenant.getBytes(StandardCharsets.UTF_8);
       } catch (Throwable t) {
         throw t;
       } finally {
@@ -48,7 +50,8 @@ public class FDBContext {
         }
       }
     } else {
-      this.tenant = null;
+      this.tenantPrefix = null;
+      this.tenantName = null;
     }
   }
 
@@ -56,7 +59,11 @@ public class FDBContext {
     return FDBUtils.getFDB().open(this.clusterFile);
   }
 
-  public byte[] getTenant() {
-    return this.tenant;
+  public byte[] getTenantPrefix() {
+    return this.tenantPrefix;
+  }
+
+  public byte[] getTenantName() {
+    return this.tenantName;
   }
 }

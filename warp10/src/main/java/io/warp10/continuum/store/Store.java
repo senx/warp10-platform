@@ -1015,7 +1015,7 @@ public class Store extends Thread {
 
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_GTSDECODERS,  Sensision.EMPTY_LABELS, 1);
 
-      byte[] tenantPrefix = store.fdbContext.getTenant();
+      byte[] tenantPrefix = store.fdbContext.getTenantPrefix();
 
       if (store.FDBUseTenantPrefix) {
         if (msg.getAttributesSize() > 0 && msg.getAttributes().containsKey(Constants.STORE_ATTR_FDB_TENANT_PREFIX)) {
@@ -1118,7 +1118,7 @@ public class Store extends Thread {
         System.arraycopy(Longs.toByteArray(Long.MAX_VALUE - start), 0, endkey, Constants.FDB_RAW_DATA_KEY_PREFIX.length + 8 + 8, 8);
       }
 
-      byte[] tenantPrefix = store.fdbContext.getTenant();
+      byte[] tenantPrefix = store.fdbContext.getTenantPrefix();
 
       if (store.FDBUseTenantPrefix) {
         if (msg.getAttributesSize() > 0 && msg.getAttributes().containsKey(Constants.STORE_ATTR_FDB_TENANT_PREFIX)) {

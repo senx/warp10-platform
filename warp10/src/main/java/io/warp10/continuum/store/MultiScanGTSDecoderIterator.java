@@ -127,7 +127,7 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
         throw new IOException("Invalid tenant prefix, length should be 8 bytes.");
       }
     } else {
-      this.tenantPrefix = pool.getContext().getTenant();
+      this.tenantPrefix = pool.getContext().getTenantPrefix();
     }
 
     // If we are fetching up to Long.MIN_VALUE, then don't fetch a pre boundary
