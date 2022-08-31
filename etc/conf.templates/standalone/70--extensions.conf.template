@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -47,6 +47,11 @@
 #warpscript.extension.rexec = io.warp10.script.ext.rexec.RexecWarpScriptExtension
 // Comma separated list of included and excluded (! prefixed) host patterns
 #warpscript.rexec.endpoint.patterns = .*
+// Flag indicating whether or not to enable support for capabilities.
+// When used, the 'rexec' capability should contain a pattern of authorized endpoints.
+// If capability is enabled but no capability is currently present in the execution environment,
+// REXEC will consider the patterns in 'warpscript.rexec.endpoint.patterns'.
+#warpscript.rexec.capability = true
 // REXEC connect timeout in ms (default = 0, no timeout)
 #warpscript.rexec.timeout.connect = 0
 // REXEC read timeout in ms (default = 0, no timeout)
@@ -54,6 +59,9 @@
 
 // SENSISIONEVENT, SENSISIONGET, SENSISIONSET, SENSISIONUPDATE
 #warpscript.extension.sensision = io.warp10.script.ext.sensision.SensisionWarpScriptExtension
+// Enable support for capabilities. When set to 'true', capabilities 'sensision.read' and 'sensision.write' can be
+// set in tokens to allow the use of functions which read or alter Sensision metrics
+#sensision.capability = true
 
 // MUTEX, SHMLOAD, SHMSTORE
 #warpscript.extension.shm = io.warp10.script.ext.shm.SharedMemoryWarpScriptExtension

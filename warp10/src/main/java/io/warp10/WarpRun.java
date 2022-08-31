@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 package io.warp10;
 
 import java.io.BufferedReader;
+import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
@@ -25,61 +26,97 @@ import java.util.Properties;
 import io.warp10.continuum.Configuration;
 import io.warp10.script.MemoryWarpScriptStack;
 import io.warp10.script.StackUtils;
+import io.warp10.script.WarpScriptLib;
+import io.warp10.script.ext.debug.DebugWarpScriptExtension;
+import io.warp10.script.ext.warprun.WarpRunWarpScriptExtension;
 import io.warp10.script.functions.SNAPSHOT;
 
 public class WarpRun {
-  
+
   private static final String WARPRUN_FORMAT = "warprun.format";
-  
+
   public static void main(String[] args) throws Exception {
     try {
       System.setProperty(Configuration.WARP10_QUIET, "true");
       System.setProperty(Configuration.WARPSCRIPT_REXEC_ENABLE, "true");
-      
+
       if (null == System.getProperty(Configuration.WARP_TIME_UNITS)) {
         System.setProperty(Configuration.WARP_TIME_UNITS, "us");
       }
-      
-      WarpConfig.setProperties((String) null);
-      
+
+      //
+      // Initialize WarpConfig
+      //
+
+      try {
+        String config = System.getProperty(WarpConfig.WARP10_CONFIG);
+
+        if (null == config) {
+          config = System.getenv(WarpConfig.WARP10_CONFIG_ENV);
+        }
+
+        String[] files = null;
+
+        if (null != config) {
+          files = config.split("[, ]+");
+        }
+
+        WarpConfig.safeSetProperties(files);
+        WarpScriptLib.registerExtensions();
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+
       Properties properties = WarpConfig.getProperties();
-      
+
+      //
+      // Register the WarpRun and Debug extensions
+      //
+
+      WarpScriptLib.register(new WarpRunWarpScriptExtension());
+      WarpScriptLib.register(new DebugWarpScriptExtension());
+
       MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null, properties);
       stack.maxLimits();
-      
+
       StringBuilder sb = new StringBuilder();
-      
+
       BufferedReader br;
-      
+
       if ("-".equals(args[0])) {
         br = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
       } else {
-        br = new BufferedReader(new FileReader(args[0]));
+        br = new BufferedReader(new InputStreamReader(new FileInputStream(args[0]), StandardCharsets.UTF_8));
       }
-      
+
       while(true) {
         String line = br.readLine();
-        
+
         if (null == line) {
           break;
         }
-        
+
         sb.append(line);
         sb.append("\n");
       }
-      
+
       br.close();
-      
-      stack.execMulti(sb.toString());      
-      
+
+      stack.execMulti(sb.toString());
+
       //
       // Output the stack in either JSON or SNAPSHOT format
       //
-      
+
       boolean json = "json".equals(WarpConfig.getProperty(WARPRUN_FORMAT));
-      
-      if (!json) {
-        SNAPSHOT snap = new SNAPSHOT("SNAPSHOT", false, false, false, false);
+      boolean stdout = "stdout".equals(WarpConfig.getProperty(WARPRUN_FORMAT));
+
+      if (stdout) {
+        // Do nothing, STDOUT is handled by the script
+      } else if (json) {
+        StackUtils.toJSON(new PrintWriter(System.out), stack);
+      } else {
+        SNAPSHOT snap = new SNAPSHOT(WarpScriptLib.SNAPSHOT, false, false, false, false);
         for (int i = stack.depth() - 1; i >=0; i--) {
           System.out.print("/* ");
           if (0 != i) {
@@ -92,10 +129,8 @@ public class WarpRun {
           SNAPSHOT.addElement(snap, sb, stack.get(i));
           System.out.println(sb.toString());
         }
-      } else {
-        StackUtils.toJSON(new PrintWriter(System.out), stack);
-        System.out.flush();
       }
+      System.out.flush();
     } catch (Throwable t) {
       t.printStackTrace(System.err);
       System.exit(-1);

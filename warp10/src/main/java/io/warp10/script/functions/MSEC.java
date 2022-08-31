@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -17,30 +17,37 @@
 package io.warp10.script.functions;
 
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStack.Macro;
+import io.warp10.script.WarpScriptStackFunction;
 
-import com.google.common.io.BaseEncoding;
+public class MSEC extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-/**
- * Decode a String in base64
- */
-public class B64TO extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+  private final boolean recursive;
 
-  public B64TO(String name) {
+  public MSEC(String name, boolean recursive) {
     super(name);
+    this.recursive = recursive;
   }
 
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    Object o = stack.pop();
+    Object top = stack.pop();
 
-    if (!(o instanceof String)) {
-      throw new WarpScriptException(getName() + " operates on a String.");
+    if (!(top instanceof Macro)) {
+      throw new WarpScriptException(getName() + " operates on a Macro.");
     }
 
-    stack.push(BaseEncoding.base64().decode(o.toString().replace("\n","").replace("\r","").replace(" ", "")));
+    Macro m = (Macro) top;
+
+    if (recursive) {
+      m.setSecureRecursive(true);
+    } else {
+      m.setSecure(true);
+    }
+
+    stack.push(m);
 
     return stack;
   }

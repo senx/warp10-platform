@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -68,9 +68,16 @@ public class WarpScriptInputFormat extends InputFormat<Object, Object> {
   public static final String WARPSCRIPT_INPUTFORMAT_CLASS = "warpscript.inputformat.class";
 
   /**
-   * WarpScript™ code fragment to apply
+   * WarpScript code fragment to apply, this code will be wrapped in a macro <% ... %>
+   * If code starts by @ or % then the rest of its content is assumed to be a file path to load.
+   * If code starts by @ the content of the file will be wrapped in <% ... %>
    */
   public static final String WARPSCRIPT_INPUTFORMAT_SCRIPT = "warpscript.inputformat.script";
+
+  /**
+   * WarpScript code fragment producing a macro which will be applied
+   */
+  public static final String WARPSCRIPT_INPUTFORMAT_MACRO = "warpscript.inputformat.macro";
 
   /**
    * Suffix to remove from configuration keys to override or create specific configuration entries
@@ -139,8 +146,9 @@ public class WarpScriptInputFormat extends InputFormat<Object, Object> {
   /**
    * Return the actual WarpScript code executor given the script
    * which was passed as parameter.
+   * If isMacro is true, the script in 'code' is expected to produce a macro.
    */
-  public WarpScriptExecutor getWarpScriptExecutor(Configuration conf, String code) throws IOException,WarpScriptException {
+  public WarpScriptExecutor getWarpScriptExecutor(Configuration conf, String code, boolean isMacro) throws IOException,WarpScriptException {
     Map<String,Object> symbols = new HashMap<String,Object>();
     Map<String, List<String>> config = new HashMap<String,List<String>>();
 
@@ -158,7 +166,7 @@ public class WarpScriptInputFormat extends InputFormat<Object, Object> {
 
     symbols.put(CONFIG_SYMBOL, config);
 
-    if (code.startsWith("@") || code.startsWith("%")) {
+    if (!isMacro && (code.startsWith("@") || code.startsWith("%"))) {
 
       //
       // delete the @/% character
@@ -180,7 +188,7 @@ public class WarpScriptInputFormat extends InputFormat<Object, Object> {
       // Compute the hash against String content to identify this run
       //
 
-      WarpScriptExecutor executor = new WarpScriptExecutor(StackSemantics.PERTHREAD, code, symbols, null);
+      WarpScriptExecutor executor = new WarpScriptExecutor(StackSemantics.PERTHREAD, code, symbols, null, !isMacro);
       return executor;
     }
 

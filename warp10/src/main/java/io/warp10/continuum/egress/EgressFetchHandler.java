@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -30,7 +30,6 @@ import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -104,6 +103,7 @@ import io.warp10.script.functions.ADDDURATION;
 import io.warp10.script.functions.FETCH;
 import io.warp10.sensision.Sensision;
 import io.warp10.standalone.AcceleratorConfig;
+import io.warp10.standalone.Warp;
 
 public class EgressFetchHandler extends AbstractHandler {
 
@@ -177,6 +177,12 @@ public class EgressFetchHandler extends AbstractHandler {
       //
 
       resp.setHeader("Access-Control-Allow-Origin", "*");
+
+      //
+      // Add header with the platform time unit
+      //
+
+      resp.setHeader(Constants.HTTP_HEADER_TIMEUNIT, Long.toString(Constants.TIME_UNITS_PER_S));
 
       long now = Long.MIN_VALUE;
       long then = Long.MIN_VALUE;
@@ -468,20 +474,20 @@ public class EgressFetchHandler extends AbstractHandler {
         }
       }
 
-      ReadToken rtoken = null;
+      final AtomicReference<ReadToken> rtoken = new AtomicReference<ReadToken>(null);
 
       String format = splitFetch ? "wrapper" : req.getParameter(Constants.HTTP_PARAM_FORMAT);
 
       if (!splitFetch) {
         try {
-          rtoken = Tokens.extractReadToken(token);
+          rtoken.set(Tokens.extractReadToken(token));
 
-          if (rtoken.getHooksSize() > 0) {
+          if (rtoken.get().getHooksSize() > 0) {
             httpStatusCode = HttpServletResponse.SC_BAD_REQUEST;
             throw new IOException("Tokens with hooks cannot be used for fetching data.");
           }
 
-          Map<String, String> rtokenAttributes = rtoken.getAttributes();
+          Map<String, String> rtokenAttributes = rtoken.get().getAttributes();
           if (null != rtokenAttributes && (rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOFETCH) || rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOFIND))) {
             httpStatusCode = HttpServletResponse.SC_FORBIDDEN;
             throw new IOException("Token cannot be used for fetching data.");
@@ -502,7 +508,7 @@ public class EgressFetchHandler extends AbstractHandler {
       // Apply constraints from token attribute
       //
 
-      if (null != rtoken && rtoken.getAttributesSize() > 0) {
+      if (null != rtoken.get() && rtoken.get().getAttributesSize() > 0) {
         Map<String,Object> params = new HashMap<String,Object>();
         params.put(FETCH.PARAM_END, now);
         params.put(FETCH.PARAM_START, then);
@@ -516,7 +522,7 @@ public class EgressFetchHandler extends AbstractHandler {
         params.put(FETCH.PARAM_BOUNDARY_PRE, preBoundary);
         params.put(FETCH.PARAM_BOUNDARY_POST, postBoundary);
 
-        Map<String,Object> tokenattr = FETCH.parseTokenAttributes(rtoken, params);
+        Map<String,Object> tokenattr = FETCH.parseTokenAttributes(rtoken.get(), params);
 
         if (null != tokenattr.get(FETCH.PARAM_START)) {
           long start = (long) tokenattr.get(FETCH.PARAM_START);
@@ -572,12 +578,20 @@ public class EgressFetchHandler extends AbstractHandler {
       Set<Metadata> metadatas = new LinkedHashSet<Metadata>();
       List<Iterator<Metadata>> iterators = new ArrayList<Iterator<Metadata>>();
 
-      if (!splitFetch) {
+      boolean cacheGTS = false;
 
+      if (!splitFetch) {
         if (null == selector) {
           httpStatusCode = HttpServletResponse.SC_BAD_REQUEST;
           throw new IOException("Missing '" + Constants.HTTP_PARAM_SELECTOR + "' parameter.");
         }
+
+        //
+        // If we are in a standalone instance, we do not need to cache the GTS on disk since
+        // the directory is not accessed via the network and therefore cannot time out
+        //
+
+        cacheGTS = !Warp.isStandaloneMode();
 
         String[] selectors = selector.split("\\s+");
 
@@ -609,7 +623,7 @@ public class EgressFetchHandler extends AbstractHandler {
           labelsSelectors.remove(Constants.OWNER_LABEL);
           labelsSelectors.remove(Constants.APPLICATION_LABEL);
 
-          labelsSelectors.putAll(Tokens.labelSelectorsFromReadToken(rtoken));
+          labelsSelectors.putAll(Tokens.labelSelectorsFromReadToken(rtoken.get()));
 
           List<Metadata> metas = null;
 
@@ -646,6 +660,9 @@ public class EgressFetchHandler extends AbstractHandler {
         }
       } else {
         // split fetch
+
+        // We need to cache the GTS because the network connection may timeout
+        cacheGTS = true;
 
         //
         // Add an iterator which reads splits from the request body
@@ -751,6 +768,10 @@ public class EgressFetchHandler extends AbstractHandler {
               throw new RuntimeException("Split has expired.");
             }
 
+            if (null == rtoken.get()) {
+              rtoken.set(split.getToken());
+            }
+
             this.metadatas.addAll(split.getMetadatas());
 
             // We assume there was at least one metadata instance in the split!!!
@@ -768,153 +789,155 @@ public class EgressFetchHandler extends AbstractHandler {
         iterators.add(metas.iterator());
       }
 
-      //
-      // Loop over the iterators, storing the read metadata to a temporary file encrypted on disk
-      // Data is encrypted using a onetime pad
-      //
+      if (cacheGTS) {
+        //
+        // Loop over the iterators, storing the read metadata to a temporary file encrypted on disk
+        // Data is encrypted using a onetime pad
+        //
 
-      final byte[] onetimepad = new byte[(int) Math.min(65537, System.currentTimeMillis() % 100000)];
-      ThreadLocalRandom.current().nextBytes(onetimepad);
+        final byte[] onetimepad = new byte[(int) Math.min(65537, System.currentTimeMillis() % 100000)];
+        ThreadLocalRandom.current().nextBytes(onetimepad);
 
-      final File cache = File.createTempFile(Long.toHexString(System.currentTimeMillis()) + "-" + Long.toHexString(System.nanoTime()), ".dircache");
-      cache.deleteOnExit();
+        final File cache = File.createTempFile(Long.toHexString(System.currentTimeMillis()) + "-" + Long.toHexString(System.nanoTime()), ".dircache");
+        cache.deleteOnExit();
 
-      FileWriter writer = new FileWriter(cache);
+        FileWriter writer = new FileWriter(cache);
 
-      TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+        TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
 
-      int padidx = 0;
+        int padidx = 0;
 
-      for (Iterator<Metadata> itermeta: iterators) {
-        if (gcount <= 0) {
-          break;
+        for (Iterator<Metadata> itermeta: iterators) {
+          if (gcount <= 0) {
+            break;
+          }
+
+          try {
+            while(itermeta.hasNext()) {
+
+              if (gcount <= 0) {
+                break;
+              }
+
+              Metadata metadata = itermeta.next();
+
+              if (gskip > 0) {
+                gskip--;
+                continue;
+              }
+
+              gcount--;
+
+              try {
+                byte[] bytes = serializer.serialize(metadata);
+                // Apply onetimepad
+                for (int i = 0; i < bytes.length; i++) {
+                  bytes[i] = (byte) (bytes[i] ^ onetimepad[padidx++]);
+                  if (padidx >= onetimepad.length) {
+                    padidx = 0;
+                  }
+                }
+                OrderPreservingBase64.encodeToWriter(bytes, writer);
+                writer.write('\n');
+              } catch (TException te) {
+              }
+            }
+
+            if (itermeta instanceof MetadataIterator) {
+              try {
+                ((MetadataIterator) itermeta).close();
+              } catch (Exception e) {
+              }
+            }
+          } catch (Throwable t) {
+            throw t;
+          } finally {
+            if (itermeta instanceof MetadataIterator) {
+              try {
+                ((MetadataIterator) itermeta).close();
+              } catch (Exception e) {
+              }
+            }
+          }
         }
 
-        try {
-          while(itermeta.hasNext()) {
+        writer.close();
 
-            if (gcount <= 0) {
-              break;
+        //
+        // Create an iterator based on the cache
+        //
+
+        MetadataIterator cacheiterator = new MetadataIterator() {
+
+          BufferedReader reader = new BufferedReader(new FileReader(cache));
+
+          private Metadata current = null;
+          private boolean done = false;
+
+          private TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
+
+          int padidx = 0;
+
+          @Override
+          public boolean hasNext() {
+            if (done) {
+              return false;
             }
 
-            Metadata metadata = itermeta.next();
-
-            if (gskip > 0) {
-              gskip--;
-              continue;
+            if (null != current) {
+              return true;
             }
-
-            gcount--;
 
             try {
-              byte[] bytes = serializer.serialize(metadata);
-              // Apply onetimepad
-              for (int i = 0; i < bytes.length; i++) {
-                bytes[i] = (byte) (bytes[i] ^ onetimepad[padidx++]);
+              String line = reader.readLine();
+              if (null == line) {
+                done = true;
+                return false;
+              }
+              byte[] raw = OrderPreservingBase64.decode(line.getBytes(StandardCharsets.US_ASCII));
+              // Apply one time pad
+              for (int i = 0; i < raw.length; i++) {
+                raw[i] = (byte) (raw[i] ^ onetimepad[padidx++]);
                 if (padidx >= onetimepad.length) {
                   padidx = 0;
                 }
               }
-              OrderPreservingBase64.encodeToWriter(bytes, writer);
-              writer.write('\n');
-            } catch (TException te) {
+              Metadata metadata = new Metadata();
+              try {
+                deserializer.deserialize(metadata, raw);
+                this.current = metadata;
+                return true;
+              } catch (TException te) {
+                LOG.error("", te);
+              }
+            } catch (IOException ioe) {
+              LOG.error("", ioe);
             }
-          }
 
-          if (itermeta instanceof MetadataIterator) {
-            try {
-              ((MetadataIterator) itermeta).close();
-            } catch (Exception e) {
-            }
-          }
-        } catch (Throwable t) {
-          throw t;
-        } finally {
-          if (itermeta instanceof MetadataIterator) {
-            try {
-              ((MetadataIterator) itermeta).close();
-            } catch (Exception e) {
-            }
-          }
-        }
-      }
-
-      writer.close();
-
-      //
-      // Create an iterator based on the cache
-      //
-
-      MetadataIterator cacheiterator = new MetadataIterator() {
-
-        BufferedReader reader = new BufferedReader(new FileReader(cache));
-
-        private Metadata current = null;
-        private boolean done = false;
-
-        private TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
-
-        int padidx = 0;
-
-        @Override
-        public boolean hasNext() {
-          if (done) {
             return false;
           }
 
-          if (null != current) {
-            return true;
+          @Override
+          public Metadata next() {
+            if (null != this.current) {
+              Metadata metadata = this.current;
+              this.current = null;
+              return metadata;
+            } else {
+              throw new NoSuchElementException();
+            }
           }
 
-          try {
-            String line = reader.readLine();
-            if (null == line) {
-              done = true;
-              return false;
-            }
-            byte[] raw = OrderPreservingBase64.decode(line.getBytes(StandardCharsets.US_ASCII));
-            // Apply one time pad
-            for (int i = 0; i < raw.length; i++) {
-              raw[i] = (byte) (raw[i] ^ onetimepad[padidx++]);
-              if (padidx >= onetimepad.length) {
-                padidx = 0;
-              }
-            }
-            Metadata metadata = new Metadata();
-            try {
-              deserializer.deserialize(metadata, raw);
-              this.current = metadata;
-              return true;
-            } catch (TException te) {
-              LOG.error("", te);
-            }
-          } catch (IOException ioe) {
-            LOG.error("", ioe);
+          @Override
+          public void close() throws Exception {
+            this.reader.close();
+            cache.delete();
           }
+        };
 
-          return false;
-        }
-
-        @Override
-        public Metadata next() {
-          if (null != this.current) {
-            Metadata metadata = this.current;
-            this.current = null;
-            return metadata;
-          } else {
-            throw new NoSuchElementException();
-          }
-        }
-
-        @Override
-        public void close() throws Exception {
-          this.reader.close();
-          cache.delete();
-        }
-      };
-
-      iterators.clear();
-      iterators.add(cacheiterator);
+        iterators.clear();
+        iterators.add(cacheiterator);
+      }
 
       metas = new ArrayList<Metadata>();
 
@@ -923,7 +946,7 @@ public class EgressFetchHandler extends AbstractHandler {
       AtomicReference<Metadata> lastMeta = new AtomicReference<Metadata>(null);
       AtomicLong lastCount = new AtomicLong(0L);
 
-      boolean expose = null != rtoken && rtoken.getAttributesSize() > 0 && rtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_EXPOSE);
+      boolean expose = null != rtoken.get() && rtoken.get().getAttributesSize() > 0 && rtoken.get().getAttributes().containsKey(Constants.TOKEN_ATTR_EXPOSE);
 
       if (nocache) {
         AcceleratorConfig.nocache();
@@ -947,7 +970,7 @@ public class EgressFetchHandler extends AbstractHandler {
 
           if (metas.size() > FETCH_BATCHSIZE || !itermeta.hasNext()) {
             FetchRequest freq = new FetchRequest();
-            freq.setToken(rtoken);
+            freq.setToken(rtoken.get());
             freq.setMetadatas(metas);
             freq.setNow(now);
             freq.setThents(then);
@@ -1048,6 +1071,8 @@ public class EgressFetchHandler extends AbstractHandler {
     Metadata lastMetadata = lastMeta.get();
     long currentCount = lastCount.get();
 
+    byte[] buf = new byte[100000];
+
     while(iter.hasNext()) {
       GTSDecoder decoder = iter.next();
 
@@ -1139,7 +1164,8 @@ public class EgressFetchHandler extends AbstractHandler {
         pw.print(" ");
 
         //pw.println(new String(OrderPreservingBase64.encode(encoder.getBytes())));
-        OrderPreservingBase64.encodeToWriter(encoder.getBytes(), pw);
+        byte[] encoded = encoder.getBytes();
+        OrderPreservingBase64.encodeToWriter(pw, encoded, 0, encoded.length, buf);
         pw.write('\r');
         pw.write('\n');
       }

@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -159,6 +159,75 @@ public class OrderPreservingBase64 {
   /**
    * Encode to writer.
    *
+   * @param out     the out
+   * @param data    the data
+   * @param offset  the offset
+   * @param datalen the datalen
+   * @param buflen  size of internal buffer
+   * @throws IOException the io exception
+   */
+  public static void encodeToStream(OutputStream out, byte[] data, int offset, int datalen, int buflen) throws IOException {
+    int len = 4 * (datalen / 3) + (datalen % 3 != 0 ? 1 + (datalen % 3) : 0);
+
+    if (buflen < 1024) {
+      buflen = 1024;
+    }
+
+    byte[] buf = new byte[buflen > len ? len : buflen];
+
+    encodeToStream(out, data, offset, datalen, buf);
+  }
+
+  public static void encodeToStream(OutputStream out, byte[] data, int offset, int datalen, byte[] buf) throws IOException {
+
+    int len = 4 * (datalen / 3) + (datalen % 3 != 0 ? 1 + (datalen % 3) : 0);
+
+    int dataidx = 0;
+
+    int bufidx = 0;
+
+    int i = 0;
+
+    for (i = offset; i < offset + datalen; i++) {
+      // Ensure we have at least 2 slots free for case 2
+      if (buf.length  - bufidx < 2) {
+        out.write(buf, 0, bufidx);
+        bufidx = 0;
+      }
+      switch (dataidx % 3) {
+        case 0:
+          buf[bufidx++] = ALPHABET[(data[i] >> 2) & 0x3f];
+          break;
+        case 1:
+          buf[bufidx++] = ALPHABET[((data[i - 1] & 0x3) << 4) | ((data[i] >> 4) & 0xf)];
+          break;
+        case 2:
+          buf[bufidx++] = ALPHABET[((data[i - 1] & 0xf) << 2) | ((data[i] >> 6) & 0x3)];
+          buf[bufidx++] = ALPHABET[data[i] & 0x3f];
+          break;
+      }
+      dataidx++;
+    }
+
+    if (bufidx > 0) {
+      out.write(buf, 0, bufidx);
+    }
+
+    if (dataidx < len) {
+      switch (datalen % 3) {
+        case 1:
+          out.write(ALPHABET[(data[offset + datalen - 1] << 4) & 0x30]);
+          break;
+        case 2:
+          out.write(ALPHABET[(data[offset + datalen - 1] << 2) & 0x3c]);
+          break;
+      }
+    }
+  }
+
+  /**
+   * Encode to writer.
+   *
    * @param data the data
    * @param out  the out
    * @throws IOException the io exception
@@ -213,6 +282,74 @@ public class OrderPreservingBase64 {
   }
 
   /**
+   * Encode to writer.
+   *
+   * @param out     the out
+   * @param data    the data
+   * @param offset  the offset
+   * @param datalen the datalen
+   * @param buflen  size of internal buffer
+   * @throws IOException the io exception
+   */
+  public static void encodeToWriter(Writer out, byte[] data, int offset, int datalen, int buflen) throws IOException {
+    int len = 4 * (datalen / 3) + (datalen % 3 != 0 ? 1 + (datalen % 3) : 0);
+
+    if (buflen < 1024) {
+      buflen = 1024;
+    }
+
+    byte[] buf = new byte[buflen > len ? len : buflen];
+
+    encodeToWriter(out, data, offset, datalen, buf);
+  }
+
+  public static void encodeToWriter(Writer out, byte[] data, int offset, int datalen, byte[] buf) throws IOException {
+    int i = 0;
+
+    int len = 4 * (datalen / 3) + (datalen % 3 != 0 ? 1 + (datalen % 3) : 0);
+
+    int dataidx = 0;
+
+    int bufidx = 0;
+
+    for (i = offset; i < offset + datalen; i++) {
+      // Ensure we have at least 2 slots free for case 2
+      if (buf.length  - bufidx < 2) {
+        out.write(new String(buf, 0, bufidx, StandardCharsets.US_ASCII));
+        bufidx = 0;
+      }
+      switch (dataidx % 3) {
+        case 0:
+          buf[bufidx++] = ALPHABET[(data[i] >> 2) & 0x3f];
+          break;
+        case 1:
+          buf[bufidx++] = ALPHABET[((data[i - 1] & 0x3) << 4) | ((data[i] >> 4) & 0xf)];
+          break;
+        case 2:
+          buf[bufidx++] = ALPHABET[((data[i - 1] & 0xf) << 2) | ((data[i] >> 6) & 0x3)];
+          buf[bufidx++] = ALPHABET[data[i] & 0x3f];
+          break;
+      }
+      dataidx++;
+    }
+
+    if (bufidx > 0) {
+      out.write(new String(buf, 0, bufidx, StandardCharsets.US_ASCII));
+    }
+
+    if (dataidx < len) {
+      switch (datalen % 3) {
+        case 1:
+          out.write(ALPHABET[(data[offset + datalen - 1] << 4) & 0x30]);
+          break;
+        case 2:
+          out.write(ALPHABET[(data[offset + datalen - 1] << 2) & 0x3c]);
+          break;
+      }
+    }
+  }
+
+  /**
    * Decode byte [ ].
    *
    * @param data the data
@@ -253,6 +390,54 @@ public class OrderPreservingBase64 {
           break;
         case 3:
           value |= TEBAHPLA[data[offset + i]];
+          decoded[idx++] = value;
+          break;
+      }
+    }
+
+    // FIXME(hbs)
+    if (idx < decoded.length) {
+      decoded[idx++] = value;
+    }
+
+    return decoded;
+  }
+
+  public static byte[] decode(String data) {
+    return decode(data, 0, data.length());
+  }
+
+  /**
+   * Decode byte [ ].
+   *
+   * @param data   the data
+   * @param offset the offset
+   * @param len    the len
+   * @return the byte [ ]
+   */
+  public static byte[] decode(String data, int offset, int len) {
+    byte[] decoded = new byte[3 * (len / 4) + (len % 4 != 0 ? (len % 4 - 1) : 0)];
+
+    int idx = 0;
+    byte value = 0;
+
+    for (int i = 0; i < len; i++) {
+      switch (i % 4) {
+        case 0:
+          value = (byte) (TEBAHPLA[data.charAt(offset + i)] << 2);
+          break;
+        case 1:
+          value |= (byte) ((TEBAHPLA[data.charAt(offset + i)] >> 4) & 0x3);
+          decoded[idx++] = value;
+          value = (byte) ((TEBAHPLA[data.charAt(offset + i)] << 4) & 0xf0);
+          break;
+        case 2:
+          value |= (byte) ((TEBAHPLA[data.charAt(offset + i)] >> 2) & 0xf);
+          decoded[idx++] = value;
+          value = (byte) ((TEBAHPLA[data.charAt(offset + i)] << 6) & 0xc0);
+          break;
+        case 3:
+          value |= TEBAHPLA[data.charAt(offset + i)];
           decoded[idx++] = value;
           break;
       }

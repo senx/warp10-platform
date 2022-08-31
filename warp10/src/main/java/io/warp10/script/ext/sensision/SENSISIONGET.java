@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.functions.PARSESELECTOR;
 import io.warp10.sensision.Sensision;
+import io.warp10.warp.sdk.Capabilities;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -36,25 +37,29 @@ import com.geoxp.GeoXPLib;
  * Retrieve a datapoint currently stored in Sensision
  */
 public class SENSISIONGET extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   public SENSISIONGET(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    
+
+    if (SensisionWarpScriptExtension.useCapability() && null == Capabilities.get(stack, SensisionWarpScriptExtension.READ_CAPABILITY)) {
+      throw new WarpScriptException(getName() + " missing capability '" + SensisionWarpScriptExtension.READ_CAPABILITY +"'");
+    }
+
     Object top = stack.pop();
-    
+
     String cls;
     Map<String,String> labels;
 
     if (top instanceof String) {
       Object[] parsed = PARSESELECTOR.parse(top.toString());
-    
+
       cls = parsed[0].toString();
       labels = new HashMap<String, String>();
-      
+
       for (Entry<String,String> entry: ((Map<String,String>) parsed[1]).entrySet()) {
         labels.put(entry.getKey(), entry.getValue().substring(1));
       }
@@ -73,15 +78,15 @@ public class SENSISIONGET extends NamedWarpScriptFunction implements WarpScriptS
       long timestamp = Constants.TIME_UNITS_PER_MS * (Sensision.getTimestamp(cls, labels) / Sensision.TIME_UNITS_PER_MS);
       float[] latlon = Sensision.getLocation(cls, labels);
       Long elevation = Sensision.getElevation(cls, labels);
-      
+
       long geoxppoint = null == latlon ? GeoTimeSerie.NO_LOCATION : GeoXPLib.toGeoXPPoint(latlon[0], latlon[1]);
       long elev = null == elevation ? GeoTimeSerie.NO_ELEVATION : elevation;
-      GTSHelper.setValue(gts, timestamp, geoxppoint, elev, value, false);      
+      GTSHelper.setValue(gts, timestamp, geoxppoint, elev, value, false);
     }
-    
+
     stack.push(gts);
-        
+
     return stack;
   }
-  
+
 }

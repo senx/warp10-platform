@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -380,6 +380,11 @@ struct GTSSplit {
    * to be able to recompute class/labels Ids at the fetcher
    */
   3: list<Metadata> metadatas,
+  /**
+   * Read token used to generate the split
+   * Having this data available allows to access the token attributes
+   */
+  4: optional io_warp10_quasar_token_thrift_data.ReadToken token,
 }
 
 /**
@@ -544,4 +549,8 @@ struct FetchRequest {
    * GTS list.
    */
   14: optional bool parallelScanners = true,
+  /**
+   * Map of attributes. This is used to pass information between client and backend if needed.
+   */
+  15: optional map<string,string> attributes,
 }

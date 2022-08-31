@@ -21,6 +21,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
@@ -59,6 +61,9 @@ public class WarpFleetMacroRepository {
   private static final SUB SUB_FUNC = new SUB("-");
   private static final ADD ADD_FUNC = new ADD(WarpScriptLib.ADD);
   private static final HUMANDURATION HUMANDURATION_FUNC = new HUMANDURATION(WarpScriptLib.HUMANDURATION);
+
+  private static final String MACRO_PLACEHOLDER = "{macro}";
+  private static final String MACRO_PLACEHOLDER_ENCODED = "%7Bmacro%7D";
 
   private static final int FINGERPRINT_UNKNOWN = -1;
 
@@ -180,7 +185,11 @@ public class WarpFleetMacroRepository {
         // Check the macro cache
         //
 
-        macroURL = repo + (repo.endsWith("/") ? "" : "/") + name;
+        if (repo.contains(MACRO_PLACEHOLDER)) {
+          macroURL = repo.replace(MACRO_PLACEHOLDER, name + ".mc2");
+        } else {
+          macroURL = repo + (repo.endsWith("/") ? "" : "/") + name + ".mc2";
+        }
 
         synchronized(macros) {
           macro = macros.get(macroURL);
@@ -216,7 +225,7 @@ public class WarpFleetMacroRepository {
 
         try {
           hconn = null;
-          URL url = new URL(macroURL + ".mc2");
+          URL url = new URL(macroURL);
           URLConnection conn = url.openConnection();
 
           if (conn instanceof HttpURLConnection) {
@@ -301,6 +310,7 @@ public class WarpFleetMacroRepository {
             macro.setExpiry(Long.MAX_VALUE - 1);
           }
 
+          macro.setSecure(true);
           macro.setNameRecursive(name);
 
           synchronized(macros) {
@@ -516,13 +526,20 @@ public class WarpFleetMacroRepository {
 
     repo = repo.trim();
 
-    if (repo.startsWith("http://")) {
-      String host = repo.substring(7).replaceAll("/.*", "").toLowerCase();
-      repo = "http://" + host + repo.substring(host.length() + 7);
-    } else if (repo.startsWith("https://")) {
-      String host = repo.substring(8).replaceAll("/.*", "").toLowerCase();
-      repo = "https://" + host + repo.substring(host.length() + 8);
+    if (repo.startsWith("http://") || repo.startsWith("https://")) {
+      try {
+        URL url = new URL(repo);
+        // Force the host to be LC
+        URI uri = new URI(url.getProtocol(), url.getUserInfo(), url.getHost().toLowerCase(), url.getPort(), url.getPath(), url.getQuery(), url.getRef());
+        String canonical = uri.toString().replaceAll(WarpFleetMacroRepository.MACRO_PLACEHOLDER_ENCODED, WarpFleetMacroRepository.MACRO_PLACEHOLDER);
+        repo = canonical;
+      } catch (MalformedURLException|URISyntaxException e) {
+        // We do not output the URL as it may leak some confidential information
+        LOG.warn("Error while parsing repo URL, will be ignored.", e);
+        return null;
+      }
     } else {
+      // Ignore non http/https URLs
       repo = null;
     }
 

@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
@@ -63,6 +64,12 @@ public class StandaloneScriptRunner extends ScriptRunner {
   private final byte[] runnerPSK;
 
   private static final Pattern VAR = Pattern.compile("\\$\\{([^}]+)\\}");
+
+  /**
+   * runContexts < script path , hashmap > can store context objects for next runner iteration.
+   * Currently stores only runner.execution.counter, but can be extended later.
+   */
+  final Map<String, HashMap> runContexts = new ConcurrentHashMap<String, HashMap>();
 
   public StandaloneScriptRunner(Properties properties, KeyStore keystore, StoreClient storeClient, DirectoryClient directoryClient, Properties props) throws IOException {
     super(keystore, props);
@@ -115,10 +122,16 @@ public class StandaloneScriptRunner extends ScriptRunner {
 
           long nano = System.nanoTime();
 
+          HashMap runContext = runContexts.getOrDefault(script, new HashMap());
+          Long execCount = (Long) runContext.getOrDefault(Constants.RUNNER_CONTEXT_EXEC_COUNT, 0L);
+
           WarpScriptStack stack = new MemoryWarpScriptStack(storeClient, directoryClient, props);
-          stack.setAttribute(WarpScriptStack.ATTRIBUTE_NAME, "[StandloneScriptRunner " + script + "]");
+          stack.setAttribute(WarpScriptStack.ATTRIBUTE_NAME, "[StandaloneScriptRunner " + script + "]");
 
           ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+          long periodicityForNextRun = periodicity;  // can be overriden by RUNNERIN
+          long runnerAtForNextRun = Long.MAX_VALUE;  // can be overriden by RUNNERAT
 
           try {
             WarpConfig.setThreadProperty(WarpConfig.THREAD_PROPERTY_SESSION, UUID.randomUUID().toString());
@@ -163,6 +176,7 @@ public class StandaloneScriptRunner extends ScriptRunner {
             stack.store(Constants.RUNNER_PERIODICITY, periodicity);
             stack.store(Constants.RUNNER_PATH, path);
             stack.store(Constants.RUNNER_SCHEDULEDAT, scheduledat);
+            stack.store(Constants.RUNNER_CONTEXT_EXEC_COUNT, execCount);
 
             //
             // Generate a nonce by wrapping the current time jointly with random 64bits
@@ -224,19 +238,39 @@ public class StandaloneScriptRunner extends ScriptRunner {
             m.appendTail(mc2WithReplacement);
 
             stack.execMulti(mc2WithReplacement.toString());
+
+            // Did the user asked to reschedule script to another period with RUNNERIN ?
+            if (stack.getAttribute(WarpScriptStack.ATTRIBUTE_RUNNER_RESCHEDULE_PERIOD) instanceof Long) {
+              periodicityForNextRun = (Long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_RUNNER_RESCHEDULE_PERIOD);
+            }
+            // Did the user asked to reschedule script to another absolute time with RUNNERAT ? (absolute milliseconds)
+            if (stack.getAttribute(WarpScriptStack.ATTRIBUTE_RUNNER_RESCHEDULE_TIMESTAMP) instanceof Long) {
+              runnerAtForNextRun = (Long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_RUNNER_RESCHEDULE_TIMESTAMP);
+            }
           } catch (Exception e) {
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_FAILURES, labels, 1);
           } finally {
             WarpConfig.clearThreadProperties();
             WarpScriptStackRegistry.unregister(stack);
             currentThread().setName(name);
-            nextrun.put(script, nowns + periodicity * 1000000L);
+            // Manage possible overflow (MAXLONG RUNNERIN in all possible platform time unit)
+            long runnerInTime = Long.MAX_VALUE;
+            if (periodicityForNextRun < (Long.MAX_VALUE / 1000000L) && (nowns + periodicityForNextRun * 1000000L) > nowns) {
+              runnerInTime = nowns + periodicityForNextRun * 1000000L;
+            }
+            // Convert absolute time in millisecond to jvm nano time
+            long runnerAtTime = TimeSource.currentTimeMillisToNanoTime(runnerAtForNextRun);
+            // Next script is scheduled at min(RUNNERAT, RUNNERIN)
+            // if none of these functions are used, it is scheduled at period defined by script path.
+            nextrun.put(script, Math.min(runnerInTime, runnerAtTime));
             nano = System.nanoTime() - nano;
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_TIME_US, labels, ttl, nano / 1000L);
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_ELAPSED, labels, ttl, nano);
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_OPS, labels, ttl, (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_OPS));
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_FETCHED, labels, ttl, ((AtomicLong) stack.getAttribute(WarpScriptStack.ATTRIBUTE_FETCH_COUNT)).get());
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_CURRENT, Sensision.EMPTY_LABELS, -1);
+            runContext.put(Constants.RUNNER_CONTEXT_EXEC_COUNT, execCount + 1);
+            runContexts.put(script, runContext);
           }
         }
       });
@@ -244,5 +278,15 @@ public class StandaloneScriptRunner extends ScriptRunner {
       // Reschedule script immediately
       nextrun.put(script, System.nanoTime());
     }
+  }
+
+  /**
+   * When a script is removed from disk, call this function to remove the attached context
+   *
+   * @param scriptName
+   */
+  @Override
+  protected void removeRunnerContext(String scriptName) {
+    runContexts.remove(scriptName);
   }
 }
