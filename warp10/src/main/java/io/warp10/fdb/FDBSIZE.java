@@ -1,5 +1,7 @@
 package io.warp10.fdb;
 
+import java.util.Map;
+
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
@@ -26,25 +28,38 @@ public class FDBSIZE extends NamedWarpScriptFunction implements WarpScriptStackF
       throw new WarpScriptException(getName() + " invalid store, not using FoundationDB!");
     }
 
+    FDBStoreClient fsc = (FDBStoreClient) sc;
+    FDBPool pool = fsc.getPool();
+
     Object top = stack.pop();
 
-    if (!(top instanceof byte[])) {
-      throw new WarpScriptException(getName() + " 'to' key must be a byte array.");
+    byte[] from = null;
+    byte[] to = null;
+
+    if (top instanceof String) {
+      Map<String,Object> tenant = FDBUtils.getTenantInfo(pool.getDatabase(), (String) top);
+
+      if (tenant.containsKey(FDBUtils.KEY_PREFIX)) {
+        from = (byte[]) tenant.get(FDBUtils.KEY_PREFIX);
+        to = FDBUtils.getNextKey(from);
+      } else {
+        throw new WarpScriptException(getName() + " unknown tenant.");
+      }
+    } else {
+      if (!(top instanceof byte[])) {
+        throw new WarpScriptException(getName() + " 'to' key must be a byte array.");
+      }
+
+      to = (byte[]) top;
+
+      top = stack.pop();
+
+      if (!(top instanceof byte[])) {
+        throw new WarpScriptException(getName() + " 'from' key must be a byte array.");
+      }
+
+      from = (byte[]) top;
     }
-
-    byte[] to = (byte[]) top;
-
-    top = stack.pop();
-
-    if (!(top instanceof byte[])) {
-      throw new WarpScriptException(getName() + " 'from' key must be a byte array.");
-    }
-
-    byte[] from = (byte[]) top;
-
-    FDBStoreClient fsc = (FDBStoreClient) sc;
-
-    FDBPool pool = fsc.getPool();
 
     FDBContext context = pool.getContext();
 
