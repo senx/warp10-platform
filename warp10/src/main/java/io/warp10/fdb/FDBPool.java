@@ -22,7 +22,20 @@ import com.apple.foundationdb.Database;
  * This is a pool of FoundationDB databases.
  * A client can use any of those databases in a non exclusive
  * way.
- * The objective is to spread the load across clients.
+ * The objective is to spread the load across clients when FoundationDB
+ * is launched with multiple clients (clients are affected to Database
+ * instances in a round robin manner).
+ *
+ * So launching FoundationDB with the following environment variables set:
+ *
+ * export FDB_NETWORK_OPTION_EXTERNAL_CLIENT_LIBRARY=/path/to/libfdb_c.so
+ * export FDB_NETWORK_OPTION_CLIENT_THREADS_PER_VERSION=N
+ *
+ * will start N network threads, if the number of Database instances in the
+ * Warp 10 instance (sum of Databases created by all components) is <= N
+ * then each Database will have its own client.
+ *
+ * Experimenting is key as sizing depends n the type of load of each deployment.
  */
 public class FDBPool {
   private final FDBContext context;
@@ -37,6 +50,10 @@ public class FDBPool {
     }
   }
 
+  /**
+   * Return a Database instance selected
+   * in a round robin manner from the pool instances
+   */
   public synchronized Database getDatabase() {
     Database db = databases[index++];
     index = index % databases.length;
