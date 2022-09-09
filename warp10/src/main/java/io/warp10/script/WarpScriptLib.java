@@ -379,6 +379,7 @@ import io.warp10.script.functions.MSIGCOUNT;
 import io.warp10.script.functions.MSIGINFO;
 import io.warp10.script.functions.MSIGN;
 import io.warp10.script.functions.MSORT;
+import io.warp10.script.functions.MSTORE;
 import io.warp10.script.functions.MSTU;
 import io.warp10.script.functions.MUSIGMA;
 import io.warp10.script.functions.MVERIFY;
@@ -945,6 +946,7 @@ public class WarpScriptLib {
   public static final String MARK = "MARK";
   public static final String STORE = "STORE";
   public static final String LSTORE = "LSTORE";
+  public static final String MSTORE = "MSTORE";
 
   public static final String MAPPER_HIGHEST = "mapper.highest";
   public static final String MAPPER_LOWEST = "mapper.lowest";
@@ -1879,6 +1881,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new APPEND(APPEND));
     addNamedWarpScriptFunction(new STORE(STORE));
     addNamedWarpScriptFunction(new LSTORE(LSTORE));
+    addNamedWarpScriptFunction(new MSTORE(MSTORE));
     addNamedWarpScriptFunction(new CSTORE(CSTORE));
     addNamedWarpScriptFunction(new LOAD(LOAD));
     addNamedWarpScriptFunction(new DEREF(DEREF));
