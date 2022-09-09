@@ -69,8 +69,18 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
 
     List<Object> params = (List<Object>) top;
 
+    if ( 2 > params.size()) {
+      throw new WarpScriptException(getName() + " needs a list of at least 2 parameters as input.");
+    }
+
+    if (!(params.get(params.size() - 1) instanceof Number)) {
+      params.add(0L);
+      params.add(0L);
+      params.add(0L);
+    }
+
     if (5 > params.size()) {
-      throw new WarpScriptException(getName() + " needs a list of at least 5 parameters as input.");
+      throw new WarpScriptException(getName() + " needs a list of at least 5 parameters including mapper window parameters.");
     }
 
     int nseries = 0;
