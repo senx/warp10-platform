@@ -39,6 +39,9 @@ public class InterpolationWarpScriptExtension extends WarpScriptExtension {
     functions.put("SMICROSPHEREFIT", new MICROSPHEREFIT("SMICROSPHEREFIT", true));
     functions.put("BICUBICFIT", new BICUBICFIT("BICUBICFIT"));
     functions.put("TRICUBICFIT", new TRICUBICFIT("TRICUBICFIT"));
+    functions.put("LINEARFIT", new LINEARFIT("LINEARFIT"));
+    functions.put("SPLINELINEARFIT", new LINEARFIT("SPLINELINEARFIT"));
+    functions.put("AKIMASPLINEFIT", new LINEARFIT("AKIMASPLINEFIT"));
   }
 
   //
