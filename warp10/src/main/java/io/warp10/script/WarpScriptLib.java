@@ -318,6 +318,7 @@ import io.warp10.script.functions.LASTBUCKET;
 import io.warp10.script.functions.LASTSORT;
 import io.warp10.script.functions.LASTTICK;
 import io.warp10.script.functions.LBOUNDS;
+import io.warp10.script.functions.LCSTORE;
 import io.warp10.script.functions.LFILTER;
 import io.warp10.script.functions.LIMIT;
 import io.warp10.script.functions.LINEOFF;
@@ -360,6 +361,7 @@ import io.warp10.script.functions.MAXOPS;
 import io.warp10.script.functions.MAXPIXELS;
 import io.warp10.script.functions.MAXRECURSION;
 import io.warp10.script.functions.MAXSYMBOLS;
+import io.warp10.script.functions.MCSTORE;
 import io.warp10.script.functions.MDETACH;
 import io.warp10.script.functions.MERGE;
 import io.warp10.script.functions.META;
@@ -945,8 +947,11 @@ public class WarpScriptLib {
   public static final String BYTESTOBITS = "BYTESTOBITS";
   public static final String MARK = "MARK";
   public static final String STORE = "STORE";
+  public static final String CSTORE = "CSTORE";
   public static final String LSTORE = "LSTORE";
   public static final String MSTORE = "MSTORE";
+  public static final String LCSTORE = "LCSTORE";
+  public static final String MCSTORE = "MCSTORE";
 
   public static final String MAPPER_HIGHEST = "mapper.highest";
   public static final String MAPPER_LOWEST = "mapper.lowest";
@@ -1059,7 +1064,6 @@ public class WarpScriptLib {
   public static final String MSTU = "MSTU";
   public static final String STU = "STU";
   public static final String APPEND = "APPEND";
-  public static final String CSTORE = "CSTORE";
   public static final String IMPORT = "IMPORT";
   public static final String DEF = "DEF";
   public static final String UDF = "UDF";
@@ -1883,6 +1887,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new LSTORE(LSTORE));
     addNamedWarpScriptFunction(new MSTORE(MSTORE));
     addNamedWarpScriptFunction(new CSTORE(CSTORE));
+    addNamedWarpScriptFunction(new LCSTORE(LCSTORE));
+    addNamedWarpScriptFunction(new MCSTORE(MCSTORE));
     addNamedWarpScriptFunction(new LOAD(LOAD));
     addNamedWarpScriptFunction(new DEREF(DEREF));
     addNamedWarpScriptFunction(new IMPORT(IMPORT));
