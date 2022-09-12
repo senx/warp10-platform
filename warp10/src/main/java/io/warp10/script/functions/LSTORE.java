@@ -66,7 +66,7 @@ public class LSTORE extends NamedWarpScriptFunction implements WarpScriptStackFu
       if (symbol instanceof Long) {
         stack.store(((Long) symbol).intValue(), objects.get(i));
       } else {
-        stack.store(symbol.toString(), objects.get(i));
+        stack.store((String) symbol, objects.get(i));
       }
     }
 
