@@ -52,11 +52,12 @@ public class LSTORE extends NamedWarpScriptFunction implements WarpScriptStackFu
     }
 
     List objects = (List) o;
-    if (variables.size() != objects.size()) {
-      throw new WarpScriptException(getName() + " received as arguments two lists with different sizes.");
-    }
 
     for (int i = 0; i < variables.size(); i++) {
+      if (i >= objects.size()) {
+        break;
+      }
+
       Object symbol = variables.get(i);
 
       if (null == symbol) {
