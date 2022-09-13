@@ -318,7 +318,6 @@ import io.warp10.script.functions.LASTBUCKET;
 import io.warp10.script.functions.LASTSORT;
 import io.warp10.script.functions.LASTTICK;
 import io.warp10.script.functions.LBOUNDS;
-import io.warp10.script.functions.LCSTORE;
 import io.warp10.script.functions.LFILTER;
 import io.warp10.script.functions.LIMIT;
 import io.warp10.script.functions.LINEOFF;
@@ -1887,7 +1886,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new LSTORE(LSTORE));
     addNamedWarpScriptFunction(new MSTORE(MSTORE));
     addNamedWarpScriptFunction(new CSTORE(CSTORE));
-    addNamedWarpScriptFunction(new LCSTORE(LCSTORE));
+    addNamedWarpScriptFunction(new LSTORE(LCSTORE, true));
     addNamedWarpScriptFunction(new MCSTORE(MCSTORE));
     addNamedWarpScriptFunction(new LOAD(LOAD));
     addNamedWarpScriptFunction(new DEREF(DEREF));

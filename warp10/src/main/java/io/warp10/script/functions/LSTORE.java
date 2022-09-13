@@ -25,10 +25,17 @@ import java.util.List;
 
 public class LSTORE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  public LSTORE(String name) {
+  private boolean conditional;
+
+  public LSTORE(String name, boolean conditional) {
     super(name);
+    this.conditional = conditional;
   }
-  
+
+  public LSTORE(String name) {
+    this(name, false);
+  }
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object o = stack.pop();
@@ -65,9 +72,13 @@ public class LSTORE extends NamedWarpScriptFunction implements WarpScriptStackFu
       }
 
       if (symbol instanceof Long) {
-        stack.store(((Long) symbol).intValue(), objects.get(i));
+        if (!conditional || null == stack.load(((Long) symbol).intValue())) {
+          stack.store(((Long) symbol).intValue(), objects.get(i));
+        }
       } else {
-        stack.store((String) symbol, objects.get(i));
+        if (!conditional || !stack.getSymbolTable().containsKey((String) symbol)) {
+          stack.store((String) symbol, objects.get(i));
+        }
       }
     }
 
