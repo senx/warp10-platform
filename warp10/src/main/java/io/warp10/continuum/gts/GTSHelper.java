@@ -2374,8 +2374,6 @@ public class GTSHelper {
           int currentBucketStartPosition;
           int count;
           Object[] aggregated = null;
-          Double[] nanArray = {Double.NaN};
-          List nanList = Arrays.asList(nanArray);
           while (i >= 0 && gts.ticks[i] > (lastbucket - bucketspan * bucketcount)) {
             currentBucketEndPosition = i;
             currentBucketEnd = gts.ticks[i] + (lastbucket - gts.ticks[i]) % bucketspan;
@@ -2390,18 +2388,8 @@ public class GTSHelper {
             parms[0] = currentBucketEnd;
 
             // ticks list
-            parms[3] = new ReadOnlySubArrayAsList(gts.ticks,currentBucketStartPosition,count);
+            parms[3] = new ReadOnlySubArrayAsList(gts.ticks, currentBucketStartPosition, count);
 
-            // if there are no elevations or locations we must present an array filled with NaN.
-            // as count grows, we will build bigger size NaN tables.
-            if (null == gts.elevations || null == gts.locations) {
-              if (nanArray.length < count) {
-                nanArray = new Double[count];
-                Arrays.fill(nanArray, Double.NaN);
-                nanList = Arrays.asList(nanArray);
-              }
-            }
-            
             // locations lists
             if (null != gts.locations) {
               // need to do the conversion
@@ -2421,7 +2409,7 @@ public class GTSHelper {
               parms[4] = lats;
               parms[5] = lons;
             } else {
-              parms[4] = nanList.subList(0, count );
+              parms[4] = new ReadOnlyConstantList(count, Double.NaN);
               parms[5] = parms[4];
             }
             
@@ -2437,7 +2425,7 @@ public class GTSHelper {
               }
               parms[6] = elevs;
             } else {
-              parms[6] = nanList.subList(0, count );
+              parms[6] = new ReadOnlyConstantList(count, Double.NaN);
             }
 
             // values
@@ -2566,7 +2554,7 @@ public class GTSHelper {
 
       }
     }
-
+    // original code below will be removed after tests
     else {
       //
       // We can't skip buckets which are before the first tick or after the last one
