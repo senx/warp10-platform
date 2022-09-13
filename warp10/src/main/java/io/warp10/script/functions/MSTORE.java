@@ -25,8 +25,15 @@ import java.util.Map;
 
 public class MSTORE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  public MSTORE(String name) {
+  private boolean conditional;
+
+  public MSTORE(String name, boolean conditional) {
     super(name);
+    this.conditional = conditional;
+  }
+
+  public MSTORE(String name) {
+    this(name, false);
   }
   
   @Override
@@ -54,9 +61,13 @@ public class MSTORE extends NamedWarpScriptFunction implements WarpScriptStackFu
       }
 
       if (symbol instanceof Long) {
-        stack.store(((Long) symbol).intValue(), entry.getValue());
+        if (!conditional || null == stack.load(((Long) symbol).intValue())) {
+          stack.store(((Long) symbol).intValue(), entry.getValue());
+        }
       } else {
-        stack.store((String) symbol, entry.getValue());
+        if (!conditional || !stack.getSymbolTable().containsKey((String) symbol)) {
+          stack.store((String) symbol, entry.getValue());
+        }
       }
     }
 

@@ -360,7 +360,6 @@ import io.warp10.script.functions.MAXOPS;
 import io.warp10.script.functions.MAXPIXELS;
 import io.warp10.script.functions.MAXRECURSION;
 import io.warp10.script.functions.MAXSYMBOLS;
-import io.warp10.script.functions.MCSTORE;
 import io.warp10.script.functions.MDETACH;
 import io.warp10.script.functions.MERGE;
 import io.warp10.script.functions.META;
@@ -1887,7 +1886,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new MSTORE(MSTORE));
     addNamedWarpScriptFunction(new CSTORE(CSTORE));
     addNamedWarpScriptFunction(new LSTORE(LCSTORE, true));
-    addNamedWarpScriptFunction(new MCSTORE(MCSTORE));
+    addNamedWarpScriptFunction(new MSTORE(MCSTORE, true));
     addNamedWarpScriptFunction(new LOAD(LOAD));
     addNamedWarpScriptFunction(new DEREF(DEREF));
     addNamedWarpScriptFunction(new IMPORT(IMPORT));
