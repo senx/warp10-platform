@@ -42,7 +42,7 @@ import java.util.Random;
  * Fit an interpolating micro sphere as described in http://www.dudziak.com/microsphere.pdf
  * Used for multivariate interpolation
  */
-public class MICROSPHEREFIT extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class InterpolatorMicrosphere extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
   public static final String ELEMENTS = "elements";
   public static final String MAXDARKFRACTION = "max.dark.fraction";
@@ -164,7 +164,7 @@ public class MICROSPHEREFIT extends NamedWarpScriptFunction implements WarpScrip
   }
 
   final private boolean seeded;
-  public MICROSPHEREFIT(String name, boolean seeded) {
+  public InterpolatorMicrosphere(String name, boolean seeded) {
     super(name);
     this.seeded = seeded;
   }

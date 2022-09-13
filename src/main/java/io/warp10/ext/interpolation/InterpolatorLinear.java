@@ -33,8 +33,14 @@ import java.util.List;
 /**
  * Function that implements the bicubic spline interpolation
  */
-public class LINEARFIT extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class InterpolatorLinear extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
+  public static enum TYPE {
+    LINEAR,SPLINE, AKIMA
+  };
+  
+  private TYPE type;
+  
   private static class LINEAR extends NamedWarpScriptFunction implements WarpScriptStackFunction, WarpScriptMapperFunction {
 
     private final PolynomialSplineFunction func;
@@ -122,8 +128,9 @@ public class LINEARFIT extends NamedWarpScriptFunction implements WarpScriptStac
     }
   }
 
-  public LINEARFIT(String name) {
+  public InterpolatorLinear(String name, TYPE type) {
     super(name);
+    this.type=type;
   }
 
   @Override
@@ -169,15 +176,15 @@ public class LINEARFIT extends NamedWarpScriptFunction implements WarpScriptStac
     }
 
     PolynomialSplineFunction function = null;
-    if (getName().equals("LINEARFIT")) {
+    if (type==TYPE.LINEAR) {
       function = (new LinearInterpolator()).interpolate(xval, fval);
-    } else if (getName().equals("SPLINELINEARFIT")) {
+    } else if (type==TYPE.SPLINE) {
       function = (new SplineInterpolator()).interpolate(xval, fval);
-    } else if (getName().equals("AKIMASPLINEFIT")) {
+    } else if (type==TYPE.AKIMA) {
       function = (new AkimaSplineInterpolator()).interpolate(xval, fval);
     }
 
-    // clone the inputs for snapshot.
+    // clone the inputs for snapshot. 
     LINEAR warpscriptFunction = new LINEAR(function, getName(), new ArrayList<Number>(o1), new ArrayList<Number>(o2));
     stack.push(warpscriptFunction);
 

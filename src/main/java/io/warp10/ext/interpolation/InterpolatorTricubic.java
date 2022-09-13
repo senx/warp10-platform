@@ -16,39 +16,45 @@
 
 package io.warp10.ext.interpolation;
 
+import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptReducerFunction;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
-import org.apache.commons.math3.analysis.interpolation.BicubicInterpolatingFunction;
-import org.apache.commons.math3.analysis.interpolation.BicubicInterpolator;
 import org.apache.commons.lang3.reflect.FieldUtils;
+import org.apache.commons.math3.analysis.interpolation.TricubicInterpolatingFunction;
+import org.apache.commons.math3.exception.OutOfRangeException;
 
 import java.util.List;
 
 /**
- * Function that implements the bicubic spline interpolation
+ * Function that implements the tricubic spline interpolation, as proposed in
+ * Tricubic interpolation in three dimensions, F. Lekien and J. Marsden, Int. J. Numer. Meth. Eng 2005; 63:455-471
  */
-public class BICUBICFIT extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class InterpolatorTricubic extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  private static class BICUBE extends NamedWarpScriptFunction implements WarpScriptStackFunction, WarpScriptReducerFunction {
+  private static class TRICUBE extends NamedWarpScriptFunction implements WarpScriptStackFunction, WarpScriptReducerFunction {
 
-    private final BicubicInterpolatingFunction func;
+    private final TricubicInterpolatingFunction func;
     private final String generatedFrom;
 
-    private BICUBE(BicubicInterpolatingFunction function, String interpolatorName) {
-      super("BICUBE");
+    private TRICUBE(TricubicInterpolatingFunction function, String interpolatorName) {
+      super("TRICUBE");
       func = function;
       generatedFrom = interpolatorName;
     }
 
-    private double value(double x, double y) {
-      if (!func.isValidPoint(x,y)) {
-         return Double.NaN;
-      } else {
-        return func.value(x,y);
+    private double value(double x, double y, double z) {
+      try {
+        if (!func.isValidPoint(x, y, z)) {
+          return Double.NaN;
+        } else {
+          return func.value(x, y, z);
+        }
+      } catch (OutOfRangeException e) {
+        return Double.NaN; // It can happen, even with the isValidPoint check.
       }
     }
 
@@ -60,13 +66,14 @@ public class BICUBICFIT extends NamedWarpScriptFunction implements WarpScriptSta
       }
       List l = (List) o;
 
-      if (2 != l.size()) {
-        throw new WarpScriptException(getName() + " expects a LIST with 2 components " + l.size());
+      if (3 != l.size()) {
+        throw new WarpScriptException(getName() + " expects a LIST with 3 components " + l.size());
       }
 
       double x = ((Number) l.get(0)).doubleValue();
       double y = ((Number) l.get(1)).doubleValue();
-      stack.push(value(x,y));
+      double z = ((Number) l.get(2)).doubleValue();
+      stack.push(value(x, y, z));
 
       return stack;
     }
@@ -78,21 +85,24 @@ public class BICUBICFIT extends NamedWarpScriptFunction implements WarpScriptSta
       long[] elevations = (long[]) args[5];
       Object[] values = (Object[]) args[6];
 
-      if (2 != values.length) {
-        throw new WarpScriptException(getName() + " expects 2 components but only got " + values.length);
+      if (3 != values.length) {
+        throw new WarpScriptException(getName() + " expects 3 components but got " + values.length);
+      }
+      if (null == values[0] || null == values[1] || null == values[2]) {
+        return new Object[] {Long.MAX_VALUE, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, null};
       }
 
       double x = ((Number) values[0]).doubleValue();
       double y = ((Number) values[1]).doubleValue();
-      double res = value(x,y);
+      double z = ((Number) values[2]).doubleValue();
+      double res = value(x, y, z);
 
-      return new Object[] { tick, locations[0], elevations[0], res };
+      return new Object[] {tick, locations[0], elevations[0], res};
     }
 
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder();
-
       try {
         double[] xval = (double[]) FieldUtils.readField(func, "xval", true);
         sb.append(WarpScriptLib.LIST_START);
@@ -114,6 +124,16 @@ public class BICUBICFIT extends NamedWarpScriptFunction implements WarpScriptSta
         sb.append(WarpScriptLib.LIST_END);
         sb.append(" ");
 
+        double[] zval = (double[]) FieldUtils.readField(func, "zval", true);
+        sb.append(WarpScriptLib.LIST_START);
+        sb.append(" ");
+        for (int i = 0; i < zval.length; i++) {
+          sb.append(zval[i]);
+          sb.append(" ");
+        }
+        sb.append(WarpScriptLib.LIST_END);
+        sb.append(" ");
+
         // fval
         sb.append(WarpScriptLib.LIST_START);
         sb.append(" ");
@@ -121,7 +141,13 @@ public class BICUBICFIT extends NamedWarpScriptFunction implements WarpScriptSta
           sb.append(WarpScriptLib.LIST_START);
           sb.append(" ");
           for (int j = 0; j < yval.length; j++) {
-            sb.append(func.value(xval[i], yval[j]));
+            sb.append(WarpScriptLib.LIST_START);
+            sb.append(" ");
+            for (int k = 0; k < zval.length; k++) {
+              sb.append(func.value(xval[i], yval[j], zval[k]));
+              sb.append(" ");
+            }
+            sb.append(WarpScriptLib.LIST_END);
             sb.append(" ");
           }
           sb.append(WarpScriptLib.LIST_END);
@@ -129,18 +155,16 @@ public class BICUBICFIT extends NamedWarpScriptFunction implements WarpScriptSta
         }
         sb.append(WarpScriptLib.LIST_END);
         sb.append(" ");
-
       } catch (Exception e) {
         throw new RuntimeException("Error building argument snapshot", e);
       }
-
       sb.append(generatedFrom);
 
       return sb.toString();
     }
   }
 
-  public BICUBICFIT(String name) {
+  public InterpolatorTricubic(String name) {
     super(name);
   }
 
@@ -149,9 +173,16 @@ public class BICUBICFIT extends NamedWarpScriptFunction implements WarpScriptSta
 
     double xval[];
     double yval[];
-    double[][] fval;
+    double zval[];
+    double[][][] fval;
 
     Object o = stack.pop();
+    if (!(o instanceof List)) {
+      throw new WarpScriptException(getName() + " expects a LIST as 4th argument");
+    }
+    List o4 = (List) o;
+
+    o = stack.pop();
     if (!(o instanceof List)) {
       throw new WarpScriptException(getName() + " expects a LIST as 3rd argument");
     }
@@ -183,33 +214,51 @@ public class BICUBICFIT extends NamedWarpScriptFunction implements WarpScriptSta
       yval[i] = ((Number) o2.get(i)).doubleValue();
     }
 
+    // fill z
+    int d3 = o3.size();
+    zval = new double[d3];
+    for (int i = 0; i < d3; i++) {
+      zval[i] = ((Number) o3.get(i)).doubleValue();
+    }
+
     // fill f
-    if (o3.size() != d1) {
+    if (o4.size() != d1) {
       throw new WarpScriptException(getName() + ": incoherent argument sizes");
     }
-    fval = new double[d1][d2];
+    fval = new double[d1][d2][d3];
 
     for (int i = 0; i < d1; i++) {
-      if (!(o3.get(i) instanceof List)) {
-        throw new WarpScriptException(getName() + " expects the last argument to be a LIST tensor of dimension 2");
+      if (!(o4.get(i) instanceof List)) {
+        throw new WarpScriptException(getName() + " expects the last argument to be a LIST tensor of dimension 3");
       }
 
-      List row = (List) o3.get(i);
+      List row = (List) o4.get(i);
       if (row.size() != d2) {
         throw new WarpScriptException(getName() + ": incoherent argument sizes");
       }
 
       for (int j = 0; j < d2; j++) {
-        if (!(row.get(j) instanceof Number)) {
-          throw new WarpScriptException(getName() + " expects the last argument to be a numeric LIST tensor of dimension 2");
+        if (!(row.get(j) instanceof List)) {
+          throw new WarpScriptException(getName() + " expects the last argument to be a LIST tensor of dimension 3");
         }
 
-        fval[i][j] = ((Number) row.get(j)).doubleValue();
+        List col = (List) row.get(j);
+        if (col.size() != d3) {
+          throw new WarpScriptException(getName() + ": incoherent argument sizes");
+        }
+
+        for (int k = 0; k < d3; k++) {
+          if (!((col.get(k)) instanceof Number)) {
+            throw new WarpScriptException(getName() + " expects the last argument to be a numeric LIST tensor of dimension 3");
+          }
+
+          fval[i][j][k] = ((Number) col.get(k)).doubleValue();
+        }
       }
     }
 
-    BicubicInterpolatingFunction function = (new BicubicInterpolator()).interpolate(xval, yval, fval);
-    BICUBE warpscriptFunction = new BICUBE(function, getName());
+    TricubicInterpolatingFunction function = (new TricubicInterpolatorSmallGrid()).interpolate(xval, yval, zval, fval);
+    TRICUBE warpscriptFunction = new TRICUBE(function, getName());
     stack.push(warpscriptFunction);
 
     return stack;
