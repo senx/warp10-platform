@@ -69,20 +69,6 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
 
     List<Object> params = (List<Object>) top;
 
-    if ( 2 > params.size()) {
-      throw new WarpScriptException(getName() + " needs a list of at least 2 parameters as input.");
-    }
-
-    if (!(params.get(params.size() - 1) instanceof Number)) {
-      params.add(0L);
-      params.add(0L);
-      params.add(0L);
-    }
-
-    if (5 > params.size()) {
-      throw new WarpScriptException(getName() + " needs a list of at least 5 parameters including mapper window parameters.");
-    }
-
     int nseries = 0;
 
     for (Object param: params) {
@@ -96,8 +82,12 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
       throw new WarpScriptException(getName() + " expects Geo Time Series or lists thereof as first parameters.");
     }
 
-    if (!(params.get(nseries) instanceof WarpScriptMapperFunction) && !(params.get(nseries) instanceof Macro)) {
+    if (nseries == params.size() || !(params.get(nseries) instanceof WarpScriptMapperFunction) && !(params.get(nseries) instanceof Macro)) {
       throw new WarpScriptException(getName() + " expects a mapper function or a macro after Geo Time Series.");
+    }
+
+    for (int i = params.size(); i <= nseries + 3; i++) {
+      params.add(0L);
     }
 
     if (!(params.get(nseries + 1) instanceof Long) || !(params.get(nseries + 2) instanceof Long) || !(params.get(nseries + 3) instanceof Long)) {
