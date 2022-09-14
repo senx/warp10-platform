@@ -258,15 +258,8 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
         } else if (i > 0 && currentSymbol instanceof RUN) {
           Object previousSymbol = statements.get(i - 1);
 
-          if (previousSymbol instanceof String) {
-            Integer regno = varregs.get(previousSymbol.toString());
-            if (null != regno) {
-              statements.set(i - 1, XNOOP);
-              RUNR runr = RUNRX.computeIfAbsent(regno, r -> new RUNR(WarpScriptLib.RUNR + r, r));
-              statements.set(i, runr);
-            }
-          } else if (previousSymbol instanceof Long) {
-            // Also optimize RUN on a long with RUNR which is faster
+          if (previousSymbol instanceof Long) {
+            // Optimize RUN on a long with RUNR which is faster
             statements.set(i - 1, XNOOP);
             RUNR runr = RUNRX.computeIfAbsent(((Long) previousSymbol).intValue(), r -> new RUNR(WarpScriptLib.RUNR + r, r));
             statements.set(i, runr);
