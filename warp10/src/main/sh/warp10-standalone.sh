@@ -195,7 +195,7 @@ getConfigFiles() {
 
 bootstrap() {
   echo "Bootstrap.."
-  set -euo pipefail
+
   #
   # Make sure the caller is root
   #
