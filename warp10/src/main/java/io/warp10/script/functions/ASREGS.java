@@ -130,11 +130,17 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
           Object previousSymbol = statements.get(i - 1);
           if (previousSymbol instanceof Long) {
             inuse.set(((Long) previousSymbol).intValue());
+          } else if (currentSymbol instanceof RUN && previousSymbol instanceof String) {
+            // RUN applied to a STRING means we call an external macro which might
+            // use some symbols, so we cannot do any replacement
+            abort = true;
+            break;
           } else if (!(previousSymbol instanceof String)) {
-            // We encountered a LOAD/CSTORE/RUN with a non string and non long param,
+            // We encountered a LOAD/CSTORE with a non string and non long param,
             // we cannot determine what is being loaded or updated, so no replacement
             // can occur
             abort = true;
+            break;
           }
         } else if (currentSymbol instanceof STORE) {
           // If the statement is the first, we cannot determine if what
@@ -172,9 +178,13 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
             // We encountered a STORE with something that is neither a register, a string or
             // a list, so we cannot determine if a register is involved or not, so we abort
             abort = true;
+            break;
           }
         } else if (currentSymbol instanceof Macro) {
           allmacros.add((Macro) currentSymbol);
+        } else if (currentSymbol instanceof LSTORE || currentSymbol instanceof MSTORE) {
+          abort = true;
+          break;
         }
       }
     }
