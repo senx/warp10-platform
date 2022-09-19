@@ -1,0 +1,125 @@
+package io.warp10.script.ext.pgp;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.bouncycastle.bcpg.ArmoredOutputStream;
+import org.bouncycastle.openpgp.PGPException;
+import org.bouncycastle.openpgp.PGPPublicKey;
+import org.bouncycastle.openpgp.PGPPublicKeyRing;
+import org.bouncycastle.openpgp.PGPUtil;
+import org.bouncycastle.openpgp.jcajce.JcaPGPPublicKeyRingCollection;
+import org.bouncycastle.util.encoders.Hex;
+
+import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
+
+public class PGPPUBLIC extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+
+  private static final String KEY_KEY = "key";
+  private static final String KEY_KEYID = "keyid";
+  private static final String KEY_UID = "uid";
+  private static final String KEY_ALG = "algorithm";
+  private static final String KEY_BITS = "bits";
+  private static final String KEY_FINGERPRINT = "fingerprint";
+  public PGPPUBLIC(String name) {
+    super(name);
+  }
+
+  @Override
+  public Object apply(WarpScriptStack stack) throws WarpScriptException {
+
+    Object top = stack.pop();
+
+    if (top instanceof PGPPublicKey) {
+      try {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ArmoredOutputStream aout = new ArmoredOutputStream(out);
+        aout.write(((PGPPublicKey) top).getEncoded(false));
+        aout.close();
+        stack.push(new String(out.toByteArray(), StandardCharsets.UTF_8));
+        return stack;
+      } catch (Exception e) {
+        throw new WarpScriptException(getName() + " encountered and error while serializing public key.", e);
+      }
+    }
+
+    if (!(top instanceof String) && !(top instanceof byte[])) {
+      throw new WarpScriptException(getName() + " invalid public key, expected STRING or BYTES.");
+    }
+
+    ByteArrayInputStream in = top instanceof String ? new ByteArrayInputStream(((String) top).getBytes(StandardCharsets.UTF_8)) : new ByteArrayInputStream((byte[]) top);
+
+    try {
+      InputStream decoderstream = PGPUtil.getDecoderStream(in);
+      JcaPGPPublicKeyRingCollection pgpPub = new JcaPGPPublicKeyRingCollection(decoderstream);
+      decoderstream.close();
+      Iterator<PGPPublicKeyRing> iter = pgpPub.getKeyRings();
+      List<Object> keylist = new ArrayList<Object>();
+      while(iter.hasNext()) {
+        PGPPublicKeyRing kr = iter.next();
+        Iterator<PGPPublicKey> keys = kr.getPublicKeys();
+        while(keys.hasNext()) {
+          PGPPublicKey key = keys.next();
+
+          Map<String,Object> keymap = new LinkedHashMap<String,Object>();
+          keymap.put(KEY_KEY, key);
+          String hex = "000000000000000" + Long.toHexString(key.getKeyID());
+          hex = hex.substring(hex.length() - 16);
+          keymap.put(KEY_KEYID, hex);
+          keymap.put(KEY_FINGERPRINT, Hex.toHexString(key.getFingerprint()));
+          keymap.put(KEY_BITS, key.getBitStrength());
+          keymap.put(KEY_ALG, getPublicKeyAlgorithmName(key.getAlgorithm()));
+          Iterator<String> useridsiter = key.getUserIDs();
+          List<String> userids = new ArrayList<String>();
+          while(useridsiter.hasNext()) {
+            userids.add(useridsiter.next());
+          }
+          keymap.put(KEY_UID, userids);
+          keylist.add(keymap);
+        }
+      }
+      stack.push(keylist);
+    } catch (IOException|PGPException e) {
+      throw new WarpScriptException(getName() + " error decoding public key.", e);
+    }
+    return stack;
+  }
+
+  private static String getPublicKeyAlgorithmName(int alg) {
+    switch(alg) {
+      case 1:
+        return "RSA_GENERAL";
+      case 2:
+        return "RSA_ENCRYPT";
+      case 3:
+        return "RSA_SIGN";
+      case 16:
+        return "ELGAMAL_ENCRYPT";
+      case 17:
+        return "DSA";
+      case 18:
+        return "ECDH";
+      case 19:
+        return "ECDSA";
+      case 20:
+        return "ELGAMAL_GENERAL";
+      case 21:
+        return "DIFFIE_HELLMAN";
+      case 22:
+        return "EDDSA";
+      default:
+        return "UNKNOWN_" + Integer.toString(alg);
+    }
+  }
+}

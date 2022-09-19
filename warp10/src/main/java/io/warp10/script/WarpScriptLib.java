@@ -77,6 +77,8 @@ import io.warp10.script.binary.NE;
 import io.warp10.script.binary.SHIFTLEFT;
 import io.warp10.script.binary.SHIFTRIGHT;
 import io.warp10.script.binary.SUB;
+import io.warp10.script.ext.pgp.PGPPUBLIC;
+import io.warp10.script.ext.pgp.PGPENCRYPT;
 import io.warp10.script.filler.FillerInterpolate;
 import io.warp10.script.filler.FillerNext;
 import io.warp10.script.filler.FillerPrevious;
@@ -1234,6 +1236,8 @@ public class WarpScriptLib {
   public static final String RSADECRYPT = "RSADECRYPT";
   public static final String RSASIGN = "RSASIGN";
   public static final String RSAVERIFY = "RSAVERIFY";
+  public static final String PGPPUBLIC = "PGPPUBLIC";
+  public static final String PGPENCRYPT = "PGPENCRYPT";
   public static final String URLDECODE = "URLDECODE";
   public static final String URLENCODE = "URLENCODE";
   public static final String SPLIT = "SPLIT";
@@ -2144,6 +2148,9 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new RSADECRYPT(RSADECRYPT));
     addNamedWarpScriptFunction(new RSASIGN(RSASIGN));
     addNamedWarpScriptFunction(new RSAVERIFY(RSAVERIFY));
+
+    addNamedWarpScriptFunction(new PGPPUBLIC(PGPPUBLIC));
+    addNamedWarpScriptFunction(new PGPENCRYPT(PGPENCRYPT));
 
     //
     // String functions
