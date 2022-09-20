@@ -23,6 +23,8 @@ import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -743,7 +745,6 @@ public class Directory extends AbstractHandler implements Runnable {
 
               done = true;
             } catch (Throwable t) {
-              t.printStackTrace();
               LOG.error("Caught exception in scanning loop, will attempt to continue where we stopped", t);
             } finally {
               if (!done) {
@@ -1340,11 +1341,12 @@ public class Directory extends AbstractHandler implements Runnable {
               try {
                 retry = false;
                 txn = db.createTransaction();
+                // Allow RAW access because we may manually force a tenant key prefix without actually setting a tenant
+                txn.options().setRawAccess();
 
                 for (FDBMutation mutation: mutations) {
                   mutation.apply(txn);
                 }
-
                 txn.commit().get();
               } catch (Throwable t) {
                 FDBUtils.errorMetrics("directory", t.getCause());
@@ -1372,8 +1374,7 @@ public class Directory extends AbstractHandler implements Runnable {
 
         byte[] fdbAESKey = directory.keystore.getKey(KeyStore.AES_FDB_METADATA);
 
-        //Kafka 2.x Duration delay = Duration.of(500L, ChronoUnit.MILLIS);
-        long delay = 500L;
+        Duration delay = Duration.of(500L, ChronoUnit.MILLIS);
 
         while (!directory.abort.get()) {
           Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_JVM_FREEMEMORY, Sensision.EMPTY_LABELS, Runtime.getRuntime().freeMemory());
@@ -1408,7 +1409,6 @@ public class Directory extends AbstractHandler implements Runnable {
           boolean first = true;
 
           Iterator<ConsumerRecord<byte[],byte[]>> iter = consumerRecords.iterator();
-
           while(resetPending() && iter.hasNext()) {
 
             ConsumerRecord<byte[],byte[]> record = null;
@@ -1906,7 +1906,6 @@ public class Directory extends AbstractHandler implements Runnable {
           }
         }
       } catch (Throwable t) {
-        t.printStackTrace();
         LOG.error("", t);
       } finally {
         // Set abort to true in case we exit the 'run' method
