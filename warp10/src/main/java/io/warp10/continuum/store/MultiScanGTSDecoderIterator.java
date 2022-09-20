@@ -21,16 +21,13 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.apple.foundationdb.KeyValue;
 import com.apple.foundationdb.StreamingMode;
 import com.apple.foundationdb.Transaction;
-import com.google.common.primitives.Longs;
 
 import io.warp10.continuum.Tokens;
 import io.warp10.continuum.gts.GTSDecoder;
@@ -44,7 +41,6 @@ import io.warp10.fdb.FDBKVScanner;
 import io.warp10.fdb.FDBKeyValue;
 import io.warp10.fdb.FDBPool;
 import io.warp10.fdb.FDBScan;
-import io.warp10.fdb.FDBUtils;
 import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.sensision.Sensision;
 
@@ -95,7 +91,6 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
   private boolean hasStep = false;
   private boolean hasTimestep = false;
   private FDBPool pool;
-  private final boolean FDBUseTenantPrefix;
   private byte[] tenantPrefix = null;
   private AtomicReference<Transaction> persistentTransaction = null;
 
@@ -113,16 +108,15 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
     this.sample = req.getSample();
     this.token = req.getToken();
     this.fdbKey = keystore.getKey(KeyStore.AES_FDB_DATA);
-    this.FDBUseTenantPrefix = fdbUseTenantPrefix;
 
     if (fdbUseTenantPrefix && (0 == req.getToken().getAttributesSize() || !req.getToken().getAttributes().containsKey(Constants.TOKEN_ATTR_FDB_TENANT_PREFIX))) {
-      throw new IOException("Invalid token, missing tenant.");
+      throw new IOException("Invalid token, missing tenant prefix.");
     } else if (!fdbUseTenantPrefix && (0 != req.getToken().getAttributesSize() && req.getToken().getAttributes().containsKey(Constants.TOKEN_ATTR_FDB_TENANT_PREFIX))) {
-      throw new IOException("Invalid token, unsupported tenant.");
+      throw new IOException("Invalid token, no support for tenant prefix.");
     }
 
     if (fdbUseTenantPrefix) {
-      this.tenantPrefix = OrderPreservingBase64.decode(req.getAttributes().get(Constants.TOKEN_ATTR_FDB_TENANT_PREFIX));
+      this.tenantPrefix = OrderPreservingBase64.decode(req.getToken().getAttributes().get(Constants.TOKEN_ATTR_FDB_TENANT_PREFIX));
       if (8 != this.tenantPrefix.length) {
         throw new IOException("Invalid tenant prefix, length should be 8 bytes.");
       }
