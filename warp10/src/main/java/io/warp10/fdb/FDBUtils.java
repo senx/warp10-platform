@@ -101,6 +101,21 @@ public class FDBUtils {
     Sensision.update(SensisionConstants.CLASS_FDB_ERRORS, labels, 1);
   }
 
+  public static byte[] getKey(Database db, byte[] key) {
+    Transaction txn = db.createTransaction();
+    txn.options().setRawAccess();
+    txn.options().setAccessSystemKeys();
+
+    try {
+      byte[] value = txn.get(key).get();
+      return value;
+    } catch (Throwable t) {
+      throw new RuntimeException(t);
+    } finally {
+      try { txn.close(); } catch (Throwable t) {}
+    }
+  }
+
   public static Map<String,Object> getTenantInfo(FDBContext context, String tenant) {
     Database db = context.getDatabase();
     try {
