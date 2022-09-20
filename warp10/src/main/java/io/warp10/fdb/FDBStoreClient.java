@@ -52,6 +52,7 @@ public class FDBStoreClient implements StoreClient {
 
     WarpScriptLib.addNamedWarpScriptFunction(new FDBTENANT("FDBTENANT"));
     WarpScriptLib.addNamedWarpScriptFunction(new FDBSIZE("FDBSIZE"));
+    WarpScriptLib.addNamedWarpScriptFunction(new FDBGET("FDBGET"));
   }
 
   public FDBStoreClient(KeyStore keystore, Properties properties) throws IOException {
