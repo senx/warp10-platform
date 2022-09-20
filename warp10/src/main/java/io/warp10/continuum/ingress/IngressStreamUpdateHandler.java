@@ -555,7 +555,7 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
 
       if (this.handler.ingress.FDBUseTenantPrefix) {
         if (0 == wtoken.getAttributesSize() || !wtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_FDB_TENANT_PREFIX)) {
-          throw new IOException("Invalid token, missing tenant.");
+          throw new IOException("Invalid token, missing tenant prefix.");
         }
         kafkaDataMessageAttributes = new LinkedHashMap<String,String>();
         String encodedPrefix = wtoken.getAttributes().get(Constants.TOKEN_ATTR_FDB_TENANT_PREFIX);
@@ -564,7 +564,7 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
         }
         kafkaDataMessageAttributes.put(Constants.STORE_ATTR_FDB_TENANT_PREFIX, encodedPrefix);
       } else if (wtoken.getAttributesSize() > 0 && wtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_FDB_TENANT_PREFIX)) {
-        throw new IOException("Invalid token, tenant not supported.");
+        throw new IOException("Invalid token, tenant prefix not supported.");
       }
 
       this.ignoor = ignoor;
