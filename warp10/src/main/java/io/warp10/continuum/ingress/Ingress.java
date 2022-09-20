@@ -773,7 +773,7 @@ public class Ingress extends AbstractHandler implements Runnable {
 
         if (writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_FDB_TENANT_PREFIX)) {
           if (!FDBUseTenantPrefix) {
-            throw new IOException("Invalid token, tenant not supported.");
+            throw new IOException("Invalid token, tenant prefix not supported.");
           }
           kafkaDataMessageAttributes = new LinkedHashMap<String,String>();
           String encodedPrefix = writeToken.getAttributes().get(Constants.TOKEN_ATTR_FDB_TENANT_PREFIX);
@@ -782,8 +782,10 @@ public class Ingress extends AbstractHandler implements Runnable {
           }
           kafkaDataMessageAttributes.put(Constants.STORE_ATTR_FDB_TENANT_PREFIX, encodedPrefix);
         } else if (FDBUseTenantPrefix) {
-          throw new IOException("Invalid token, missing tenant.");
+          throw new IOException("Invalid token, missing tenant prefix.");
         }
+      } else if (FDBUseTenantPrefix) {
+        throw new IOException("Invalid token, missing tenant prefix.");
       }
 
       try {
@@ -1224,6 +1226,7 @@ public class Ingress extends AbstractHandler implements Runnable {
         String msg = prefix + ThrowableUtils.getErrorMessage(t, Constants.MAX_HTTP_REASON_LENGTH - prefix.length());
         response.sendError(httpStatusCode, msg);
       }
+      LOG.error("Error when updating data.", t);
     } finally {
       WarpConfig.clearThreadProperties();
     }
