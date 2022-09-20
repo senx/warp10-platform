@@ -78,6 +78,7 @@ public class FDBKVScanner implements Iterator<FDBKeyValue> {
 
     if (null == txn) {
       this.txn = db.createTransaction();
+      // Allow RAW access because we may manually force a tenant key prefix without actually setting a tenant
       this.txn.options().setRawAccess();
       this.txn.options().setCausalReadRisky();
       this.txn.options().setReadYourWritesDisable();
