@@ -422,7 +422,6 @@ public class Store extends Thread {
             }
 
           } catch (Throwable t) {
-            t.printStackTrace();
             LOG.error("Caught Throwable while synchronizing", t);
           } finally {
             if (LOG.isDebugEnabled()) {
@@ -744,7 +743,7 @@ public class Store extends Thread {
                         mutationsSize.set(0L);
                         // If an exception is thrown, abort
                         store.abort.set(true);
-                        LOG.error("Received Throwable while forced writing of " + nmutations + " mutations to FoundationDB - forcing reset");
+                        LOG.error("Received Throwable while forced writing of " + nmutations + " mutations to FoundationDB - forcing reset", t);
                         return;
                       }
                     }
@@ -779,6 +778,7 @@ public class Store extends Thread {
               try {
                 retry = false;
                 txn = db.createTransaction();
+                // Allow RAW access because we may manually force a tenant key prefix without actually setting a tenant
                 txn.options().setRawAccess();
                 int sets = 0;
                 int clearranges = 0;
