@@ -54,6 +54,7 @@ import com.apple.foundationdb.FDBException;
 import com.apple.foundationdb.Transaction;
 import com.google.common.base.Preconditions;
 import com.google.common.primitives.Longs;
+import com.google.common.util.concurrent.RateLimiter;
 
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.KafkaOffsetCounters;
@@ -135,9 +136,7 @@ public class Store extends Thread {
  /**
    * Rate limit to slow consumption down
    */
-  private Double rateLimit = null;
-
-  private long throttlingDelay = 10000000L;
+  private RateLimiter rateLimit = null;
 
   //
   // FoundationDB
@@ -180,10 +179,6 @@ public class Store extends Thread {
 
     if (null != properties.getProperty(Configuration.STORE_THROTTLING_FILE)) {
 
-      if (null != properties.getProperty(Configuration.STORE_THROTTLING_DELAY)) {
-        throttlingDelay = Long.parseLong(properties.getProperty(Configuration.STORE_THROTTLING_DELAY));
-      }
-
       final File throttlingFile = new File(properties.getProperty(Configuration.STORE_THROTTLING_FILE));
       final long period = Long.parseLong(properties.getProperty(Configuration.STORE_THROTTLING_PERIOD, "60000"));
       final Store self = this;
@@ -202,7 +197,14 @@ public class Store extends Thread {
                 if (null == line) {
                   self.rateLimit = null;
                 } else {
-                  self.rateLimit = Double.parseDouble(line);
+                  double rate = Double.parseDouble(line);
+                  if (null == self.rateLimit && 0.0D != rate) {
+                    self.rateLimit = RateLimiter.create(rate);
+                  } else if (0.0D != rate) {
+                    self.rateLimit.setRate(rate);
+                  } else {
+                    self.rateLimit = null;
+                  }
                 }
               } else {
                 self.rateLimit = null;
@@ -217,7 +219,7 @@ public class Store extends Thread {
                 try { br.close(); } catch (IOException ioe) {}
               }
               if (null != self.rateLimit) {
-                Sensision.set(SensisionConstants.CLASS_WARP_STORE_THROTTLING_RATE, Sensision.EMPTY_LABELS, self.rateLimit);
+                Sensision.set(SensisionConstants.CLASS_WARP_STORE_THROTTLING_RATE, Sensision.EMPTY_LABELS, self.rateLimit.getRate());
               }
             }
 
@@ -863,20 +865,6 @@ public class Store extends Thread {
             ConsumerRecord<byte[],byte[]> record = null;
 
             //
-            // If throttling is defined, check if we should consume this message
-            //
-
-            if (null != store.rateLimit) {
-              double rand = Math.random();
-
-              if (rand >= store.rateLimit) {
-                // Wait 1us and continue
-                LockSupport.parkNanos(store.throttlingDelay);
-                continue;
-              }
-            }
-
-            //
             // Indicate we have a message currently being processed.
             // We change the value of the flag while holding mutationsLock so we know
             // we are not currently synchronizing.
@@ -1065,6 +1053,14 @@ public class Store extends Thread {
           throw new RuntimeException("DEFAULT_MODULUS should have been 1!!!!!");
         }
 
+        if (null != store.rateLimit) {
+          while(!store.rateLimit.tryAcquire(1, TimeUnit.SECONDS)) {}
+        }
+
+        //
+        // If throttling is defined, check if we should consume this message
+        //
+
         try {
           mutationslock.lockInterruptibly();
           mutations.add(set);
@@ -1135,6 +1131,10 @@ public class Store extends Thread {
       }
 
       FDBClearRange clearRange = new FDBClearRange(tenantPrefix, startkey, endkey);
+
+      if (null != store.rateLimit) {
+        while(!store.rateLimit.tryAcquire(1, TimeUnit.SECONDS)) {}
+      }
 
       try {
         mutationslock.lockInterruptibly();
