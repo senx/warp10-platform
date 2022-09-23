@@ -83,6 +83,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.apple.foundationdb.Database;
+import com.apple.foundationdb.FDB;
 import com.apple.foundationdb.FDBException;
 import com.apple.foundationdb.StreamingMode;
 import com.apple.foundationdb.Transaction;
@@ -745,6 +746,12 @@ public class Directory extends AbstractHandler implements Runnable {
 
               done = true;
             } catch (Throwable t) {
+              if (t.getCause() instanceof FDBException) {
+                try {
+                  db.close();
+                } catch (Exception e) {}
+                db = fdbContext.getDatabase();
+              }
               LOG.error("Caught exception in scanning loop, will attempt to continue where we stopped", t);
             } finally {
               if (!done) {
@@ -1125,7 +1132,6 @@ public class Directory extends AbstractHandler implements Runnable {
     } catch (TTransportException tte) {
       LOG.error("",tte);
     } catch (Exception e) {
-      e.printStackTrace();
       LOG.error("", e);
     } finally {
       if (null != instance) {
