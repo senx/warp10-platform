@@ -82,6 +82,7 @@ public class FDBKVScanner implements Iterator<FDBKeyValue> {
       this.txn.options().setRawAccess();
       this.txn.options().setCausalReadRisky();
       this.txn.options().setReadYourWritesDisable();
+      this.txn.options().setSnapshotRywDisable();
       if (null != this.transaction) {
         this.transaction.set(txn);
       }
