@@ -33,7 +33,7 @@ public class SensisionConstants {
   /**
    * Number of FoundationDB errors, labels are code and component
    */
-  public static final String CLASS_FDB_ERRORS = "fdb.errors";
+  public static final String CLASS_WARP_FDB_ERRORS = "warp.fdb.errors";
 
   /**
    * Number of datalog requests which were forwarded successfully

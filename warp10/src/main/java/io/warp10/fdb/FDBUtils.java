@@ -46,7 +46,6 @@ public class FDBUtils {
 
   static {
     int version = Integer.parseInt(WarpConfig.getProperty(Configuration.FDB_API_VERSION, DEFAULT_FDB_API_VERSION));
-
     FDB.selectAPIVersion(version);
   }
 
@@ -98,7 +97,7 @@ public class FDBUtils {
     Map<String,String> labels = new LinkedHashMap<String,String>();
     labels.put(SensisionConstants.SENSISION_LABEL_COMPONENT, component);
     labels.put(SensisionConstants.SENSISION_LABEL_CODE, Integer.toString(fdbe.getCode()));
-    Sensision.update(SensisionConstants.CLASS_FDB_ERRORS, labels, 1);
+    Sensision.update(SensisionConstants.CLASS_WARP_FDB_ERRORS, labels, 1);
   }
 
   public static byte[] getKey(Database db, byte[] key) {
