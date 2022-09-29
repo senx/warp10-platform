@@ -29,10 +29,13 @@ import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Mark;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.ext.pgp.PGPPUBLIC;
 import io.warp10.script.processing.Pencode;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.RealVector;
+import org.bouncycastle.openpgp.PGPPrivateKey;
 import org.bouncycastle.openpgp.PGPPublicKey;
+import org.bouncycastle.openpgp.PGPSecretKey;
 
 import processing.core.PGraphics;
 import processing.core.PImage;
@@ -418,10 +421,27 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         try {
           addElement(sb, ((PGPPublicKey) o).getEncoded(false));
         } catch (IOException ioe) {
-          throw new WarpScriptException("Error while serializing PGPPublicKey.", ioe);
+          throw new WarpScriptException("Error while serializing PGP public key.", ioe);
         }
         sb.append(WarpScriptLib.PGPPUBLIC);
-        sb.append(" 0 ");
+        sb.append(" ");
+        String keyid = "000000000000000" + Long.toHexString(((PGPPublicKey) o).getKeyID());
+        keyid = keyid.substring(keyid.length() - 16, keyid.length());
+        addElement(sb, keyid);
+        sb.append(WarpScriptLib.GET);
+        sb.append(" ");
+        addElement(sb, PGPPUBLIC.KEY_KEY);
+        sb.append(WarpScriptLib.GET);
+        sb.append(" ");
+      } else if (o instanceof PGPSecretKey) {
+        try {
+          addElement(sb, ((PGPSecretKey) o).getEncoded());
+        } catch (IOException ioe) {
+          throw new WarpScriptException("Error while serializing PGP secret key.", ioe);
+        }
+        sb.append(WarpScriptLib.PGPPRIVATE);
+        sb.append(" ");
+        addElement(sb, PGPPUBLIC.KEY_KEY);
         sb.append(WarpScriptLib.GET);
         sb.append(" ");
       } else if (o instanceof NamedWarpScriptFunction) {

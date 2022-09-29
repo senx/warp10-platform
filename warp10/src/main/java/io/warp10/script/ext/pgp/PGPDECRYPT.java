@@ -1,0 +1,117 @@
+//
+//   Copyright 2022  SenX S.A.S.
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+//
+
+package io.warp10.script.ext.pgp;
+
+import java.io.IOException;
+import java.io.InputStream;
+
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.openpgp.PGPEncryptedDataList;
+import org.bouncycastle.openpgp.PGPException;
+import org.bouncycastle.openpgp.PGPLiteralData;
+import org.bouncycastle.openpgp.PGPObjectFactory;
+import org.bouncycastle.openpgp.PGPPrivateKey;
+import org.bouncycastle.openpgp.PGPPublicKeyEncryptedData;
+import org.bouncycastle.openpgp.PGPSecretKey;
+import org.bouncycastle.openpgp.jcajce.JcaPGPObjectFactory;
+import org.bouncycastle.openpgp.operator.PBESecretKeyDecryptor;
+import org.bouncycastle.openpgp.operator.PublicKeyDataDecryptorFactory;
+import org.bouncycastle.openpgp.operator.bc.BcPBESecretKeyDecryptorBuilder;
+import org.bouncycastle.openpgp.operator.bc.BcPGPDigestCalculatorProvider;
+import org.bouncycastle.openpgp.operator.jcajce.JcePublicKeyDataDecryptorFactoryBuilder;
+import org.bouncycastle.util.io.Streams;
+
+import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
+
+public class PGPDECRYPT extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+  public PGPDECRYPT(String name) {
+    super(name);
+  }
+
+  @Override
+  public Object apply(WarpScriptStack stack) throws WarpScriptException {
+
+    Object top = stack.pop();
+
+    if (!(top instanceof String)) {
+      throw new WarpScriptException(getName() + " missing passphrase.");
+    }
+
+    String passphrase = (String) top;
+
+    top = stack.pop();
+
+    if (!(top instanceof PGPSecretKey)) {
+      throw new WarpScriptException(getName() + " missing PGP secret key.");
+    }
+
+    PGPSecretKey key = (PGPSecretKey) top;
+
+    PBESecretKeyDecryptor decryptorFactory = new BcPBESecretKeyDecryptorBuilder(new BcPGPDigestCalculatorProvider()).build(passphrase.toCharArray());
+    PGPPrivateKey privateKey = null;
+
+    try {
+      privateKey = key.extractPrivateKey(decryptorFactory);
+    } catch (PGPException pgpe) {
+      throw new WarpScriptException(getName() + " unable to extract private key.", pgpe);
+    }
+
+    top = stack.pop();
+
+    byte[] data = null;
+
+    if (top instanceof byte[]) {
+      data = (byte[]) top;
+    } else if (top instanceof String) {
+
+    } else {
+      throw new WarpScriptException(getName() + " expected encrypted content as STRING or BYTES.");
+    }
+
+    PGPObjectFactory pgpFact = new JcaPGPObjectFactory(data);
+
+    try {
+      PGPEncryptedDataList encList = (PGPEncryptedDataList) pgpFact.nextObject();
+
+      PGPPublicKeyEncryptedData encData = (PGPPublicKeyEncryptedData) encList.get(0);
+
+      PublicKeyDataDecryptorFactory dataDecryptorFactory = new JcePublicKeyDataDecryptorFactoryBuilder().setProvider(new BouncyCastleProvider()).build(privateKey);
+
+      InputStream clear = encData.getDataStream(dataDecryptorFactory);
+
+      byte[] literalData = Streams.readAll(clear);
+
+      if (encData.verify()) {
+        PGPObjectFactory litFact = new JcaPGPObjectFactory(literalData);
+        PGPLiteralData litData = (PGPLiteralData) litFact.nextObject();
+
+        byte[] cleartext = Streams.readAll(litData.getInputStream());
+
+        stack.push(cleartext);
+      } else {
+        throw new IllegalStateException("modification check failed");
+      }
+    } catch (PGPException|IOException e) {
+      throw new WarpScriptException(getName() + " error during decryption.", e);
+    }
+
+    return stack;
+  }
+}

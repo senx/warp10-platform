@@ -1,3 +1,19 @@
+//
+//   Copyright 2022  SenX S.A.S.
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+//
+
 package io.warp10.script.ext.pgp;
 
 import java.io.ByteArrayInputStream;
@@ -15,6 +31,7 @@ import org.bouncycastle.bcpg.ArmoredOutputStream;
 import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.openpgp.PGPPublicKey;
 import org.bouncycastle.openpgp.PGPPublicKeyRing;
+import org.bouncycastle.openpgp.PGPSecretKey;
 import org.bouncycastle.openpgp.PGPUtil;
 import org.bouncycastle.openpgp.jcajce.JcaPGPPublicKeyRingCollection;
 import org.bouncycastle.util.encoders.Hex;
@@ -26,12 +43,13 @@ import io.warp10.script.WarpScriptStackFunction;
 
 public class PGPPUBLIC extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  private static final String KEY_KEY = "key";
-  private static final String KEY_KEYID = "keyid";
-  private static final String KEY_UID = "uid";
-  private static final String KEY_ALG = "algorithm";
-  private static final String KEY_BITS = "bits";
-  private static final String KEY_FINGERPRINT = "fingerprint";
+  public static final String KEY_KEY = "key";
+  public static final String KEY_KEYID = "keyid";
+  public static final String KEY_UID = "uid";
+  public static final String KEY_ALG = "algorithm";
+  public static final String KEY_BITS = "bits";
+  public static final String KEY_FINGERPRINT = "fingerprint";
+
   public PGPPUBLIC(String name) {
     super(name);
   }
@@ -40,6 +58,15 @@ public class PGPPUBLIC extends NamedWarpScriptFunction implements WarpScriptStac
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
 
     Object top = stack.pop();
+
+    if (top instanceof PGPSecretKey) {
+      PGPPublicKey key = ((PGPSecretKey) top).getPublicKey();
+      Map<String,Object> keymap = getKeyMap(key);
+      Map<String,Object> keys = new LinkedHashMap<String,Object>();
+      keys.put((String) keymap.get(KEY_KEYID), keymap);
+      stack.push(keys);
+      return stack;
+    }
 
     if (top instanceof PGPPublicKey) {
       try {
@@ -65,38 +92,24 @@ public class PGPPUBLIC extends NamedWarpScriptFunction implements WarpScriptStac
       JcaPGPPublicKeyRingCollection pgpPub = new JcaPGPPublicKeyRingCollection(decoderstream);
       decoderstream.close();
       Iterator<PGPPublicKeyRing> iter = pgpPub.getKeyRings();
-      List<Object> keylist = new ArrayList<Object>();
+      Map<Object,Object> pubkeys = new LinkedHashMap<Object,Object>();
       while(iter.hasNext()) {
         PGPPublicKeyRing kr = iter.next();
         Iterator<PGPPublicKey> keys = kr.getPublicKeys();
         while(keys.hasNext()) {
           PGPPublicKey key = keys.next();
-
-          Map<String,Object> keymap = new LinkedHashMap<String,Object>();
-          keymap.put(KEY_KEY, key);
-          String hex = "000000000000000" + Long.toHexString(key.getKeyID());
-          hex = hex.substring(hex.length() - 16);
-          keymap.put(KEY_KEYID, hex);
-          keymap.put(KEY_FINGERPRINT, Hex.toHexString(key.getFingerprint()));
-          keymap.put(KEY_BITS, key.getBitStrength());
-          keymap.put(KEY_ALG, getPublicKeyAlgorithmName(key.getAlgorithm()));
-          Iterator<String> useridsiter = key.getUserIDs();
-          List<String> userids = new ArrayList<String>();
-          while(useridsiter.hasNext()) {
-            userids.add(useridsiter.next());
-          }
-          keymap.put(KEY_UID, userids);
-          keylist.add(keymap);
+          Map<String,Object> keymap = getKeyMap(key);
+          pubkeys.put((String) keymap.get(KEY_KEYID), keymap);
         }
       }
-      stack.push(keylist);
+      stack.push(pubkeys);
     } catch (IOException|PGPException e) {
       throw new WarpScriptException(getName() + " error decoding public key.", e);
     }
     return stack;
   }
 
-  private static String getPublicKeyAlgorithmName(int alg) {
+  public static String getPublicKeyAlgorithmName(int alg) {
     switch(alg) {
       case 1:
         return "RSA_GENERAL";
@@ -121,5 +134,23 @@ public class PGPPUBLIC extends NamedWarpScriptFunction implements WarpScriptStac
       default:
         return "UNKNOWN_" + Integer.toString(alg);
     }
+  }
+
+  private static Map<String,Object> getKeyMap(PGPPublicKey key) {
+    Map<String,Object> keymap = new LinkedHashMap<String,Object>();
+    keymap.put(KEY_KEY, key);
+    String hex = "000000000000000" + Long.toHexString(key.getKeyID());
+    hex = hex.substring(hex.length() - 16).toUpperCase();
+    keymap.put(KEY_KEYID, hex);
+    keymap.put(KEY_FINGERPRINT, Hex.toHexString(key.getFingerprint()));
+    keymap.put(KEY_BITS, key.getBitStrength());
+    keymap.put(KEY_ALG, getPublicKeyAlgorithmName(key.getAlgorithm()));
+    Iterator<String> useridsiter = key.getUserIDs();
+    List<String> userids = new ArrayList<String>();
+    while(useridsiter.hasNext()) {
+      userids.add(useridsiter.next());
+    }
+    keymap.put(KEY_UID, userids);
+    return keymap;
   }
 }

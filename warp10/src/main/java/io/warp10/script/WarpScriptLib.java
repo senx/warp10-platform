@@ -78,7 +78,11 @@ import io.warp10.script.binary.SHIFTLEFT;
 import io.warp10.script.binary.SHIFTRIGHT;
 import io.warp10.script.binary.SUB;
 import io.warp10.script.ext.pgp.PGPPUBLIC;
+import io.warp10.script.ext.pgp.PGPPRIVATE;
+import io.warp10.script.ext.pgp.PGPDECRYPT;
 import io.warp10.script.ext.pgp.PGPENCRYPT;
+import io.warp10.script.ext.pgp.PGPSIGN;
+import io.warp10.script.ext.pgp.PGPVERIFY;
 import io.warp10.script.filler.FillerInterpolate;
 import io.warp10.script.filler.FillerNext;
 import io.warp10.script.filler.FillerPrevious;
@@ -1237,7 +1241,11 @@ public class WarpScriptLib {
   public static final String RSASIGN = "RSASIGN";
   public static final String RSAVERIFY = "RSAVERIFY";
   public static final String PGPPUBLIC = "PGPPUBLIC";
+  public static final String PGPPRIVATE = "PGPPRIVATE";
   public static final String PGPENCRYPT = "PGPENCRYPT";
+  public static final String PGPDECRYPT = "PGPDECRYPT";
+  public static final String PGPSIGN = "PGPSIGN";
+  public static final String PGPVERIFY = "PGPVERIFY";
   public static final String URLDECODE = "URLDECODE";
   public static final String URLENCODE = "URLENCODE";
   public static final String SPLIT = "SPLIT";
@@ -2116,15 +2124,20 @@ public class WarpScriptLib {
 
     addNamedWarpScriptFunction(new HMAC(SHA256HMAC, SHA256Digest.class));
     addNamedWarpScriptFunction(new HMAC(SHA1HMAC, SHA1Digest.class));
+
     addNamedWarpScriptFunction(new AESWRAP(AESWRAP));
     addNamedWarpScriptFunction(new AESUNWRAP(AESUNWRAP));
+
     addNamedWarpScriptFunction(new RUNNERNONCE(RUNNERNONCE));
     addNamedWarpScriptFunction(new RUNNERAT(RUNNERAT));
     addNamedWarpScriptFunction(new RUNNERIN(RUNNERIN));
+
     addNamedWarpScriptFunction(new GZIP(GZIP));
     addNamedWarpScriptFunction(new UNGZIP(UNGZIP));
+
     addNamedWarpScriptFunction(new DEFLATE(DEFLATE));
     addNamedWarpScriptFunction(new INFLATE(INFLATE));
+
     addNamedWarpScriptFunction(new ECGEN(ECGEN));
     addNamedWarpScriptFunction(new ECDH(ECDH));
     addNamedWarpScriptFunction(new ECPRIVATE(ECPRIVATE));
@@ -2132,6 +2145,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new ECRECOVER(ECRECOVER));
     addNamedWarpScriptFunction(new ECSIGN(ECSIGN));
     addNamedWarpScriptFunction(new ECVERIFY(ECVERIFY));
+
     addNamedWarpScriptFunction(new MSIGN(MSIGN));
     addNamedWarpScriptFunction(new MSIG(MSIG));
     addNamedWarpScriptFunction(new MSIGCOUNT(MSIGCOUNT));
@@ -2139,8 +2153,10 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new MVERIFY(MVERIFY, true));
     addNamedWarpScriptFunction(new MVERIFY(MCHECKSIG, false));
     addNamedWarpScriptFunction(new MDETACH(MDETACH));
+
     addNamedWarpScriptFunction(new TOSSSS(TOSSSS));
     addNamedWarpScriptFunction(new SSSSTO(SSSSTO));
+
     addNamedWarpScriptFunction(new RSAGEN(RSAGEN));
     addNamedWarpScriptFunction(new RSAPUBLIC(RSAPUBLIC));
     addNamedWarpScriptFunction(new RSAPRIVATE(RSAPRIVATE));
@@ -2150,7 +2166,11 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new RSAVERIFY(RSAVERIFY));
 
     addNamedWarpScriptFunction(new PGPPUBLIC(PGPPUBLIC));
+    addNamedWarpScriptFunction(new PGPPRIVATE(PGPPRIVATE));
     addNamedWarpScriptFunction(new PGPENCRYPT(PGPENCRYPT));
+    addNamedWarpScriptFunction(new PGPDECRYPT(PGPDECRYPT));
+    addNamedWarpScriptFunction(new PGPSIGN(PGPSIGN));
+    addNamedWarpScriptFunction(new PGPVERIFY(PGPVERIFY));
 
     //
     // String functions
