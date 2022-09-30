@@ -14,7 +14,7 @@
 //   limitations under the License.
 //
 
-package io.warp10.script.ext.pgp;
+package io.warp10.script.functions;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

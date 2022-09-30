@@ -29,7 +29,6 @@ import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Mark;
 import io.warp10.script.WarpScriptStackFunction;
-import io.warp10.script.ext.pgp.PGPPUBLIC;
 import io.warp10.script.processing.Pencode;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.RealVector;
