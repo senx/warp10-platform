@@ -44,6 +44,8 @@ import io.warp10.script.WarpScriptStackFunction;
 
 public class PGPENCRYPT extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
+  public static final String KEY_RECIPIENT = "recipient";
+
   /**
    * Class used to throw aways the keyId, just as GnuPG does when throw_keyid is specified.
    */
@@ -80,11 +82,11 @@ public class PGPENCRYPT extends NamedWarpScriptFunction implements WarpScriptSta
     boolean throwKeyId = Boolean.TRUE.equals(params.getOrDefault(PGPSIGN.KEY_THROW_KEYID, true));
     boolean armor = Boolean.TRUE.equals(params.getOrDefault(PGPSIGN.KEY_ARMOR, true));;
 
-    if (!(params.get(PGPPUBLIC.KEY_KEY) instanceof PGPPublicKey)) {
-      throw new WarpScriptException(getName() + " missing PGP public key.");
+    if (!(params.get(KEY_RECIPIENT) instanceof PGPPublicKey)) {
+      throw new WarpScriptException(getName() + " missing recipient PGP public key.");
     }
 
-    PGPPublicKey pubkey = (PGPPublicKey) params.get(PGPPUBLIC.KEY_KEY);
+    PGPPublicKey pubkey = (PGPPublicKey) params.get(KEY_RECIPIENT);
 
     top = stack.pop();
 
@@ -101,8 +103,9 @@ public class PGPENCRYPT extends NamedWarpScriptFunction implements WarpScriptSta
     try {
       BouncyCastleProvider provider = new BouncyCastleProvider();
 
+
       PGPEncryptedDataGenerator edg = new PGPEncryptedDataGenerator(
-          new JcePGPDataEncryptorBuilder(SymmetricKeyAlgorithmTags.AES_256)
+          new JcePGPDataEncryptorBuilder(getEncryptionAlgorithm(String.valueOf(params.getOrDefault(PGPPUBLIC.KEY_ALG, "AES_256"))))
             .setWithIntegrityPacket(true)
             .setSecureRandom(new SecureRandom())
             .setProvider(provider));
@@ -140,9 +143,10 @@ public class PGPENCRYPT extends NamedWarpScriptFunction implements WarpScriptSta
 
       if (armor) {
         armored.close();
+        stack.push(new String(out.toByteArray(), StandardCharsets.UTF_8));
+      } else {
+        stack.push(out.toByteArray());
       }
-
-      stack.push(new String(out.toByteArray(), StandardCharsets.UTF_8));
     } catch (Exception e) {
       throw new WarpScriptException(getName() + " error while encrypting data.", e);
     }
@@ -151,5 +155,37 @@ public class PGPENCRYPT extends NamedWarpScriptFunction implements WarpScriptSta
     return stack;
   }
 
-
+  public static int getEncryptionAlgorithm(String name) throws WarpScriptException {
+    switch(name) {
+      case "AES_128":
+        return SymmetricKeyAlgorithmTags.AES_128;
+      case "AES_192":
+        return SymmetricKeyAlgorithmTags.AES_192;
+      case "AES_256":
+        return SymmetricKeyAlgorithmTags.AES_256;
+      case "BLOWFISH":
+        return SymmetricKeyAlgorithmTags.BLOWFISH;
+      case "CAMELLIA_128":
+        return SymmetricKeyAlgorithmTags.CAMELLIA_128;
+      case "CAMELLIA_192":
+        return SymmetricKeyAlgorithmTags.CAMELLIA_192;
+      case "CAMELLIA_256":
+        return SymmetricKeyAlgorithmTags.CAMELLIA_256;
+      case "CAST5":
+        return SymmetricKeyAlgorithmTags.CAST5;
+      case "DES":
+        return SymmetricKeyAlgorithmTags.DES;
+      case "IDEA":
+        return SymmetricKeyAlgorithmTags.IDEA;
+      case "SAFER":
+        return SymmetricKeyAlgorithmTags.SAFER;
+      case "TRIPLE_DES":
+      case "3DES":
+        return SymmetricKeyAlgorithmTags.TRIPLE_DES;
+      case "TWOFISH":
+        return SymmetricKeyAlgorithmTags.TWOFISH;
+      default:
+        throw new WarpScriptException("Invalid encryption algorithm '" + name + "'.");
+    }
+  }
 }

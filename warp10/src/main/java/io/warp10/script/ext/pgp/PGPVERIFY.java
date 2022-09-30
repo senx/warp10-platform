@@ -63,10 +63,6 @@ public class PGPVERIFY extends NamedWarpScriptFunction implements WarpScriptStac
 
     PGPPublicKey key = (PGPPublicKey) top;
 
-    if (!(top instanceof Map)) {
-      throw new WarpScriptException(getName() + " expected a parameter MAP.");
-    }
-
     try {
       if (detached) {
         top = stack.pop();

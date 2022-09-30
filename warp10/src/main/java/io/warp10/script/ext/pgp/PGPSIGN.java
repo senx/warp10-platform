@@ -48,7 +48,7 @@ import io.warp10.script.WarpScriptStackFunction;
 public class PGPSIGN extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
   private static final String KEY_DETACHED = "detached";
-  private static final String KEY_SECRET = "key";
+  private static final String KEY_SIGNER = "signer";
   private static final String KEY_PASSPHRASE = "passphrase";
   private static final String KEY_DIGEST = "digest";
   public static final String KEY_ARMOR = "armor";
@@ -79,11 +79,11 @@ public class PGPSIGN extends NamedWarpScriptFunction implements WarpScriptStackF
 
     String passphrase = (String) params.get(KEY_PASSPHRASE);
 
-    if (!(params.get(KEY_SECRET) instanceof PGPSecretKey)) {
+    if (!(params.get(KEY_SIGNER) instanceof PGPSecretKey)) {
       throw new WarpScriptException(getName() + " expected a PGP secret key.");
     }
 
-    PGPSecretKey secret = (PGPSecretKey) params.get(KEY_SECRET);
+    PGPSecretKey secret = (PGPSecretKey) params.get(KEY_SIGNER);
 
     PBESecretKeyDecryptor decryptorFactory = new BcPBESecretKeyDecryptorBuilder(new BcPGPDigestCalculatorProvider()).build(passphrase.toCharArray());
     PGPPrivateKey signingKey = null;

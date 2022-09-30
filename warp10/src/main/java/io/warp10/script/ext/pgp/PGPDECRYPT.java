@@ -16,9 +16,14 @@
 
 package io.warp10.script.ext.pgp;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 
+import org.apache.commons.io.IOUtils;
+import org.bouncycastle.bcpg.ArmoredInputStream;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openpgp.PGPEncryptedDataList;
 import org.bouncycastle.openpgp.PGPException;
@@ -80,7 +85,14 @@ public class PGPDECRYPT extends NamedWarpScriptFunction implements WarpScriptSta
     if (top instanceof byte[]) {
       data = (byte[]) top;
     } else if (top instanceof String) {
-
+      try {
+        ArmoredInputStream ais = new ArmoredInputStream(new ByteArrayInputStream(((String) top).getBytes(StandardCharsets.UTF_8)));
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        IOUtils.copyLarge(ais, out);
+        data = out.toByteArray();
+      } catch (IOException ioe) {
+        throw new WarpScriptException(getName() + " error while extracting PGP message.", ioe);
+      }
     } else {
       throw new WarpScriptException(getName() + " expected encrypted content as STRING or BYTES.");
     }
@@ -108,7 +120,7 @@ public class PGPDECRYPT extends NamedWarpScriptFunction implements WarpScriptSta
       } else {
         throw new IllegalStateException("modification check failed");
       }
-    } catch (PGPException|IOException e) {
+    } catch (IllegalStateException|PGPException|IOException e) {
       throw new WarpScriptException(getName() + " error during decryption.", e);
     }
 
