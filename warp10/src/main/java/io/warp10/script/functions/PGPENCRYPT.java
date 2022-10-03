@@ -27,14 +27,13 @@ import org.bouncycastle.bcpg.ArmoredOutputStream;
 import org.bouncycastle.bcpg.ContainedPacket;
 import org.bouncycastle.bcpg.PublicKeyEncSessionPacket;
 import org.bouncycastle.bcpg.SymmetricKeyAlgorithmTags;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openpgp.PGPEncryptedDataGenerator;
 import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.openpgp.PGPLiteralData;
 import org.bouncycastle.openpgp.PGPLiteralDataGenerator;
 import org.bouncycastle.openpgp.PGPPublicKey;
-import org.bouncycastle.openpgp.operator.jcajce.JcePGPDataEncryptorBuilder;
-import org.bouncycastle.openpgp.operator.jcajce.JcePublicKeyKeyEncryptionMethodGenerator;
+import org.bouncycastle.openpgp.operator.bc.BcPGPDataEncryptorBuilder;
+import org.bouncycastle.openpgp.operator.bc.BcPublicKeyKeyEncryptionMethodGenerator;
 
 import io.warp10.continuum.store.Constants;
 import io.warp10.script.NamedWarpScriptFunction;
@@ -49,10 +48,10 @@ public class PGPENCRYPT extends NamedWarpScriptFunction implements WarpScriptSta
   /**
    * Class used to throw aways the keyId, just as GnuPG does when throw_keyid is specified.
    */
-  private static class AnonymousJcePublicKeyKeyEncryptionMethodGenerator extends JcePublicKeyKeyEncryptionMethodGenerator {
+  private static class AnonymousBcPublicKeyKeyEncryptionMethodGenerator extends BcPublicKeyKeyEncryptionMethodGenerator {
     private final PGPPublicKey pubKey;
 
-    public AnonymousJcePublicKeyKeyEncryptionMethodGenerator(PGPPublicKey key) {
+    public AnonymousBcPublicKeyKeyEncryptionMethodGenerator(PGPPublicKey key) {
       super(key);
       this.pubKey = key;
     }
@@ -101,23 +100,19 @@ public class PGPENCRYPT extends NamedWarpScriptFunction implements WarpScriptSta
     }
 
     try {
-      BouncyCastleProvider provider = new BouncyCastleProvider();
-
-
       PGPEncryptedDataGenerator edg = new PGPEncryptedDataGenerator(
-          new JcePGPDataEncryptorBuilder(getEncryptionAlgorithm(String.valueOf(params.getOrDefault(PGPPUBLIC.KEY_ALG, "AES_256"))))
+          new BcPGPDataEncryptorBuilder(getEncryptionAlgorithm(String.valueOf(params.getOrDefault(PGPPUBLIC.KEY_ALG, "AES_256"))))
             .setWithIntegrityPacket(true)
-            .setSecureRandom(new SecureRandom())
-            .setProvider(provider));
+            .setSecureRandom(new SecureRandom()));
 
       if (throwKeyId) {
-        edg.addMethod(new AnonymousJcePublicKeyKeyEncryptionMethodGenerator(pubkey)
+        edg.addMethod(new AnonymousBcPublicKeyKeyEncryptionMethodGenerator(pubkey)
             .setSecureRandom(new SecureRandom())
-            .setProvider(provider).setSessionKeyObfuscation(true));
+            .setSessionKeyObfuscation(true));
       } else {
-        edg.addMethod(new JcePublicKeyKeyEncryptionMethodGenerator(pubkey)
+        edg.addMethod(new BcPublicKeyKeyEncryptionMethodGenerator(pubkey)
             .setSecureRandom(new SecureRandom())
-            .setProvider(provider).setSessionKeyObfuscation(true));
+            .setSessionKeyObfuscation(true));
       }
 
       ByteArrayOutputStream out = new ByteArrayOutputStream();

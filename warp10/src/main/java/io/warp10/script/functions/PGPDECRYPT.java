@@ -24,7 +24,6 @@ import java.nio.charset.StandardCharsets;
 
 import org.apache.commons.io.IOUtils;
 import org.bouncycastle.bcpg.ArmoredInputStream;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openpgp.PGPEncryptedDataList;
 import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.openpgp.PGPLiteralData;
@@ -32,12 +31,12 @@ import org.bouncycastle.openpgp.PGPObjectFactory;
 import org.bouncycastle.openpgp.PGPPrivateKey;
 import org.bouncycastle.openpgp.PGPPublicKeyEncryptedData;
 import org.bouncycastle.openpgp.PGPSecretKey;
-import org.bouncycastle.openpgp.jcajce.JcaPGPObjectFactory;
+import org.bouncycastle.openpgp.bc.BcPGPObjectFactory;
 import org.bouncycastle.openpgp.operator.PBESecretKeyDecryptor;
 import org.bouncycastle.openpgp.operator.PublicKeyDataDecryptorFactory;
 import org.bouncycastle.openpgp.operator.bc.BcPBESecretKeyDecryptorBuilder;
 import org.bouncycastle.openpgp.operator.bc.BcPGPDigestCalculatorProvider;
-import org.bouncycastle.openpgp.operator.jcajce.JcePublicKeyDataDecryptorFactoryBuilder;
+import org.bouncycastle.openpgp.operator.bc.BcPublicKeyDataDecryptorFactory;
 import org.bouncycastle.util.io.Streams;
 
 import io.warp10.script.NamedWarpScriptFunction;
@@ -97,21 +96,21 @@ public class PGPDECRYPT extends NamedWarpScriptFunction implements WarpScriptSta
       throw new WarpScriptException(getName() + " expected encrypted content as STRING or BYTES.");
     }
 
-    PGPObjectFactory pgpFact = new JcaPGPObjectFactory(data);
+    PGPObjectFactory pgpFact = new BcPGPObjectFactory(data);
 
     try {
       PGPEncryptedDataList encList = (PGPEncryptedDataList) pgpFact.nextObject();
 
       PGPPublicKeyEncryptedData encData = (PGPPublicKeyEncryptedData) encList.get(0);
 
-      PublicKeyDataDecryptorFactory dataDecryptorFactory = new JcePublicKeyDataDecryptorFactoryBuilder().setProvider(new BouncyCastleProvider()).build(privateKey);
+      PublicKeyDataDecryptorFactory dataDecryptorFactory = new BcPublicKeyDataDecryptorFactory(privateKey);
 
       InputStream clear = encData.getDataStream(dataDecryptorFactory);
 
       byte[] literalData = Streams.readAll(clear);
 
       if (encData.verify()) {
-        PGPObjectFactory litFact = new JcaPGPObjectFactory(literalData);
+        PGPObjectFactory litFact = new BcPGPObjectFactory(literalData);
         PGPLiteralData litData = (PGPLiteralData) litFact.nextObject();
 
         byte[] cleartext = Streams.readAll(litData.getInputStream());

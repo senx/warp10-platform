@@ -36,8 +36,8 @@ import org.bouncycastle.openpgp.PGPSignatureGenerator;
 import org.bouncycastle.openpgp.PGPUtil;
 import org.bouncycastle.openpgp.operator.PBESecretKeyDecryptor;
 import org.bouncycastle.openpgp.operator.bc.BcPBESecretKeyDecryptorBuilder;
+import org.bouncycastle.openpgp.operator.bc.BcPGPContentSignerBuilder;
 import org.bouncycastle.openpgp.operator.bc.BcPGPDigestCalculatorProvider;
-import org.bouncycastle.openpgp.operator.jcajce.JcaPGPContentSignerBuilder;
 
 import io.warp10.continuum.store.Constants;
 import io.warp10.script.NamedWarpScriptFunction;
@@ -111,9 +111,8 @@ public class PGPSIGN extends NamedWarpScriptFunction implements WarpScriptStackF
 
     ByteArrayOutputStream bOut = new ByteArrayOutputStream();
     ArmoredOutputStream aOut = armor ? new ArmoredOutputStream(bOut) : null;
-    BouncyCastleProvider provider = new BouncyCastleProvider();
 
-    PGPSignatureGenerator sGen = new PGPSignatureGenerator(new JcaPGPContentSignerBuilder(secret.getPublicKey().getAlgorithm(), digestId).setProvider(provider));
+    PGPSignatureGenerator sGen = new PGPSignatureGenerator(new BcPGPContentSignerBuilder(secret.getPublicKey().getAlgorithm(), digestId));
 
     try {
       sGen.init(PGPSignature.BINARY_DOCUMENT, signingKey);

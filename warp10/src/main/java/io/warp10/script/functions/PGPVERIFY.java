@@ -25,7 +25,6 @@ import java.util.Map;
 
 import org.apache.commons.io.IOUtils;
 import org.bouncycastle.bcpg.ArmoredInputStream;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.openpgp.PGPLiteralData;
 import org.bouncycastle.openpgp.PGPOnePassSignature;
@@ -33,8 +32,8 @@ import org.bouncycastle.openpgp.PGPOnePassSignatureList;
 import org.bouncycastle.openpgp.PGPPublicKey;
 import org.bouncycastle.openpgp.PGPSignature;
 import org.bouncycastle.openpgp.PGPSignatureList;
-import org.bouncycastle.openpgp.jcajce.JcaPGPObjectFactory;
-import org.bouncycastle.openpgp.operator.jcajce.JcaPGPContentVerifierBuilderProvider;
+import org.bouncycastle.openpgp.bc.BcPGPObjectFactory;
+import org.bouncycastle.openpgp.operator.bc.BcPGPContentVerifierBuilderProvider;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
@@ -80,12 +79,12 @@ public class PGPVERIFY extends NamedWarpScriptFunction implements WarpScriptStac
           throw new WarpScriptException(getName() + " expected signature data (STRING or BYTES).");
         }
 
-        JcaPGPObjectFactory pgpFact = new JcaPGPObjectFactory(signature);
+        BcPGPObjectFactory pgpFact = new BcPGPObjectFactory(signature);
 
         PGPSignatureList sigList = (PGPSignatureList) pgpFact.nextObject();
         PGPSignature sig = sigList.get(0);
 
-        sig.init(new JcaPGPContentVerifierBuilderProvider().setProvider(new BouncyCastleProvider()), key);
+        sig.init(new BcPGPContentVerifierBuilderProvider(), key);
 
         top = stack.pop();
 
@@ -118,7 +117,7 @@ public class PGPVERIFY extends NamedWarpScriptFunction implements WarpScriptStac
           throw new WarpScriptException(getName() + " expected signed message (STRING or BYTES).");
         }
 
-        JcaPGPObjectFactory pgpFact = new JcaPGPObjectFactory(data);
+        BcPGPObjectFactory pgpFact = new BcPGPObjectFactory(data);
 
         PGPOnePassSignatureList onePassList = (PGPOnePassSignatureList) pgpFact.nextObject();
         PGPOnePassSignature ops = onePassList.get(0);
@@ -127,7 +126,7 @@ public class PGPVERIFY extends NamedWarpScriptFunction implements WarpScriptStac
 
         InputStream dIn = literalData.getInputStream();
 
-        ops.init(new JcaPGPContentVerifierBuilderProvider().setProvider(new BouncyCastleProvider()), key);
+        ops.init(new BcPGPContentVerifierBuilderProvider(), key);
 
         byte[] buf = new byte[1024];
 
