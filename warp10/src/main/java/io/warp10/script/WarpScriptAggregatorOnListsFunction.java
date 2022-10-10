@@ -16,8 +16,6 @@
 
 package io.warp10.script;
 
-import java.util.List;
-
 /**
  * Function which takes as input multiple measurements, possibly
  * from different GTS instances and produces a single one.

@@ -2095,7 +2095,7 @@ public class GTSHelper {
     //
 
     if (0 == bucketspan || -1 == bucketspan) {
-      if(0 == bucketcount) {
+      if (0 == bucketcount) {
         throw new WarpScriptException("One of bucketspan or bucketcount must be different from zero.");
       } else {
         if (lastbucket >= firsttick) {
@@ -2195,12 +2195,12 @@ public class GTSHelper {
 
     bucketized.setMetadata(new Metadata(gts.getMetadata()));
 
-    Map<String,String> labels = gts.getLabels();
+    Map<String, String> labels = gts.getLabels();
 
     //
     // Loop on all buckets
     //
-    
+
     if (memoryOptimized) {
       // to keep compatibility, BUCKETIZE will still browse buckets from the most recent to the oldest
       // a bucket is all values between (bucketEnd - bucketspan + 1) and bucketEnd.
@@ -2211,30 +2211,15 @@ public class GTSHelper {
         return bucketized;
       }
 
-      boolean lastTickIsLastBucket = false;
-      long lastBucketTs = lastbucket;
-      // skip the last buckets, if possible
-      if (lastbucket > lasttick) {
-        lastBucketTs = lasttick + ((lastbucket - lasttick) % bucketspan);
-        lastTickIsLastBucket = true;
-      }
-
-      long firstBucketEndTs = lastbucket - bucketcount * bucketspan;
-      // skip the first buckets, if possible
-      if (firstBucketEndTs < firsttick) {
-        firstBucketEndTs = firsttick + ((lastbucket - firsttick) % bucketspan);
-      }
-
       // sort input
       GTSHelper.sort(gts);
 
-
-      // find position of last bucket, if needed
+      // find array index of last bucket, if needed
       int i;
-      if (lastTickIsLastBucket) {
+      if (lastbucket > lasttick) {
         i = gts.size() - 1;
       } else {
-        i = Arrays.binarySearch(gts.ticks, 0, gts.values, lastBucketTs);
+        i = Arrays.binarySearch(gts.ticks, 0, gts.values, lastbucket);
         if (-1 == i) {
           // should not be there, this case leads to early exit before.
           return bucketized;
@@ -2243,7 +2228,6 @@ public class GTSHelper {
           i = -i - 1 - 1;
         }
       }
-
 
       // first case: bucketizer is a macro. We need to build a subgts for each bucket and expose it on the stack.
       // building a subgts will lead to new allocation and array copy. TODO: find an alternative to new allocations here
@@ -2329,7 +2313,7 @@ public class GTSHelper {
           stack.exec((Macro) aggregator);
 
           Object res = stack.peek();
-          // do not convert to aggregated if result is value is null
+          // if the user returns null as value (in a list or not), do not convert to Ojects[] and do not setValue().
           if (res instanceof List) {
             if (null != ((List<Object>) res).get(((List<Object>) res).size() - 1)) {
               aggregated = MACROMAPPER.listToObjects((List<Object>) stack.pop());
@@ -2344,22 +2328,21 @@ public class GTSHelper {
 
           // next bucket
         }
-
-
+        
       } else {
         if (!(aggregator instanceof WarpScriptBucketizerFunction)) {
           throw new WarpScriptException("Invalid bucketizer function.");
         }
 
-        // second case: the mapper is cabable to take an array of List instead of an array of array
-        // sublists is an array of List (ready to push on stack by a MACROMAPPER) 
+        // second case: the aggregator is cabable to process an array of List instead of an array of array
         // it uses a special class for lists that saves a memory allocation (but lists are readonly)
         if (aggregator instanceof WarpScriptAggregatorOnListsFunction) {
-          
+
           // build a structure ready to use:
-          // - deep copy ticks, values, elevations.
+          // - read only List for ticks, values  (view of the original primitive array or BitSet)
+          // - decode elevations
           // - decode locations
-          // - expose lists of NaN when needed.
+          // - expose lists of NaN when needed
           // [tick_of_computation,[gts_classes],[label_maps],[ticks],[latitudes],[longitudes],[elevations],[values]]
           Object[] parms = new Object[8];
           // name and labels can be defined here
@@ -2412,7 +2395,7 @@ public class GTSHelper {
               parms[4] = new ReadOnlyConstantList(count, Double.NaN);
               parms[5] = parms[4];
             }
-            
+
             // elevations list
             if (null != gts.elevations) {
               ArrayList<Object> elevs = new ArrayList<Object>();
@@ -2429,21 +2412,21 @@ public class GTSHelper {
             }
 
             // values
-            
+
             switch (gts.type) {
               case LONG:
-                parms[7]= new ReadOnlySubArrayAsList(gts.longValues,currentBucketStartPosition,count);
+                parms[7] = new ReadOnlySubArrayAsList(gts.longValues, currentBucketStartPosition, count);
                 break;
-              case DOUBLE: 
-                parms[7]= new ReadOnlySubArrayAsList(gts.doubleValues,currentBucketStartPosition,count);
+              case DOUBLE:
+                parms[7] = new ReadOnlySubArrayAsList(gts.doubleValues, currentBucketStartPosition, count);
                 break;
               case STRING:
                 // here we could have done a shallow copy, with Arrays.asList(gts.stringValues).subList(currentBucketStartPosition,currentBucketEndPosition)
                 // it is a risk for the user, better deep copy.
-                parms[7]= new ReadOnlySubArrayAsList(gts.stringValues,currentBucketStartPosition,count);
+                parms[7] = new ReadOnlySubArrayAsList(gts.stringValues, currentBucketStartPosition, count);
                 break;
               case BOOLEAN:
-                parms[7]= new ReadOnlySubArrayAsList(gts.booleanValues,currentBucketStartPosition,count);
+                parms[7] = new ReadOnlySubArrayAsList(gts.booleanValues, currentBucketStartPosition, count);
                 break;
             }
 
@@ -2455,7 +2438,7 @@ public class GTSHelper {
             }
 
             // next bucket
-          } 
+          }
         } else {
           // the aggregator is a standard one, that expects most of its params to be arrays:
           // bucket timestamp: end timestamp of the bucket we're currently computing a value for
@@ -2470,7 +2453,7 @@ public class GTSHelper {
           Object[] parms = new Object[8];
           // name and labels can be defined here
           parms[1] = new String[1];
-          ((String[])parms[1])[0] = bucketized.getName();
+          ((String[]) parms[1])[0] = bucketized.getName();
           parms[2] = new Map[1];
           ((Map[]) parms[2])[0] = labels;
 
@@ -2496,22 +2479,22 @@ public class GTSHelper {
             parms[0] = currentBucketEnd;
 
             // ticks list
-            parms[3] = Arrays.copyOfRange(gts.ticks,currentBucketStartPosition,currentBucketEndPosition+1); 
+            parms[3] = Arrays.copyOfRange(gts.ticks, currentBucketStartPosition, currentBucketEndPosition + 1);
 
             // locations lists
             if (null != gts.locations) {
-              parms[4] = Arrays.copyOfRange(gts.locations,currentBucketStartPosition,currentBucketEndPosition+1);
+              parms[4] = Arrays.copyOfRange(gts.locations, currentBucketStartPosition, currentBucketEndPosition + 1);
             } else {
               parms[4] = new long[count];
-              Arrays.fill((long[])parms[4],GeoTimeSerie.NO_LOCATION);
+              Arrays.fill((long[]) parms[4], GeoTimeSerie.NO_LOCATION);
             }
 
             // elevations list
             if (null != gts.elevations) {
-              parms[5] = Arrays.copyOfRange(gts.elevations,currentBucketStartPosition,currentBucketEndPosition+1);
+              parms[5] = Arrays.copyOfRange(gts.elevations, currentBucketStartPosition, currentBucketEndPosition + 1);
             } else {
               parms[5] = new long[count];
-              Arrays.fill((long[])parms[5],GeoTimeSerie.NO_ELEVATION);
+              Arrays.fill((long[]) parms[5], GeoTimeSerie.NO_ELEVATION);
             }
 
             // values
@@ -2519,31 +2502,31 @@ public class GTSHelper {
             switch (gts.type) {
               case LONG:
                 for (int k = 0; k < count; k++) {
-                    ((Object[]) parms[6])[k] = gts.longValues[currentBucketStartPosition+k];
+                  ((Object[]) parms[6])[k] = gts.longValues[currentBucketStartPosition + k];
                 }
                 break;
               case DOUBLE:
                 for (int k = 0; k < count; k++) {
-                  ((Object[]) parms[6])[k] = gts.doubleValues[currentBucketStartPosition+k];
+                  ((Object[]) parms[6])[k] = gts.doubleValues[currentBucketStartPosition + k];
                 }
                 break;
               case STRING:
                 for (int k = 0; k < count; k++) {
-                  ((Object[]) parms[6])[k] = gts.stringValues[currentBucketStartPosition+k];
+                  ((Object[]) parms[6])[k] = gts.stringValues[currentBucketStartPosition + k];
                 }
                 break;
               case BOOLEAN:
                 for (int k = 0; k < count; k++) {
-                  ((Object[]) parms[6])[k] = gts.booleanValues.get(currentBucketStartPosition+k);
+                  ((Object[]) parms[6])[k] = gts.booleanValues.get(currentBucketStartPosition + k);
                 }
                 break;
             }
-        
-            parms[7]=new long[] {0, -bucketspan, currentBucketEnd - bucketspan, currentBucketEnd};
-            
+
+            parms[7] = new long[] {0, -bucketspan, currentBucketEnd - bucketspan, currentBucketEnd};
+
             // apply the aggregator, collect the result
             aggregated = (Object[]) ((WarpScriptBucketizerFunction) aggregator).apply(parms);
-            
+
             if (null != aggregated[3]) {
               setValue(bucketized, currentBucketEnd, (long) aggregated[1], (long) aggregated[2], aggregated[3], false);
             }
@@ -2660,6 +2643,7 @@ public class GTSHelper {
         }
       }
     }
+
     GTSHelper.shrink(bucketized);
     // by construction, output is reverse sorted
     bucketized.sorted = true;

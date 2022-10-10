@@ -16,19 +16,13 @@
 
 package io.warp10.continuum.gts;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.NoSuchElementException;
-import java.util.Objects;
-import java.util.Spliterator;
-import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 
 /**
@@ -37,95 +31,95 @@ import java.util.function.UnaryOperator;
 public class ReadOnlySubArrayAsList implements List {
 
   private final int size;
-  private final int startidx; // index of first element of sublist, inclusive
-  private final int virtualsize; // length of the requested sublist
+  private final int startIdx; // index of first element of sublist, inclusive
+  private final int virtualSize; // length of the requested sublist
 
-  private long[] elementDataLong = null;
-  private double[] elementDataDouble = null;
-  private String[] elementDataString = null;
-  private BitSet elementDataBoolean = null;
+  private long[] dataLong = null;
+  private double[] dataDouble = null;
+  private String[] dataString = null;
+  private BitSet dataBoolean = null;
 
   public static enum TYPE {
     LONG, DOUBLE, BOOLEAN, STRING
   }
 
-  public final TYPE elementDataType;
+  public final TYPE dataType;
 
   /**
    * Wrap an array of long (primitive) into a subList
    *
    * @param elementData array of long
-   * @param startidx    index of the first element
+   * @param startIdx    index of the first element
    * @param length      length of the subList. startidx+length cannot exceed elementData.length
    */
-  public ReadOnlySubArrayAsList(long[] elementData, int startidx, int length) {
-    this.elementDataLong = elementData;
+  public ReadOnlySubArrayAsList(long[] elementData, int startIdx, int length) {
+    this.dataLong = elementData;
     this.size = elementData.length;
-    initialRangeCheck(startidx, length);
-    this.elementDataType = TYPE.LONG;
-    this.startidx = startidx;
-    this.virtualsize = length;
+    initialRangeCheck(startIdx, length);
+    this.dataType = TYPE.LONG;
+    this.startIdx = startIdx;
+    this.virtualSize = length;
   }
 
   /**
    * Wrap an array of double (primitive) into a subList
    *
    * @param elementData array of double
-   * @param startidx    index of the first element
+   * @param startIdx    index of the first element
    * @param length      length of the subList. startidx+length cannot exceed elementData.length
    */
-  public ReadOnlySubArrayAsList(double[] elementData, int startidx, int length) {
-    this.elementDataDouble = elementData;
+  public ReadOnlySubArrayAsList(double[] elementData, int startIdx, int length) {
+    this.dataDouble = elementData;
     this.size = elementData.length;
-    initialRangeCheck(startidx, length);
-    this.elementDataType = TYPE.DOUBLE;
-    this.startidx = startidx;
-    this.virtualsize = length;
+    initialRangeCheck(startIdx, length);
+    this.dataType = TYPE.DOUBLE;
+    this.startIdx = startIdx;
+    this.virtualSize = length;
   }
 
   /**
    * Wrap a BitSet into a subList
    *
    * @param elementData BitSet
-   * @param startidx    index of the first element
+   * @param startIdx    index of the first element
    * @param length      length of the subList. startidx+length cannot exceed BitSet size
    */
-  public ReadOnlySubArrayAsList(BitSet elementData, int startidx, int length) {
-    this.elementDataBoolean = elementData;
+  public ReadOnlySubArrayAsList(BitSet elementData, int startIdx, int length) {
+    this.dataBoolean = elementData;
     this.size = elementData.size();
-    initialRangeCheck(startidx, length);
-    this.elementDataType = TYPE.BOOLEAN;
-    this.startidx = startidx;
-    this.virtualsize = length;
+    initialRangeCheck(startIdx, length);
+    this.dataType = TYPE.BOOLEAN;
+    this.startIdx = startIdx;
+    this.virtualSize = length;
   }
 
   /**
    * Wrap an array of String into a subList
    *
    * @param elementData array of String
-   * @param startidx    index of the first element
+   * @param startIdx    index of the first element
    * @param length      length of the subList. startidx+length cannot exceed elementData.length
    */
-  public ReadOnlySubArrayAsList(String[] elementData, int startidx, int length) {
-    this.elementDataString = elementData;
+  public ReadOnlySubArrayAsList(String[] elementData, int startIdx, int length) {
+    this.dataString = elementData;
     this.size = elementData.length;
-    initialRangeCheck(startidx, length);
-    this.elementDataType = TYPE.STRING;
-    this.startidx = startidx;
-    this.virtualsize = length;
+    initialRangeCheck(startIdx, length);
+    this.dataType = TYPE.STRING;
+    this.startIdx = startIdx;
+    this.virtualSize = length;
   }
 
-  private void initialRangeCheck(int startindex, int length) {
-    if (startindex >= size || startindex < 0) {
-      throw new IndexOutOfBoundsException(outOfBoundsMsg(startindex));
+  private void initialRangeCheck(int startIndex, int length) {
+    if (startIndex >= size || startIndex < 0) {
+      throw new IndexOutOfBoundsException(outOfBoundsMsg(startIndex));
     }
-    if (length < 0 || (startindex + length) > size) {
-      throw new IndexOutOfBoundsException("start index(" + startindex + ") + length(" + length + ") greater than original array size(" + size + "), cannot create sublist");
+    if (length < 0 || (startIndex + length) > size) {
+      throw new IndexOutOfBoundsException("Start index(" + startIndex + ") + length(" + length + ") is greater than original array size(" + size + "), cannot create sublist");
     }
   }
 
   private void rangeCheck(int index) {
-    if (index < 0 || index >= virtualsize) {
+    if (index < 0 || index >= virtualSize) {
       throw new IndexOutOfBoundsException(outOfBoundsMsg(index));
     }
   }
@@ -139,31 +133,31 @@ public class ReadOnlySubArrayAsList implements List {
     if (o == null) {
       return -1; // no null object in a primitive array
     }
-    switch (elementDataType) {
+    switch (dataType) {
       case LONG:
-        for (int i = 0; i < virtualsize; i++) {
-          if (o.equals(elementDataLong[i + startidx])) {
+        for (int i = 0; i < virtualSize; i++) {
+          if (o.equals(dataLong[i + startIdx])) {
             return i;
           }
         }
         break;
       case DOUBLE:
-        for (int i = 0; i < virtualsize; i++) {
-          if (o.equals(elementDataDouble[i + startidx])) {
+        for (int i = 0; i < virtualSize; i++) {
+          if (o.equals(dataDouble[i + startIdx])) {
             return i;
           }
         }
         break;
       case STRING:
-        for (int i = 0; i < virtualsize; i++) {
-          if (o.equals(elementDataString[i + startidx])) {
+        for (int i = 0; i < virtualSize; i++) {
+          if (o.equals(dataString[i + startIdx])) {
             return i;
           }
         }
         break;
       case BOOLEAN:
-        for (int i = 0; i < virtualsize; i++) {
-          if (o.equals(elementDataBoolean.get(i + startidx))) {
+        for (int i = 0; i < virtualSize; i++) {
+          if (o.equals(dataBoolean.get(i + startIdx))) {
             return i;
           }
         }
@@ -174,12 +168,12 @@ public class ReadOnlySubArrayAsList implements List {
 
   @Override
   public int size() {
-    return virtualsize;
+    return virtualSize;
   }
 
   @Override
   public boolean isEmpty() {
-    return 0 == virtualsize;
+    return 0 == virtualSize;
   }
 
   @Override
@@ -190,33 +184,29 @@ public class ReadOnlySubArrayAsList implements List {
 
   private class Itr implements Iterator<Object> {
     int cursor;       // index of next element to return
-    int lastRet = -1; // index of last element returned; -1 if no such
-
-    Itr() {
-    }
 
     public boolean hasNext() {
-      return cursor != virtualsize;
+      return cursor != virtualSize;
     }
 
     public Object next() {
       int i = cursor;
-      if (i >= virtualsize) {
+      if (i >= virtualSize) {
         throw new NoSuchElementException();
       }
       Object res = null;
-      switch (elementDataType) {
+      switch (dataType) {
         case LONG:
-          res = elementDataLong[startidx + i];
+          res = dataLong[startIdx + i];
           break;
         case DOUBLE:
-          res = elementDataDouble[startidx + i];
+          res = dataDouble[startIdx + i];
           break;
         case STRING:
-          res = elementDataString[startidx + i];
+          res = dataString[startIdx + i];
           break;
         case BOOLEAN:
-          res = elementDataBoolean.get(startidx + i);
+          res = dataBoolean.get(startIdx + i);
           break;
       }
       cursor = i + 1;
@@ -239,7 +229,7 @@ public class ReadOnlySubArrayAsList implements List {
    */
   @Override
   public boolean add(Object o) {
-    throw new RuntimeException("this is a read only list, cannot add element");
+    throw new RuntimeException("This is a read only list, cannot add element.");
   }
 
   /**
@@ -247,7 +237,7 @@ public class ReadOnlySubArrayAsList implements List {
    */
   @Override
   public boolean remove(Object o) {
-    throw new RuntimeException("this is a read only list, cannot remove element");
+    throw new RuntimeException("This is a read only list, cannot remove element.");
   }
 
   /**
@@ -255,7 +245,7 @@ public class ReadOnlySubArrayAsList implements List {
    */
   @Override
   public boolean addAll(Collection c) {
-    throw new RuntimeException("this is a read only list, cannot add element");
+    throw new RuntimeException("This is a read only list, cannot add element.");
   }
 
 
@@ -264,7 +254,7 @@ public class ReadOnlySubArrayAsList implements List {
    */
   @Override
   public boolean addAll(int index, Collection c) {
-    throw new RuntimeException("this is a read only list, cannot add element");
+    throw new RuntimeException("This is a read only list, cannot add element.");
   }
 
 
@@ -273,7 +263,7 @@ public class ReadOnlySubArrayAsList implements List {
    */
   @Override
   public void replaceAll(UnaryOperator operator) {
-    throw new RuntimeException("this is a read only list, cannot overwrite element");
+    throw new RuntimeException("This is a read only list, cannot overwrite element.");
   }
 
 
@@ -282,7 +272,7 @@ public class ReadOnlySubArrayAsList implements List {
    */
   @Override
   public void sort(Comparator c) {
-    throw new RuntimeException("this is a read only list, cannot sort elements");
+    throw new RuntimeException("This is a read only list, cannot sort elements.");
   }
 
 
@@ -291,7 +281,7 @@ public class ReadOnlySubArrayAsList implements List {
    */
   @Override
   public void clear() {
-    throw new RuntimeException("this is a read only list, cannot remove elements");
+    throw new RuntimeException("This is a read only list, cannot remove elements");
   }
 
   /**
@@ -303,15 +293,15 @@ public class ReadOnlySubArrayAsList implements List {
   @Override
   public Object get(int index) {
     rangeCheck(index);
-    switch (elementDataType) {
+    switch (dataType) {
       case LONG:
-        return (Long) elementDataLong[index + startidx];
+        return (Long) dataLong[index + startIdx];
       case DOUBLE:
-        return (Double) elementDataDouble[index + startidx];
+        return (Double) dataDouble[index + startIdx];
       case STRING:
-        return elementDataString[index + startidx];
+        return dataString[index + startIdx];
       case BOOLEAN:
-        return elementDataBoolean.get(index + startidx);
+        return dataBoolean.get(index + startIdx);
     }
     return null; // impossible
   }
@@ -322,7 +312,7 @@ public class ReadOnlySubArrayAsList implements List {
    */
   @Override
   public Object set(int index, Object element) {
-    throw new RuntimeException("this is a read only list, cannot overwrite element");
+    throw new RuntimeException("This is a read only list, cannot overwrite element.");
   }
 
 
@@ -331,7 +321,7 @@ public class ReadOnlySubArrayAsList implements List {
    */
   @Override
   public void add(int index, Object element) {
-    throw new RuntimeException("this is a read only list, cannot overwrite element");
+    throw new RuntimeException("This is a read only list, cannot overwrite element.");
   }
 
 
@@ -340,7 +330,7 @@ public class ReadOnlySubArrayAsList implements List {
    */
   @Override
   public Object remove(int index) {
-    throw new RuntimeException("this is a read only list, cannot remove element");
+    throw new RuntimeException("This is a read only list, cannot remove element.");
   }
 
   @Override
@@ -348,31 +338,31 @@ public class ReadOnlySubArrayAsList implements List {
     if (o == null) {
       return -1; // no null object in a primitive array
     }
-    switch (elementDataType) {
+    switch (dataType) {
       case LONG:
-        for (int i = virtualsize - 1; i >= 0; i--) {
-          if (o.equals(elementDataLong[i + startidx])) {
+        for (int i = virtualSize - 1; i >= 0; i--) {
+          if (o.equals(dataLong[i + startIdx])) {
             return i;
           }
         }
         break;
       case DOUBLE:
-        for (int i = virtualsize - 1; i >= 0; i--) {
-          if (o.equals(elementDataDouble[i + startidx])) {
+        for (int i = virtualSize - 1; i >= 0; i--) {
+          if (o.equals(dataDouble[i + startIdx])) {
             return i;
           }
         }
         break;
       case STRING:
-        for (int i = virtualsize - 1; i >= 0; i--) {
-          if (o.equals(elementDataString[i + startidx])) {
+        for (int i = virtualSize - 1; i >= 0; i--) {
+          if (o.equals(dataString[i + startIdx])) {
             return i;
           }
         }
         break;
       case BOOLEAN:
-        for (int i = virtualsize - 1; i >= 0; i--) {
-          if (o.equals(elementDataBoolean.get(i + startidx))) {
+        for (int i = virtualSize - 1; i >= 0; i--) {
+          if (o.equals(dataBoolean.get(i + startIdx))) {
             return i;
           }
         }
@@ -384,7 +374,7 @@ public class ReadOnlySubArrayAsList implements List {
 
   @Override
   public ListIterator listIterator() {
-    throw new RuntimeException("this is a read only list, cannot make a listIterator");
+    throw new RuntimeException("This is a read only list, cannot make a listIterator.");
   }
 
   @Override
@@ -403,45 +393,40 @@ public class ReadOnlySubArrayAsList implements List {
   public List subList(int fromIndex, int toIndex) {
     rangeCheck(fromIndex);
     int subsize = toIndex - fromIndex;
-    if (subsize < 0 || subsize + toIndex > virtualsize) {
-      throw new IndexOutOfBoundsException("start index(" + fromIndex + ") + length(" + subsize + ") greater than original array size(" + virtualsize + "), cannot create sublist");
+    if (subsize < 0 || subsize + toIndex > virtualSize) {
+      throw new IndexOutOfBoundsException("Start index(" + fromIndex + ") + length(" + subsize + ") greater than original array size(" + virtualSize + "), cannot create sublist.");
     }
     List r = null;
-    switch (elementDataType) {
+    switch (dataType) {
       case LONG:
-        r = new ReadOnlySubArrayAsList(elementDataLong, fromIndex + startidx, subsize);
+        r = new ReadOnlySubArrayAsList(dataLong, fromIndex + startIdx, subsize);
         break;
       case DOUBLE:
-        r = new ReadOnlySubArrayAsList(elementDataDouble, fromIndex + startidx, subsize);
+        r = new ReadOnlySubArrayAsList(dataDouble, fromIndex + startIdx, subsize);
         break;
       case STRING:
-        r = new ReadOnlySubArrayAsList(elementDataString, fromIndex + startidx, subsize);
+        r = new ReadOnlySubArrayAsList(dataString, fromIndex + startIdx, subsize);
         break;
       case BOOLEAN:
-        r = new ReadOnlySubArrayAsList(elementDataBoolean, fromIndex + startidx, subsize);
+        r = new ReadOnlySubArrayAsList(dataBoolean, fromIndex + startIdx, subsize);
         break;
     }
     return r;
   }
 
   @Override
-  public Spliterator spliterator() {
-    return List.super.spliterator();
-  }
-
-  @Override
   public boolean retainAll(Collection c) {
-    throw new RuntimeException("this is a read only list, cannot alter list content");
+    throw new RuntimeException("This is a read only list, cannot alter list content.");
   }
 
   @Override
   public boolean removeAll(Collection c) {
-    throw new RuntimeException("this is a read only list, cannot remove elements");
+    throw new RuntimeException("This is a read only list, cannot remove elements.");
   }
 
   @Override
   public boolean containsAll(Collection c) {
-    throw new RuntimeException("this is a read only list, containsAll is not supported");
+    throw new RuntimeException("This is a read only list, containsAll is not supported.");
   }
 
   /**
@@ -451,28 +436,26 @@ public class ReadOnlySubArrayAsList implements List {
   @Override
   public Object[] toArray(Object[] a) {
     Object[] r = a;
-    if (r.length < virtualsize) {
-      r = new Object[virtualsize];
+    if (r.length < virtualSize) {
+      r = new Object[virtualSize];
     }
-    switch (elementDataType) {
+    switch (dataType) {
       case LONG:
-        for (int i = 0; i < virtualsize; i++) {
-          r[i] = (Long) elementDataLong[i + startidx];
+        for (int i = 0; i < virtualSize; i++) {
+          r[i] = (Long) dataLong[i + startIdx];
         }
         break;
       case DOUBLE:
-        for (int i = 0; i < virtualsize; i++) {
-          r[i] = (Double) elementDataDouble[i + startidx];
+        for (int i = 0; i < virtualSize; i++) {
+          r[i] = (Double) dataDouble[i + startIdx];
         }
         break;
       case STRING:
-        for (int i = 0; i < virtualsize; i++) {
-          r[i] = elementDataString[i + startidx];
-        }
+        System.arraycopy(dataString,0,r,0,virtualSize);
         break;
       case BOOLEAN:
-        for (int i = 0; i < virtualsize; i++) {
-          r[i] = (Boolean) elementDataBoolean.get(i + startidx);
+        for (int i = 0; i < virtualSize; i++) {
+          r[i] = (Boolean) dataBoolean.get(i + startIdx);
         }
         break;
     }
@@ -484,6 +467,6 @@ public class ReadOnlySubArrayAsList implements List {
    */
   @Override
   public Object[] toArray() {
-    return toArray(new Object[virtualsize]);
+    return toArray(new Object[virtualSize]);
   }
 }

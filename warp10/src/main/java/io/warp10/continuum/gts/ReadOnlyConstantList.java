@@ -16,6 +16,7 @@
 
 package io.warp10.continuum.gts;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -277,10 +278,7 @@ public class ReadOnlyConstantList implements List {
     if (r.length < size) {
       r = new Object[size];
     }
-    for (int i = 0; i < size; i++) {
-      r[i] = value;
-    }
-
+    Arrays.fill(a,value);
     return r;
   }
 

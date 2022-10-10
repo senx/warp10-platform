@@ -33,7 +33,7 @@ public class ReadOnlySubArrayAsListSerializer extends StdSerializer<ReadOnlySubA
   public void serialize(ReadOnlySubArrayAsList l, JsonGenerator gen, SerializerProvider provider) throws IOException {
 
     gen.writeStartArray(l.size());
-    switch (l.elementDataType) {
+    switch (l.dataType) {
       case LONG:
         for (int i = 0; i < l.size(); i++) {
           gen.writeNumber((long) l.get(i));

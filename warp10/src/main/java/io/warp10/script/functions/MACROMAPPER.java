@@ -16,14 +16,15 @@
 
 package io.warp10.script.functions;
 
+import com.geoxp.GeoXPLib;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptAggregatorOnListsFunction;
 import io.warp10.script.WarpScriptBucketizerFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptMapperFunction;
 import io.warp10.script.WarpScriptReducerFunction;
-import io.warp10.script.WarpScriptAggregatorOnListsFunction;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStackFunction;
@@ -33,8 +34,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import com.geoxp.GeoXPLib;
 
 public class MACROMAPPER extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
@@ -140,22 +139,28 @@ public class MACROMAPPER extends NamedWarpScriptFunction implements WarpScriptSt
       //
       
       stack.exec(this.macro);
-      
-      //
+
+      return TransformMacroMapperOutput();
+    }
+
+    private Object TransformMacroMapperOutput() throws WarpScriptException {
+      // user can let on the stack: 
+      // - tick lat long elevation value
+      // - [ tick lat long elevation value ] (lat/long and elevation optionnal)
+      // - a map where key is the classname, and value is [ tick lat long elevation value ] (lat/long and elevation optionnal)
+
       // Check type of result
-      //
-      
       Object res = stack.peek();
-      
+
       if (res instanceof List) {
         stack.drop();
-        
+
         return listToObjects((List) res);
       } else if (res instanceof Map) {
         stack.drop();
-        
+
         Set<Object> keys = ((Map) res).keySet();
-        
+
         for (Object key: keys) {
           Object[] ores2 = listToObjects((List) ((Map) res).get(key));
           ((Map) res).put(key, ores2);
@@ -163,45 +168,21 @@ public class MACROMAPPER extends NamedWarpScriptFunction implements WarpScriptSt
 
         return res;
       } else {
-        //
         // Retrieve result
-        //
-
         return stackToObjects(stack);
       }
     }
 
     @Override
-    public Object applyOnSubLists(Object[] sublists) throws WarpScriptException {
+    public Object applyOnSubLists(Object[] subLists) throws WarpScriptException {
 
       // Push arguments onto the stack
-      stack.push(Arrays.asList(sublists));
+      stack.push(Arrays.asList(subLists));
 
       // Execute macro
       stack.exec(this.macro);
 
-      // Check type of result
-      Object res = stack.peek();
-
-      if (res instanceof List) {
-        stack.drop();
-
-        return listToObjects((List) res);
-      } else if (res instanceof Map) {
-        stack.drop();
-
-        Set<Object> keys = ((Map) res).keySet();
-
-        for (Object key: keys) {
-          Object[] ores2 = listToObjects((List) ((Map) res).get(key));
-          ((Map) res).put(key, ores2);
-        }
-
-        return res;
-      } else {
-        // Retrieve result
-        return stackToObjects(stack);
-      }
+      return TransformMacroMapperOutput();
     }
 
     public Macro getMacro() {
