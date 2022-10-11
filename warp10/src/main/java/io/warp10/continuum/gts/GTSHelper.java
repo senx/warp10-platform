@@ -2371,7 +2371,7 @@ public class GTSHelper {
             parms[0] = currentBucketEnd;
 
             // ticks list
-            parms[3] = new ReadOnlySubArrayAsList(gts.ticks, currentBucketStartPosition, count);
+            parms[3] = new COWList(gts.ticks, currentBucketStartPosition, count);
 
             // locations lists
             if (null != gts.locations) {
@@ -2415,18 +2415,18 @@ public class GTSHelper {
 
             switch (gts.type) {
               case LONG:
-                parms[7] = new ReadOnlySubArrayAsList(gts.longValues, currentBucketStartPosition, count);
+                parms[7] = new COWList(gts.longValues, currentBucketStartPosition, count);
                 break;
               case DOUBLE:
-                parms[7] = new ReadOnlySubArrayAsList(gts.doubleValues, currentBucketStartPosition, count);
+                parms[7] = new COWList(gts.doubleValues, currentBucketStartPosition, count);
                 break;
               case STRING:
                 // here we could have done a shallow copy, with Arrays.asList(gts.stringValues).subList(currentBucketStartPosition,currentBucketEndPosition)
                 // it is a risk for the user, better deep copy.
-                parms[7] = new ReadOnlySubArrayAsList(gts.stringValues, currentBucketStartPosition, count);
+                parms[7] = new COWList(gts.stringValues, currentBucketStartPosition, count);
                 break;
               case BOOLEAN:
-                parms[7] = new ReadOnlySubArrayAsList(gts.booleanValues, currentBucketStartPosition, count);
+                parms[7] = new COWList(gts.booleanValues, currentBucketStartPosition, count);
                 break;
             }
 

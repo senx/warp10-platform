@@ -3,7 +3,7 @@
 
 package io.warp10.script.functions;
 
-import io.warp10.continuum.gts.ReadOnlySubArrayAsList;
+import io.warp10.continuum.gts.COWList;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
@@ -33,10 +33,10 @@ public class TEST extends NamedWarpScriptFunction implements WarpScriptStackFunc
 
     int len = ((Long) stack.pop()).intValue();
     int startidx = ((Long) stack.pop()).intValue();
-    stack.push(new ReadOnlySubArrayAsList(array, startidx, len));
-    stack.push(new ReadOnlySubArrayAsList(arrayd, startidx, len));
-    stack.push(new ReadOnlySubArrayAsList(arrays, startidx, len));
-    stack.push(new ReadOnlySubArrayAsList(bs, startidx, len));
+    stack.push(new COWList(array, startidx, len));
+    stack.push(new COWList(arrayd, startidx, len));
+    stack.push(new COWList(arrays, startidx, len));
+    stack.push(new COWList(bs, startidx, len));
     return stack;
   }
 }
