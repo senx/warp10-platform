@@ -17,6 +17,7 @@
 package io.warp10.continuum.gts;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.Comparator;
@@ -49,7 +50,6 @@ public class COWList implements List {
    */
   private boolean readOnly;
   private ArrayList mutableCopy = null;
-  private final Object mutex;
 
   public static enum TYPE {
     LONG, DOUBLE, BOOLEAN, STRING
@@ -65,7 +65,7 @@ public class COWList implements List {
     if (readOnly) {
       return dataType;
     } else {
-      throw new RuntimeException("The list has been modified and may contains heterogenous elements");
+      throw new RuntimeException("The list has been modified and may contains heterogeneous elements");
     }
   }
   
@@ -84,7 +84,6 @@ public class COWList implements List {
     this.startIdx = startIdx;
     this.virtualSize = length;
     this.readOnly = true;
-    this.mutex = this;
   }
 
   /**
@@ -102,7 +101,6 @@ public class COWList implements List {
     this.startIdx = startIdx;
     this.virtualSize = length;
     this.readOnly = true;
-    this.mutex = this;
   }
 
   /**
@@ -120,7 +118,6 @@ public class COWList implements List {
     this.startIdx = startIdx;
     this.virtualSize = length;
     this.readOnly = true;
-    this.mutex = this;
   }
 
   /**
@@ -138,15 +135,13 @@ public class COWList implements List {
     this.startIdx = startIdx;
     this.virtualSize = length;
     this.readOnly = true;
-    this.mutex = this;
   }
 
   public boolean isReadOnly() {
     return readOnly;
   }
 
-  private void initialDeepCopy() {
-    synchronized (mutex) {
+  private synchronized void initialDeepCopy() {
       if (readOnly) {
         mutableCopy = new ArrayList(virtualSize);
         switch (dataType) {
@@ -171,10 +166,9 @@ public class COWList implements List {
             }
             break;
         }
-        startIdx = -1;
         readOnly = false;
       }
-    }
+    
   }
 
   private void initialRangeCheck(int startIndex, int length) {
@@ -260,49 +254,46 @@ public class COWList implements List {
   public boolean contains(Object o) {
     return indexOf(o) >= 0;
   }
-
-
-  private class Itr implements Iterator<Object> {
-    int cursor;       // index of next element to return
-
-    public boolean hasNext() {
-      return cursor != virtualSize;
-    }
-
-    public Object next() {
-      int i = cursor;
-      if (i >= virtualSize) {
-        throw new NoSuchElementException();
-      }
-      Object res = null;
-      switch (dataType) {
-        case LONG:
-          res = dataLong[startIdx + i];
-          break;
-        case DOUBLE:
-          res = dataDouble[startIdx + i];
-          break;
-        case STRING:
-          res = dataString[startIdx + i];
-          break;
-        case BOOLEAN:
-          res = dataBoolean.get(startIdx + i);
-          break;
-      }
-      cursor = i + 1;
-      return res;
-    }
-
-    public void remove() {
-      // not applicable
-    }
-
-  }
-
+  
   @Override
   public Iterator iterator() {
     if (readOnly) {
-      return new Itr();
+      return new Iterator() {
+
+        int cursor;       // index of next element to return
+
+        public boolean hasNext() {
+          return cursor != virtualSize;
+        }
+
+        public Object next() {
+          int i = cursor;
+          if (i >= virtualSize) {
+            throw new NoSuchElementException();
+          }
+          Object res = null;
+          switch (dataType) {
+            case LONG:
+              res = dataLong[startIdx + i];
+              break;
+            case DOUBLE:
+              res = dataDouble[startIdx + i];
+              break;
+            case STRING:
+              res = dataString[startIdx + i];
+              break;
+            case BOOLEAN:
+              res = dataBoolean.get(startIdx + i);
+              break;
+          }
+          cursor = i + 1;
+          return res;
+        }
+
+        public void remove() {
+          // not applicable
+        }
+      };
     } else {
       return mutableCopy.iterator();
     }
@@ -377,11 +368,9 @@ public class COWList implements List {
    * clear will allocate a new ArrayList, then alter this ArrayList.
    */
   @Override
-  public void clear() {
-    synchronized (mutex) {
+  public synchronized void clear() {
       mutableCopy = new ArrayList();
       readOnly = false;
-    }
   }
 
   /**
@@ -417,7 +406,6 @@ public class COWList implements List {
    */
   @Override
   public Object set(int index, Object element) {
-    //throw new RuntimeException("This is a read only list, cannot overwrite element.");
     initialDeepCopy();
     return mutableCopy.set(index, element);
   }
@@ -500,8 +488,8 @@ public class COWList implements List {
   }
 
   /**
-   * When non altered, returns a new Read Only subList from existing one, backed by the original array.
-   * When altered, returns a new ArrayList (deep copy)
+   * When non altered, returns a new copy on write subList from existing one, backed by the original array.
+   * When altered, returns a new ArrayList, backed by the same array
    * The portion of the list is specified by
    * {@code fromIndex}, inclusive, and {@code toIndex}, exclusive.  (If
    * {@code fromIndex} and {@code toIndex} are equal, the returned list is
@@ -532,7 +520,7 @@ public class COWList implements List {
       }
       return r;
     } else {
-      return new ArrayList(mutableCopy.subList(fromIndex, toIndex));
+      return mutableCopy.subList(fromIndex, toIndex);
     }
   }
 
@@ -550,8 +538,11 @@ public class COWList implements List {
 
   @Override
   public boolean containsAll(Collection c) {
-    initialDeepCopy();
-    return mutableCopy.containsAll(c);
+    for (Object e: c)
+      if (!contains(e)) {
+        return false;
+      }
+    return true;
   }
 
   /**

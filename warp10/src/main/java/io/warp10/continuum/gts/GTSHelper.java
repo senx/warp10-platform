@@ -2048,6 +2048,60 @@ public class GTSHelper {
   }
 
   /**
+   * copy a slice of data from {@code srcGts} to {@code subGts}.
+   * Slice is defined by {@code scrPos} index and {@code length} to copy.
+   * The underlying arrays of subGts will be updated to new ones if length is greater than their current size.
+   * For booleans GTS, the underlying bitset is always updated.
+   */
+  private static final void copyToSubGts(GeoTimeSerie srcGts, int srcPos, GeoTimeSerie subGts, int length) {
+
+    if (null == subGts.ticks || subGts.ticks.length < length) {
+      subGts.ticks = new long[length];
+    }
+    System.arraycopy(srcGts.ticks, srcPos, subGts.ticks, 0, length);
+    // locations, if any
+    if (null != srcGts.locations) {
+      if (null == subGts.locations || subGts.locations.length < length) {
+        subGts.locations = new long[length];
+      }
+      System.arraycopy(srcGts.locations, srcPos, subGts.locations, 0, length);
+    }
+    // elevations, if any
+    if (null != srcGts.elevations) {
+      if (null == subGts.elevations || subGts.elevations.length < length) {
+        subGts.elevations = new long[length];
+      }
+      System.arraycopy(srcGts.elevations, srcPos, subGts.elevations, 0, length);
+    }
+    // value, up to value type
+    switch (srcGts.type) {
+      case LONG:
+        if (null == subGts.longValues || subGts.longValues.length < length) {
+          subGts.longValues = new long[length];
+        }
+        System.arraycopy(srcGts.longValues, srcPos, subGts.longValues, 0, length);
+        break;
+      case DOUBLE:
+        if (null == subGts.doubleValues || subGts.doubleValues.length < length) {
+          subGts.doubleValues = new double[length];
+        }
+        System.arraycopy(srcGts.doubleValues, srcPos, subGts.doubleValues, 0, length);
+        break;
+      case STRING:
+        if (null == subGts.stringValues || subGts.stringValues.length < length) {
+          subGts.stringValues = new String[length];
+        }
+        System.arraycopy(srcGts.stringValues, srcPos, subGts.stringValues, 0, length);
+        break;
+      case BOOLEAN:
+        subGts.booleanValues = srcGts.booleanValues.get(srcPos, srcPos + length);
+        break;
+    }
+    // set new length of subGts
+    subGts.values = length;
+  }
+  
+  /**
    * Converts a Geo Time Serie into a bucketized version.
    * Bucketizing means aggregating values (with associated location and elevation) that lie
    * within a given interval into a single one. Intervals considered span a given
@@ -2247,7 +2301,7 @@ public class GTSHelper {
         long currentBucketEnd;
         int currentBucketEndPosition;
         int currentBucketStartPosition;
-        int count;
+        int bucketLength;
         Object[] aggregated = null;
         while (i >= 0 && gts.ticks[i] > (lastbucket - bucketspan * bucketcount)) {
           currentBucketEndPosition = i;
@@ -2257,56 +2311,9 @@ public class GTSHelper {
           }
           currentBucketStartPosition = i + 1;
 
-          // create a sub gts for the bucket
-          // gts arrays used for ticks, values, elevation, location, are backed by the same array
-          // on each iteration. array is dropped and replaced by a bigger one if needed.
-          //
-          // ticks
-          count = currentBucketEndPosition - currentBucketStartPosition + 1;
-          if (null == subgts.ticks || subgts.ticks.length < count) {
-            subgts.ticks = new long[count];
-          }
-          System.arraycopy(gts.ticks, currentBucketStartPosition, subgts.ticks, 0, count);
-          // locations, if any
-          if (null != gts.locations) {
-            if (null == subgts.locations || subgts.locations.length < count) {
-              subgts.locations = new long[count];
-            }
-            System.arraycopy(gts.locations, currentBucketStartPosition, subgts.locations, 0, count);
-          }
-          // elevations, if any
-          if (null != gts.elevations) {
-            if (null == subgts.elevations || subgts.elevations.length < count) {
-              subgts.elevations = new long[count];
-            }
-            System.arraycopy(gts.elevations, currentBucketStartPosition, subgts.elevations, 0, count);
-          }
-          // value, up to value type
-          switch (gts.type) {
-            case LONG:
-              if (null == subgts.longValues || subgts.longValues.length < count) {
-                subgts.longValues = new long[count];
-              }
-              System.arraycopy(gts.longValues, currentBucketStartPosition, subgts.longValues, 0, count);
-              break;
-            case DOUBLE:
-              if (null == subgts.doubleValues || subgts.doubleValues.length < count) {
-                subgts.doubleValues = new double[count];
-              }
-              System.arraycopy(gts.doubleValues, currentBucketStartPosition, subgts.doubleValues, 0, count);
-              break;
-            case STRING:
-              if (null == subgts.stringValues || subgts.stringValues.length < count) {
-                subgts.stringValues = new String[count];
-              }
-              System.arraycopy(gts.stringValues, currentBucketStartPosition, subgts.stringValues, 0, count);
-              break;
-            case BOOLEAN:
-              subgts.booleanValues = gts.booleanValues.get(currentBucketStartPosition, currentBucketEndPosition + 1);
-              break;
-          }
-          // set length and sorted flags
-          subgts.values = count;
+          bucketLength = currentBucketEndPosition - currentBucketStartPosition + 1;
+
+          copyToSubGts(gts, currentBucketStartPosition, subgts, bucketLength);
 
           // push on stack, exec the macro
           stack.push(subgts);

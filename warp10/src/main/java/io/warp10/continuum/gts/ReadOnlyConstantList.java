@@ -78,38 +78,30 @@ public class ReadOnlyConstantList implements List {
   public boolean contains(Object o) {
     return indexOf(o) >= 0;
   }
-
-
-  private class Itr implements Iterator<Object> {
-    int cursor;       // index of next element to return
-    int lastRet = -1; // index of last element returned; -1 if no such
-
-    Itr() {
-    }
-
-    public boolean hasNext() {
-      return cursor != size;
-    }
-
-    public Object next() {
-      int i = cursor;
-      if (i >= size) {
-        throw new NoSuchElementException();
-      }
-      Object res = value;
-      cursor = i + 1;
-      return res;
-    }
-
-    public void remove() {
-      // not applicable
-    }
-
-  }
-
+  
   @Override
   public Iterator iterator() {
-    return new Itr();
+    return new Iterator() {
+      int cursor;       // index of next element to return
+
+      public boolean hasNext() {
+        return cursor != size;
+      }
+
+      public Object next() {
+        int i = cursor;
+        if (i >= size) {
+          throw new NoSuchElementException();
+        }
+        Object res = value;
+        cursor = i + 1;
+        return res;
+      }
+
+      public void remove() {
+        // not applicable
+      }
+    };
   }
 
   /**
@@ -117,7 +109,7 @@ public class ReadOnlyConstantList implements List {
    */
   @Override
   public boolean add(Object o) {
-    throw new RuntimeException("this is a read only list, cannot add element");
+    throw new RuntimeException("This is a read only list, cannot add element.");
   }
 
   /**
@@ -125,7 +117,7 @@ public class ReadOnlyConstantList implements List {
    */
   @Override
   public boolean remove(Object o) {
-    throw new RuntimeException("this is a read only list, cannot remove element");
+    throw new RuntimeException("This is a read only list, cannot remove element.");
   }
 
   /**
@@ -133,7 +125,7 @@ public class ReadOnlyConstantList implements List {
    */
   @Override
   public boolean addAll(Collection c) {
-    throw new RuntimeException("this is a read only list, cannot add element");
+    throw new RuntimeException("This is a read only list, cannot add element.");
   }
 
 
@@ -142,7 +134,7 @@ public class ReadOnlyConstantList implements List {
    */
   @Override
   public boolean addAll(int index, Collection c) {
-    throw new RuntimeException("this is a read only list, cannot add element");
+    throw new RuntimeException("This is a read only list, cannot add element.");
   }
 
 
@@ -151,7 +143,7 @@ public class ReadOnlyConstantList implements List {
    */
   @Override
   public void replaceAll(UnaryOperator operator) {
-    throw new RuntimeException("this is a read only list, cannot overwrite element");
+    throw new RuntimeException("This is a read only list, cannot overwrite element.");
   }
 
 
@@ -160,7 +152,7 @@ public class ReadOnlyConstantList implements List {
    */
   @Override
   public void sort(Comparator c) {
-    throw new RuntimeException("this is a read only list, cannot sort elements");
+    throw new RuntimeException("This is a read only list, cannot sort elements.");
   }
 
 
@@ -169,7 +161,7 @@ public class ReadOnlyConstantList implements List {
    */
   @Override
   public void clear() {
-    throw new RuntimeException("this is a read only list, cannot remove elements");
+    throw new RuntimeException("This is a read only list, cannot remove elements.");
   }
 
   /**
@@ -190,7 +182,7 @@ public class ReadOnlyConstantList implements List {
    */
   @Override
   public Object set(int index, Object element) {
-    throw new RuntimeException("this is a read only list, cannot overwrite element");
+    throw new RuntimeException("This is a read only list, cannot overwrite element.");
   }
 
 
@@ -199,7 +191,7 @@ public class ReadOnlyConstantList implements List {
    */
   @Override
   public void add(int index, Object element) {
-    throw new RuntimeException("this is a read only list, cannot overwrite element");
+    throw new RuntimeException("This is a read only list, cannot overwrite element.");
   }
 
 
@@ -208,7 +200,7 @@ public class ReadOnlyConstantList implements List {
    */
   @Override
   public Object remove(int index) {
-    throw new RuntimeException("this is a read only list, cannot remove element");
+    throw new RuntimeException("This is a read only list, cannot remove element.");
   }
 
   @Override
@@ -223,7 +215,7 @@ public class ReadOnlyConstantList implements List {
 
   @Override
   public ListIterator listIterator() {
-    throw new RuntimeException("this is a read only list, cannot make a listIterator");
+    throw new RuntimeException("This is a read only list, cannot make a listIterator.");
   }
 
   @Override
@@ -255,17 +247,17 @@ public class ReadOnlyConstantList implements List {
 
   @Override
   public boolean retainAll(Collection c) {
-    throw new RuntimeException("this is a read only list, cannot alter list content");
+    throw new RuntimeException("This is a read only list, cannot alter list content.");
   }
 
   @Override
   public boolean removeAll(Collection c) {
-    throw new RuntimeException("this is a read only list, cannot remove elements");
+    throw new RuntimeException("This is a read only list, cannot remove elements.");
   }
 
   @Override
   public boolean containsAll(Collection c) {
-    throw new RuntimeException("this is a read only list, containsAll is not supported");
+    throw new RuntimeException("This is a read only list, containsAll is not supported.");
   }
 
   /**

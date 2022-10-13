@@ -140,10 +140,21 @@ public class MACROMAPPER extends NamedWarpScriptFunction implements WarpScriptSt
       
       stack.exec(this.macro);
 
-      return TransformMacroMapperOutput();
+      return collectMacroMapperOutput();
     }
+    
+    @Override
+    public Object applyOnSubLists(Object[] subLists) throws WarpScriptException {
 
-    private Object TransformMacroMapperOutput() throws WarpScriptException {
+      // Push arguments onto the stack
+      stack.push(Arrays.asList(subLists));
+
+      // Execute macro
+      stack.exec(this.macro);
+
+      return collectMacroMapperOutput();
+    }
+    private Object collectMacroMapperOutput() throws WarpScriptException {
       // user can let on the stack: 
       // - tick lat long elevation value
       // - [ tick lat long elevation value ] (lat/long and elevation optionnal)
@@ -172,19 +183,7 @@ public class MACROMAPPER extends NamedWarpScriptFunction implements WarpScriptSt
         return stackToObjects(stack);
       }
     }
-
-    @Override
-    public Object applyOnSubLists(Object[] subLists) throws WarpScriptException {
-
-      // Push arguments onto the stack
-      stack.push(Arrays.asList(subLists));
-
-      // Execute macro
-      stack.exec(this.macro);
-
-      return TransformMacroMapperOutput();
-    }
-
+    
     public Macro getMacro() {
       return macro;
     }
