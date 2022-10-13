@@ -157,8 +157,8 @@ public class MACROMAPPER extends NamedWarpScriptFunction implements WarpScriptSt
     private Object collectMacroMapperOutput() throws WarpScriptException {
       // user can let on the stack: 
       // - tick lat long elevation value
-      // - [ tick lat long elevation value ] (lat/long and elevation optionnal)
-      // - a map where key is the classname, and value is [ tick lat long elevation value ] (lat/long and elevation optionnal)
+      // - [ tick lat long elevation value ] (lat/long and elevation optional)
+      // - map where key is the classname, and value is [ tick lat long elevation value ] (lat/long and elevation optional)
 
       // Check type of result
       Object res = stack.peek();

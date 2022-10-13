@@ -2048,17 +2048,22 @@ public class GTSHelper {
   }
 
   /**
-   * copy a slice of data from {@code srcGts} to {@code subGts}.
+   * Copy a slice of data from {@code srcGts} to {@code subGts}.
    * Slice is defined by {@code scrPos} index and {@code length} to copy.
    * The underlying arrays of subGts will be updated to new ones if length is greater than their current size.
    * For booleans GTS, the underlying bitset is always updated.
    */
   private static final void copyToSubGts(GeoTimeSerie srcGts, int srcPos, GeoTimeSerie subGts, int length) {
 
+    if (srcGts.type != subGts.type) {
+      throw new RuntimeException("Cannot copy data, both gts do not have the same type.");
+    }
+    
     if (null == subGts.ticks || subGts.ticks.length < length) {
       subGts.ticks = new long[length];
     }
     System.arraycopy(srcGts.ticks, srcPos, subGts.ticks, 0, length);
+    
     // locations, if any
     if (null != srcGts.locations) {
       if (null == subGts.locations || subGts.locations.length < length) {
@@ -2066,6 +2071,7 @@ public class GTSHelper {
       }
       System.arraycopy(srcGts.locations, srcPos, subGts.locations, 0, length);
     }
+    
     // elevations, if any
     if (null != srcGts.elevations) {
       if (null == subGts.elevations || subGts.elevations.length < length) {
@@ -2073,6 +2079,7 @@ public class GTSHelper {
       }
       System.arraycopy(srcGts.elevations, srcPos, subGts.elevations, 0, length);
     }
+    
     // value, up to value type
     switch (srcGts.type) {
       case LONG:
@@ -2097,6 +2104,7 @@ public class GTSHelper {
         subGts.booleanValues = srcGts.booleanValues.get(srcPos, srcPos + length);
         break;
     }
+    
     // set new length of subGts
     subGts.values = length;
   }
@@ -2299,9 +2307,9 @@ public class GTSHelper {
 
         // iterate on input to find buckets
         long currentBucketEnd;
-        int currentBucketEndPosition;
-        int currentBucketStartPosition;
-        int bucketLength;
+        int currentBucketEndPosition; // index of the newest tick in the bucket
+        int currentBucketStartPosition; // index of the oldest tick in the bucket
+        int count;
         Object[] aggregated = null;
         while (i >= 0 && gts.ticks[i] > (lastbucket - bucketspan * bucketcount)) {
           currentBucketEndPosition = i;
@@ -2311,9 +2319,9 @@ public class GTSHelper {
           }
           currentBucketStartPosition = i + 1;
 
-          bucketLength = currentBucketEndPosition - currentBucketStartPosition + 1;
+          count = currentBucketEndPosition - currentBucketStartPosition + 1;
 
-          copyToSubGts(gts, currentBucketStartPosition, subgts, bucketLength);
+          copyToSubGts(gts, currentBucketStartPosition, subgts, count);
 
           // push on stack, exec the macro
           stack.push(subgts);
@@ -2341,12 +2349,13 @@ public class GTSHelper {
           throw new WarpScriptException("Invalid bucketizer function.");
         }
 
-        // second case: the aggregator is cabable to process an array of List instead of an array of array
-        // it uses a special class for lists that saves a memory allocation (but lists are readonly)
-        if (aggregator instanceof WarpScriptAggregatorOnListsFunction) {
 
+        if (aggregator instanceof WarpScriptAggregatorOnListsFunction) {
+          // Second case: the aggregator is capable to process an array of List instead of an array of array.
+          // It uses a special class for lists that saves a memory allocation.
+          
           // build a structure ready to use:
-          // - read only List for ticks, values  (view of the original primitive array or BitSet)
+          // - special copy on write List for ticks, values  (view of the original primitive array or BitSet)
           // - decode elevations
           // - decode locations
           // - expose lists of NaN when needed
@@ -2447,16 +2456,18 @@ public class GTSHelper {
             // next bucket
           }
         } else {
-          // the aggregator is a standard one, that expects most of its params to be arrays:
-          // bucket timestamp: end timestamp of the bucket we're currently computing a value for
-          // names: array of GTS names
-          // labels: array of GTS labels
-          // ticks: array of ticks being aggregated
-          // locations: array of locations being aggregated
-          // elevations: array of elevations being aggregated
-          // values: array of values being aggregated
-          // bucket span: width (in microseconds) of bucket
+          // Third case: the aggregator is a standard one, that expects most of its params to be arrays:
+          // - bucket timestamp: end timestamp of the bucket we're currently computing a value for
+          // - names: array of GTS names
+          // - labels: array of GTS labels
+          // - ticks: array of ticks being aggregated
+          // - locations: array of locations being aggregated
+          // - elevations: array of elevations being aggregated
+          // - values: array of values being aggregated
+          // - bucket span: width (in microseconds) of bucket
           //
+          // WarpScriptBucketizerFunction interface is the historic one, some extension still rely on it, 
+          // it must be kept as it is even if it is less memory efficient.
           Object[] parms = new Object[8];
           // name and labels can be defined here
           parms[1] = new String[1];
