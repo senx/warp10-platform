@@ -39,13 +39,14 @@ public class MSTORE extends NamedWarpScriptFunction implements WarpScriptStackFu
 
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    List optionnalKeyList = null;
+    List optionalKeyList = null;
     Object o = stack.pop();
 
     if (o instanceof List) {
-      optionnalKeyList = (List) o;
+      optionalKeyList = (List) o;
       o = stack.pop();
     }
+
     if (!(o instanceof Map)) {
       throw new WarpScriptException(getName() + " expects a Map as argument.");
     }
@@ -53,9 +54,9 @@ public class MSTORE extends NamedWarpScriptFunction implements WarpScriptStackFu
     Map<Object, Object> variables = (Map<Object, Object>) o;
 
     // Check that each key of the map is either a LONG or a STRING
-    if (null != optionnalKeyList) {
+    if (null != optionalKeyList) {
       // Check that each element of the list is either a LONG or a STRING
-      for (Object symbol: optionnalKeyList) {
+      for (Object symbol: optionalKeyList) {
         if (null != symbol && (!(symbol instanceof String) && !(symbol instanceof Long))) {
           throw new WarpScriptException(getName() + " expects a list of variable names or register numbers as second argument.");
         }
