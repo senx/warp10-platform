@@ -56,20 +56,6 @@
 warpscript.def.unshadow = false
 
 //
-// Jar Repository - for Warp10 UDF only
-//
-
-// The path to a directory containing jar files from which UDFs can be loaded
-#warpscript.jars.directory = 
-
-// How often (in ms) should Warp 10 rescan the above directory
-#warpscript.jars.refresh = 60000
-
-// Set to 'true' to allow loading the UDFs from the classpath when no directory is explicitely defined
-#warpscript.jars.fromclasspath = 
-
-
-//
 // Default maximum number of operations a single WarpScript execution can do
 //
 warpscript.maxops = 1000
