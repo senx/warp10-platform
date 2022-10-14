@@ -1912,27 +1912,6 @@ public class Configuration {
   public static final String IN_MEMORY = "in.memory";
 
   /**
-   * Set to 'true' to use a chunked memory store.
-   */
-  public static final String IN_MEMORY_CHUNKED = "in.memory.chunked";
-
-  /**
-   * Depth of timestamps to retain (in ms)
-   */
-  public static final String IN_MEMORY_DEPTH = "in.memory.depth";
-
-  /**
-   * High water mark in bytes. When memory goes above this threshold, attempts to remove expired datapoints will be
-   * done until consumed memory goes below the low water mark (see below) or no more expired datapoints can be found.
-   */
-  public static final String IN_MEMORY_HIGHWATERMARK = "in.memory.highwatermark";
-
-  /**
-   * Low water mark in bytes for garbage collection (see above)
-   */
-  public static final String IN_MEMORY_LOWWATERMARK = "in.memory.lowwatermark";
-
-  /**
    * If set to true, then only the last recorded value of a GTS is kept
    */
   public static final String IN_MEMORY_EPHEMERAL = "in.memory.ephemeral";
