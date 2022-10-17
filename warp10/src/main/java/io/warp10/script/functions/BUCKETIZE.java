@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -33,8 +33,16 @@ import java.util.List;
  */
 public class BUCKETIZE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
+  private final boolean memoryOptimized;
+
   public BUCKETIZE(String name) {
     super(name);
+    memoryOptimized = false;
+  }
+
+  public BUCKETIZE(String name, boolean memoryOptimized) {
+    super(name);
+    this.memoryOptimized = memoryOptimized;
   }
   
   @Override
@@ -91,7 +99,7 @@ public class BUCKETIZE extends NamedWarpScriptFunction implements WarpScriptStac
     long maxbuckets = (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_MAX_BUCKETS);
     
     for (GeoTimeSerie gts: series) {
-      GeoTimeSerie b = GTSHelper.bucketize(gts, bucketspan, bucketcount, lastbucket, bucketizer, maxbuckets, bucketizer instanceof Macro ? stack : null);
+      GeoTimeSerie b = GTSHelper.bucketize(gts, bucketspan, bucketcount, lastbucket, bucketizer, maxbuckets, bucketizer instanceof Macro ? stack : null, memoryOptimized);
       
       bucketized.add(b);
     }
