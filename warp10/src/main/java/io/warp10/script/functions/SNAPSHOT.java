@@ -425,7 +425,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         sb.append(WarpScriptLib.PGPPUBLIC);
         sb.append(" ");
         String keyid = "000000000000000" + Long.toHexString(((PGPPublicKey) o).getKeyID());
-        keyid = keyid.substring(keyid.length() - 16, keyid.length());
+        keyid = keyid.substring(keyid.length() - 16, keyid.length()).toUpperCase();
         addElement(sb, keyid);
         sb.append(WarpScriptLib.GET);
         sb.append(" ");
@@ -440,9 +440,13 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         }
         sb.append(WarpScriptLib.PGPPRIVATE);
         sb.append(" ");
-        addElement(sb, PGPPUBLIC.KEY_KEY);
+        String keyid = "000000000000000" + Long.toHexString(((PGPSecretKey) o).getKeyID());
+        keyid = keyid.substring(keyid.length() - 16, keyid.length()).toUpperCase();
+        addElement(sb, keyid);
         sb.append(WarpScriptLib.GET);
         sb.append(" ");
+        addElement(sb, PGPPUBLIC.KEY_KEY);
+        sb.append(WarpScriptLib.GET);
       } else if (o instanceof NamedWarpScriptFunction) {
         sb.append(o.toString());
         sb.append(" ");

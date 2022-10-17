@@ -32,6 +32,7 @@ import org.apache.commons.math3.linear.ArrayRealVector;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.bouncycastle.openpgp.PGPPrivateKey;
 import org.bouncycastle.openpgp.PGPPublicKey;
+import org.bouncycastle.openpgp.PGPSecretKey;
 
 import processing.core.PFont;
 import processing.core.PGraphics;
@@ -178,7 +179,7 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
       return TYPE_MATCHER;
     } else if (WarpScriptStack.Mark.class.isAssignableFrom(c)) {
       return TYPE_MARK;
-    } else if (Key.class.isAssignableFrom(c) || PGPPrivateKey.class.isAssignableFrom(c) || PGPPublicKey.class.isAssignableFrom(c)) {
+    } else if (Key.class.isAssignableFrom(c) || PGPSecretKey.class.isAssignableFrom(c) || PGPPublicKey.class.isAssignableFrom(c)) {
       return TYPE_KEY;
     } else if (WarpScriptStack.StackContext.class.isAssignableFrom(c)) {
       return TYPE_CONTEXT;
