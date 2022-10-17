@@ -76,10 +76,10 @@ public class PGPENCRYPT extends NamedWarpScriptFunction implements WarpScriptSta
       throw new WarpScriptException(getName() + " expected a parameter MAP.");
     }
 
-    Map<Object, Object> params = (Map<Object,Object>) top;
+    Map<Object,Object> params = (Map<Object,Object>) top;
 
     boolean throwKeyId = Boolean.TRUE.equals(params.getOrDefault(PGPSIGN.KEY_THROW_KEYID, true));
-    boolean armor = Boolean.TRUE.equals(params.getOrDefault(PGPSIGN.KEY_ARMOR, true));;
+    boolean armor = Boolean.TRUE.equals(params.getOrDefault(PGPSIGN.KEY_ARMOR, true));
 
     if (!(params.get(KEY_RECIPIENT) instanceof PGPPublicKey)) {
       throw new WarpScriptException(getName() + " missing recipient PGP public key.");
