@@ -22,10 +22,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.bouncycastle.bcpg.attr.ImageAttribute;
 import org.bouncycastle.openpgp.PGPPublicKey;
 import org.bouncycastle.openpgp.PGPPublicKeyRing;
 import org.bouncycastle.openpgp.PGPSecretKey;
 import org.bouncycastle.openpgp.PGPSecretKeyRing;
+import org.bouncycastle.openpgp.PGPUserAttributeSubpacketVector;
 import org.bouncycastle.util.encoders.Hex;
 
 import io.warp10.continuum.store.Constants;
@@ -41,6 +43,7 @@ public class PGPINFO extends NamedWarpScriptFunction implements WarpScriptStackF
   private static final String KEY_ENCRYPTION = "encryption";
   private static final String KEY_EXPIRY = "expiry";
   private static final String KEY_PUBKEY = "pubkey";
+  public static final String KEY_ATTR = "attributes";
 
   public PGPINFO(String name) {
     super(name);
@@ -70,8 +73,9 @@ public class PGPINFO extends NamedWarpScriptFunction implements WarpScriptStackF
           keyid = keyid.substring(keyid.length() - 16, keyid.length()).toUpperCase();
           infos.put(PGPPUBLIC.KEY_KEYID, keyid);
           infos.put(PGPPUBLIC.KEY_FINGERPRINT, Hex.toHexString(key.getPublicKey().getFingerprint()));
-          List<String> uids = new ArrayList<String>();
-          Iterator<String> uiditer = key.getUserIDs();
+          List<byte[]> uids = new ArrayList<byte[]>();
+          // We retrieve the raw user ids because we cannot be certain they contain valid UTF-8
+          Iterator<byte[]> uiditer = key.getPublicKey().getRawUserIDs();
           while(uiditer.hasNext()) {
             uids.add(uiditer.next());
           }
@@ -84,6 +88,16 @@ public class PGPINFO extends NamedWarpScriptFunction implements WarpScriptStackF
           infos.put(KEY_EXPIRY, 0 == key.getPublicKey().getValidSeconds() ? 0L : (creation + key.getPublicKey().getValidSeconds() * 1000L) * Constants.TIME_UNITS_PER_MS);
           infos.put(KEY_ENCRYPTION, key.getPublicKey().isEncryptionKey());
           infos.put(KEY_PUBKEY, key.getPublicKey());
+          Iterator<PGPUserAttributeSubpacketVector> ater = key.getUserAttributes();
+          List<byte[]> attributes = new ArrayList<byte[]>();
+          while(ater.hasNext()) {
+            PGPUserAttributeSubpacketVector uat = ater.next();
+            ImageAttribute img = uat.getImageAttribute();
+            if (null != img) {
+              attributes.add(img.getImageData());
+            }
+          }
+          infos.put(KEY_ATTR, attributes);
           keys.put(keyid, infos);
         }
         keyring.getExtraPublicKeys();
@@ -100,8 +114,8 @@ public class PGPINFO extends NamedWarpScriptFunction implements WarpScriptStackF
         keyid = keyid.substring(keyid.length() - 16, keyid.length()).toUpperCase();
         infos.put(PGPPUBLIC.KEY_KEYID, keyid);
         infos.put(PGPPUBLIC.KEY_FINGERPRINT, Hex.toHexString(key.getFingerprint()));
-        List<String> uids = new ArrayList<String>();
-        Iterator<String> uiditer = key.getUserIDs();
+        List<byte[]> uids = new ArrayList<byte[]>();
+        Iterator<byte[]> uiditer = key.getRawUserIDs();
         while(uiditer.hasNext()) {
           uids.add(uiditer.next());
         }
@@ -112,6 +126,16 @@ public class PGPINFO extends NamedWarpScriptFunction implements WarpScriptStackF
         infos.put(KEY_SIGNING, false);
         infos.put(KEY_ENCRYPTION, key.isEncryptionKey());
         infos.put(KEY_PUBKEY, key);
+        Iterator<PGPUserAttributeSubpacketVector> ater = key.getUserAttributes();
+        List<byte[]> attributes = new ArrayList<byte[]>();
+        while(ater.hasNext()) {
+          PGPUserAttributeSubpacketVector uat = ater.next();
+          ImageAttribute img = uat.getImageAttribute();
+          if (null != img) {
+            attributes.add(img.getImageData());
+          }
+        }
+        infos.put(KEY_ATTR, attributes);
         keys.put(keyid, infos);
       }
       stack.push(keys);
@@ -124,8 +148,8 @@ public class PGPINFO extends NamedWarpScriptFunction implements WarpScriptStackF
       keyid = keyid.substring(keyid.length() - 16, keyid.length()).toUpperCase();
       infos.put(PGPPUBLIC.KEY_KEYID, keyid);
       infos.put(PGPPUBLIC.KEY_FINGERPRINT, Hex.toHexString(key.getFingerprint()));
-      List<String> uids = new ArrayList<String>();
-      Iterator<String> uiditer = key.getUserIDs();
+      List<byte[]> uids = new ArrayList<byte[]>();
+      Iterator<byte[]> uiditer = key.getRawUserIDs();
       while(uiditer.hasNext()) {
         uids.add(uiditer.next());
       }
