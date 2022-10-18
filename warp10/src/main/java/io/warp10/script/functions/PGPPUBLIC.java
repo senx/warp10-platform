@@ -40,6 +40,7 @@ import org.bouncycastle.openpgp.PGPUtil;
 import org.bouncycastle.openpgp.jcajce.JcaPGPPublicKeyRingCollection;
 import org.bouncycastle.util.encoders.Hex;
 
+import io.warp10.continuum.store.Constants;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
@@ -191,14 +192,20 @@ public class PGPPUBLIC extends NamedWarpScriptFunction implements WarpScriptStac
     hex = hex.substring(hex.length() - 16).toUpperCase();
     keymap.put(KEY_KEYID, hex);
     keymap.put(KEY_FINGERPRINT, Hex.toHexString(key.getFingerprint()));
-    keymap.put(KEY_BITS, key.getBitStrength());
+    keymap.put(KEY_BITS, (long) key.getBitStrength());
     keymap.put(KEY_ALG, getPublicKeyAlgorithmName(key.getAlgorithm()));
+    keymap.put(PGPINFO.KEY_MASTER, key.isMasterKey());
+    keymap.put(PGPINFO.KEY_SIGNING, false);
+    keymap.put(PGPINFO.KEY_ENCRYPTION, key.isEncryptionKey());
     Iterator<byte[]> useridsiter = key.getRawUserIDs();
     List<byte[]> userids = new ArrayList<byte[]>();
     while(useridsiter.hasNext()) {
       userids.add(useridsiter.next());
     }
     keymap.put(KEY_UID, userids);
+    long creation = key.getCreationTime().getTime();
+    keymap.put(PGPINFO.KEY_EXPIRY, 0 == key.getValidSeconds() ? 0L : (creation + key.getValidSeconds() * 1000L) * Constants.TIME_UNITS_PER_MS);
+    keymap.put(PGPINFO.KEY_PUBKEY, key);
     Iterator<PGPUserAttributeSubpacketVector> ater = key.getUserAttributes();
     List<byte[]> attributes = new ArrayList<byte[]>();
     while(ater.hasNext()) {
