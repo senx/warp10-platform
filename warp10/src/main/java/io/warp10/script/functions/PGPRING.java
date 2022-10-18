@@ -21,17 +21,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
-import org.bouncycastle.bcpg.BCPGInputStream;
-import org.bouncycastle.bcpg.PacketTags;
-import org.bouncycastle.openpgp.PGPException;
+import org.bouncycastle.openpgp.PGPObjectFactory;
 import org.bouncycastle.openpgp.PGPPublicKeyRing;
 import org.bouncycastle.openpgp.PGPSecretKeyRing;
 import org.bouncycastle.openpgp.PGPUtil;
-import org.bouncycastle.openpgp.jcajce.JcaPGPPublicKeyRingCollection;
-import org.bouncycastle.openpgp.jcajce.JcaPGPSecretKeyRingCollection;
+import org.bouncycastle.openpgp.operator.jcajce.JcaKeyFingerprintCalculator;
 
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
@@ -70,47 +66,25 @@ public class PGPRING extends NamedWarpScriptFunction implements WarpScriptStackF
     }
 
     byte[] blob = top instanceof String ? ((String) top).getBytes(StandardCharsets.UTF_8) : (byte[]) top;
-
-
-    // Determine if this is a public of secret key ring
-
-    int tag = 0;
-
-    try {
-      BCPGInputStream bIn = new BCPGInputStream(new ByteArrayInputStream(blob));
-      tag = bIn.nextPacketTag();
-    } catch (IOException ioe) {
-      throw new WarpScriptException(getName() + " error opening key ring.");
-    }
-
-    ByteArrayInputStream in = new ByteArrayInputStream(blob);
+    InputStream in = new ByteArrayInputStream(blob);
 
     try {
       InputStream decoderstream = PGPUtil.getDecoderStream(in);
-      if (PacketTags.SECRET_KEY == tag || PacketTags.SECRET_SUBKEY == tag) {
-        JcaPGPSecretKeyRingCollection secretKeyRing = new JcaPGPSecretKeyRingCollection(decoderstream);
-        decoderstream.close();
-        Iterator<PGPSecretKeyRing> iter = secretKeyRing.getKeyRings();
-        List<PGPSecretKeyRing> rings = new ArrayList<PGPSecretKeyRing>();
-        while(iter.hasNext()) {
-          PGPSecretKeyRing kr = iter.next();
-          rings.add(kr);
+      List<Object> rings = new ArrayList<Object>();
+
+      PGPObjectFactory pgpFact = new PGPObjectFactory(decoderstream, new JcaKeyFingerprintCalculator());
+      Object obj;
+
+      while ((obj = pgpFact.nextObject()) != null) {
+        if (obj instanceof PGPSecretKeyRing || obj instanceof PGPPublicKeyRing) {
+          rings.add(obj);
         }
-        stack.push(rings);
-      } else if (PacketTags.PUBLIC_KEY == tag || PacketTags.PUBLIC_SUBKEY == tag) {
-        JcaPGPPublicKeyRingCollection publicKeyRing = new JcaPGPPublicKeyRingCollection(decoderstream);
-        decoderstream.close();
-        Iterator<PGPPublicKeyRing> iter = publicKeyRing.getKeyRings();
-        List<PGPPublicKeyRing> rings = new ArrayList<PGPPublicKeyRing>();
-        while(iter.hasNext()) {
-          PGPPublicKeyRing kr = iter.next();
-          rings.add(kr);
-        }
-        stack.push(rings);
-      } else {
-        throw new WarpScriptException(getName() + " invalid key ring.");
       }
-    } catch (IOException|PGPException e) {
+
+      decoderstream.close();
+
+      stack.push(rings);
+    } catch (IOException e) {
       throw new WarpScriptException(getName() + " error decoding PGP key ring.", e);
     }
     return stack;
