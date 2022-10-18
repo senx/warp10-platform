@@ -32,8 +32,11 @@ import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.openpgp.PGPLiteralData;
 import org.bouncycastle.openpgp.PGPLiteralDataGenerator;
 import org.bouncycastle.openpgp.PGPPublicKey;
+import org.bouncycastle.openpgp.PGPPublicKeyRing;
+import org.bouncycastle.openpgp.PGPSecretKeyRing;
 import org.bouncycastle.openpgp.operator.bc.BcPGPDataEncryptorBuilder;
 import org.bouncycastle.openpgp.operator.bc.BcPublicKeyKeyEncryptionMethodGenerator;
+import org.bouncycastle.util.encoders.Hex;
 
 import io.warp10.continuum.store.Constants;
 import io.warp10.script.NamedWarpScriptFunction;
@@ -81,11 +84,42 @@ public class PGPENCRYPT extends NamedWarpScriptFunction implements WarpScriptSta
     boolean throwKeyId = Boolean.TRUE.equals(params.getOrDefault(PGPSIGN.KEY_THROW_KEYID, true));
     boolean armor = Boolean.TRUE.equals(params.getOrDefault(PGPSIGN.KEY_ARMOR, true));
 
-    if (!(params.get(KEY_RECIPIENT) instanceof PGPPublicKey)) {
-      throw new WarpScriptException(getName() + " missing recipient PGP public key.");
-    }
-
     PGPPublicKey pubkey = (PGPPublicKey) params.get(KEY_RECIPIENT);
+
+    if (params.get(KEY_RECIPIENT) instanceof PGPPublicKey) {
+      pubkey = (PGPPublicKey) params.get(KEY_RECIPIENT);
+    } else if (params.get(KEY_RECIPIENT) instanceof Long || params.get(KEY_RECIPIENT) instanceof String) {
+      Object k = params.get(KEY_RECIPIENT);
+      long keyid = 0L;
+
+      if (k instanceof Long) {
+        keyid = ((Long) k).longValue();
+      } else if (k instanceof String) {
+        byte[] decoded = Hex.decode((String) k);
+        for (int i = 8; i >= 1; i--) {
+          if (decoded.length - i >= 0) {
+            keyid <<= 8;
+            keyid |= ((long) decoded[decoded.length - i]) & 0xFFL;
+          }
+        }
+      } else {
+        throw new WarpScriptException(getName() + " missing PGP secret key id.");
+      }
+
+      if (params.get(PGPSIGN.KEY_RING) instanceof PGPSecretKeyRing) {
+        pubkey = ((PGPSecretKeyRing) params.get(PGPSIGN.KEY_RING)).getPublicKey(keyid);
+      } else if (params.get(PGPSIGN.KEY_RING) instanceof PGPPublicKeyRing) {
+        pubkey = ((PGPPublicKeyRing) params.get(PGPSIGN.KEY_RING)).getPublicKey(keyid);
+      } else {
+        throw new WarpScriptException(getName() + " missing PGP secret key ring.");
+      }
+
+      if (null == pubkey) {
+        throw new WarpScriptException(getName() + " key with id 0x" + Long.toHexString(keyid) + " not found.");
+      }
+    } else {
+      throw new WarpScriptException(getName() + " missing recipient PGP public key or key ring and key id.");
+    }
 
     top = stack.pop();
 

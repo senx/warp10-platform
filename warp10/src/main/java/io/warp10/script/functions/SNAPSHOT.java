@@ -34,7 +34,9 @@ import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.RealVector;
 import org.bouncycastle.openpgp.PGPPrivateKey;
 import org.bouncycastle.openpgp.PGPPublicKey;
+import org.bouncycastle.openpgp.PGPPublicKeyRing;
 import org.bouncycastle.openpgp.PGPSecretKey;
+import org.bouncycastle.openpgp.PGPSecretKeyRing;
 
 import processing.core.PGraphics;
 import processing.core.PImage;
@@ -432,21 +434,26 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         addElement(sb, PGPPUBLIC.KEY_KEY);
         sb.append(WarpScriptLib.GET);
         sb.append(" ");
-      } else if (o instanceof PGPSecretKey) {
+      } else if (o instanceof PGPSecretKeyRing) {
         try {
-          addElement(sb, ((PGPSecretKey) o).getEncoded());
+          addElement(sb, ((PGPSecretKeyRing) o).getEncoded());
         } catch (IOException ioe) {
-          throw new WarpScriptException("Error while serializing PGP secret key.", ioe);
+          throw new WarpScriptException("Error while serializing PGP secret key ring.", ioe);
         }
-        sb.append(WarpScriptLib.PGPPRIVATE);
-        sb.append(" ");
-        String keyid = "000000000000000" + Long.toHexString(((PGPSecretKey) o).getKeyID());
-        keyid = keyid.substring(keyid.length() - 16, keyid.length()).toUpperCase();
-        addElement(sb, keyid);
+        sb.append(WarpScriptLib.PGPRING);
+        sb.append(" 0 ");
         sb.append(WarpScriptLib.GET);
         sb.append(" ");
-        addElement(sb, PGPPUBLIC.KEY_KEY);
+      } else if (o instanceof PGPPublicKeyRing) {
+        try {
+          addElement(sb, ((PGPPublicKeyRing) o).getEncoded());
+        } catch (IOException ioe) {
+          throw new WarpScriptException("Error while serializing PGP public key ring.", ioe);
+        }
+        sb.append(WarpScriptLib.PGPRING);
+        sb.append(" 0 ");
         sb.append(WarpScriptLib.GET);
+        sb.append(" ");
       } else if (o instanceof NamedWarpScriptFunction) {
         sb.append(o.toString());
         sb.append(" ");

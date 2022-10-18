@@ -24,14 +24,16 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.bouncycastle.bcpg.ArmoredOutputStream;
 import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.openpgp.PGPPublicKey;
 import org.bouncycastle.openpgp.PGPPublicKeyRing;
-import org.bouncycastle.openpgp.PGPSecretKey;
+import org.bouncycastle.openpgp.PGPSecretKeyRing;
 import org.bouncycastle.openpgp.PGPUtil;
 import org.bouncycastle.openpgp.jcajce.JcaPGPPublicKeyRingCollection;
 import org.bouncycastle.util.encoders.Hex;
@@ -59,15 +61,6 @@ public class PGPPUBLIC extends NamedWarpScriptFunction implements WarpScriptStac
 
     Object top = stack.pop();
 
-    if (top instanceof PGPSecretKey) {
-      PGPPublicKey key = ((PGPSecretKey) top).getPublicKey();
-      Map<String,Object> keymap = getKeyMap(key);
-      Map<String,Object> keys = new LinkedHashMap<String,Object>();
-      keys.put((String) keymap.get(KEY_KEYID), keymap);
-      stack.push(keys);
-      return stack;
-    }
-
     if (top instanceof PGPPublicKey) {
       try {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -79,6 +72,59 @@ public class PGPPUBLIC extends NamedWarpScriptFunction implements WarpScriptStac
       } catch (Exception e) {
         throw new WarpScriptException(getName() + " encountered and error while serializing public key.", e);
       }
+    } else if (top instanceof PGPSecretKeyRing) {
+      // Extract ids of public keys
+      Set<Long> ids = new LinkedHashSet<Long>();
+      PGPSecretKeyRing keyring = (PGPSecretKeyRing) top;
+      Iterator<PGPPublicKey> iter = keyring.getPublicKeys();
+      while(iter.hasNext()) {
+        ids.add(iter.next().getKeyID());
+      }
+      iter = keyring.getExtraPublicKeys();
+      while(iter.hasNext()) {
+        ids.add(iter.next().getKeyID());
+      }
+      List<String> keyids = new ArrayList<String>(ids.size());
+      for (Long id: ids) {
+        String keyid = "000000000000000" + Long.toHexString(id);
+        keyids.add(keyid.substring(keyid.length() - 16, keyid.length()).toUpperCase());
+      }
+      stack.push(keyids);
+      return stack;
+    } else if (top instanceof PGPPublicKeyRing) {
+      // Extract ids of public keys
+      Set<Long> ids = new LinkedHashSet<Long>();
+      PGPPublicKeyRing keyring = (PGPPublicKeyRing) top;
+      Iterator<PGPPublicKey> iter = keyring.getPublicKeys();
+      while(iter.hasNext()) {
+        ids.add(iter.next().getKeyID());
+      }
+      List<String> keyids = new ArrayList<String>(ids.size());
+      for (Long id: ids) {
+        String keyid = "000000000000000" + Long.toHexString(id);
+        keyids.add(keyid.substring(keyid.length() - 16, keyid.length()).toUpperCase());
+      }
+      stack.push(keyids);
+      return stack;
+    } else if (top instanceof Long) {
+      long keyid = ((Long) top).longValue();
+      top = stack.pop();
+
+      PGPPublicKey key = null;
+
+      if (top instanceof PGPPublicKeyRing) {
+        key = ((PGPPublicKeyRing) top).getPublicKey(keyid);
+      } else if (top instanceof PGPSecretKeyRing) {
+        key = ((PGPSecretKeyRing) top).getPublicKey(keyid);
+      } else {
+        throw new WarpScriptException(getName() + " expected PGP public or secret key ring.");
+      }
+
+      if (null == key) {
+        throw new WarpScriptException(getName() + " key with id 0x" + Long.toHexString(keyid) + " not found.");
+      }
+
+      return stack;
     }
 
     if (!(top instanceof String) && !(top instanceof byte[])) {

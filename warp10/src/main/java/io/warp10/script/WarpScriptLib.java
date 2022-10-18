@@ -629,8 +629,10 @@ import io.warp10.script.functions.PATTERNDETECTION;
 import io.warp10.script.functions.PATTERNS;
 import io.warp10.script.functions.PEEK;
 import io.warp10.script.functions.PEEKN;
+import io.warp10.script.functions.PGPINFO;
 import io.warp10.script.functions.PGPPUBLIC;
 import io.warp10.script.functions.PGPPRIVATE;
+import io.warp10.script.functions.PGPRING;
 import io.warp10.script.functions.PGPENCRYPT;
 import io.warp10.script.functions.PGPDECRYPT;
 import io.warp10.script.functions.PGPSIGN;
@@ -1241,6 +1243,8 @@ public class WarpScriptLib {
   public static final String RSAVERIFY = "RSAVERIFY";
   public static final String PGPPUBLIC = "PGPPUBLIC";
   public static final String PGPPRIVATE = "PGPPRIVATE";
+  public static final String PGPRING = "PGPRING";
+  public static final String PGPINFO = "PGPINFO";
   public static final String PGPENCRYPT = "PGPENCRYPT";
   public static final String PGPDECRYPT = "PGPDECRYPT";
   public static final String PGPSIGN = "PGPSIGN";
@@ -2164,6 +2168,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new RSASIGN(RSASIGN));
     addNamedWarpScriptFunction(new RSAVERIFY(RSAVERIFY));
 
+    addNamedWarpScriptFunction(new PGPRING(PGPRING));
+    addNamedWarpScriptFunction(new PGPINFO(PGPINFO));
     addNamedWarpScriptFunction(new PGPPUBLIC(PGPPUBLIC));
     addNamedWarpScriptFunction(new PGPPRIVATE(PGPPRIVATE));
     addNamedWarpScriptFunction(new PGPENCRYPT(PGPENCRYPT));

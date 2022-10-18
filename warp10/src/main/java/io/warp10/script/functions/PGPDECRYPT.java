@@ -31,12 +31,14 @@ import org.bouncycastle.openpgp.PGPObjectFactory;
 import org.bouncycastle.openpgp.PGPPrivateKey;
 import org.bouncycastle.openpgp.PGPPublicKeyEncryptedData;
 import org.bouncycastle.openpgp.PGPSecretKey;
+import org.bouncycastle.openpgp.PGPSecretKeyRing;
 import org.bouncycastle.openpgp.bc.BcPGPObjectFactory;
 import org.bouncycastle.openpgp.operator.PBESecretKeyDecryptor;
 import org.bouncycastle.openpgp.operator.PublicKeyDataDecryptorFactory;
 import org.bouncycastle.openpgp.operator.bc.BcPBESecretKeyDecryptorBuilder;
 import org.bouncycastle.openpgp.operator.bc.BcPGPDigestCalculatorProvider;
 import org.bouncycastle.openpgp.operator.bc.BcPublicKeyDataDecryptorFactory;
+import org.bouncycastle.util.encoders.Hex;
 import org.bouncycastle.util.io.Streams;
 
 import io.warp10.script.NamedWarpScriptFunction;
@@ -62,11 +64,35 @@ public class PGPDECRYPT extends NamedWarpScriptFunction implements WarpScriptSta
 
     top = stack.pop();
 
-    if (!(top instanceof PGPSecretKey)) {
-      throw new WarpScriptException(getName() + " missing PGP secret key.");
+    long keyid = 0L;
+
+    if (top instanceof Long) {
+      keyid = ((Long) top).longValue();
+    } else if (top instanceof String) {
+      byte[] decoded = Hex.decode((String) top);
+      for (int i = 8; i >= 1; i--) {
+        if (decoded.length - i >= 0) {
+          keyid <<= 8;
+          keyid |= ((long) decoded[decoded.length - i]) & 0xFFL;
+        }
+      }
+    } else {
+      throw new WarpScriptException(getName() + " missing PGP secret key id.");
     }
 
-    PGPSecretKey key = (PGPSecretKey) top;
+    top = stack.pop();
+
+    if (!(top instanceof PGPSecretKeyRing)) {
+      throw new WarpScriptException(getName() + " missing PGP secret key ring.");
+    }
+
+    PGPSecretKeyRing keyring = (PGPSecretKeyRing) top;
+
+    PGPSecretKey key = keyring.getSecretKey(keyid);
+
+    if (null == key) {
+      throw new WarpScriptException(getName() + " key with id 0x" + Long.toHexString(keyid) + " not found.");
+    }
 
     PBESecretKeyDecryptor decryptorFactory = new BcPBESecretKeyDecryptorBuilder(new BcPGPDigestCalculatorProvider()).build(passphrase.toCharArray());
     PGPPrivateKey privateKey = null;

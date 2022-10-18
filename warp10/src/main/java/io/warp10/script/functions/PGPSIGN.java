@@ -25,12 +25,12 @@ import java.util.Map;
 
 import org.bouncycastle.bcpg.ArmoredOutputStream;
 import org.bouncycastle.bcpg.BCPGOutputStream;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.openpgp.PGPLiteralData;
 import org.bouncycastle.openpgp.PGPLiteralDataGenerator;
 import org.bouncycastle.openpgp.PGPPrivateKey;
 import org.bouncycastle.openpgp.PGPSecretKey;
+import org.bouncycastle.openpgp.PGPSecretKeyRing;
 import org.bouncycastle.openpgp.PGPSignature;
 import org.bouncycastle.openpgp.PGPSignatureGenerator;
 import org.bouncycastle.openpgp.PGPUtil;
@@ -38,6 +38,7 @@ import org.bouncycastle.openpgp.operator.PBESecretKeyDecryptor;
 import org.bouncycastle.openpgp.operator.bc.BcPBESecretKeyDecryptorBuilder;
 import org.bouncycastle.openpgp.operator.bc.BcPGPContentSignerBuilder;
 import org.bouncycastle.openpgp.operator.bc.BcPGPDigestCalculatorProvider;
+import org.bouncycastle.util.encoders.Hex;
 
 import io.warp10.continuum.store.Constants;
 import io.warp10.script.NamedWarpScriptFunction;
@@ -48,7 +49,7 @@ import io.warp10.script.WarpScriptStackFunction;
 public class PGPSIGN extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
   private static final String KEY_DETACHED = "detached";
-  private static final String KEY_SIGNER = "signer";
+  public static final String KEY_RING = "ring";
   private static final String KEY_PASSPHRASE = "passphrase";
   private static final String KEY_DIGEST = "digest";
   public static final String KEY_ARMOR = "armor";
@@ -79,11 +80,39 @@ public class PGPSIGN extends NamedWarpScriptFunction implements WarpScriptStackF
 
     String passphrase = (String) params.get(KEY_PASSPHRASE);
 
-    if (!(params.get(KEY_SIGNER) instanceof PGPSecretKey)) {
-      throw new WarpScriptException(getName() + " expected a PGP secret key.");
+    if (!(params.get(KEY_RING) instanceof PGPSecretKeyRing)) {
+      throw new WarpScriptException(getName() + " expected a PGP secret key ring.");
     }
 
-    PGPSecretKey secret = (PGPSecretKey) params.get(KEY_SIGNER);
+    long keyid = 0L;
+
+    Object k = params.get(PGPPUBLIC.KEY_KEYID);
+
+    if (k instanceof Long) {
+      keyid = ((Long) k).longValue();
+    } else if (k instanceof String) {
+      byte[] decoded = Hex.decode((String) k);
+      for (int i = 8; i >= 1; i--) {
+        if (decoded.length - i >= 0) {
+          keyid <<= 8;
+          keyid |= ((long) decoded[decoded.length - i]) & 0xFFL;
+        }
+      }
+    } else {
+      throw new WarpScriptException(getName() + " missing PGP secret key id.");
+    }
+
+    if (!(params.get(KEY_RING) instanceof PGPSecretKeyRing)) {
+      throw new WarpScriptException(getName() + " missing PGP secret key ring.");
+    }
+
+    PGPSecretKeyRing keyring = (PGPSecretKeyRing) params.get(KEY_RING);
+
+    PGPSecretKey secret = keyring.getSecretKey(keyid);
+
+    if (null == secret) {
+      throw new WarpScriptException(getName() + " key with id 0x" + Long.toHexString(keyid) + " not found.");
+    }
 
     PBESecretKeyDecryptor decryptorFactory = new BcPBESecretKeyDecryptorBuilder(new BcPGPDigestCalculatorProvider()).build(passphrase.toCharArray());
     PGPPrivateKey signingKey = null;
