@@ -30,10 +30,12 @@ import java.util.Map;
 import java.util.Set;
 
 import org.bouncycastle.bcpg.ArmoredOutputStream;
+import org.bouncycastle.bcpg.attr.ImageAttribute;
 import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.openpgp.PGPPublicKey;
 import org.bouncycastle.openpgp.PGPPublicKeyRing;
 import org.bouncycastle.openpgp.PGPSecretKeyRing;
+import org.bouncycastle.openpgp.PGPUserAttributeSubpacketVector;
 import org.bouncycastle.openpgp.PGPUtil;
 import org.bouncycastle.openpgp.jcajce.JcaPGPPublicKeyRingCollection;
 import org.bouncycastle.util.encoders.Hex;
@@ -191,12 +193,22 @@ public class PGPPUBLIC extends NamedWarpScriptFunction implements WarpScriptStac
     keymap.put(KEY_FINGERPRINT, Hex.toHexString(key.getFingerprint()));
     keymap.put(KEY_BITS, key.getBitStrength());
     keymap.put(KEY_ALG, getPublicKeyAlgorithmName(key.getAlgorithm()));
-    Iterator<String> useridsiter = key.getUserIDs();
-    List<String> userids = new ArrayList<String>();
+    Iterator<byte[]> useridsiter = key.getRawUserIDs();
+    List<byte[]> userids = new ArrayList<byte[]>();
     while(useridsiter.hasNext()) {
       userids.add(useridsiter.next());
     }
     keymap.put(KEY_UID, userids);
+    Iterator<PGPUserAttributeSubpacketVector> ater = key.getUserAttributes();
+    List<byte[]> attributes = new ArrayList<byte[]>();
+    while(ater.hasNext()) {
+      PGPUserAttributeSubpacketVector uat = ater.next();
+      ImageAttribute img = uat.getImageAttribute();
+      if (null != img) {
+        attributes.add(img.getImageData());
+      }
+    }
+    keymap.put(PGPINFO.KEY_ATTR, attributes);
     return keymap;
   }
 }
