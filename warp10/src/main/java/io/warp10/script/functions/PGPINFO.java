@@ -38,11 +38,11 @@ import io.warp10.script.WarpScriptStackFunction;
 
 public class PGPINFO extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  private static final String KEY_MASTER = "master";
-  private static final String KEY_SIGNING = "signing";
-  private static final String KEY_ENCRYPTION = "encryption";
-  private static final String KEY_EXPIRY = "expiry";
-  private static final String KEY_PUBKEY = "pubkey";
+  public static final String KEY_MASTER = "master";
+  public static final String KEY_SIGNING = "signing";
+  public static final String KEY_ENCRYPTION = "encryption";
+  public static final String KEY_EXPIRY = "expiry";
+  public static final String KEY_PUBKEY = "pubkey";
   public static final String KEY_ATTR = "attributes";
 
   public PGPINFO(String name) {
@@ -80,13 +80,13 @@ public class PGPINFO extends NamedWarpScriptFunction implements WarpScriptStackF
             uids.add(uiditer.next());
           }
           infos.put(PGPPUBLIC.KEY_UID, uids);
-          infos.put(PGPPUBLIC.KEY_BITS, key.getPublicKey().getBitStrength());
+          infos.put(PGPPUBLIC.KEY_BITS, (long) key.getPublicKey().getBitStrength());
           infos.put(PGPPUBLIC.KEY_ALG, PGPPUBLIC.getPublicKeyAlgorithmName(key.getPublicKey().getAlgorithm()));
           infos.put(KEY_MASTER, key.isMasterKey());
           infos.put(KEY_SIGNING, key.isSigningKey());
           long creation = key.getPublicKey().getCreationTime().getTime();
-          infos.put(KEY_EXPIRY, 0 == key.getPublicKey().getValidSeconds() ? 0L : (creation + key.getPublicKey().getValidSeconds() * 1000L) * Constants.TIME_UNITS_PER_MS);
           infos.put(KEY_ENCRYPTION, key.getPublicKey().isEncryptionKey());
+          infos.put(KEY_EXPIRY, 0 == key.getPublicKey().getValidSeconds() ? 0L : (creation + key.getPublicKey().getValidSeconds() * 1000L) * Constants.TIME_UNITS_PER_MS);
           infos.put(KEY_PUBKEY, key.getPublicKey());
           Iterator<PGPUserAttributeSubpacketVector> ater = key.getUserAttributes();
           List<byte[]> attributes = new ArrayList<byte[]>();
@@ -120,11 +120,13 @@ public class PGPINFO extends NamedWarpScriptFunction implements WarpScriptStackF
           uids.add(uiditer.next());
         }
         infos.put(PGPPUBLIC.KEY_UID, uids);
-        infos.put(PGPPUBLIC.KEY_BITS, key.getBitStrength());
+        infos.put(PGPPUBLIC.KEY_BITS, (long) key.getBitStrength());
         infos.put(PGPPUBLIC.KEY_ALG, PGPPUBLIC.getPublicKeyAlgorithmName(key.getAlgorithm()));
         infos.put(KEY_MASTER, key.isMasterKey());
         infos.put(KEY_SIGNING, false);
         infos.put(KEY_ENCRYPTION, key.isEncryptionKey());
+        long creation = key.getCreationTime().getTime();
+        infos.put(KEY_EXPIRY, 0 == key.getValidSeconds() ? 0L : (creation + key.getValidSeconds() * 1000L) * Constants.TIME_UNITS_PER_MS);
         infos.put(KEY_PUBKEY, key);
         Iterator<PGPUserAttributeSubpacketVector> ater = key.getUserAttributes();
         List<byte[]> attributes = new ArrayList<byte[]>();
@@ -154,11 +156,13 @@ public class PGPINFO extends NamedWarpScriptFunction implements WarpScriptStackF
         uids.add(uiditer.next());
       }
       infos.put(PGPPUBLIC.KEY_UID, uids);
-      infos.put(PGPPUBLIC.KEY_BITS, key.getBitStrength());
+      infos.put(PGPPUBLIC.KEY_BITS, (long) key.getBitStrength());
       infos.put(PGPPUBLIC.KEY_ALG, PGPPUBLIC.getPublicKeyAlgorithmName(key.getAlgorithm()));
       infos.put(KEY_MASTER, key.isMasterKey());
       infos.put(KEY_SIGNING, false);
       infos.put(KEY_ENCRYPTION, key.isEncryptionKey());
+      long creation = key.getCreationTime().getTime();
+      infos.put(KEY_EXPIRY, 0 == key.getValidSeconds() ? 0L : (creation + key.getValidSeconds() * 1000L) * Constants.TIME_UNITS_PER_MS);
       infos.put(KEY_PUBKEY, key);
       stack.push(infos);
     } else {
