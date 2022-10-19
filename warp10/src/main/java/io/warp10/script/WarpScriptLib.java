@@ -2672,7 +2672,6 @@ public class WarpScriptLib {
     //
     // Math functions
     //
-    addNamedWarpScriptFunction(new TEST("TEST")); // to remove
     addNamedWarpScriptFunction(new Pi(PI_LOWERCASE));
     addNamedWarpScriptFunction(new Pi(PI));
     addNamedWarpScriptFunction(new E(E_LOWERCASE));
