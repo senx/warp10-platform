@@ -84,7 +84,7 @@ public class PGPENCRYPT extends NamedWarpScriptFunction implements WarpScriptSta
     boolean throwKeyId = Boolean.TRUE.equals(params.getOrDefault(PGPSIGN.KEY_THROW_KEYID, true));
     boolean armor = Boolean.TRUE.equals(params.getOrDefault(PGPSIGN.KEY_ARMOR, true));
 
-    PGPPublicKey pubkey = (PGPPublicKey) params.get(KEY_RECIPIENT);
+    PGPPublicKey pubkey = null;
 
     if (params.get(KEY_RECIPIENT) instanceof PGPPublicKey) {
       pubkey = (PGPPublicKey) params.get(KEY_RECIPIENT);
@@ -106,10 +106,10 @@ public class PGPENCRYPT extends NamedWarpScriptFunction implements WarpScriptSta
         throw new WarpScriptException(getName() + " missing PGP secret key id.");
       }
 
-      if (params.get(PGPSIGN.KEY_RING) instanceof PGPSecretKeyRing) {
-        pubkey = ((PGPSecretKeyRing) params.get(PGPSIGN.KEY_RING)).getPublicKey(keyid);
-      } else if (params.get(PGPSIGN.KEY_RING) instanceof PGPPublicKeyRing) {
-        pubkey = ((PGPPublicKeyRing) params.get(PGPSIGN.KEY_RING)).getPublicKey(keyid);
+      if (params.get(PGPSIGN.KEY_KEYRING) instanceof PGPSecretKeyRing) {
+        pubkey = ((PGPSecretKeyRing) params.get(PGPSIGN.KEY_KEYRING)).getPublicKey(keyid);
+      } else if (params.get(PGPSIGN.KEY_KEYRING) instanceof PGPPublicKeyRing) {
+        pubkey = ((PGPPublicKeyRing) params.get(PGPSIGN.KEY_KEYRING)).getPublicKey(keyid);
       } else {
         throw new WarpScriptException(getName() + " missing PGP secret key ring.");
       }

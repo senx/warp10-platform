@@ -100,7 +100,7 @@ public class PGPINFO extends NamedWarpScriptFunction implements WarpScriptStackF
           infos.put(KEY_ATTR, attributes);
           keys.put(keyid, infos);
         }
-        keyring.getExtraPublicKeys();
+        pubiter = keyring.getExtraPublicKeys();
       } else {
         pubiter = ((PGPPublicKeyRing) top).getPublicKeys();
       }

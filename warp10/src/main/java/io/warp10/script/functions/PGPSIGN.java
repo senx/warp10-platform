@@ -49,7 +49,7 @@ import io.warp10.script.WarpScriptStackFunction;
 public class PGPSIGN extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
   private static final String KEY_DETACHED = "detached";
-  public static final String KEY_RING = "ring";
+  public static final String KEY_KEYRING = "keyring";
   private static final String KEY_PASSPHRASE = "passphrase";
   private static final String KEY_DIGEST = "digest";
   public static final String KEY_ARMOR = "armor";
@@ -80,7 +80,7 @@ public class PGPSIGN extends NamedWarpScriptFunction implements WarpScriptStackF
 
     String passphrase = (String) params.get(KEY_PASSPHRASE);
 
-    if (!(params.get(KEY_RING) instanceof PGPSecretKeyRing)) {
+    if (!(params.get(KEY_KEYRING) instanceof PGPSecretKeyRing)) {
       throw new WarpScriptException(getName() + " expected a PGP secret key ring.");
     }
 
@@ -102,11 +102,11 @@ public class PGPSIGN extends NamedWarpScriptFunction implements WarpScriptStackF
       throw new WarpScriptException(getName() + " missing PGP secret key id.");
     }
 
-    if (!(params.get(KEY_RING) instanceof PGPSecretKeyRing)) {
+    if (!(params.get(KEY_KEYRING) instanceof PGPSecretKeyRing)) {
       throw new WarpScriptException(getName() + " missing PGP secret key ring.");
     }
 
-    PGPSecretKeyRing keyring = (PGPSecretKeyRing) params.get(KEY_RING);
+    PGPSecretKeyRing keyring = (PGPSecretKeyRing) params.get(KEY_KEYRING);
 
     PGPSecretKey secret = keyring.getSecretKey(keyid);
 

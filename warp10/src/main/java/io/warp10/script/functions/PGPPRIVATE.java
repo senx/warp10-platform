@@ -47,7 +47,7 @@ public class PGPPRIVATE extends NamedWarpScriptFunction implements WarpScriptSta
 
     PGPSecretKeyRing keyring = (PGPSecretKeyRing) top;
 
-    // Extract ids of public keys
+    // Extract ids of secret keys
     Set<Long> ids = new LinkedHashSet<Long>();
     Iterator<PGPSecretKey> iter = keyring.getSecretKeys();
     while(iter.hasNext()) {
