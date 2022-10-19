@@ -310,6 +310,7 @@ public class WarpFleetMacroRepository {
             macro.setExpiry(Long.MAX_VALUE - 1);
           }
 
+          macro.setSecure(true);
           macro.setNameRecursive(name);
 
           synchronized(macros) {

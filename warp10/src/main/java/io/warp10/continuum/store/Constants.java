@@ -120,8 +120,14 @@ public class Constants {
   public static final String RUNNER_PATH = "runner.path";
   public static final String RUNNER_SCHEDULEDAT = "runner.scheduledat";
   public static final String RUNNER_NONCE = "runner.nonce";
-
+  public static final String RUNNER_CONTEXT_EXEC_COUNT = "runner.execution.count";
+  
   private static final Map<String,String> HEADERS = new HashMap<String,String>();
+
+  /**
+   * Header to indicate the platform time unit (in time units per second)
+   */
+  public static final String HTTP_HEADER_TIMEUNIT = "X-Warp10-Timeunit";
 
   /**
    * Header to set to enable line numbering

@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -167,8 +167,7 @@ public class TIMEBOX extends NamedWarpScriptFunction implements WarpScriptStackF
     } catch (Exception e) {
       throw new WarpScriptException(getName() + " encountered an exception", e);
     } finally {
-      executorService.shutdown();
-      executorService.shutdownNow();
+      try { executorService.shutdownNow(); } catch (SecurityException ignore) {}
       fstack.setAttribute(WarpScriptStack.ATTRIBUTE_TIMEBOXED, timeboxed);
       if (!executorService.isShutdown()) {
         throw new WarpScriptException(getName() + " could not be properly shut down.");

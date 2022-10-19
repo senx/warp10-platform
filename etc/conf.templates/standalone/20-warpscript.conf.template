@@ -181,6 +181,11 @@ warpscript.delete.endpoint = http://${standalone.host}:${standalone.port}/api/v0
 #warpscript.call.maxcapacity = 1
 
 //
+// Maximum amount of time each attempt to access a process will wait (in ms). Defaults to 10000 ms.
+//
+#warpscript.call.maxwait = 10000
+
+//
 // Path of the 'bootstrap' WarpScript code for Mobius
 //
 warpscript.mobius.bootstrap.path = ${standalone.home}/etc/bootstrap/mobius.mc2

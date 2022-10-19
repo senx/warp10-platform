@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2022  SenX S.A.S.
+//   Copyright 2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -14,43 +14,41 @@
 //   limitations under the License.
 //
 
-package io.warp10.script.ext.sensision;
+package io.warp10.script.functions;
 
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStackFunction;
-import io.warp10.sensision.Sensision;
-import io.warp10.warp.sdk.Capabilities;
 
-/**
- * Retrieve a string representation of all current Sensision metrics
- */
-public class SENSISIONDUMPEVENTS extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class MSEC extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  public SENSISIONDUMPEVENTS(String name) {
+  private final boolean recursive;
+
+  public MSEC(String name, boolean recursive) {
     super(name);
+    this.recursive = recursive;
   }
 
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
+    Object top = stack.pop();
 
-    if (SensisionWarpScriptExtension.useCapability() && null == Capabilities.get(stack, SensisionWarpScriptExtension.READ_CAPABILITY)) {
-      throw new WarpScriptException(getName() + " missing capability '" + SensisionWarpScriptExtension.READ_CAPABILITY +"'");
+    if (!(top instanceof Macro)) {
+      throw new WarpScriptException(getName() + " operates on a Macro.");
     }
 
-    StringBuilder sb = new StringBuilder();
+    Macro m = (Macro) top;
 
-    for (String event: Sensision.getEvents()) {
-      if (sb.length() > 0) {
-        sb.append("\n");
-      }
-      sb.append(event);
+    if (recursive) {
+      m.setSecureRecursive(true);
+    } else {
+      m.setSecure(true);
     }
 
-    stack.push(sb.toString());
+    stack.push(m);
 
     return stack;
   }
-
 }

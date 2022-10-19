@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,6 +16,10 @@
 
 package io.warp10.script.functions;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
@@ -23,9 +27,6 @@ import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.ElementOrListStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Extract the values from the parameter GTS or Encoder instances or list thereof and push them onto the stack.
@@ -58,7 +59,11 @@ public class VALUES extends ElementOrListStackFunction {
         GTSDecoder decoder = encoder.getDecoder(true);
 
         while (decoder.next()) {
-          values.add(decoder.getBinaryValue());
+          Object value = decoder.getBinaryValue();
+          if (value instanceof BigDecimal) {
+            value = ((BigDecimal) value).doubleValue();
+          }
+          values.add(value);
         }
 
         return values;

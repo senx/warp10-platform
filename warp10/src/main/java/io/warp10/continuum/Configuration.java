@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -2208,6 +2208,11 @@ public class Configuration {
    * Maximum number of subprogram instances which can be spawned
    */
   public static final String WARPSCRIPT_CALL_MAXCAPACITY = "warpscript.call.maxcapacity";
+
+  /**
+   * Maximum amount of time each attempt to access a process will wait (in ms). Defaults to 10000 ms.
+   */
+  public static final String WARPSCRIPT_CALL_MAXWAIT = "warpscript.call.maxwait";
 
   /**
    * Secret to use for setting configuration accessible via MACROCONFIG

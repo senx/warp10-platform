@@ -30,7 +30,6 @@ import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -178,6 +177,12 @@ public class EgressFetchHandler extends AbstractHandler {
       //
 
       resp.setHeader("Access-Control-Allow-Origin", "*");
+
+      //
+      // Add header with the platform time unit
+      //
+
+      resp.setHeader(Constants.HTTP_HEADER_TIMEUNIT, Long.toString(Constants.TIME_UNITS_PER_S));
 
       long now = Long.MIN_VALUE;
       long then = Long.MIN_VALUE;
@@ -469,20 +474,20 @@ public class EgressFetchHandler extends AbstractHandler {
         }
       }
 
-      ReadToken rtoken = null;
+      final AtomicReference<ReadToken> rtoken = new AtomicReference<ReadToken>(null);
 
       String format = splitFetch ? "wrapper" : req.getParameter(Constants.HTTP_PARAM_FORMAT);
 
       if (!splitFetch) {
         try {
-          rtoken = Tokens.extractReadToken(token);
+          rtoken.set(Tokens.extractReadToken(token));
 
-          if (rtoken.getHooksSize() > 0) {
+          if (rtoken.get().getHooksSize() > 0) {
             httpStatusCode = HttpServletResponse.SC_BAD_REQUEST;
             throw new IOException("Tokens with hooks cannot be used for fetching data.");
           }
 
-          Map<String, String> rtokenAttributes = rtoken.getAttributes();
+          Map<String, String> rtokenAttributes = rtoken.get().getAttributes();
           if (null != rtokenAttributes && (rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOFETCH) || rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOFIND))) {
             httpStatusCode = HttpServletResponse.SC_FORBIDDEN;
             throw new IOException("Token cannot be used for fetching data.");
@@ -503,7 +508,7 @@ public class EgressFetchHandler extends AbstractHandler {
       // Apply constraints from token attribute
       //
 
-      if (null != rtoken && rtoken.getAttributesSize() > 0) {
+      if (null != rtoken.get() && rtoken.get().getAttributesSize() > 0) {
         Map<String,Object> params = new HashMap<String,Object>();
         params.put(FETCH.PARAM_END, now);
         params.put(FETCH.PARAM_START, then);
@@ -517,7 +522,7 @@ public class EgressFetchHandler extends AbstractHandler {
         params.put(FETCH.PARAM_BOUNDARY_PRE, preBoundary);
         params.put(FETCH.PARAM_BOUNDARY_POST, postBoundary);
 
-        Map<String,Object> tokenattr = FETCH.parseTokenAttributes(rtoken, params);
+        Map<String,Object> tokenattr = FETCH.parseTokenAttributes(rtoken.get(), params);
 
         if (null != tokenattr.get(FETCH.PARAM_START)) {
           long start = (long) tokenattr.get(FETCH.PARAM_START);
@@ -618,7 +623,7 @@ public class EgressFetchHandler extends AbstractHandler {
           labelsSelectors.remove(Constants.OWNER_LABEL);
           labelsSelectors.remove(Constants.APPLICATION_LABEL);
 
-          labelsSelectors.putAll(Tokens.labelSelectorsFromReadToken(rtoken));
+          labelsSelectors.putAll(Tokens.labelSelectorsFromReadToken(rtoken.get()));
 
           List<Metadata> metas = null;
 
@@ -761,6 +766,10 @@ public class EgressFetchHandler extends AbstractHandler {
 
             if (instant - split.getTimestamp() > maxSplitAge || instant > split.getExpiry()) {
               throw new RuntimeException("Split has expired.");
+            }
+
+            if (null == rtoken.get()) {
+              rtoken.set(split.getToken());
             }
 
             this.metadatas.addAll(split.getMetadatas());
@@ -937,7 +946,7 @@ public class EgressFetchHandler extends AbstractHandler {
       AtomicReference<Metadata> lastMeta = new AtomicReference<Metadata>(null);
       AtomicLong lastCount = new AtomicLong(0L);
 
-      boolean expose = null != rtoken && rtoken.getAttributesSize() > 0 && rtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_EXPOSE);
+      boolean expose = null != rtoken.get() && rtoken.get().getAttributesSize() > 0 && rtoken.get().getAttributes().containsKey(Constants.TOKEN_ATTR_EXPOSE);
 
       if (nocache) {
         AcceleratorConfig.nocache();
@@ -961,7 +970,7 @@ public class EgressFetchHandler extends AbstractHandler {
 
           if (metas.size() > FETCH_BATCHSIZE || !itermeta.hasNext()) {
             FetchRequest freq = new FetchRequest();
-            freq.setToken(rtoken);
+            freq.setToken(rtoken.get());
             freq.setMetadatas(metas);
             freq.setNow(now);
             freq.setThents(then);
@@ -1062,6 +1071,8 @@ public class EgressFetchHandler extends AbstractHandler {
     Metadata lastMetadata = lastMeta.get();
     long currentCount = lastCount.get();
 
+    byte[] buf = new byte[100000];
+
     while(iter.hasNext()) {
       GTSDecoder decoder = iter.next();
 
@@ -1153,7 +1164,8 @@ public class EgressFetchHandler extends AbstractHandler {
         pw.print(" ");
 
         //pw.println(new String(OrderPreservingBase64.encode(encoder.getBytes())));
-        OrderPreservingBase64.encodeToWriter(encoder.getBytes(), pw);
+        byte[] encoded = encoder.getBytes();
+        OrderPreservingBase64.encodeToWriter(pw, encoded, 0, encoded.length, buf);
         pw.write('\r');
         pw.write('\n');
       }
