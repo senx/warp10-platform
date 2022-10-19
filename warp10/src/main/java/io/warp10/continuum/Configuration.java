@@ -2271,11 +2271,6 @@ public class Configuration {
   public static final String WARPSCRIPT_CALL_MAXWAIT = "warpscript.call.maxwait";
 
   /**
-   * Secret to use for setting configuration accessible via MACROCONFIG
-   */
-  public static final String CONFIG_MACROCONFIG_SECRET = "warpscript.macroconfig.secret";
-
-  /**
    * Macro Repository root directory
    */
   public static final String REPOSITORY_DIRECTORY = "warpscript.repository.directory";

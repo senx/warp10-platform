@@ -18,9 +18,6 @@
 // Macro Repository
 //
 
-// Secret to use for setting configuration accessible via MACROCONFIG
-#warpscript.macroconfig.secret =
-
 // Directory which contains subdirectories with macros
 warpscript.repository.directory = ${standalone.home}/macros
 
