@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2021  SenX S.A.S.
+//   Copyright 2020-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -34,6 +34,9 @@ import io.warp10.script.WarpScriptStack;
  *
  */
 public class Capabilities {
+
+  public static final String MANAGER_CAPABILITY = "manager";
+
   protected Map<String,String> capabilities = new HashMap<String,String>();
 
   public static String get(WarpScriptStack stack, String name) {
