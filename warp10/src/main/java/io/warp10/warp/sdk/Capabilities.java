@@ -35,8 +35,6 @@ import io.warp10.script.WarpScriptStack;
  */
 public class Capabilities {
 
-  public static final String STACKPS_CAPABILITY = "stackps";
-
   protected Map<String,String> capabilities = new HashMap<String,String>();
 
   public static String get(WarpScriptStack stack, String name) {

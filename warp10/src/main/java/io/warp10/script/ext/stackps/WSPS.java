@@ -36,7 +36,7 @@ public class WSPS extends NamedWarpScriptFunction implements WarpScriptStackFunc
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
 
-    if (null == Capabilities.get(stack, Capabilities.STACKPS_CAPABILITY)) {
+    if (null == Capabilities.get(stack, StackPSWarpScriptExtension.CAPABILITY)) {
       throw new WarpScriptException(getName() + " missing capability.");
     }
 

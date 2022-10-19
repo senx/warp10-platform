@@ -37,7 +37,7 @@ public class WSKILL extends NamedWarpScriptFunction implements WarpScriptStackFu
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
 
-    if (null == Capabilities.get(stack, Capabilities.STACKPS_CAPABILITY)) {
+    if (null == Capabilities.get(stack, StackPSWarpScriptExtension.CAPABILITY)) {
       throw new WarpScriptException(getName() + " missing capability.");
     }
 
