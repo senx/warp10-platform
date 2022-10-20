@@ -35,12 +35,6 @@ import io.warp10.script.WarpScriptStack;
  */
 public class Capabilities {
 
-  //
-  // Native Warp 10 capabilities
-  //
-
-  public static final String REPORT_CAPABILITY = "report";
-
   protected Map<String,String> capabilities = new HashMap<String,String>();
 
   public static String get(WarpScriptStack stack, String name) {

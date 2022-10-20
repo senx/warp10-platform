@@ -63,7 +63,7 @@ public class REPORT extends NamedWarpScriptFunction implements WarpScriptStackFu
 
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    if (null == Capabilities.get(stack, Capabilities.REPORT_CAPABILITY)) {
+    if (null == Capabilities.get(stack, WarpScriptStack.CAPABILITY_REPORT)) {
       throw new WarpScriptException(getName() + " missing capability.");
     }
 
