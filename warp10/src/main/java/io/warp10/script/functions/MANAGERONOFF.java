@@ -38,7 +38,7 @@ public class MANAGERONOFF extends NamedWarpScriptFunction implements WarpScriptS
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
 
-    if (null == Capabilities.get(stack, Capabilities.MANAGER_CAPABILITY)) {
+    if (null == Capabilities.get(stack, WarpScriptStack.CAPABILITY_MANAGER)) {
       throw new WarpScriptException(getName() + " missing invalid manager capability.");
     }
 

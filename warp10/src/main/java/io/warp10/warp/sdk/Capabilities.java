@@ -35,8 +35,6 @@ import io.warp10.script.WarpScriptStack;
  */
 public class Capabilities {
 
-  public static final String MANAGER_CAPABILITY = "manager";
-
   protected Map<String,String> capabilities = new HashMap<String,String>();
 
   public static String get(WarpScriptStack stack, String name) {
