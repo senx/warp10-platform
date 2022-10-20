@@ -551,6 +551,7 @@ public interface WarpScriptStack {
 
   String CAPABILITIES_PREFIX = ".cap:";
   String CAPABILITIES_ATTR = "stack.capabilities";
+  String CAPABILITY_SETMACROCONFIG = "setmacroconfig";
 
   /**
    * Retrieve the StoreClient instance associated with this stack.

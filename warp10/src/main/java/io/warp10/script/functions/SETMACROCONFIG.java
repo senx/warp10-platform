@@ -38,7 +38,7 @@ public class SETMACROCONFIG extends NamedWarpScriptFunction implements WarpScrip
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
 
-    String capability = Capabilities.get(stack, Capabilities.SETMACROCONFIG_CAPABILITY);
+    String capability = Capabilities.get(stack, WarpScriptStack.CAPABILITY_SETMACROCONFIG);
 
     if (null == capability) {
       throw new WarpScriptException(getName() + " missing capability.");
