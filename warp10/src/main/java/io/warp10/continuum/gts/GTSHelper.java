@@ -2420,8 +2420,7 @@ public class GTSHelper {
             parms[6] = new ReadOnlyConstantList(count, Double.NaN);
           }
 
-          // values
-
+          // values list
           switch (gts.type) {
             case LONG:
               parms[7] = new COWList(gts.longValues, currentBucketStartPosition, count);
