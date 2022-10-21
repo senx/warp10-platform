@@ -16,6 +16,48 @@
 
 package io.warp10.continuum.gts;
 
+import com.geoxp.GeoXPLib;
+import com.geoxp.GeoXPLib.GeoXPShape;
+import io.warp10.CapacityExtractorOutputStream;
+import io.warp10.DoubleUtils;
+import io.warp10.WarpHexDecoder;
+import io.warp10.WarpURLDecoder;
+import io.warp10.WarpURLEncoder;
+import io.warp10.continuum.MetadataUtils;
+import io.warp10.continuum.TimeSource;
+import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
+import io.warp10.continuum.store.Constants;
+import io.warp10.continuum.store.thrift.data.GTSWrapper;
+import io.warp10.continuum.store.thrift.data.Metadata;
+import io.warp10.crypto.OrderPreservingBase64;
+import io.warp10.crypto.SipHashInline;
+import io.warp10.json.JsonUtils;
+import io.warp10.script.SAXUtils;
+import io.warp10.script.WarpScriptAggregatorFunction;
+import io.warp10.script.WarpScriptAggregatorOnListsFunction;
+import io.warp10.script.WarpScriptBinaryOp;
+import io.warp10.script.WarpScriptBucketizerFunction;
+import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptFillerFunction;
+import io.warp10.script.WarpScriptFilterFunction;
+import io.warp10.script.WarpScriptLib;
+import io.warp10.script.WarpScriptMapperFunction;
+import io.warp10.script.WarpScriptNAryFunction;
+import io.warp10.script.WarpScriptReducerFunction;
+import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStack.Macro;
+import io.warp10.script.functions.MACROMAPPER;
+import io.warp10.script.functions.TOQUATERNION;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.math3.fitting.PolynomialCurveFitter;
+import org.apache.commons.math3.fitting.WeightedObservedPoint;
+import org.apache.thrift.TSerializer;
+import org.apache.thrift.protocol.TCompactProtocol;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import sun.nio.cs.ArrayEncoder;
+
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
@@ -40,8 +82,8 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.PriorityQueue;
 import java.util.Map.Entry;
+import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -49,50 +91,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import io.warp10.script.WarpScriptAggregatorOnListsFunction;
-import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.math3.fitting.PolynomialCurveFitter;
-import org.apache.commons.math3.fitting.WeightedObservedPoint;
-import org.apache.thrift.TSerializer;
-import org.apache.thrift.protocol.TCompactProtocol;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.geoxp.GeoXPLib;
-import com.geoxp.GeoXPLib.GeoXPShape;
-
-import io.warp10.CapacityExtractorOutputStream;
-import io.warp10.DoubleUtils;
-import io.warp10.WarpHexDecoder;
-import io.warp10.WarpURLDecoder;
-import io.warp10.WarpURLEncoder;
-import io.warp10.continuum.MetadataUtils;
-import io.warp10.continuum.TimeSource;
-import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
-import io.warp10.continuum.store.Constants;
-import io.warp10.continuum.store.thrift.data.GTSWrapper;
-import io.warp10.continuum.store.thrift.data.Metadata;
-import io.warp10.crypto.OrderPreservingBase64;
-import io.warp10.crypto.SipHashInline;
-import io.warp10.json.JsonUtils;
-import io.warp10.script.SAXUtils;
-import io.warp10.script.WarpScriptAggregatorFunction;
-import io.warp10.script.WarpScriptBinaryOp;
-import io.warp10.script.WarpScriptBucketizerFunction;
-import io.warp10.script.WarpScriptException;
-import io.warp10.script.WarpScriptFillerFunction;
-import io.warp10.script.WarpScriptFilterFunction;
-import io.warp10.script.WarpScriptLib;
-import io.warp10.script.WarpScriptMapperFunction;
-import io.warp10.script.WarpScriptNAryFunction;
-import io.warp10.script.WarpScriptReducerFunction;
-import io.warp10.script.WarpScriptStack;
-import io.warp10.script.WarpScriptStack.Macro;
-import io.warp10.script.functions.MACROMAPPER;
-import io.warp10.script.functions.TOQUATERNION;
-import sun.nio.cs.ArrayEncoder;
 
 
 /**
@@ -2384,60 +2382,43 @@ public class GTSHelper {
 
           // locations lists
           if (null != gts.locations) {
-            // need to do the conversion
-            ArrayList<Double> lats = new ArrayList<Double>();
-            ArrayList<Double> lons = new ArrayList<Double>();
-            for (int j = currentBucketStartPosition; j <= currentBucketEndPosition; j++) {
-              long l = gts.locations[j];
-              if (GeoTimeSerie.NO_LOCATION == l) {
-                lats.add(Double.NaN);
-                lons.add(Double.NaN);
-              } else {
-                double[] latlon = GeoXPLib.fromGeoXPPoint(l);
-                lats.add(latlon[0]);
-                lons.add(latlon[1]);
-              }
-            }
-            parms[4] = lats;
-            parms[5] = lons;
+            parms[4] = new COWList(gts.locations, currentBucketStartPosition, count);
           } else {
             parms[4] = new ReadOnlyConstantList(count, Double.NaN);
-            parms[5] = parms[4];
           }
 
           // elevations list
           if (null != gts.elevations) {
-            ArrayList<Object> elevs = new ArrayList<Object>();
-            for (int j = currentBucketStartPosition; j <= currentBucketEndPosition; j++) {
-              if (GeoTimeSerie.NO_ELEVATION == gts.elevations[j]) {
-                elevs.add(Double.NaN);
-              } else {
-                elevs.add(gts.elevations[j]);
-              }
-            }
-            parms[6] = elevs;
+            parms[5] = new COWList(gts.elevations, currentBucketStartPosition, count);
           } else {
-            parms[6] = new ReadOnlyConstantList(count, Double.NaN);
+            parms[5] = new ReadOnlyConstantList(count, Double.NaN);
           }
 
           // values
 
           switch (gts.type) {
             case LONG:
-              parms[7] = new COWList(gts.longValues, currentBucketStartPosition, count);
+              parms[6] = new COWList(gts.longValues, currentBucketStartPosition, count);
               break;
             case DOUBLE:
-              parms[7] = new COWList(gts.doubleValues, currentBucketStartPosition, count);
+              parms[6] = new COWList(gts.doubleValues, currentBucketStartPosition, count);
               break;
             case STRING:
               // here we could have done a shallow copy, with Arrays.asList(gts.stringValues).subList(currentBucketStartPosition,currentBucketEndPosition)
               // it is a risk for the user, better deep copy.
-              parms[7] = new COWList(gts.stringValues, currentBucketStartPosition, count);
+              parms[6] = new COWList(gts.stringValues, currentBucketStartPosition, count);
               break;
             case BOOLEAN:
-              parms[7] = new COWList(gts.booleanValues, currentBucketStartPosition, count);
+              parms[6] = new COWList(gts.booleanValues, currentBucketStartPosition, count);
               break;
           }
+
+          List<Long> lastParms = new ArrayList<Long>(4); // 0, -bucketspan, currentBucketEnd - bucketspan, currentBucketEnd
+          lastParms.add(0L);
+          lastParms.add(-bucketspan);
+          lastParms.add(currentBucketEnd - bucketspan);
+          lastParms.add(currentBucketEnd);
+          parms[7] = lastParms;
 
           // apply the aggregator, collect the result
           aggregated = (Object[]) ((WarpScriptAggregatorOnListsFunction) aggregator).applyOnSubLists(parms);

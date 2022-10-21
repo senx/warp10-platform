@@ -17,6 +17,7 @@
 package io.warp10.script.functions;
 
 import com.geoxp.GeoXPLib;
+import io.warp10.continuum.gts.COWList;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptAggregatorOnListsFunction;
@@ -30,7 +31,6 @@ import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStackFunction;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -147,7 +147,65 @@ public class MACROMAPPER extends NamedWarpScriptFunction implements WarpScriptSt
     public Object applyOnSubLists(Object[] subLists) throws WarpScriptException {
 
       // Push arguments onto the stack
-      stack.push(Arrays.asList(subLists));
+      List<Object> params = new ArrayList<Object>(8);
+
+      // tick of computation, names, labels, ticks
+      for (int i = 0; i < 4; i++) {
+        params.add(subLists[i]);
+      }
+
+      // locations need to be converted
+      if (subLists[4] instanceof COWList) {
+        COWList locations = (COWList) subLists[4];
+
+        ArrayList<Double> lats = new ArrayList<Double>(locations.size());
+        ArrayList<Double> lons = new ArrayList<Double>(locations.size());
+
+        for (int i = 0; i < locations.size(); i++) {
+          Long location = (Long) locations.get(i);
+          if (GeoTimeSerie.NO_LOCATION == location) {
+            lats.add(Double.NaN);
+            lons.add(Double.NaN);
+          } else {
+            double[] latlon = GeoXPLib.fromGeoXPPoint(location);
+            lats.add(latlon[0]);
+            lons.add(latlon[1]);
+          }
+        }
+        params.add(lats);
+        params.add(lons);
+
+      } else {
+        // in this case, it is a readOnlyConstantList with value Double.NaN
+        params.add(subLists[4]);
+        params.add(subLists[4]);
+      }
+
+      // elevations
+      if (subLists[5] instanceof COWList) {
+        COWList elevCOWs = (COWList) subLists[5];
+
+        ArrayList<Object> elevs = new ArrayList<Object>(elevCOWs.size());
+        for (int i = 0; i < elevCOWs.size(); i++) {
+          if (GeoTimeSerie.NO_ELEVATION == (Long) elevCOWs.get(i)) {
+            elevs.add(Double.NaN);
+          } else {
+            elevs.add(elevCOWs.get(i));
+          }
+        }
+
+        params.add(elevs);
+
+      } else {
+        // in this case, it is a readOnlyConstantList with value Double.NaN
+        params.add(subLists[5]);
+      }
+
+      // values
+      params.add(subLists[6]);
+
+      // push and exec
+      stack.push(params);
 
       // Execute macro
       stack.exec(this.macro);

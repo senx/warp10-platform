@@ -26,5 +26,5 @@ package io.warp10.script;
  * WarpScriptAggregatorOnListsFunction applyOnSubLists() arguments are ready to use on a stack.
  */
 public interface WarpScriptAggregatorOnListsFunction {
-  public Object applyOnSubLists(Object[] sublists) throws WarpScriptException;
+  public Object applyOnSubLists(Object[] subLists) throws WarpScriptException;
 }
