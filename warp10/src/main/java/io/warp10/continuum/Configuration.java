@@ -979,6 +979,11 @@ public class Configuration {
   public static final String STORE_FDB_DATA_AES = "store.fdb.data.aes";
 
   /**
+   * Flag indicating whether or not Store should skip writes. Used solely for benchmarking purposes.
+   */
+  public static final String STORE_SKIP_WRITE = "store.skip.write";
+
+  /**
    * Comma separated list of Kafka broker host:port for Kafka ('data' topic)
    */
   public static final String STORE_KAFKA_DATA_CONSUMER_BOOTSTRAP_SERVERS = "store.kafka.data.consumer.bootstrap.servers";
