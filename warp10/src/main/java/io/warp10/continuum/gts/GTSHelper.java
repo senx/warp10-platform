@@ -2384,14 +2384,14 @@ public class GTSHelper {
           if (null != gts.locations) {
             parms[4] = new COWList(gts.locations, currentBucketStartPosition, count);
           } else {
-            parms[4] = new ReadOnlyConstantList(count, Double.NaN);
+            parms[4] = null;
           }
 
           // elevations list
           if (null != gts.elevations) {
             parms[5] = new COWList(gts.elevations, currentBucketStartPosition, count);
           } else {
-            parms[5] = new ReadOnlyConstantList(count, Double.NaN);
+            parms[5] = null;
           }
 
           // values

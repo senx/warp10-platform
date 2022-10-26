@@ -19,6 +19,7 @@ package io.warp10.script.functions;
 import com.geoxp.GeoXPLib;
 import io.warp10.continuum.gts.COWList;
 import io.warp10.continuum.gts.GeoTimeSerie;
+import io.warp10.continuum.gts.ReadOnlyConstantList;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptAggregatorOnListsFunction;
 import io.warp10.script.WarpScriptBucketizerFunction;
@@ -155,7 +156,7 @@ public class MACROMAPPER extends NamedWarpScriptFunction implements WarpScriptSt
       }
 
       // locations need to be converted
-      if (subLists[4] instanceof COWList) {
+      if (null != subLists[4]) {
         COWList locations = (COWList) subLists[4];
 
         ArrayList<Double> lats = new ArrayList<Double>(locations.size());
@@ -177,12 +178,13 @@ public class MACROMAPPER extends NamedWarpScriptFunction implements WarpScriptSt
 
       } else {
         // in this case, it is a readOnlyConstantList with value Double.NaN
-        params.add(subLists[4]);
-        params.add(subLists[4]);
+        Object o = new ReadOnlyConstantList(((List) subLists[3]).size(), Double.NaN);
+        params.add(o);
+        params.add(o);
       }
 
       // elevations
-      if (subLists[5] instanceof COWList) {
+      if (null != subLists[5]) {
         COWList elevCOWs = (COWList) subLists[5];
 
         ArrayList<Object> elevs = new ArrayList<Object>(elevCOWs.size());
@@ -198,7 +200,7 @@ public class MACROMAPPER extends NamedWarpScriptFunction implements WarpScriptSt
 
       } else {
         // in this case, it is a readOnlyConstantList with value Double.NaN
-        params.add(subLists[5]);
+        params.add(new ReadOnlyConstantList(((List) subLists[3]).size(), Double.NaN));
       }
 
       // values
