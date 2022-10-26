@@ -22,8 +22,9 @@ package io.warp10.script;
  * 
  * This is the base interface for Mappers, Reducers, Bucketizers and Binary Ops
  *
- * WarpScriptAggregatorFunction apply() arguments are arrays of arrays.
- * WarpScriptAggregatorOnListsFunction applyOnSubLists() arguments are ready to use on a stack.
+ * WarpScriptAggregatorFunction apply() argument is an array of arrays.
+ * WarpScriptAggregatorOnListsFunction applyOnSubLists() argument is similar except that data (ticks, locations, elevs, values) are either COWLists or null if empty.
+ *
  */
 public interface WarpScriptAggregatorOnListsFunction {
   public Object applyOnSubLists(Object[] subLists) throws WarpScriptException;
