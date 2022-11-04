@@ -24,6 +24,10 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.Text;
@@ -92,6 +96,20 @@ public class Warp10RecordReader extends RecordReader<Text, BytesWritable> implem
 
     int connectTimeout = Integer.valueOf(getProperty(context, Warp10InputFormat.PROPERTY_WARP10_HTTP_CONNECT_TIMEOUT, Warp10InputFormat.DEFAULT_WARP10_HTTP_CONNECT_TIMEOUT));
     int readTimeout = Integer.valueOf(getProperty(context, Warp10InputFormat.PROPERTY_WARP10_HTTP_READ_TIMEOUT, Warp10InputFormat.DEFAULT_WARP10_HTTP_READ_TIMEOUT));
+
+    //
+    // Extract possible attributes
+    //
+
+    Iterator<Entry<String,String>> iter = context.getConfiguration().iterator();
+    Map<String,String> attributes = new HashMap<String,String>();
+
+    while(iter.hasNext()) {
+      Entry<String,String> entry = iter.next();
+      if (entry.getKey().startsWith(Warp10InputFormat.PROPERTY_WARP10_FETCH_ATTR_PREFIX)) {
+        attributes.put(entry.getKey().substring(Warp10InputFormat.PROPERTY_WARP10_FETCH_ATTR_PREFIX.length()), entry.getValue());
+      }
+    }
 
     //
     // Call each provided fetcher until one answers
@@ -169,6 +187,14 @@ public class Warp10RecordReader extends RecordReader<Text, BytesWritable> implem
         }
         if (null != dedup) {
           conn.setRequestProperty(Warp10InputFormat.HTTP_HEADER_DEDUP, dedup);
+        }
+
+        //
+        // Position attributes
+        //
+
+        for (Entry<String,String> attr: attributes.entrySet()) {
+          conn.setRequestProperty(Warp10InputFormat.HTTP_HEADER_ATTR_PREFIX + attr.getKey(), attr.getValue());
         }
 
         conn.setRequestProperty("Content-Type", "application/gzip");
