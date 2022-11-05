@@ -21,6 +21,7 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Date;
+import java.util.Hashtable;
 import java.util.Map;
 
 import org.bouncycastle.bcpg.ArmoredOutputStream;
@@ -151,7 +152,7 @@ public class PGPENCRYPT extends NamedWarpScriptFunction implements WarpScriptSta
 
       ByteArrayOutputStream out = new ByteArrayOutputStream();
 
-      ArmoredOutputStream armored = armor ? new ArmoredOutputStream(out) : null;
+      ArmoredOutputStream armored = armor ? new ArmoredOutputStream(out, new Hashtable<String,String>()) : null;
 
       // create an indefinite length encrypted stream
       OutputStream cOut = edg.open(armor ? armored : out, new byte[1 << 10]);

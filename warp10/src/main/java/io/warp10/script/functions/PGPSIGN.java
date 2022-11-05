@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.Hashtable;
 import java.util.Map;
 
 import org.bouncycastle.bcpg.ArmoredOutputStream;
@@ -139,7 +140,7 @@ public class PGPSIGN extends NamedWarpScriptFunction implements WarpScriptStackF
 
 
     ByteArrayOutputStream bOut = new ByteArrayOutputStream();
-    ArmoredOutputStream aOut = armor ? new ArmoredOutputStream(bOut) : null;
+    ArmoredOutputStream aOut = armor ? new ArmoredOutputStream(bOut, new Hashtable<String,String>()) : null;
 
     PGPSignatureGenerator sGen = new PGPSignatureGenerator(new BcPGPContentSignerBuilder(secret.getPublicKey().getAlgorithm(), digestId));
 

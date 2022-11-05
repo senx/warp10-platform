@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -67,7 +68,7 @@ public class PGPPUBLIC extends NamedWarpScriptFunction implements WarpScriptStac
     if (top instanceof PGPPublicKey) {
       try {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        ArmoredOutputStream aout = new ArmoredOutputStream(out);
+        ArmoredOutputStream aout = new ArmoredOutputStream(out, new Hashtable<String,String>());
         aout.write(((PGPPublicKey) top).getEncoded(false));
         aout.close();
         stack.push(new String(out.toByteArray(), StandardCharsets.UTF_8));
