@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@ import io.warp10.continuum.Configuration;
 import io.warp10.continuum.Tokens;
 import io.warp10.continuum.store.Constants;
 import io.warp10.script.WarpFleetMacroRepository;
-import io.warp10.script.WarpScriptJarRepository;
 import io.warp10.script.WarpScriptMacroRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,7 +60,7 @@ public class WarpConfig {
   private static final String WARP10_NOENV = "warp10.noenv";
   private static final String WARP10_NOSYS = "warp10.nosys";
   private static final String WARP10_IGNOREFAILEDEXPANDS  = "warp10.ignorefailedexpands";
-  
+
   /**
    * Name of environment variable used in various submodules to locate the Warp 10 configuration file
    */
@@ -75,7 +74,7 @@ public class WarpConfig {
   private static Properties properties = null;
 
   public static final String THREAD_PROPERTY_SESSION = ".session";
-  
+
   /**
    * The concept of thread properties is to allocate a per thread map which can contain
    * arbitrary elements keyed by STRINGs and therefore accessible to all methods invoked within
@@ -88,26 +87,26 @@ public class WarpConfig {
    * Those endpoints should set the '.session' thread property at the beginning of a try block with a finally clause
    * calling clearThreadProperties.
    * Of course if the convention above is not respected, property maps might be created without clearing ensured.
-   * 
+   *
    */
-  
+
   @Beta
   private static final ThreadLocal<Map<String,Object>> threadProperties = new ThreadLocal<Map<String,Object>>() {
     protected java.util.Map<String,Object> initialValue() {
       return new HashMap<String,Object>();
     }
   };
-  
+
   @Beta
   public static Object getThreadProperty(String key) {
     return threadProperties.get().get(key);
   }
-  
+
   @Beta
   public static Object setThreadProperty(String key, Object value) {
     return threadProperties.get().put(key, value);
   }
-  
+
   @Beta
   public static Object removeThreadProperty(String key) {
     Map<String,Object> props = threadProperties.get();
@@ -118,9 +117,9 @@ public class WarpConfig {
     if (0 == props.size()) {
       threadProperties.remove();
     }
-    return previous;    
+    return previous;
   }
-  
+
   @Beta
   public static void clearThreadProperties() {
     threadProperties.remove();
@@ -129,7 +128,7 @@ public class WarpConfig {
   public static void safeSetProperties(String... files) throws IOException {
     safeSetProperties(true, files);
   }
-  
+
   public static void safeSetProperties(boolean exitOnError, String... files) throws IOException {
     if (null != properties) {
       return;
@@ -248,12 +247,6 @@ public class WarpConfig {
     //
 
     WarpScriptMacroRepository.init(properties);
-
-    //
-    // Initialize jar repository
-    //
-
-    WarpScriptJarRepository.init(properties);
 
     //
     // Initialize WarpFleet repository
@@ -543,11 +536,11 @@ public class WarpConfig {
     //
     // Copy file arguments up to '.'
     //
-    
+
     List<String> lfiles = new ArrayList<String>();
-    
+
     int keycount = 0;
-    
+
     for (int i = 0; i < args.length; i++) {
       if (".".equals(args[i])) {
         keycount = args.length - i - 1;
@@ -555,12 +548,12 @@ public class WarpConfig {
       }
       lfiles.add(args[i]);
     }
-    
+
     String[] files = lfiles.toArray(new String[lfiles.size()]);
 
     try {
       setProperties(false, files);
-      
+
       for (int i = args.length - keycount; i < args.length; i++) {
         System.out.println("@CONF@ " + args[i] + "=" + getProperty(args[i]));
       }
