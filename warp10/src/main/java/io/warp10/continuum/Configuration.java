@@ -2231,14 +2231,6 @@ public class Configuration {
    */
   public static final String THROTTLING_MANAGER_MAXWAIT_DEFAULT = "throttling.manager.maxwait.default";
 
-  //
-  // Jar Repository
-  //
-
-  public static final String JARS_DIRECTORY = "warpscript.jars.directory";
-  public static final String JARS_REFRESH = "warpscript.jars.refresh";
-  public static final String JARS_FROMCLASSPATH = "warpscript.jars.fromclasspath";
-
   /**
    * Size of macro cache for the macros loaded from the classpath
    */

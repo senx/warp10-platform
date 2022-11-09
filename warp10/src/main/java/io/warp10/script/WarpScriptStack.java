@@ -26,7 +26,6 @@ import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.script.functions.SNAPSHOT;
 import io.warp10.script.functions.SNAPSHOT.Snapshotable;
-import io.warp10.warp.sdk.WarpScriptJavaFunction;
 
 /**
  * The WarpScript Geo Time Serie manipulation environment
@@ -761,11 +760,6 @@ public interface WarpScriptStack {
    * @param macro Macro instance to execute
    */
   public void exec(Macro macro) throws WarpScriptException;
-
-  /**
-   * Execute a WarpScriptJavaFunction against the stack
-   */
-  public void exec(WarpScriptJavaFunction function) throws WarpScriptException;
 
   /**
    * Find a function by name
