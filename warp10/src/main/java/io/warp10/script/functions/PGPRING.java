@@ -36,6 +36,21 @@ import io.warp10.script.WarpScriptStackFunction;
 
 public class PGPRING extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
+  private static final String TYPEOF_KEYRING = "KEYRING";
+
+  static {
+    TYPEOF.addResolver(new TYPEOF.TypeResolver() {
+      @Override
+      public String typeof(Class c) {
+        if (c.isAssignableFrom(PGPSecretKeyRing.class) || c.isAssignableFrom(PGPPublicKeyRing.class)) {
+          return TYPEOF_KEYRING;
+        } else {
+          return null;
+        }
+      }
+    });
+  }
+
   public PGPRING(String name) {
     super(name);
   }
