@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -372,25 +372,9 @@ public class Warp extends WarpDist implements Runnable {
 
       sdc.setActivityWindow(Long.parseLong(properties.getProperty(Configuration.INGRESS_ACTIVITY_WINDOW, "0")));
 
-      if (null == properties.getProperty(Configuration.IN_MEMORY_CHUNKED)) {
-        throw new RuntimeException("Configuration key '" + Configuration.IN_MEMORY_CHUNKED + "' MUST now explicitly be set to 'true' or 'false' (if you wish to use the now deprecated non chunked memory store).");
-      }
-
-      if (!"false".equals(properties.getProperty(Configuration.IN_MEMORY_CHUNKED))) {
-        scc = new StandaloneChunkedMemoryStore(properties, keystore);
-        ((StandaloneChunkedMemoryStore) scc).setDirectoryClient(sdc);
-        ((StandaloneChunkedMemoryStore) scc).load();
-      } else {
-        scc = new StandaloneMemoryStore(keystore,
-          Long.valueOf(properties.getProperty(Configuration.IN_MEMORY_DEPTH, Long.toString(60 * 60 * 1000 * Constants.TIME_UNITS_PER_MS))),
-          Long.valueOf(properties.getProperty(Configuration.IN_MEMORY_HIGHWATERMARK, "100000")),
-          Long.valueOf(properties.getProperty(Configuration.IN_MEMORY_LOWWATERMARK, "80000")));
-        ((StandaloneMemoryStore) scc).setDirectoryClient(sdc);
-        if ("true".equals(properties.getProperty(Configuration.IN_MEMORY_EPHEMERAL))) {
-          ((StandaloneMemoryStore) scc).setEphemeral(true);
-        }
-        ((StandaloneMemoryStore) scc).load();
-      }
+      scc = new StandaloneChunkedMemoryStore(properties, keystore);
+      ((StandaloneChunkedMemoryStore) scc).setDirectoryClient(sdc);
+      ((StandaloneChunkedMemoryStore) scc).load();
     } else if (plasmabackend) {
       sdc = new StandaloneDirectoryClient(null, keystore);
       scc = new PlasmaStoreClient();

@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -23,15 +23,12 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Map.Entry;
+import java.util.Properties;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
 import java.util.zip.GZIPOutputStream;
-import java.util.Properties;
-import java.util.UUID;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.warp10.Revision;
 import io.warp10.WarpConfig;
@@ -44,12 +41,9 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.sensision.Sensision;
 import io.warp10.warp.sdk.AbstractWarp10Plugin;
+import io.warp10.warp.sdk.Capabilities;
 
 public class REPORT extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-
-  private static final Logger LOG = LoggerFactory.getLogger(REPORT.class);
-
-  private static final String SECRET;
 
   private static final AtomicLong seq = new AtomicLong(0L);
 
@@ -58,15 +52,6 @@ public class REPORT extends NamedWarpScriptFunction implements WarpScriptStackFu
   private static final String uuid = UUID.randomUUID().toString();
 
   private static boolean initialized = false;
-
-  static {
-    String defaultSecret = UUID.randomUUID().toString();
-    SECRET = WarpConfig.getProperty(Configuration.WARP10_REPORT_SECRET, defaultSecret);
-
-    if (defaultSecret.equals(SECRET)) {
-      LOG.info("REPORT secret not set, using '" + defaultSecret + "'.");
-    }
-  }
 
   public REPORT(String name) {
     super(name);
@@ -78,11 +63,8 @@ public class REPORT extends NamedWarpScriptFunction implements WarpScriptStackFu
 
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-
-    Object top = stack.pop();
-
-    if (!SECRET.equals(top.toString())) {
-      throw new WarpScriptException(getName() + " invalid secret.");
+    if (null == Capabilities.get(stack, WarpScriptStack.CAPABILITY_REPORT)) {
+      throw new WarpScriptException(getName() + " missing capability.");
     }
 
     try {

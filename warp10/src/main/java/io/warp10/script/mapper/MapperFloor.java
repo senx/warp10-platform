@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package io.warp10.script.mapper;
 
+import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptMapperFunction;
 import io.warp10.script.WarpScriptException;
@@ -38,6 +39,10 @@ public class MapperFloor extends NamedWarpScriptFunction implements WarpScriptMa
     long[] elevations = (long[]) args[5];
     Object[] values = (Object[]) args[6];
 
+    if (0 == values.length) {
+      return new Object[] {0L, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, null};
+    }
+    
     if (1 != values.length) {
       throw new WarpScriptException(getName() + " can only be applied to a single value.");
     }
