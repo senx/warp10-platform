@@ -1797,11 +1797,6 @@ public class Configuration {
   public static final String INGRESS_DELETE_ACTIVITY_SUPPORT = "ingress.delete.activity.support";
 
   /**
-   * Manager secret, must be set to use the managing functions
-   */
-  public static final String WARP10_MANAGER_SECRET = "warp10.manager.secret";
-
-  /**
    * Set to a message indicating the reason why deletes are disabled, they are enabled if this is not set
    */
   public static final String WARP_DELETE_DISABLED = "warp.delete.disabled";

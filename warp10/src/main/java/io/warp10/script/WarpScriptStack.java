@@ -550,6 +550,7 @@ public interface WarpScriptStack {
 
   String CAPABILITIES_PREFIX = ".cap:";
   String CAPABILITIES_ATTR = "stack.capabilities";
+  String CAPABILITY_MANAGER = "manager";
   String CAPABILITY_REPORT = "report";
 
   /**
