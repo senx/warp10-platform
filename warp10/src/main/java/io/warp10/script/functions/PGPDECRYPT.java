@@ -145,7 +145,7 @@ public class PGPDECRYPT extends NamedWarpScriptFunction implements WarpScriptSta
       } else {
         throw new IllegalStateException("modification check failed");
       }
-    } catch (IllegalStateException|PGPException|IOException e) {
+    } catch (IllegalStateException|PGPException|IOException|NullPointerException e) {
       throw new WarpScriptException(getName() + " error during decryption.", e);
     }
 
