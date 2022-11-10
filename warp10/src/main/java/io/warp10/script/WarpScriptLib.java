@@ -582,7 +582,6 @@ import io.warp10.script.functions.TRIM;
 import io.warp10.script.functions.TRY;
 import io.warp10.script.functions.TSELEMENTS;
 import io.warp10.script.functions.TYPEOF;
-import io.warp10.script.functions.UDF;
 import io.warp10.script.functions.UNBUCKETIZE;
 import io.warp10.script.functions.UNBUCKETIZECALENDAR;
 import io.warp10.script.functions.UNGZIP;
@@ -1063,8 +1062,6 @@ public class WarpScriptLib {
   public static final String APPEND = "APPEND";
   public static final String IMPORT = "IMPORT";
   public static final String DEF = "DEF";
-  public static final String UDF = "UDF";
-  public static final String CUDF = "CUDF";
   public static final String CALL = "CALL";
   public static final String FORGET = "FORGET";
   public static final String DEFINED = "DEFINED";
@@ -1891,8 +1888,6 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new IMPORT(IMPORT));
     addNamedWarpScriptFunction(new RUN(RUN));
     addNamedWarpScriptFunction(new DEF(DEF));
-    addNamedWarpScriptFunction(new UDF(UDF, false));
-    addNamedWarpScriptFunction(new UDF(CUDF, true));
     addNamedWarpScriptFunction(new CALL(CALL));
     addNamedWarpScriptFunction(new FORGET(FORGET));
     addNamedWarpScriptFunction(new DEFINED(DEFINED));
