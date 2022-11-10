@@ -70,10 +70,6 @@
 
 // TOKENDUMP, TOKENGEN, TOKENSECRET
 #warpscript.extension.token = io.warp10.script.ext.token.TokenWarpScriptExtension
-// If you use OSS to handle this secret
-#warp.key.token.secret = wrapped:hex:......
-// If you use a plain string token. Used instead of the previous configuration key if set and not commented
-#token.secret = ....
 
 // URLFETCH, MAXURLFETCHCOUNT, MAXURLFETCHSIZE
 #warpscript.extension.urlfetch = io.warp10.script.ext.urlfetch.UrlFetchWarpScriptExtension
