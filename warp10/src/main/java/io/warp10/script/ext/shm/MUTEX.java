@@ -36,7 +36,8 @@ public class MUTEX extends NamedWarpScriptFunction implements WarpScriptStackFun
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
 
-    if (null == Capabilities.get(stack, SharedMemoryWarpScriptExtension.CAPABILITY_MUTEX)) {
+    String cap = Capabilities.get(stack, SharedMemoryWarpScriptExtension.CAPABILITY_MUTEX);
+    if (null == cap) {
       throw new WarpScriptException(getName() + " expected capability '" + SharedMemoryWarpScriptExtension.CAPABILITY_MUTEX + "' to be set.");
     }
 
@@ -59,6 +60,10 @@ public class MUTEX extends NamedWarpScriptFunction implements WarpScriptStackFun
     }
 
     Macro macro = (Macro) top;
+
+    if (!"".equals(cap) && !Pattern.matches(cap, mutex)) {
+      throw new WarpScriptException(getName() + " capability does not grant access to mutex '" + mutex + "'.");
+    }
 
     ReentrantLock lock = SharedMemoryWarpScriptExtension.getLock(mutex);
 

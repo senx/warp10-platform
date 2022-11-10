@@ -17,6 +17,7 @@
 package io.warp10.script.ext.shm;
 
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.regex.Pattern;
 
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
@@ -32,7 +33,8 @@ public class SHMSTORE extends NamedWarpScriptFunction implements WarpScriptStack
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
 
-    if (null == Capabilities.get(stack, SharedMemoryWarpScriptExtension.CAPABILITY_SHMSTORE)) {
+    String cap = Capabilities.get(stack, SharedMemoryWarpScriptExtension.CAPABILITY_SHMSTORE);
+    if (null == cap) {
       throw new WarpScriptException(getName() + " expected capability '" + SharedMemoryWarpScriptExtension.CAPABILITY_SHMSTORE + "' to be set.");
     }
 
@@ -53,6 +55,10 @@ public class SHMSTORE extends NamedWarpScriptFunction implements WarpScriptStack
     String symbol = (String) top;
 
     top = stack.pop();
+
+    if (!"".equals(cap) && !Pattern.matches(cap, symbol)) {
+      throw new WarpScriptException(getName() + " capability does not grant access to symbol '" + symbol + "'.");
+    }
 
     ReentrantLock lock = SharedMemoryWarpScriptExtension.getLock(mutex);
 

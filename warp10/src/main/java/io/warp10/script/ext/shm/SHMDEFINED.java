@@ -30,7 +30,8 @@ public class SHMDEFINED extends NamedWarpScriptFunction implements WarpScriptSta
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
 
-    if (null == Capabilities.get(stack, SharedMemoryWarpScriptExtension.CAPABILITY_SHMLOAD)) {
+    String cap = Capabilities.get(stack, SharedMemoryWarpScriptExtension.CAPABILITY_SHMLOAD);
+    if (null == cap) {
       throw new WarpScriptException(getName() + " expected capability '" + SharedMemoryWarpScriptExtension.CAPABILITY_SHMLOAD + "' to be set.");
     }
 
@@ -41,6 +42,10 @@ public class SHMDEFINED extends NamedWarpScriptFunction implements WarpScriptSta
     }
 
     String symbol = (String) top;
+
+    if (!"".equals(cap) && !Pattern.matches(cap, symbol)) {
+      throw new WarpScriptException(getName() + " capability does not grant access to symbol '" + symbol + "'.");
+    }
 
     stack.push(SharedMemoryWarpScriptExtension.defined(symbol));
 
