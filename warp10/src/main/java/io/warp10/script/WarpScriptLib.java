@@ -333,7 +333,6 @@ import io.warp10.script.functions.LSORT;
 import io.warp10.script.functions.LSTORE;
 import io.warp10.script.functions.LTTB;
 import io.warp10.script.functions.MACROCONFIG;
-import io.warp10.script.functions.MACROCONFIGSECRET;
 import io.warp10.script.functions.MACROFILLER;
 import io.warp10.script.functions.MACROFILTER;
 import io.warp10.script.functions.MACROMAPPER;
@@ -1130,7 +1129,6 @@ public class WarpScriptLib {
   public static final String WFON = "WFON";
   public static final String WFOFF = "WFOFF";
   public static final String SETMACROCONFIG = "SETMACROCONFIG";
-  public static final String MACROCONFIGSECRET = "MACROCONFIGSECRET";
   public static final String MACROCONFIG = "MACROCONFIG";
   public static final String MACROCONFIGDEFAULT = "MACROCONFIGDEFAULT";
   public static final String MACROMAPPER = "MACROMAPPER";
@@ -1991,7 +1989,6 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new WFON(WFON));
     addNamedWarpScriptFunction(new WFOFF(WFOFF));
     addNamedWarpScriptFunction(new SETMACROCONFIG(SETMACROCONFIG));
-    addNamedWarpScriptFunction(new MACROCONFIGSECRET(MACROCONFIGSECRET));
     addNamedWarpScriptFunction(new MACROCONFIG(MACROCONFIG, false));
     addNamedWarpScriptFunction(new MACROCONFIG(MACROCONFIGDEFAULT, true));
     addNamedWarpScriptFunction(new MACROMAPPER(MACROMAPPER));
