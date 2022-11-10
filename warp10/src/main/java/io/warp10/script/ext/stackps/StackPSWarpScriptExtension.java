@@ -1,5 +1,5 @@
 //
-//   Copyright 2020  SenX S.A.S.
+//   Copyright 2020-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -19,36 +19,24 @@ package io.warp10.script.ext.stackps;
 import java.util.HashMap;
 import java.util.Map;
 
-import io.warp10.WarpConfig;
 import io.warp10.script.WarpScriptStack.Signal;
 import io.warp10.script.WarpScriptStackRegistry;
 import io.warp10.warp.sdk.WarpScriptExtension;
 
 public class StackPSWarpScriptExtension extends WarpScriptExtension {
-  /*
-   *  Name of configuration key with the stackps secret. 
-   */
-  public static final String CONF_STACKPS_SECRET = "stackps.secret";
-  
-  /**
-   * Current StackPS Secret
-   */
-  public static String STACKPS_SECRET;  
-
   public static final String ATTRIBUTE_SESSION = "stackps.session";
-  
+
   public static final String HEADER_SESSION = "X-Warp10-WarpScriptSession";
-  
+
+  public static final String CAPABILITY = "stackps";
+
   private static final Map<String,Object> functions;
-  
+
   static {
     WarpScriptStackRegistry.enable();
-    
-    STACKPS_SECRET = WarpConfig.getProperty(CONF_STACKPS_SECRET);
 
     functions = new HashMap<String,Object>();
-    
-    functions.put("STACKPSSECRET", new STACKPSSECRET("STACKPSSECRET"));
+
     functions.put("WSPS", new WSPS("WSPS"));
     functions.put("WSINFO", new WSINFO("WSINFO"));
     functions.put("WSSTOP", new WSKILL("WSSTOP", Signal.STOP));
@@ -58,7 +46,7 @@ public class StackPSWarpScriptExtension extends WarpScriptExtension {
     functions.put("WSNAME", new WSNAME("WSNAME", false));
     functions.put("WSSESSION", new WSNAME("WSSESSION", true));
   }
-  
+
   @Override
   public Map<String, Object> getFunctions() {
     return functions;
