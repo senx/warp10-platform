@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -22,41 +22,46 @@ import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
+import io.warp10.warp.sdk.Capabilities;
 import io.warp10.script.WarpScriptStackFunction;
 
 public class MUTEX extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-    
+
   static final String MUTEX_ATTRIBUTE = "ext.shm.mutex";
-  
+
   public MUTEX(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    
+
+    if (null == Capabilities.get(stack, SharedMemoryWarpScriptExtension.CAPABILITY_MUTEX)) {
+      throw new WarpScriptException(getName() + " expected capability '" + SharedMemoryWarpScriptExtension.CAPABILITY_MUTEX + "' to be set.");
+    }
+
     if(null != stack.getAttribute(MUTEX_ATTRIBUTE + stack.getUUID())) {
       throw new WarpScriptException(getName() + " calls cannot be nested.");
     }
-    
+
     Object top = stack.pop();
-    
+
     if (!(top instanceof String)) {
       throw new WarpScriptException(getName() + " expects the mutex name on top of the stack.");
     }
-    
+
     String mutex = String.valueOf(top);
-    
+
     top = stack.pop();
-    
+
     if (!(top instanceof Macro)) {
       throw new WarpScriptException(getName() + " expects the macro to run below the mutex name.");
     }
-    
+
     Macro macro = (Macro) top;
-    
+
     ReentrantLock lock = SharedMemoryWarpScriptExtension.getLock(mutex);
-        
+
     try {
       lock.lockInterruptibly();
       stack.setAttribute(MUTEX_ATTRIBUTE + stack.getUUID(), mutex);
@@ -71,7 +76,7 @@ public class MUTEX extends NamedWarpScriptFunction implements WarpScriptStackFun
         stack.setAttribute(MUTEX_ATTRIBUTE + stack.getUUID(), null);
       }
     }
-    
+
     return stack;
   }
 }
