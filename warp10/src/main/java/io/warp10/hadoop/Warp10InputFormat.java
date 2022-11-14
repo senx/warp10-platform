@@ -192,7 +192,7 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
   public static final String HTTP_HEADER_POSTBOUNDARY = "X-Warp10-Postboundary";
   public static final String HTTP_HEADER_TIMESTEP = "X-Warp10-Timestep";
   public static final String HTTP_HEADER_SHOW_ERRORS = "X-Warp10-ShowErrors";
-  public static final String HTTP_HEADER_ATTR_PREFIX = "X-Warp10-Attr.";
+  public static final String HTTP_HEADER_ATTR_PREFIX = "X-Warp10-Attr-";
 
   public Warp10InputFormat(String suffix) {
     if (null != suffix) {
