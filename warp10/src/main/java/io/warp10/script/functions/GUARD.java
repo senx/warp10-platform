@@ -1,5 +1,5 @@
 //
-//   Copyright 2021  SenX S.A.S.
+//   Copyright 2021-2022 SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,7 +16,9 @@
 
 package io.warp10.script.functions;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptATCException;
@@ -25,8 +27,11 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStack.StackContext;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.warp.sdk.Capabilities;
 
 public class GUARD extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+
+  public static final String EXPORTED_CAPABILITIES_ATTR = "guard.exported.capabilities";
 
   public GUARD(String name) {
     super(name);
@@ -64,6 +69,10 @@ public class GUARD extends NamedWarpScriptFunction implements WarpScriptStackFun
 
     int hidden = 0;
 
+    Capabilities capabilities = null;
+    Object exportedCapabilities = null;
+    Throwable error = null;
+
     try {
       if (hasHide) {
         if (null == hide) {
@@ -72,8 +81,22 @@ public class GUARD extends NamedWarpScriptFunction implements WarpScriptStackFun
           hidden = stack.hide(((Long) hide).intValue());
         }
       }
+
+      //
+      // Clone the capabilities if they were defined and save the exported capabilities
+      //
+
+      if (stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR) instanceof Capabilities) {
+        capabilities = (Capabilities) stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR);
+        stack.setAttribute(WarpScriptStack.CAPABILITIES_ATTR, capabilities.clone());
+      }
+
+      exportedCapabilities = stack.getAttribute(EXPORTED_CAPABILITIES_ATTR);
+      stack.setAttribute(EXPORTED_CAPABILITIES_ATTR, new HashSet<String>());
+
       stack.exec(macro);
     } catch (Throwable t) {
+      error = t;
       //
       // If any exception was raised during the execution of the macro,
       // clear the stack and the specified symbols so no information leak
@@ -83,7 +106,6 @@ public class GUARD extends NamedWarpScriptFunction implements WarpScriptStackFun
 
       throw new WarpScriptATCException("Exception in GUARDed macro.");
     } finally {
-
       //
       // Clear the specified symbols or restore the context
       //
@@ -114,6 +136,36 @@ public class GUARD extends NamedWarpScriptFunction implements WarpScriptStackFun
       if (hasHide) {
         stack.show(hidden);
       }
+
+      // Restore capabilities
+
+      boolean copyExported = false;
+
+      if (exportedCapabilities instanceof Set && ((Set) exportedCapabilities).contains(null)) {
+        copyExported = true;
+      }
+
+      if (stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR) instanceof Capabilities) {
+        // Export the specified capabilities if no error occurred
+        if (null == error) {
+          Capabilities newcaps = (Capabilities) stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR);
+          for (String cap: (Set<String>) stack.getAttribute(EXPORTED_CAPABILITIES_ATTR)) {
+            if (null != cap) {
+              if (copyExported) {
+                ((Set) exportedCapabilities).add(cap);
+              }
+              capabilities.remove(cap);
+              capabilities.putIfAbsent(cap, newcaps.get(cap));
+            }
+          }
+        }
+      }
+
+      if (null != capabilities) {
+        stack.setAttribute(WarpScriptStack.CAPABILITIES_ATTR, capabilities);
+      }
+
+      stack.setAttribute(EXPORTED_CAPABILITIES_ATTR, exportedCapabilities);
     }
 
     return stack;

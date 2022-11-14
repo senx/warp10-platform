@@ -128,4 +128,14 @@ public class Capabilities {
   public Object putIfAbsent(String key, String value) {
     return this.capabilities.putIfAbsent(key, value);
   }
+
+  public String get(String key) {
+    return this.capabilities.get(key);
+  }
+
+  public Capabilities clone() {
+    Capabilities newcaps = new Capabilities();
+    newcaps.capabilities.putAll(this.capabilities);
+    return newcaps;
+  }
 }
