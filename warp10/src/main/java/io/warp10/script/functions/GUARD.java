@@ -19,6 +19,7 @@ package io.warp10.script.functions;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptATCException;
@@ -86,13 +87,13 @@ public class GUARD extends NamedWarpScriptFunction implements WarpScriptStackFun
       // Clone the capabilities if they were defined and save the exported capabilities
       //
 
-      if (stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR) instanceof Capabilities) {
-        capabilities = (Capabilities) stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR);
-        stack.setAttribute(WarpScriptStack.CAPABILITIES_ATTR, capabilities.clone());
+      capabilities = Capabilities.get(stack);
+      if (null != capabilities) {
+        Capabilities.set(stack, capabilities.clone());
       }
 
       exportedCapabilities = stack.getAttribute(EXPORTED_CAPABILITIES_ATTR);
-      stack.setAttribute(EXPORTED_CAPABILITIES_ATTR, new HashSet<String>());
+      stack.setAttribute(EXPORTED_CAPABILITIES_ATTR, new AtomicReference<Set>(new HashSet<String>()));
 
       stack.exec(macro);
     } catch (Throwable t) {
@@ -141,18 +142,22 @@ public class GUARD extends NamedWarpScriptFunction implements WarpScriptStackFun
 
       boolean copyExported = false;
 
-      if (exportedCapabilities instanceof Set && ((Set) exportedCapabilities).contains(null)) {
-        copyExported = true;
+      if (exportedCapabilities instanceof AtomicReference) {
+        AtomicReference ref = (AtomicReference) exportedCapabilities;
+        if (ref.get() instanceof Set && ((Set) ref.get()).contains(null)) {
+          copyExported = true;
+        }
       }
 
-      if (stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR) instanceof Capabilities) {
+      Capabilities caps = Capabilities.get(stack);
+      if (null != caps) {
         // Export the specified capabilities if no error occurred
         if (null == error) {
-          Capabilities newcaps = (Capabilities) stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR);
-          for (String cap: (Set<String>) stack.getAttribute(EXPORTED_CAPABILITIES_ATTR)) {
+          Capabilities newcaps = caps;
+          for (String cap: getExportedCapabilities(stack)) {
             if (null != cap) {
               if (copyExported) {
-                ((Set) exportedCapabilities).add(cap);
+                ((AtomicReference<Set>) exportedCapabilities).get().add(cap);
               }
               capabilities.remove(cap);
               capabilities.putIfAbsent(cap, newcaps.get(cap));
@@ -162,12 +167,22 @@ public class GUARD extends NamedWarpScriptFunction implements WarpScriptStackFun
       }
 
       if (null != capabilities) {
-        stack.setAttribute(WarpScriptStack.CAPABILITIES_ATTR, capabilities);
+        Capabilities.set(stack, capabilities);
       }
 
       stack.setAttribute(EXPORTED_CAPABILITIES_ATTR, exportedCapabilities);
     }
 
     return stack;
+  }
+
+  public static Set<String> getExportedCapabilities(WarpScriptStack stack) {
+    if (stack.getAttribute(EXPORTED_CAPABILITIES_ATTR) instanceof AtomicReference) {
+      AtomicReference ref = (AtomicReference) stack.getAttribute(EXPORTED_CAPABILITIES_ATTR);
+      if (ref.get() instanceof Set) {
+        return (Set<String>) ref.get();
+      }
+    }
+    return null;
   }
 }

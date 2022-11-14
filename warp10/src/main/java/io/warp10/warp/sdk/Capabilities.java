@@ -21,6 +21,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicReference;
 
 import io.warp10.continuum.Tokens;
 import io.warp10.quasar.token.thrift.data.ReadToken;
@@ -37,11 +38,21 @@ public class Capabilities {
 
   protected Map<String,String> capabilities = new HashMap<String,String>();
 
-  public static String get(WarpScriptStack stack, String name) {
-    Capabilities capabilities = null;
-    if (stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR) instanceof Capabilities) {
-      capabilities = (Capabilities) stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR);
+  public static Capabilities get(WarpScriptStack stack) {
+    if (stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR) instanceof AtomicReference
+        && ((AtomicReference) stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR)).get() instanceof Capabilities) {
+      return (Capabilities) ((AtomicReference) stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR)).get();
+    } else {
+      return null;
     }
+  }
+
+  public static void set(WarpScriptStack stack, Capabilities capabilities) {
+    stack.setAttribute(WarpScriptStack.CAPABILITIES_ATTR, new AtomicReference<Capabilities>(capabilities));
+  }
+
+  public static String get(WarpScriptStack stack, String name) {
+    Capabilities capabilities = get(stack);
     if (null != capabilities) {
       return capabilities.capabilities.get(name);
     } else {
@@ -50,11 +61,7 @@ public class Capabilities {
   }
 
   public static Map<String,String> get(WarpScriptStack stack, List<Object> names) {
-    Capabilities capabilities = null;
-
-    if (stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR) instanceof Capabilities) {
-      capabilities = (Capabilities) stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR);
-    }
+    Capabilities capabilities = get(stack);
 
     Map<String,String> caps = new LinkedHashMap<String,String>();
     if (null != capabilities) {
@@ -95,17 +102,13 @@ public class Capabilities {
     }
 
     if (null != attributes && !attributes.isEmpty()) {
-      Capabilities capabilities = null;
-
-      if (stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR) instanceof Capabilities) {
-        capabilities = (Capabilities) stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR);
-      }
+      Capabilities capabilities = get(stack);
 
       for (Entry<String,String> entry: attributes.entrySet()) {
         if (entry.getKey().startsWith(WarpScriptStack.CAPABILITIES_PREFIX)) {
           if (null == capabilities) {
             capabilities = new Capabilities();
-            stack.setAttribute(WarpScriptStack.CAPABILITIES_ATTR, capabilities);
+            set(stack, capabilities);
           }
           capabilities.putIfAbsent(entry.getKey().substring(WarpScriptStack.CAPABILITIES_PREFIX.length()), entry.getValue());
         }

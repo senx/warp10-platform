@@ -34,11 +34,11 @@ public class CAPEXPORT extends NamedWarpScriptFunction implements WarpScriptStac
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
 
-    if (!(stack.getAttribute(GUARD.EXPORTED_CAPABILITIES_ATTR) instanceof Set)) {
+    Set<String> exported = GUARD.getExportedCapabilities(stack);
+
+    if (null == exported) {
       throw new WarpScriptException(getName() + " can only be called from a GUARDed macro.");
     }
-
-    Set<String> exported = (Set<String>) stack.getAttribute(GUARD.EXPORTED_CAPABILITIES_ATTR);
 
     // Calling CAPEXPORT on NULL will have the side effect of propagating the exported capabilities exported by any enclosed GUARD call
     if (top instanceof String || null == top) {
