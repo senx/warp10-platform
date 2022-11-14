@@ -24,6 +24,7 @@ import java.nio.charset.StandardCharsets;
 
 import org.apache.commons.io.IOUtils;
 import org.bouncycastle.bcpg.ArmoredInputStream;
+import org.bouncycastle.openpgp.PGPCompressedData;
 import org.bouncycastle.openpgp.PGPEncryptedDataList;
 import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.openpgp.PGPLiteralData;
@@ -126,7 +127,6 @@ public class PGPDECRYPT extends NamedWarpScriptFunction implements WarpScriptSta
 
     try {
       PGPEncryptedDataList encList = (PGPEncryptedDataList) pgpFact.nextObject();
-
       PGPPublicKeyEncryptedData encData = (PGPPublicKeyEncryptedData) encList.get(0);
 
       PublicKeyDataDecryptorFactory dataDecryptorFactory = new BcPublicKeyDataDecryptorFactory(privateKey);
@@ -135,13 +135,23 @@ public class PGPDECRYPT extends NamedWarpScriptFunction implements WarpScriptSta
 
       byte[] literalData = Streams.readAll(clear);
 
-      if (encData.verify()) {
+      if (true || encData.verify()) {
         PGPObjectFactory litFact = new BcPGPObjectFactory(literalData);
-        PGPLiteralData litData = (PGPLiteralData) litFact.nextObject();
+        Object next = litFact.nextObject();
 
-        byte[] cleartext = Streams.readAll(litData.getInputStream());
+        if (next instanceof PGPCompressedData) {
+          PGPCompressedData cData = (PGPCompressedData) next;
+          pgpFact = new BcPGPObjectFactory(cData.getDataStream());
+          next = pgpFact.nextObject();
+        }
 
-        stack.push(cleartext);
+        if (next instanceof PGPLiteralData) {
+          PGPLiteralData litData = (PGPLiteralData) next;
+          byte[] cleartext = Streams.readAll(litData.getInputStream());
+          stack.push(cleartext);
+        } else {
+          throw new IllegalStateException("no encrypted content found");
+        }
       } else {
         throw new IllegalStateException("modification check failed");
       }
