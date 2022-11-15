@@ -67,8 +67,7 @@ public class Warp10RecordReader extends RecordReader<Text, BytesWritable> implem
   }
 
   @Override
-  public void initialize(InputSplit split, TaskAttemptContext context)
-      throws IOException, InterruptedException {
+  public void initialize(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
 
     if (!(split instanceof Warp10InputSplit)) {
       throw new IOException("Invalid split type.");
@@ -194,6 +193,9 @@ public class Warp10RecordReader extends RecordReader<Text, BytesWritable> implem
         //
 
         for (Entry<String,String> attr: attributes.entrySet()) {
+          if (attr.getKey().contains(".")) {
+            throw new IOException("Attribute names cannot contain dots which may not be correctly processed in HTTP headers. Invalid attribute '" + attr.getKey() + "'.");
+          }
           conn.setRequestProperty(Warp10InputFormat.HTTP_HEADER_ATTR_PREFIX + attr.getKey(), attr.getValue());
         }
 
@@ -224,6 +226,7 @@ public class Warp10RecordReader extends RecordReader<Text, BytesWritable> implem
         break;
       } catch (Exception e) {
         LOG.error(e.getMessage(), e);
+        throw e;
       } finally {
         if (null == this.br && null != conn) {
           try { conn.disconnect(); } catch (Exception e) {}
