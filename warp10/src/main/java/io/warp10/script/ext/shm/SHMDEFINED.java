@@ -16,6 +16,8 @@
 
 package io.warp10.script.ext.shm;
 
+import java.util.regex.Pattern;
+
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
