@@ -24,6 +24,10 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.Text;
@@ -63,8 +67,7 @@ public class Warp10RecordReader extends RecordReader<Text, BytesWritable> implem
   }
 
   @Override
-  public void initialize(InputSplit split, TaskAttemptContext context)
-      throws IOException, InterruptedException {
+  public void initialize(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
 
     if (!(split instanceof Warp10InputSplit)) {
       throw new IOException("Invalid split type.");
@@ -92,6 +95,20 @@ public class Warp10RecordReader extends RecordReader<Text, BytesWritable> implem
 
     int connectTimeout = Integer.valueOf(getProperty(context, Warp10InputFormat.PROPERTY_WARP10_HTTP_CONNECT_TIMEOUT, Warp10InputFormat.DEFAULT_WARP10_HTTP_CONNECT_TIMEOUT));
     int readTimeout = Integer.valueOf(getProperty(context, Warp10InputFormat.PROPERTY_WARP10_HTTP_READ_TIMEOUT, Warp10InputFormat.DEFAULT_WARP10_HTTP_READ_TIMEOUT));
+
+    //
+    // Extract possible attributes
+    //
+
+    Iterator<Entry<String,String>> iter = context.getConfiguration().iterator();
+    Map<String,String> attributes = new HashMap<String,String>();
+
+    while(iter.hasNext()) {
+      Entry<String,String> entry = iter.next();
+      if (entry.getKey().startsWith(Warp10InputFormat.PROPERTY_WARP10_FETCH_ATTR_PREFIX)) {
+        attributes.put(entry.getKey().substring(Warp10InputFormat.PROPERTY_WARP10_FETCH_ATTR_PREFIX.length()), entry.getValue());
+      }
+    }
 
     //
     // Call each provided fetcher until one answers
@@ -171,6 +188,17 @@ public class Warp10RecordReader extends RecordReader<Text, BytesWritable> implem
           conn.setRequestProperty(Warp10InputFormat.HTTP_HEADER_DEDUP, dedup);
         }
 
+        //
+        // Position attributes
+        //
+
+        for (Entry<String,String> attr: attributes.entrySet()) {
+          if (attr.getKey().contains(".")) {
+            throw new IOException("Attribute names cannot contain dots which may not be correctly processed in HTTP headers. Invalid attribute '" + attr.getKey() + "'.");
+          }
+          conn.setRequestProperty(Warp10InputFormat.HTTP_HEADER_ATTR_PREFIX + attr.getKey(), attr.getValue());
+        }
+
         conn.setRequestProperty("Content-Type", "application/gzip");
         conn.connect();
 
@@ -198,6 +226,7 @@ public class Warp10RecordReader extends RecordReader<Text, BytesWritable> implem
         break;
       } catch (Exception e) {
         LOG.error(e.getMessage(), e);
+        throw e;
       } finally {
         if (null == this.br && null != conn) {
           try { conn.disconnect(); } catch (Exception e) {}
