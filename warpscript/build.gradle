@@ -93,6 +93,7 @@ dependencies {
 
     api withVersion('org.apache.thrift:libthrift')
     api withVersion('org.bouncycastle:bcprov-jdk15on')
+    api withVersion('org.bouncycastle:bcpg-jdk15on')
     api withVersion('commons-io:commons-io')
     api withVersion('commons-codec:commons-codec')
     api withVersion('org.apache.commons:commons-lang3')
