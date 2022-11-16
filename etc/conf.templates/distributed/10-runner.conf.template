@@ -64,9 +64,9 @@ runner.nthreads = 1
 runner.scanperiod = 60000
 
 //
-// warpscript endpoint to use for executing the scripts
+// runner endpoint to use for executing the scripts
 //
-runner.endpoint = http://127.0.0.1:8881/api/v0/exec/warpscript
+runner.endpoint = http://127.0.0.1:8881/api/v0/exec/runner
 
 //
 // 128/192/256 bits AES key for wrapping a runner nonce which can later be extracted using RUNNERNONCE.
