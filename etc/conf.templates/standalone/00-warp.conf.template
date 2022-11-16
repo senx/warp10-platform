@@ -198,7 +198,7 @@ plasma.frontend.websocket.maxmessagesize = 1048576
 // WarpScript map defining the default attributes to allocate to read tokens. Existing attributes will not
 // be overriden if they exist
 //
-#warp.token.read.attributes.default = { '.nofind' '' '.cap:limits' '' }
+warp.token.read.attributes.default = { '.cap:limits' '' }
 
 //  
 // WarpScript map defining the default attributes to allocate to write tokens. Existing attributes will not
