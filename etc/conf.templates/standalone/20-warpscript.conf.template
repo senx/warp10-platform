@@ -214,8 +214,6 @@ warpscript.runner.bootstrap.period = 120000
 // HTTP extension
 //
 
-// If set to true, HTTP requires the stack to be authenticated
-#warpscript.http.authentication.required =
 // If set, the capability <warpscript.http.capability> is checked to grant access to HTTP function
 #warpscript.http.capability =
 // Maximum number of HTTP calls, 1 by default, can be raised with capability http.requests

@@ -1,5 +1,5 @@
 //
-//   Copyright 2021  SenX S.A.S.
+//   Copyright 2021-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -101,7 +101,6 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
   // Authorization
   //
 
-  private static final boolean auth;
   private static final String capName;
 
   //
@@ -125,9 +124,6 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
     } else {
       webAccessController = new WebAccessController(patternConf);
     }
-
-    // retrieve authentication required
-    auth = "true".equals(WarpConfig.getProperty(HttpWarpScriptExtension.WARPSCRIPT_HTTP_AUTHENTICATION_REQUIRED));
 
     // retrieve capName
     capName = WarpConfig.getProperty(HttpWarpScriptExtension.WARPSCRIPT_HTTP_CAPABILITY);
@@ -172,10 +168,6 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
     //
     // Check authorization
     //
-
-    if (auth && !stack.isAuthenticated()) {
-      throw new WarpScriptException(getName() + " requires the stack to be authenticated.");
-    }
 
     if (null != capName && null == Capabilities.get(stack, capName)) {
       throw new WarpScriptException(getName() + " requires capability " + capName + ".");
