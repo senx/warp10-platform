@@ -138,6 +138,7 @@ import io.warp10.script.functions.CALL;
 import io.warp10.script.functions.CAPADD;
 import io.warp10.script.functions.CAPCHECK;
 import io.warp10.script.functions.CAPDEL;
+import io.warp10.script.functions.CAPEXPORT;
 import io.warp10.script.functions.CAPGET;
 import io.warp10.script.functions.CHRONOEND;
 import io.warp10.script.functions.CHRONOSTART;
