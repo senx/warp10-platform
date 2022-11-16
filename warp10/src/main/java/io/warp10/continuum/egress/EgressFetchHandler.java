@@ -29,6 +29,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -212,6 +213,7 @@ public class EgressFetchHandler extends AbstractHandler {
       String sampleParam = null;
       String preBoundaryParam = null;
       String postBoundaryParam = null;
+      Map<String,String> attrParams = new HashMap<String,String>();
 
       if (splitFetch) {
         //
@@ -231,6 +233,14 @@ public class EgressFetchHandler extends AbstractHandler {
         sampleParam = req.getHeader(Warp10InputFormat.HTTP_HEADER_SAMPLE);
         preBoundaryParam = req.getHeader(Warp10InputFormat.HTTP_HEADER_PREBOUNDARY);
         postBoundaryParam = req.getHeader(Warp10InputFormat.HTTP_HEADER_POSTBOUNDARY);
+
+        Enumeration<String> names = req.getHeaderNames();
+        while(names.hasMoreElements()) {
+          String name = names.nextElement();
+          if (name.startsWith(Warp10InputFormat.HTTP_HEADER_ATTR_PREFIX)) {
+            attrParams.put(name.substring(Warp10InputFormat.HTTP_HEADER_ATTR_PREFIX.length()), req.getHeader(name));
+          }
+        }
       } else {
         startParam = req.getParameter(Constants.HTTP_PARAM_START);
         stopParam = req.getParameter(Constants.HTTP_PARAM_STOP);
@@ -248,6 +258,14 @@ public class EgressFetchHandler extends AbstractHandler {
         sampleParam = req.getParameter(Constants.HTTP_PARAM_SAMPLE);
         preBoundaryParam = req.getParameter(Constants.HTTP_PARAM_PREBOUNDARY);
         postBoundaryParam = req.getParameter(Constants.HTTP_PARAM_POSTBOUNDARY);
+
+        Enumeration<String> names = req.getParameterNames();
+        while(names.hasMoreElements()) {
+          String name = names.nextElement();
+          if (name.startsWith(Constants.HTTP_PARAM_ATTR_PREFIX)) {
+            attrParams.put(name.substring(Constants.HTTP_PARAM_ATTR_PREFIX.length()), req.getParameter(name));
+          }
+        }
       }
 
       boolean nocache = AcceleratorConfig.getDefaultReadNocache();
@@ -984,6 +1002,10 @@ public class EgressFetchHandler extends AbstractHandler {
             freq.setTTL(false);
             freq.setPreBoundary(preBoundary);
             freq.setPostBoundary(postBoundary);
+
+            for (Entry<String,String> attr: attrParams.entrySet()) {
+              freq.putToAttributes(attr.getKey(), attr.getValue());
+            }
 
             try(GTSDecoderIterator iterrsc = storeClient.fetch(freq)) {
               GTSDecoderIterator iter = iterrsc;
