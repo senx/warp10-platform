@@ -387,8 +387,6 @@ import io.warp10.script.functions.DEREF;
 import io.warp10.script.functions.DET;
 import io.warp10.script.functions.DIFFERENCE;
 import io.warp10.script.functions.DIGEST;
-import io.warp10.script.functions.DOC;
-import io.warp10.script.functions.DOCMODE;
 import io.warp10.script.functions.DOUBLEEXPONENTIALSMOOTHING;
 import io.warp10.script.functions.DROP;
 import io.warp10.script.functions.DROPN;
@@ -1106,8 +1104,6 @@ public class WarpScriptLib {
   public static final String SECUREKEY = "SECUREKEY";
   public static final String SECURE = "SECURE";
   public static final String UNSECURE = "UNSECURE";
-  public static final String DOC = "DOC";
-  public static final String DOCMODE = "DOCMODE";
   public static final String INFO = "INFO";
   public static final String INFOMODE = "INFOMODE";
   public static final String GETSECTION = "GETSECTION";
@@ -1959,8 +1955,6 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new MSEC(MSEC, false));
     addNamedWarpScriptFunction(new MSEC(MRSEC, true));
     addNamedWarpScriptFunction(new NOOP(NOOP));
-    addNamedWarpScriptFunction(new DOC(DOC));
-    addNamedWarpScriptFunction(new DOCMODE(DOCMODE));
     addNamedWarpScriptFunction(new INFO(INFO));
     addNamedWarpScriptFunction(new INFOMODE(INFOMODE));
     addNamedWarpScriptFunction(new SECTION(SECTION));
