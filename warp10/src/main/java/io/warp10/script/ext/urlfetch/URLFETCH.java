@@ -23,6 +23,8 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WebAccessController;
 import io.warp10.standalone.StandaloneWebCallService;
+import io.warp10.warp.sdk.Capabilities;
+
 import org.apache.commons.codec.binary.Base64;
 
 import java.io.ByteArrayOutputStream;
@@ -63,8 +65,9 @@ public class URLFETCH extends NamedWarpScriptFunction implements WarpScriptStack
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
 
-    if (!stack.isAuthenticated()) {
-      throw new WarpScriptException(getName() + " requires the stack to be authenticated.");
+
+    if (null == Capabilities.get(stack, WarpScriptStack.CAPABILITY_LIMITS)) {
+      throw new WarpScriptException(getName() + " missing capability.");
     }
 
     Object o = stack.pop();

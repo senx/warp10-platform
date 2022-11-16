@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.warp.sdk.Capabilities;
 
 /**
  * Change the maximum cumulative downloaded size of the data fetched by URLFETCH. Value cannot exceed the hard limit.
@@ -33,8 +34,8 @@ public class MAXURLFETCHSIZE extends NamedWarpScriptFunction implements WarpScri
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
 
-    if (!stack.isAuthenticated()) {
-      throw new WarpScriptException(getName() + " requires the stack to be authenticated.");
+    if (null == Capabilities.get(stack, WarpScriptStack.CAPABILITY_LIMITS)) {
+      throw new WarpScriptException(getName() + " missing capability.");
     }
 
     Object top = stack.pop();

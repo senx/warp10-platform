@@ -49,6 +49,23 @@ public class Capabilities {
     }
   }
 
+  public static Long getLong(WarpScriptStack stack, String name) {
+    return getLong(stack, name, null);
+  }
+
+  public static Long getLong(WarpScriptStack stack, String name, Long defaultValue) {
+    String cap = get(stack, name);
+
+    if (null != cap) {
+      try {
+        return Long.parseLong(cap);
+      } catch (Throwable t) {
+      }
+    }
+
+    return defaultValue;
+  }
+
   public static Map<String,String> get(WarpScriptStack stack, List<Object> names) {
     Capabilities capabilities = null;
 
