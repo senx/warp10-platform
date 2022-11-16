@@ -350,7 +350,6 @@ import io.warp10.script.functions.CHRONOEND;
 import io.warp10.script.functions.CHRONOSTART;
 import io.warp10.script.functions.CHRONOSTATS;
 import io.warp10.script.functions.CHUNK;
-import io.warp10.script.functions.CHUNKENCODER;
 import io.warp10.script.functions.CLEAR;
 import io.warp10.script.functions.CLEARDEFS;
 import io.warp10.script.functions.CLEARREGS;
@@ -1273,7 +1272,6 @@ public class WarpScriptLib {
   public static final String RETURN = "RETURN";
   public static final String NRETURN = "NRETURN";
   public static final String NEWENCODER = "NEWENCODER";
-  public static final String CHUNKENCODER = "CHUNKENCODER";
   public static final String OPTIMIZE = "OPTIMIZE";
   public static final String MAKEGTS = "MAKEGTS";
   public static final String ADDVALUE = "ADDVALUE";
@@ -2245,7 +2243,6 @@ public class WarpScriptLib {
     //
 
     addNamedWarpScriptFunction(new NEWENCODER(NEWENCODER));
-    addNamedWarpScriptFunction(new CHUNKENCODER(CHUNKENCODER, true));
     addNamedWarpScriptFunction(new TOENCODER(TOENCODER));
     addNamedWarpScriptFunction(new ENCODERTO(ENCODERTO));
     addNamedWarpScriptFunction(new TOGTS(TOGTS));
