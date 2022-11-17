@@ -2500,4 +2500,9 @@ public class Configuration {
    * Set to 'true' to return Writable instances as is in WarpScriptInputFormat
    */
   public static final String CONFIG_WARPSCRIPT_HADOOP_RAWWRITABLES = "warpscript.hadoop.rawwritables";
+
+  /**
+   * Flag (true/false) indicating whether or not to use capabilities for controlling access to debug functions. Defaults to true.
+   */
+  public static final String CONFIG_DEBUG_CAPABILITY = "debug.capability";
 }
