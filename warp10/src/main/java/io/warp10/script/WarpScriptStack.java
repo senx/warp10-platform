@@ -554,6 +554,7 @@ public interface WarpScriptStack {
   String CAPABILITY_MANAGER = "manager";
   String CAPABILITY_REPORT = "report";
   String CAPABILITY_HTTP = "http";
+  String CAPABILITY_TIMEBOX_MAXTIME = "timebox.maxtime";
 
   /**
    * Retrieve the StoreClient instance associated with this stack.
