@@ -13,9 +13,8 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-package io.warp10.worf;
+package io.warp10;
 
-import io.warp10.WarpConfig;
 import io.warp10.script.MemoryWarpScriptStack;
 
 import java.io.BufferedReader;

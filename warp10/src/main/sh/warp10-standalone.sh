@@ -366,7 +366,7 @@ bootstrap() {
   rm ${WARP10_HOME}/templates/warp10-tokengen.mc2${SED_SUFFIX}
 
   # Generate read/write tokens valid for a period of 100 years. We use 'io.warp10.bootstrap' as application name.
-  su ${WARP10_USER} -c "${JAVACMD} -cp ${WARP10_JAR} -Dlog4j.configuration=file:${LOG4J_CONF} -Dfile.encoding=UTF-8 io.warp10.worf.TokenGen ${CONFIG_FILES} ${WARP10_HOME}/templates/warp10-tokengen.mc2 ${WARP10_HOME}/etc/initial.tokens"
+  su ${WARP10_USER} -c "${JAVACMD} -cp ${WARP10_JAR} -Dlog4j.configuration=file:${LOG4J_CONF} -Dfile.encoding=UTF-8 io.warp10.TokenGen ${CONFIG_FILES} ${WARP10_HOME}/templates/warp10-tokengen.mc2 ${WARP10_HOME}/etc/initial.tokens"
   sed -i${SED_SUFFIX} 's/^.\{1\}//;$ s/.$//' ${WARP10_HOME}/etc/initial.tokens # Remove first and last character
   rm "${WARP10_HOME}/etc/initial.tokens${SED_SUFFIX}"
 
@@ -552,7 +552,7 @@ tokengen() {
     exit 1
   fi
   getConfigFiles
-  ${JAVACMD} -cp ${WARP10_JAR} -Dlog4j.configuration=file:${LOG4J_CONF} -Dfile.encoding=UTF-8 io.warp10.worf.TokenGen ${CONFIG_FILES} $2 -
+  ${JAVACMD} -cp ${WARP10_JAR} -Dlog4j.configuration=file:${LOG4J_CONF} -Dfile.encoding=UTF-8 io.warp10.TokenGen ${CONFIG_FILES} $2 -
 }
 
 run() {
