@@ -27,20 +27,6 @@ import java.util.Map;
 public class HttpWarpScriptExtension extends WarpScriptExtension {
 
   //
-  // Authorization
-  //
-
-  /**
-   * If set to true, HTTP requires the stack to be authenticated
-   */
-  public static final String WARPSCRIPT_HTTP_AUTHENTICATION_REQUIRED = "warpscript.http.authentication.required";
-
-  /**
-   * If set, this capability is inspected
-   */
-  public static final String WARPSCRIPT_HTTP_CAPABILITY = "warpscript.http.capability";
-
-  //
   // Web control
   //
 
