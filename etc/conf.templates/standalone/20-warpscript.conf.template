@@ -169,6 +169,7 @@ warpscript.delete.endpoint = http://${standalone.host}:${standalone.port}/api/v0
 
 //
 // Maximum amount of time each attempt to access a process will wait (in ms). Defaults to 10000 ms.
+// This value can also be overridden with call.maxwait capability.
 //
 #warpscript.call.maxwait = 10000
 
