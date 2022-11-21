@@ -447,6 +447,7 @@ import io.warp10.script.functions.FORGET;
 import io.warp10.script.functions.FORSTEP;
 import io.warp10.script.functions.FROMTSELEMENTS;
 import io.warp10.script.functions.FUNCREF;
+import io.warp10.script.functions.FUNCTIONS;
 import io.warp10.script.functions.FUSE;
 import io.warp10.script.functions.GEOBUFFER;
 import io.warp10.script.functions.GEOCELLTO;
@@ -1061,6 +1062,7 @@ public class WarpScriptLib {
   public static final String OPS = "OPS";
   public static final String MAXSYMBOLS = "MAXSYMBOLS";
   public static final String SYMBOLS = "SYMBOLS";
+  public static final String FUNCTIONS = "FUNCTIONS";
   public static final String MAXJSON = "MAXJSON";
   public static final String NOW = "NOW";
   public static final String AGO = "AGO";
@@ -1884,6 +1886,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new OPS(OPS));
     addNamedWarpScriptFunction(new MAXSYMBOLS(MAXSYMBOLS));
     addNamedWarpScriptFunction(new SYMBOLS(SYMBOLS));
+    addNamedWarpScriptFunction(new FUNCTIONS(FUNCTIONS));
     addNamedWarpScriptFunction(new MAXJSON(MAXJSON));
     addNamedWarpScriptFunction(new EVAL(EVAL));
     addNamedWarpScriptFunction(new FUNCREF(FUNCREF));
