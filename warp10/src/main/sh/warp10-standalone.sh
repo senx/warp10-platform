@@ -546,20 +546,6 @@ snapshot() {
   fi
 }
 
-worf() {
-
-  #
-  # Make sure the caller is WARP10_USER
-  #
-  isUser ${WARP10_USER}
-
-  if [ "$#" -ne 3 ]; then
-    echo "Usage: $0 $1 appName ttl(ms)"
-    exit 1
-  fi
-  ${JAVACMD} -cp ${WARP10_JAR} -Dfile.encoding=UTF-8 io.warp10.worf.Worf ${WARP10_SECRETS} -puidg -t -a $2 -ttl $3
-}
-
 tokengen() {
   if [ "$#" -ne 2 ]; then
     echo "Usage: $0 tokengen envelope.mc2"
@@ -621,12 +607,6 @@ case "${1:-}" in
   echo "## WARNING: JMX is enabled on port ${JMX_PORT}"
   start
   ;;
-  worfcli)
-  worfcli
-  ;;
-  worf)
-  worf "$@"
-  ;;
   tokengen)
   tokengen "$@"
   ;;
@@ -640,7 +620,7 @@ case "${1:-}" in
   repair
   ;;
   *)
-  echo $"Usage: $0 {bootstrap|start|jmxstart|stop|status|worf appName ttl(ms)|snapshot 'snapshot_name'|tokengen envelope.mc2|repair|restart|jmxrestart|run file.mc2}"
+  echo $"Usage: $0 {bootstrap|start|jmxstart|stop|status|snapshot 'snapshot_name'|tokengen envelope.mc2|repair|restart|jmxrestart|run file.mc2}"
   exit 2
 esac
 
