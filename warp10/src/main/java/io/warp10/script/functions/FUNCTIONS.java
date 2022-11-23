@@ -33,7 +33,7 @@ public class FUNCTIONS extends NamedWarpScriptFunction implements WarpScriptStac
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
 
     if (null == Capabilities.get(stack, WarpScriptStack.CAPABILITY_INVENTORY)) {
-      throw new WarpScriptException(getName() + " missing capability.");
+      throw new WarpScriptException(getName() + " missing capability '" + WarpScriptStack.CAPABILITY_INVENTORY + "'.");
     }
 
     //
