@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2019-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,28 +16,30 @@
 
 package io.warp10.script.functions;
 
+import java.util.ArrayList;
+
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.WarpFleetMacroRepository;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.warp.sdk.Capabilities;
 
-/**
- * Toggle the 'documentation mode' of the stack
- */
-public class DOCMODE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
-  public DOCMODE(String name) {
+public class WFGETREPOS extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+
+  public WFGETREPOS(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    if (Boolean.TRUE.equals(stack.getAttribute(WarpScriptStack.ATTRIBUTE_DOCMODE))) {
-      stack.setAttribute(WarpScriptStack.ATTRIBUTE_DOCMODE, null);
+
+    if (null == Capabilities.get(stack, WarpScriptStack.CAPABILITY_WFGET)) {
+      stack.push(new ArrayList<String>(0));
     } else {
-      stack.setAttribute(WarpScriptStack.ATTRIBUTE_DOCMODE, true);      
+      stack.push(WarpFleetMacroRepository.getRepos(stack));
     }
+
     return stack;
   }
-
 }

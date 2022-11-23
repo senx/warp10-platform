@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -37,10 +37,10 @@ runner.id = runner-standalone-1
 runner.roles = standalone
 
 //
-// warpscript endpoint to use for executing the scripts. If this is omitted then
+// runner endpoint to use for executing the scripts. If this is omitted then
 // execution will take place in the scheduling thread.
 //
-#runner.endpoint = http://127.0.0.1:8881/api/v0/exec/warpscript
+#runner.endpoint = http://127.0.0.1:8881/api/v0/exec
 
 //
 // 128/192/256 bits AES key for wrapping a runner nonce which can later be extracted using RUNNERNONCE.
@@ -54,7 +54,7 @@ runner.roles = standalone
 // subdirectories whose name is the periodicity (in ms) at which the scripts under it
 // should be run. The scripts MUST end with the '.mc2' extension.
 //
-runner.root = ${standalone.home}/warpscripts
+runner.root = ${standalone.home}/runners
 
 //
 // Number of threads to use for running scripts.
