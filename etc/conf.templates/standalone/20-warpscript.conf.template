@@ -225,3 +225,8 @@ warpscript.comments.loose = true
 // Defaults to .producer,.app,.owner
 //
 #warpscript.labels.priority =
+
+//
+// Default capabilities
+//
+#warp.capabilities.default = { 'limits' '' }
