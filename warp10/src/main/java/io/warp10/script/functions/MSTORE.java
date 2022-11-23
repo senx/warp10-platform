@@ -21,6 +21,8 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 public class MSTORE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
@@ -35,10 +37,16 @@ public class MSTORE extends NamedWarpScriptFunction implements WarpScriptStackFu
   public MSTORE(String name) {
     this(name, false);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
+    List optionalKeyList = null;
     Object o = stack.pop();
+
+    if (o instanceof List) {
+      optionalKeyList = (List) o;
+      o = stack.pop();
+    }
 
     if (!(o instanceof Map)) {
       throw new WarpScriptException(getName() + " expects a Map as argument.");
@@ -46,31 +54,41 @@ public class MSTORE extends NamedWarpScriptFunction implements WarpScriptStackFu
 
     Map<Object, Object> variables = (Map<Object, Object>) o;
 
-    // Check that each key of the map is either a LONG or a STRING
-    for (Object elt: variables.keySet()) {
-      if (null != elt && (!(elt instanceof String) && !(elt instanceof Long))) {
-        throw new WarpScriptException(getName() + " expects each key to be a STRING or a LONG.");
+    // Check that each key of the optional list is either a LONG or a STRING
+    if (null != optionalKeyList) {
+      for (Object symbol: optionalKeyList) {
+        if (null != symbol && (!(symbol instanceof String) && !(symbol instanceof Long))) {
+          throw new WarpScriptException(getName() + " expects a list of variable names or register numbers as second argument.");
+        }
       }
     }
 
-    for (Map.Entry<Object, Object> entry: variables.entrySet()) {
-      Object symbol = entry.getKey();
+    // Iterate on the optional List, or on all the keys of input map.
+    Iterator itr = null != optionalKeyList ? optionalKeyList.iterator() : variables.keySet().iterator();
+    while (itr.hasNext()) {
+
+      Object symbol = itr.next();
 
       if (null == symbol) {
         continue;
       }
 
+      if (null != symbol && (!(symbol instanceof String) && !(symbol instanceof Long))) {
+        throw new WarpScriptException(getName() + " expects a list of variable names or register numbers as second argument.");
+      }
+
+      Object v = variables.get(symbol);
       if (symbol instanceof Long) {
         if (!conditional || null == stack.load(((Long) symbol).intValue())) {
-          stack.store(((Long) symbol).intValue(), entry.getValue());
+          stack.store(((Long) symbol).intValue(), v);
         }
-      } else {
+      } else if (symbol instanceof String) {
         if (!conditional || !stack.getSymbolTable().containsKey((String) symbol)) {
-          stack.store((String) symbol, entry.getValue());
+          stack.store((String) symbol, v);
         }
       }
     }
-
+    
     return stack;
   }
 }

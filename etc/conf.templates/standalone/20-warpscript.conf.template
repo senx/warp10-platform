@@ -198,19 +198,6 @@ warpscript.runner.bootstrap.path = ${standalone.home}/etc/bootstrap/runner.mc2
 warpscript.runner.bootstrap.period = 120000
 
 //
-// URLFETCH extension
-//
-
-// Maximum number of URLFETCH calls, 64 by default for soft and hard
-#warpscript.urlfetch.limit =
-#warpscript.urlfetch.limit.hard =
-// Maximum downloaded bytes by URLFETCH, 1000000 by default for soft and hard
-#warpscript.urlfetch.maxsize =
-#warpscript.urlfetch.maxsize.hard =
-// List of patterns to include/exclude for hosts, works the same way as webcall.host.patterns. Defaults to the value of webcall.host.patterns.
-#warpscript.urlfetch.host.patterns =
-
-//
 // HTTP extension
 //
 
