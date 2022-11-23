@@ -286,6 +286,7 @@ public class Tokens {
       for (AuthenticationPlugin plugin: plugins) {
         WriteToken wtoken = plugin.extractWriteToken(token);
         if (null != wtoken) {
+          checkAttributes(wtoken);
           return wtoken;
         }
       }
@@ -371,22 +372,24 @@ public class Tokens {
       }
     }
 
-    if (null != defaults) {
-      if (null == attributes) {
-        attributes = new LinkedHashMap<String,String>(defaults);
-      } else {
-        for (Entry<String,String> defattr: defaults.entrySet()) {
-          attributes.putIfAbsent(defattr.getKey(), defattr.getValue());
-        }
+    if (null != defaults && null != attributes) {
+      for (Entry<String,String> defattr: defaults.entrySet()) {
+        attributes.putIfAbsent(defattr.getKey(), defattr.getValue());
       }
     }
   }
 
   private static void checkAttributes(ReadToken rtoken) {
+    if (null != defaultReadAttributes && null == rtoken.getAttributes()) {
+      rtoken.setAttributes(new LinkedHashMap<String,String>());
+    }
     checkAttributes(rtoken.getAttributes(), defaultReadAttributes);
   }
 
   private static void checkAttributes(WriteToken wtoken) {
+    if (null != defaultWriteAttributes && null == wtoken.getAttributes()) {
+      wtoken.setAttributes(new LinkedHashMap<String,String>());
+    }
     checkAttributes(wtoken.getAttributes(), defaultWriteAttributes);
   }
 
