@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -64,9 +64,9 @@ runner.nthreads = 1
 runner.scanperiod = 60000
 
 //
-// warpscript endpoint to use for executing the scripts
+// runner endpoint to use for executing the scripts
 //
-runner.endpoint = http://127.0.0.1:8881/api/v0/exec/warpscript
+runner.endpoint = http://127.0.0.1:8881/api/v0/exec
 
 //
 // 128/192/256 bits AES key for wrapping a runner nonce which can later be extracted using RUNNERNONCE.

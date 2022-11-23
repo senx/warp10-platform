@@ -350,7 +350,6 @@ import io.warp10.script.functions.CHRONOEND;
 import io.warp10.script.functions.CHRONOSTART;
 import io.warp10.script.functions.CHRONOSTATS;
 import io.warp10.script.functions.CHUNK;
-import io.warp10.script.functions.CHUNKENCODER;
 import io.warp10.script.functions.CLEAR;
 import io.warp10.script.functions.CLEARDEFS;
 import io.warp10.script.functions.CLEARREGS;
@@ -387,8 +386,6 @@ import io.warp10.script.functions.DEREF;
 import io.warp10.script.functions.DET;
 import io.warp10.script.functions.DIFFERENCE;
 import io.warp10.script.functions.DIGEST;
-import io.warp10.script.functions.DOC;
-import io.warp10.script.functions.DOCMODE;
 import io.warp10.script.functions.DOUBLEEXPONENTIALSMOOTHING;
 import io.warp10.script.functions.DROP;
 import io.warp10.script.functions.DROPN;
@@ -828,6 +825,9 @@ import io.warp10.script.functions.VECTORTO;
 import io.warp10.script.functions.WEBCALL;
 import io.warp10.script.functions.WFOFF;
 import io.warp10.script.functions.WFON;
+import io.warp10.script.functions.WFADDREPO;
+import io.warp10.script.functions.WFGETREPOS;
+import io.warp10.script.functions.WFSETREPOS;
 import io.warp10.script.functions.WHILE;
 import io.warp10.script.functions.WRAP;
 import io.warp10.script.functions.WSSTACK;
@@ -1106,8 +1106,6 @@ public class WarpScriptLib {
   public static final String SECUREKEY = "SECUREKEY";
   public static final String SECURE = "SECURE";
   public static final String UNSECURE = "UNSECURE";
-  public static final String DOC = "DOC";
-  public static final String DOCMODE = "DOCMODE";
   public static final String INFO = "INFO";
   public static final String INFOMODE = "INFOMODE";
   public static final String GETSECTION = "GETSECTION";
@@ -1135,6 +1133,9 @@ public class WarpScriptLib {
   public static final String TOMACRO = "->MACRO";
   public static final String WFON = "WFON";
   public static final String WFOFF = "WFOFF";
+  public static final String WFGETREPOS = "WF.GETREPOS";
+  public static final String WFSETREPOS = "WF.SETREPOS";
+  public static final String WFADDREPO = "WF.ADDREPO";
   public static final String SETMACROCONFIG = "SETMACROCONFIG";
   public static final String MACROCONFIG = "MACROCONFIG";
   public static final String MACROCONFIGDEFAULT = "MACROCONFIGDEFAULT";
@@ -1165,8 +1166,6 @@ public class WarpScriptLib {
   public static final String TOBIN = "TOBIN";
   public static final String FROMHEX = "FROMHEX";
   public static final String FROMBIN = "FROMBIN";
-  public static final String TOBITS = "TOBITS";
-  public static final String FROMBITS = "FROMBITS";
   public static final String TOKENINFO = "TOKENINFO";
   public static final String GETHOOK = "GETHOOK";
   public static final String W = "w";
@@ -1273,7 +1272,6 @@ public class WarpScriptLib {
   public static final String RETURN = "RETURN";
   public static final String NRETURN = "NRETURN";
   public static final String NEWENCODER = "NEWENCODER";
-  public static final String CHUNKENCODER = "CHUNKENCODER";
   public static final String OPTIMIZE = "OPTIMIZE";
   public static final String MAKEGTS = "MAKEGTS";
   public static final String ADDVALUE = "ADDVALUE";
@@ -1468,7 +1466,6 @@ public class WarpScriptLib {
   public static final String NBOUNDS = "NBOUNDS";
   public static final String LBOUNDS = "LBOUNDS";
   public static final String BUCKETIZE = "BUCKETIZE";
-  public static final String BUCKETIZE_FAST = "BUCKETIZE.FAST";
   public static final String BUCKETIZE_CALENDAR = "BUCKETIZE.CALENDAR";
   public static final String MAP = "MAP";
   public static final String FILTER = "FILTER";
@@ -1959,8 +1956,6 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new MSEC(MSEC, false));
     addNamedWarpScriptFunction(new MSEC(MRSEC, true));
     addNamedWarpScriptFunction(new NOOP(NOOP));
-    addNamedWarpScriptFunction(new DOC(DOC));
-    addNamedWarpScriptFunction(new DOCMODE(DOCMODE));
     addNamedWarpScriptFunction(new INFO(INFO));
     addNamedWarpScriptFunction(new INFOMODE(INFOMODE));
     addNamedWarpScriptFunction(new SECTION(SECTION));
@@ -2003,6 +1998,9 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new MACROTTL(MACROTTL));
     addNamedWarpScriptFunction(new WFON(WFON));
     addNamedWarpScriptFunction(new WFOFF(WFOFF));
+    addNamedWarpScriptFunction(new WFADDREPO(WFADDREPO));
+    addNamedWarpScriptFunction(new WFGETREPOS(WFGETREPOS));
+    addNamedWarpScriptFunction(new WFSETREPOS(WFSETREPOS));
     addNamedWarpScriptFunction(new SETMACROCONFIG(SETMACROCONFIG));
     addNamedWarpScriptFunction(new MACROCONFIG(MACROCONFIG, false));
     addNamedWarpScriptFunction(new MACROCONFIG(MACROCONFIGDEFAULT, true));
@@ -2068,8 +2066,6 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new TOBIN(TOBIN));
     addNamedWarpScriptFunction(new FROMHEX(FROMHEX));
     addNamedWarpScriptFunction(new FROMBIN(FROMBIN));
-    addNamedWarpScriptFunction(new TOBITS(TOBITS, false));
-    addNamedWarpScriptFunction(new FROMBITS(FROMBITS, false));
     addNamedWarpScriptFunction(new TOLONGBYTES(TOLONGBYTES));
     addNamedWarpScriptFunction(new TOBITS(TODOUBLEBITS, false));
     addNamedWarpScriptFunction(new FROMBITS(DOUBLEBITSTO, false));
@@ -2245,7 +2241,6 @@ public class WarpScriptLib {
     //
 
     addNamedWarpScriptFunction(new NEWENCODER(NEWENCODER));
-    addNamedWarpScriptFunction(new CHUNKENCODER(CHUNKENCODER, true));
     addNamedWarpScriptFunction(new TOENCODER(TOENCODER));
     addNamedWarpScriptFunction(new ENCODERTO(ENCODERTO));
     addNamedWarpScriptFunction(new TOGTS(TOGTS));
@@ -2480,7 +2475,6 @@ public class WarpScriptLib {
     //
 
     addNamedWarpScriptFunction(new BUCKETIZE(BUCKETIZE));
-    addNamedWarpScriptFunction(new BUCKETIZE(BUCKETIZE_FAST, true));
     addNamedWarpScriptFunction(new BUCKETIZECALENDAR(BUCKETIZE_CALENDAR));
     addNamedWarpScriptFunction(new MAP(MAP));
     addNamedWarpScriptFunction(new FILTER(FILTER, true));

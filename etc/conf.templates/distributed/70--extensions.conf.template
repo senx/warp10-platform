@@ -70,10 +70,6 @@
 // TOKENDUMP, TOKENGEN, TOKENSECRET
 #warpscript.extension.token = io.warp10.script.ext.token.TokenWarpScriptExtension
 
-// URLFETCH, MAXURLFETCHCOUNT, MAXURLFETCHSIZE
-#warpscript.extension.urlfetch = io.warp10.script.ext.urlfetch.UrlFetchWarpScriptExtension
-// see also warpscript.urlfetch.* configurations in 20-warpscript.conf
-
 // HTTP
 #warpscript.extension.http = io.warp10.script.ext.http.HttpWarpScriptExtension
 // see also warpscript.http.* configurations in 20-warpscript.conf
