@@ -553,6 +553,8 @@ public interface WarpScriptStack {
   String CAPABILITY_SETMACROCONFIG = "setmacroconfig";
   String CAPABILITY_MANAGER = "manager";
   String CAPABILITY_REPORT = "report";
+  String CAPABILITY_WFGET = "wfget";
+  String CAPABILITY_WFSET = "wfset";
 
   /**
    * Retrieve the StoreClient instance associated with this stack.
