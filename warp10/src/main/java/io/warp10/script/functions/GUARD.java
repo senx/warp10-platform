@@ -17,6 +17,7 @@
 package io.warp10.script.functions;
 
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
@@ -88,6 +89,7 @@ public class GUARD extends NamedWarpScriptFunction implements WarpScriptStackFun
       //
 
       capabilities = Capabilities.get(stack);
+
       if (null != capabilities) {
         Capabilities.set(stack, capabilities.clone());
       }
@@ -150,10 +152,14 @@ public class GUARD extends NamedWarpScriptFunction implements WarpScriptStackFun
       }
 
       Capabilities caps = Capabilities.get(stack);
+
       if (null != caps) {
         // Export the specified capabilities if no error occurred
         if (null == error) {
           Capabilities newcaps = caps;
+          if (!getExportedCapabilities(stack).isEmpty() && null == capabilities) {
+            capabilities = new Capabilities();
+          }
           for (String cap: getExportedCapabilities(stack)) {
             if (null != cap) {
               if (copyExported) {
@@ -166,9 +172,7 @@ public class GUARD extends NamedWarpScriptFunction implements WarpScriptStackFun
         }
       }
 
-      if (null != capabilities) {
-        Capabilities.set(stack, capabilities);
-      }
+      Capabilities.set(stack, capabilities);
 
       stack.setAttribute(EXPORTED_CAPABILITIES_ATTR, exportedCapabilities);
     }
