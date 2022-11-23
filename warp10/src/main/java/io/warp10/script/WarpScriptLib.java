@@ -1171,8 +1171,6 @@ public class WarpScriptLib {
   public static final String TOBIN = "TOBIN";
   public static final String FROMHEX = "FROMHEX";
   public static final String FROMBIN = "FROMBIN";
-  public static final String TOBITS = "TOBITS";
-  public static final String FROMBITS = "FROMBITS";
   public static final String TOKENINFO = "TOKENINFO";
   public static final String GETHOOK = "GETHOOK";
   public static final String W = "w";
@@ -2076,8 +2074,6 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new TOBIN(TOBIN));
     addNamedWarpScriptFunction(new FROMHEX(FROMHEX));
     addNamedWarpScriptFunction(new FROMBIN(FROMBIN));
-    addNamedWarpScriptFunction(new TOBITS(TOBITS, false));
-    addNamedWarpScriptFunction(new FROMBITS(FROMBITS, false));
     addNamedWarpScriptFunction(new TOLONGBYTES(TOLONGBYTES));
     addNamedWarpScriptFunction(new TOBITS(TODOUBLEBITS, false));
     addNamedWarpScriptFunction(new FROMBITS(DOUBLEBITSTO, false));
