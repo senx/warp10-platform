@@ -35,7 +35,7 @@ public class LOGINIT extends NamedWarpScriptFunction implements WarpScriptStackF
 
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    if (!STDOUT.useCapability || ADMIN.equals(Capabilities.get(stack, WarpScriptStack.CAPABILITY_DEBUG))) {
+    if (ADMIN.equals(Capabilities.get(stack, WarpScriptStack.CAPABILITY_DEBUG))) {
       try {
         LogManager.getLogManager().readConfiguration();
       } catch (IOException ioe) {

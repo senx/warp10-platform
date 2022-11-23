@@ -32,7 +32,7 @@ public class NOLOG extends NamedWarpScriptFunction implements WarpScriptStackFun
 
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    if (!STDOUT.useCapability || LOGINIT.ADMIN.equals(Capabilities.get(stack, WarpScriptStack.CAPABILITY_DEBUG))) {
+    if (LOGINIT.ADMIN.equals(Capabilities.get(stack, WarpScriptStack.CAPABILITY_DEBUG))) {
       LogManager.getLogManager().reset();
     }
 
