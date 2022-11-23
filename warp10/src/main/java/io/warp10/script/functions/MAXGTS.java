@@ -35,7 +35,7 @@ public class MAXGTS extends NamedWarpScriptFunction implements WarpScriptStackFu
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
 
     if (null == Capabilities.get(stack, WarpScriptStack.CAPABILITY_LIMITS) && null == Capabilities.get(stack, WarpScriptStack.CAPABILITY_MAXGTS)) {
-      throw new WarpScriptException(getName() + " missing capability.");
+      throw new WarpScriptException(getName() + " missing capability '" + WarpScriptStack.CAPABILITY_MAXGTS + "' or '" + WarpScriptStack.CAPABILITY_LIMITS + "'.");
     }
 
     Object top = stack.pop();

@@ -35,7 +35,7 @@ public class MAXOPS extends NamedWarpScriptFunction implements WarpScriptStackFu
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
 
     if (null == Capabilities.get(stack, WarpScriptStack.CAPABILITY_LIMITS) && null == Capabilities.get(stack, WarpScriptStack.CAPABILITY_MAXOPS)) {
-      throw new WarpScriptException(getName() + " missing capability.");
+      throw new WarpScriptException(getName() + " missing capability '" + WarpScriptStack.CAPABILITY_MAXOPS + "' or '" + WarpScriptStack.CAPABILITY_LIMITS + "'.");
     }
 
     Object top = stack.pop();

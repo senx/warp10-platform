@@ -35,7 +35,7 @@ public class MAXRECURSION extends NamedWarpScriptFunction implements WarpScriptS
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
 
     if (null == Capabilities.get(stack, WarpScriptStack.CAPABILITY_LIMITS) && null == Capabilities.get(stack, WarpScriptStack.CAPABILITY_MAXRECURSION)) {
-      throw new WarpScriptException(getName() + " missing capability.");
+      throw new WarpScriptException(getName() + " missing capability '" + WarpScriptStack.CAPABILITY_MAXRECURSION + "' or '" + WarpScriptStack.CAPABILITY_LIMITS + "'.");
     }
 
     Object top = stack.pop();

@@ -35,7 +35,7 @@ public class MAXDEPTH extends NamedWarpScriptFunction implements WarpScriptStack
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
 
     if (null == Capabilities.get(stack, WarpScriptStack.CAPABILITY_LIMITS) && null == Capabilities.get(stack, WarpScriptStack.CAPABILITY_MAXDEPTH)) {
-      throw new WarpScriptException(getName() + " missing capability.");
+      throw new WarpScriptException(getName() + " missing capability '" + WarpScriptStack.CAPABILITY_MAXDEPTH + "' or '" + WarpScriptStack.CAPABILITY_LIMITS + "'.");
     }
 
     Object top = stack.pop();

@@ -35,7 +35,7 @@ public class MAXGEOCELLS extends NamedWarpScriptFunction implements WarpScriptSt
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
 
     if (null == Capabilities.get(stack, WarpScriptStack.CAPABILITY_LIMITS) && null == Capabilities.get(stack, WarpScriptStack.CAPABILITY_MAXGEOCELLS)) {
-      throw new WarpScriptException(getName() + " missing capability.");
+      throw new WarpScriptException(getName() + " missing capability '" + WarpScriptStack.CAPABILITY_MAXGEOCELLS + "' or '" + WarpScriptStack.CAPABILITY_LIMITS + "'.");
     }
 
     Object top = stack.pop();
