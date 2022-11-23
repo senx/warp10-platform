@@ -1468,7 +1468,6 @@ public class WarpScriptLib {
   public static final String NBOUNDS = "NBOUNDS";
   public static final String LBOUNDS = "LBOUNDS";
   public static final String BUCKETIZE = "BUCKETIZE";
-  public static final String BUCKETIZE_FAST = "BUCKETIZE.FAST";
   public static final String BUCKETIZE_CALENDAR = "BUCKETIZE.CALENDAR";
   public static final String MAP = "MAP";
   public static final String FILTER = "FILTER";
@@ -2480,7 +2479,6 @@ public class WarpScriptLib {
     //
 
     addNamedWarpScriptFunction(new BUCKETIZE(BUCKETIZE));
-    addNamedWarpScriptFunction(new BUCKETIZE(BUCKETIZE_FAST, true));
     addNamedWarpScriptFunction(new BUCKETIZECALENDAR(BUCKETIZE_CALENDAR));
     addNamedWarpScriptFunction(new MAP(MAP));
     addNamedWarpScriptFunction(new FILTER(FILTER, true));

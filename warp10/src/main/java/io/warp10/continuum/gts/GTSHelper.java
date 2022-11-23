@@ -16,6 +16,48 @@
 
 package io.warp10.continuum.gts;
 
+import com.geoxp.GeoXPLib;
+import com.geoxp.GeoXPLib.GeoXPShape;
+import io.warp10.CapacityExtractorOutputStream;
+import io.warp10.DoubleUtils;
+import io.warp10.WarpHexDecoder;
+import io.warp10.WarpURLDecoder;
+import io.warp10.WarpURLEncoder;
+import io.warp10.continuum.MetadataUtils;
+import io.warp10.continuum.TimeSource;
+import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
+import io.warp10.continuum.store.Constants;
+import io.warp10.continuum.store.thrift.data.GTSWrapper;
+import io.warp10.continuum.store.thrift.data.Metadata;
+import io.warp10.crypto.OrderPreservingBase64;
+import io.warp10.crypto.SipHashInline;
+import io.warp10.json.JsonUtils;
+import io.warp10.script.SAXUtils;
+import io.warp10.script.WarpScriptAggregatorFunction;
+import io.warp10.script.WarpScriptAggregatorOnListsFunction;
+import io.warp10.script.WarpScriptBinaryOp;
+import io.warp10.script.WarpScriptBucketizerFunction;
+import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptFillerFunction;
+import io.warp10.script.WarpScriptFilterFunction;
+import io.warp10.script.WarpScriptLib;
+import io.warp10.script.WarpScriptMapperFunction;
+import io.warp10.script.WarpScriptNAryFunction;
+import io.warp10.script.WarpScriptReducerFunction;
+import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStack.Macro;
+import io.warp10.script.functions.MACROMAPPER;
+import io.warp10.script.functions.TOQUATERNION;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.math3.fitting.PolynomialCurveFitter;
+import org.apache.commons.math3.fitting.WeightedObservedPoint;
+import org.apache.thrift.TSerializer;
+import org.apache.thrift.protocol.TCompactProtocol;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import sun.nio.cs.ArrayEncoder;
+
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
@@ -40,8 +82,8 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.PriorityQueue;
 import java.util.Map.Entry;
+import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -49,50 +91,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import io.warp10.script.WarpScriptAggregatorOnListsFunction;
-import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.math3.fitting.PolynomialCurveFitter;
-import org.apache.commons.math3.fitting.WeightedObservedPoint;
-import org.apache.thrift.TSerializer;
-import org.apache.thrift.protocol.TCompactProtocol;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.geoxp.GeoXPLib;
-import com.geoxp.GeoXPLib.GeoXPShape;
-
-import io.warp10.CapacityExtractorOutputStream;
-import io.warp10.DoubleUtils;
-import io.warp10.WarpHexDecoder;
-import io.warp10.WarpURLDecoder;
-import io.warp10.WarpURLEncoder;
-import io.warp10.continuum.MetadataUtils;
-import io.warp10.continuum.TimeSource;
-import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
-import io.warp10.continuum.store.Constants;
-import io.warp10.continuum.store.thrift.data.GTSWrapper;
-import io.warp10.continuum.store.thrift.data.Metadata;
-import io.warp10.crypto.OrderPreservingBase64;
-import io.warp10.crypto.SipHashInline;
-import io.warp10.json.JsonUtils;
-import io.warp10.script.SAXUtils;
-import io.warp10.script.WarpScriptAggregatorFunction;
-import io.warp10.script.WarpScriptBinaryOp;
-import io.warp10.script.WarpScriptBucketizerFunction;
-import io.warp10.script.WarpScriptException;
-import io.warp10.script.WarpScriptFillerFunction;
-import io.warp10.script.WarpScriptFilterFunction;
-import io.warp10.script.WarpScriptLib;
-import io.warp10.script.WarpScriptMapperFunction;
-import io.warp10.script.WarpScriptNAryFunction;
-import io.warp10.script.WarpScriptReducerFunction;
-import io.warp10.script.WarpScriptStack;
-import io.warp10.script.WarpScriptStack.Macro;
-import io.warp10.script.functions.MACROMAPPER;
-import io.warp10.script.functions.TOQUATERNION;
-import sun.nio.cs.ArrayEncoder;
 
 
 /**
@@ -2125,12 +2123,8 @@ public class GTSHelper {
   public static final GeoTimeSerie bucketize(GeoTimeSerie gts, long bucketspan, int bucketcount, long lastbucket, WarpScriptBucketizerFunction aggregator, long maxbuckets) throws WarpScriptException {
     return bucketize(gts, bucketspan, bucketcount, lastbucket, aggregator, maxbuckets, null);
   }
-
+  
   public static final GeoTimeSerie bucketize(GeoTimeSerie gts, long bucketspan, int bucketcount, long lastbucket, Object aggregator, long maxbuckets, WarpScriptStack stack) throws WarpScriptException {
-    return bucketize(gts, bucketspan, bucketcount, lastbucket, aggregator, maxbuckets, stack, false);
-  }
-
-  public static final GeoTimeSerie bucketize(GeoTimeSerie gts, long bucketspan, int bucketcount, long lastbucket, Object aggregator, long maxbuckets, WarpScriptStack stack, boolean memoryOptimized) throws WarpScriptException {
 
     //
     // If lastbucket is 0, compute it from the last timestamp
@@ -2262,53 +2256,112 @@ public class GTSHelper {
     //
     // Loop on all buckets
     //
+    // to keep compatibility, BUCKETIZE will still browse buckets from the most recent to the oldest
+    // a bucket is all values between (bucketEnd - bucketspan + 1) and bucketEnd.
 
-    if (memoryOptimized) {
-      // to keep compatibility, BUCKETIZE will still browse buckets from the most recent to the oldest
-      // a bucket is all values between (bucketEnd - bucketspan + 1) and bucketEnd.
+    // early exit if input is empty, or bucketize time window is obviously not in input
+    if (gts.values == 0 || firsttick > lastbucket || lasttick < (lastbucket - bucketspan * bucketcount + 1)) {
+      return bucketized;
+    }
 
-      // early exit if input is empty, or bucketize time window is obviously not in input
-      if (gts.values == 0 || firsttick > lastbucket || lasttick < (lastbucket - bucketspan * bucketcount + 1)) {
-        // either input is empty, either the last bucket is before the first tick.
+    // sort input
+    GTSHelper.sort(gts);
+
+    // find array index of last bucket, if needed
+    int i;
+    if (lastbucket > lasttick) {
+      i = gts.size() - 1;
+    } else {
+      i = Arrays.binarySearch(gts.ticks, 0, gts.values, lastbucket);
+      if (-1 == i) {
+        // should not be there, this case leads to early exit before.
         return bucketized;
+      } else if (i < 0) {
+        // just before the insertion point
+        i = -i - 1 - 1;
+      }
+    }
+
+    // first case: bucketizer is a macro. We need to build a subgts for each bucket and expose it on the stack.
+    // building a subgts will lead to new allocation and array copy. TODO: find an alternative to new allocations here
+    if (null != stack) {
+      if (!(aggregator instanceof Macro)) {
+        throw new WarpScriptException("Expected a macro as bucketizer.");
       }
 
-      // sort input
-      GTSHelper.sort(gts);
+      // size and gts internal arrays will be overriden anyway
+      GeoTimeSerie subgts = new GeoTimeSerie(1);
+      subgts.safeSetMetadata(bucketized.getMetadata());
+      subgts.type = gts.type;
+      subgts.sorted = true; // we will copy sorted data from gts.
+      subgts.reversed = false;
 
-      // find array index of last bucket, if needed
-      int i;
-      if (lastbucket > lasttick) {
-        i = gts.size() - 1;
-      } else {
-        i = Arrays.binarySearch(gts.ticks, 0, gts.values, lastbucket);
-        if (-1 == i) {
-          // should not be there, this case leads to early exit before.
-          return bucketized;
-        } else if (i < 0) {
-          // just before the insertion point
-          i = -i - 1 - 1;
+      // iterate on input to find buckets
+      long currentBucketEnd;
+      int currentBucketEndPosition; // index of the newest tick in the bucket
+      int currentBucketStartPosition; // index of the oldest tick in the bucket
+      int count;
+      Object[] aggregated = null;
+      while (i >= 0 && gts.ticks[i] > (lastbucket - bucketspan * bucketcount)) {
+        currentBucketEndPosition = i;
+        currentBucketEnd = gts.ticks[i] + (lastbucket - gts.ticks[i]) % bucketspan;
+        while (i >= 0 && gts.ticks[i] > (currentBucketEnd - bucketspan)) {
+          i--;
         }
+        currentBucketStartPosition = i + 1;
+
+        count = currentBucketEndPosition - currentBucketStartPosition + 1;
+
+        copyToSubGts(gts, currentBucketStartPosition, subgts, count);
+
+        // push on stack, exec the macro
+        stack.push(subgts);
+        stack.exec((Macro) aggregator);
+
+        Object res = stack.peek();
+        // if the user returns null as value (in a list or not), do not convert to Ojects[] and do not setValue().
+        if (res instanceof List) {
+          if (null != ((List<Object>) res).get(((List<Object>) res).size() - 1)) {
+            aggregated = MACROMAPPER.listToObjects((List<Object>) stack.pop());
+            setValue(bucketized, currentBucketEnd, (long) aggregated[1], (long) aggregated[2], aggregated[3], false);
+          }
+        } else {
+          if (null != res) {
+            aggregated = MACROMAPPER.stackToObjects(stack);
+            setValue(bucketized, currentBucketEnd, (long) aggregated[1], (long) aggregated[2], aggregated[3], false);
+          }
+        }
+
+        // next bucket
+      }
+      
+    } else {
+      if (!(aggregator instanceof WarpScriptBucketizerFunction)) {
+        throw new WarpScriptException("Invalid bucketizer function.");
       }
 
-      // first case: bucketizer is a macro. We need to build a subgts for each bucket and expose it on the stack.
-      // building a subgts will lead to new allocation and array copy. TODO: find an alternative to new allocations here
-      if (null != stack) {
-        if (!(aggregator instanceof Macro)) {
-          throw new WarpScriptException("Expected a macro as bucketizer.");
-        }
 
-        // size and gts internal arrays will be overriden anyway
-        GeoTimeSerie subgts = new GeoTimeSerie(1);
-        subgts.safeSetMetadata(bucketized.getMetadata());
-        subgts.type = gts.type;
-        subgts.sorted = true; // we will copy sorted data from gts.
-        subgts.reversed = false;
+      if (aggregator instanceof WarpScriptAggregatorOnListsFunction) {
+        // Second case: the aggregator is capable to process an array of List instead of an array of array.
+        // It uses a special class for lists that saves a memory allocation.
+        
+        // build a structure ready to use:
+        // - special copy on write List for ticks, values  (view of the original primitive array or BitSet)
+        // - decode elevations
+        // - decode locations
+        // - expose lists of NaN when needed
+        // [tick_of_computation,[gts_classes],[label_maps],[ticks],[latitudes],[longitudes],[elevations],[values]]
+        Object[] parms = new Object[8];
+        // name and labels can be defined here
+        parms[1] = new ArrayList<String>();
+        ((ArrayList<String>) parms[1]).add(bucketized.getName());
+        parms[2] = new ArrayList<Map>();
+        ((ArrayList<Map>) parms[2]).add(labels);
 
         // iterate on input to find buckets
         long currentBucketEnd;
-        int currentBucketEndPosition; // index of the newest tick in the bucket
-        int currentBucketStartPosition; // index of the oldest tick in the bucket
+        int currentBucketEndPosition;
+        int currentBucketStartPosition;
         int count;
         Object[] aggregated = null;
         while (i >= 0 && gts.ticks[i] > (lastbucket - bucketspan * bucketcount)) {
@@ -2321,343 +2374,155 @@ public class GTSHelper {
 
           count = currentBucketEndPosition - currentBucketStartPosition + 1;
 
-          copyToSubGts(gts, currentBucketStartPosition, subgts, count);
+          // tick
+          parms[0] = currentBucketEnd;
 
-          // push on stack, exec the macro
-          stack.push(subgts);
-          stack.exec((Macro) aggregator);
+          // ticks list
+          parms[3] = new COWList(gts.ticks, currentBucketStartPosition, count);
 
-          Object res = stack.peek();
-          // if the user returns null as value (in a list or not), do not convert to Ojects[] and do not setValue().
-          if (res instanceof List) {
-            if (null != ((List<Object>) res).get(((List<Object>) res).size() - 1)) {
-              aggregated = MACROMAPPER.listToObjects((List<Object>) stack.pop());
-              setValue(bucketized, currentBucketEnd, (long) aggregated[1], (long) aggregated[2], aggregated[3], false);
-            }
+          // locations lists
+          if (null != gts.locations) {
+            parms[4] = new COWList(gts.locations, currentBucketStartPosition, count);
           } else {
-            if (null != res) {
-              aggregated = MACROMAPPER.stackToObjects(stack);
-              setValue(bucketized, currentBucketEnd, (long) aggregated[1], (long) aggregated[2], aggregated[3], false);
-            }
+            parms[4] = null;
+          }
+
+          // elevations list
+          if (null != gts.elevations) {
+            parms[5] = new COWList(gts.elevations, currentBucketStartPosition, count);
+          } else {
+            parms[5] = null;
+          }
+
+          // values list
+          switch (gts.type) {
+            case LONG:
+              parms[6] = new COWList(gts.longValues, currentBucketStartPosition, count);
+              break;
+            case DOUBLE:
+              parms[6] = new COWList(gts.doubleValues, currentBucketStartPosition, count);
+              break;
+            case STRING:
+              // here we could have done a shallow copy, with Arrays.asList(gts.stringValues).subList(currentBucketStartPosition,currentBucketEndPosition)
+              // it is a risk for the user, better deep copy.
+              parms[6] = new COWList(gts.stringValues, currentBucketStartPosition, count);
+              break;
+            case BOOLEAN:
+              parms[6] = new COWList(gts.booleanValues, currentBucketStartPosition, count);
+              break;
+          }
+
+          List<Long> lastParms = new ArrayList<Long>(4); // 0, -bucketspan, currentBucketEnd - bucketspan, currentBucketEnd
+          lastParms.add(0L);
+          lastParms.add(-bucketspan);
+          lastParms.add(currentBucketEnd - bucketspan);
+          lastParms.add(currentBucketEnd);
+          parms[7] = lastParms;
+
+          // apply the aggregator, collect the result
+          aggregated = (Object[]) ((WarpScriptAggregatorOnListsFunction) aggregator).applyOnSubLists(parms);
+
+          if (null != aggregated[3]) {
+            setValue(bucketized, currentBucketEnd, (long) aggregated[1], (long) aggregated[2], aggregated[3], false);
           }
 
           // next bucket
         }
-        
       } else {
-        if (!(aggregator instanceof WarpScriptBucketizerFunction)) {
-          throw new WarpScriptException("Invalid bucketizer function.");
-        }
-
-
-        if (aggregator instanceof WarpScriptAggregatorOnListsFunction) {
-          // Second case: the aggregator is capable to process an array of List instead of an array of array.
-          // It uses a special class for lists that saves a memory allocation.
-          
-          // build a structure ready to use:
-          // - special copy on write List for ticks, values  (view of the original primitive array or BitSet)
-          // - decode elevations
-          // - decode locations
-          // - expose lists of NaN when needed
-          // [tick_of_computation,[gts_classes],[label_maps],[ticks],[latitudes],[longitudes],[elevations],[values]]
-          Object[] parms = new Object[8];
-          // name and labels can be defined here
-          parms[1] = new ArrayList<String>();
-          ((ArrayList<String>) parms[1]).add(bucketized.getName());
-          parms[2] = new ArrayList<Map>();
-          ((ArrayList<Map>) parms[2]).add(labels);
-
-          // iterate on input to find buckets
-          long currentBucketEnd;
-          int currentBucketEndPosition;
-          int currentBucketStartPosition;
-          int count;
-          Object[] aggregated = null;
-          while (i >= 0 && gts.ticks[i] > (lastbucket - bucketspan * bucketcount)) {
-            currentBucketEndPosition = i;
-            currentBucketEnd = gts.ticks[i] + (lastbucket - gts.ticks[i]) % bucketspan;
-            while (i >= 0 && gts.ticks[i] > (currentBucketEnd - bucketspan)) {
-              i--;
-            }
-            currentBucketStartPosition = i + 1;
-
-            count = currentBucketEndPosition - currentBucketStartPosition + 1;
-
-            // tick
-            parms[0] = currentBucketEnd;
-
-            // ticks list
-            parms[3] = new COWList(gts.ticks, currentBucketStartPosition, count);
-
-            // locations lists
-            if (null != gts.locations) {
-              // need to do the conversion
-              ArrayList<Double> lats = new ArrayList<Double>();
-              ArrayList<Double> lons = new ArrayList<Double>();
-              for (int j = currentBucketStartPosition; j <= currentBucketEndPosition; j++) {
-                long l = gts.locations[j];
-                if (GeoTimeSerie.NO_LOCATION == l) {
-                  lats.add(Double.NaN);
-                  lons.add(Double.NaN);
-                } else {
-                  double[] latlon = GeoXPLib.fromGeoXPPoint(l);
-                  lats.add(latlon[0]);
-                  lons.add(latlon[1]);
-                }
-              }
-              parms[4] = lats;
-              parms[5] = lons;
-            } else {
-              parms[4] = new ReadOnlyConstantList(count, Double.NaN);
-              parms[5] = parms[4];
-            }
-
-            // elevations list
-            if (null != gts.elevations) {
-              ArrayList<Object> elevs = new ArrayList<Object>();
-              for (int j = currentBucketStartPosition; j <= currentBucketEndPosition; j++) {
-                if (GeoTimeSerie.NO_ELEVATION == gts.elevations[j]) {
-                  elevs.add(Double.NaN);
-                } else {
-                  elevs.add(gts.elevations[j]);
-                }
-              }
-              parms[6] = elevs;
-            } else {
-              parms[6] = new ReadOnlyConstantList(count, Double.NaN);
-            }
-
-            // values
-
-            switch (gts.type) {
-              case LONG:
-                parms[7] = new COWList(gts.longValues, currentBucketStartPosition, count);
-                break;
-              case DOUBLE:
-                parms[7] = new COWList(gts.doubleValues, currentBucketStartPosition, count);
-                break;
-              case STRING:
-                // here we could have done a shallow copy, with Arrays.asList(gts.stringValues).subList(currentBucketStartPosition,currentBucketEndPosition)
-                // it is a risk for the user, better deep copy.
-                parms[7] = new COWList(gts.stringValues, currentBucketStartPosition, count);
-                break;
-              case BOOLEAN:
-                parms[7] = new COWList(gts.booleanValues, currentBucketStartPosition, count);
-                break;
-            }
-
-            // apply the aggregator, collect the result
-            aggregated = (Object[]) ((WarpScriptAggregatorOnListsFunction) aggregator).applyOnSubLists(parms);
-
-            if (null != aggregated[3]) {
-              setValue(bucketized, currentBucketEnd, (long) aggregated[1], (long) aggregated[2], aggregated[3], false);
-            }
-
-            // next bucket
-          }
-        } else {
-          // Third case: the aggregator is a standard one, that expects most of its params to be arrays:
-          // - bucket timestamp: end timestamp of the bucket we're currently computing a value for
-          // - names: array of GTS names
-          // - labels: array of GTS labels
-          // - ticks: array of ticks being aggregated
-          // - locations: array of locations being aggregated
-          // - elevations: array of elevations being aggregated
-          // - values: array of values being aggregated
-          // - bucket span: width (in microseconds) of bucket
-          //
-          // WarpScriptBucketizerFunction interface is the historic one, some extension still rely on it, 
-          // it must be kept as it is even if it is less memory efficient.
-          Object[] parms = new Object[8];
-          // name and labels can be defined here
-          parms[1] = new String[1];
-          ((String[]) parms[1])[0] = bucketized.getName();
-          parms[2] = new Map[1];
-          ((Map[]) parms[2])[0] = labels;
-
-          // iterate on input to find buckets
-          long currentBucketEnd;
-          int currentBucketEndPosition;
-          int currentBucketStartPosition;
-          int count;
-          Object[] aggregated = null;
-          Double[] nanArray = {Double.NaN};
-          List nanList = Arrays.asList(nanArray);
-          while (i >= 0 && gts.ticks[i] > (lastbucket - bucketspan * bucketcount)) {
-            currentBucketEndPosition = i;
-            currentBucketEnd = gts.ticks[i] + (lastbucket - gts.ticks[i]) % bucketspan;
-            while (i >= 0 && gts.ticks[i] > (currentBucketEnd - bucketspan)) {
-              i--;
-            }
-            currentBucketStartPosition = i + 1;
-
-            count = currentBucketEndPosition - currentBucketStartPosition + 1;
-
-            // tick
-            parms[0] = currentBucketEnd;
-
-            // ticks list
-            parms[3] = Arrays.copyOfRange(gts.ticks, currentBucketStartPosition, currentBucketEndPosition + 1);
-
-            // locations lists
-            if (null != gts.locations) {
-              parms[4] = Arrays.copyOfRange(gts.locations, currentBucketStartPosition, currentBucketEndPosition + 1);
-            } else {
-              parms[4] = new long[count];
-              Arrays.fill((long[]) parms[4], GeoTimeSerie.NO_LOCATION);
-            }
-
-            // elevations list
-            if (null != gts.elevations) {
-              parms[5] = Arrays.copyOfRange(gts.elevations, currentBucketStartPosition, currentBucketEndPosition + 1);
-            } else {
-              parms[5] = new long[count];
-              Arrays.fill((long[]) parms[5], GeoTimeSerie.NO_ELEVATION);
-            }
-
-            // values
-            parms[6] = new Object[count];
-            switch (gts.type) {
-              case LONG:
-                for (int k = 0; k < count; k++) {
-                  ((Object[]) parms[6])[k] = gts.longValues[currentBucketStartPosition + k];
-                }
-                break;
-              case DOUBLE:
-                for (int k = 0; k < count; k++) {
-                  ((Object[]) parms[6])[k] = gts.doubleValues[currentBucketStartPosition + k];
-                }
-                break;
-              case STRING:
-                for (int k = 0; k < count; k++) {
-                  ((Object[]) parms[6])[k] = gts.stringValues[currentBucketStartPosition + k];
-                }
-                break;
-              case BOOLEAN:
-                for (int k = 0; k < count; k++) {
-                  ((Object[]) parms[6])[k] = gts.booleanValues.get(currentBucketStartPosition + k);
-                }
-                break;
-            }
-
-            parms[7] = new long[] {0, -bucketspan, currentBucketEnd - bucketspan, currentBucketEnd};
-
-            // apply the aggregator, collect the result
-            aggregated = (Object[]) ((WarpScriptBucketizerFunction) aggregator).apply(parms);
-
-            if (null != aggregated[3]) {
-              setValue(bucketized, currentBucketEnd, (long) aggregated[1], (long) aggregated[2], aggregated[3], false);
-            }
-
-            // next bucket
-          }
-        }
-
-      }
-    }
-    // original code below will be removed after tests
-    else {
-      //
-      // We can't skip buckets which are before the first tick or after the last one
-      // because the bucketizer function might set a default value when it encounters an
-      // empty sub serie
-      //
-
-      // Allocate a stable GTS instance which we will reuse when calling subserie
-      GeoTimeSerie subgts = null;
-
-      for (int i = 0; i < bucketcount; i++) {
-
-        long bucketend = lastbucket - i * bucketspan;
-
+        // Third case: the aggregator is a standard one, that expects most of its params to be arrays:
+        // - bucket timestamp: end timestamp of the bucket we're currently computing a value for
+        // - names: array of GTS names
+        // - labels: array of GTS labels
+        // - ticks: array of ticks being aggregated
+        // - locations: array of locations being aggregated
+        // - elevations: array of elevations being aggregated
+        // - values: array of values being aggregated
+        // - bucket span: width (in microseconds) of bucket
         //
-        // Extract GTS containing the values that fall in the bucket
-        // Keep multiple values that fall on the same timestamp, the
-        // aggregator functions will deal with them.
-        //
+        // WarpScriptBucketizerFunction interface is the historic one, some extension still rely on it, 
+        // it must be kept as it is even if it is less memory efficient.
+        Object[] parms = new Object[8];
+        // name and labels can be defined here
+        parms[1] = new String[1];
+        ((String[]) parms[1])[0] = bucketized.getName();
+        parms[2] = new Map[1];
+        ((Map[]) parms[2])[0] = labels;
 
-        subgts = subSerie(gts, bucketend - bucketspan + 1, bucketend, false, false, subgts);
-
-        if (0 == subgts.values) {
-          continue;
-        }
-
+        // iterate on input to find buckets
+        long currentBucketEnd;
+        int currentBucketEndPosition;
+        int currentBucketStartPosition;
+        int count;
         Object[] aggregated = null;
-
-        if (null != stack) {
-          if (!(aggregator instanceof Macro)) {
-            throw new WarpScriptException("Expected a macro as bucketizer.");
+        Double[] nanArray = {Double.NaN};
+        List nanList = Arrays.asList(nanArray);
+        while (i >= 0 && gts.ticks[i] > (lastbucket - bucketspan * bucketcount)) {
+          currentBucketEndPosition = i;
+          currentBucketEnd = gts.ticks[i] + (lastbucket - gts.ticks[i]) % bucketspan;
+          while (i >= 0 && gts.ticks[i] > (currentBucketEnd - bucketspan)) {
+            i--;
           }
+          currentBucketStartPosition = i + 1;
 
-          subgts.safeSetMetadata(bucketized.getMetadata());
-          stack.push(subgts);
-          stack.exec((Macro) aggregator);
+          count = currentBucketEndPosition - currentBucketStartPosition + 1;
 
-          Object res = stack.peek();
+          // tick
+          parms[0] = currentBucketEnd;
 
-          if (res instanceof List) {
-            aggregated = MACROMAPPER.listToObjects((List<Object>) stack.pop());
+          // ticks list
+          parms[3] = Arrays.copyOfRange(gts.ticks, currentBucketStartPosition, currentBucketEndPosition + 1);
+
+          // locations lists
+          if (null != gts.locations) {
+            parms[4] = Arrays.copyOfRange(gts.locations, currentBucketStartPosition, currentBucketEndPosition + 1);
           } else {
-            aggregated = MACROMAPPER.stackToObjects(stack);
+            parms[4] = new long[count];
+            Arrays.fill((long[]) parms[4], GeoTimeSerie.NO_LOCATION);
           }
-        } else {
-          if (!(aggregator instanceof WarpScriptBucketizerFunction)) {
-            throw new WarpScriptException("Invalid bucketizer function.");
-          }
-          //
-          // Call the aggregation functions on this sub serie and add the resulting value
-          //
 
-          //
-          // Aggregator functions have 8 parameters (so mappers or reducers can be used as aggregators)
-          //
-          // bucket timestamp: end timestamp of the bucket we're currently computing a value for
-          // names: array of GTS names
-          // labels: array of GTS labels
-          // ticks: array of ticks being aggregated
-          // locations: array of locations being aggregated
-          // elevations: array of elevations being aggregated
-          // values: array of values being aggregated
-          // bucket span: width (in microseconds) of bucket
-          //
-
-          Object[] parms = new Object[8];
-
-          int idx = 0;
-          parms[idx++] = bucketend;
-          parms[idx] = new String[1];
-          ((String[]) parms[idx++])[0] = bucketized.getName();
-          parms[idx] = new Map[1];
-          ((Map[]) parms[idx++])[0] = labels;
-          parms[idx++] = Arrays.copyOf(subgts.ticks, subgts.values);
-          if (null != subgts.locations) {
-            parms[idx++] = Arrays.copyOf(subgts.locations, subgts.values);
+          // elevations list
+          if (null != gts.elevations) {
+            parms[5] = Arrays.copyOfRange(gts.elevations, currentBucketStartPosition, currentBucketEndPosition + 1);
           } else {
-            parms[idx++] = new long[subgts.values];
-            Arrays.fill((long[]) parms[idx - 1], GeoTimeSerie.NO_LOCATION);
-          }
-          if (null != subgts.elevations) {
-            parms[idx++] = Arrays.copyOf(subgts.elevations, subgts.values);
-          } else {
-            parms[idx++] = new long[subgts.values];
-            Arrays.fill((long[]) parms[idx - 1], GeoTimeSerie.NO_ELEVATION);
-          }
-          parms[idx++] = new Object[subgts.values];
-          parms[idx++] = new long[] {0, -bucketspan, bucketend - bucketspan, bucketend};
-
-          for (int j = 0; j < subgts.values; j++) {
-            ((Object[]) parms[6])[j] = valueAtIndex(subgts, j);
+            parms[5] = new long[count];
+            Arrays.fill((long[]) parms[5], GeoTimeSerie.NO_ELEVATION);
           }
 
+          // values
+          parms[6] = new Object[count];
+          switch (gts.type) {
+            case LONG:
+              for (int k = 0; k < count; k++) {
+                ((Object[]) parms[6])[k] = gts.longValues[currentBucketStartPosition + k];
+              }
+              break;
+            case DOUBLE:
+              for (int k = 0; k < count; k++) {
+                ((Object[]) parms[6])[k] = gts.doubleValues[currentBucketStartPosition + k];
+              }
+              break;
+            case STRING:
+              for (int k = 0; k < count; k++) {
+                ((Object[]) parms[6])[k] = gts.stringValues[currentBucketStartPosition + k];
+              }
+              break;
+            case BOOLEAN:
+              for (int k = 0; k < count; k++) {
+                ((Object[]) parms[6])[k] = gts.booleanValues.get(currentBucketStartPosition + k);
+              }
+              break;
+          }
+
+          parms[7] = new long[] {0, -bucketspan, currentBucketEnd - bucketspan, currentBucketEnd};
+
+          // apply the aggregator, collect the result
           aggregated = (Object[]) ((WarpScriptBucketizerFunction) aggregator).apply(parms);
-        }
 
-        //
-        // Only set value if it was non null
-        //
+          if (null != aggregated[3]) {
+            setValue(bucketized, currentBucketEnd, (long) aggregated[1], (long) aggregated[2], aggregated[3], false);
+          }
 
-        if (null != aggregated[3]) {
-          setValue(bucketized, bucketend, (long) aggregated[1], (long) aggregated[2], aggregated[3], false);
+          // next bucket
         }
       }
     }
