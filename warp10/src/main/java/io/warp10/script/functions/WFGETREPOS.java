@@ -34,7 +34,7 @@ public class WFGETREPOS extends NamedWarpScriptFunction implements WarpScriptSta
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
 
-    if (null == Capabilities.get(stack, WarpScriptStack.CAPABILITY_WFSET)) {
+    if (null == Capabilities.get(stack, WarpScriptStack.CAPABILITY_WFGET)) {
       stack.push(new ArrayList<String>(0));
     } else {
       stack.push(WarpFleetMacroRepository.getRepos(stack));
