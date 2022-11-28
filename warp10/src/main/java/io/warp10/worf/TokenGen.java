@@ -85,10 +85,9 @@ public class TokenGen {
 
     keystore.forget();
 
-    TokenWarpScriptExtension ext = new TokenWarpScriptExtension(keystore);
-
     WarpScriptLib.registerExtensions();
 
+    TokenWarpScriptExtension ext = new TokenWarpScriptExtension(keystore);
     WarpScriptLib.register(ext);
   }
 
