@@ -37,8 +37,6 @@ public class Configuration {
 
   public static final String OSS_MASTER_KEY = "oss.master.key";
 
-  public static final String WARP10_REPORT_SECRET = "warp10.report.secret";
-
   public static final String WARP_COMPONENTS = "warp.components";
 
   /**
@@ -1773,11 +1771,6 @@ public class Configuration {
   public static final String INGRESS_DELETE_ACTIVITY_SUPPORT = "ingress.delete.activity.support";
 
   /**
-   * Manager secret, must be set to use the managing functions
-   */
-  public static final String WARP10_MANAGER_SECRET = "warp10.manager.secret";
-
-  /**
    * Set to a message indicating the reason why deletes are disabled, they are enabled if this is not set
    */
   public static final String WARP_DELETE_DISABLED = "warp.delete.disabled";
@@ -1884,27 +1877,6 @@ public class Configuration {
    * Set to 'true' to indicate the instance will use memory only for storage. This type of instance is non persistent.
    */
   public static final String IN_MEMORY = "in.memory";
-
-  /**
-   * Set to 'true' to use a chunked memory store.
-   */
-  public static final String IN_MEMORY_CHUNKED = "in.memory.chunked";
-
-  /**
-   * Depth of timestamps to retain (in ms)
-   */
-  public static final String IN_MEMORY_DEPTH = "in.memory.depth";
-
-  /**
-   * High water mark in bytes. When memory goes above this threshold, attempts to remove expired datapoints will be
-   * done until consumed memory goes below the low water mark (see below) or no more expired datapoints can be found.
-   */
-  public static final String IN_MEMORY_HIGHWATERMARK = "in.memory.highwatermark";
-
-  /**
-   * Low water mark in bytes for garbage collection (see above)
-   */
-  public static final String IN_MEMORY_LOWWATERMARK = "in.memory.lowwatermark";
 
   /**
    * If set to true, then only the last recorded value of a GTS is kept
@@ -2137,14 +2109,6 @@ public class Configuration {
    */
   public static final String THROTTLING_MANAGER_MAXWAIT_DEFAULT = "throttling.manager.maxwait.default";
 
-  //
-  // Jar Repository
-  //
-
-  public static final String JARS_DIRECTORY = "warpscript.jars.directory";
-  public static final String JARS_REFRESH = "warpscript.jars.refresh";
-  public static final String JARS_FROMCLASSPATH = "warpscript.jars.fromclasspath";
-
   /**
    * Size of macro cache for the macros loaded from the classpath
    */
@@ -2175,11 +2139,6 @@ public class Configuration {
    * Maximum amount of time each attempt to access a process will wait (in ms). Defaults to 10000 ms.
    */
   public static final String WARPSCRIPT_CALL_MAXWAIT = "warpscript.call.maxwait";
-
-  /**
-   * Secret to use for setting configuration accessible via MACROCONFIG
-   */
-  public static final String CONFIG_MACROCONFIG_SECRET = "warpscript.macroconfig.secret";
 
   /**
    * Macro Repository root directory
@@ -2226,11 +2185,6 @@ public class Configuration {
    * Default value for warpfleet.macros.repos if it is not set
    */
   public static final String WARPFLEET_MACROS_REPOS_DEFAULT = "https://warpfleet.senx.io/macros";
-
-  /**
-   * Configure this property to 'true' to disable the function WF.GETREPOS. This is useful when some of your repo URLs have sensitive information.
-   */
-  public static final String WARPFLEET_GETREPOS_DISABLE = "warpfleet.getrepos.disable";
 
   /**
    * Maximum number of cached macros in the cache

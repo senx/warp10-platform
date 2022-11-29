@@ -357,6 +357,7 @@ public class Constants {
   public static final String HTTP_PARAM_PREBOUNDARY = "boundary.pre";
   public static final String HTTP_PARAM_POSTBOUNDARY = "boundary.post";
   public static final String HTTP_PARAM_METAONLY = "metaonly";
+  public static final String HTTP_PARAM_ATTR_PREFIX = "attr.";
 
   public static final String DEFAULT_PACKED_CLASS_SUFFIX = ":packed";
   public static final int DEFAULT_PACKED_MAXSIZE = 65536;

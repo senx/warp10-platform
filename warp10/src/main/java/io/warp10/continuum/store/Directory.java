@@ -107,6 +107,7 @@ import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.thrift.data.DirectoryStatsRequest;
 import io.warp10.continuum.store.thrift.data.DirectoryStatsResponse;
+import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.continuum.thrift.data.LoggingEvent;
 import io.warp10.crypto.CryptoUtils;
@@ -126,6 +127,7 @@ import io.warp10.script.functions.PARSESELECTOR;
 import io.warp10.sensision.Sensision;
 import io.warp10.warp.sdk.DirectoryPlugin;
 import io.warp10.warp.sdk.DirectoryPlugin.GTS;
+import io.warp10.warp.sdk.TrustedDirectoryPlugin;
 
 /**
  * Manages Metadata for a subset of known GTS.
@@ -344,6 +346,7 @@ public class Directory extends AbstractHandler implements Runnable {
    * Directory plugin to use
    */
   private final DirectoryPlugin plugin;
+  private boolean trustedPlugin = false;
 
   private final String sourceAttribute;
 
@@ -439,6 +442,9 @@ public class Directory extends AbstractHandler implements Runnable {
 
         Class pluginClass = Class.forName(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_PLUGIN_CLASS), true, pluginCL);
         this.plugin = (DirectoryPlugin) pluginClass.newInstance();
+        if (this.plugin instanceof TrustedDirectoryPlugin) {
+          this.trustedPlugin = true;
+        }
 
         //
         // Now call the 'init' method of the plugin
@@ -583,23 +589,31 @@ public class Directory extends AbstractHandler implements Runnable {
                   long nano = 0;
 
                   try {
-                    //
-                    // Directory plugins have no provision for delta attribute updates
-                    //
-                    GTS gts = new GTS(
-                        new UUID(metadata.getClassId(), metadata.getLabelsId()),
-                        metadata.getName(),
-                        metadata.getLabels(),
-                        metadata.getAttributes());
+                    if (!trustedPlugin) {
+                      //
+                      // Directory plugins have no provision for delta attribute updates
+                      //
+                      GTS gts = new GTS(
+                          new UUID(metadata.getClassId(), metadata.getLabelsId()),
+                          metadata.getName(),
+                          metadata.getLabels(),
+                          metadata.getAttributes());
 
-                    if (null != sourceAttribute) {
-                      gts.getAttributes().put(sourceAttribute, metadata.getSource());
-                    }
+                      if (null != sourceAttribute) {
+                        gts.getAttributes().put(sourceAttribute, metadata.getSource());
+                      }
 
-                    nano = System.nanoTime();
+                      nano = System.nanoTime();
 
-                    if (!plugin.store(null, gts)) {
-                      throw new RuntimeException("Error storing GTS " + gts + " using external plugin.");
+                      if (!plugin.store(null, gts)) {
+                        throw new RuntimeException("Error storing GTS " + gts + " using directory plugin.");
+                      }
+                    } else {
+                      nano = System.nanoTime();
+
+                      if (!((TrustedDirectoryPlugin) plugin).store(metadata)) {
+                        throw new RuntimeException("Error storing GTS " + metadata + " using trusted directory plugin.");
+                      }
                     }
                   } finally {
                     nano = System.nanoTime() - nano;
@@ -803,6 +817,10 @@ public class Directory extends AbstractHandler implements Runnable {
           }
 
           self.cachePopulated.set(true);
+
+          if (null != self.plugin && self.trustedPlugin) {
+            ((TrustedDirectoryPlugin) self.plugin).initialized();
+          }
 
           nano = System.nanoTime() - nano;
 
@@ -1551,17 +1569,25 @@ public class Directory extends AbstractHandler implements Runnable {
                 long nano = 0;
 
                 try {
-                  GTS gts = new GTS(
-                      // 128bits
-                      new UUID(metadata.getClassId(), metadata.getLabelsId()),
-                      metadata.getName(),
-                      metadata.getLabels(),
-                      metadata.getAttributes());
+                  if (!directory.trustedPlugin) {
+                    GTS gts = new GTS(
+                        // 128bits
+                        new UUID(metadata.getClassId(), metadata.getLabelsId()),
+                        metadata.getName(),
+                        metadata.getLabels(),
+                        metadata.getAttributes());
 
-                  nano = System.nanoTime();
+                    nano = System.nanoTime();
 
-                  if (!directory.plugin.delete(gts)) {
-                    break;
+                    if (!directory.plugin.delete(gts)) {
+                      break;
+                    }
+                  } else {
+                    nano = System.nanoTime();
+
+                    if (!((TrustedDirectoryPlugin) directory.plugin).delete(metadata)) {
+                      break;
+                    }
                   }
                 } finally {
                   nano = System.nanoTime() - nano;
@@ -1646,26 +1672,43 @@ public class Directory extends AbstractHandler implements Runnable {
               long nano = 0;
 
               try {
-                GTS gts = new GTS(
-                    // 128bits
-                    new UUID(metadata.getClassId(), metadata.getLabelsId()),
-                    metadata.getName(),
-                    metadata.getLabels(),
-                    metadata.getAttributes());
+                if (!directory.trustedPlugin) {
+                  GTS gts = new GTS(
+                      // 128bits
+                      new UUID(metadata.getClassId(), metadata.getLabelsId()),
+                      metadata.getName(),
+                      metadata.getLabels(),
+                      metadata.getAttributes());
 
-                //
-                // If we are doing a metadata update and the GTS is not known, skip the call to store.
-                //
+                  //
+                  // If we are doing a metadata update and the GTS is not known, skip the call to store.
+                  //
 
-                if ((io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource()) || io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_DELTA_ENDPOINT.equals(metadata.getSource())) && !directory.plugin.known(gts)) {
-                  continue;
-                }
+                  if ((io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource()) || io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_DELTA_ENDPOINT.equals(metadata.getSource())) && !directory.plugin.known(gts)) {
+                    continue;
+                  }
 
-                nano = System.nanoTime();
+                  nano = System.nanoTime();
 
-                if (!directory.plugin.store(metadata.getSource(), gts)) {
-                  // If we could not store the GTS, stop the directory consumer
-                  break;
+                  if (!directory.plugin.store(metadata.getSource(), gts)) {
+                    // If we could not store the GTS, stop the directory consumer
+                    break;
+                  }
+                } else {
+                  //
+                  // If we are doing a metadata update and the GTS is not known, skip the call to store.
+                  //
+
+                  if ((io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource()) || io.warp10.continuum.Configuration.INGRESS_METADATA_UPDATE_DELTA_ENDPOINT.equals(metadata.getSource())) && !((TrustedDirectoryPlugin) directory.plugin).known(metadata)) {
+                    continue;
+                  }
+
+                  nano = System.nanoTime();
+
+                  if (!((TrustedDirectoryPlugin) directory.plugin).store(metadata)) {
+                    // If we could not store the GTS, stop the directory consumer
+                    break;
+                  }
                 }
               } finally {
                 nano = System.nanoTime() - nano;
@@ -2093,66 +2136,139 @@ public class Directory extends AbstractHandler implements Runnable {
 
       Metadata metadata = new Metadata();
 
-      try (DirectoryPlugin.GTSIterator iter = this.plugin.find(this.remainder, classSelector, labelsSelector)) {
+      if (!this.trustedPlugin) {
+        try (DirectoryPlugin.GTSIterator iter = this.plugin.find(this.remainder, classSelector, labelsSelector)) {
 
-        while(iter.hasNext()) {
-          GTS gts = iter.next();
-          nanofind = System.nanoTime() - nanofind;
-          time += nanofind;
+          while(iter.hasNext()) {
+            GTS gts = iter.next();
+            nanofind = System.nanoTime() - nanofind;
+            time += nanofind;
 
-          metadata.clear();
-          metadata.setName(gts.getName());
-          metadata.setLabels(gts.getLabels());
-          metadata.setAttributes(gts.getAttributes());
-
-          //
-          // Recompute class/labels Id
-          //
-
-          long classId = GTSHelper.classId(this.SIPHASH_CLASS_LONGS, metadata.getName());
-          long labelsId = GTSHelper.labelsId(this.SIPHASH_LABELS_LONGS, metadata.getLabels());
-
-          metadata.setClassId(classId);
-          metadata.setLabelsId(labelsId);
-
-          try {
-            //
-            // Extract id
-            //
-
-            id = MetadataUtils.id(id, metadata);
+            metadata.clear();
+            metadata.setName(gts.getName());
+            metadata.setLabels(gts.getLabels());
+            metadata.setAttributes(gts.getAttributes());
 
             //
-            // Attempt to retrieve serialized content from the cache
+            // Recompute class/labels Id
             //
 
-            byte[] data = serializedMetadataCache.get(id);
+            long classId = GTSHelper.classId(this.SIPHASH_CLASS_LONGS, metadata.getName());
+            long labelsId = GTSHelper.labelsId(this.SIPHASH_LABELS_LONGS, metadata.getLabels());
 
-            if (null == data) {
-              data = serializer.serialize(metadata);
-              synchronized(serializedMetadataCache) {
-                // cache content
-                serializedMetadataCache.put(MetadataUtils.id(metadata),data);
+            metadata.setClassId(classId);
+            metadata.setLabelsId(labelsId);
+
+            try {
+              //
+              // Extract id
+              //
+
+              id = MetadataUtils.id(id, metadata);
+
+              //
+              // Attempt to retrieve serialized content from the cache
+              //
+
+              byte[] data = serializedMetadataCache.get(id);
+
+              if (null == data) {
+                data = serializer.serialize(metadata);
+                synchronized(serializedMetadataCache) {
+                  // cache content
+                  serializedMetadataCache.put(MetadataUtils.id(metadata),data);
+                }
+              } else {
+                hits++;
               }
-            } else {
-              hits++;
-            }
 
-            OrderPreservingBase64.encodeToStream(data, out);
-            out.write('\r');
-            out.write('\n');
-            count++;
-          } catch (TException te) {
+              OrderPreservingBase64.encodeToStream(data, out);
+              out.write('\r');
+              out.write('\n');
+              count++;
+            } catch (TException te) {
+            }
+            nanofind = System.nanoTime();
           }
-          nanofind = System.nanoTime();
+
+        } catch (Exception e) {
+        } finally {
+          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_PLUGIN_FIND_CALLS, Sensision.EMPTY_LABELS, 1);
+          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_PLUGIN_FIND_RESULTS, Sensision.EMPTY_LABELS, count);
+          Sensision.update(SensisionConstants.CLASS_WARP_DIRECTORY_METADATA_CACHE_HITS, Sensision.EMPTY_LABELS, hits);
+          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_PLUGIN_FIND_TIME_NANOS, Sensision.EMPTY_LABELS, time);
+        }
+      } else {
+        DirectoryRequest drequest = new DirectoryRequest();
+        List<String> csel = new ArrayList<String>(1);
+        csel.add(classSelector);
+        List<Map<String,String>> lsel = new ArrayList<Map<String,String>>(1);
+        lsel.add(labelsSelector);
+        drequest.setClassSelectors(csel);
+        drequest.setLabelsSelectors(lsel);
+        if (hasActiveAfter) {
+          drequest.setActiveAfter(activeAfter);
+        }
+        if (hasQuietAfter) {
+          drequest.setQuietAfter(quietAfter);
         }
 
-      } catch (Exception e) {
-      } finally {
-        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_PLUGIN_FIND_CALLS, Sensision.EMPTY_LABELS, 1);
-        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_PLUGIN_FIND_RESULTS, Sensision.EMPTY_LABELS, count);
-        Sensision.update(SensisionConstants.CLASS_WARP_DIRECTORY_METADATA_CACHE_HITS, Sensision.EMPTY_LABELS, hits);
-        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_PLUGIN_FIND_TIME_NANOS, Sensision.EMPTY_LABELS, time);
+        try (TrustedDirectoryPlugin.MetadataIterator iter = ((TrustedDirectoryPlugin) this.plugin).find(this.remainder, drequest)) {
+
+          while(iter.hasNext()) {
+            metadata = iter.next();
+            nanofind = System.nanoTime() - nanofind;
+            time += nanofind;
+
+            //
+            // Recompute class/labels Id
+            //
+
+            long classId = GTSHelper.classId(this.SIPHASH_CLASS_LONGS, metadata.getName());
+            long labelsId = GTSHelper.labelsId(this.SIPHASH_LABELS_LONGS, metadata.getLabels());
+
+            metadata.setClassId(classId);
+            metadata.setLabelsId(labelsId);
+
+            try {
+              //
+              // Extract id
+              //
+
+              id = MetadataUtils.id(id, metadata);
+
+              //
+              // Attempt to retrieve serialized content from the cache
+              //
+
+              byte[] data = serializedMetadataCache.get(id);
+
+              if (null == data) {
+                data = serializer.serialize(metadata);
+                synchronized(serializedMetadataCache) {
+                  // cache content
+                  serializedMetadataCache.put(MetadataUtils.id(metadata),data);
+                }
+              } else {
+                hits++;
+              }
+
+              OrderPreservingBase64.encodeToStream(data, out);
+              out.write('\r');
+              out.write('\n');
+              count++;
+            } catch (TException te) {
+            }
+            nanofind = System.nanoTime();
+          }
+
+        } catch (Exception e) {
+        } finally {
+          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_PLUGIN_FIND_CALLS, Sensision.EMPTY_LABELS, 1);
+          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_PLUGIN_FIND_RESULTS, Sensision.EMPTY_LABELS, count);
+          Sensision.update(SensisionConstants.CLASS_WARP_DIRECTORY_METADATA_CACHE_HITS, Sensision.EMPTY_LABELS, hits);
+          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_PLUGIN_FIND_TIME_NANOS, Sensision.EMPTY_LABELS, time);
+        }
       }
       return;
     } else { // No Plugin

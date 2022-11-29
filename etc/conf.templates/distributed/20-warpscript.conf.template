@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2020  SenX S.A.S.
+//   Copyright 2019-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -54,20 +54,6 @@
 // The safest behavior is to leave this undefined or set to 'false'.
 //
 warpscript.def.unshadow = false
-
-//
-// Jar Repository - for Warp10 UDF only
-//
-
-// The path to a directory containing jar files from which UDFs can be loaded
-#warpscript.jars.directory = 
-
-// How often (in ms) should Warp 10 rescan the above directory
-#warpscript.jars.refresh = 60000
-
-// Set to 'true' to allow loading the UDFs from the classpath when no directory is explicitely defined
-#warpscript.jars.fromclasspath = 
-
 
 //
 // Default maximum number of operations a single WarpScript execution can do
@@ -210,19 +196,6 @@ warpscript.mobius.pool = 16
 // How often to reload the bootstrap code (in ms) for Runner
 //
 #warpscript.runner.bootstrap.period =
-
-//
-// URLFETCH extension
-//
-
-// Maximum number of URLFETCH calls, 64 by default for soft and hard
-#warpscript.urlfetch.limit =
-#warpscript.urlfetch.limit.hard =
-// Maximum downloaded bytes by URLFETCH, 1000000 by default for soft and hard
-#warpscript.urlfetch.maxsize =
-#warpscript.urlfetch.maxsize.hard =
-// List of patterns to include/exclude for hosts, works the same way as webcall.host.patterns. Defaults to the value of webcall.host.patterns.
-#warpscript.urlfetch.host.patterns =
 
 //
 // HTTP extension

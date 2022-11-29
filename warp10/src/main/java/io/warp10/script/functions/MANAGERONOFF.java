@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -19,35 +19,34 @@ package io.warp10.script.functions;
 import io.warp10.WarpManager;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.warp.sdk.Capabilities;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
 public class MANAGERONOFF extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   private final boolean on;
   private final String attr;
-  
+
   public MANAGERONOFF(String name, String attr, boolean on) {
     super(name);
     this.on = on;
     this.attr = attr;
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    Object top = stack.pop();
-        
-    if (!WarpManager.checkSecret(String.valueOf(top))) {
-      throw new WarpScriptException(getName() + " invalid manager secret.");
+    if (null == Capabilities.get(stack, WarpScriptStack.CAPABILITY_MANAGER)) {
+      throw new WarpScriptException(getName() + " missing manager capability.");
     }
 
     String msg = null;
-    
+
     if (!on) {
-      top = stack.pop();
+      Object top = stack.pop();
       msg = String.valueOf(top);
     }
-    
+
     WarpManager.setAttribute(attr, msg);
 
     return stack;

@@ -202,6 +202,7 @@ public class StandaloneSplitsHandler extends AbstractHandler {
         split.setTimestamp(System.currentTimeMillis());
         split.setExpiry(rtoken.getExpiryTimestamp());
         split.addToMetadatas(metadata);
+        split.setToken(rtoken);
 
         //
         // Serialize and encrypt Split

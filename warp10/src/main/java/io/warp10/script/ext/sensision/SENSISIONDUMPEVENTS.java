@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -21,31 +21,36 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.sensision.Sensision;
+import io.warp10.warp.sdk.Capabilities;
 
 /**
  * Retrieve a string representation of all current Sensision metrics
  */
 public class SENSISIONDUMPEVENTS extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   public SENSISIONDUMPEVENTS(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
 
+    if (SensisionWarpScriptExtension.useCapability() && null == Capabilities.get(stack, SensisionWarpScriptExtension.READ_CAPABILITY)) {
+      throw new WarpScriptException(getName() + " missing capability '" + SensisionWarpScriptExtension.READ_CAPABILITY +"'");
+    }
+
     StringBuilder sb = new StringBuilder();
-    
+
     for (String event: Sensision.getEvents()) {
       if (sb.length() > 0) {
         sb.append("\n");
       }
       sb.append(event);
     }
-    
+
     stack.push(sb.toString());
-    
+
     return stack;
   }
-  
+
 }

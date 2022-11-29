@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -56,11 +56,11 @@ public class SIZE extends NamedWarpScriptFunction implements WarpScriptStackFunc
     } else if (obj instanceof String) {
       stack.push((long) obj.toString().length());
     } else if (obj instanceof byte[]) {
-      stack.push(((byte[]) obj).length);
+      stack.push((long) ((byte[]) obj).length);
     } else if (obj instanceof GeoXPShape) {
-      stack.push(GeoXPLib.getCells((GeoXPShape) obj).length);
+      stack.push((long) GeoXPLib.getCells((GeoXPShape) obj).length);
     } else if (obj instanceof Macro) {
-      stack.push(((Macro) obj).size());
+      stack.push((long) ((Macro) obj).size());
     } else {
       throw new WarpScriptException(getName() + " operates on a MAP, a collection, a STRING, a byte array, a GTS or GTS Encoder, a GEOSHAPE or a Macro.");
     }
