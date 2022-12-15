@@ -552,12 +552,12 @@ tokengen() {
     exit 1
   fi
   getConfigFiles
-  ${JAVACMD} -cp ${WARP10_JAR} -Dlog4j.configuration=file:${LOG4J_CONF} -Dfile.encoding=UTF-8 io.warp10.TokenGen ${CONFIG_FILES} $2 -
+  ${JAVACMD} -cp ${WARP10_CP} -Dlog4j.configuration=file:${LOG4J_CONF} -Dfile.encoding=UTF-8 io.warp10.TokenGen ${CONFIG_FILES} $2 -
 }
 
 run() {
   getConfigFiles
-  ${JAVACMD} -cp ${WARP10_JAR} -Dlog4j.configuration=file:${LOG4J_CONF} -Dfile.encoding=UTF-8 -Dwarp10.config="${CONFIG_FILES}" io.warp10.WarpRun $2
+  ${JAVACMD} -cp ${WARP10_CP} -Dlog4j.configuration=file:${LOG4J_CONF} -Dfile.encoding=UTF-8 -Dwarp10.config="${CONFIG_FILES}" io.warp10.WarpRun $2
 }
 
 repair() {
