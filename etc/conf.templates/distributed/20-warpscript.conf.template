@@ -27,9 +27,8 @@
 #processing.font.resolver = NOOP
 
 // Maximum time that TIMEBOX can wait for an execution (in ms), defaults to 30s
+// This value can be overridden with the timebox.maxtime capability (with capability value in ms)
 #warpscript.timebox.maxtime=30000
-// Capability name for extending the previous value per warpscript
-#warpscript.timebox.maxtime.capname=
 
 // Path of the 'bootstrap' WarpScript code for the interactive mode
 #warpscript.interactive.bootstrap.path =
@@ -169,6 +168,7 @@ warpscript.delete.endpoint = http://127.0.0.1:8080/api/v0/delete
 
 //
 // Maximum amount of time each attempt to access a process will wait (in ms). Defaults to 10000 ms.
+// This value can also be overridden with call.maxwait capability.
 //
 #warpscript.call.maxwait = 10000
 
@@ -201,10 +201,7 @@ warpscript.mobius.pool = 16
 // HTTP extension
 //
 
-// If set to true, HTTP requires the stack to be authenticated
-#warpscript.http.authentication.required =
-// If set, the capability <warpscript.http.capability> is checked to grant access to HTTP function
-#warpscript.http.capability =
+// To use HTTP, you must have a token with "http" capability (value can be empty). 
 // Maximum number of HTTP calls, 1 by default, can be raised with capability http.requests
 #warpscript.http.maxrequests =
 // Maximum downloaded bytes by HTTP, 65536 by default, can be raised with capability http.size
