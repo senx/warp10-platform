@@ -14,15 +14,13 @@
 //   limitations under the License.
 //
 
-package io.warp10.script.ext.debug;
+package io.warp10.script.functions;
 
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
 import java.util.List;
 import java.util.Map;
-
-import io.warp10.script.functions.TYPEOF;
 
 
 public class TDESCRIBE extends TYPEOF {

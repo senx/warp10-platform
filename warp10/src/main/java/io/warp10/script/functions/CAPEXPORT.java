@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2022  SenX S.A.S.
+//   Copyright 2022 SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -17,44 +17,42 @@
 package io.warp10.script.functions;
 
 import java.util.List;
+import java.util.Set;
 
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
-import io.warp10.warp.sdk.Capabilities;
 
-public class CAPDEL extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class CAPEXPORT extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  public CAPDEL(String name) {
+  public CAPEXPORT(String name) {
     super(name);
   }
 
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-
     Object top = stack.pop();
 
-    Capabilities capabilities = Capabilities.get(stack);
+    Set<String> exported = GUARD.getExportedCapabilities(stack);
 
-    if (top instanceof String) {
-      if (null != capabilities) {
-        capabilities.remove((String) top);
-      }
+    if (null == exported) {
+      throw new WarpScriptException(getName() + " can only be called from a GUARDed macro.");
+    }
+
+    // Calling CAPEXPORT on NULL will have the side effect of propagating the exported capabilities exported by any enclosed GUARD call
+    if (top instanceof String || null == top) {
+      exported.add((String) top);
     } else if (top instanceof List) {
-      if (null != capabilities) {
-        for (Object elt: (List) top) {
-          if (elt instanceof String) {
-            capabilities.remove((String) elt);
-          }
+      for (Object cap: (List) top) {
+        if (cap instanceof String || null == cap) {
+          exported.add((String) cap);
+        } else {
+          throw new WarpScriptException(getName() + " expects NULL, a capability name (STRING) or a LIST thereof.");
         }
       }
-    } else if (null == top) {
-      if (null != capabilities) {
-        capabilities.clear();
-      }
     } else {
-      throw new WarpScriptException(getName() + " expects a capability name (STRING), a LIST thereof or NULL.");
+      throw new WarpScriptException(getName() + " expects NULL, a capability name (STRING) or a LIST thereof.");
     }
 
     return stack;
