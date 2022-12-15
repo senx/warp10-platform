@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -14,13 +14,14 @@
 //   limitations under the License.
 //
 
-package io.warp10.script.ext.inventory;
+package io.warp10.script.functions;
 
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.warp.sdk.Capabilities;
 
 
 public class FUNCTIONS extends NamedWarpScriptFunction implements WarpScriptStackFunction {
@@ -30,6 +31,10 @@ public class FUNCTIONS extends NamedWarpScriptFunction implements WarpScriptStac
   }
 
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
+
+    if (null == Capabilities.get(stack, WarpScriptStack.CAPABILITY_INVENTORY)) {
+      throw new WarpScriptException(getName() + " missing capability '" + WarpScriptStack.CAPABILITY_INVENTORY + "'.");
+    }
 
     //
     // Apply function and push its outputs onto the stack or raise an exception
