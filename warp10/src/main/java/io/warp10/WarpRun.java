@@ -17,7 +17,6 @@ package io.warp10;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
-import java.io.FileReader;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
@@ -27,7 +26,6 @@ import io.warp10.continuum.Configuration;
 import io.warp10.script.MemoryWarpScriptStack;
 import io.warp10.script.StackUtils;
 import io.warp10.script.WarpScriptLib;
-import io.warp10.script.ext.debug.DebugWarpScriptExtension;
 import io.warp10.script.ext.warprun.WarpRunWarpScriptExtension;
 import io.warp10.script.functions.SNAPSHOT;
 
@@ -39,6 +37,7 @@ public class WarpRun {
     try {
       System.setProperty(Configuration.WARP10_QUIET, "true");
       System.setProperty(Configuration.WARPSCRIPT_REXEC_ENABLE, "true");
+      System.setProperty(Configuration.CONFIG_DEBUG_CAPABILITY, "false");
 
       if (null == System.getProperty(Configuration.WARP_TIME_UNITS)) {
         System.setProperty(Configuration.WARP_TIME_UNITS, "us");
@@ -74,7 +73,6 @@ public class WarpRun {
       //
 
       WarpScriptLib.register(new WarpRunWarpScriptExtension());
-      WarpScriptLib.register(new DebugWarpScriptExtension());
 
       MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null, properties);
       stack.maxLimits();

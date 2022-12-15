@@ -835,7 +835,15 @@ import io.warp10.script.functions.WRAP;
 import io.warp10.script.functions.WSSTACK;
 import io.warp10.script.functions.ZSCORE;
 import io.warp10.script.functions.ZSCORETEST;
-import io.warp10.script.functions.ZTO;import org.slf4j.Logger;
+import io.warp10.script.functions.ZTO;
+import io.warp10.script.functions.LOGMSG;
+import io.warp10.script.functions.NOLOG;
+import io.warp10.script.functions.LOGINIT;
+import io.warp10.script.functions.STDERR;
+import io.warp10.script.functions.STDOUT;
+import io.warp10.script.functions.TDESCRIBE;
+
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URL;
@@ -870,6 +878,12 @@ public class WarpScriptLib {
   public static final String COUNTER = "COUNTER";
   public static final String COUNTERSET = "COUNTERSET";
 
+  public static final String NOLOG = "NOLOG";
+  public static final String LOGINIT = "LOGINIT";
+  public static final String STDOUT = "STDOUT";
+  public static final String STDERR = "STDERR";
+  public static final String LOGMSG = "LOGMSG";
+  public static final String TDESCRIBE = "TDESCRIBE";
 
   public static final String REF = "REF";
   public static final String COMPILE = "COMPILE";
@@ -3116,6 +3130,17 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new OpBoolean("op.and", false, true));
     addNamedWarpScriptFunction(new OpBoolean("op.or.ignore-nulls", true, false));
     addNamedWarpScriptFunction(new OpBoolean("op.or", true, true));
+
+    //
+    // Debug
+    //
+
+    addNamedWarpScriptFunction(new STDOUT(STDOUT));
+    addNamedWarpScriptFunction(new STDERR(STDERR));
+    addNamedWarpScriptFunction(new LOGMSG(LOGMSG));
+    addNamedWarpScriptFunction(new NOLOG(NOLOG));
+    addNamedWarpScriptFunction(new LOGINIT(LOGINIT));
+    addNamedWarpScriptFunction(new TDESCRIBE(TDESCRIBE));
 
     /////////////////////////
 
