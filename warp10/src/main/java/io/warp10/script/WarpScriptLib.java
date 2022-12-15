@@ -345,6 +345,7 @@ import io.warp10.script.functions.CALL;
 import io.warp10.script.functions.CAPADD;
 import io.warp10.script.functions.CAPCHECK;
 import io.warp10.script.functions.CAPDEL;
+import io.warp10.script.functions.CAPEXPORT;
 import io.warp10.script.functions.CAPGET;
 import io.warp10.script.functions.CHRONOEND;
 import io.warp10.script.functions.CHRONOSTART;
@@ -1006,6 +1007,7 @@ public class WarpScriptLib {
   public static final String CAPADD = "CAPADD";
   public static final String CAPDEL = "CAPDEL";
   public static final String CAPGET = "CAPGET";
+  public static final String CAPEXPORT = "CAPEXPORT";
   public static final String CAPCHECK = "CAPCHECK";
   public static final String STACKATTRIBUTE = "STACKATTRIBUTE";
   public static final String EXPORT = "EXPORT";
@@ -1808,6 +1810,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new CAPDEL(CAPDEL));
     addNamedWarpScriptFunction(new CAPCHECK(CAPCHECK));
     addNamedWarpScriptFunction(new CAPGET(CAPGET));
+    addNamedWarpScriptFunction(new CAPEXPORT(CAPEXPORT));
     addNamedWarpScriptFunction(new STACKATTRIBUTE(STACKATTRIBUTE)); // NOT TO BE DOCUMENTED
     addNamedWarpScriptFunction(new EXPORT(EXPORT));
     addNamedWarpScriptFunction(new TIMINGS(TIMINGS)); // NOT TO BE DOCUMENTED (YET)

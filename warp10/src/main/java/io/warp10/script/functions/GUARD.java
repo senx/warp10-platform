@@ -1,5 +1,5 @@
 //
-//   Copyright 2021  SenX S.A.S.
+//   Copyright 2021-2022 SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,7 +16,11 @@
 
 package io.warp10.script.functions;
 
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptATCException;
@@ -25,8 +29,11 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStack.StackContext;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.warp.sdk.Capabilities;
 
 public class GUARD extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+
+  public static final String EXPORTED_CAPABILITIES_ATTR = "guard.exported.capabilities";
 
   public GUARD(String name) {
     super(name);
@@ -64,6 +71,10 @@ public class GUARD extends NamedWarpScriptFunction implements WarpScriptStackFun
 
     int hidden = 0;
 
+    Capabilities capabilities = null;
+    Object exportedCapabilities = null;
+    Throwable error = null;
+
     try {
       if (hasHide) {
         if (null == hide) {
@@ -72,8 +83,23 @@ public class GUARD extends NamedWarpScriptFunction implements WarpScriptStackFun
           hidden = stack.hide(((Long) hide).intValue());
         }
       }
+
+      //
+      // Clone the capabilities if they were defined and save the exported capabilities
+      //
+
+      capabilities = Capabilities.get(stack);
+
+      if (null != capabilities) {
+        Capabilities.set(stack, capabilities.clone());
+      }
+
+      exportedCapabilities = stack.getAttribute(EXPORTED_CAPABILITIES_ATTR);
+      stack.setAttribute(EXPORTED_CAPABILITIES_ATTR, new AtomicReference<Set>(new HashSet<String>()));
+
       stack.exec(macro);
     } catch (Throwable t) {
+      error = t;
       //
       // If any exception was raised during the execution of the macro,
       // clear the stack and the specified symbols so no information leak
@@ -83,7 +109,6 @@ public class GUARD extends NamedWarpScriptFunction implements WarpScriptStackFun
 
       throw new WarpScriptATCException("Exception in GUARDed macro.");
     } finally {
-
       //
       // Clear the specified symbols or restore the context
       //
@@ -114,8 +139,54 @@ public class GUARD extends NamedWarpScriptFunction implements WarpScriptStackFun
       if (hasHide) {
         stack.show(hidden);
       }
+
+      // Restore capabilities
+
+      boolean copyExported = false;
+
+      if (exportedCapabilities instanceof AtomicReference) {
+        AtomicReference ref = (AtomicReference) exportedCapabilities;
+        if (ref.get() instanceof Set && ((Set) ref.get()).contains(null)) {
+          copyExported = true;
+        }
+      }
+
+      Capabilities caps = Capabilities.get(stack);
+
+      if (null != caps) {
+        // Export the specified capabilities if no error occurred
+        if (null == error) {
+          Capabilities newcaps = caps;
+          if (!getExportedCapabilities(stack).isEmpty() && null == capabilities) {
+            capabilities = new Capabilities();
+          }
+          for (String cap: getExportedCapabilities(stack)) {
+            if (null != cap) {
+              if (copyExported) {
+                ((AtomicReference<Set>) exportedCapabilities).get().add(cap);
+              }
+              capabilities.remove(cap);
+              capabilities.putIfAbsent(cap, newcaps.get(cap));
+            }
+          }
+        }
+      }
+
+      Capabilities.set(stack, capabilities);
+
+      stack.setAttribute(EXPORTED_CAPABILITIES_ATTR, exportedCapabilities);
     }
 
     return stack;
+  }
+
+  public static Set<String> getExportedCapabilities(WarpScriptStack stack) {
+    if (stack.getAttribute(EXPORTED_CAPABILITIES_ATTR) instanceof AtomicReference) {
+      AtomicReference ref = (AtomicReference) stack.getAttribute(EXPORTED_CAPABILITIES_ATTR);
+      if (ref.get() instanceof Set) {
+        return (Set<String>) ref.get();
+      }
+    }
+    return null;
   }
 }
