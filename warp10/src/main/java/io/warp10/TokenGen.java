@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -13,9 +13,8 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-package io.warp10.worf;
+package io.warp10;
 
-import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
 import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OSSKeyStore;
@@ -85,8 +84,9 @@ public class TokenGen {
 
     keystore.forget();
 
-    TokenWarpScriptExtension ext = new TokenWarpScriptExtension(keystore);
+    WarpScriptLib.registerExtensions();
 
+    TokenWarpScriptExtension ext = new TokenWarpScriptExtension(keystore);
     WarpScriptLib.register(ext);
   }
 

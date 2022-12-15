@@ -345,6 +345,7 @@ import io.warp10.script.functions.CALL;
 import io.warp10.script.functions.CAPADD;
 import io.warp10.script.functions.CAPCHECK;
 import io.warp10.script.functions.CAPDEL;
+import io.warp10.script.functions.CAPEXPORT;
 import io.warp10.script.functions.CAPGET;
 import io.warp10.script.functions.CHRONOEND;
 import io.warp10.script.functions.CHRONOSTART;
@@ -444,6 +445,7 @@ import io.warp10.script.functions.FORGET;
 import io.warp10.script.functions.FORSTEP;
 import io.warp10.script.functions.FROMTSELEMENTS;
 import io.warp10.script.functions.FUNCREF;
+import io.warp10.script.functions.FUNCTIONS;
 import io.warp10.script.functions.FUSE;
 import io.warp10.script.functions.GEOBUFFER;
 import io.warp10.script.functions.GEOCELLTO;
@@ -833,7 +835,15 @@ import io.warp10.script.functions.WRAP;
 import io.warp10.script.functions.WSSTACK;
 import io.warp10.script.functions.ZSCORE;
 import io.warp10.script.functions.ZSCORETEST;
-import io.warp10.script.functions.ZTO;import org.slf4j.Logger;
+import io.warp10.script.functions.ZTO;
+import io.warp10.script.functions.LOGMSG;
+import io.warp10.script.functions.NOLOG;
+import io.warp10.script.functions.LOGINIT;
+import io.warp10.script.functions.STDERR;
+import io.warp10.script.functions.STDOUT;
+import io.warp10.script.functions.TDESCRIBE;
+
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URL;
@@ -868,6 +878,12 @@ public class WarpScriptLib {
   public static final String COUNTER = "COUNTER";
   public static final String COUNTERSET = "COUNTERSET";
 
+  public static final String NOLOG = "NOLOG";
+  public static final String LOGINIT = "LOGINIT";
+  public static final String STDOUT = "STDOUT";
+  public static final String STDERR = "STDERR";
+  public static final String LOGMSG = "LOGMSG";
+  public static final String TDESCRIBE = "TDESCRIBE";
 
   public static final String REF = "REF";
   public static final String COMPILE = "COMPILE";
@@ -1005,6 +1021,7 @@ public class WarpScriptLib {
   public static final String CAPADD = "CAPADD";
   public static final String CAPDEL = "CAPDEL";
   public static final String CAPGET = "CAPGET";
+  public static final String CAPEXPORT = "CAPEXPORT";
   public static final String CAPCHECK = "CAPCHECK";
   public static final String STACKATTRIBUTE = "STACKATTRIBUTE";
   public static final String EXPORT = "EXPORT";
@@ -1061,6 +1078,7 @@ public class WarpScriptLib {
   public static final String OPS = "OPS";
   public static final String MAXSYMBOLS = "MAXSYMBOLS";
   public static final String SYMBOLS = "SYMBOLS";
+  public static final String FUNCTIONS = "FUNCTIONS";
   public static final String MAXJSON = "MAXJSON";
   public static final String NOW = "NOW";
   public static final String AGO = "AGO";
@@ -1806,6 +1824,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new CAPDEL(CAPDEL));
     addNamedWarpScriptFunction(new CAPCHECK(CAPCHECK));
     addNamedWarpScriptFunction(new CAPGET(CAPGET));
+    addNamedWarpScriptFunction(new CAPEXPORT(CAPEXPORT));
     addNamedWarpScriptFunction(new STACKATTRIBUTE(STACKATTRIBUTE)); // NOT TO BE DOCUMENTED
     addNamedWarpScriptFunction(new EXPORT(EXPORT));
     addNamedWarpScriptFunction(new TIMINGS(TIMINGS)); // NOT TO BE DOCUMENTED (YET)
@@ -1881,6 +1900,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new OPS(OPS));
     addNamedWarpScriptFunction(new MAXSYMBOLS(MAXSYMBOLS));
     addNamedWarpScriptFunction(new SYMBOLS(SYMBOLS));
+    addNamedWarpScriptFunction(new FUNCTIONS(FUNCTIONS));
     addNamedWarpScriptFunction(new MAXJSON(MAXJSON));
     addNamedWarpScriptFunction(new EVAL(EVAL));
     addNamedWarpScriptFunction(new FUNCREF(FUNCREF));
@@ -3110,6 +3130,17 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new OpBoolean("op.and", false, true));
     addNamedWarpScriptFunction(new OpBoolean("op.or.ignore-nulls", true, false));
     addNamedWarpScriptFunction(new OpBoolean("op.or", true, true));
+
+    //
+    // Debug
+    //
+
+    addNamedWarpScriptFunction(new STDOUT(STDOUT));
+    addNamedWarpScriptFunction(new STDERR(STDERR));
+    addNamedWarpScriptFunction(new LOGMSG(LOGMSG));
+    addNamedWarpScriptFunction(new NOLOG(NOLOG));
+    addNamedWarpScriptFunction(new LOGINIT(LOGINIT));
+    addNamedWarpScriptFunction(new TDESCRIBE(TDESCRIBE));
 
     /////////////////////////
 
