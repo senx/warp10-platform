@@ -2327,8 +2327,10 @@ public class Directory extends AbstractHandler implements Runnable {
           String ownersel = labelsSelector.get(Constants.OWNER_LABEL);
 
           if (null != ownersel && ownersel.startsWith("=")) {
-            classNames = classesPerOwner.get(ownersel.substring(1)).values();
-            if (null == classNames) {
+            Map<Long,String> cpo = classesPerOwner.get(ownersel.substring(1));
+            if (null != cpo) {
+              classNames = cpo.values();
+            } else {
               classNames = new ArrayList<String>();
             }
           } else {
