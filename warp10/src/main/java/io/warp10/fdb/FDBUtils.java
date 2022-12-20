@@ -28,6 +28,7 @@ import com.apple.foundationdb.Transaction;
 
 import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
+import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.json.JsonUtils;
 import io.warp10.sensision.Sensision;
@@ -171,5 +172,41 @@ public class FDBUtils {
     }
 
     return size;
+  }
+
+  /**
+   * Return true or false depending on whether or not the encoder would fit in an FDB transaction but an additional data point
+   * would make it possibly exceed the threshold.
+   * @param encoder Encoder to test
+   * @param maxValueSize Maximum value size.
+   * @return
+   */
+  public static boolean hasCriticalTransactionSize(GTSEncoder encoder, long maxValueSize) {
+    long size = 0L;
+
+    // RFC 3629 states that UTF-8 encoding is using at most 4 bytes per character, so we
+    // update 'size' with an overly pessimistic estimate of 4 x valueSize for the max possible value
+
+    size += 4 * maxValueSize;
+    // Add timestamp / location / elevation / header bytes
+    size += 8 + 8 + 8 + 2;
+
+    // If encoder is non null, use its count and pessimisticSize to update 'size'
+    long count = 1;
+
+    if (null != encoder) {
+      size += encoder.getPessimisticSize();
+      count += encoder.getCount();
+    }
+
+    size += count * (103 + 8 /* tenant */ + 8 /* class ID */ + 8 /* labels ID */ + 1 /* key prefix, we do not count the timestamp which is already accounted for */);
+
+    //
+    // If the estimated size is greater or equal to 4,500,000 (45 % of FDB max size), then we return true.
+    if (size >= 4500000) {
+      return true;
+    } else {
+      return false;
+    }
   }
 }
