@@ -27,6 +27,13 @@ public class FDBContext {
   private final byte[] tenantPrefix;
   private final byte[] tenantName;
 
+  /**
+   * Field to keep track of the last seen read version. Used by FDBKVScanner to retry
+   * getRange operations which encountered an error 1037 (process_behind) which may occur
+   * when FDB is experiencing a high load and some storage servers are lagging.
+   */
+  private long lastSeenReadVersion = Long.MIN_VALUE;
+
   // TODO(hbs): support creating context from tenant key prefix (for 6.x compatibility)?
   public FDBContext(String clusterFile, String tenant) {
     this.clusterFile = clusterFile;
@@ -65,5 +72,15 @@ public class FDBContext {
 
   public byte[] getTenantName() {
     return this.tenantName;
+  }
+
+  public void setLastSeenReadVersion(long version) {
+    if (version > this.lastSeenReadVersion) {
+      this.lastSeenReadVersion = version;
+    }
+  }
+
+  public long getLastSeenReadVersion() {
+    return this.lastSeenReadVersion;
   }
 }
