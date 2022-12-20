@@ -1066,7 +1066,7 @@ public class Ingress extends AbstractHandler implements Runnable {
             throw new IOException("Parse error at index " + pe.getErrorOffset() + " in '" + line + "'", pe);
           }
 
-          if (encoder != lastencoder || dms.get() + 16 + lastencoder.size() > DATA_MESSAGES_THRESHOLD) {
+          if (encoder != lastencoder || dms.get() + 16 + lastencoder.size() > DATA_MESSAGES_THRESHOLD || FDBUtils.hasCriticalTransactionSize(lastencoder, maxValueSize)) {
             //
             // Determine if we should push the metadata or not
             //
