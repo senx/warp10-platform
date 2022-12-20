@@ -26,6 +26,7 @@ import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -352,8 +353,7 @@ public class Store extends Thread {
                 }
               }
               kconsumers[i] = new KafkaConsumer<byte[],byte[]>(props);
-              kconsumers[i].subscribe(Collections.singletonList(topic));
-              consumers[idx] = new StoreConsumer(databases[idx], self, kconsumers[i], counters);
+              consumers[idx] = new StoreConsumer(databases[idx], self, kconsumers[i], counters, Collections.singletonList(topic));
               executor.submit(consumers[idx]);
               idx++;
             }
@@ -441,7 +441,9 @@ public class Store extends Thread {
               }
               for (KafkaConsumer kconsumer: kconsumers) {
                 try {
-                  kconsumer.close();
+                  if (null != kconsumer) {
+                    kconsumer.close();
+                  }
                 } catch (Exception e) {
                   LOG.error("Error while closing Kafka consumer", e);
                 }
@@ -455,8 +457,9 @@ public class Store extends Thread {
               try {
                 for (StoreConsumer consumer: consumers) {
                   consumer.localabort.set(true);
-                  while(consumer.getSynchronizer().isAlive()) {
-                    consumer.getSynchronizer().interrupt();
+                  Thread sync = consumer.getSynchronizer();
+                  while(null != sync && sync.isAlive()) {
+                    sync.interrupt();
                     LockSupport.parkNanos(100000000L);
                   }
                   //
@@ -465,7 +468,13 @@ public class Store extends Thread {
                   //
                   executor.shutdownNow();
                   while(!consumer.isDone()) {
-                    consumer.getConsumerThread().interrupt();
+                    Thread consumerThread = consumer.getConsumerThread();
+                    if (null != consumerThread && consumerThread.isAlive()) {
+                      consumer.getConsumerThread().interrupt();
+                    } else {
+                      // We consider the consumer done if it does not have a current thread or if its current thread is no longer alive
+                      break;
+                    }
                     LockSupport.parkNanos(100000000L);
                   }
                 }
@@ -520,8 +529,11 @@ public class Store extends Thread {
 
     private boolean shouldReset = false;
     private boolean done = false;
+    // Is the synchronizer done
+    private final AtomicBoolean syncDone = new AtomicBoolean(false);
     private final Store store;
     private final KafkaConsumer<byte[],byte[]> consumer;
+    private final Collection<String> topics;
     private final byte[] fdbAESKey;
     private final AtomicLong lastMutation = new AtomicLong(0L);
     private final List<FDBMutation> mutations;
@@ -553,9 +565,12 @@ public class Store extends Thread {
 
     private final Database db;
 
-    public StoreConsumer(Database db, Store store, KafkaConsumer<byte[], byte[]> consumer, KafkaOffsetCounters counters) {
+    private Thread currentThread = null;
+
+    public StoreConsumer(Database db, Store store, KafkaConsumer<byte[], byte[]> consumer, KafkaOffsetCounters counters, Collection<String> topics) {
       this.store = store;
       this.consumer = consumer;
+      this.topics = topics;
       this.mutations = new ArrayList<FDBMutation>();
       this.counters = counters;
       this.fdbAESKey = store.keystore.getKey(KeyStore.AES_FDB_DATA);
@@ -567,11 +582,13 @@ public class Store extends Thread {
     }
 
     private Thread getConsumerThread() {
-      return Thread.currentThread();
+      return currentThread;
     }
 
     private boolean isDone() {
-      return this.done;
+      // We are done if we are marked as done or if our synchronizer is done. This gives us more chances to detect we are done since
+      // interruptions tend to make us miss our own end....
+      return this.done || syncDone.get();
     }
 
     private boolean getShouldReset() {
@@ -585,7 +602,12 @@ public class Store extends Thread {
     @Override
     public void run() {
 
+      this.currentThread = Thread.currentThread();
       Thread.currentThread().setName("[Store Consumer - gen " + this.store.uuid + "/" + store.generation + "]");
+
+      // We need to call subscribe here otherwise the thread associated with 'consumer' will be the one which created the consumer
+      // and any call to poll or close will lead to an exception stating that the consumer is not MT safe
+      this.consumer.subscribe(this.topics);
 
       long count = 0L;
 
@@ -607,6 +629,7 @@ public class Store extends Thread {
         final CyclicBarrier ourbarrier = store.barrier;
 
         synchronizer = new Thread(new Runnable() {
+
           @Override
           public void run() {
             try {
@@ -655,7 +678,7 @@ public class Store extends Thread {
                       long nanos = System.nanoTime();
                       if (!store.SKIP_WRITE) {
                         if (LOG.isDebugEnabled()) {
-                          LOG.debug("FoundationDB commit of " + mutations.size() + " mutations.");
+                          LOG.debug("FoundationDB commit of " + mutations.size() + " mutations (" + mutationsSize.get() + " bytes).");
                         }
                         if (mutations.size() > 0) {
                           flushMutations();
@@ -723,7 +746,7 @@ public class Store extends Thread {
                         long nanos = System.nanoTime();
                         if (!store.SKIP_WRITE) {
                           if (LOG.isDebugEnabled()) {
-                            LOG.debug("Forcing FoundationDB batch of " + mutations.size() + " mutations.");
+                            LOG.debug("Forcing FoundationDB batch of " + mutations.size() + " mutations (" + mutationsSize.get() + " bytes).");
                           }
                           flushMutations();
                         }
@@ -741,11 +764,12 @@ public class Store extends Thread {
                       } catch (Throwable t) {
                         // Clear list of Puts
                         int nmutations = mutations.size();
+                        long msize = mutationsSize.get();
                         mutations.clear();
                         mutationsSize.set(0L);
                         // If an exception is thrown, abort
                         store.abort.set(true);
-                        LOG.error("Received Throwable while forced writing of " + nmutations + " mutations to FoundationDB - forcing reset", t);
+                        LOG.error("Received Throwable while forced writing of " + nmutations + " mutations (" + msize + " bytes) to FoundationDB - forcing reset", t);
                         return;
                       }
                     }
@@ -762,6 +786,7 @@ public class Store extends Thread {
                 LockSupport.parkNanos(1000000L);
               }
             } finally {
+              syncDone.set(true);
               if (LOG.isDebugEnabled()) {
                 LOG.debug("Synchronizer done.");
               }
@@ -811,7 +836,7 @@ public class Store extends Thread {
               }
             } while(retry);
           }
-        });
+        }); // Synchronizer
 
         synchronizer.setName("[Continuum Store Synchronizer - gen " + this.store.uuid + "/" + store.generation + "]");
         synchronizer.setDaemon(true);
@@ -837,6 +862,12 @@ public class Store extends Thread {
             mutationslock.lockInterruptibly();
             // Clear the 'inflight' status
             inflightMessage.set(false);
+
+            // If we already have plenty of mutations to flush, wait until we sync
+            if (mutationsSize.get() >= store.maxPendingMutationsSize) {
+              doPause = true;
+              continue;
+            }
 
             // Do not call poll if we must commit the offsets
             if (needToSync.get()) {
@@ -1076,7 +1107,6 @@ public class Store extends Thread {
           }
         }
       }
-
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_FDB_SETS, Sensision.EMPTY_LABELS, datapoints);
     }
 
