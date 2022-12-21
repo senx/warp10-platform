@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -451,7 +451,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       } else {
         clsSels.add(params.get(PARAM_CLASS).toString());
 
-        Map<String,String> labelSelectors = (Map<String,String>) params.get(PARAM_LABELS);
+        Map<String, String> labelSelectors = new LinkedHashMap<>((Map<String, String>) params.get(PARAM_LABELS));
         labelSelectors.remove(Constants.PRODUCER_LABEL);
         labelSelectors.remove(Constants.OWNER_LABEL);
         labelSelectors.remove(Constants.APPLICATION_LABEL);
