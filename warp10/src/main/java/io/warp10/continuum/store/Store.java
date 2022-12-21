@@ -57,6 +57,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.primitives.Longs;
 import com.google.common.util.concurrent.RateLimiter;
 
+import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.KafkaOffsetCounters;
 import io.warp10.continuum.gts.GTSDecoder;
@@ -83,6 +84,69 @@ public class Store extends Thread {
   private static final Logger LOG = LoggerFactory.getLogger(Store.class);
 
   private static final String DEFAULT_FDB_RETRYLIMIT = Long.toString(4);
+
+  private static RateLimiter rateLimit = null;
+
+  static {
+    //
+    // If instructed to do so, launch a thread which will read the throttling file periodically
+    //
+
+    if (null != WarpConfig.getProperty(Configuration.STORE_THROTTLING_FILE)) {
+
+      final File throttlingFile = new File(WarpConfig.getProperty(Configuration.STORE_THROTTLING_FILE));
+      final long period = Long.parseLong(WarpConfig.getProperty(Configuration.STORE_THROTTLING_PERIOD, "60000"));
+
+      Thread t = new Thread() {
+        @Override
+        public void run() {
+          while (true) {
+            BufferedReader br = null;
+            try {
+              if (throttlingFile.exists()) {
+                br = new BufferedReader(new FileReader(throttlingFile));
+
+                String line = br.readLine();
+
+                if (null == line) {
+                  Store.rateLimit = null;
+                } else {
+                  double rate = Double.parseDouble(line);
+                  if (null == Store.rateLimit && 0.0D != rate) {
+                    Store.rateLimit = RateLimiter.create(rate);
+                  } else if (0.0D != rate) {
+                    Store.rateLimit.setRate(rate);
+                  } else {
+                    Store.rateLimit = null;
+                  }
+                }
+              } else {
+                Store.rateLimit = null;
+                Sensision.clear(SensisionConstants.CLASS_WARP_STORE_THROTTLING_RATE, Sensision.EMPTY_LABELS);
+              }
+            } catch (Throwable t) {
+              // Clear current throttling rate
+              Store.rateLimit = null;
+              Sensision.clear(SensisionConstants.CLASS_WARP_STORE_THROTTLING_RATE, Sensision.EMPTY_LABELS);
+            } finally {
+              if (null != br) {
+                try { br.close(); } catch (IOException ioe) {}
+              }
+              if (null != Store.rateLimit) {
+                Sensision.set(SensisionConstants.CLASS_WARP_STORE_THROTTLING_RATE, Sensision.EMPTY_LABELS, Store.rateLimit.getRate());
+              }
+            }
+
+            LockSupport.parkNanos(period * 1000000L);
+          }
+        }
+      };
+
+      t.setName("[Store Throttling Reader]");
+      t.setDaemon(true);
+      t.start();
+    }
+  }
 
   /**
    * Set of required parameters, those MUST be set
@@ -134,11 +198,6 @@ public class Store extends Thread {
 
   private UUID uuid = UUID.randomUUID();
 
- /**
-   * Rate limit to slow consumption down
-   */
-  private RateLimiter rateLimit = null;
-
   //
   // FoundationDB
   //
@@ -173,66 +232,6 @@ public class Store extends Thread {
 
     final String topic = properties.getProperty(Configuration.STORE_KAFKA_DATA_TOPIC);
     final int nthreads = null != nthr ? nthr.intValue() : Integer.valueOf(properties.getProperty(Configuration.STORE_NTHREADS_KAFKA, "1"));
-
-    //
-    // If instructed to do so, launch a thread which will read the throttling file periodically
-    //
-
-    if (null != properties.getProperty(Configuration.STORE_THROTTLING_FILE)) {
-
-      final File throttlingFile = new File(properties.getProperty(Configuration.STORE_THROTTLING_FILE));
-      final long period = Long.parseLong(properties.getProperty(Configuration.STORE_THROTTLING_PERIOD, "60000"));
-      final Store self = this;
-
-      Thread t = new Thread() {
-        @Override
-        public void run() {
-          while (true) {
-            BufferedReader br = null;
-            try {
-              if (throttlingFile.exists()) {
-                br = new BufferedReader(new FileReader(throttlingFile));
-
-                String line = br.readLine();
-
-                if (null == line) {
-                  self.rateLimit = null;
-                } else {
-                  double rate = Double.parseDouble(line);
-                  if (null == self.rateLimit && 0.0D != rate) {
-                    self.rateLimit = RateLimiter.create(rate);
-                  } else if (0.0D != rate) {
-                    self.rateLimit.setRate(rate);
-                  } else {
-                    self.rateLimit = null;
-                  }
-                }
-              } else {
-                self.rateLimit = null;
-                Sensision.clear(SensisionConstants.CLASS_WARP_STORE_THROTTLING_RATE, Sensision.EMPTY_LABELS);
-              }
-            } catch (Throwable t) {
-              // Clear current throttling rate
-              self.rateLimit = null;
-              Sensision.clear(SensisionConstants.CLASS_WARP_STORE_THROTTLING_RATE, Sensision.EMPTY_LABELS);
-            } finally {
-              if (null != br) {
-                try { br.close(); } catch (IOException ioe) {}
-              }
-              if (null != self.rateLimit) {
-                Sensision.set(SensisionConstants.CLASS_WARP_STORE_THROTTLING_RATE, Sensision.EMPTY_LABELS, self.rateLimit.getRate());
-              }
-            }
-
-            LockSupport.parkNanos(period * 1000000L);
-          }
-        }
-      };
-
-      t.setName("[Store Throttling Reader]");
-      t.setDaemon(true);
-      t.start();
-    }
 
     this.FDBUseTenantPrefix = "true".equals(properties.getProperty(Configuration.FDB_USE_TENANT_PREFIX));
 
@@ -1084,8 +1083,8 @@ public class Store extends Thread {
           throw new RuntimeException("DEFAULT_MODULUS should have been 1!!!!!");
         }
 
-        if (null != store.rateLimit) {
-          while(!store.rateLimit.tryAcquire(1, TimeUnit.SECONDS)) {}
+        if (null != Store.rateLimit) {
+          while(!Store.rateLimit.tryAcquire(1, TimeUnit.SECONDS)) {}
         }
 
         //
@@ -1162,8 +1161,8 @@ public class Store extends Thread {
 
       FDBClearRange clearRange = new FDBClearRange(tenantPrefix, startkey, endkey);
 
-      if (null != store.rateLimit) {
-        while(!store.rateLimit.tryAcquire(1, TimeUnit.SECONDS)) {}
+      if (null != Store.rateLimit) {
+        while(!Store.rateLimit.tryAcquire(1, TimeUnit.SECONDS)) {}
       }
 
       try {
