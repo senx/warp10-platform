@@ -2056,12 +2056,12 @@ public class GTSHelper {
     if (srcGts.type != subGts.type) {
       throw new RuntimeException("Cannot copy data, both gts do not have the same type.");
     }
-    
+
     if (null == subGts.ticks || subGts.ticks.length < length) {
       subGts.ticks = new long[length];
     }
     System.arraycopy(srcGts.ticks, srcPos, subGts.ticks, 0, length);
-    
+
     // locations, if any
     if (null != srcGts.locations) {
       if (null == subGts.locations || subGts.locations.length < length) {
@@ -2069,7 +2069,7 @@ public class GTSHelper {
       }
       System.arraycopy(srcGts.locations, srcPos, subGts.locations, 0, length);
     }
-    
+
     // elevations, if any
     if (null != srcGts.elevations) {
       if (null == subGts.elevations || subGts.elevations.length < length) {
@@ -2077,7 +2077,7 @@ public class GTSHelper {
       }
       System.arraycopy(srcGts.elevations, srcPos, subGts.elevations, 0, length);
     }
-    
+
     // value, up to value type
     switch (srcGts.type) {
       case LONG:
@@ -2102,11 +2102,11 @@ public class GTSHelper {
         subGts.booleanValues = srcGts.booleanValues.get(srcPos, srcPos + length);
         break;
     }
-    
+
     // set new length of subGts
     subGts.values = length;
   }
-  
+
   /**
    * Converts a Geo Time Serie into a bucketized version.
    * Bucketizing means aggregating values (with associated location and elevation) that lie
@@ -2123,7 +2123,7 @@ public class GTSHelper {
   public static final GeoTimeSerie bucketize(GeoTimeSerie gts, long bucketspan, int bucketcount, long lastbucket, WarpScriptBucketizerFunction aggregator, long maxbuckets) throws WarpScriptException {
     return bucketize(gts, bucketspan, bucketcount, lastbucket, aggregator, maxbuckets, null);
   }
-  
+
   public static final GeoTimeSerie bucketize(GeoTimeSerie gts, long bucketspan, int bucketcount, long lastbucket, Object aggregator, long maxbuckets, WarpScriptStack stack) throws WarpScriptException {
 
     //
@@ -2334,7 +2334,7 @@ public class GTSHelper {
 
         // next bucket
       }
-      
+
     } else {
       if (!(aggregator instanceof WarpScriptBucketizerFunction)) {
         throw new WarpScriptException("Invalid bucketizer function.");
@@ -2344,7 +2344,7 @@ public class GTSHelper {
       if (aggregator instanceof WarpScriptAggregatorOnListsFunction) {
         // Second case: the aggregator is capable to process an array of List instead of an array of array.
         // It uses a special class for lists that saves a memory allocation.
-        
+
         // build a structure ready to use:
         // - special copy on write List for ticks, values  (view of the original primitive array or BitSet)
         // - decode elevations
@@ -2439,7 +2439,7 @@ public class GTSHelper {
         // - values: array of values being aggregated
         // - bucket span: width (in microseconds) of bucket
         //
-        // WarpScriptBucketizerFunction interface is the historic one, some extension still rely on it, 
+        // WarpScriptBucketizerFunction interface is the historic one, some extension still rely on it,
         // it must be kept as it is even if it is less memory efficient.
         Object[] parms = new Object[8];
         // name and labels can be defined here
@@ -3005,6 +3005,7 @@ public class GTSHelper {
       throw new ParseException("Value too large for GTS " + (null != encoder ? GTSHelper.buildSelector(encoder.getMetadata(), false) : ""), idx);
     }
 
+
     // Allocate a new Encoder if need be, with a base timestamp of 0L.
     if (null == encoder || !name.equals(encoder.getName()) || !labels.equals(encoder.getMetadata().getLabels())) {
       encoder = new GTSEncoder(0L);
@@ -3031,7 +3032,16 @@ public class GTSHelper {
     }
 
     if (!ignored) {
+      long pessimisticSize = encoder.getPessimisticSize();
       encoder.addValue(timestamp, location, elevation, value);
+
+      //
+      // Do a final check to see if the new data point added more than maxValueSize + 30 bytes (2 header + 8 ts + 8 loc + 8 elev + 4 STRING size) to the encoder
+      //
+
+      if (Long.MAX_VALUE != maxValueSize && encoder.getPessimisticSize() - pessimisticSize > maxValueSize + 30) {
+        throw new ParseException("Value too large for GTS " + GTSHelper.buildSelector(encoder.getMetadata(), false), idx);
+      }
     } else {
       ignoredCount.addAndGet(1);
     }
