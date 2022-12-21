@@ -917,10 +917,10 @@ public class Directory extends AbstractHandler implements Runnable {
 
             consumers = new KafkaConsumer[nthreads];
 
+            Collection<String> topics = Collections.singletonList(topic);
             for (int i = 0; i < nthreads; i++) {
               consumers[i] = new KafkaConsumer<>(props);
-              consumers[i].subscribe(Collections.singletonList(topic));
-              executor.submit(new DirectoryConsumer(self, consumers[i], counters));
+              executor.submit(new DirectoryConsumer(self, consumers[i], counters, topics));
             }
 
             while(!abort.get() && !Thread.currentThread().isInterrupted()) {
@@ -1185,7 +1185,7 @@ public class Directory extends AbstractHandler implements Runnable {
 
     private final Directory directory;
     private final KafkaConsumer<byte[],byte[]> consumer;
-
+    private final Collection<String> topics;
     private final KafkaOffsetCounters counters;
 
     private final AtomicBoolean localabort = new AtomicBoolean(false);
@@ -1196,9 +1196,10 @@ public class Directory extends AbstractHandler implements Runnable {
     private final AtomicBoolean pending = new AtomicBoolean(false);
 
 
-    public DirectoryConsumer(Directory directory, KafkaConsumer<byte[], byte[]> consumer, KafkaOffsetCounters counters) {
+    public DirectoryConsumer(Directory directory, KafkaConsumer<byte[], byte[]> consumer, KafkaOffsetCounters counters, Collection<String> topics) {
       this.directory = directory;
       this.consumer = consumer;
+      this.topics = topics;
       this.counters = counters;
     }
 
@@ -1213,6 +1214,8 @@ public class Directory extends AbstractHandler implements Runnable {
       Database db = fdbContext.getDatabase();
 
       try {
+        this.consumer.subscribe(this.topics);
+
         byte[] siphashKey = directory.keystore.getKey(KeyStore.SIPHASH_KAFKA_METADATA);
         byte[] kafkaAESKey = directory.keystore.getKey(KeyStore.AES_KAFKA_METADATA);
 

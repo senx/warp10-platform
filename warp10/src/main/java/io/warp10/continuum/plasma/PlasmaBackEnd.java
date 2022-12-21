@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -253,10 +254,11 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
 
             consumers = new org.apache.kafka.clients.consumer.KafkaConsumer[nthreads];
 
+            Collection<String> topics = Collections.singletonList(topic);
+
             for (int i = 0; i < nthreads; i++) {
               consumers[i] = new org.apache.kafka.clients.consumer.KafkaConsumer<byte[], byte[]>(props);
-              consumers[i].subscribe(Collections.singletonList(topic));
-              executor.submit(new KafkaConsumer(self, consumers[i], counters));
+              executor.submit(new KafkaConsumer(self, consumers[i], counters, topics));
             }
 
             long lastsync = 0L;
@@ -541,11 +543,13 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
 
     private final PlasmaBackEnd backend;
     private final org.apache.kafka.clients.consumer.KafkaConsumer<byte[],byte[]> consumer;
+    private final Collection<String> topics;
     private final KafkaOffsetCounters counters;
 
-    public KafkaConsumer(PlasmaBackEnd backend, org.apache.kafka.clients.consumer.KafkaConsumer<byte[], byte[]> consumer, KafkaOffsetCounters counters) {
+    public KafkaConsumer(PlasmaBackEnd backend, org.apache.kafka.clients.consumer.KafkaConsumer<byte[], byte[]> consumer, KafkaOffsetCounters counters, Collection<String> topics) {
       this.backend = backend;
       this.consumer = consumer;
+      this.topics = topics;
       this.counters = counters;
     }
 
@@ -556,6 +560,8 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
       byte[] clslbls = new byte[16];
 
       try {
+        this.consumer.subscribe(topics);
+
         byte[] inSipHashKey = backend.keystore.getKey(KeyStore.SIPHASH_KAFKA_PLASMA_BACKEND_IN);
         byte[] inAESKey = backend.keystore.getKey(KeyStore.AES_KAFKA_PLASMA_BACKEND_IN);
 

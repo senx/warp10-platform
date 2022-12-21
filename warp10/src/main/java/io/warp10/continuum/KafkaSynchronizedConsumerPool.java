@@ -16,6 +16,7 @@
 
 package io.warp10.continuum;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -69,7 +70,7 @@ public class KafkaSynchronizedConsumerPool {
   private AtomicBoolean mustCommit = new AtomicBoolean(false);
 
   public static interface ConsumerFactory {
-    public Runnable getConsumer(KafkaSynchronizedConsumerPool pool, KafkaConsumer<byte[], byte[]> stream);
+    public Runnable getConsumer(KafkaSynchronizedConsumerPool pool, KafkaConsumer<byte[], byte[]> stream, Collection<String> topics);
   }
 
   public static interface Hook {
@@ -211,12 +212,13 @@ public class KafkaSynchronizedConsumerPool {
           pool.consumerLocks = new HashMap<KafkaConsumer,ReentrantLock>(nthreads);
           pool.pending = new HashMap<KafkaConsumer,AtomicBoolean>(nthreads);
 
+          Collection<String> topics = Collections.singletonList(topic);
+
           for (int i = 0; i < nthreads; i++) {
             consumers[i] = new KafkaConsumer<>(props);
-            consumers[i].subscribe(Collections.singletonList(topic));
             pool.consumerLocks.put(consumers[i], new ReentrantLock());
             pool.pending.put(consumers[i], new AtomicBoolean(false));
-            executor.submit(factory.getConsumer(pool,consumers[i]));
+            executor.submit(factory.getConsumer(pool,consumers[i], topics));
           }
 
           pool.getInitialized().set(true);

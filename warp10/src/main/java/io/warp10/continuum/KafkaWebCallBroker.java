@@ -17,6 +17,7 @@
 package io.warp10.continuum;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -169,10 +170,11 @@ public class KafkaWebCallBroker extends Thread {
 
             consumers = new KafkaConsumer[nthreads];
 
+            Collection<String> topics = Collections.singletonList(topic);
+
             for (int i = 0; i < nthreads; i++) {
               consumers[i] = new KafkaConsumer<>(props);
-              consumers[i].subscribe(Collections.singletonList(topic));
-              executor.submit(new WebCallConsumer(self, consumers[i], counters));
+              executor.submit(new WebCallConsumer(self, consumers[i], counters, topics));
             }
 
             while(!abort.get() && !Thread.currentThread().isInterrupted()) {
@@ -269,11 +271,13 @@ public class KafkaWebCallBroker extends Thread {
   private static class WebCallConsumer implements Runnable {
     private final KafkaWebCallBroker broker;
     private final KafkaConsumer<byte[],byte[]> consumer;
+    private final Collection<String> topics;
     private final KafkaOffsetCounters counters;
 
-    public WebCallConsumer(KafkaWebCallBroker broker, KafkaConsumer<byte[], byte[]> consumer, KafkaOffsetCounters counters) {
+    public WebCallConsumer(KafkaWebCallBroker broker, KafkaConsumer<byte[], byte[]> consumer, KafkaOffsetCounters counters, Collection<String> topics) {
       this.broker = broker;
       this.consumer = consumer;
+      this.topics = topics;
       this.counters = counters;
     }
 
@@ -287,6 +291,7 @@ public class KafkaWebCallBroker extends Thread {
       final ReentrantLock lock = new ReentrantLock(true);
 
       try {
+        this.consumer.subscribe(this.topics);
         byte[] siphashKey = broker.keystore.getKey(KeyStore.SIPHASH_KAFKA_WEBCALL);
         byte[] aesKey = broker.keystore.getKey(KeyStore.AES_KAFKA_WEBCALL);
 

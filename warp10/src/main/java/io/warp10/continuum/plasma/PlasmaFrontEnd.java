@@ -20,6 +20,7 @@ import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -167,10 +168,11 @@ public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable,
 
     ConsumerFactory factory = new ConsumerFactory() {
       @Override
-      public Runnable getConsumer(final KafkaSynchronizedConsumerPool pool, final KafkaConsumer<byte[], byte[]> consumer) {
+      public Runnable getConsumer(final KafkaSynchronizedConsumerPool pool, final KafkaConsumer<byte[], byte[]> consumer, final Collection<String> topics) {
         return new Runnable() {
           @Override
           public void run() {
+
             byte[] sipHashKey = frontend.keystore.getKey(KeyStore.SIPHASH_KAFKA_PLASMA_FRONTEND_IN);
             byte[] aesKey = frontend.keystore.getKey(KeyStore.AES_KAFKA_PLASMA_FRONTEND_IN);
 
@@ -182,6 +184,8 @@ public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable,
             // TODO(hbs): allow setting of writeBufferSize
 
             try {
+              consumer.subscribe(topics);
+
               // Kafka 2.x Duration delay = Duration.of(500L, ChronoUnit.MILLIS);
               long delay = 500L;
 
