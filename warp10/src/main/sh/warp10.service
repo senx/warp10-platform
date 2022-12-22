@@ -21,6 +21,9 @@ Slice=warp10.slice
 #   https://www.freedesktop.org/software/systemd/man/systemd.exec.html
 
 # CPU usage limit: 400% on a 8 thread CPU will allow Warp 10 to use half of the CPU resource
+# Be careful, the CPU limit was not correctly reported by the JVM before october 2018 (8u191).
+# You can check CPU count seen by the JVM with WarpScript REPORT function.
+# In the example below, JVM will report cpus=4
 #CPUAccounting=true
 #CPUQuota=400%
 
