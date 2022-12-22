@@ -5684,12 +5684,31 @@ public class GTSHelper {
     // Retrieve ticks if GTS is not bucketized.
     long[] ticks = isBucketized(gts) ? null : Arrays.copyOf(mapped.ticks, gts.values);
 
-    // Sort outputTicks
+    // Check if outputTicks is correctly sorted
+    // In case of a concurrent execution, sorting outputTicks here will lead to a ConcurrentModificationException
     if (null != outputTicks) {
-      if (reversed) {
-        Collections.sort(outputTicks, Collections.<Long>reverseOrder());
-      } else {
-        Collections.sort(outputTicks);
+      if (outputTicks.size() > 1) {
+        if (reversed) {
+          boolean descending = true;
+          int i = 1;
+          while (i < outputTicks.size() && descending) {
+            descending = outputTicks.get(i) <= outputTicks.get(i - 1);
+            i++;
+          }
+          if (!descending) {
+            throw new WarpScriptException("The tick list must be reverse sorted.");
+          }
+        } else {
+          boolean ascending = true;
+          int i = 1;
+          while (i < outputTicks.size() && ascending) {
+            ascending = outputTicks.get(i) >= outputTicks.get(i - 1);
+            i++;
+          }
+          if (!ascending) {
+            throw new WarpScriptException("The tick list must be sorted.");
+          }
+        }
       }
     }
 
