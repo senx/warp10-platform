@@ -5691,8 +5691,12 @@ public class GTSHelper {
         if (reversed) {
           boolean descending = true;
           int i = 1;
+          long lastElt = outputTicks.get(0);
+          long elt;
           while (i < outputTicks.size() && descending) {
-            descending = outputTicks.get(i) <= outputTicks.get(i - 1);
+            elt = outputTicks.get(i);
+            descending = elt <= lastElt;
+            lastElt = elt;
             i++;
           }
           if (!descending) {
@@ -5701,8 +5705,12 @@ public class GTSHelper {
         } else {
           boolean ascending = true;
           int i = 1;
+          long lastElt = outputTicks.get(0);
+          long elt;
           while (i < outputTicks.size() && ascending) {
-            ascending = outputTicks.get(i) >= outputTicks.get(i - 1);
+            elt = outputTicks.get(i);
+            ascending = elt >= lastElt;
+            lastElt = elt;
             i++;
           }
           if (!ascending) {
