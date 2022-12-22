@@ -43,19 +43,19 @@ public class Capabilities {
   private static final Map<String,String> DEFAULT_CAPABILITIES = new LinkedHashMap<String,String>();
 
   static {
-    if (null != WarpConfig.getProperty(Configuration.CONFIG_WARPSCRIPT_CAPABILITIES_DEFAULT)) {
+    if (null != WarpConfig.getProperty(Configuration.CONFIG_WARP_CAPABILITIES_DEFAULT)) {
       MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null);
       stack.maxLimits();
 
       try {
-        stack.execMulti(WarpConfig.getProperty(Configuration.CONFIG_WARPSCRIPT_CAPABILITIES_DEFAULT));
+        stack.execMulti(WarpConfig.getProperty(Configuration.CONFIG_WARP_CAPABILITIES_DEFAULT));
         if (1 != stack.depth() || !(stack.peek() instanceof Map)) {
-          throw new WarpScriptException("Invalid value for '" + Configuration.CONFIG_WARPSCRIPT_CAPABILITIES_DEFAULT + "', expected a WarpScript map.");
+          throw new WarpScriptException("Invalid value for '" + Configuration.CONFIG_WARP_CAPABILITIES_DEFAULT + "', expected a WarpScript map.");
         }
         Map<Object,Object> capabilities = (Map<Object,Object>) stack.pop();
         for (Entry<Object,Object> capability: capabilities.entrySet()) {
           if (!(capability.getKey() instanceof String && capability.getValue() instanceof String)) {
-            throw new WarpScriptException("Invalid value for '" + Configuration.CONFIG_WARPSCRIPT_CAPABILITIES_DEFAULT + "', expected a WarpScript map with STRING keys and values.");
+            throw new WarpScriptException("Invalid value for '" + Configuration.CONFIG_WARP_CAPABILITIES_DEFAULT + "', expected a WarpScript map with STRING keys and values.");
           }
           DEFAULT_CAPABILITIES.put(capability.getKey().toString(), capability.getValue().toString());
         }

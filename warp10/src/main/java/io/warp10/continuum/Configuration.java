@@ -136,7 +136,7 @@ public class Configuration {
   /**
    * Optional WarpScript map with default capabilities
    */
-  public static final String CONFIG_WARPSCRIPT_CAPABILITIES_DEFAULT = "warpscript.capabilities.default";
+  public static final String CONFIG_WARP_CAPABILITIES_DEFAULT = "warp.capabilities.default";
 
   /**
    * Prefix for properties which define WarpScript extension namespaces.
