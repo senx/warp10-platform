@@ -545,11 +545,15 @@ public interface WarpScriptStack {
 
   String CAPABILITIES_PREFIX = ".cap:";
   String CAPABILITIES_ATTR = "stack.capabilities";
+  String CAPABILITY_INVENTORY = "inventory";
   String CAPABILITY_SETMACROCONFIG = "setmacroconfig";
   String CAPABILITY_MANAGER = "manager";
   String CAPABILITY_REPORT = "report";
+  String CAPABILITY_DEBUG = "debug";
   String CAPABILITY_WFGET = "wfget";
   String CAPABILITY_WFSET = "wfset";
+  String CAPABILITY_HTTP = "http";
+  String CAPABILITY_TIMEBOX_MAXTIME = "timebox.maxtime";
 
   String CAPABILITY_LIMITS = "limits";
   String CAPABILITY_LIMIT = "limit";

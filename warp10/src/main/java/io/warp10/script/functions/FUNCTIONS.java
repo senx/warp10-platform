@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2022  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,46 +16,35 @@
 
 package io.warp10.script.functions;
 
-import java.util.List;
-
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.warp.sdk.Capabilities;
 
-public class CAPDEL extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  public CAPDEL(String name) {
+public class FUNCTIONS extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+
+  public FUNCTIONS(String name) {
     super(name);
   }
 
-  @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
 
-    Object top = stack.pop();
-
-    Capabilities capabilities = Capabilities.get(stack);
-
-    if (top instanceof String) {
-      if (null != capabilities) {
-        capabilities.remove((String) top);
-      }
-    } else if (top instanceof List) {
-      if (null != capabilities) {
-        for (Object elt: (List) top) {
-          if (elt instanceof String) {
-            capabilities.remove((String) elt);
-          }
-        }
-      }
-    } else if (null == top) {
-      if (null != capabilities) {
-        capabilities.clear();
-      }
-    } else {
-      throw new WarpScriptException(getName() + " expects a capability name (STRING), a LIST thereof or NULL.");
+    if (null == Capabilities.get(stack, WarpScriptStack.CAPABILITY_INVENTORY)) {
+      throw new WarpScriptException(getName() + " missing capability '" + WarpScriptStack.CAPABILITY_INVENTORY + "'.");
     }
+
+    //
+    // Apply function and push its outputs onto the stack or raise an exception
+    //
+
+    stack.push(WarpScriptLib.getFunctionNames());
+
+    //
+    // Return the new state of the stack
+    //
 
     return stack;
   }

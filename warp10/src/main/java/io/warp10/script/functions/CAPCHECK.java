@@ -1,5 +1,5 @@
 //
-//   Copyright 2020  SenX S.A.S.
+//   Copyright 2020-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -34,10 +34,9 @@ public class CAPCHECK extends NamedWarpScriptFunction implements WarpScriptStack
     Object top = stack.pop();
 
     if (top instanceof String) {
-      Capabilities capabilities = null;
+      Capabilities capabilities = Capabilities.get(stack);
 
-      if (stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR) instanceof Capabilities) {
-        capabilities = (Capabilities) stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR);
+      if (null != capabilities) {
         stack.push(capabilities.containsKey((String) top));
       } else {
         stack.push(false);

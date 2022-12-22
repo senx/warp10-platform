@@ -25,7 +25,8 @@ import io.warp10.warp.sdk.WarpScriptExtension;
 
 public class TokenWarpScriptExtension extends WarpScriptExtension {
 
-  private static final Map<String, Object> functions = new HashMap<String, Object>();
+  private final Map<String, Object> functions = new HashMap<String, Object>();
+
   private static final KeyStore keystore;
 
   public static final String CAPABILITY_TOKENGEN = "tokengen";

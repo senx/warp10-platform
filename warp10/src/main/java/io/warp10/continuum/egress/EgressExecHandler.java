@@ -320,7 +320,7 @@ public class EgressExecHandler extends AbstractHandler {
       // If the configuration 'egress.maxtime' is set, the execution is
       // bounded by the provided value (in ms).
       //
-      // If a token with the capability specified in 'warpscript.timebox.maxtime.capname' is
+      // If a token with the capability 'timebox.maxtime' is
       // passed in the X-Warp10-Capabilities header and its value is above that specified in
       // 'egress.maxtime', the value of the capability will be used as the new limit of the custom execution times.
       //
@@ -344,14 +344,14 @@ public class EgressExecHandler extends AbstractHandler {
 
       long maxtimeCapability = MAXTIME;
 
-      if (maxtime > 0 && null != TIMEBOX.TIMEBOX_MAXTIME_CAPNAME && null != Capabilities.get(stack, TIMEBOX.TIMEBOX_MAXTIME_CAPNAME)) {
-        String val = Capabilities.get(stack, TIMEBOX.TIMEBOX_MAXTIME_CAPNAME).trim();
+      if (maxtime > 0 && null != Capabilities.get(stack, WarpScriptStack.CAPABILITY_TIMEBOX_MAXTIME)) {
+        String val = Capabilities.get(stack, WarpScriptStack.CAPABILITY_TIMEBOX_MAXTIME).trim();
 
         if (val.startsWith("P")) {
           maxtimeCapability = DURATION.parseDuration(new Instant(), val, false, false);
         } else {
           try {
-            maxtimeCapability = Long.valueOf(Capabilities.get(stack, TIMEBOX.TIMEBOX_MAXTIME_CAPNAME)) * Constants.TIME_UNITS_PER_MS;
+            maxtimeCapability = Long.valueOf(Capabilities.get(stack, WarpScriptStack.CAPABILITY_TIMEBOX_MAXTIME)) * Constants.TIME_UNITS_PER_MS;
           } catch (NumberFormatException nfe) {
           }
         }
