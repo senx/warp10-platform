@@ -113,14 +113,9 @@ public class Configuration {
 
   /**
    * Maximum time to allocate for timeboxed executions
+   * It can be overridden with timebox.maxtime capability
    */
   public static final String CONFIG_WARPSCRIPT_TIMEBOX_MAXTIME = "warpscript.timebox.maxtime";
-
-  /**
-   * Capability name used for extending timebox maxtime, if set. The associated value is expressed as a number
-   * of milliseconds or an ISO8601 duration (PT....).
-   */
-  public static final String CONFIG_WARPSCRIPT_TIMEBOX_MAXTIME_CAPNAME = "warpscript.timebox.maxtime.capname";
 
   /**
    * Comma separated list of WarpScriptExtension classes to instantiate to modify
@@ -2500,4 +2495,9 @@ public class Configuration {
    * Set to 'true' to return Writable instances as is in WarpScriptInputFormat
    */
   public static final String CONFIG_WARPSCRIPT_HADOOP_RAWWRITABLES = "warpscript.hadoop.rawwritables";
+
+  /**
+   * Flag (true/false) indicating whether or not to use capabilities for controlling access to debug functions. Defaults to true.
+   */
+  public static final String CONFIG_DEBUG_CAPABILITY = "debug.capability";
 }

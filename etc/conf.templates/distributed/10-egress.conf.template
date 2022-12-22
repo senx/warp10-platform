@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -195,11 +195,11 @@ egress.hbase.filter = true
 
 //
 // Maximum execution time of requests to the /exec endpoint (in ms).
-// This value may be overriden by specifying a token with the capability specified in
-// warpscript.timebox.maxtime.capname set to a limit in ms and passing this token in
-// the X-Warp10-Capabilities header.
-// By default the maximum execution time is not bounded.
-//
+// This value may be overridden by specifying a token with the timebox.maxtime capability set to a limit in ms 
+// and passing this token in the X-Warp10-Capabilities header.
+// By default the maximum execution time is not bounded. 
+// When execution time is not bounded, timebox.maxtime has no effect.
+// 
 #egress.maxtime = 1000
 
 //
