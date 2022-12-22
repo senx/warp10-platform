@@ -113,7 +113,7 @@ warp.token.read.attributes.default = { '.cap:limits' '' }
 // WarpScript map defining the default attributes to allocate to write tokens. Existing attributes will not
 // be overriden if they exist
 //
-#warp.token.write.attributes.default = { '.nodelete' '' }
+#warp.token.write.attributes.default = { '.start' 'PT1h' }
 
 //
 // Token file
