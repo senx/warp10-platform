@@ -49,17 +49,18 @@ public class Capabilities {
     }
   }
 
-  public static Long getLong(WarpScriptStack stack, String name) {
+  public static Long getLong(WarpScriptStack stack, String name) throws WarpScriptException {
     return getLong(stack, name, null);
   }
 
-  public static Long getLong(WarpScriptStack stack, String name, Long defaultValue) {
+  public static Long getLong(WarpScriptStack stack, String name, Long defaultValue) throws WarpScriptException {
     String cap = get(stack, name);
 
     if (null != cap) {
       try {
         return Long.parseLong(cap);
       } catch (Throwable t) {
+        throw new WarpScriptException("Error parsing capability.");
       }
     }
 
