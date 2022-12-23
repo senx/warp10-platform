@@ -81,11 +81,16 @@ public class Capabilities {
 
   public static String get(WarpScriptStack stack, String name) {
     Capabilities capabilities = get(stack);
+    String cap = null;
     if (null != capabilities) {
-      return capabilities.capabilities.get(name);
-    } else {
-      return DEFAULT_CAPABILITIES.get(name);
+      cap = capabilities.capabilities.get(name);
     }
+
+    if (null == cap) {
+      cap = DEFAULT_CAPABILITIES.get(name);
+    }
+
+    return cap;
   }
 
   public static Map<String,String> get(WarpScriptStack stack, List<Object> names) {
