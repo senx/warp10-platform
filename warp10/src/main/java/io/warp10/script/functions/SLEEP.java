@@ -23,6 +23,8 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.warp.sdk.Capabilities;
 
+import java.util.concurrent.locks.LockSupport;
+
 public class SLEEP extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
   public SLEEP(String name) {
@@ -52,17 +54,17 @@ public class SLEEP extends NamedWarpScriptFunction implements WarpScriptStackFun
     if (!(o instanceof Long)) {
       throw new WarpScriptException(getName() + " expects a LONG period as parameter.");
     }
-    // convert to milliseconds    
-    long millis = ((Long) o).longValue() / Constants.TIME_UNITS_PER_MS;
-    if (millis > maxSleepMs) {
-      throw new WarpScriptException(getName() + " cannot sleep during more greater than " + maxSleepMs + " ms, as defined in " + WarpScriptStack.CAPABILITY_SLEEP_MAXTIME + " capability.");
+    long t = ((Long) o).longValue();
+    // convert to milliseconds
+    if ((t / Constants.TIME_UNITS_PER_MS) > maxSleepMs) {
+      throw new WarpScriptException(getName() + " cannot sleep during more than " + maxSleepMs + " ms, as defined in " + WarpScriptStack.CAPABILITY_SLEEP_MAXTIME + " capability.");
     }
-
-    try {
-      Thread.sleep(millis);
-    } catch (InterruptedException e) {
-      throw new WarpScriptException(getName() + " interrupted");
+    // convert to nanoseconds, check for overflow
+    if (t > (Long.MAX_VALUE / Constants.NS_PER_TIME_UNIT)) {
+      t = Long.MAX_VALUE / Constants.NS_PER_TIME_UNIT;
     }
+    
+    LockSupport.parkNanos(t * Constants.NS_PER_TIME_UNIT);
 
     return stack;
   }
