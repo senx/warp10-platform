@@ -32,6 +32,8 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 
+import com.sun.jmx.mbeanserver.MXBeanMappingFactory;
+import org.apache.commons.io.FileUtils;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Server;
@@ -69,7 +71,6 @@ import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OSSKeyStore;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.crypto.UnsecureKeyStore;
-import io.warp10.quasar.filter.QuasarTokenFilter;
 import io.warp10.script.ScriptRunner;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.sensision.Sensision;
@@ -560,6 +561,13 @@ public class Warp extends WarpDist implements Runnable {
     }
 
     WarpDist.setInitialized(true);
+    System.out.println("## Your Warp 10 setup:");
+    System.out.printf("## - WARP10_HEAP:              %s\n", FileUtils.byteCountToDisplaySize(Runtime.getRuntime().totalMemory()));
+    System.out.printf("## - WARP10_HEAP_MAX:          %s\n", FileUtils.byteCountToDisplaySize(Runtime.getRuntime().maxMemory()));
+    System.out.printf("## - warpscript.maxfetch:      %s\n", properties.getProperty("warpscript.maxfetch"));
+    System.out.printf("## - warpscript.maxfetch.hard: %s\n", properties.getProperty("warpscript.maxfetch.hard"));
+    System.out.printf("## - warpscript.maxops:        %s\n", properties.getProperty("warpscript.maxops"));
+    System.out.printf("## - warpscript.maxops.hard:   %s\n", properties.getProperty("warpscript.maxops.hard"));
 
     try {
       while (true) {
