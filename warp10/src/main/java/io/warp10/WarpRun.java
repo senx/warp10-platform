@@ -122,7 +122,9 @@ public class WarpRun {
       if (stdout) {
         // Do nothing, STDOUT is handled by the script
       } else if (json) {
-        StackUtils.toJSON(new PrintWriter(System.out), stack);
+        PrintWriter p = new PrintWriter(System.out);
+        StackUtils.toJSON(p, stack);
+        p.flush();
       } else {
         SNAPSHOT snap = new SNAPSHOT(WarpScriptLib.SNAPSHOT, false, false, false, false);
         for (int i = stack.depth() - 1; i >=0; i--) {
