@@ -1,5 +1,7 @@
 [Unit]
 Description=Warp 10 Standalone
+# If Warp 10 depends on other disks, wait for them to be mounted. Use `systemctl list-units -t mount` to find unit
+#After=data.mount 
 
 [Service]
 Type=forking
@@ -9,14 +11,29 @@ ExecStop=/opt/warp10-@VERSION@/bin/warp10-standalone.sh stop
 SuccessExitStatus=143
 RestartSec=10s
 TimeoutStartSec=60s
-#If you do not want systemd to monitor and restart Warp 10 automatically, comment out this line:
+# If you do not want systemd to monitor and restart Warp 10 automatically, comment out this line:
 Restart=always
+# Naming the slice is usefull to use some systemd commands, such as `systemd-cgtop warp10.slice`
+Slice=warp10.slice
 
-#You can customize default system limits here: see https://www.freedesktop.org/software/systemd/man/systemd.exec.html#Process%20Properties
+# Resource management (make sure your run systemd 213 or more recent)
+#   https://www.freedesktop.org/software/systemd/man/systemd.resource-control.html
+#   https://www.freedesktop.org/software/systemd/man/systemd.exec.html
+
+# CPU usage limit: 400% on a 8 thread CPU will allow Warp 10 to use half of the CPU resource
+# Be careful, the CPU limit was not correctly reported by the JVM before october 2018 (8u191).
+# You can check CPU count seen by the JVM with WarpScript REPORT function.
+# In the example below, JVM will report cpus=4
+#CPUAccounting=true
+#CPUQuota=400%
+
+# Number of max opened files (default linux limit of 524288 should be good)
 #LimitNOFILE=1000000
-#LimitCORE=infinity
-#LimitNPROC=32000
-#LimitMEMLOCK=500000
+
+# You can prevent Warp 10 from being killed by linux out of memory management.
+# Make sure properly configured WARP10_HEAP and WARP10_HEAP_MAX in warp10-standalone.sh to fit your system RAM.
+#ManagedOOMPreference=omit
+#OOMScoreAdjust=-1000
 
 [Install]
 WantedBy=multi-user.target
