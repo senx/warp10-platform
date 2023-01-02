@@ -1,5 +1,5 @@
 //
-//   Copyright 2022  SenX S.A.S.
+//   Copyright 2022-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@ package io.warp10.fdb;
 
 import java.util.Arrays;
 import java.util.Iterator;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.slf4j.Logger;
@@ -32,6 +31,9 @@ import com.apple.foundationdb.ReadTransaction;
 import com.apple.foundationdb.StreamingMode;
 import com.apple.foundationdb.Transaction;
 import com.apple.foundationdb.async.AsyncIterator;
+
+import io.warp10.continuum.sensision.SensisionConstants;
+import io.warp10.sensision.Sensision;
 
 public class FDBKVScanner implements Iterator<FDBKeyValue> {
 
@@ -148,7 +150,9 @@ public class FDBKVScanner implements Iterator<FDBKeyValue> {
               LOG.debug("FORCING READ VERSION ON TX " + txn + " TO " + this.forceReadVersion);
             }
             try {
-              // Do not set the version too much in the past, limit it to the last seen read version we recorded
+              Sensision.update(SensisionConstants.CLASS_WARP_FDB_FORCEDVERSION, Sensision.EMPTY_LABELS, 1);
+              // Do not set the version too much in the past, limit it to the last seen read version we recorded.
+              // Setting it over 5s in the past will most likely result in an error.
               snapshot.setReadVersion(Math.max(this.context.getLastSeenReadVersion(), this.forceReadVersion));
             } catch (Throwable tt) {
               throw tt;
@@ -196,6 +200,7 @@ public class FDBKVScanner implements Iterator<FDBKeyValue> {
             } catch (Throwable tt) {}
             // We have reached the maximum number of forced version attempts
             if (0 >= this.versionAttempts) {
+              Sensision.update(SensisionConstants.CLASS_WARP_FDB_MAXFORCEDVERSION, Sensision.EMPTY_LABELS, 1);
               throw new RuntimeException("Maximum number of forced read version attempts reached", t);
             }
             this.iter = null;
