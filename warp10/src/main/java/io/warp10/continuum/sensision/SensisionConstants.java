@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -29,6 +29,16 @@ public class SensisionConstants {
   //
   // Classes
   //
+
+  /**
+   * Number of times we have reached the maximum number of version attempts
+   */
+  public static final String CLASS_WARP_FDB_MAXFORCEDVERSION = "warp.fdb.maxforcedversion";
+
+  /**
+   * Number of times the read version was forced
+   */
+  public static final String CLASS_WARP_FDB_FORCEDVERSION = "warp.fdb.forcedversion";
 
   /**
    * Number of FoundationDB errors, labels are code and component
