@@ -23,9 +23,12 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicReference;
 
+import io.warp10.WarpConfig;
+import io.warp10.continuum.Configuration;
 import io.warp10.continuum.Tokens;
 import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.quasar.token.thrift.data.WriteToken;
+import io.warp10.script.MemoryWarpScriptStack;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
@@ -37,6 +40,31 @@ import io.warp10.script.WarpScriptStack;
 public class Capabilities {
 
   protected Map<String,String> capabilities = new HashMap<String,String>();
+
+  private static final Map<String,String> DEFAULT_CAPABILITIES = new LinkedHashMap<String,String>();
+
+  static {
+    if (null != WarpConfig.getProperty(Configuration.CONFIG_WARP_CAPABILITIES_DEFAULT)) {
+      MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null);
+      stack.maxLimits();
+
+      try {
+        stack.execMulti(WarpConfig.getProperty(Configuration.CONFIG_WARP_CAPABILITIES_DEFAULT));
+        if (1 != stack.depth() || !(stack.peek() instanceof Map)) {
+          throw new WarpScriptException("Invalid value for '" + Configuration.CONFIG_WARP_CAPABILITIES_DEFAULT + "', expected a WarpScript map.");
+        }
+        Map<Object,Object> capabilities = (Map<Object,Object>) stack.pop();
+        for (Entry<Object,Object> capability: capabilities.entrySet()) {
+          if (!(capability.getKey() instanceof String && capability.getValue() instanceof String)) {
+            throw new WarpScriptException("Invalid value for '" + Configuration.CONFIG_WARP_CAPABILITIES_DEFAULT + "', expected a WarpScript map with STRING keys and values.");
+          }
+          DEFAULT_CAPABILITIES.put(capability.getKey().toString(), capability.getValue().toString());
+        }
+      } catch (WarpScriptException wse) {
+        throw new RuntimeException("Error initializing default capabilities.");
+      }
+    }
+  }
 
   public static Capabilities get(WarpScriptStack stack) {
     if (stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR) instanceof AtomicReference
@@ -53,11 +81,16 @@ public class Capabilities {
 
   public static String get(WarpScriptStack stack, String name) {
     Capabilities capabilities = get(stack);
+    String cap = null;
     if (null != capabilities) {
-      return capabilities.capabilities.get(name);
-    } else {
-      return null;
+      cap = capabilities.capabilities.get(name);
     }
+
+    if (null == cap) {
+      cap = DEFAULT_CAPABILITIES.get(name);
+    }
+
+    return cap;
   }
 
   public static Long getLong(WarpScriptStack stack, String name) throws WarpScriptException {
@@ -82,6 +115,7 @@ public class Capabilities {
     Capabilities capabilities = get(stack);
 
     Map<String,String> caps = new LinkedHashMap<String,String>();
+
     if (null != capabilities) {
       if (null == names) {
         caps.putAll(capabilities.capabilities);
@@ -91,6 +125,13 @@ public class Capabilities {
             caps.put((String) elt, capabilities.capabilities.get((String) elt));
           }
         }
+      }
+    }
+
+    for (Object elt: names) {
+      String def = DEFAULT_CAPABILITIES.get(elt);
+      if (null != def) {
+        caps.putIfAbsent((String) elt, def);
       }
     }
 
@@ -136,10 +177,6 @@ public class Capabilities {
 
   public void clear() {
     this.capabilities.clear();
-  }
-
-  public boolean containsKey(String key) {
-    return this.capabilities.containsKey(key);
   }
 
   public Object remove(String key) {

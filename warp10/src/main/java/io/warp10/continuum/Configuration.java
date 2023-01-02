@@ -141,6 +141,11 @@ public class Configuration {
   public static final String CONFIG_WARPSCRIPT_EXTENSION_PREFIX = "warpscript.extension.";
 
   /**
+   * Optional WarpScript map with default capabilities
+   */
+  public static final String CONFIG_WARP_CAPABILITIES_DEFAULT = "warp.capabilities.default";
+
+  /**
    * Prefix for properties which define WarpScript extension namespaces.
    */
   public static final String CONFIG_WARPSCRIPT_NAMESPACE_PREFIX = "warpscript.namespace.";
