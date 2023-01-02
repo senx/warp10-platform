@@ -60,6 +60,24 @@ public class Capabilities {
     }
   }
 
+  public static Long getLong(WarpScriptStack stack, String name) throws WarpScriptException {
+    return getLong(stack, name, null);
+  }
+
+  public static Long getLong(WarpScriptStack stack, String name, Long defaultValue) throws WarpScriptException {
+    String cap = get(stack, name);
+
+    if (null != cap) {
+      try {
+        return Long.parseLong(cap);
+      } catch (Throwable t) {
+        throw new WarpScriptException("Error parsing capability.");
+      }
+    }
+
+    return defaultValue;
+  }
+
   public static Map<String,String> get(WarpScriptStack stack, List<Object> names) {
     Capabilities capabilities = get(stack);
 
