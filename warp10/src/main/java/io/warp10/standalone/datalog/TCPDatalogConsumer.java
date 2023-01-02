@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2022  SenX S.A.S.
+//   Copyright 2020-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -173,12 +173,8 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
     }
 
     String macro = WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_CONSUMER_MACRO + suffix);
-    MemoryWarpScriptStack stack = null;
-
-    if (null != macro) {
-      stack = new MemoryWarpScriptStack(null, null);
-      stack.maxLimits();
-    }
+    MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null);
+    stack.maxLimits();
 
     boolean macroData = "true".equals(WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_CONSUMER_MACRO_DATA + suffix));
 
@@ -245,7 +241,6 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
         stack.push(Longs.toByteArray(msg.getTimestamp()));
         stack.push(msg.getId().getBytes(StandardCharsets.UTF_8));
         ADD ADD = new ADD(WarpScriptLib.ADD);
-        ADD.apply(stack);
         ADD.apply(stack);
         ADD.apply(stack);
         stack.push(msg.getSig());
