@@ -24,7 +24,12 @@ import io.warp10.WarpDist;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.JettyUtil;
 import io.warp10.continuum.ThrottlingManager;
-import io.warp10.continuum.egress.*;
+import io.warp10.continuum.egress.CORSHandler;
+import io.warp10.continuum.egress.EgressExecHandler;
+import io.warp10.continuum.egress.EgressFetchHandler;
+import io.warp10.continuum.egress.EgressFindHandler;
+import io.warp10.continuum.egress.EgressInteractiveHandler;
+import io.warp10.continuum.egress.EgressMobiusHandler;
 import io.warp10.continuum.ingress.DatalogForwarder;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
@@ -58,8 +63,15 @@ import java.net.InetAddress;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Properties;
+import java.util.Set;
 
 public class Warp extends WarpDist implements Runnable {
 
