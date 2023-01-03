@@ -83,17 +83,17 @@ public class Warp extends WarpDist implements Runnable {
   private static Set<Path> datalogSrcDirs = Collections.unmodifiableSet(new HashSet<Path>());
 
   private static final String[] REQUIRED_PROPERTIES = {
-      Configuration.INGRESS_WEBSOCKET_MAXMESSAGESIZE,
-      Configuration.PLASMA_FRONTEND_WEBSOCKET_MAXMESSAGESIZE,
-      Configuration.WARP_HASH_CLASS,
-      Configuration.WARP_HASH_LABELS,
-      Configuration.WARP_HASH_TOKEN,
-      Configuration.WARP_HASH_APP,
-      Configuration.WARP_AES_TOKEN,
-      Configuration.WARP_AES_SCRIPTS,
-      Configuration.CONFIG_WARPSCRIPT_UPDATE_ENDPOINT,
-      Configuration.CONFIG_WARPSCRIPT_META_ENDPOINT,
-      Configuration.WARP_TIME_UNITS,
+    Configuration.INGRESS_WEBSOCKET_MAXMESSAGESIZE,
+    Configuration.PLASMA_FRONTEND_WEBSOCKET_MAXMESSAGESIZE,
+    Configuration.WARP_HASH_CLASS,
+    Configuration.WARP_HASH_LABELS,
+    Configuration.WARP_HASH_TOKEN,
+    Configuration.WARP_HASH_APP,
+    Configuration.WARP_AES_TOKEN,
+    Configuration.WARP_AES_SCRIPTS,
+    Configuration.CONFIG_WARPSCRIPT_UPDATE_ENDPOINT,
+    Configuration.CONFIG_WARPSCRIPT_META_ENDPOINT,
+    Configuration.WARP_TIME_UNITS,
   };
 
   public Warp() {
