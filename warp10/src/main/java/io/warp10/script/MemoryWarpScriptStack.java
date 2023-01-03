@@ -1315,11 +1315,6 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   }
 
   @Override
-  public boolean isAuthenticated() {
-    return null != this.getAttribute(ATTRIBUTE_TOKEN);
-  }
-
-  @Override
   public void checkBalanced() throws WarpScriptException {
     if (inMultiline.get()) {
       throw new WarpScriptException("Unbalanced " + WarpScriptStack.MULTILINE_START + " construct.");

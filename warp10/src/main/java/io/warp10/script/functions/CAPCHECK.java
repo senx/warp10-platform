@@ -34,13 +34,7 @@ public class CAPCHECK extends NamedWarpScriptFunction implements WarpScriptStack
     Object top = stack.pop();
 
     if (top instanceof String) {
-      Capabilities capabilities = Capabilities.get(stack);
-
-      if (null != capabilities) {
-        stack.push(capabilities.containsKey((String) top));
-      } else {
-        stack.push(false);
-      }
+      stack.push(null != Capabilities.get(stack, (String) top));
     } else {
       throw new WarpScriptException(getName() + " expects a STRING capability name.");
     }
