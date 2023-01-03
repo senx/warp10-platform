@@ -562,7 +562,7 @@ public class Warp extends WarpDist implements Runnable {
     LOG.info("## - WARP10_HEAP:              " + FileUtils.byteCountToDisplaySize(Runtime.getRuntime().totalMemory()));
     LOG.info("## - WARP10_HEAP_MAX:          " + FileUtils.byteCountToDisplaySize(Runtime.getRuntime().maxMemory()));
     LOG.info("## - " + Configuration.WARPSCRIPT_MAX_FETCH + ":      " + properties.getProperty(Configuration.WARPSCRIPT_MAX_FETCH));
-    LOG.info("## - " + Configuration.WARPSCRIPT_MAX_FETCH_HARD + ": " + properties.getProperty(Configuration.WARPSCRIPT_MAX_FETCH));
+    LOG.info("## - " + Configuration.WARPSCRIPT_MAX_FETCH_HARD + ": " + properties.getProperty(Configuration.WARPSCRIPT_MAX_FETCH_HARD));
     LOG.info("## - " + Configuration.WARPSCRIPT_MAX_OPS + ":        " + properties.getProperty(Configuration.WARPSCRIPT_MAX_OPS));
     LOG.info("## - " + Configuration.WARPSCRIPT_MAX_OPS_HARD + ":   " + properties.getProperty(Configuration.WARPSCRIPT_MAX_OPS_HARD));
 
