@@ -1,5 +1,5 @@
 //
-//   Copyright 2022  SenX S.A.S.
+//   Copyright 2022-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -31,6 +31,7 @@ import io.warp10.continuum.Configuration;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.json.JsonUtils;
+import io.warp10.script.WarpScriptException;
 import io.warp10.sensision.Sensision;
 
 public class FDBUtils {
@@ -147,6 +148,34 @@ public class FDBUtils {
     }
 
     return map;
+  }
+
+  public static Map<Object,Object> getStatus(FDBContext context) throws WarpScriptException {
+    Database db = null;
+    Transaction txn = null;
+    try {
+      db = context.getDatabase();
+      txn = db.createTransaction();
+      txn.options().setRawAccess();
+      txn.options().setAccessSystemKeys();
+
+      byte[] statuskey = "xx/status/json".getBytes(StandardCharsets.US_ASCII);
+      statuskey[0] = (byte) 0xff;
+      statuskey[1] = (byte) 0xff;
+      byte[] status = txn.get(statuskey).get();
+
+      if (null != status) {
+        Object json = JsonUtils.jsonToObject(new String(status, StandardCharsets.UTF_8));
+        return (Map<Object,Object>) json;
+      } else {
+        return new LinkedHashMap<Object,Object>();
+      }
+    } catch (Throwable t) {
+      throw new WarpScriptException("Error while fetching FoundationDB status.", t);
+    } finally {
+      if (null != txn) { try { txn.close(); } catch (Throwable t) {} }
+      if (null != db) { try { db.close(); } catch (Throwable t) {} }
+    }
   }
 
   private static byte[] getTenantSystemKey(String tenant) {
