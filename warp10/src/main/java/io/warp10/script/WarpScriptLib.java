@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2022  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -840,6 +840,7 @@ import io.warp10.script.functions.LOGINIT;
 import io.warp10.script.functions.STDERR;
 import io.warp10.script.functions.STDOUT;
 import io.warp10.script.functions.TDESCRIBE;
+import io.warp10.script.functions.SLEEP;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1670,7 +1671,8 @@ public class WarpScriptLib {
   public static final String VARS = "VARS";
   public static final String ASREGS = "ASREGS";
   public static final String ASENCODERS = "ASENCODERS";
-
+  public static final String SLEEP = "SLEEP";
+  
   public static final String TOLIST = "->LIST";
   public static final String TOMAP = "->MAP";
   public static final String TOJSON = "->JSON";
@@ -3135,6 +3137,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new NOLOG(NOLOG));
     addNamedWarpScriptFunction(new LOGINIT(LOGINIT));
     addNamedWarpScriptFunction(new TDESCRIBE(TDESCRIBE));
+    addNamedWarpScriptFunction(new SLEEP(SLEEP));
+
 
     /////////////////////////
 

@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -554,6 +554,7 @@ public interface WarpScriptStack {
   String CAPABILITY_WFSET = "wfset";
   String CAPABILITY_HTTP = "http";
   String CAPABILITY_TIMEBOX_MAXTIME = "timebox.maxtime";
+  String CAPABILITY_SLEEP_MAXTIME = "sleep.maxtime";
 
   String CAPABILITY_LIMITS = "limits";
   String CAPABILITY_LIMIT = "limit";
