@@ -51,7 +51,7 @@ public class TokenGen {
   }
 
   public void parse(String[] args) throws Exception {
-    WarpConfig.setProperties(Arrays.copyOf(args, args.length - 2));
+    WarpConfig.setProperties(Arrays.copyOf(args, args.length - 1));
 
     Properties properties = WarpConfig.getProperties();
 
