@@ -44,6 +44,18 @@ public class Configuration {
    */
   public static final String WARP_TOKEN_BANNED_ATTRIBUTES = "warp.token.banned.attributes";
 
+  /**
+   * WarpScript map defining the default attributes to allocate to read tokens. Existing attributes will not
+   * be overriden if they exist
+   */
+  public static final String WARP_TOKEN_READ_ATTRIBUTES_DEFAULT = "warp.token.read.attributes.default";
+
+  /**
+   * WarpScript map defining the default attributes to allocate to write tokens. Existing attributes will not
+   * be overriden if they exist
+   */
+  public static final String WARP_TOKEN_WRITE_ATTRIBUTES_DEFAULT = "warp.token.write.attributes.default";
+
   public static final String WARP_TOKEN_FILE = "warp.token.file";
 
   public static final String WARP_HASH_CLASS = "warp.hash.class";
@@ -139,6 +151,11 @@ public class Configuration {
    * Prefix for properties which define WarpScript extensions
    */
   public static final String CONFIG_WARPSCRIPT_EXTENSION_PREFIX = "warpscript.extension.";
+
+  /**
+   * Optional WarpScript map with default capabilities
+   */
+  public static final String CONFIG_WARP_CAPABILITIES_DEFAULT = "warp.capabilities.default";
 
   /**
    * Prefix for properties which define WarpScript extension namespaces.

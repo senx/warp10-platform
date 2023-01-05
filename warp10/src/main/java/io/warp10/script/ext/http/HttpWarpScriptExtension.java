@@ -62,7 +62,7 @@ public class HttpWarpScriptExtension extends WarpScriptExtension {
    * Maximum number of calls to HTTP
    */
   public static final String WARPSCRIPT_HTTP_REQUESTS = "warpscript.http.maxrequests";
-  
+
   /**
    * Maximum cumulative size allowed to be downloaded by HTTP
    */

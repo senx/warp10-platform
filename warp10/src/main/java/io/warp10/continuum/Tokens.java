@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -22,10 +22,12 @@ import java.io.FileReader;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.locks.LockSupport;
@@ -53,21 +55,24 @@ import io.warp10.script.ext.token.TOKENGEN;
 public class Tokens {
 
   private static final Logger LOG = LoggerFactory.getLogger(Tokens.class);
-  
+
   private static final Map<String,Object> fileTokens = new HashMap<String,Object>();
-  
+
   public static final Map<String,String> UUIDByIngressToken = new HashMap<String,String>();
   public static final Map<String,String> UUIDByEgressToken = new HashMap<String,String>();
   public static final Map<String,String> ApplicationByUUID = new HashMap<String,String>();
-  
+
   private static KeyStore keystore;
-  
+
   private static QuasarTokenFilter tokenFilter;
-  
+
   private static List<AuthenticationPlugin> plugins = new ArrayList<AuthenticationPlugin>();
-  
+
   private static final List<String> blockedAttributes;
-  
+
+  private static final Map<String,String> defaultReadAttributes;
+  private static final Map<String,String> defaultWriteAttributes;
+
   /**
    * If set, skip attribute checks
    */
@@ -76,26 +81,74 @@ public class Tokens {
       return Boolean.FALSE;
     }
   };
-  
+
   static {
     if (null != WarpConfig.getProperty(Configuration.WARP_TOKEN_BANNED_ATTRIBUTES)) {
       String[] attr = WarpConfig.getProperty(Configuration.WARP_TOKEN_BANNED_ATTRIBUTES).split(",");
-      
+
       blockedAttributes = new ArrayList<String>();
-      
+
       for (String a: attr) {
         blockedAttributes.add(a.trim());
       }
     } else {
       blockedAttributes = null;
     }
-  }
-  
+
+    if (null != WarpConfig.getProperty(Configuration.WARP_TOKEN_READ_ATTRIBUTES_DEFAULT)) {
+      MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null);
+      stack.maxLimits();
+      try {
+        stack.execMulti(WarpConfig.getProperty(Configuration.WARP_TOKEN_READ_ATTRIBUTES_DEFAULT));
+        if (1 != stack.depth() || !(stack.peek() instanceof Map)) {
+          throw new WarpScriptException("Invalid value for '" + Configuration.WARP_TOKEN_READ_ATTRIBUTES_DEFAULT + "', expected a WarpScript map.");
+        }
+        Map<Object,Object> attr = (Map<Object,Object>) stack.pop();
+        Map<String,String> def = new LinkedHashMap<String,String>(attr.size());
+        for (Entry<Object,Object> att: attr.entrySet()) {
+          if (!(att.getKey() instanceof String && att.getValue() instanceof String)) {
+            throw new WarpScriptException("Invalid value for '" + Configuration.WARP_TOKEN_READ_ATTRIBUTES_DEFAULT + "', expected a WarpScript map with STRING keys and values.");
+          }
+          def.put(att.getKey().toString(), att.getValue().toString());
+        }
+        defaultReadAttributes = Collections.unmodifiableMap(def);
+      } catch (WarpScriptException wse) {
+        throw new RuntimeException("Error initializing default token attributes.");
+      }
+    } else {
+      defaultReadAttributes = null;
+    }
+
+    if (null != WarpConfig.getProperty(Configuration.WARP_TOKEN_WRITE_ATTRIBUTES_DEFAULT)) {
+      MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null);
+      stack.maxLimits();
+      try {
+        stack.execMulti(WarpConfig.getProperty(Configuration.WARP_TOKEN_WRITE_ATTRIBUTES_DEFAULT));
+        if (1 != stack.depth() || !(stack.peek() instanceof Map)) {
+          throw new WarpScriptException("Invalid value for '" + Configuration.WARP_TOKEN_WRITE_ATTRIBUTES_DEFAULT + "', expected a WarpScript map.");
+        }
+        Map<Object,Object> attr = (Map<Object,Object>) stack.pop();
+        Map<String,String> def = new LinkedHashMap<String,String>(attr.size());
+        for (Entry<Object,Object> att: attr.entrySet()) {
+          if (!(att.getKey() instanceof String && att.getValue() instanceof String)) {
+            throw new WarpScriptException("Invalid value for '" + Configuration.WARP_TOKEN_WRITE_ATTRIBUTES_DEFAULT + "', expected a WarpScript map with STRING keys and values.");
+          }
+          def.put(att.getKey().toString(), att.getValue().toString());
+        }
+        defaultWriteAttributes = Collections.unmodifiableMap(def);
+      } catch (WarpScriptException wse) {
+        throw new RuntimeException("Error initializing default token attributes.");
+      }
+    } else {
+      defaultWriteAttributes = null;
+    }
+}
+
   private static QuasarTokenFilter getTokenFilter() {
     if (null != tokenFilter) {
       return tokenFilter;
     }
-    
+
     keystore = WarpDist.getKeyStore();
     if (null != keystore) {
       try {
@@ -104,53 +157,53 @@ public class Tokens {
         throw new RuntimeException(e);
       }
     }
-    
+
     return tokenFilter;
   }
-  
+
   private static ReadToken getReadToken(String token) {
-    
+
     synchronized (fileTokens) {
       if (fileTokens.containsKey(token) && fileTokens.get(token) instanceof ReadToken) {
         return ((ReadToken) fileTokens.get(token)).deepCopy();
       }
     }
-    
+
     if (!UUIDByEgressToken.containsKey(token)) {
       return null;
     }
 
     ReadToken rtoken = new ReadToken();
-    
+
     UUID uuid = UUID.fromString(UUIDByEgressToken.get(token));
 
     ByteBuffer bb = ByteBuffer.allocate(16).order(ByteOrder.BIG_ENDIAN);
     bb.putLong(uuid.getMostSignificantBits());
     bb.putLong(uuid.getLeastSignificantBits());
     bb.position(0);
-    
+
     String app = ApplicationByUUID.get(UUIDByEgressToken.get(token));
-        
+
     if (null != app) {
       rtoken.setAppName(app);
     } else {
       rtoken.setAppName("");
     }
-    
+
     rtoken.setIssuanceTimestamp(0L);
     rtoken.setExpiryTimestamp(Long.MAX_VALUE);
 
     rtoken.setTokenType(TokenType.READ);
-    
+
     rtoken.setBilledId(bb.duplicate());
     rtoken.addToOwners(bb.duplicate());
     rtoken.addToProducers(bb.duplicate());
-    
+
     return rtoken;
   }
-  
+
   private static WriteToken getWriteToken(String token) {
-    
+
     synchronized (fileTokens) {
       if (fileTokens.containsKey(token) && fileTokens.get(token) instanceof WriteToken) {
         return ((WriteToken) fileTokens.get(token)).deepCopy();
@@ -160,96 +213,97 @@ public class Tokens {
     if (!UUIDByIngressToken.containsKey(token)) {
       return null;
     }
-    
+
     WriteToken wtoken = new WriteToken();
-    
+
     UUID uuid = UUID.fromString(UUIDByIngressToken.get(token));
 
     ByteBuffer bb = ByteBuffer.allocate(16).order(ByteOrder.BIG_ENDIAN);
     bb.putLong(uuid.getMostSignificantBits());
     bb.putLong(uuid.getLeastSignificantBits());
     bb.position(0);
-    
+
     wtoken.setProducerId(bb.duplicate());
     wtoken.setOwnerId(bb.duplicate());
-    
+
     String struuid = uuid.toString();
-    
+
     if (null != ApplicationByUUID.get(struuid)) {
       wtoken.setAppName(ApplicationByUUID.get(struuid));
     }
-    
+
     wtoken.setIssuanceTimestamp(0L);
     wtoken.setExpiryTimestamp(Long.MAX_VALUE);
-    
+
     wtoken.setTokenType(TokenType.WRITE);
-        
+
     return wtoken;
   }
-  
+
   public static byte[] getUUID(String uuid) {
     UUID u = UUID.fromString(uuid);
-    
+
     byte[] bytes = new byte[16];
-    
+
     ByteBuffer bb = ByteBuffer.wrap(bytes).order(ByteOrder.BIG_ENDIAN);
-    
+
     bb.putLong(u.getMostSignificantBits());
     bb.putLong(u.getLeastSignificantBits());
-    
+
     return bytes;
   }
-  
-  public static String getUUID(byte[] raw) {    
+
+  public static String getUUID(byte[] raw) {
     if (null == raw) {
       return null;
     }
-    
+
     return getUUID(ByteBuffer.wrap(raw).order(ByteOrder.BIG_ENDIAN));
   }
-  
-  public static String getUUID(ByteBuffer buffer) {        
+
+  public static String getUUID(ByteBuffer buffer) {
     ByteBuffer bb = buffer.duplicate();
-    
+
     if (bb.remaining() < 16) {
       return null;
     }
-    
+
     ByteOrder bo = bb.order();
-    
+
     bb.order(ByteOrder.BIG_ENDIAN);
 
     long msb = bb.getLong();
     long lsb = bb.getLong();
-    
+
     bb.order(bo);
-    
-    return new UUID(msb, lsb).toString();    
+
+    return new UUID(msb, lsb).toString();
   }
-  
+
   public static WriteToken extractWriteToken(String token) throws WarpScriptException {
-    
+
     if (!plugins.isEmpty()) {
       for (AuthenticationPlugin plugin: plugins) {
         WriteToken wtoken = plugin.extractWriteToken(token);
         if (null != wtoken) {
+          checkAttributes(wtoken);
           return wtoken;
         }
-      }  
+      }
     }
 
     WriteToken wtoken = Tokens.getWriteToken(token);
-    
+
     if (null != wtoken) {
       checkAttributes(wtoken);
       return wtoken;
     }
-    
+
     // Attempt to decrypt a WriteToken
-      
+
     try {
       QuasarTokenFilter qtf = getTokenFilter();
-      
+
       if (null != qtf) {
         wtoken = qtf.getWriteToken(token);
       }
@@ -260,35 +314,36 @@ public class Tokens {
     if (null == wtoken) {
       throw new WarpScriptException("Invalid token.");
     }
-    
+
     checkAttributes(wtoken);
-    
+
     return wtoken;
   }
-  
+
   public static ReadToken extractReadToken(String token) throws WarpScriptException {
-    
+
     if (!plugins.isEmpty()) {
       for (AuthenticationPlugin plugin: plugins) {
         ReadToken rtoken = plugin.extractReadToken(token);
         if (null != rtoken) {
+          checkAttributes(rtoken);
           return rtoken;
         }
-      }  
+      }
     }
 
     ReadToken rtoken = Tokens.getReadToken(token);
-    
+
     if (null != rtoken) {
       checkAttributes(rtoken);
       return rtoken;
     }
-      
+
     // Attempt to decrypt a ReadToken
-      
+
     try {
       QuasarTokenFilter qtf = getTokenFilter();
-      
+
       if (null != qtf) {
         rtoken = qtf.getReadToken(token);
       }
@@ -299,55 +354,65 @@ public class Tokens {
     if (null == rtoken) {
       throw new WarpScriptException("Invalid token.");
     }
-    
+
     checkAttributes(rtoken);
-    
+
     return rtoken;
   }
-  
+
   /**
    * Perform attribute checks on a token
    */
-  private static void checkAttributes(Map<String,String> attributes) {
-    if (null == blockedAttributes || blockedAttributes.isEmpty() || skipCheckAttributes.get() || null == attributes || attributes.isEmpty()) {
-      return;
+  private static void checkAttributes(Map<String,String> attributes, Map<String,String> defaults) {
+    if (null != blockedAttributes && !blockedAttributes.isEmpty() && !skipCheckAttributes.get() && null != attributes && !attributes.isEmpty()) {
+      for (String attr: blockedAttributes) {
+        if (attributes.containsKey(attr)) {
+          throw new RuntimeException("Invalid token attribute.");
+        }
+      }
     }
-    
-    for (String attr: blockedAttributes) {
-      if (attributes.containsKey(attr)) {
-        throw new RuntimeException("Invalid token attribute.");
+
+    if (null != defaults && null != attributes) {
+      for (Entry<String,String> defattr: defaults.entrySet()) {
+        attributes.putIfAbsent(defattr.getKey(), defattr.getValue());
       }
     }
   }
-  
+
   private static void checkAttributes(ReadToken rtoken) {
-    checkAttributes(rtoken.getAttributes());
+    if (null != defaultReadAttributes && null == rtoken.getAttributes()) {
+      rtoken.setAttributes(new LinkedHashMap<String,String>());
+    }
+    checkAttributes(rtoken.getAttributes(), defaultReadAttributes);
   }
-  
+
   private static void checkAttributes(WriteToken wtoken) {
-    checkAttributes(wtoken.getAttributes());
+    if (null != defaultWriteAttributes && null == wtoken.getAttributes()) {
+      wtoken.setAttributes(new LinkedHashMap<String,String>());
+    }
+    checkAttributes(wtoken.getAttributes(), defaultWriteAttributes);
   }
-  
+
   public static void disableCheckAttributes() {
     skipCheckAttributes.set(true);
   }
-  
+
   public static void enableCheckAttributes() {
     skipCheckAttributes.set(false);
   }
-  
+
   /**
    * Return a map of selectors from the elements of the ReadToken
-   * 
+   *
    * FIXME(hbs): if a ReadToken is a wildcard with a missing producer/owner/app, then
    * the returned map will have missing labels and therefore anything could be substituted for
    * those, thus leading potentially to data exposure
-   * 
+   *
    */
   public static Map<String,String> labelSelectorsFromReadToken(ReadToken rtoken) {
-    
+
     LinkedHashMap<String,String> labelSelectors = new LinkedHashMap<String,String>();
-    
+
     List<String> owners = new ArrayList<String>();
     List<String> producers = new ArrayList<String>();
 
@@ -370,21 +435,21 @@ public class Tokens {
     if (rtoken.getOwnersSize() > 0) {
       for (ByteBuffer bb: rtoken.getOwners()) {
         owners.add(Tokens.getUUID(bb));
-      }      
+      }
     }
 
     if (rtoken.getProducersSize() > 0) {
       for (ByteBuffer bb: rtoken.getProducers()) {
         producers.add(Tokens.getUUID(bb));
-      }      
+      }
     }
-    
+
     if (!producers.isEmpty()) {
       if (1 == producers.size()) {
-        labelSelectors.put(Constants.PRODUCER_LABEL, "=" + producers.get(0));        
+        labelSelectors.put(Constants.PRODUCER_LABEL, "=" + producers.get(0));
       } else {
         StringBuilder sb = new StringBuilder();
-                
+
         sb.append("~^(");
         boolean first = true;
         for (String producer: producers) {
@@ -395,17 +460,17 @@ public class Tokens {
           first = false;
         }
         sb.append(")$");
-        
+
         labelSelectors.put(Constants.PRODUCER_LABEL, sb.toString());
       }
     }
-    
+
     if (rtoken.getAppsSize() > 0) {
       if (1 == rtoken.getAppsSize()) {
         labelSelectors.put(Constants.APPLICATION_LABEL, "=" + rtoken.getApps().get(0));
       } else {
         StringBuilder sb = new StringBuilder();
-        
+
         sb.append("~^(");
         boolean first = true;
         for (String app: rtoken.getApps()) {
@@ -416,17 +481,17 @@ public class Tokens {
           first = false;
         }
         sb.append(")$");
-        
-        labelSelectors.put(Constants.APPLICATION_LABEL, sb.toString());        
+
+        labelSelectors.put(Constants.APPLICATION_LABEL, sb.toString());
       }
     }
 
     if (!owners.isEmpty()) {
       if (1 == owners.size()) {
-        labelSelectors.put(Constants.OWNER_LABEL, "=" + owners.get(0));        
+        labelSelectors.put(Constants.OWNER_LABEL, "=" + owners.get(0));
       } else {
         StringBuilder sb = new StringBuilder();
-        
+
         sb.append("~^(");
         boolean first = true;
         for (String owner: owners) {
@@ -437,56 +502,56 @@ public class Tokens {
           first = false;
         }
         sb.append(")$");
-        
+
         labelSelectors.put(Constants.OWNER_LABEL, sb.toString());
       }
     }
 
     return labelSelectors;
   }
-  
+
   /**
    * Load tokens from disk.
 
    * @param path Path to load tokens from
    */
   private static void loadTokens(String path) {
-    
+
     if (null == path) {
       return;
     }
-    
+
     File f = new File(path);
-    
+
     if (!f.exists()) {
       return;
     }
-    
+
     Map<String,ReadToken> readTokens = new HashMap<String,ReadToken>();
     Map<String,WriteToken> writeTokens = new HashMap<String,WriteToken>();
-    
+
     Map<String,Object> tokens = new HashMap<String,Object>();
-        
+
     try {
       BufferedReader br = new BufferedReader(new FileReader(path));
-      
+
       while(true) {
         String line = br.readLine();
-        
+
         if (null == line) {
           break;
         }
-        
+
         line = line.trim();
-        
+
         if (!line.startsWith("token.")) {
           continue;
         }
-        
+
         if (line.startsWith("token.spec")) {
           // Extract the actual token spec
           String spec = line.replaceAll("^token.spec\\s*=\\s*", "");
-          
+
           MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null, new Properties());
           try {
             stack.exec(spec);
@@ -504,20 +569,20 @@ public class Tokens {
           }
           continue;
         }
-        
+
         //
         // Extract token id
         //
-        
+
         String id = line.substring(6).replaceAll("^(read|write)\\.", "").replaceAll("\\..*", "");
         String key = line.substring(6).replaceAll("^(read|write)\\.[^.]*\\.", "");
         String type = line.substring(6).replaceAll("\\..*", "");
         String value = key.replaceAll("^[^=]*=", "").trim();
         key = key.replaceAll("\\s*=.*","");
-        
+
         ReadToken readToken = null;
         WriteToken writeToken = null;
-        
+
         if ("read".equals(type)) {
           readToken = readTokens.get(id);
           if (null == readToken) {
@@ -544,7 +609,7 @@ public class Tokens {
             writeToken = new WriteToken();
             writeToken.setIssuanceTimestamp(0L);
             writeTokens.put(id, writeToken);
-          }          
+          }
           if ("producer".equals(key)) {
             writeToken.setProducerId(Tokens.getUUID(value));
           } else if ("owner".equals(key)) {
@@ -561,13 +626,13 @@ public class Tokens {
           }
         }
       }
-      
+
       br.close();
 
       //
       // Sanitize tokens
       //
-      
+
       for (Object token: tokens.values()) {
         if (token instanceof ReadToken) {
           ReadToken rt = (ReadToken) token;
@@ -575,40 +640,40 @@ public class Tokens {
             rt.setBilledId(getUUID("00000000-0000-0000-0000-000000000000"));
           }
           rt.setTokenType(TokenType.READ);
-          
+
           if (!rt.isSetExpiryTimestamp()) {
             rt.setExpiryTimestamp(Long.MAX_VALUE);
-          }          
+          }
         } else if (token instanceof WriteToken) {
-          WriteToken wt = (WriteToken) token;          
+          WriteToken wt = (WriteToken) token;
           wt.setTokenType(TokenType.WRITE);
-          
+
           if (!wt.isSetExpiryTimestamp()) {
             wt.setExpiryTimestamp(Long.MAX_VALUE);
-          }                    
+          }
         }
       }
-      
+
       //
       // Replace 'fileTokens'
       //
-      
+
       synchronized(fileTokens) {
         fileTokens.clear();
-        
+
         fileTokens.putAll(tokens);
-      }      
+      }
     } catch (Exception e) {
       LOG.error("Error loading tokens file.", e);
       return;
     }
   }
-  
+
   public static final void init(final String file) {
     Thread t = new Thread() {
-      
+
       private long lastLoad = System.currentTimeMillis();
-      
+
       @Override
       public void run() {
         //
@@ -629,12 +694,12 @@ public class Tokens {
         }
       };
     };
-    
+
     t.setName("[Token Manager]");
     t.setDaemon(true);
     t.start();
   }
-  
+
   public static final void register(AuthenticationPlugin plugin) {
     plugins.add(plugin);
   }

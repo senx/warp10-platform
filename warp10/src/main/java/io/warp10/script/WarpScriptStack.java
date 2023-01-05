@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -254,11 +254,6 @@ public interface WarpScriptStack {
    * Maximum number of WEBCALL invocations per script run
    */
   public static final String ATTRIBUTE_MAX_WEBCALLS = "stack.maxwebcalls";
-
-  /**
-   * Token which was used to authenticate the stack, checked by some protected ops
-   */
-  public static final String ATTRIBUTE_TOKEN = "stack.token";
 
   /**
    * Flag indicating if we are currently in a secure macro execution
@@ -559,6 +554,20 @@ public interface WarpScriptStack {
   String CAPABILITY_WFSET = "wfset";
   String CAPABILITY_HTTP = "http";
   String CAPABILITY_TIMEBOX_MAXTIME = "timebox.maxtime";
+  String CAPABILITY_SLEEP_MAXTIME = "sleep.maxtime";
+
+  String CAPABILITY_LIMITS = "limits";
+  String CAPABILITY_LIMIT = "limit";
+  String CAPABILITY_MAXBUCKETS = "maxbuckets";
+  String CAPABILITY_MAXDEPTH = "maxdepth";
+  String CAPABILITY_MAXGEOCELLS = "maxgeocells";
+  String CAPABILITY_MAXGTS = "maxgts";
+  String CAPABILITY_MAXJSON = "maxjson";
+  String CAPABILITY_MAXLOOP = "maxloop";
+  String CAPABILITY_MAXOPS = "maxops";
+  String CAPABILITY_MAXPIXELS = "maxpixels";
+  String CAPABILITY_MAXRECURSION = "maxrecursion";
+  String CAPABILITY_MAXSYMBOLS = "maxsymbols";
 
   /**
    * Retrieve the StoreClient instance associated with this stack.
@@ -885,13 +894,6 @@ public interface WarpScriptStack {
    * Return the ith counter associated with the stack
    */
   public AtomicLong getCounter(int i) throws WarpScriptException;
-
-  /**
-   * Returns a boolean indicating whether or not the stack is authenticated.
-   *
-   * @return The authentication status of the stack
-   */
-  public boolean isAuthenticated();
 
   /**
    * Perform a final check to ensure balancing constructs are balanced.

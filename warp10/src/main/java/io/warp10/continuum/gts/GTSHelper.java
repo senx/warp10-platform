@@ -4518,11 +4518,13 @@ public class GTSHelper {
 
     for (int i = 0; i < params.size(); i++) {
       if (params.get(i) instanceof GeoTimeSerie) {
-        if (!GTSHelper.isSorted((GeoTimeSerie) params.get(i))) {
-          throw new WarpScriptException("GTS " + GTSHelper.buildSelector((GeoTimeSerie) params.get(i), false) + " is not sorted.");
-        }
-        if (GTSHelper.isReversed((GeoTimeSerie) params.get(i)) != reversed) {
-          throw  new WarpScriptException("GTS " + GTSHelper.buildSelector((GeoTimeSerie) params.get(i), false) + " is not sorted in the expected order.");
+        if (GTSHelper.nvalues((GeoTimeSerie) params.get(i)) > 1) {
+          if (!GTSHelper.isSorted((GeoTimeSerie) params.get(i))) {
+            throw new WarpScriptException("GTS " + GTSHelper.buildSelector((GeoTimeSerie) params.get(i), false) + " is not sorted.");
+          }
+          if (GTSHelper.isReversed((GeoTimeSerie) params.get(i)) != reversed) {
+            throw  new WarpScriptException("GTS " + GTSHelper.buildSelector((GeoTimeSerie) params.get(i), false) + " is not sorted in the expected order.");
+          }
         }
         series.add((GeoTimeSerie) params.get(i));
       } else if (params.get(i) instanceof GTSEncoder) {
@@ -4530,7 +4532,7 @@ public class GTSHelper {
       } else if (params.get(i) instanceof List) {
         for (Object o: (List) params.get(i)) {
           if (o instanceof GeoTimeSerie) {
-            if (GTSHelper.nvalues((GeoTimeSerie) o) > 0) {
+            if (GTSHelper.nvalues((GeoTimeSerie) o) > 1) {
               if (!GTSHelper.isSorted((GeoTimeSerie) o)) {
                 throw new WarpScriptException("GTS " + GTSHelper.buildSelector((GeoTimeSerie) o, false) + " is not sorted.");
               }

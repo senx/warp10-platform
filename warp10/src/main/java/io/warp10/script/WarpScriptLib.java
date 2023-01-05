@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2022  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -323,7 +323,6 @@ import io.warp10.script.functions.ATBUCKET;
 import io.warp10.script.functions.ATINDEX;
 import io.warp10.script.functions.ATTICK;
 import io.warp10.script.functions.ATTRIBUTES;
-import io.warp10.script.functions.AUTHENTICATE;
 import io.warp10.script.functions.B58TO;
 import io.warp10.script.functions.B64TO;
 import io.warp10.script.functions.B64TOHEX;
@@ -503,7 +502,6 @@ import io.warp10.script.functions.INFOMODE;
 import io.warp10.script.functions.INTEGRATE;
 import io.warp10.script.functions.INTERSECTION;
 import io.warp10.script.functions.INV;
-import io.warp10.script.functions.ISAUTHENTICATED;
 import io.warp10.script.functions.ISNULL;
 import io.warp10.script.functions.ISNaN;
 import io.warp10.script.functions.ISO8601;
@@ -842,6 +840,7 @@ import io.warp10.script.functions.LOGINIT;
 import io.warp10.script.functions.STDERR;
 import io.warp10.script.functions.STDOUT;
 import io.warp10.script.functions.TDESCRIBE;
+import io.warp10.script.functions.SLEEP;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1016,8 +1015,6 @@ public class WarpScriptLib {
   public static final String PIGSCHEMA = "PIGSCHEMA";
   public static final String CLEARTOMARK = "CLEARTOMARK";
   public static final String COUNTTOMARK = "COUNTTOMARK";
-  public static final String AUTHENTICATE = "AUTHENTICATE";
-  public static final String ISAUTHENTICATED = "ISAUTHENTICATED";
   public static final String CAPADD = "CAPADD";
   public static final String CAPDEL = "CAPDEL";
   public static final String CAPGET = "CAPGET";
@@ -1674,7 +1671,8 @@ public class WarpScriptLib {
   public static final String VARS = "VARS";
   public static final String ASREGS = "ASREGS";
   public static final String ASENCODERS = "ASENCODERS";
-
+  public static final String SLEEP = "SLEEP";
+  
   public static final String TOLIST = "->LIST";
   public static final String TOMAP = "->MAP";
   public static final String TOJSON = "->JSON";
@@ -1818,8 +1816,6 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new MARK(MARK));
     addNamedWarpScriptFunction(new CLEARTOMARK(CLEARTOMARK));
     addNamedWarpScriptFunction(new COUNTTOMARK(COUNTTOMARK));
-    addNamedWarpScriptFunction(new AUTHENTICATE(AUTHENTICATE));
-    addNamedWarpScriptFunction(new ISAUTHENTICATED(ISAUTHENTICATED));
     addNamedWarpScriptFunction(new CAPADD(CAPADD));
     addNamedWarpScriptFunction(new CAPDEL(CAPDEL));
     addNamedWarpScriptFunction(new CAPCHECK(CAPCHECK));
@@ -3141,6 +3137,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new NOLOG(NOLOG));
     addNamedWarpScriptFunction(new LOGINIT(LOGINIT));
     addNamedWarpScriptFunction(new TDESCRIBE(TDESCRIBE));
+    addNamedWarpScriptFunction(new SLEEP(SLEEP));
+
 
     /////////////////////////
 
