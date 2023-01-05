@@ -39,9 +39,6 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
   private static final String PARAM_MAPPER = "mapper";
   private static final String PARAM_PREWINDOW = "pre";
   private static final String PARAM_POSTWINDOW = "post";
-  @Deprecated
-  // Use PARAM_OCCURRENCES which fixes typo.
-  private static final String PARAM_OCCURENCES = "occurences";
   private static final String PARAM_OCCURRENCES = "occurrences";
   private static final String PARAM_STEP = "step";
   private static final String PARAM_OVERRIDE = "override";
@@ -167,14 +164,6 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
       postwindow = ((Long) postwindowParam).longValue();
     } else if (params.containsKey(PARAM_POSTWINDOW)) {
       throw new WarpScriptException(getName() + " expects the " + PARAM_POSTWINDOW + " parameter to be a LONG.");
-    }
-
-    // Backward compatibility, accept deprecated PARAM_OCCURENCES parameter.
-    Object occurencesParam = params.get(PARAM_OCCURENCES);
-    if (occurencesParam instanceof Long) {
-      occurrences = ((Long) occurencesParam).longValue();
-    } else if (params.containsKey(PARAM_OCCURENCES)) {
-      throw new WarpScriptException(getName() + " expects the " + PARAM_OCCURENCES + " parameter to be a LONG.");
     }
 
     Object occurrencesParam = params.get(PARAM_OCCURRENCES);
