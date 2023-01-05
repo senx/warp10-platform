@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -152,7 +152,7 @@ public class Warp extends WarpDist implements Runnable {
     boolean enableStreamUpdate = !("true".equals(properties.getProperty(Configuration.WARP_STREAMUPDATE_DISABLE)));
     boolean enableREL = !("true".equals(properties.getProperty(Configuration.WARP_INTERACTIVE_DISABLE)));
 
-    for (String property : REQUIRED_PROPERTIES) {
+    for (String property: REQUIRED_PROPERTIES) {
       Preconditions.checkNotNull(properties.getProperty(property), "Property '" + property + "' MUST be set.");
     }
 
@@ -174,9 +174,9 @@ public class Warp extends WarpDist implements Runnable {
     // keys.
     //
 
-    Map<String, String> secrets = new HashMap<String, String>();
+    Map<String,String> secrets = new HashMap<String,String>();
     Set<Object> keys = new HashSet<Object>();
-    for (Entry<Object, Object> entry : properties.entrySet()) {
+    for (Entry<Object,Object> entry: properties.entrySet()) {
       if (entry.getKey().toString().startsWith(Configuration.WARP_KEY_PREFIX)) {
         byte[] key = keystore.decodeKey(entry.getValue().toString());
         if (null == key) {
@@ -198,7 +198,7 @@ public class Warp extends WarpDist implements Runnable {
     //
     // Remove keys and secrets from the properties
     //
-    for (Object key : keys) {
+    for (Object key: keys) {
       properties.remove(key);
     }
 
@@ -418,7 +418,7 @@ public class Warp extends WarpDist implements Runnable {
       String[] forwarders = properties.getProperty(Configuration.DATALOG_FORWARDERS).split(",");
 
       Set<String> names = new HashSet<String>();
-      for (String name : forwarders) {
+      for (String name: forwarders) {
         names.add(name.trim());
       }
 
@@ -426,7 +426,7 @@ public class Warp extends WarpDist implements Runnable {
 
       Path datalogdir = new File(properties.getProperty(Configuration.DATALOG_DIR)).toPath().toRealPath();
 
-      for (String name : names) {
+      for (String name: names) {
         DatalogForwarder forwarder = new DatalogForwarder(name, keystore, properties);
 
         Path root = forwarder.getRootDir().toRealPath();
