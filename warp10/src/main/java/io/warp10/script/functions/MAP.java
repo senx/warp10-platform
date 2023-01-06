@@ -42,7 +42,6 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
   private static final String PARAM_OCCURRENCES = "occurrences";
   private static final String PARAM_STEP = "step";
   private static final String PARAM_OVERRIDE = "override";
-  private static final String PARAM_OUTPUTTICKS = "ticks";
 
   public MAP(String name) {
     super(name);
@@ -167,10 +166,18 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
     }
 
     Object occurrencesParam = params.get(PARAM_OCCURRENCES);
+    List outputTicks = null;
     if (occurrencesParam instanceof Long) {
       occurrences = ((Long) occurrencesParam).longValue();
+    } else if (occurrencesParam instanceof List) {
+      outputTicks = (List) occurrencesParam;
+      for (Object tick: outputTicks) {
+        if (!(tick instanceof Long)) {
+          throw new WarpScriptException(getName() + " expects the " + PARAM_OCCURRENCES + " parameter to be a LONG or a list of LONG values.");
+        }
+      }
     } else if (params.containsKey(PARAM_OCCURRENCES)) {
-      throw new WarpScriptException(getName() + " expects the " + PARAM_OCCURRENCES + " parameter to be a LONG.");
+      throw new WarpScriptException(getName() + " expects the " + PARAM_OCCURRENCES + " parameter to be a LONG or a list of LONG values.");
     }
 
     // Make sure Math.abs(occurrences) will return a positive value.
@@ -191,19 +198,6 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
       overrideTick = ((Boolean) overrideParam).booleanValue();
     } else if (params.containsKey(PARAM_OVERRIDE)) {
       throw new WarpScriptException(getName() + " expects the " + PARAM_OVERRIDE + " parameter to be a BOOLEAN.");
-    }
-
-    Object outputTicks = params.get(PARAM_OUTPUTTICKS);
-    // Make sure outputTicks is a List<Long>
-    if (null != outputTicks) {
-      if (!(outputTicks instanceof List)) {
-        throw new WarpScriptException(getName() + " expects '" + PARAM_OUTPUTTICKS + "' to be list of LONG values.");
-      }
-      for (Object tick: (List) outputTicks) {
-        if (!(tick instanceof Long)) {
-          throw new WarpScriptException(getName() + " expects '" + PARAM_OUTPUTTICKS + "' to be list of LONG values.");
-        }
-      }
     }
 
     //
