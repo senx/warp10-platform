@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
+import java.awt.peer.LabelPeer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -205,7 +206,7 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
     }
 
     Object outputTicks = params.get(PARAM_OUTPUTTICKS);
-    // Make sure outputTicks is a List<Long>
+    // Make sure outputTicks is a List<Long>, and that it the list is sorted accordingly.
     if (null != outputTicks) {
       if (!(outputTicks instanceof List)) {
         throw new WarpScriptException(getName() + " expects '" + PARAM_OUTPUTTICKS + "' to be list of LONG values.");
@@ -213,6 +214,40 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
       for (Object tick: (List) outputTicks) {
         if (!(tick instanceof Long)) {
           throw new WarpScriptException(getName() + " expects '" + PARAM_OUTPUTTICKS + "' to be list of LONG values.");
+        }
+      }
+
+      // Check if outputTicks is correctly sorted
+      // In case of a concurrent execution, sorting outputTicks here will lead to a ConcurrentModificationException
+      if (((List<Long>) outputTicks).size() > 1) {
+        if (occurrences < 0) { // reversed
+          boolean descending = true;
+          int i = 1;
+          long lastElt = ((List<Long>) outputTicks).get(0);
+          long elt;
+          while (i < ((List<Long>) outputTicks).size() && descending) {
+            elt = ((List<Long>) outputTicks).get(i);
+            descending = elt <= lastElt;
+            lastElt = elt;
+            i++;
+          }
+          if (!descending) {
+            throw new WarpScriptException("The tick list must be reverse sorted.");
+          }
+        } else {
+          boolean ascending = true;
+          int i = 1;
+          long lastElt = ((List<Long>) outputTicks).get(0);
+          long elt;
+          while (i < ((List<Long>) outputTicks).size() && ascending) {
+            elt = ((List<Long>) outputTicks).get(i);
+            ascending = elt >= lastElt;
+            lastElt = elt;
+            i++;
+          }
+          if (!ascending) {
+            throw new WarpScriptException("The tick list must be sorted.");
+          }
         }
       }
     }
