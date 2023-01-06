@@ -153,29 +153,48 @@ public class FDBUtils {
   public static Map<Object,Object> getStatus(FDBContext context) throws WarpScriptException {
     Database db = null;
     Transaction txn = null;
+
+    int attempts = 2;
+
     try {
       db = context.getDatabase();
-      txn = db.createTransaction();
-      txn.options().setRawAccess();
-      txn.options().setAccessSystemKeys();
+      while(attempts > 0) {
+        try {
+          txn = db.createTransaction();
+          txn.options().setRawAccess();
+          txn.options().setAccessSystemKeys();
 
-      byte[] statuskey = "xx/status/json".getBytes(StandardCharsets.US_ASCII);
-      statuskey[0] = (byte) 0xff;
-      statuskey[1] = (byte) 0xff;
-      byte[] status = txn.get(statuskey).get();
+          byte[] statuskey = "xx/status/json".getBytes(StandardCharsets.US_ASCII);
+          statuskey[0] = (byte) 0xff;
+          statuskey[1] = (byte) 0xff;
+          byte[] status = txn.get(statuskey).get();
 
-      if (null != status) {
-        Object json = JsonUtils.jsonToObject(new String(status, StandardCharsets.UTF_8));
-        return (Map<Object,Object>) json;
-      } else {
-        return new LinkedHashMap<Object,Object>();
+          if (null != status) {
+            Object json = JsonUtils.jsonToObject(new String(status, StandardCharsets.UTF_8));
+            return (Map<Object,Object>) json;
+          } else {
+            return new LinkedHashMap<Object,Object>();
+          }
+        } catch (Throwable t) {
+          FDBUtils.errorMetrics("status", t.getCause());
+
+          if (t.getCause() instanceof FDBException) {
+            FDBException fdbe = (FDBException) t.getCause();
+            if (fdbe.getCode() == 1039) {
+              attempts--;
+              continue;
+            }
+          }
+
+          throw new WarpScriptException("Error while fetching FoundationDB status.", t);
+        } finally {
+          if (null != txn) { try { txn.close(); } catch (Throwable t) {} }
+        }
       }
-    } catch (Throwable t) {
-      throw new WarpScriptException("Error while fetching FoundationDB status.", t);
     } finally {
-      if (null != txn) { try { txn.close(); } catch (Throwable t) {} }
       if (null != db) { try { db.close(); } catch (Throwable t) {} }
     }
+    throw new RuntimeException("I got lost while fetching FoundationDB status.");
   }
 
   private static byte[] getTenantSystemKey(String tenant) {
