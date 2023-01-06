@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2021  SenX S.A.S.
+//   Copyright 2019-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -96,16 +96,6 @@ accelerator.ephemeral = false
 // Set to 'true' to indicate the instance will use memory only for storage. This type of instance is non persistent.
 //
 in.memory = false
-
-//
-// Set to 'false' to use the deprecated non chunked in-memory store
-//
-// When this is true, the depth of data retained is
-// configured using in.memory.chunk.count and in.memory.chunk.length
-//
-// This configuration MUST be set starting with 2.1.
-//
-in.memory.chunked = true
 
 //
 // Number of chunks to retain (defaults to 3)

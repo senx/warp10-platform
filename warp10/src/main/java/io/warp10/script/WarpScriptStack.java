@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -26,7 +26,6 @@ import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.script.functions.SNAPSHOT;
 import io.warp10.script.functions.SNAPSHOT.Snapshotable;
-import io.warp10.warp.sdk.WarpScriptJavaFunction;
 
 /**
  * The WarpScript Geo Time Serie manipulation environment
@@ -255,11 +254,6 @@ public interface WarpScriptStack {
    * Maximum number of WEBCALL invocations per script run
    */
   public static final String ATTRIBUTE_MAX_WEBCALLS = "stack.maxwebcalls";
-
-  /**
-   * Token which was used to authenticate the stack, checked by some protected ops
-   */
-  public static final String ATTRIBUTE_TOKEN = "stack.token";
 
   /**
    * Flag indicating if we are currently in a secure macro execution
@@ -551,6 +545,29 @@ public interface WarpScriptStack {
 
   String CAPABILITIES_PREFIX = ".cap:";
   String CAPABILITIES_ATTR = "stack.capabilities";
+  String CAPABILITY_INVENTORY = "inventory";
+  String CAPABILITY_SETMACROCONFIG = "setmacroconfig";
+  String CAPABILITY_MANAGER = "manager";
+  String CAPABILITY_REPORT = "report";
+  String CAPABILITY_DEBUG = "debug";
+  String CAPABILITY_WFGET = "wfget";
+  String CAPABILITY_WFSET = "wfset";
+  String CAPABILITY_HTTP = "http";
+  String CAPABILITY_TIMEBOX_MAXTIME = "timebox.maxtime";
+  String CAPABILITY_SLEEP_MAXTIME = "sleep.maxtime";
+
+  String CAPABILITY_LIMITS = "limits";
+  String CAPABILITY_LIMIT = "limit";
+  String CAPABILITY_MAXBUCKETS = "maxbuckets";
+  String CAPABILITY_MAXDEPTH = "maxdepth";
+  String CAPABILITY_MAXGEOCELLS = "maxgeocells";
+  String CAPABILITY_MAXGTS = "maxgts";
+  String CAPABILITY_MAXJSON = "maxjson";
+  String CAPABILITY_MAXLOOP = "maxloop";
+  String CAPABILITY_MAXOPS = "maxops";
+  String CAPABILITY_MAXPIXELS = "maxpixels";
+  String CAPABILITY_MAXRECURSION = "maxrecursion";
+  String CAPABILITY_MAXSYMBOLS = "maxsymbols";
 
   /**
    * Retrieve the StoreClient instance associated with this stack.
@@ -763,11 +780,6 @@ public interface WarpScriptStack {
   public void exec(Macro macro) throws WarpScriptException;
 
   /**
-   * Execute a WarpScriptJavaFunction against the stack
-   */
-  public void exec(WarpScriptJavaFunction function) throws WarpScriptException;
-
-  /**
    * Find a function by name
    *
    * @param macroName Name of function to find
@@ -882,13 +894,6 @@ public interface WarpScriptStack {
    * Return the ith counter associated with the stack
    */
   public AtomicLong getCounter(int i) throws WarpScriptException;
-
-  /**
-   * Returns a boolean indicating whether or not the stack is authenticated.
-   *
-   * @return The authentication status of the stack
-   */
-  public boolean isAuthenticated();
 
   /**
    * Perform a final check to ensure balancing constructs are balanced.

@@ -59,9 +59,8 @@
 
 // SENSISIONEVENT, SENSISIONGET, SENSISIONSET, SENSISIONUPDATE
 #warpscript.extension.sensision = io.warp10.script.ext.sensision.SensisionWarpScriptExtension
-// Enable support for capabilities. When set to 'true', capabilities 'sensision.read' and 'sensision.write' can be
+// Capabilities 'sensision.read' (empty value) and 'sensision.write' (empty value) must be
 // set in tokens to allow the use of functions which read or alter Sensision metrics
-#sensision.capability = true
 
 // MUTEX, SHMLOAD, SHMSTORE
 #warpscript.extension.shm = io.warp10.script.ext.shm.SharedMemoryWarpScriptExtension
@@ -70,14 +69,6 @@
 
 // TOKENDUMP, TOKENGEN, TOKENSECRET
 #warpscript.extension.token = io.warp10.script.ext.token.TokenWarpScriptExtension
-// If you use OSS to handle this secret
-#warp.key.token.secret = wrapped:hex:......
-// If you use a plain string token. Used instead of the previous configuration key if set and not commented
-#token.secret = ....
-
-// URLFETCH, MAXURLFETCHCOUNT, MAXURLFETCHSIZE
-#warpscript.extension.urlfetch = io.warp10.script.ext.urlfetch.UrlFetchWarpScriptExtension
-// see also warpscript.urlfetch.* configurations in 20-warpscript.conf
 
 // HTTP
 #warpscript.extension.http = io.warp10.script.ext.http.HttpWarpScriptExtension
@@ -88,7 +79,6 @@
 
 // WSPS WSINFO WSKILL STACKPSSECRET
 #warpscript.extension.stackps = io.warp10.script.ext.stackps.StackPSWarpScriptExtension
-#stackps.secret = ....
 
 //
 // Specific namespace under which to load an extension. The specified namespace will be used as a prefix for all functions of the extension.

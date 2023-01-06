@@ -41,7 +41,7 @@ public class SENSISIONDUMP extends NamedWarpScriptFunction implements WarpScript
 
     Object top = stack.pop();
 
-    if (SensisionWarpScriptExtension.useCapability() && null == Capabilities.get(stack, SensisionWarpScriptExtension.READ_CAPABILITY)) {
+    if (null == Capabilities.get(stack, SensisionWarpScriptExtension.READ_CAPABILITY)) {
       throw new WarpScriptException(getName() + " missing capability '" + SensisionWarpScriptExtension.READ_CAPABILITY +"'");
     }
 

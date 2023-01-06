@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,53 +16,29 @@
 
 package io.warp10.script.ext.token;
 
-import io.warp10.WarpConfig;
+import java.util.HashMap;
+import java.util.Map;
+
 import io.warp10.crypto.KeyStore;
 import io.warp10.standalone.Warp;
 import io.warp10.warp.sdk.WarpScriptExtension;
 
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
-
 public class TokenWarpScriptExtension extends WarpScriptExtension {
 
-  /**
-   * Name of configuration key with the token secret.
-   */
-  public static final String CONF_TOKEN_SECRET = "token.secret";
+  private final Map<String, Object> functions = new HashMap<String, Object>();
 
-  /**
-   * Name of the keystore key with OSS wrapped token secret
-   */
-  public static final String KEY_TOKEN_SECRET = "token.secret";
-
-  /**
-   * Current Token Secret
-   */
-  public static String TOKEN_SECRET;
-
-  private static final Map<String, Object> functions = new HashMap<String, Object>();
   private static final KeyStore keystore;
 
-  static {
-    TOKEN_SECRET = WarpConfig.getProperty(CONF_TOKEN_SECRET);
-    keystore = Warp.getKeyStore();
+  public static final String CAPABILITY_TOKENGEN = "tokengen";
+  public static final String CAPABILITY_TOKENDUMP = "tokendump";
 
-    // If no configuration key is defined in the configuration, look in the keystore if it exists.
-    if (null == TOKEN_SECRET && null != keystore) {
-      // if OSS wrapped secret exists
-      byte[] ossHandledSecret = keystore.getKey(TokenWarpScriptExtension.KEY_TOKEN_SECRET);
-      if (null != ossHandledSecret) {
-        TOKEN_SECRET = new String(ossHandledSecret, StandardCharsets.UTF_8).replaceAll("\n", "").trim();
-      }
-    }
+  static {
+    keystore = Warp.getKeyStore();
   }
 
   public TokenWarpScriptExtension() {
     functions.put("TOKENGEN", new TOKENGEN("TOKENGEN", keystore, true));
     functions.put("TOKENDUMP", new TOKENDUMP("TOKENDUMP", keystore, true));
-    functions.put("TOKENSECRET", new TOKENSECRET("TOKENSECRET"));
   }
 
   public TokenWarpScriptExtension(KeyStore keystore) {
