@@ -5683,6 +5683,7 @@ public class GTSHelper {
     sort(mapped, reversed);
     // Retrieve ticks if GTS is not bucketized.
     long[] ticks = isBucketized(gts) ? null : Arrays.copyOf(mapped.ticks, gts.values);
+    final boolean isBucketized = null == ticks;
 
     // Sort outputTicks
     if (null != outputTicks) {
@@ -5709,7 +5710,7 @@ public class GTSHelper {
     //
 
     // Number of ticks for which to run the mapper
-    int nticks = null != ticks ? ticks.length : mapped.bucketcount;
+    int nticks = isBucketized ? mapped.bucketcount : ticks.length;
     if (null != outputTicks) {
       nticks = outputTicks.size();
     }
@@ -5739,14 +5740,14 @@ public class GTSHelper {
       if (null == outputTicks) {
 
         if (reversed) {
-          tick = null != ticks ? ticks[idx] : mapped.lastbucket - idx * mapped.bucketspan;
+          tick = isBucketized ? mapped.lastbucket - idx * mapped.bucketspan : ticks[idx];
         } else {
-          tick = null != ticks ? ticks[idx] : mapped.lastbucket - (mapped.bucketcount - 1 - idx) * mapped.bucketspan;
+          tick = isBucketized ? mapped.lastbucket - (mapped.bucketcount - 1 - idx) * mapped.bucketspan : ticks[idx];
         }
       } else {
         tick = outputTicks.get(idx);
 
-        if (null != ticks) { // means input gts is not bucketized
+        if (!isBucketized) {
 
           // calculate leftIdx and rightIdx
           if (reversed) {
@@ -5787,8 +5788,7 @@ public class GTSHelper {
         start = tick + prewindow;
       } else if (prewindow > 0) {
         // window is a number of ticks
-        if (null == ticks) {
-          // GTS is bucketized.
+        if (isBucketized) {
           if (null == outputTicks || !reversed) {
             start = prewindow <= mapped.bucketcount ? tick - prewindow * mapped.bucketspan : Long.MIN_VALUE;
           } else {
@@ -5829,8 +5829,7 @@ public class GTSHelper {
         stop = tick - postwindow;
       } else if (postwindow > 0) {
         // window is a number of ticks
-        if (null == ticks) {
-          // GTS is bucketized.
+        if (isBucketized) {
           if (null == outputTicks || reversed) {
             stop = postwindow <= mapped.bucketcount ? tick + postwindow * mapped.bucketspan : Long.MAX_VALUE;
           } else {
