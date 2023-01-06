@@ -5706,7 +5706,7 @@ public class GTSHelper {
     // idx is the index of the current output tick,
     // if (!reversed), rightIdx is the index of the tick of the input gts that is the least greater or equal than the current output tick.
     // if (reversed), leftIdx is the index of the tick of the input gts that is the least lesser or equal than the current output tick.
-    // Note that they may not exist if all values are at the left (or right).
+    // Note that they may not exist if all values are at the left (or right), in that case rightIdx (or leftIdx) equals ticks.length
     //
 
     // Number of ticks for which to run the mapper
@@ -5754,6 +5754,7 @@ public class GTSHelper {
             while (leftIdx < ticks.length && ticks[leftIdx] > tick) {
               leftIdx++;
             }
+
           } else {
             while (rightIdx < ticks.length && ticks[rightIdx] < tick) {
               rightIdx++;
@@ -5789,11 +5790,7 @@ public class GTSHelper {
       } else if (prewindow > 0) {
         // window is a number of ticks
         if (isBucketized) {
-          if (null == outputTicks || !reversed) {
-            start = prewindow <= mapped.bucketcount ? tick - prewindow * mapped.bucketspan : Long.MIN_VALUE;
-          } else {
-            start = prewindow - 1 <= mapped.bucketcount ? tick - (prewindow - 1) * mapped.bucketspan : Long.MIN_VALUE;
-          }
+          start = prewindow <= mapped.bucketcount ? tick - prewindow * mapped.bucketspan : Long.MIN_VALUE;
         } else {
           // GTS is not bucketized.
           if (null == outputTicks) {
@@ -5803,25 +5800,17 @@ public class GTSHelper {
               start = idx - prewindow >= 0 ? (ticks[idx - (int) prewindow]) : Long.MIN_VALUE;
             }
           } else {
-
-            //
-            // Note that if output ticks are provided,
-            // then if the current output tick matches an input tick,
-            // then if (reversed)
-            // then prewindow counts the current tick
-            // else it is postwindow that counts the current tick
-            //
-
             if (reversed) {
-              start = leftIdx - 1 + prewindow < ticks.length ? (ticks[leftIdx - 1 + (int) prewindow]) : Long.MIN_VALUE;
+              // if the current output tick matches an input tick then there will be one tick more in the sliding window
+              if (leftIdx < ticks.length && ticks[leftIdx] == tick) {
+                start = leftIdx + prewindow < ticks.length ? ticks[leftIdx + (int) prewindow] : Long.MIN_VALUE;
+              } else {
+                start = leftIdx - 1 + prewindow < ticks.length ? ticks[leftIdx - 1 + (int) prewindow] : Long.MIN_VALUE;
+              }
             } else {
-              start = rightIdx - prewindow >= 0 ? (ticks[rightIdx - (int) prewindow]) : Long.MIN_VALUE;
+              start = rightIdx - prewindow >= 0 ? ticks[rightIdx - (int) prewindow] : Long.MIN_VALUE;
             }
           }
-        }
-      } else {
-        if (null != outputTicks && reversed) {
-          start = tick + 1;
         }
       }
 
@@ -5830,11 +5819,7 @@ public class GTSHelper {
       } else if (postwindow > 0) {
         // window is a number of ticks
         if (isBucketized) {
-          if (null == outputTicks || reversed) {
-            stop = postwindow <= mapped.bucketcount ? tick + postwindow * mapped.bucketspan : Long.MAX_VALUE;
-          } else {
-            stop = postwindow - 1 <= mapped.bucketcount ? tick + (postwindow - 1) * mapped.bucketspan : Long.MAX_VALUE;
-          }
+          stop = postwindow <= mapped.bucketcount ? tick + postwindow * mapped.bucketspan : Long.MAX_VALUE;
         } else {
           // GTS is not bucketized.
           if (null == outputTicks) {
@@ -5845,15 +5830,15 @@ public class GTSHelper {
             }
           } else {
             if (reversed) {
-              stop = leftIdx - postwindow >= 0 ? (ticks[leftIdx - (int) postwindow]) : Long.MAX_VALUE;
+              stop = leftIdx - postwindow >= 0 ? ticks[leftIdx - (int) postwindow] : Long.MAX_VALUE;
             } else {
-              stop = rightIdx - 1 + postwindow < ticks.length ? (ticks[rightIdx - 1 + (int) postwindow]) : Long.MAX_VALUE;
+              if (rightIdx < ticks.length && tick == ticks[rightIdx]) {
+                stop = rightIdx + postwindow < ticks.length ? ticks[rightIdx + (int) postwindow] : Long.MAX_VALUE;
+              } else {
+                stop = rightIdx - 1 + postwindow < ticks.length ? ticks[rightIdx - 1 + (int) postwindow] : Long.MAX_VALUE;
+              }
             }
           }
-        }
-      } else {
-        if (!(null == outputTicks) && !reversed) {
-          stop = tick - 1;
         }
       }
 
