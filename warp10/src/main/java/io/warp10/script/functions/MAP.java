@@ -43,6 +43,9 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
   private static final String PARAM_STEP = "step";
   private static final String PARAM_OVERRIDE = "override";
 
+  // deprecated but used as an alias of PARAM_OCCURRENCES for retro-compatibility
+  private static final String PARAM_OUTPUTTICKS = "ticks";
+
   public MAP(String name) {
     super(name);
   }
@@ -182,6 +185,23 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
       }
     } else if (params.containsKey(PARAM_OCCURRENCES)) {
       throw new WarpScriptException(getName() + " expects the " + PARAM_OCCURRENCES + " parameter to be a LONG or a list of LONG values.");
+    }
+
+    // handle retrocompatibility
+    Object outputTicksParam = params.get(PARAM_OUTPUTTICKS);
+    if (null != outputTicksParam) {
+      if (null != outputTicks) {
+        throw new WarpScriptException(getName() + " has already been passed an list of occurrence ticks. Parameter " + PARAM_OUTPUTTICKS + " is deprecated. Instead use " + PARAM_OCCURRENCES);
+      } else if (outputTicksParam instanceof List) {
+        outputTicks = (List) outputTicksParam;
+        for (Object tick: outputTicks) {
+          if (!(tick instanceof Long)) {
+            throw new WarpScriptException(getName() + " expects the " + PARAM_OCCURRENCES + " parameter to be a LONG or a list of LONG values.");
+          }
+        }
+      } else {
+        throw new WarpScriptException(getName() + " expects the " + PARAM_OCCURRENCES + " parameter to be a LONG or a list of LONG values.");
+      }
     }
 
     // Make sure Math.abs(occurrences) will return a positive value.
