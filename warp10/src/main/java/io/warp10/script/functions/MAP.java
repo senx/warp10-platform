@@ -86,8 +86,12 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
       params.add(0L);
     }
 
-    if (!(params.get(nseries + 1) instanceof Long) || !(params.get(nseries + 2) instanceof Long) || !(params.get(nseries + 3) instanceof Long)) {
-      throw new WarpScriptException(getName() + " expects prewindow, postwindow and occurrences as 3 parameters following the mapper function.");
+    if (!(params.get(nseries + 1) instanceof Long) || !(params.get(nseries + 2) instanceof Long)) {
+      throw new WarpScriptException(getName() + " expects prewindow and postwindow as 2 parameters following the mapper function.");
+    }
+
+    if (!(params.get(nseries + 3) instanceof Long) && !(params.get(nseries + 3) instanceof List)) {
+      throw new WarpScriptException(getName() + " expects occurrences or a LIST of output ticks as the parameter following the postwindow parameter.");
     }
 
     int step = 1;
