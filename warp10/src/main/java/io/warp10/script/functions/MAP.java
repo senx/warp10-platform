@@ -232,7 +232,7 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
             i++;
           }
           if (!descending) {
-            throw new WarpScriptException(getName() + " expects a reverse sorted list for "+ PARAM_OUTPUTTICKS + " parameter.");
+            throw new WarpScriptException(getName() + " expects a reverse sorted list for " + PARAM_OUTPUTTICKS + " parameter.");
           }
         } else {
           boolean ascending = true;
@@ -246,7 +246,7 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
             i++;
           }
           if (!ascending) {
-            throw new WarpScriptException(getName() + " expects a sorted list for "+ PARAM_OUTPUTTICKS + " parameter.");
+            throw new WarpScriptException(getName() + " expects a sorted list for " + PARAM_OUTPUTTICKS + " parameter.");
           }
         }
       }
