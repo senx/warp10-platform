@@ -26,7 +26,6 @@ import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
-import java.awt.peer.LabelPeer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
