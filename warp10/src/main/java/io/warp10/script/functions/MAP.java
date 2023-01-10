@@ -188,6 +188,7 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
     if (Long.MIN_VALUE == occurrences) {
       occurrences = Long.MIN_VALUE + 1;
     }
+    final boolean reversed = occurrences < 0;
 
     Object stepParam = params.get(PARAM_STEP);
     if (stepParam instanceof Long) {
@@ -205,7 +206,7 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
     }
 
     Object outputTicks = params.get(PARAM_OUTPUTTICKS);
-    // Make sure outputTicks is a List<Long>, and that it the list is sorted accordingly.
+    // Make sure outputTicks is a List<Long>, and that the list is sorted accordingly.
     if (null != outputTicks) {
       if (!(outputTicks instanceof List)) {
         throw new WarpScriptException(getName() + " expects '" + PARAM_OUTPUTTICKS + "' to be list of LONG values.");
@@ -217,9 +218,9 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
       }
 
       // Check if outputTicks is correctly sorted
-      // In case of a concurrent execution, sorting outputTicks here will lead to a ConcurrentModificationException
+      // In case of a concurrent execution, sorting outputTicks here would lead to a ConcurrentModificationException
       if (((List<Long>) outputTicks).size() > 1) {
-        if (occurrences < 0) { // reversed
+        if (reversed) { // reversed
           boolean descending = true;
           int i = 1;
           long lastElt = ((List<Long>) outputTicks).get(0);
@@ -231,7 +232,7 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
             i++;
           }
           if (!descending) {
-            throw new WarpScriptException("The tick list must be reverse sorted.");
+            throw new WarpScriptException(getName() + " expects a reverse sorted list for "+ PARAM_OUTPUTTICKS + " parameter.");
           }
         } else {
           boolean ascending = true;
@@ -245,7 +246,7 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
             i++;
           }
           if (!ascending) {
-            throw new WarpScriptException("The tick list must be sorted.");
+            throw new WarpScriptException(getName() + " expects a sorted list for "+ PARAM_OUTPUTTICKS + " parameter.");
           }
         }
       }
@@ -299,7 +300,7 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
     for (GeoTimeSerie gts: series) {
       List<GeoTimeSerie> res;
       try {
-        res = GTSHelper.map(gts, mapper, prewindow, postwindow, Math.abs(occurrences), occurrences < 0, step, overrideTick, mapper instanceof Macro ? stack : null, (List<Long>) outputTicks);
+        res = GTSHelper.map(gts, mapper, prewindow, postwindow, Math.abs(occurrences), reversed, step, overrideTick, mapper instanceof Macro ? stack : null, (List<Long>) outputTicks);
       } catch (WarpScriptATCException wsatce) {
         // Do not handle WarpScriptATCException (STOP in MACROMAPPER for instance)
         throw wsatce;
