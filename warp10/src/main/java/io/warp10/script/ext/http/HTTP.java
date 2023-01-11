@@ -17,6 +17,7 @@
 package io.warp10.script.ext.http;
 
 import io.warp10.WarpConfig;
+import io.warp10.continuum.store.Constants;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
@@ -80,7 +81,8 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
   public static final String CHUNK_MACRO = "chunk.macro";
   public static final String USERNAME = "username";
   public static final String PASSWORD = "password";
-
+  public static final String CONNECT_TIMEOUT = "timeout";
+  
   //
   // Output
   //
@@ -268,6 +270,20 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
       chunkMacro = (WarpScriptStack.Macro) o;
     }
 
+    int timeout = 0;
+    Object t = params.get(CONNECT_TIMEOUT);
+    if (t != null) {
+      if (!(t instanceof Long)) {
+        throw new WarpScriptException(getName() + " expect a positive LONG for " + CONNECT_TIMEOUT + " parameter.");
+      }
+      Long tl = ((Long) t).longValue() / Constants.TIME_UNITS_PER_MS;
+      if (tl > Integer.MAX_VALUE) {
+        timeout = Integer.MAX_VALUE;
+      } else {
+        timeout = tl.intValue();
+      }
+    }
+    
     //
     // Check URL
     //
@@ -325,7 +341,8 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
 
     try {
       conn = (HttpURLConnection) url.openConnection();
-
+      conn.setConnectTimeout(timeout);
+      conn.setReadTimeout(timeout);
       //
       // Set headers
       //
