@@ -202,6 +202,7 @@ warpscript.mobius.pool = 16
 //
 
 // To use HTTP, you must have a token with "http" capability (value can be empty). 
+
 // Maximum number of HTTP calls, 1 by default, can be raised with capability http.requests
 #warpscript.http.maxrequests =
 // Maximum downloaded bytes by HTTP, 65536 by default, can be raised with capability http.size
@@ -222,3 +223,8 @@ warpscript.comments.loose = true
 // Defaults to .producer,.app,.owner
 //
 #warpscript.labels.priority =
+
+//
+// Default capabilities
+//
+#warp.capabilities.default = { 'limits' '' }

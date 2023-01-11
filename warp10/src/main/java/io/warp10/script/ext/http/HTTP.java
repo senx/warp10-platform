@@ -98,7 +98,7 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
   //
 
   private static final WebAccessController webAccessController;
-  
+
   //
   // Limits
   //
