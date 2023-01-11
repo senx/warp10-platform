@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -101,7 +101,7 @@ public class WarpScriptRecordReader extends RecordReader<Object, Object> {
     try {
       this.executor = inputFormat.getWarpScriptExecutor(conf, isMacro ? macroCode : code, isMacro);
     } catch (WarpScriptException wse) {
-      throw new IOException("Error while instatiating WarpScript executor", wse);
+      throw new IOException("Error while instantiating WarpScript executor", wse);
     }
 
     done = false;
