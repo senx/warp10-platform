@@ -90,7 +90,7 @@ public class TokenGen {
   }
 
   public void usage(String[] args) {
-    if (args.length < 3) {
+    if (args.length < 2) {
       System.err.println("Usage: TokenGen config ... in");
       System.exit(-1);
     }
