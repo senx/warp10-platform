@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2022  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -66,6 +66,9 @@
 #warpscript.extension.shm = io.warp10.script.ext.shm.SharedMemoryWarpScriptExtension
 // SHM ttl in ms, default = 1 hour
 #shm.ttl = 3600000
+// Maximum time (in ms) to wait for a mutex. Use 0 (the default) to wait indefinitely.
+// This value can be modified via the capability mutex.maxwait
+mutex.maxwait = 10000
 
 // TOKENDUMP, TOKENGEN, TOKENSECRET
 #warpscript.extension.token = io.warp10.script.ext.token.TokenWarpScriptExtension

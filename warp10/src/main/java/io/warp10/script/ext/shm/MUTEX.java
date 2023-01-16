@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package io.warp10.script.ext.shm;
 
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 
@@ -23,8 +24,8 @@ import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
-import io.warp10.warp.sdk.Capabilities;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.warp.sdk.Capabilities;
 
 public class MUTEX extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
@@ -38,12 +39,9 @@ public class MUTEX extends NamedWarpScriptFunction implements WarpScriptStackFun
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
 
     String cap = Capabilities.get(stack, SharedMemoryWarpScriptExtension.CAPABILITY_MUTEX);
+
     if (null == cap) {
       throw new WarpScriptException(getName() + " expected capability '" + SharedMemoryWarpScriptExtension.CAPABILITY_MUTEX + "' to be set.");
-    }
-
-    if(null != stack.getAttribute(MUTEX_ATTRIBUTE + stack.getUUID())) {
-      throw new WarpScriptException(getName() + " calls cannot be nested.");
     }
 
     Object top = stack.pop();
@@ -53,6 +51,10 @@ public class MUTEX extends NamedWarpScriptFunction implements WarpScriptStackFun
     }
 
     String mutex = String.valueOf(top);
+
+    if(null != stack.getAttribute(MUTEX_ATTRIBUTE + stack.getUUID()) && mutex != stack.getAttribute(MUTEX_ATTRIBUTE + stack.getUUID())) {
+      throw new WarpScriptException(getName() + " calls can only be nested with the same mutex.");
+    }
 
     top = stack.pop();
 
@@ -68,8 +70,30 @@ public class MUTEX extends NamedWarpScriptFunction implements WarpScriptStackFun
 
     ReentrantLock lock = SharedMemoryWarpScriptExtension.getLock(mutex);
 
+    long maxwait = SharedMemoryWarpScriptExtension.MUTEX_DEFAULT_MAXWAIT;
+
+    if (null != Capabilities.get(stack, SharedMemoryWarpScriptExtension.CAPABILITY_MUTEX_MAXWAIT)) {
+      try {
+        maxwait = Long.parseLong(Capabilities.get(stack, SharedMemoryWarpScriptExtension.CAPABILITY_MUTEX_MAXWAIT));
+      } catch(NumberFormatException nfe) {
+        throw new WarpScriptException(getName() + " invalid '" + SharedMemoryWarpScriptExtension.CAPABILITY_MUTEX_MAXWAIT + "' capability value.");
+      }
+    }
+
+    boolean locked = false;
+    boolean clearAttr = null == stack.getAttribute(MUTEX_ATTRIBUTE + stack.getUUID());
+
     try {
-      lock.lockInterruptibly();
+      if (0 == maxwait) {
+        lock.lockInterruptibly();
+        locked = true;
+      } else {
+        locked = lock.tryLock(maxwait, TimeUnit.MILLISECONDS);
+
+        if (!locked) {
+          throw new WarpScriptException(getName() + " failed to acquire mutex within " + maxwait + " ms.");
+        }
+      }
       stack.setAttribute(MUTEX_ATTRIBUTE + stack.getUUID(), mutex);
       stack.exec(macro);
     } catch (WarpScriptException wse) {
@@ -77,8 +101,10 @@ public class MUTEX extends NamedWarpScriptFunction implements WarpScriptStackFun
     } catch (Throwable t) {
       throw new WarpScriptException("Error while running mutex macro.", t);
     } finally {
-      if (lock.isHeldByCurrentThread()) {
+      if (lock.isHeldByCurrentThread() && locked) {
         lock.unlock();
+      }
+      if (clearAttr) {
         stack.setAttribute(MUTEX_ATTRIBUTE + stack.getUUID(), null);
       }
     }
