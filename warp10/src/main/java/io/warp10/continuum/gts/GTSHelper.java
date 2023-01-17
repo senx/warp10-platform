@@ -5682,8 +5682,8 @@ public class GTSHelper {
     // Sort ticks
     sort(mapped, reversed);
     // Retrieve ticks if GTS is not bucketized.
-    long[] ticks = isBucketized(gts) ? null : Arrays.copyOf(mapped.ticks, gts.values);
-    final boolean isBucketized = null == ticks;
+    final boolean isBucketized = isBucketized(gts);
+    long[] ticks = isBucketized ? null : Arrays.copyOf(mapped.ticks, gts.values);
 
     // Clear clone
     GTSHelper.clear(mapped);
