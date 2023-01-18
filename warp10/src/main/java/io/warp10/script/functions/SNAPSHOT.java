@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2021  SenX S.A.S.
+//   Copyright 2020-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -32,10 +32,17 @@ import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.processing.Pencode;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.RealVector;
+import org.bouncycastle.openpgp.PGPPrivateKey;
+import org.bouncycastle.openpgp.PGPPublicKey;
+import org.bouncycastle.openpgp.PGPPublicKeyRing;
+import org.bouncycastle.openpgp.PGPSecretKey;
+import org.bouncycastle.openpgp.PGPSecretKeyRing;
+
 import processing.core.PGraphics;
 import processing.core.PImage;
 import processing.core.PShapeSVG;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
@@ -179,13 +186,13 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         sb.append(WarpScriptLib.STORE);
         sb.append(" ");
       }
-      
+
       //
       // Snapshot the registers
       //
-      
+
       Object[] regs = stack.getRegisters();
-      
+
       sb.append(WarpScriptLib.CLEARREGS);
       sb.append(" ");
       for (int i = 0; i < regs.length; i++) {
@@ -227,7 +234,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
   public static void addElement(SNAPSHOT snapshot, StringBuilder sb, Object o) throws WarpScriptException {
     addElement(snapshot, sb, o, false);
   }
-  
+
   public static void addElement(SNAPSHOT snapshot, StringBuilder sb, Object o, boolean readable) throws WarpScriptException {
 
     AtomicInteger depth = null;
@@ -302,7 +309,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
             addElement(snapshot, sb, oo, true);
           }
           sb.append(WarpScriptLib.VECTOR_END);
-          sb.append(" ");          
+          sb.append(" ");
         } else {
           sb.append(WarpScriptLib.EMPTY_VECTOR);
           sb.append(" ");
@@ -318,9 +325,9 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
           sb.append(" ");
           for (Object oo : (List) o) {
             addElement(snapshot, sb, oo, true);
-          }          
+          }
           sb.append(WarpScriptLib.LIST_END);
-          sb.append(" ");          
+          sb.append(" ");
         } else {
           sb.append(WarpScriptLib.EMPTY_LIST);
           sb.append(" ");
@@ -328,7 +335,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
             addElement(snapshot, sb, oo, false);
             sb.append(WarpScriptLib.INPLACEADD);
             sb.append(" ");
-          }          
+          }
         }
       } else if (o instanceof Set) {
         if (readable) {
@@ -338,7 +345,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
             addElement(snapshot, sb, oo, true);
           }
           sb.append(WarpScriptLib.SET_END);
-          sb.append(" ");          
+          sb.append(" ");
         } else {
           sb.append(WarpScriptLib.EMPTY_SET);
           sb.append(" ");
@@ -356,7 +363,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
             addElement(snapshot, sb, entry.getKey(), true);
             addElement(snapshot, sb, entry.getValue(), true);
             sb.append(System.lineSeparator());
-          }                    
+          }
           sb.append(WarpScriptLib.MAP_END);
           sb.append(" ");
         } else {
@@ -367,7 +374,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
             addElement(snapshot, sb, entry.getKey(), false);
             sb.append(WarpScriptLib.PUT);
             sb.append(" ");
-          }          
+          }
         }
       } else if (o instanceof BitSet) {
         sb.append("'");
@@ -410,6 +417,42 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
         sb.append(((RSAPrivateKey) o).getModulus());
         sb.append("' } ");
         sb.append(WarpScriptLib.RSAPRIVATE);
+        sb.append(" ");
+      } else if (o instanceof PGPPublicKey) {
+        try {
+          addElement(sb, ((PGPPublicKey) o).getEncoded(false));
+        } catch (IOException ioe) {
+          throw new WarpScriptException("Error while serializing PGP public key.", ioe);
+        }
+        sb.append(WarpScriptLib.PGPPUBLIC);
+        sb.append(" ");
+        String keyid = "000000000000000" + Long.toHexString(((PGPPublicKey) o).getKeyID());
+        keyid = keyid.substring(keyid.length() - 16, keyid.length()).toUpperCase();
+        addElement(sb, keyid);
+        sb.append(WarpScriptLib.GET);
+        sb.append(" ");
+        addElement(sb, PGPPUBLIC.KEY_KEY);
+        sb.append(WarpScriptLib.GET);
+        sb.append(" ");
+      } else if (o instanceof PGPSecretKeyRing) {
+        try {
+          addElement(sb, ((PGPSecretKeyRing) o).getEncoded());
+        } catch (IOException ioe) {
+          throw new WarpScriptException("Error while serializing PGP secret key ring.", ioe);
+        }
+        sb.append(WarpScriptLib.PGPRING);
+        sb.append(" 0 ");
+        sb.append(WarpScriptLib.GET);
+        sb.append(" ");
+      } else if (o instanceof PGPPublicKeyRing) {
+        try {
+          addElement(sb, ((PGPPublicKeyRing) o).getEncoded());
+        } catch (IOException ioe) {
+          throw new WarpScriptException("Error while serializing PGP public key ring.", ioe);
+        }
+        sb.append(WarpScriptLib.PGPRING);
+        sb.append(" 0 ");
+        sb.append(WarpScriptLib.GET);
         sb.append(" ");
       } else if (o instanceof NamedWarpScriptFunction) {
         sb.append(o.toString());

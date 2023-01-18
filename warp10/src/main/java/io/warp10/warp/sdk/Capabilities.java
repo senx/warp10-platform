@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2021  SenX S.A.S.
+//   Copyright 2020-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -21,10 +21,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicReference;
 
+import io.warp10.WarpConfig;
+import io.warp10.continuum.Configuration;
 import io.warp10.continuum.Tokens;
 import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.quasar.token.thrift.data.WriteToken;
+import io.warp10.script.MemoryWarpScriptStack;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
@@ -34,28 +38,84 @@ import io.warp10.script.WarpScriptStack;
  *
  */
 public class Capabilities {
+
   protected Map<String,String> capabilities = new HashMap<String,String>();
 
-  public static String get(WarpScriptStack stack, String name) {
-    Capabilities capabilities = null;
-    if (stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR) instanceof Capabilities) {
-      capabilities = (Capabilities) stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR);
+  private static final Map<String,String> DEFAULT_CAPABILITIES = new LinkedHashMap<String,String>();
+
+  static {
+    if (null != WarpConfig.getProperty(Configuration.CONFIG_WARP_CAPABILITIES_DEFAULT)) {
+      MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null);
+      stack.maxLimits();
+
+      try {
+        stack.execMulti(WarpConfig.getProperty(Configuration.CONFIG_WARP_CAPABILITIES_DEFAULT));
+        if (1 != stack.depth() || !(stack.peek() instanceof Map)) {
+          throw new WarpScriptException("Invalid value for '" + Configuration.CONFIG_WARP_CAPABILITIES_DEFAULT + "', expected a WarpScript map.");
+        }
+        Map<Object,Object> capabilities = (Map<Object,Object>) stack.pop();
+        for (Entry<Object,Object> capability: capabilities.entrySet()) {
+          if (!(capability.getKey() instanceof String && capability.getValue() instanceof String)) {
+            throw new WarpScriptException("Invalid value for '" + Configuration.CONFIG_WARP_CAPABILITIES_DEFAULT + "', expected a WarpScript map with STRING keys and values.");
+          }
+          DEFAULT_CAPABILITIES.put(capability.getKey().toString(), capability.getValue().toString());
+        }
+      } catch (WarpScriptException wse) {
+        throw new RuntimeException("Error initializing default capabilities.");
+      }
     }
-    if (null != capabilities) {
-      return capabilities.capabilities.get(name);
+  }
+
+  public static Capabilities get(WarpScriptStack stack) {
+    if (stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR) instanceof AtomicReference
+        && ((AtomicReference) stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR)).get() instanceof Capabilities) {
+      return (Capabilities) ((AtomicReference) stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR)).get();
     } else {
       return null;
     }
   }
 
-  public static Map<String,String> get(WarpScriptStack stack, List<Object> names) {
-    Capabilities capabilities = null;
+  public static void set(WarpScriptStack stack, Capabilities capabilities) {
+    stack.setAttribute(WarpScriptStack.CAPABILITIES_ATTR, new AtomicReference<Capabilities>(capabilities));
+  }
 
-    if (stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR) instanceof Capabilities) {
-      capabilities = (Capabilities) stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR);
+  public static String get(WarpScriptStack stack, String name) {
+    Capabilities capabilities = get(stack);
+    String cap = null;
+    if (null != capabilities) {
+      cap = capabilities.capabilities.get(name);
     }
 
+    if (null == cap) {
+      cap = DEFAULT_CAPABILITIES.get(name);
+    }
+
+    return cap;
+  }
+
+  public static Long getLong(WarpScriptStack stack, String name) throws WarpScriptException {
+    return getLong(stack, name, null);
+  }
+
+  public static Long getLong(WarpScriptStack stack, String name, Long defaultValue) throws WarpScriptException {
+    String cap = get(stack, name);
+
+    if (null != cap) {
+      try {
+        return Long.parseLong(cap);
+      } catch (Throwable t) {
+        throw new WarpScriptException("Error parsing capability.");
+      }
+    }
+
+    return defaultValue;
+  }
+
+  public static Map<String,String> get(WarpScriptStack stack, List<Object> names) {
+    Capabilities capabilities = get(stack);
+
     Map<String,String> caps = new LinkedHashMap<String,String>();
+
     if (null != capabilities) {
       if (null == names) {
         caps.putAll(capabilities.capabilities);
@@ -65,6 +125,13 @@ public class Capabilities {
             caps.put((String) elt, capabilities.capabilities.get((String) elt));
           }
         }
+      }
+    }
+
+    for (Object elt: names) {
+      String def = DEFAULT_CAPABILITIES.get(elt);
+      if (null != def) {
+        caps.putIfAbsent((String) elt, def);
       }
     }
 
@@ -94,17 +161,13 @@ public class Capabilities {
     }
 
     if (null != attributes && !attributes.isEmpty()) {
-      Capabilities capabilities = null;
-
-      if (stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR) instanceof Capabilities) {
-        capabilities = (Capabilities) stack.getAttribute(WarpScriptStack.CAPABILITIES_ATTR);
-      }
+      Capabilities capabilities = get(stack);
 
       for (Entry<String,String> entry: attributes.entrySet()) {
         if (entry.getKey().startsWith(WarpScriptStack.CAPABILITIES_PREFIX)) {
           if (null == capabilities) {
             capabilities = new Capabilities();
-            stack.setAttribute(WarpScriptStack.CAPABILITIES_ATTR, capabilities);
+            set(stack, capabilities);
           }
           capabilities.putIfAbsent(entry.getKey().substring(WarpScriptStack.CAPABILITIES_PREFIX.length()), entry.getValue());
         }
@@ -116,15 +179,21 @@ public class Capabilities {
     this.capabilities.clear();
   }
 
-  public boolean containsKey(String key) {
-    return this.capabilities.containsKey(key);
-  }
-
   public Object remove(String key) {
     return this.capabilities.remove(key);
   }
 
   public Object putIfAbsent(String key, String value) {
     return this.capabilities.putIfAbsent(key, value);
+  }
+
+  public String get(String key) {
+    return this.capabilities.get(key);
+  }
+
+  public Capabilities clone() {
+    Capabilities newcaps = new Capabilities();
+    newcaps.capabilities.putAll(this.capabilities);
+    return newcaps;
   }
 }

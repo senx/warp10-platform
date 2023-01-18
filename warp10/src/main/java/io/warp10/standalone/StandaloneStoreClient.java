@@ -250,6 +250,9 @@ public class StandaloneStoreClient implements StoreClient {
 
       @Override
       public GTSDecoder next() {
+        if (idx >= metadatas.size()) {
+          throw new RuntimeException("Iterator is exhausted.");
+        }
 
         GTSEncoder encoder = new GTSEncoder(0L);
 

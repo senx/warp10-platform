@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2021  SenX S.A.S.
+//   Copyright 2019-2022 SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -30,6 +30,8 @@ import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.warp.sdk.Capabilities;
+
 import org.apache.thrift.TBase;
 
 import java.nio.ByteBuffer;
@@ -103,21 +105,9 @@ public class TOKENDUMP extends NamedWarpScriptFunction implements WarpScriptStac
       // SipHash and AES keys are not explicitly defined, so we fall back to those of the keystore.
       // Check the secret if needed before the fallback.
       if (warpKeystore) {
-        String secret = TokenWarpScriptExtension.TOKEN_SECRET;
-
-        if (null == secret) {
-          throw new WarpScriptException(getName() + " expects a token secret to be set in the configuration.");
+        if (null == Capabilities.get(stack, TokenWarpScriptExtension.CAPABILITY_TOKENDUMP)) {
+          throw new WarpScriptException(getName() + " missing capability.");
         }
-
-        if (!(top instanceof String)) {
-          throw new WarpScriptException(getName() + " expects a STRING token secret.");
-        }
-
-        if (!secret.equals(top)) {
-          throw new WarpScriptException(getName() + " invalid token secret.");
-        }
-
-        top = stack.pop();
       }
 
       // Fallback to keystore keys.

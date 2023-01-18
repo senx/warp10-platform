@@ -36,7 +36,10 @@ dependencies {
     api 'joda-time:joda-time:2.2'
     api 'org.apache.commons:commons-lang3:3.6'
     api 'org.apache.commons:commons-math3:3.6'
-    api 'org.bouncycastle:bcprov-jdk15on:1.68'
+    api 'org.bouncycastle:bcprov-jdk15on:1.70'
+    // https://mvnrepository.com/artifact/org.bouncycastle/bcpg-jdk15on
+    api 'org.bouncycastle:bcpg-jdk15on:1.70'
+
 
     //
     // Processing

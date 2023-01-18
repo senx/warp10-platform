@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -30,6 +30,9 @@ import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStackFunction;
 import org.apache.commons.math3.linear.ArrayRealVector;
 import org.apache.commons.math3.linear.RealMatrix;
+import org.bouncycastle.openpgp.PGPPublicKey;
+import org.bouncycastle.openpgp.PGPSecretKeyRing;
+
 import processing.core.PFont;
 import processing.core.PGraphics;
 import processing.core.PImage;
@@ -175,7 +178,7 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
       return TYPE_MATCHER;
     } else if (WarpScriptStack.Mark.class.isAssignableFrom(c)) {
       return TYPE_MARK;
-    } else if (Key.class.isAssignableFrom(c)) {
+    } else if (Key.class.isAssignableFrom(c) || PGPSecretKeyRing.class.isAssignableFrom(c) || PGPPublicKey.class.isAssignableFrom(c)) {
       return TYPE_KEY;
     } else if (WarpScriptStack.StackContext.class.isAssignableFrom(c)) {
       return TYPE_CONTEXT;

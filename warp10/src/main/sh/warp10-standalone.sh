@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-#   Copyright 2016-2022  SenX S.A.S.
+#   Copyright 2016-2023  SenX S.A.S.
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -253,7 +253,7 @@ bootstrap() {
   chmod 755 ${WARP10_HOME}/jars
   chmod 755 ${WARP10_HOME}/lib
   chmod 755 ${WARP10_HOME}/templates
-  chmod 755 ${WARP10_HOME}/warpscripts
+  chmod 755 ${WARP10_HOME}/runners
   chmod 755 ${WARP10_HOME}/etc/throttle
   chmod 755 ${WARP10_HOME}/etc/trl
   chmod 755 ${WARP10_HOME}/etc/bootstrap
@@ -317,7 +317,7 @@ bootstrap() {
     moveDir macros
     moveDir jars
     moveDir lib
-    moveDir warpscripts
+    moveDir runners
 
   fi
 
@@ -357,7 +357,7 @@ bootstrap() {
   su ${WARP10_USER} -c "${JAVACMD} -cp ${WARP10_JAR} -Dfile.encoding=UTF-8 io.warp10.GenerateCryptoKey ${CONFIG_FILES}"
 
   # Edit the warp10-tokengen.mc2 to use or not the secret
-  secret=`su ${WARP10_USER} -c "${JAVACMD} -cp ${WARP10_CP} -Dlog4j.configuration=file:${LOG4J_CONF} -Dfile.encoding=UTF-8 io.warp10.WarpConfig ${CONFIG_FILES} . 'token.secret' | grep -e '^@CONF@ ' | sed -e 's/^@CONF@ //' | grep 'token.secret' | sed -e 's/^.*=//'"`
+  secret=`su ${WARP10_USER} -c "${JAVACMD} -cp ${WARP10_JAR} -Dlog4j.configuration=file:${LOG4J_CONF} -Dfile.encoding=UTF-8 io.warp10.WarpConfig ${CONFIG_FILES} . 'token.secret' | grep -e '^@CONF@ ' | sed -e 's/^@CONF@ //' | grep 'token.secret' | sed -e 's/^.*=//'"`
   if [[ "${secret}"  != "null" ]]; then
     sed -i${SED_SUFFIX} -e "s|^{{secret}}|'"${secret}"'|" ${WARP10_HOME}/templates/warp10-tokengen.mc2
   else
@@ -366,7 +366,7 @@ bootstrap() {
   rm ${WARP10_HOME}/templates/warp10-tokengen.mc2${SED_SUFFIX}
 
   # Generate read/write tokens valid for a period of 100 years. We use 'io.warp10.bootstrap' as application name.
-  su ${WARP10_USER} -c "${JAVACMD} -cp ${WARP10_JAR} -Dlog4j.configuration=file:${LOG4J_CONF} -Dfile.encoding=UTF-8 io.warp10.worf.TokenGen ${CONFIG_FILES} ${WARP10_HOME}/templates/warp10-tokengen.mc2 ${WARP10_HOME}/etc/initial.tokens"
+  su ${WARP10_USER} -c "${JAVACMD} -cp ${WARP10_JAR} -Dlog4j.configuration=file:${LOG4J_CONF} -Dfile.encoding=UTF-8 io.warp10.TokenGen ${CONFIG_FILES} ${WARP10_HOME}/templates/warp10-tokengen.mc2" >  ${WARP10_HOME}/etc/initial.tokens
   sed -i${SED_SUFFIX} 's/^.\{1\}//;$ s/.$//' ${WARP10_HOME}/etc/initial.tokens # Remove first and last character
   rm "${WARP10_HOME}/etc/initial.tokens${SED_SUFFIX}"
 
@@ -546,32 +546,18 @@ snapshot() {
   fi
 }
 
-worf() {
-
-  #
-  # Make sure the caller is WARP10_USER
-  #
-  isUser ${WARP10_USER}
-
-  if [ "$#" -ne 3 ]; then
-    echo "Usage: $0 $1 appName ttl(ms)"
-    exit 1
-  fi
-  ${JAVACMD} -cp ${WARP10_JAR} -Dfile.encoding=UTF-8 io.warp10.worf.Worf ${WARP10_SECRETS} -puidg -t -a $2 -ttl $3
-}
-
 tokengen() {
   if [ "$#" -ne 2 ]; then
     echo "Usage: $0 tokengen envelope.mc2"
     exit 1
   fi
   getConfigFiles
-  ${JAVACMD} -cp ${WARP10_JAR} -Dlog4j.configuration=file:${LOG4J_CONF} -Dfile.encoding=UTF-8 io.warp10.worf.TokenGen ${CONFIG_FILES} $2 -
+  ${JAVACMD} -cp ${WARP10_CP} -Dlog4j.configuration=file:${LOG4J_CONF} -Dfile.encoding=UTF-8 io.warp10.TokenGen ${CONFIG_FILES} $2
 }
 
 run() {
   getConfigFiles
-  ${JAVACMD} -cp ${WARP10_JAR} -Dlog4j.configuration=file:${LOG4J_CONF} -Dfile.encoding=UTF-8 -Dwarp10.config="${CONFIG_FILES}" io.warp10.WarpRun $2
+  ${JAVACMD} -cp ${WARP10_CP} -Dlog4j.configuration=file:${LOG4J_CONF} -Dfile.encoding=UTF-8 -Dwarp10.config="${CONFIG_FILES}" io.warp10.WarpRun $2
 }
 
 repair() {
@@ -621,12 +607,6 @@ case "${1:-}" in
   echo "## WARNING: JMX is enabled on port ${JMX_PORT}"
   start
   ;;
-  worfcli)
-  worfcli
-  ;;
-  worf)
-  worf "$@"
-  ;;
   tokengen)
   tokengen "$@"
   ;;
@@ -640,7 +620,7 @@ case "${1:-}" in
   repair
   ;;
   *)
-  echo $"Usage: $0 {bootstrap|start|jmxstart|stop|status|worf appName ttl(ms)|snapshot 'snapshot_name'|tokengen envelope.mc2|repair|restart|jmxrestart|run file.mc2}"
+  echo $"Usage: $0 {bootstrap|start|jmxstart|stop|status|snapshot 'snapshot_name'|tokengen envelope.mc2|repair|restart|jmxrestart|run file.mc2}"
   exit 2
 esac
 

@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-#   Copyright 2018-2021  SenX S.A.S.
+#   Copyright 2018-2022  SenX S.A.S.
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -47,7 +47,7 @@ mkdir -p ${WARP10_HOME}/lib
 mkdir -p ${WARP10_HOME}/logs
 mkdir -p ${WARP10_HOME}/macros
 mkdir -p ${WARP10_HOME}/templates
-mkdir -p ${WARP10_HOME}/warpscripts/test/60000
+mkdir -p ${WARP10_HOME}/runners/test/60000
 
 
 cd ${ARCHIVE}
@@ -61,7 +61,7 @@ sed -e "s/@VERSION@/${VERSION}/g" ../src/main/sh/warp10-standalone.sh >> ${WARP1
 cp ../../etc/bootstrap/*.mc2 ${WARP10_HOME}/etc/bootstrap
 cp ../../etc/install/README.md ${WARP10_HOME}
 cp ../../CHANGELOG.md ${WARP10_HOME}
-cp ../../etc/warpscripts/*.mc2* ${WARP10_HOME}/warpscripts/test/60000
+cp ../../etc/runners/*.mc2* ${WARP10_HOME}/runners/test/60000
 cp ../../etc/calls/*.sh ${WARP10_HOME}/calls
 cp ../../etc/calls/*.py ${WARP10_HOME}/calls
 cp ../../etc/macros/* ${WARP10_HOME}/macros
