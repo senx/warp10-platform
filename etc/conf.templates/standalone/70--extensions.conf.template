@@ -68,7 +68,7 @@
 #shm.ttl = 3600000
 // Maximum time (in ms) to wait for a mutex. Use 0 (the default) to wait indefinitely.
 // This value can be modified via the capability mutex.maxwait
-mutex.maxwait = 10000
+#mutex.maxwait = 10000
 
 
 // TOKENDUMP, TOKENGEN, TOKENSECRET
