@@ -52,7 +52,7 @@ public class MUTEX extends NamedWarpScriptFunction implements WarpScriptStackFun
 
     String mutex = String.valueOf(top);
 
-    if(null != stack.getAttribute(MUTEX_ATTRIBUTE + stack.getUUID()) && mutex != stack.getAttribute(MUTEX_ATTRIBUTE + stack.getUUID())) {
+    if(null != stack.getAttribute(MUTEX_ATTRIBUTE + stack.getUUID()) && !mutex.equals(stack.getAttribute(MUTEX_ATTRIBUTE + stack.getUUID()))) {
       throw new WarpScriptException(getName() + " calls can only be nested with the same mutex.");
     }
 
