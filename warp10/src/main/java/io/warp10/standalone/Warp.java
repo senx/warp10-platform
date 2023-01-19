@@ -69,6 +69,7 @@ import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OSSKeyStore;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.crypto.UnsecureKeyStore;
+import io.warp10.fdb.FDBContext;
 import io.warp10.script.ScriptRunner;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.sensision.Sensision;
@@ -214,58 +215,75 @@ public class Warp extends WarpDist implements Runnable {
     // Initialize levelDB
     //
 
-    Options options = new Options();
+    boolean useLevelDB = false;
+    boolean useFDB = false;
 
-    options.createIfMissing("true".equals(properties.getProperty(Configuration.LEVELDB_CREATE_IF_MISSING)));
-
-    options.errorIfExists("true".equals(properties.getProperty(Configuration.LEVELDB_ERROR_IF_EXISTS)));
-
-    if (properties.containsKey(Configuration.LEVELDB_MAXOPENFILES)) {
-      int maxOpenFiles = Integer.parseInt(properties.getProperty(Configuration.LEVELDB_MAXOPENFILES));
-      options.maxOpenFiles(maxOpenFiles);
+    if (null != properties.getProperty(Configuration.LEVELDB_HOME)) {
+      useLevelDB = true;
     }
 
-    if (null != properties.getProperty(Configuration.LEVELDB_CACHE_SIZE)) {
-      options.cacheSize(Long.parseLong(properties.getProperty(Configuration.LEVELDB_CACHE_SIZE)));
-    }
-
-    if (null != properties.getProperty(Configuration.LEVELDB_WRITEBUFFER_SIZE)) {
-      options.writeBufferSize(Integer.parseInt(properties.getProperty(Configuration.LEVELDB_WRITEBUFFER_SIZE)));
-    }
-
-    if (null != properties.getProperty(Configuration.LEVELDB_COMPRESSION_TYPE)) {
-      if ("snappy".equalsIgnoreCase(properties.getProperty(Configuration.LEVELDB_COMPRESSION_TYPE))) {
-        options.compressionType(CompressionType.SNAPPY);
-      } else {
-        options.compressionType(CompressionType.NONE);
+    if (null != properties.getProperty(Configuration.FDB_CLUSTERFILE)) {
+      if (useLevelDB) {
+        throw new RuntimeException("Cannot define both '" + Configuration.LEVELDB_HOME + "' and '" + Configuration.FDB_CLUSTERFILE + "'.");
       }
+      useFDB = true;
     }
 
-    if (null != properties.getProperty(Configuration.LEVELDB_BLOCK_SIZE)) {
-      options.blockSize(Integer.parseInt(properties.getProperty(Configuration.LEVELDB_BLOCK_SIZE)));
-    }
+    Options options = null;
 
-    if (null != properties.getProperty(Configuration.LEVELDB_BLOCK_RESTART_INTERVAL)) {
-      options.blockRestartInterval(Integer.parseInt(properties.getProperty(Configuration.LEVELDB_BLOCK_RESTART_INTERVAL)));
-    }
+    if (useLevelDB) {
+      options = new Options();
+      options.createIfMissing("true".equals(properties.getProperty(Configuration.LEVELDB_CREATE_IF_MISSING)));
 
-    if (null != properties.getProperty(Configuration.LEVELDB_VERIFY_CHECKSUMS)) {
-      options.verifyChecksums("true".equals(properties.getProperty(Configuration.LEVELDB_VERIFY_CHECKSUMS)));
-    }
+      options.errorIfExists("true".equals(properties.getProperty(Configuration.LEVELDB_ERROR_IF_EXISTS)));
 
-    if (null != properties.getProperty(Configuration.LEVELDB_PARANOID_CHECKS)) {
-      options.paranoidChecks("true".equals(properties.getProperty(Configuration.LEVELDB_PARANOID_CHECKS)));
-    }
+      if (properties.containsKey(Configuration.LEVELDB_MAXOPENFILES)) {
+        int maxOpenFiles = Integer.parseInt(properties.getProperty(Configuration.LEVELDB_MAXOPENFILES));
+        options.maxOpenFiles(maxOpenFiles);
+      }
 
-    //
-    // Attempt to load JNI library, fallback to pure java in case of error
-    //
+      if (null != properties.getProperty(Configuration.LEVELDB_CACHE_SIZE)) {
+        options.cacheSize(Long.parseLong(properties.getProperty(Configuration.LEVELDB_CACHE_SIZE)));
+      }
 
-    if (!inmemory && !nullbackend && !plasmabackend) {
-      boolean nativedisabled = "true".equals(properties.getProperty(Configuration.LEVELDB_NATIVE_DISABLE));
-      boolean javadisabled = "true".equals(properties.getProperty(Configuration.LEVELDB_JAVA_DISABLE));
-      String home = properties.getProperty(Configuration.LEVELDB_HOME);
-      db = new WarpDB(nativedisabled, javadisabled, home, options);
+      if (null != properties.getProperty(Configuration.LEVELDB_WRITEBUFFER_SIZE)) {
+        options.writeBufferSize(Integer.parseInt(properties.getProperty(Configuration.LEVELDB_WRITEBUFFER_SIZE)));
+      }
+
+      if (null != properties.getProperty(Configuration.LEVELDB_COMPRESSION_TYPE)) {
+        if ("snappy".equalsIgnoreCase(properties.getProperty(Configuration.LEVELDB_COMPRESSION_TYPE))) {
+          options.compressionType(CompressionType.SNAPPY);
+        } else {
+          options.compressionType(CompressionType.NONE);
+        }
+      }
+
+      if (null != properties.getProperty(Configuration.LEVELDB_BLOCK_SIZE)) {
+        options.blockSize(Integer.parseInt(properties.getProperty(Configuration.LEVELDB_BLOCK_SIZE)));
+      }
+
+      if (null != properties.getProperty(Configuration.LEVELDB_BLOCK_RESTART_INTERVAL)) {
+        options.blockRestartInterval(Integer.parseInt(properties.getProperty(Configuration.LEVELDB_BLOCK_RESTART_INTERVAL)));
+      }
+
+      if (null != properties.getProperty(Configuration.LEVELDB_VERIFY_CHECKSUMS)) {
+        options.verifyChecksums("true".equals(properties.getProperty(Configuration.LEVELDB_VERIFY_CHECKSUMS)));
+      }
+
+      if (null != properties.getProperty(Configuration.LEVELDB_PARANOID_CHECKS)) {
+        options.paranoidChecks("true".equals(properties.getProperty(Configuration.LEVELDB_PARANOID_CHECKS)));
+      }
+
+      //
+      // Attempt to load JNI library, fallback to pure java in case of error
+      //
+
+      if (!inmemory && !nullbackend && !plasmabackend) {
+        boolean nativedisabled = "true".equals(properties.getProperty(Configuration.LEVELDB_NATIVE_DISABLE));
+        boolean javadisabled = "true".equals(properties.getProperty(Configuration.LEVELDB_JAVA_DISABLE));
+        String home = properties.getProperty(Configuration.LEVELDB_HOME);
+        db = new WarpDB(nativedisabled, javadisabled, home, options);
+      }
     }
 
     // Register shutdown hook to close the DB.
@@ -381,9 +399,15 @@ public class Warp extends WarpDist implements Runnable {
       sdc = new NullDirectoryClient(keystore);
       scc = new NullStoreClient();
     } else {
-      ## Initialize FDB context
-      sdc = new StandaloneDirectoryClient(db, keystore);
-      scc = new StandaloneStoreClient(db, keystore, properties);
+      if (useLevelDB) {
+        sdc = new StandaloneDirectoryClient(db, keystore);
+        scc = new StandaloneStoreClient(db, keystore, properties);
+      } else if (useFDB) {
+        FDBContext fdbContext = new FDBContext(properties.getProperty(Configuration.DIRECTORY_FDB_CLUSTERFILE), properties.getProperty(Configuration.DIRECTORY_FDB_TENANT));
+        sdc = new StandaloneDirectoryClient(fdbContext, keystore);
+        fdbContext = new FDBContext(properties.getProperty(Configuration.STORE_FDB_CLUSTERFILE), properties.getProperty(Configuration.STORE_FDB_TENANT));
+        scc = new StandaloneStoreClient(fdbContext, keystore, properties);
+      }
 
       if (accelerator) {
         scc = new StandaloneAcceleratedStoreClient(sdc, scc);
