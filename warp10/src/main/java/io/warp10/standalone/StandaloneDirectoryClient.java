@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -62,6 +62,9 @@ import org.iq80.leveldb.WriteOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.apple.foundationdb.Database;
+import com.apple.foundationdb.StreamingMode;
+import com.apple.foundationdb.Transaction;
 import com.google.common.collect.MapMaker;
 
 import io.warp10.BytesUtils;
@@ -83,6 +86,14 @@ import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.SipHashInline;
+import io.warp10.fdb.FDBClear;
+import io.warp10.fdb.FDBContext;
+import io.warp10.fdb.FDBKVScanner;
+import io.warp10.fdb.FDBKeyValue;
+import io.warp10.fdb.FDBMutation;
+import io.warp10.fdb.FDBScan;
+import io.warp10.fdb.FDBSet;
+import io.warp10.fdb.FDBUtils;
 import io.warp10.sensision.Sensision;
 
 public class StandaloneDirectoryClient implements DirectoryClient {
@@ -94,6 +105,15 @@ public class StandaloneDirectoryClient implements DirectoryClient {
   private static final byte[] METADATA_PREFIX = "M".getBytes(StandardCharsets.US_ASCII);
 
   private static final int MAX_BATCH_SIZE = 500000;
+
+  //
+  // FoundationDB related fields
+  //
+
+  private final FDBContext fdbContext;
+
+  private Database fdb;
+  private final boolean useFDB;
 
   private final DB db;
   private final KeyStore keystore;
@@ -151,7 +171,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     public boolean exclude(long classId, long labelsId);
   }
 
-  public StandaloneDirectoryClient(DB db, final KeyStore keystore) {
+  public StandaloneDirectoryClient(Object db, final KeyStore keystore) {
 
     String classMaxCardinalityProp = WarpConfig.getProperty(Configuration.DIRECTORY_STATS_CLASS_MAXCARDINALITY);
     if (null != classMaxCardinalityProp) {
@@ -167,7 +187,22 @@ public class StandaloneDirectoryClient implements DirectoryClient {
 
     this.initNThreads = Integer.parseInt(WarpConfig.getProperty(Configuration.DIRECTORY_INIT_NTHREADS, DIRECTORY_INIT_NTHREADS_DEFAULT));
 
-    this.db = db;
+    if (db instanceof DB) {
+      this.db = (DB) db;
+      this.fdbContext = null;
+      this.useFDB = false;
+    } else if (db instanceof FDBContext) {
+      this.db = null;
+      this.fdbContext = (FDBContext) db;
+      this.useFDB = true;
+    } else if (null == db) {
+      this.db = null;
+      this.fdbContext = null;
+      this.useFDB = false;
+    } else {
+      throw new RuntimeException("Invalid DB specification.");
+    }
+
     this.keystore = keystore;
 
     this.aesKey = this.keystore.getKey(KeyStore.AES_LEVELDB_METADATA);
@@ -184,18 +219,33 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     // Read metadata from DB
     //
 
-    if (null == db) {
+    if (null == this.db && null == this.fdbContext) {
       return;
     }
 
-    DBIterator iter = db.iterator();
+    Iterator iter = null;
 
-    iter.seek(METADATA_PREFIX);
+    if (null != this.db) {
+      DBIterator dbiter = this.db.iterator();
+      dbiter.seek(METADATA_PREFIX);
+      iter = dbiter;
+    } else {
+      this.fdb = this.fdbContext.getDatabase();
+      FDBScan scan = new FDBScan();
+      try {
+        scan.setTenantPrefix(fdbContext.getTenantPrefix());
+        scan.setStartKey(Constants.FDB_METADATA_KEY_PREFIX);
+        scan.setEndKey(FDBUtils.getNextKey(Constants.FDB_METADATA_KEY_PREFIX));
+        scan.setReverse(false);
+        iter = scan.getScanner(fdbContext, this.fdb, StreamingMode.WANT_ALL);
+      } catch (IOException ioe) {
+        throw new RuntimeException("Error while initializing FDB scanner.");
+      }
+    }
 
     byte[] stop = "N".getBytes(StandardCharsets.US_ASCII);
 
     long count = 0;
-
 
     Thread[] initThreads = new Thread[this.initNThreads];
     final AtomicBoolean[] stopMarkers = new AtomicBoolean[this.initNThreads];
@@ -346,7 +396,14 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       long nano = System.nanoTime();
 
       while(iter.hasNext()) {
-        Entry<byte[],byte[]> kv = iter.next();
+        Entry<byte[],byte[]> kv = null;
+
+        if (!this.useFDB) {
+          kv = (Entry<byte[], byte[]>) iter.next();
+        } else {
+          kv = ((FDBKVScanner) iter).next();
+        }
+
         byte[] key = kv.getKey();
         if (BytesUtils.compareTo(key, stop) >= 0) {
           break;
@@ -390,7 +447,11 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     } finally {
       Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, count);
       try {
-        iter.close();
+        if (this.useFDB) {
+          ((FDBKVScanner) iter).close();
+        } else {
+          ((DBIterator) iter).close();
+        }
       } catch (IOException ioe) {
         throw new RuntimeException(ioe);
       }
@@ -744,7 +805,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     // Remove entry from DB if need be
     //
 
-    if (null == this.db) {
+    if (null == this.db && null == this.fdb) {
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, -1);
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS_PERAPP, sensisionLabels, -1);
       return;
@@ -756,7 +817,23 @@ public class StandaloneDirectoryClient implements DirectoryClient {
 
     GTSHelper.fillGTSIds(bytes, METADATA_PREFIX.length, classId, labelsId);
 
-    this.db.delete(bytes);
+    if (useFDB) {
+      Transaction txn = null;
+      try {
+        txn = this.fdb.createTransaction();
+        FDBMutation delete = new FDBClear(this.fdbContext.getTenantPrefix(), bytes);
+        delete.apply(txn);
+        txn.commit().get();
+      } catch (InterruptedException|ExecutionException e) {
+        throw new RuntimeException("Errir while deleting FDB entry.");
+      } finally {
+        if (null != txn) {
+          txn.close();
+        }
+      }
+    } else {
+      this.db.delete(bytes);
+    }
 
     Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, -1);
     Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS_PERAPP, sensisionLabels, -1);
@@ -768,6 +845,12 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     };
   };
 
+  private ThreadLocal<List<FDBMutation>> perThreadMutations = new ThreadLocal<List<FDBMutation>>() {
+    protected List<FDBMutation> initialValue() {
+      return new ArrayList<FDBMutation>();
+    };
+  };
+
   private ThreadLocal<AtomicLong> perThreadWriteBatchSize = new ThreadLocal<AtomicLong>() {
     protected AtomicLong initialValue() {
       return new AtomicLong(0L);
@@ -776,11 +859,18 @@ public class StandaloneDirectoryClient implements DirectoryClient {
 
   private void store(byte[] key, byte[] value) throws IOException {
 
-    if (null == this.db) {
+    if (null == this.db && null == this.fdb) {
       return;
     }
 
-    WriteBatch batch = perThreadWriteBatch.get();
+    WriteBatch batch = null;
+    List<FDBMutation> mutations = null;
+
+    if (null != this.db) {
+      batch = perThreadWriteBatch.get();
+    } else {
+      mutations = perThreadMutations.get();
+    }
 
     AtomicLong size = perThreadWriteBatchSize.get();
 
@@ -790,24 +880,50 @@ public class StandaloneDirectoryClient implements DirectoryClient {
 
     try {
       if (null != key && null != value) {
-        batch.put(key, value);
-        size.addAndGet(key.length + value.length);
+        if (null != batch) {
+          batch.put(key, value);
+          size.addAndGet(key.length + value.length);
+        } else {
+          FDBMutation mutation = new FDBSet(fdbContext.getTenantPrefix(), key, value);
+          mutations.add(mutation);
+          size.addAndGet(mutation.size());
+        }
       }
 
       if (null == key || null == value || size.get() > MAX_BATCH_SIZE) {
-
         if (syncwrites && !options.sync()) {
           options = new WriteOptions().sync(Math.random() < syncrate);
         }
 
-        this.db.write(batch, options);
-        size.set(0L);
-        perThreadWriteBatch.remove();
+        if (null != this.db) {
+          this.db.write(batch, options);
+          size.set(0L);
+          perThreadWriteBatch.remove();
+        } else {
+          Transaction tx = this.fdb.createTransaction();
+          try {
+            for (FDBMutation mutation: mutations) {
+              mutation.apply(tx);
+            }
+            tx.commit().get();
+            size.set(0L);
+          } catch (InterruptedException|ExecutionException e) {
+            throw new IOException("Error while storing FDB entries.");
+          } finally {
+            if (null != tx) {
+              tx.close();
+            }
+          }
+        }
         written = true;
       }
     } finally {
       if (written) {
-        batch.close();
+        if (null != batch) {
+          batch.close();
+        } else if (null != mutations) {
+          mutations.clear();
+        }
       }
     }
   }
@@ -882,7 +998,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
 
     try {
-      if (null != this.db) {
+      if (null != this.db || null != this.fdb) {
         byte[] serialized = serializer.serialize(metadata);
         if (null != this.aesKey) {
           serialized = CryptoUtils.wrap(this.aesKey, serialized);

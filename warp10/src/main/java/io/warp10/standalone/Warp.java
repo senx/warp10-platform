@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -69,7 +69,6 @@ import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OSSKeyStore;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.crypto.UnsecureKeyStore;
-import io.warp10.quasar.filter.QuasarTokenFilter;
 import io.warp10.script.ScriptRunner;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.sensision.Sensision;
@@ -382,6 +381,7 @@ public class Warp extends WarpDist implements Runnable {
       sdc = new NullDirectoryClient(keystore);
       scc = new NullStoreClient();
     } else {
+      ## Initialize FDB context
       sdc = new StandaloneDirectoryClient(db, keystore);
       scc = new StandaloneStoreClient(db, keystore, properties);
 
