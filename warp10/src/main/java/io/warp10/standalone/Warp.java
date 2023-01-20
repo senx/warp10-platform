@@ -222,9 +222,9 @@ public class Warp extends WarpDist implements Runnable {
       useLevelDB = true;
     }
 
-    if (null != properties.getProperty(Configuration.FDB_CLUSTERFILE)) {
+    if (null != properties.getProperty(Configuration.STORE_FDB_CLUSTERFILE)) {
       if (useLevelDB) {
-        throw new RuntimeException("Cannot define both '" + Configuration.LEVELDB_HOME + "' and '" + Configuration.FDB_CLUSTERFILE + "'.");
+        throw new RuntimeException("Cannot define both '" + Configuration.LEVELDB_HOME + "' and '" + Configuration.STORE_FDB_CLUSTERFILE + "'.");
       }
       useFDB = true;
     }
@@ -405,8 +405,7 @@ public class Warp extends WarpDist implements Runnable {
       } else if (useFDB) {
         FDBContext fdbContext = new FDBContext(properties.getProperty(Configuration.DIRECTORY_FDB_CLUSTERFILE), properties.getProperty(Configuration.DIRECTORY_FDB_TENANT));
         sdc = new StandaloneDirectoryClient(fdbContext, keystore);
-        fdbContext = new FDBContext(properties.getProperty(Configuration.STORE_FDB_CLUSTERFILE), properties.getProperty(Configuration.STORE_FDB_TENANT));
-        scc = new StandaloneStoreClient(fdbContext, keystore, properties);
+        scc = new StandaloneFDBStoreClient(keystore, properties);
       }
 
       if (accelerator) {
