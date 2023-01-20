@@ -63,6 +63,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.apple.foundationdb.Database;
+import com.apple.foundationdb.FDBException;
 import com.apple.foundationdb.StreamingMode;
 import com.apple.foundationdb.Transaction;
 import com.google.common.collect.MapMaker;
@@ -111,6 +112,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
   //
 
   private final FDBContext fdbContext;
+  private final long fdbRetryLimit;
 
   private Database fdb;
   private final boolean useFDB;
@@ -190,14 +192,17 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     if (db instanceof DB) {
       this.db = (DB) db;
       this.fdbContext = null;
+      this.fdbRetryLimit = 0L;
       this.useFDB = false;
     } else if (db instanceof FDBContext) {
       this.db = null;
       this.fdbContext = (FDBContext) db;
+      this.fdbRetryLimit = Long.parseLong(WarpConfig.getProperty(io.warp10.continuum.Configuration.DIRECTORY_FDB_RETRYLIMIT, Directory.DEFAULT_FDB_RETRYLIMIT));
       this.useFDB = true;
     } else if (null == db) {
       this.db = null;
       this.fdbContext = null;
+      this.fdbRetryLimit = 0L;
       this.useFDB = false;
     } else {
       throw new RuntimeException("Invalid DB specification.");
@@ -818,19 +823,34 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     GTSHelper.fillGTSIds(bytes, METADATA_PREFIX.length, classId, labelsId);
 
     if (useFDB) {
+      boolean retry = false;
+      long retries = fdbRetryLimit;
+
       Transaction txn = null;
-      try {
-        txn = this.fdb.createTransaction();
-        FDBMutation delete = new FDBClear(this.fdbContext.getTenantPrefix(), bytes);
-        delete.apply(txn);
-        txn.commit().get();
-      } catch (InterruptedException|ExecutionException e) {
-        throw new RuntimeException("Errir while deleting FDB entry.");
-      } finally {
-        if (null != txn) {
-          txn.close();
+
+      do {
+        try {
+          retry = false;
+          txn = this.fdb.createTransaction();
+          // Allow RAW access because we may manually force a tenant key prefix without actually setting a tenant
+          txn.options().setRawAccess();
+
+          FDBMutation delete = new FDBClear(this.fdbContext.getTenantPrefix(), bytes);
+          delete.apply(txn);
+          txn.commit().get();
+        } catch (Throwable t) {
+          FDBUtils.errorMetrics("directory", t.getCause());
+          if (t.getCause() instanceof FDBException && ((FDBException) t.getCause()).isRetryable() && retries-- > 0) {
+            retry = true;
+          } else {
+            throw new RuntimeException("Error while commiting to FoundationDB.", t);
+          }
+        } finally {
+          if (null != txn) {
+            txn.close();
+          }
         }
-      }
+      } while(retry);
     } else {
       this.db.delete(bytes);
     }
@@ -900,20 +920,36 @@ public class StandaloneDirectoryClient implements DirectoryClient {
           size.set(0L);
           perThreadWriteBatch.remove();
         } else {
-          Transaction tx = this.fdb.createTransaction();
-          try {
-            for (FDBMutation mutation: mutations) {
-              mutation.apply(tx);
+          boolean retry = false;
+          long retries = fdbRetryLimit;
+
+          Transaction txn = null;
+
+          do {
+            try {
+              retry = false;
+              txn = this.fdb.createTransaction();
+              // Allow RAW access because we may manually force a tenant key prefix without actually setting a tenant
+              txn.options().setRawAccess();
+
+              for (FDBMutation mutation: mutations) {
+                mutation.apply(txn);
+              }
+              txn.commit().get();
+              size.set(0L);
+            } catch (Throwable t) {
+              FDBUtils.errorMetrics("directory", t.getCause());
+              if (t.getCause() instanceof FDBException && ((FDBException) t.getCause()).isRetryable() && retries-- > 0) {
+                retry = true;
+              } else {
+                throw new RuntimeException("Error while commiting to FoundationDB.", t);
+              }
+            } finally {
+              if (null != txn) {
+                txn.close();
+              }
             }
-            tx.commit().get();
-            size.set(0L);
-          } catch (InterruptedException|ExecutionException e) {
-            throw new IOException("Error while storing FDB entries.");
-          } finally {
-            if (null != tx) {
-              tx.close();
-            }
-          }
+          } while(retry);
         }
         written = true;
       }
