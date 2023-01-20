@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2023  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -34,8 +34,6 @@ import org.iq80.leveldb.ReadOptions;
 import org.iq80.leveldb.WriteBatch;
 import org.iq80.leveldb.WriteOptions;
 
-import com.apple.foundationdb.Database;
-
 import io.warp10.BytesUtils;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.Tokens;
@@ -50,7 +48,6 @@ import io.warp10.continuum.store.StoreClient;
 import io.warp10.continuum.store.thrift.data.FetchRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.KeyStore;
-import io.warp10.fdb.FDBContext;
 import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.sensision.Sensision;
@@ -73,9 +70,6 @@ public class StandaloneStoreClient implements StoreClient {
   private final boolean DELETE_VERIFYCHECKSUMS;
   private static final boolean DEFAULT_DELETE_VERIFYCHECKSUMS = true;
 
-  private final FDBContext fdbContext;
-  private final Database fdb;
-
   private final WarpDB db;
   private final KeyStore keystore;
 
@@ -86,22 +80,8 @@ public class StandaloneStoreClient implements StoreClient {
   private final double syncrate;
   private final int blockcacheThreshold;
 
-  public StandaloneStoreClient(Object db, KeyStore keystore, Properties properties) {
-
-    if (db instanceof WarpDB) {
-      this.db = (WarpDB) db;
-      this.fdbContext = null;
-      this.fdb = null;
-    } else if (db instanceof FDBContext) {
-      this.db = null;
-      this.fdbContext = (FDBContext) db;
-      this.fdb = this.fdbContext.getDatabase();
-    } else {
-      this.db = null;
-      this.fdbContext = null;
-      this.fdb = null;
-    }
-
+  public StandaloneStoreClient(WarpDB db, KeyStore keystore, Properties properties) {
+    this.db = db;
     this.keystore = keystore;
     this.plasmaHandlers = new ArrayList<StandalonePlasmaHandlerInterface>();
     this.blockcacheThreshold = Integer.parseInt(properties.getProperty(Configuration.LEVELDB_BLOCKCACHE_GTS_THRESHOLD, "0"));
@@ -676,22 +656,9 @@ public class StandaloneStoreClient implements StoreClient {
     GTSDecoder decoder = encoder.getDecoder();
 
     List<byte[][]> kvs = new ArrayList<byte[][]>();
-    byte[] tenant = null;
-    int tenantsize = 0;
-
-    ## Use FDB Prefix ->
-    if (null != this.fdbContext) {
-      tenant = this.fdbContext.getTenantPrefix();
-      if (null != tenant) {
-        tenantsize = tenant.length;
-      }
-    }
 
     while(decoder.next()) {
-      ByteBuffer bb = ByteBuffer.wrap(new byte[tenantsize + Constants.FDB_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8]).order(ByteOrder.BIG_ENDIAN);
-      if (tenantsize > 0) {
-        bb.put(tenant);
-      }
+      ByteBuffer bb = ByteBuffer.wrap(new byte[Constants.FDB_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8]).order(ByteOrder.BIG_ENDIAN);
       bb.put(Constants.FDB_RAW_DATA_KEY_PREFIX);
       bb.putLong(encoder.getClassId());
       bb.putLong(encoder.getLabelsId());
