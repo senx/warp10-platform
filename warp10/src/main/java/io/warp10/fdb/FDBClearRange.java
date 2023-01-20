@@ -26,6 +26,10 @@ public class FDBClearRange implements FDBMutation {
   private final byte[] startKey;
   private final byte[] endKey;
 
+  /**
+   * Create a clear range mutation which will clear from startKey (inclusive) to
+   * endKey (exclusive)
+   */
   public FDBClearRange(byte[] tenant, byte[] startKey, byte[] endKey) {
     this.tenant = tenant;
     this.startKey = startKey;
