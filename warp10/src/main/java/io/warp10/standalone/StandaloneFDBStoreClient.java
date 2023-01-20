@@ -76,6 +76,16 @@ public class StandaloneFDBStoreClient extends FDBStoreClient {
   public StandaloneFDBStoreClient(KeyStore keystore, Properties properties) throws IOException {
     super(keystore, properties);
 
+    // Check that STORE_FDB_CLUSTERFILE and EGRESS_CLUSTER_FILE are identical
+    if (!String.valueOf(properties.getProperty(Configuration.STORE_FDB_CLUSTERFILE)).equals(properties.getProperty(Configuration.EGRESS_FDB_CLUSTERFILE))) {
+      throw new IOException("Invalid configuration, '" + Configuration.STORE_FDB_CLUSTERFILE + "' and '" + Configuration.EGRESS_FDB_CLUSTERFILE + "' must have identical values.");
+    }
+
+    // Check that tenants are also identical
+    if (!String.valueOf(properties.getProperty(Configuration.STORE_FDB_TENANT)).equals(properties.getProperty(Configuration.EGRESS_FDB_TENANT))) {
+      throw new IOException("Invalid configuration, '" + Configuration.STORE_FDB_TENANT + "' and '" + Configuration.EGRESS_FDB_TENANT + "' must have identical values.");
+    }
+
     this.fdbContext = FDBUtils.getContext(properties.getProperty(Configuration.STORE_FDB_CLUSTERFILE), properties.getProperty(Configuration.STORE_FDB_TENANT));
     // TODO(hbs): implement a pool for writing?
     this.fdb = fdbContext.getDatabase();
