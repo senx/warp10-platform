@@ -83,7 +83,7 @@ public class Store extends Thread {
 
   private static final Logger LOG = LoggerFactory.getLogger(Store.class);
 
-  private static final String DEFAULT_FDB_RETRYLIMIT = Long.toString(4);
+  public static final String DEFAULT_FDB_RETRYLIMIT = Long.toString(4);
 
   private static RateLimiter rateLimit = null;
 
