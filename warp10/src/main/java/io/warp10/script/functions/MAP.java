@@ -42,7 +42,6 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
   private static final String PARAM_OCCURRENCES = "occurrences";
   private static final String PARAM_STEP = "step";
   private static final String PARAM_OVERRIDE = "override";
-  private static final String PARAM_OUTPUTTICKS = "ticks";
 
   public MAP(String name) {
     super(name);
@@ -92,7 +91,7 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
     }
 
     if (!(params.get(nseries + 3) instanceof Long) && !(params.get(nseries + 3) instanceof List)) {
-      throw new WarpScriptException(getName() + " expects occurrences or a LIST of output ticks as the parameter following the postwindow parameter.");
+      throw new WarpScriptException(getName() + " expects occurrences (LONG or LIST of LONG) as the parameter following the postwindow parameter.");
     }
 
     int step = 1;
@@ -131,11 +130,7 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
     mapParams.put(PARAM_MAPPER, params.get(nseries));
     mapParams.put(PARAM_PREWINDOW, params.get(nseries + 1));
     mapParams.put(PARAM_POSTWINDOW, params.get(nseries + 2));
-    if (params.get(nseries + 3) instanceof Long) {
-      mapParams.put(PARAM_OCCURRENCES, params.get(nseries + 3));
-    } else {
-      mapParams.put(PARAM_OUTPUTTICKS, params.get(nseries + 3));
-    }
+    mapParams.put(PARAM_OCCURRENCES, params.get(nseries + 3));
     mapParams.put(PARAM_STEP, (long) step);
     mapParams.put(PARAM_OVERRIDE, overrideTick);
 
@@ -174,18 +169,63 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
       throw new WarpScriptException(getName() + " expects the " + PARAM_POSTWINDOW + " parameter to be a LONG.");
     }
 
+    List<Long> outputTicks = null;
+    boolean reversed = false;
+
     Object occurrencesParam = params.get(PARAM_OCCURRENCES);
     if (occurrencesParam instanceof Long) {
       occurrences = ((Long) occurrencesParam).longValue();
-    } else if (params.containsKey(PARAM_OCCURRENCES)) {
-      throw new WarpScriptException(getName() + " expects the " + PARAM_OCCURRENCES + " parameter to be a LONG.");
-    }
 
-    // Make sure Math.abs(occurrences) will return a positive value.
-    if (Long.MIN_VALUE == occurrences) {
-      occurrences = Long.MIN_VALUE + 1;
+      // Make sure Math.abs(occurrences) will return a positive value.
+      if (Long.MIN_VALUE == occurrences) {
+        occurrences = Long.MIN_VALUE + 1;
+      }
+
+      reversed = occurrences < 0;
+
+    } else if (occurrencesParam instanceof List) {
+      outputTicks = (List) occurrencesParam;
+
+      for (Object tick: outputTicks) {
+        if (!(tick instanceof Long)) {
+          throw new WarpScriptException(getName() + " expects the " + PARAM_OCCURRENCES + " parameter to be a LONG or a sorted LIST of LONG.");
+        }
+      }
+
+      // check that the list is sorted and find its order
+      // In case of a concurrent execution, sorting outputTicks here would lead to a ConcurrentModificationException
+      if (outputTicks.size() > 1) {
+
+        // we check if it is sorted and increasing
+        int i = 1;
+        long lastElt = outputTicks.get(0);
+        long elt;
+        while (i < outputTicks.size() && !reversed) {
+          elt = outputTicks.get(i);
+          reversed = elt < lastElt;
+          lastElt = elt;
+          i++;
+        }
+
+        // we check if it is sorted and decreasing
+        if (reversed) {
+          i = 1;
+          lastElt = outputTicks.get(0);
+          while (i < outputTicks.size() && reversed) {
+            elt = outputTicks.get(i);
+            reversed = elt <= lastElt;
+            lastElt = elt;
+            i++;
+          }
+
+          if (!reversed) {
+            throw new WarpScriptException(getName() + " expects the " + PARAM_OCCURRENCES + " parameter to be a LONG or a sorted LIST of LONG.");
+          }
+        }
+      }
+    } else if (params.containsKey(PARAM_OCCURRENCES)) {
+      throw new WarpScriptException(getName() + " expects the " + PARAM_OCCURRENCES + " parameter to be a LONG or a sorted LIST of LONG.");
     }
-    final boolean reversed = occurrences < 0;
 
     Object stepParam = params.get(PARAM_STEP);
     if (stepParam instanceof Long) {
@@ -200,53 +240,6 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
       overrideTick = ((Boolean) overrideParam).booleanValue();
     } else if (params.containsKey(PARAM_OVERRIDE)) {
       throw new WarpScriptException(getName() + " expects the " + PARAM_OVERRIDE + " parameter to be a BOOLEAN.");
-    }
-
-    Object outputTicks = params.get(PARAM_OUTPUTTICKS);
-    // Make sure outputTicks is a List<Long>, and that the list is sorted accordingly.
-    if (null != outputTicks) {
-      if (!(outputTicks instanceof List)) {
-        throw new WarpScriptException(getName() + " expects the " + PARAM_OUTPUTTICKS + " parameter to be a list of LONG values.");
-      }
-      for (Object tick: (List) outputTicks) {
-        if (!(tick instanceof Long)) {
-          throw new WarpScriptException(getName() + " expects the " + PARAM_OUTPUTTICKS + " parameter to be a list of LONG values.");
-        }
-      }
-
-      // Check if outputTicks is correctly sorted
-      // In case of a concurrent execution, sorting outputTicks here would lead to a ConcurrentModificationException
-      if (((List<Long>) outputTicks).size() > 1) {
-        if (reversed) { // reversed
-          boolean descending = true;
-          int i = 1;
-          long lastElt = ((List<Long>) outputTicks).get(0);
-          long elt;
-          while (i < ((List<Long>) outputTicks).size() && descending) {
-            elt = ((List<Long>) outputTicks).get(i);
-            descending = elt <= lastElt;
-            lastElt = elt;
-            i++;
-          }
-          if (!descending) {
-            throw new WarpScriptException(getName() + " expects a reverse sorted list for " + PARAM_OUTPUTTICKS + " parameter.");
-          }
-        } else {
-          boolean ascending = true;
-          int i = 1;
-          long lastElt = ((List<Long>) outputTicks).get(0);
-          long elt;
-          while (i < ((List<Long>) outputTicks).size() && ascending) {
-            elt = ((List<Long>) outputTicks).get(i);
-            ascending = elt >= lastElt;
-            lastElt = elt;
-            i++;
-          }
-          if (!ascending) {
-            throw new WarpScriptException(getName() + " expects a sorted list for " + PARAM_OUTPUTTICKS + " parameter.");
-          }
-        }
-      }
     }
 
     //
