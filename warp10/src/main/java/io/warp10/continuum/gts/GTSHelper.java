@@ -33,8 +33,8 @@ import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.crypto.SipHashInline;
 import io.warp10.json.JsonUtils;
 import io.warp10.script.SAXUtils;
+import io.warp10.script.WarpScriptAggregator;
 import io.warp10.script.WarpScriptAggregatorFunction;
-import io.warp10.script.WarpScriptAggregatorOnListsFunction;
 import io.warp10.script.WarpScriptBinaryOp;
 import io.warp10.script.WarpScriptBucketizerFunction;
 import io.warp10.script.WarpScriptException;
@@ -2340,8 +2340,7 @@ public class GTSHelper {
         throw new WarpScriptException("Invalid bucketizer function.");
       }
 
-
-      if (aggregator instanceof WarpScriptAggregatorOnListsFunction) {
+      if (aggregator instanceof WarpScriptAggregator) {
         // Second case: the aggregator is capable to process an array of List instead of an array of array.
         // It uses a special class for lists that saves a memory allocation.
         
@@ -2374,53 +2373,16 @@ public class GTSHelper {
 
           count = currentBucketEndPosition - currentBucketStartPosition + 1;
 
-          // tick
-          parms[0] = currentBucketEnd;
-
-          // ticks list
-          parms[3] = new COWList(gts.ticks, currentBucketStartPosition, count);
-
-          // locations lists
-          if (null != gts.locations) {
-            parms[4] = new COWList(gts.locations, currentBucketStartPosition, count);
-          } else {
-            parms[4] = null;
-          }
-
-          // elevations list
-          if (null != gts.elevations) {
-            parms[5] = new COWList(gts.elevations, currentBucketStartPosition, count);
-          } else {
-            parms[5] = null;
-          }
-
-          // values list
-          switch (gts.type) {
-            case LONG:
-              parms[6] = new COWList(gts.longValues, currentBucketStartPosition, count);
-              break;
-            case DOUBLE:
-              parms[6] = new COWList(gts.doubleValues, currentBucketStartPosition, count);
-              break;
-            case STRING:
-              // here we could have done a shallow copy, with Arrays.asList(gts.stringValues).subList(currentBucketStartPosition,currentBucketEndPosition)
-              // it is a risk for the user, better deep copy.
-              parms[6] = new COWList(gts.stringValues, currentBucketStartPosition, count);
-              break;
-            case BOOLEAN:
-              parms[6] = new COWList(gts.booleanValues, currentBucketStartPosition, count);
-              break;
-          }
-
+          // additional parameters
           List<Long> lastParms = new ArrayList<Long>(4); // 0, -bucketspan, currentBucketEnd - bucketspan, currentBucketEnd
           lastParms.add(0L);
           lastParms.add(-bucketspan);
           lastParms.add(currentBucketEnd - bucketspan);
           lastParms.add(currentBucketEnd);
-          parms[7] = lastParms;
 
-          // apply the aggregator, collect the result
-          aggregated = (Object[]) ((WarpScriptAggregatorOnListsFunction) aggregator).applyOnSubLists(parms);
+          // aggregate and collect the result
+          AggregateList aggregateList = new UnivariateAggregateCOWList(gts, currentBucketStartPosition, count, currentBucketEnd, lastParms);
+          aggregated = (Object[]) ((WarpScriptAggregator) aggregator).apply(aggregateList);
 
           if (null != aggregated[3]) {
             setValue(bucketized, currentBucketEnd, (long) aggregated[1], (long) aggregated[2], aggregated[3], false);
