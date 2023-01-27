@@ -17,10 +17,12 @@
 package io.warp10.script.functions;
 
 import com.geoxp.GeoXPLib;
+import io.warp10.continuum.gts.AggregateList;
 import io.warp10.continuum.gts.COWList;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.continuum.gts.ReadOnlyConstantList;
 import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptAggregator;
 import io.warp10.script.WarpScriptAggregatorOnListsFunction;
 import io.warp10.script.WarpScriptBucketizerFunction;
 import io.warp10.script.WarpScriptException;
@@ -38,7 +40,7 @@ import java.util.Set;
 
 public class MACROMAPPER extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  public static class MacroMapperWrapper extends NamedWarpScriptFunction implements WarpScriptMapperFunction, WarpScriptReducerFunction, WarpScriptBucketizerFunction, WarpScriptAggregatorOnListsFunction {
+  public static class MacroMapperWrapper extends NamedWarpScriptFunction implements WarpScriptMapperFunction, WarpScriptReducerFunction, WarpScriptBucketizerFunction, WarpScriptAggregator, WarpScriptAggregatorOnListsFunction {
 
     private final WarpScriptStack stack;
     private final Macro macro;
@@ -143,7 +145,15 @@ public class MACROMAPPER extends NamedWarpScriptFunction implements WarpScriptSt
 
       return collectMacroMapperOutput();
     }
-    
+
+    @Override
+    public Object apply(AggregateList aggregateList) throws WarpScriptException {
+      stack.push(aggregateList);
+      stack.exec(this.macro);
+
+      return collectMacroMapperOutput();
+    }
+
     @Override
     public Object applyOnSubLists(Object[] subLists) throws WarpScriptException {
 
@@ -214,6 +224,9 @@ public class MACROMAPPER extends NamedWarpScriptFunction implements WarpScriptSt
 
       return collectMacroMapperOutput();
     }
+
+
+
     private Object collectMacroMapperOutput() throws WarpScriptException {
       // user can let on the stack: 
       // - tick lat long elevation value
