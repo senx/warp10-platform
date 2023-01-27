@@ -97,10 +97,10 @@ public class UnivariateAggregateCOWList extends AggregateList {
         this.add(new COWList(gts.doubleValues, startIdx, length));
         break;
       case STRING:
-        this.add(new COWList(gts.booleanValues, startIdx, length));
+        this.add(new COWList(gts.stringValues, startIdx, length));
         break;
       case BOOLEAN:
-        this.add(new COWList(gts.stringValues, startIdx, length));
+        this.add(new COWList(gts.booleanValues, startIdx, length));
         break;
       default:
         throw new RuntimeException("Undefined GeoTimeSeries Type.");
