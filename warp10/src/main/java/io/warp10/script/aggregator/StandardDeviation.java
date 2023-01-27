@@ -30,6 +30,7 @@ public class StandardDeviation extends NamedWarpScriptFunction implements WarpSc
   
   private final boolean forbidNulls;
   private final WarpScriptAggregatorFunction variance;
+  private final boolean useBessel;
 
   public StandardDeviation(String name, boolean useBessel, boolean forbidNulls) {
     this(name, useBessel, forbidNulls, false);
@@ -38,6 +39,7 @@ public class StandardDeviation extends NamedWarpScriptFunction implements WarpSc
   public StandardDeviation(String name, boolean useBessel, boolean forbidNulls, boolean useWelford) {
     super(name);
     this.forbidNulls = forbidNulls;
+    this.useBessel = useBessel;
     if (useWelford) {
       this.variance = new VarianceWelford("", useBessel, forbidNulls);
     } else {
@@ -89,6 +91,6 @@ public class StandardDeviation extends NamedWarpScriptFunction implements WarpSc
   
   @Override
   public String toString() {
-    return Boolean.toString(this.forbidNulls) + " " + this.getName();
+    return Boolean.toString(this.useBessel) + " " + this.getName();
   }
 }
