@@ -22,8 +22,6 @@ import io.warp10.script.WarpScriptBucketizerFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptMapperFunction;
 import io.warp10.script.WarpScriptReducerFunction;
-import io.warp10.script.WarpScriptStack;
-import io.warp10.script.WarpScriptStackFunction;
 
 /**
  * Aggregator to compute the variance on a list of datapoints.
@@ -117,6 +115,6 @@ public class VarianceWelford extends NamedWarpScriptFunction implements WarpScri
 
   @Override
   public String toString() {
-    return Boolean.toString(this.forbidNulls) + " " + this.getName();
+    return Boolean.toString(this.useBessel) + " " + this.getName();
   }
 }

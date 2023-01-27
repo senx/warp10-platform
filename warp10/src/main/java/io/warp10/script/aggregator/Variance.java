@@ -158,6 +158,6 @@ public class Variance extends NamedWarpScriptFunction implements WarpScriptMappe
   
   @Override
   public String toString() {
-    return Boolean.toString(this.forbidNulls) + " " + this.getName();
+    return Boolean.toString(this.useBessel) + " " + this.getName();
   }
 }
