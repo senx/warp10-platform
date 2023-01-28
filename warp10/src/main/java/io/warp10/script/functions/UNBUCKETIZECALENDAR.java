@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2023  SenX S.A.S.
+//   Copyright 2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -73,8 +73,6 @@ public class UNBUCKETIZECALENDAR extends GTSStackFunction {
 
     ADDDURATION.ReadWritablePeriodWithSubSecondOffset bucketperiod = ADDDURATION.durationToPeriod(gts.getMetadata().getAttributes().get(BUCKETIZECALENDAR.DURATION_ATTRIBUTE_KEY));
     long bucketoffset = Long.parseLong(gts.getMetadata().getAttributes().get(BUCKETIZECALENDAR.OFFSET_ATTRIBUTE_KEY));
-    long lastbucketIndex = GTSHelper.lasttick(gts);
-    long lastbucket = BUCKETIZECALENDAR.addNonNegativePeriod(0, bucketperiod, DateTimeZone.UTC, lastbucketIndex + 1) - 1 - bucketoffset;
     DateTimeZone dtz = DateTimeZone.forID(gts.getMetadata().getAttributes().get(BUCKETIZECALENDAR.TIMEZONE_ATTRIBUTE_KEY));
 
     GTSHelper.unbucketize(result);
@@ -83,7 +81,8 @@ public class UNBUCKETIZECALENDAR extends GTSStackFunction {
     result.getMetadata().getAttributes().remove(BUCKETIZECALENDAR.TIMEZONE_ATTRIBUTE_KEY);
 
     for (int i = 0; i < gts.size(); i++) {
-      long tick = BUCKETIZECALENDAR.addNonNegativePeriod(lastbucket, bucketperiod, dtz,  i - (gts.size() - 1));
+
+      long tick = ADDDURATION.addPeriod(0, bucketperiod, dtz, GTSHelper.tickAtIndex(gts, i) + 1) - 1 - bucketoffset;
       GTSHelper.setValue(result, tick, GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i), GTSHelper.valueAtIndex(gts, i), false);
     }
 

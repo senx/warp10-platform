@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2023  SenX S.A.S.
+//   Copyright 2020-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -178,37 +178,35 @@ public class BUCKETIZECALENDAR extends NamedWarpScriptFunction implements WarpSc
     }
 
     //
-    // Compute lastbucketindex and compute bucketoffset
+    // Compute bucketindex of lastbucket and compute bucketoffset
     //
 
     long flag = 0; // always equal to epoch modulo period
-    long bucketoffset = 0;
+    long bucketoffset;
     long lastbucketIndex;
 
     //
-    // We suppose for now that bucketoffset is zero, and try to land flag as the first tick that is not in the last bucket
-    // Then, we will obtain bucketoffset as the difference between flag - 1 and lastbucket
+    // Starting from Epoch, we make a hint and land the flag close to lastbucket
     //
 
-    // starting from Epoch, we make a hint and land the flag close to lastbucket
-    long lastbucketIndexHint = lastbucket / averageSpan; // this is also a hint of the number of entire periods since Epoch
+    long lastbucketIndexHint = lastbucket / averageSpan;
     if (lastbucket > 0) {
-      flag = addNonNegativePeriod(0, bucketperiod, DateTimeZone.UTC, lastbucketIndexHint + 1); // if all periods had same span, flag would already be correct
+      flag = addNonNegativePeriod(flag, bucketperiod, dtz, lastbucketIndexHint + 1);
       lastbucketIndex = lastbucketIndexHint;
 
     } else {
-      flag = addNonNegativePeriod(0, bucketperiod, DateTimeZone.UTC, lastbucketIndexHint); // lastbucketIndexHint is negative
+      flag = addNonNegativePeriod(flag, bucketperiod, dtz, lastbucketIndexHint);
       lastbucketIndex = lastbucketIndexHint - 1;
     }
 
     //
-    // If we landed too far, we try to get closer by using another hint on the number of steps left
+    // We move the flag left and right on the time axis to make sure lastbucket is its leftmost bucketend
     //
 
     while (flag > lastbucket) {
       long N = - ((flag - lastbucket) / averageSpan - 1);
       if (N < -1) {
-        flag = addNonNegativePeriod(0, bucketperiod, DateTimeZone.UTC,lastbucketIndex + N + 1);
+        flag = addNonNegativePeriod(flag, bucketperiod, dtz, N);
         lastbucketIndex = lastbucketIndex + N;
       } else {
         break;
@@ -218,24 +216,20 @@ public class BUCKETIZECALENDAR extends NamedWarpScriptFunction implements WarpSc
     while (flag <= lastbucket) {
       long N = (lastbucket - flag) / averageSpan - 1;
       if (N > 1) {
-        flag = addNonNegativePeriod(0, bucketperiod, DateTimeZone.UTC, lastbucketIndex + N + 1);
+        flag = addNonNegativePeriod(flag, bucketperiod, dtz, N);
         lastbucketIndex = lastbucketIndex + N;
       } else {
         break;
       }
     }
 
-    //
-    // We close up step by step
-    //
-
     while (flag > lastbucket) {
-      flag = addNonNegativePeriod(0, bucketperiod, DateTimeZone.UTC, lastbucketIndex);
+      flag = addNonNegativePeriod(flag, bucketperiod, dtz, -1);
       lastbucketIndex--;
     }
 
     while (flag <= lastbucket) {
-      flag = addNonNegativePeriod(0, bucketperiod, DateTimeZone.UTC, lastbucketIndex + 2);
+      flag = addNonNegativePeriod(flag, bucketperiod, dtz, 1);
       lastbucketIndex++;
     }
 
@@ -341,7 +335,7 @@ public class BUCKETIZECALENDAR extends NamedWarpScriptFunction implements WarpSc
 
     long lastTick = GTSHelper.lasttick(gts);
     long firstTick = GTSHelper.firsttick(gts);
-    int hint = Math.min(gts.size(), (int) (1.05 * (lastTick - firstTick) / addNonNegativePeriod(0, bucketperiod, DateTimeZone.UTC, 1)));
+    int hint = Math.min(gts.size(), (int) (1.05 * (lastTick - firstTick) / addNonNegativePeriod(0, bucketperiod, dtz, 1)));
 
     GeoTimeSerie durationBucketized = gts.cloneEmpty(hint);
 
@@ -389,7 +383,8 @@ public class BUCKETIZECALENDAR extends NamedWarpScriptFunction implements WarpSc
 
       // update bucketstart and bucketindex
       while (tick < bucketstart) {
-        bucketstart = addNonNegativePeriod(lastbucket, bucketperiod, dtz, --bucketindex - lastbucketIndex - 1) + 1;
+        bucketstart = addNonNegativePeriod(bucketstart, bucketperiod, dtz, -1);
+        bucketindex--;
       }
 
       //
