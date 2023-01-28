@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -1813,6 +1813,11 @@ public class Configuration {
   public static final String WARP_STREAMUPDATE_DISABLE = "warp.streamupdate.disable";
 
   /**
+   * Storage backend to use.
+   */
+  public static final String BACKEND = "backend";
+
+  /**
    * Set to 'true' to have an in-memory cache ahead of the persistent store.
    * in.memory.chunk.count and in.memory.chunk.length MUST be defined
    */
@@ -1886,11 +1891,6 @@ public class Configuration {
   public static final String ACCELERATOR_GC_MAXALLOC = "accelerator.gc.maxalloc";
 
   /**
-   * Set to 'true' to indicate the instance will use memory only for storage. This type of instance is non persistent.
-   */
-  public static final String IN_MEMORY = "in.memory";
-
-  /**
    * If set to true, then only the last recorded value of a GTS is kept
    */
   public static final String IN_MEMORY_EPHEMERAL = "in.memory.ephemeral";
@@ -1929,11 +1929,6 @@ public class Configuration {
    * Maximum size (in bytes) of re-allocations performed during a gc cycle of the chunked in-memory store.
    */
   public static final String STANDALONE_MEMORY_GC_MAXALLOC = "in.memory.gc.maxalloc";
-
-  /**
-   * Set to 'true' to only forward data to Plasma. Not data storage will take place.
-   */
-  public static final String PURE_PLASMA = "pureplasma";
 
   //
   // E G R E S S

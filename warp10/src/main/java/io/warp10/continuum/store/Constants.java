@@ -613,4 +613,10 @@ public class Constants {
    * Prefix for 'raw' (individual datapoints) data
    */
   public static final byte[] FDB_RAW_DATA_KEY_PREFIX = "R".getBytes(StandardCharsets.UTF_8);
+
+  public static final String BACKEND_MEMORY = "memory";
+  public static final String BACKEND_PLASMA = "plasma";
+  public static final String BACKEND_NULL = "null";
+  public static final String BACKEND_LEVELDB = "leveldb";
+  public static final String BACKEND_FDB = "fdb";
 }

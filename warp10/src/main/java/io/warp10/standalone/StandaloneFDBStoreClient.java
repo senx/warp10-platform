@@ -77,12 +77,12 @@ public class StandaloneFDBStoreClient extends FDBStoreClient {
     super(keystore, properties);
 
     // Check that STORE_FDB_CLUSTERFILE and EGRESS_CLUSTER_FILE are identical
-    if (!String.valueOf(properties.getProperty(Configuration.STORE_FDB_CLUSTERFILE)).equals(properties.getProperty(Configuration.EGRESS_FDB_CLUSTERFILE))) {
-      throw new IOException("Invalid configuration, '" + Configuration.STORE_FDB_CLUSTERFILE + "' and '" + Configuration.EGRESS_FDB_CLUSTERFILE + "' must have identical values.");
+    if (null == properties.getProperty(Configuration.STORE_FDB_CLUSTERFILE) || !String.valueOf(properties.getProperty(Configuration.STORE_FDB_CLUSTERFILE)).equals(String.valueOf(properties.getProperty(Configuration.EGRESS_FDB_CLUSTERFILE)))) {
+      throw new IOException("Invalid configuration, '" + Configuration.STORE_FDB_CLUSTERFILE + "' and '" + Configuration.EGRESS_FDB_CLUSTERFILE + "' must be set to the same value.");
     }
 
     // Check that tenants are also identical
-    if (!String.valueOf(properties.getProperty(Configuration.STORE_FDB_TENANT)).equals(properties.getProperty(Configuration.EGRESS_FDB_TENANT))) {
+    if (!String.valueOf(properties.getProperty(Configuration.STORE_FDB_TENANT)).equals(String.valueOf(properties.getProperty(Configuration.EGRESS_FDB_TENANT)))) {
       throw new IOException("Invalid configuration, '" + Configuration.STORE_FDB_TENANT + "' and '" + Configuration.EGRESS_FDB_TENANT + "' must have identical values.");
     }
 
@@ -206,10 +206,8 @@ public class StandaloneFDBStoreClient extends FDBStoreClient {
     endKey.put(Constants.FDB_RAW_DATA_KEY_PREFIX);
     endKey.putLong(metadata.getClassId());
     endKey.putLong(metadata.getLabelsId());
-
-    start = start - 1L;
     endKey.putLong(Long.MAX_VALUE - start);
-    endKey.put((byte) 0x0);
+
     clearRange = new FDBClearRange(tenantPrefix, startKey.array(), endKey.array());
 
     List<FDBMutation> mutations = perThreadMutations.get();
@@ -219,7 +217,7 @@ public class StandaloneFDBStoreClient extends FDBStoreClient {
       flushMutations();
     }
 
-    return super.delete(token, metadata, start, end);
+    return 0;
   }
 
   @Override
@@ -283,7 +281,7 @@ public class StandaloneFDBStoreClient extends FDBStoreClient {
       } while(retry);
     }
 
-    perThreadMutations.remove();
+    mutations.clear();
     perThreadMutationsSize.get().set(0);
   }
 }

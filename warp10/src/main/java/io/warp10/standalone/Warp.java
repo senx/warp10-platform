@@ -84,11 +84,11 @@ public class Warp extends WarpDist implements Runnable {
   private static final String DEFAULT_HTTP_ACCEPTORS = "2";
   private static final String DEFAULT_HTTP_SELECTORS = "4";
 
-  private static final String NULL = "null";
-
   private static WarpDB db;
 
   private static boolean standaloneMode = false;
+
+  private static String backend = null;
 
   private static int port;
 
@@ -137,16 +137,48 @@ public class Warp extends WarpDist implements Runnable {
 
     Properties properties = getProperties();
 
+    backend = properties.getProperty(Configuration.BACKEND);
+
+    boolean useLevelDB = false;
+    boolean useFDB = false;
+    boolean nullbackend = false;
+    boolean plasmabackend = false;
+    boolean inmemory = false;
+
     boolean analyticsEngineOnly = "true".equals(properties.getProperty(Configuration.ANALYTICS_ENGINE_ONLY));
-    boolean nullbackend = "true".equals(properties.getProperty(NULL)) || analyticsEngineOnly;
 
-    boolean plasmabackend = "true".equals(properties.getProperty(Configuration.PURE_PLASMA));
+    if (analyticsEngineOnly) {
+      nullbackend = true;
+      if (null != backend && !Constants.BACKEND_NULL.equals(backend)) {
+        LOG.warn("Backend specification '" + backend + "' ignored since '" + Configuration.ANALYTICS_ENGINE_ONLY + " is true.");
+      }
+    } else {
+      switch(backend) {
+        case Constants.BACKEND_LEVELDB:
+          useLevelDB = true;
+          break;
+        case Constants.BACKEND_FDB:
+          useFDB = true;
+          break;
+        case Constants.BACKEND_NULL:
+          nullbackend = true;
+          break;
+        case Constants.BACKEND_PLASMA:
+          plasmabackend = true;
+          break;
+        case Constants.BACKEND_MEMORY:
+          inmemory = true;
+          break;
+        default:
+          throw new RuntimeException("Missing '" + Configuration.BACKEND + "' specification.");
+      }
+    }
 
-    boolean inmemory = "true".equals(properties.getProperty(Configuration.IN_MEMORY));
+
     boolean accelerator = "true".equals(properties.getProperty(Configuration.ACCELERATOR));
 
     if (inmemory && accelerator) {
-      throw new RuntimeException("Accelerator mode cannot be enabled when " + Configuration.IN_MEMORY + " is set to true.");
+      throw new RuntimeException("Accelerator mode cannot be enabled when '" + Configuration.BACKEND + "' is set to '" + Constants.BACKEND_MEMORY + "'.");
     }
 
     boolean enablePlasma = !("true".equals(properties.getProperty(Configuration.WARP_PLASMA_DISABLE)));
@@ -215,20 +247,6 @@ public class Warp extends WarpDist implements Runnable {
     // Initialize levelDB
     //
 
-    boolean useLevelDB = false;
-    boolean useFDB = false;
-
-    if (null != properties.getProperty(Configuration.LEVELDB_HOME)) {
-      useLevelDB = true;
-    }
-
-    if (null != properties.getProperty(Configuration.STORE_FDB_CLUSTERFILE)) {
-      if (useLevelDB) {
-        throw new RuntimeException("Cannot define both '" + Configuration.LEVELDB_HOME + "' and '" + Configuration.STORE_FDB_CLUSTERFILE + "'.");
-      }
-      useFDB = true;
-    }
-
     Options options = null;
 
     if (useLevelDB) {
@@ -278,12 +296,10 @@ public class Warp extends WarpDist implements Runnable {
       // Attempt to load JNI library, fallback to pure java in case of error
       //
 
-      if (!inmemory && !nullbackend && !plasmabackend) {
-        boolean nativedisabled = "true".equals(properties.getProperty(Configuration.LEVELDB_NATIVE_DISABLE));
-        boolean javadisabled = "true".equals(properties.getProperty(Configuration.LEVELDB_JAVA_DISABLE));
-        String home = properties.getProperty(Configuration.LEVELDB_HOME);
-        db = new WarpDB(nativedisabled, javadisabled, home, options);
-      }
+      boolean nativedisabled = "true".equals(properties.getProperty(Configuration.LEVELDB_NATIVE_DISABLE));
+      boolean javadisabled = "true".equals(properties.getProperty(Configuration.LEVELDB_JAVA_DISABLE));
+      String home = properties.getProperty(Configuration.LEVELDB_HOME);
+      db = new WarpDB(nativedisabled, javadisabled, home, options);
     }
 
     // Register shutdown hook to close the DB.
@@ -418,7 +434,9 @@ public class Warp extends WarpDist implements Runnable {
       scc = new StandaloneShardedStoreClientWrapper(keystore, scc);
     }
 
-    if (ParallelGTSDecoderIteratorWrapper.useParallelScanners()) {
+    // When using FDB, don't rely on Standalone's specific parallel scanner implementation, use the one from FDBStoreClient
+    // otherwise we may end up in an endless loop attempting to schedule workers
+    if (ParallelGTSDecoderIteratorWrapper.useParallelScanners() && !Constants.BACKEND_FDB.equals(backend)) {
       scc = new StandaloneParallelStoreClientWrapper(scc);
     }
 
@@ -599,6 +617,10 @@ public class Warp extends WarpDist implements Runnable {
 
   public static boolean isStandaloneMode() {
     return standaloneMode;
+  }
+
+  public static String getBackend() {
+    return backend;
   }
 
   public static int getPort() {
