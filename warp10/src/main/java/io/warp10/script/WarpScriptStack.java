@@ -256,6 +256,12 @@ public interface WarpScriptStack {
   public static final String ATTRIBUTE_MAX_WEBCALLS = "stack.maxwebcalls";
 
   /**
+   * Flag indicating if we are currently executing an XEVAL call, in which
+   * case generated macros should not be flagged secure.
+   */
+  public static final String ATTRIBUTE_IN_XEVAL = "in.xeval";
+
+  /**
    * Flag indicating if we are currently in a secure macro execution
    */
   public static final String ATTRIBUTE_IN_SECURE_MACRO = "in.secure.macro";
