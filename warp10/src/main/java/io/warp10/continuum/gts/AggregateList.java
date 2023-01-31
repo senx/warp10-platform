@@ -16,8 +16,6 @@
 
 package io.warp10.continuum.gts;
 
-import io.warp10.script.WarpScriptException;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,75 +25,59 @@ import java.util.List;
  */
 public class AggregateList extends ArrayList {
 
-  public Long getReferenceTick() throws WarpScriptException {
-    if (size() < 1) {
-      throw new WarpScriptException("Aggregate list does not contain reference tick.");
-    }
-
-    return (Long) get(0);
+  public boolean isEmpty() {
+    return size() < 1;
+  }
+  public boolean hasClassnames() {
+    return size() > 1;
+  }
+  public boolean hasLabels() {
+    return size() > 2;
+  }
+  public boolean hasTicks() {
+    return size() > 3;
+  }
+  public boolean hasLatitudes() {
+    return size() > 4;
+  }
+  public boolean hasLongitudes() {
+    return size() > 5;
+  }
+  public boolean hasElevations() {
+    return size() > 6;
+  }
+  public boolean hasValues() {
+    return size() > 7;
+  }
+  public boolean hasAdditionalParams() {
+    return size() > 8;
   }
 
-  public List getClassnames() throws WarpScriptException {
-    if (size() < 2) {
-      throw new WarpScriptException("Aggregate list does not contain classnames.");
-    }
-
-    return (List) get(1);
+  public Long getReferenceTick() {
+    return isEmpty() ? null : (Long) get(0);
   }
-
-  public List getLabels() throws WarpScriptException {
-    if (size() < 3) {
-      throw new WarpScriptException("Aggregate list does not contain labels.");
-    }
-
-    return (List) get(2);
+  public List getClassnames() {
+    return hasClassnames() ? (List) get(1) : null;
   }
-
-  public List getTicks() throws WarpScriptException {
-    if (size() < 4) {
-      throw new WarpScriptException("Aggregate list does not contain ticks.");
-    }
-
-    return (List) get(3);
+  public List getLabels() {
+    return hasLabels() ? (List) get(2) : null;
   }
-
-  public List getLatitudes() throws WarpScriptException {
-    if (size() < 5) {
-      throw new WarpScriptException("Aggregate list does not contain latitudes.");
-    }
-
-    return (List) get(4);
+  public List getTicks() {
+    return hasTicks() ? (List) get(3) : null;
   }
-
-  public List getLongitudes() throws WarpScriptException {
-    if (size() < 6) {
-      throw new WarpScriptException("Aggregate list does not contain longitudes.");
-    }
-
-    return (List) get(5);
+  public List getLatitudes() {
+    return hasLatitudes() ? (List) get(4) : null;
   }
-
-  public List getElevations() throws WarpScriptException {
-    if (size() < 7) {
-      throw new WarpScriptException("Aggregate list does not contain elevations.");
-    }
-
-    return (List) get(6);
+  public List getLongitudes() {
+    return hasLongitudes() ? (List) get(5) : null;
   }
-
-  public List getValues() throws WarpScriptException {
-    if (size() < 8) {
-      throw new WarpScriptException("Aggregate list does not contain values.");
-    }
-
-    return (List) get(7);
+  public List getElevations() {
+    return hasElevations() ? (List) get(6) : null;
   }
-
-  public List getAdditionalParams() throws WarpScriptException {
-    if (size() < 9) {
-      throw new WarpScriptException("Aggregate list does not contain additional parameters.");
-    }
-
-    return (List) get(8);
+  public List getValues() {
+    return hasValues() ? (List) get(7) : null;
+  }
+  public List getAdditionalParams() {
+    return hasAdditionalParams() ? (List) get(8) : null;
   }
 }
