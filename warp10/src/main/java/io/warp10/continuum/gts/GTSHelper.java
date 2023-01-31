@@ -2341,22 +2341,9 @@ public class GTSHelper {
       }
 
       if (aggregator instanceof WarpScriptAggregator) {
-        // Second case: the aggregator is capable to process an array of List instead of an array of array.
+        // Second case: the aggregator is capable to process an AggregateList Structure.
         // It uses a special class for lists that saves a memory allocation.
         
-        // build a structure ready to use:
-        // - special copy on write List for ticks, values  (view of the original primitive array or BitSet)
-        // - decode elevations
-        // - decode locations
-        // - expose lists of NaN when needed
-        // [tick_of_computation,[gts_classes],[label_maps],[ticks],[latitudes],[longitudes],[elevations],[values]]
-        Object[] parms = new Object[8];
-        // name and labels can be defined here
-        parms[1] = new ArrayList<String>();
-        ((ArrayList<String>) parms[1]).add(bucketized.getName());
-        parms[2] = new ArrayList<Map>();
-        ((ArrayList<Map>) parms[2]).add(labels);
-
         // iterate on input to find buckets
         long currentBucketEnd;
         int currentBucketEndPosition;
