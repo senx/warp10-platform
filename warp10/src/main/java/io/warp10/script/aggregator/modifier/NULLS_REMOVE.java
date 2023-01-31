@@ -25,8 +25,8 @@ import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
-public class NULLS_REMOVER extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  public NULLS_REMOVER(String name) {
+public class NULLS_REMOVE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+  public NULLS_REMOVE(String name) {
     super(name);
   }
 
