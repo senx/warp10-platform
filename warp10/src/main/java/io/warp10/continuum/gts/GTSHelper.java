@@ -42,6 +42,7 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptFillerFunction;
 import io.warp10.script.WarpScriptFilterFunction;
 import io.warp10.script.WarpScriptLib;
+import io.warp10.script.WarpScriptMapper;
 import io.warp10.script.WarpScriptMapperFunction;
 import io.warp10.script.WarpScriptNAryFunction;
 import io.warp10.script.WarpScriptReducerFunction;
@@ -1795,6 +1796,78 @@ public class GTSHelper {
   }
 
   /**
+   * Return the indices range for which all data points within (inclusive) fall in the time period specified by the timestamp arguments.
+   * The input gts will be sorted.
+   *
+   * @param gts GeoTimeSerie from which to extract values.
+   * @param starttimestamp Oldest timestamp to consider (in microseconds)
+   * @param stoptimestamp Most recent timestamp to consider (in microseconds)
+   *
+   * @return An array that contains the indices of the first and the last data point of the time period
+   */
+  public static final int[] indicesRange(GeoTimeSerie gts, long starttimestamp, long stoptimestamp) {
+    if (null == gts.ticks || 0 == gts.values) {
+      return null;
+    }
+    if (starttimestamp > stoptimestamp) {
+      return null;
+    }
+
+    //
+    // Sort GTS so ticks are ordered
+    //
+
+    GTSHelper.sort(gts);
+
+    //
+    // Determine index to stop at
+    //
+
+    int lastidx = Arrays.binarySearch(gts.ticks, 0, gts.values, stoptimestamp);
+
+    if (-1 == lastidx) {
+      // The stop timestamp is less than the first tick of the GTS, so subserie is necessarily empty
+      return null;
+    } else if (lastidx < 0) {
+      // The last timestamp is in between ticks, so we set the last index to the tick
+      // just before the insertion point
+      lastidx =  -lastidx - 1 - 1;
+    } else if (lastidx < gts.values - 1){
+      // We found the stop timestamp, we now must find the last occurrence of
+      // it in case there are duplicates, except if it's the last tick of the GTS.
+      int lastlastidx = lastidx + 1;
+      while(lastlastidx < gts.values && stoptimestamp == gts.ticks[lastlastidx]) {
+        lastlastidx++;
+      }
+
+      lastidx = lastlastidx - 1;
+    }
+
+    int firstidx = Arrays.binarySearch(gts.ticks, 0, lastidx + 1, starttimestamp);
+
+    if ((-gts.values - 1) == firstidx) {
+      // The start timestamp is more than the last tick of the GTS, so subserie is necessarily empty
+      return null;
+    } else if (firstidx < 0) {
+      // The first timestamp is in between ticks, so we set the first index to the tick
+      // of the insertion point
+      firstidx = -firstidx - 1;
+    } else if (firstidx > 0) {
+      // We found the start timestamp, we now must find the first occurrence of it
+      // in case there are duplicates, except if it's the first tick of the GTS.
+      int firstfirstidx = firstidx - 1;
+
+      while(firstfirstidx >= 0 && starttimestamp == gts.ticks[firstfirstidx]) {
+        firstfirstidx--;
+      }
+
+      firstidx = firstfirstidx + 1;
+    }
+
+    return new int[]{firstidx, lastidx};
+  }
+
+  /**
    * Return a new GeoTimeSerie instance containing only the value of 'gts'
    * which fall between 'starttimestamp' (inclusive) and 'stoptimestamp' (inclusive)
    *
@@ -1844,55 +1917,13 @@ public class GTSHelper {
     }
 
     //
-    // Sort GTS so ticks are ordered
+    // Determine index to start and stop at
+    // gts is being sorted as a side effect
     //
 
-    GTSHelper.sort(gts);
-
-    //
-    // Determine index to stop at
-    //
-
-    int lastidx = Arrays.binarySearch(gts.ticks, 0, gts.values, stoptimestamp);
-
-    if (-1 == lastidx) {
-      // The stop timestamp is less than the first tick of the GTS, so subserie is necessarily empty
-      return subgts;
-    } else if (lastidx < 0) {
-      // The last timestamp is in between ticks, so we set the last index to the tick
-      // just before the insertion point
-      lastidx =  -lastidx - 1 - 1;
-    } else if (lastidx < gts.values - 1){
-      // We found the stop timestamp, we now must find the last occurrence of
-      // it in case there are duplicates, except if it's the last tick of the GTS.
-      int lastlastidx = lastidx + 1;
-      while(lastlastidx < gts.values && stoptimestamp == gts.ticks[lastlastidx]) {
-        lastlastidx++;
-      }
-
-      lastidx = lastlastidx - 1;
-    }
-
-    int firstidx = Arrays.binarySearch(gts.ticks, 0, lastidx + 1, starttimestamp);
-
-    if ((-gts.values - 1) == firstidx) {
-      // The start timestamp is more than the last tick of the GTS, so subserie is necessarily empty
-      return subgts;
-    } else if (firstidx < 0) {
-      // The first timestamp is in between ticks, so we set the first index to the tick
-      // of the insertion point
-      firstidx = -firstidx - 1;
-    } else if (firstidx > 0) {
-      // We found the start timestamp, we now must find the first occurrence of it
-      // in case there are duplicates, except if it's the first tick of the GTS.
-      int firstfirstidx = firstidx - 1;
-
-      while(firstfirstidx >= 0 && starttimestamp == gts.ticks[firstfirstidx]) {
-        firstfirstidx--;
-      }
-
-      firstidx = firstfirstidx + 1;
-    }
+    int[] indices = indicesRange(gts, starttimestamp, stoptimestamp);
+    int lastidx = indices[1];
+    int firstidx = indices[0];
 
     //
     // Extract values/locations/elevations that lie in the requested interval
@@ -5800,15 +5831,17 @@ public class GTSHelper {
       }
 
       //
-      // Extract values
+      // Aggregate and apply mapper
       //
-
-      subgts = GTSHelper.subSerie(gts, start, stop, false, false, subgts);
 
       Object mapResult = null;
 
       if (null != stack) {
+        // first case: mapper is a macro. We need to build a subgts for each bucket and expose it on the stack.
+        // building a subgts will lead to new allocation and array copy. TODO: find an alternative to new allocations here
         if (mapper instanceof Macro) {
+          subgts = GTSHelper.subSerie(gts, start, stop, false, false, subgts);
+
           subgts.safeSetMetadata(mapped.getMetadata());
           stack.push(subgts);
           stack.exec((Macro) mapper);
@@ -5839,93 +5872,122 @@ public class GTSHelper {
           throw new WarpScriptException("Invalid mapper function.");
         }
       } else {
-        if (!(mapper instanceof WarpScriptMapperFunction)) {
+        if (!(mapper instanceof WarpScriptMapper) && !(mapper instanceof WarpScriptMapperFunction)) {
           throw new WarpScriptException("Expected a mapper function.");
         }
-        //
-        // Mapper functions have 8 parameters
-        //
-        // tick: timestamp we're computing the value for
-        // names: array of names (for reducer compatibility)
-        // labels: array of labels (for reducer compatibility)
-        // ticks: array of ticks being aggregated
-        // locations: array of locations being aggregated
-        // elevations: array of elevations being aggregated
-        // values: array of values being aggregated
-        // window: An array with the window parameters [ prewindow, postwindow, start, stop, tick index ] on which the mapper runs
-        //
-        // 'window' nullity should be checked prior to using to allow mappers to be used as reducers.
-        //
-        // They return an array of 4 values:
-        //
-        // timestamp, location, elevation, value
-        //
-        // timestamp: an indication relative to timestamp (may be the timestamp at which the returned value was observed).
-        //            it is usually not used (the returned value will be set at 'tick') but must be present.
-        // location: location associated with the returned value
-        // elevation: elevation associated with the returned value
-        // value: computed value
-        //
 
-        Object[] parms = new Object[8];
+        if (mapper instanceof WarpScriptAggregator) {
+          // Second case: the aggregator is capable to process an AggregateList structure.
+          // It uses a special class for lists that saves a memory allocation.
 
-        int i = 0;
-        parms[i++] = tick;
+          // indices range
+          int[] indices = GTSHelper.indicesRange(gts, start, stop);
+          int lastIdx = indices[1];
+          int firstIdx = indices[0];
+          int count = lastIdx - firstIdx + 1;
 
-        //
-        // All arrays are allocated each time, so we don't risk
-        // having a rogue mapper modify them.
-        //
+          // additional parameters
+          List<Object> lastParams = new ArrayList<Object>(5); //{prewindow, postwindow, start, stop, tickidx};
+          lastParams.add(prewindow);
+          lastParams.add(postwindow);
+          lastParams.add(start);
+          lastParams.add(stop);
+          lastParams.add(null); // tickidx (idx of reference tick in the window) is not computed for now (todo)
 
-        parms[i++] = new String[subgts.values];
-        Arrays.fill((Object[]) parms[i - 1], gts.getName());
+          AggregateList aggregateList = new UnivariateAggregateCOWList(gts, firstIdx, count, tick, lastParams);
+          mapResult = ((WarpScriptAggregator) mapper).apply(aggregateList);
 
-        parms[i++] = new Map[subgts.values];
-        Arrays.fill((Object[]) parms[i - 1], labels);
-
-        parms[i++] = subgts.values > 0 ? Arrays.copyOf(subgts.ticks, subgts.values) : new long[0];
-        if (null != subgts.locations) {
-          parms[i++] = subgts.values > 0 ? Arrays.copyOf(subgts.locations, subgts.values) : new long[0];
         } else {
-          if (subgts.values > 0) {
-            parms[i++] = new long[subgts.values];
-            Arrays.fill((long[]) parms[i - 1], GeoTimeSerie.NO_LOCATION);
+          // Third case: the aggregator is a standard one, that expects most of its params to be arrays
+
+          subgts = GTSHelper.subSerie(gts, start, stop, false, false, subgts);
+
+          //
+          // Mapper functions have 8 parameters
+          //
+          // tick: timestamp we're computing the value for
+          // names: array of names (for reducer compatibility)
+          // labels: array of labels (for reducer compatibility)
+          // ticks: array of ticks being aggregated
+          // locations: array of locations being aggregated
+          // elevations: array of elevations being aggregated
+          // values: array of values being aggregated
+          // window: An array with the window parameters [ prewindow, postwindow, start, stop, tick index ] on which the mapper runs
+          //
+          // 'window' nullity should be checked prior to using to allow mappers to be used as reducers.
+          //
+          // They return an array of 4 values:
+          //
+          // timestamp, location, elevation, value
+          //
+          // timestamp: an indication relative to timestamp (may be the timestamp at which the returned value was observed).
+          //            it is usually not used (the returned value will be set at 'tick') but must be present.
+          // location: location associated with the returned value
+          // elevation: elevation associated with the returned value
+          // value: computed value
+          //
+
+          Object[] parms = new Object[8];
+
+          int i = 0;
+          parms[i++] = tick;
+
+          //
+          // All arrays are allocated each time, so we don't risk
+          // having a rogue mapper modify them.
+          //
+
+          parms[i++] = new String[subgts.values];
+          Arrays.fill((Object[]) parms[i - 1], gts.getName());
+
+          parms[i++] = new Map[subgts.values];
+          Arrays.fill((Object[]) parms[i - 1], labels);
+
+          parms[i++] = subgts.values > 0 ? Arrays.copyOf(subgts.ticks, subgts.values) : new long[0];
+          if (null != subgts.locations) {
+            parms[i++] = subgts.values > 0 ? Arrays.copyOf(subgts.locations, subgts.values) : new long[0];
           } else {
-            parms[i++] = new long[0];
+            if (subgts.values > 0) {
+              parms[i++] = new long[subgts.values];
+              Arrays.fill((long[]) parms[i - 1], GeoTimeSerie.NO_LOCATION);
+            } else {
+              parms[i++] = new long[0];
+            }
           }
-        }
-        if (null != subgts.elevations) {
-          parms[i++] = subgts.values > 0 ? Arrays.copyOf(subgts.elevations, subgts.values) : new long[0];
-        } else {
-          if (subgts.values > 0) {
-            parms[i++] = new long[subgts.values];
-            Arrays.fill((long[]) parms[i - 1], GeoTimeSerie.NO_ELEVATION);
+          if (null != subgts.elevations) {
+            parms[i++] = subgts.values > 0 ? Arrays.copyOf(subgts.elevations, subgts.values) : new long[0];
           } else {
-            parms[i++] = new long[0];
+            if (subgts.values > 0) {
+              parms[i++] = new long[subgts.values];
+              Arrays.fill((long[]) parms[i - 1], GeoTimeSerie.NO_ELEVATION);
+            } else {
+              parms[i++] = new long[0];
+            }
           }
-        }
-        parms[i++] = new Object[subgts.values];
+          parms[i++] = new Object[subgts.values];
 
-        int tickidx = -1;
+          int tickidx = -1;
 
-        for (int j = 0; j < subgts.values; j++) {
-          ((Object[]) parms[6])[j] = valueAtIndex(subgts, j);
-          // Find the first index of the current tick or the last one in case we map in reverse.
-          // This is because subgts is always sorted but never in reverse.
-          if ((-1 == tickidx || reversed) && tick == tickAtIndex(subgts, j)) {
-            tickidx = j;
+          for (int j = 0; j < subgts.values; j++) {
+            ((Object[]) parms[6])[j] = valueAtIndex(subgts, j);
+            // Find the first index of the current tick or the last one in case we map in reverse.
+            // This is because subgts is always sorted but never in reverse.
+            if ((-1 == tickidx || reversed) && tick == tickAtIndex(subgts, j)) {
+              tickidx = j;
+            }
           }
+
+          if(reversed) {
+            tickidx -= numbOfMappedDupTick;
+          } else {
+            tickidx += numbOfMappedDupTick;
+          }
+
+          parms[i++] = new long[] {prewindow, postwindow, start, stop, tickidx};
+
+          mapResult = ((WarpScriptMapperFunction) mapper).apply(parms);
+
         }
-
-        if(reversed) {
-          tickidx -= numbOfMappedDupTick;
-        } else {
-          tickidx += numbOfMappedDupTick;
-        }
-
-        parms[i++] = new long[] {prewindow, postwindow, start, stop, tickidx};
-
-        mapResult = ((WarpScriptMapperFunction) mapper).apply(parms);
       }
 
       if (mapResult instanceof Map) {
