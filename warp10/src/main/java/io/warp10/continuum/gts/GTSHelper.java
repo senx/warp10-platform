@@ -1904,24 +1904,15 @@ public class GTSHelper {
       GTSHelper.reset(subgts);
     }
 
-    if (null == gts.ticks || 0 == gts.values) {
-      return subgts;
-    }
-
-    //
-    // No value to return in the following case
-    //
-
-    if (starttimestamp > stoptimestamp) {
-      return subgts;
-    }
-
     //
     // Determine index to start and stop at
     // gts is being sorted as a side effect
     //
 
     int[] indices = indicesRange(gts, starttimestamp, stoptimestamp);
+    if (null == indices) {
+      return subgts;
+    }
     int lastidx = indices[1];
     int firstidx = indices[0];
 
@@ -5880,11 +5871,7 @@ public class GTSHelper {
           // Second case: the aggregator is capable to process an AggregateList structure.
           // It uses a special class for lists that saves a memory allocation.
 
-          // indices range
-          int[] indices = GTSHelper.indicesRange(gts, start, stop);
-          int lastIdx = indices[1];
-          int firstIdx = indices[0];
-          int count = lastIdx - firstIdx + 1;
+          AggregateList aggregateList;
 
           // additional parameters
           List<Object> lastParams = new ArrayList<Object>(5); //{prewindow, postwindow, start, stop, tickidx};
@@ -5894,7 +5881,21 @@ public class GTSHelper {
           lastParams.add(stop);
           lastParams.add(null); // tickidx (idx of reference tick in the window) is not computed for now (todo)
 
-          AggregateList aggregateList = new UnivariateAggregateCOWList(gts, firstIdx, count, tick, lastParams);
+          // indices range
+          int[] indices = GTSHelper.indicesRange(gts, start, stop);
+
+          if (null == indices) {
+            aggregateList = new UnivariateAggregateCOWList(gts, 0, 0, tick, lastParams);
+
+          } else {
+            int lastIdx = indices[1];
+            int firstIdx = indices[0];
+            int count = lastIdx - firstIdx + 1;
+
+            aggregateList = new UnivariateAggregateCOWList(gts, firstIdx, count, tick, lastParams);
+          }
+
+          // apply mapper
           mapResult = ((WarpScriptAggregator) mapper).apply(aggregateList);
 
         } else {
