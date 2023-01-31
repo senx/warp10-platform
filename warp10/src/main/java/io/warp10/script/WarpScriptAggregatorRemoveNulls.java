@@ -19,7 +19,8 @@ package io.warp10.script;
 import io.warp10.continuum.gts.AggregateList;
 
 public interface WarpScriptAggregatorRemoveNulls extends WarpScriptAggregator {
-  static public AggregateList removeNulls(AggregateList aggregateList) {
+  static public AggregateList removeNulls(AggregateList aggregateList) throws WarpScriptException {
+    //todo
     return null;
   }
 }
