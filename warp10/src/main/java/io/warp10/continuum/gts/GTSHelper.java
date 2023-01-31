@@ -2341,9 +2341,9 @@ public class GTSHelper {
       }
 
       if (aggregator instanceof WarpScriptAggregator) {
-        // Second case: the aggregator is capable to process an AggregateList Structure.
+        // Second case: the aggregator is capable to process an AggregateList structure.
         // It uses a special class for lists that saves a memory allocation.
-        
+
         // iterate on input to find buckets
         long currentBucketEnd;
         int currentBucketEndPosition;
