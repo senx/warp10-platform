@@ -36,6 +36,7 @@ import io.warp10.script.SAXUtils;
 import io.warp10.script.WarpScriptAggregator;
 import io.warp10.script.WarpScriptAggregatorFunction;
 import io.warp10.script.WarpScriptBinaryOp;
+import io.warp10.script.WarpScriptBucketizer;
 import io.warp10.script.WarpScriptBucketizerFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptFillerFunction;
@@ -2336,7 +2337,7 @@ public class GTSHelper {
       }
       
     } else {
-      if (!(aggregator instanceof WarpScriptBucketizerFunction)) {
+      if (!(aggregator instanceof WarpScriptBucketizer) && !(aggregator instanceof WarpScriptBucketizerFunction)) {
         throw new WarpScriptException("Invalid bucketizer function.");
       }
 
