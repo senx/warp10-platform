@@ -24,6 +24,9 @@ import java.util.List;
  * It is treated as a LIST on the warpscript stack.
  */
 public class AggregateList extends ArrayList {
+  public AggregateList(int sizeHint) {
+    super(sizeHint);
+  }
 
   public boolean isEmpty() {
     return size() < 1;

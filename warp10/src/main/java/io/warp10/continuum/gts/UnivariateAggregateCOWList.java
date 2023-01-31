@@ -27,6 +27,7 @@ import java.util.List;
 public class UnivariateAggregateCOWList extends AggregateList {
 
   public UnivariateAggregateCOWList(GeoTimeSerie gts, int startIdx, int length, Long reference, List additionalParams) {
+    super(9);
 
     // tick of computation
     this.add(reference);
