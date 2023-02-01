@@ -37,7 +37,7 @@ runner.id = runner-localhost-1
 ##
 ## MANDATORY (standalone/worker) - WarpScript endpoint to use for executing the scripts
 ##
-runner.endpoint = http://127.0.0.1:8881/api/v0/exec/warpscript
+runner.endpoint = http://127.0.0.1:8881/api/v0/exec
 
 ##
 ## MANDATORY (standalone/worker) - Number of threads to use for running scripts
