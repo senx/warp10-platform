@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2020  SenX S.A.S.
+//   Copyright 2019-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -27,9 +27,8 @@
 #processing.font.resolver = NOOP
 
 // Maximum time that TIMEBOX can wait for an execution (in ms), defaults to 30s
+// This value can be overridden with the timebox.maxtime capability (with capability value in ms)
 #warpscript.timebox.maxtime=30000
-// Capability name for extending the previous value per warpscript
-#warpscript.timebox.maxtime.capname=
 
 // Path of the 'bootstrap' WarpScript code for the interactive mode
 #warpscript.interactive.bootstrap.path =
@@ -54,20 +53,6 @@
 // The safest behavior is to leave this undefined or set to 'false'.
 //
 warpscript.def.unshadow = false
-
-//
-// Jar Repository - for Warp10 UDF only
-//
-
-// The path to a directory containing jar files from which UDFs can be loaded
-#warpscript.jars.directory = 
-
-// How often (in ms) should Warp 10 rescan the above directory
-#warpscript.jars.refresh = 60000
-
-// Set to 'true' to allow loading the UDFs from the classpath when no directory is explicitely defined
-#warpscript.jars.fromclasspath = 
-
 
 //
 // Default maximum number of operations a single WarpScript execution can do
@@ -183,6 +168,7 @@ warpscript.delete.endpoint = http://127.0.0.1:8080/api/v0/delete
 
 //
 // Maximum amount of time each attempt to access a process will wait (in ms). Defaults to 10000 ms.
+// This value can also be overridden with call.maxwait capability.
 //
 #warpscript.call.maxwait = 10000
 
@@ -212,26 +198,11 @@ warpscript.mobius.pool = 16
 #warpscript.runner.bootstrap.period =
 
 //
-// URLFETCH extension
-//
-
-// Maximum number of URLFETCH calls, 64 by default for soft and hard
-#warpscript.urlfetch.limit =
-#warpscript.urlfetch.limit.hard =
-// Maximum downloaded bytes by URLFETCH, 1000000 by default for soft and hard
-#warpscript.urlfetch.maxsize =
-#warpscript.urlfetch.maxsize.hard =
-// List of patterns to include/exclude for hosts, works the same way as webcall.host.patterns. Defaults to the value of webcall.host.patterns.
-#warpscript.urlfetch.host.patterns =
-
-//
 // HTTP extension
 //
 
-// If set to true, HTTP requires the stack to be authenticated
-#warpscript.http.authentication.required =
-// If set, the capability <warpscript.http.capability> is checked to grant access to HTTP function
-#warpscript.http.capability =
+// To use HTTP, you must have a token with "http" capability (value can be empty). 
+
 // Maximum number of HTTP calls, 1 by default, can be raised with capability http.requests
 #warpscript.http.maxrequests =
 // Maximum downloaded bytes by HTTP, 65536 by default, can be raised with capability http.size
@@ -252,3 +223,8 @@ warpscript.comments.loose = true
 // Defaults to .producer,.app,.owner
 //
 #warpscript.labels.priority =
+
+//
+// Default capabilities
+//
+#warp.capabilities.default = { 'limits' '' }

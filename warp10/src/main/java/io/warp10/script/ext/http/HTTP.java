@@ -1,5 +1,5 @@
 //
-//   Copyright 2021  SenX S.A.S.
+//   Copyright 2021-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -41,6 +41,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
+
+import io.warp10.script.WarpScriptStack;
 
 /**
  * Send an HTTP request to a url
@@ -98,13 +100,6 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
   private static final WebAccessController webAccessController;
 
   //
-  // Authorization
-  //
-
-  private static final boolean auth;
-  private static final String capName;
-
-  //
   // Limits
   //
 
@@ -125,13 +120,7 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
     } else {
       webAccessController = new WebAccessController(patternConf);
     }
-
-    // retrieve authentication required
-    auth = "true".equals(WarpConfig.getProperty(HttpWarpScriptExtension.WARPSCRIPT_HTTP_AUTHENTICATION_REQUIRED));
-
-    // retrieve capName
-    capName = WarpConfig.getProperty(HttpWarpScriptExtension.WARPSCRIPT_HTTP_CAPABILITY);
-
+    
     // retrieve limits
     String confMaxRequests = WarpConfig.getProperty(HttpWarpScriptExtension.WARPSCRIPT_HTTP_REQUESTS);
     if (null == confMaxRequests) {
@@ -173,12 +162,8 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
     // Check authorization
     //
 
-    if (auth && !stack.isAuthenticated()) {
-      throw new WarpScriptException(getName() + " requires the stack to be authenticated.");
-    }
-
-    if (null != capName && null == Capabilities.get(stack, capName)) {
-      throw new WarpScriptException(getName() + " requires capability " + capName + ".");
+    if (null == Capabilities.get(stack,WarpScriptStack.CAPABILITY_HTTP)) {
+      throw new WarpScriptException(getName() + " requires capability '" + WarpScriptStack.CAPABILITY_HTTP + "'.");
     }
 
     //

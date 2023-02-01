@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -37,6 +37,10 @@ public class MapperGeoClearPosition extends NamedWarpScriptFunction implements W
     long tick = (long) args[0];
     Object[] values = (Object[]) args[6];
 
+    if (0 == values.length) {
+      return new Object[] {0L, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, null};
+    }
+    
     if (1 != values.length) {
       throw new WarpScriptException(getName() + " can only be applied to a single value.");
     }

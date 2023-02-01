@@ -48,9 +48,6 @@ import io.warp10.continuum.store.StoreClient;
 import io.warp10.script.functions.SECURE;
 import io.warp10.sensision.Sensision;
 import io.warp10.warp.sdk.MacroResolver;
-import io.warp10.warp.sdk.WarpScriptJavaFunction;
-import io.warp10.warp.sdk.WarpScriptJavaFunctionException;
-import io.warp10.warp.sdk.WarpScriptRawJavaFunction;
 
 public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
 
@@ -1023,57 +1020,6 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     }
   }
 
-  @Override
-  public void exec(WarpScriptJavaFunction function) throws WarpScriptException {
-    //
-    // Check if we can execute the UDF. We enclose this call in a try/catch since we could get weird errors
-    // when the wrong classes were used for WarpScriptJavaFunction. Better err on the side of safety here.
-    //
-
-    try {
-      if (function.isProtected() && !Boolean.TRUE.equals(this.getAttribute(WarpScriptStack.ATTRIBUTE_IN_SECURE_MACRO))) {
-        throw new WarpScriptException("UDF is protected.");
-      }
-    } catch (Throwable t) {
-      throw new WarpScriptException(t);
-    }
-
-    //
-    // Determine the number of levels of the stack the function needs
-    //
-
-    int levels = function.argDepth();
-
-    if (this.size < levels) {
-      throw new WarpScriptException("Stack does not contain sufficient elements.");
-    }
-
-    // Build the list of objects, the top of the stack being the first
-    List<Object> args = new ArrayList<Object>(levels);
-
-    if (function instanceof WarpScriptRawJavaFunction) {
-      args.add(this);
-    } else {
-      for (int i = 0; i < levels; i++) {
-        args.add(StackUtils.toSDKObject(this.pop()));
-      }
-    }
-
-    try {
-      // Apply the function
-      List<Object> results = function.apply(args);
-
-      if (!(function instanceof WarpScriptRawJavaFunction)) {
-        // Push the results onto the stack
-        for (Object result: results) {
-          this.push(StackUtils.fromSDKObject(result));
-        }
-      }
-    } catch (WarpScriptJavaFunctionException ejfe) {
-      throw new WarpScriptException(ejfe);
-    }
-  }
-
   public Object findFunction(String stmt) throws WarpScriptException {
     Object func = defined.get(stmt);
 
@@ -1366,11 +1312,6 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     if (null != this.progressable) {
       this.progressable.progress();
     }
-  }
-
-  @Override
-  public boolean isAuthenticated() {
-    return null != this.getAttribute(ATTRIBUTE_TOKEN);
   }
 
   @Override

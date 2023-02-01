@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -69,10 +69,6 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
 
     List<Object> params = (List<Object>) top;
 
-    if (5 > params.size()) {
-      throw new WarpScriptException(getName() + " needs a list of at least 5 parameters as input.");
-    }
-
     int nseries = 0;
 
     for (Object param: params) {
@@ -86,8 +82,12 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
       throw new WarpScriptException(getName() + " expects Geo Time Series or lists thereof as first parameters.");
     }
 
-    if (!(params.get(nseries) instanceof WarpScriptMapperFunction) && !(params.get(nseries) instanceof Macro)) {
+    if (nseries == params.size() || !(params.get(nseries) instanceof WarpScriptMapperFunction) && !(params.get(nseries) instanceof Macro)) {
       throw new WarpScriptException(getName() + " expects a mapper function or a macro after Geo Time Series.");
+    }
+
+    for (int i = params.size(); i <= nseries + 3; i++) {
+      params.add(0L);
     }
 
     if (!(params.get(nseries + 1) instanceof Long) || !(params.get(nseries + 2) instanceof Long) || !(params.get(nseries + 3) instanceof Long)) {
@@ -188,6 +188,7 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
     if (Long.MIN_VALUE == occurrences) {
       occurrences = Long.MIN_VALUE + 1;
     }
+    final boolean reversed = occurrences < 0;
 
     Object stepParam = params.get(PARAM_STEP);
     if (stepParam instanceof Long) {
@@ -205,7 +206,7 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
     }
 
     Object outputTicks = params.get(PARAM_OUTPUTTICKS);
-    // Make sure outputTicks is a List<Long>
+    // Make sure outputTicks is a List<Long>, and that the list is sorted accordingly.
     if (null != outputTicks) {
       if (!(outputTicks instanceof List)) {
         throw new WarpScriptException(getName() + " expects '" + PARAM_OUTPUTTICKS + "' to be list of LONG values.");
@@ -213,6 +214,40 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
       for (Object tick: (List) outputTicks) {
         if (!(tick instanceof Long)) {
           throw new WarpScriptException(getName() + " expects '" + PARAM_OUTPUTTICKS + "' to be list of LONG values.");
+        }
+      }
+
+      // Check if outputTicks is correctly sorted
+      // In case of a concurrent execution, sorting outputTicks here would lead to a ConcurrentModificationException
+      if (((List<Long>) outputTicks).size() > 1) {
+        if (reversed) { // reversed
+          boolean descending = true;
+          int i = 1;
+          long lastElt = ((List<Long>) outputTicks).get(0);
+          long elt;
+          while (i < ((List<Long>) outputTicks).size() && descending) {
+            elt = ((List<Long>) outputTicks).get(i);
+            descending = elt <= lastElt;
+            lastElt = elt;
+            i++;
+          }
+          if (!descending) {
+            throw new WarpScriptException(getName() + " expects a reverse sorted list for " + PARAM_OUTPUTTICKS + " parameter.");
+          }
+        } else {
+          boolean ascending = true;
+          int i = 1;
+          long lastElt = ((List<Long>) outputTicks).get(0);
+          long elt;
+          while (i < ((List<Long>) outputTicks).size() && ascending) {
+            elt = ((List<Long>) outputTicks).get(i);
+            ascending = elt >= lastElt;
+            lastElt = elt;
+            i++;
+          }
+          if (!ascending) {
+            throw new WarpScriptException(getName() + " expects a sorted list for " + PARAM_OUTPUTTICKS + " parameter.");
+          }
         }
       }
     }
@@ -265,7 +300,7 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
     for (GeoTimeSerie gts: series) {
       List<GeoTimeSerie> res;
       try {
-        res = GTSHelper.map(gts, mapper, prewindow, postwindow, Math.abs(occurrences), occurrences < 0, step, overrideTick, mapper instanceof Macro ? stack : null, (List<Long>) outputTicks);
+        res = GTSHelper.map(gts, mapper, prewindow, postwindow, Math.abs(occurrences), reversed, step, overrideTick, mapper instanceof Macro ? stack : null, (List<Long>) outputTicks);
       } catch (WarpScriptATCException wsatce) {
         // Do not handle WarpScriptATCException (STOP in MACROMAPPER for instance)
         throw wsatce;

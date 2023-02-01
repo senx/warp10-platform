@@ -45,7 +45,6 @@ import io.warp10.continuum.store.Constants;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.binary.ADD;
 import io.warp10.script.binary.SUB;
-import io.warp10.script.ext.warpfleet.WarpFleetWarpScriptExtension;
 import io.warp10.script.functions.DROP;
 import io.warp10.script.functions.HUMANDURATION;
 import io.warp10.script.functions.MSGFAIL;
@@ -466,8 +465,6 @@ public class WarpFleetMacroRepository {
       validator.add(new DROP(""));
       validator.add(false);
     }
-
-    WarpScriptLib.register(new WarpFleetWarpScriptExtension());
 
     initialized.set(true);
   }

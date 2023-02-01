@@ -60,7 +60,7 @@ public class REOPTALT extends NamedWarpScriptFunction implements WarpScriptStack
     if (alternatives.isEmpty()) {
       return "";
     } else if (alternatives.size() == 1) {
-      return alternatives.get(0);
+      return escape(alternatives.get(0));
     }
 
     //
@@ -221,7 +221,7 @@ public class REOPTALT extends NamedWarpScriptFunction implements WarpScriptStack
         regexp.append(buildOptAlt(subalts));
 
         if (endlen > 0) {
-          regexp.append(end);
+          regexp.append(escape(end));
         }
 
         suffixes.clear();
@@ -297,9 +297,11 @@ public class REOPTALT extends NamedWarpScriptFunction implements WarpScriptStack
     }
 
     regexp.append(buildOptAlt(subalts));
+
     if (endlen > 0) {
-      regexp.append(end);
+      regexp.append(escape(end));
     }
+
     regexp.append(")");
 
 
@@ -339,18 +341,17 @@ public class REOPTALT extends NamedWarpScriptFunction implements WarpScriptStack
 
   private static final String escape(String str) {
     str = str.replaceAll("\\\\", "\\\\");
-    str = str.replaceAll("\\[", "\\[");
-    str = str.replaceAll("\\]", "\\]");
-    str = str.replaceAll("\\{", "\\{");
-    str = str.replaceAll("\\}", "\\}");
-    str = str.replaceAll("\\(", "\\(");
-    str = str.replaceAll("\\)", "\\)");
-    str = str.replaceAll("\\|", "\\|");
-    str = str.replaceAll("\\.", "\\.");
-    str = str.replaceAll("\\?", "\\?");
-    str = str.replaceAll("\\+", "\\+");
-    str = str.replaceAll("\\*", "\\*");
-    str = str.replaceAll("\\]", "\\]");
+    str = str.replaceAll("\\[", "\\\\[");
+    str = str.replaceAll("\\]", "\\\\]");
+    str = str.replaceAll("\\{", "\\\\{");
+    str = str.replaceAll("\\}", "\\\\}");
+    str = str.replaceAll("\\(", "\\\\(");
+    str = str.replaceAll("\\)", "\\\\)");
+    str = str.replaceAll("\\|", "\\\\|");
+    str = str.replaceAll("\\.", "\\\\.");
+    str = str.replaceAll("\\?", "\\\\?");
+    str = str.replaceAll("\\+", "\\\\+");
+    str = str.replaceAll("\\*", "\\\\*");
     return str;
   }
 }

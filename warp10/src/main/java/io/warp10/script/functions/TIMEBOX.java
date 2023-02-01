@@ -35,6 +35,7 @@ import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStack.Signal;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.warp.sdk.Capabilities;
+import io.warp10.script.WarpScriptStack;
 
 public class TIMEBOX extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
@@ -51,11 +52,6 @@ public class TIMEBOX extends NamedWarpScriptFunction implements WarpScriptStackF
   static {
     TIMEBOX_MAXTIME = Long.parseLong(WarpConfig.getProperty(Configuration.CONFIG_WARPSCRIPT_TIMEBOX_MAXTIME, Long.toString(DEFAULT_TIMEBOX_MAXTIME)));
   }
-
-  /**
-   * Allowance capability to raise TIMEBOX_MAXTIME
-   */
-  public static final String TIMEBOX_MAXTIME_CAPNAME = WarpConfig.getProperty(Configuration.CONFIG_WARPSCRIPT_TIMEBOX_MAXTIME_CAPNAME);
 
   private final Signal signal;
   private final boolean cap;
@@ -101,16 +97,16 @@ public class TIMEBOX extends NamedWarpScriptFunction implements WarpScriptStackF
 
     long maxtimeCapability = 0;
 
-    if (this.cap && maxtime > 0 && null != TIMEBOX_MAXTIME_CAPNAME && null != Capabilities.get(stack, TIMEBOX_MAXTIME_CAPNAME)) {
-      String val = Capabilities.get(stack, TIMEBOX_MAXTIME_CAPNAME).trim();
+    if (this.cap && maxtime > 0 && null != Capabilities.get(stack, WarpScriptStack.CAPABILITY_TIMEBOX_MAXTIME)) {
+      String val = Capabilities.get(stack, WarpScriptStack.CAPABILITY_TIMEBOX_MAXTIME).trim();
 
       if (val.startsWith("P")) {
         maxtimeCapability = DURATION.parseDuration(new Instant(), val, true, false);
       } else {
         try {
-          maxtimeCapability = Long.valueOf(Capabilities.get(stack, TIMEBOX_MAXTIME_CAPNAME)) * Constants.TIME_UNITS_PER_MS;
+          maxtimeCapability = Long.valueOf(Capabilities.get(stack, WarpScriptStack.CAPABILITY_TIMEBOX_MAXTIME)) * Constants.TIME_UNITS_PER_MS;
         } catch (NumberFormatException nfe) {
-          throw new WarpScriptException(getName() + " invalid value for capability '" + TIMEBOX_MAXTIME_CAPNAME + "'.");
+          throw new WarpScriptException(getName() + " invalid value for capability '" + WarpScriptStack.CAPABILITY_TIMEBOX_MAXTIME + "'.");
         }
       }
 

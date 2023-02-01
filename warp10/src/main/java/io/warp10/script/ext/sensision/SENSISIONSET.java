@@ -38,7 +38,7 @@ public class SENSISIONSET extends NamedWarpScriptFunction implements WarpScriptS
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
 
-    if (SensisionWarpScriptExtension.useCapability() && null == Capabilities.get(stack, SensisionWarpScriptExtension.WRITE_CAPABILITY)) {
+    if (null == Capabilities.get(stack, SensisionWarpScriptExtension.WRITE_CAPABILITY)) {
       throw new WarpScriptException(getName() + " missing capability '" + SensisionWarpScriptExtension.WRITE_CAPABILITY +"'");
     }
 

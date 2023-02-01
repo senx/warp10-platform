@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,21 +16,8 @@
 
 package io.warp10.script;
 
-import io.warp10.WarpConfig;
-import io.warp10.continuum.sensision.SensisionConstants;
-import io.warp10.script.WarpScriptStack.Macro;
-import io.warp10.script.WarpScriptStack.StackContext;
-import io.warp10.script.functions.EVAL;
-import io.warp10.script.functions.SNAPSHOT;
-import io.warp10.sensision.Sensision;
-import io.warp10.warp.sdk.WarpScriptJavaFunction;
-
-import org.apache.hadoop.util.Progressable;
-
 import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Serializable;
 import java.io.StringReader;
@@ -40,6 +27,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Semaphore;
+
+import org.apache.hadoop.util.Progressable;
+
+import io.warp10.WarpConfig;
+import io.warp10.script.WarpScriptStack.Macro;
+import io.warp10.script.WarpScriptStack.StackContext;
+import io.warp10.script.functions.EVAL;
+import io.warp10.script.functions.SNAPSHOT;
 
 public class WarpScriptExecutor implements Serializable {
 

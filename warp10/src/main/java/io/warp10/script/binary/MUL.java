@@ -1,5 +1,5 @@
 //
-//   Copyright 2020  SenX S.A.S.
+//   Copyright 2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -76,16 +76,25 @@ public class MUL extends NamedWarpScriptFunction implements WarpScriptStackFunct
       }
 
       // The result type is LONG if both inputs are LONG.
+      GTSOpsHelper.GTSBinaryOp op = null;
       GeoTimeSerie result = new GeoTimeSerie(Math.max(GTSHelper.nvalues(gts1), GTSHelper.nvalues(gts2)));
-      result.setType((gts1.getType() == TYPE.LONG && gts2.getType() == TYPE.LONG) ? TYPE.LONG : TYPE.DOUBLE);
-
-      GTSOpsHelper.GTSBinaryOp op = new GTSOpsHelper.GTSBinaryOp() {
-        @Override
-        public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
-          return ((Number) GTSHelper.valueAtIndex(gtsa, idxa)).doubleValue() * ((Number) GTSHelper.valueAtIndex(gtsb, idxb)).doubleValue();
-        }
-      };
-
+      if (gts1.getType() == TYPE.LONG && gts2.getType() == TYPE.LONG) { // both long => long multiplication
+        result.setType(TYPE.LONG);
+        op = new GTSOpsHelper.GTSBinaryOp() {
+          @Override
+          public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
+            return ((Number) GTSHelper.valueAtIndex(gtsa, idxa)).longValue() * ((Number) GTSHelper.valueAtIndex(gtsb, idxb)).longValue();
+          }
+        };
+      } else {
+        result.setType(TYPE.DOUBLE);
+        op = new GTSOpsHelper.GTSBinaryOp() {
+          @Override
+          public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
+            return ((Number) GTSHelper.valueAtIndex(gtsa, idxa)).doubleValue() * ((Number) GTSHelper.valueAtIndex(gtsb, idxb)).doubleValue();
+          }
+        };
+      }
       GTSOpsHelper.applyBinaryOp(result, gts1, gts2, op);
 
       // If result is empty, set type and sizehint to default.

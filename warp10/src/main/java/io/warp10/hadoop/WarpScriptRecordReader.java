@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,13 +16,10 @@
 package io.warp10.hadoop;
 
 import java.io.IOException;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.ObjectWritable;
-import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
@@ -30,7 +27,6 @@ import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptExecutor;
-import io.warp10.script.WarpScriptExecutor.StackSemantics;
 
 public class WarpScriptRecordReader extends RecordReader<Object, Object> {
 
@@ -103,9 +99,9 @@ public class WarpScriptRecordReader extends RecordReader<Object, Object> {
 
     // Initialize WarpScriptExecutor
     try {
-      this.executor = inputFormat.getWarpScriptExecutor(conf, code, isMacro);
+      this.executor = inputFormat.getWarpScriptExecutor(conf, isMacro ? macroCode : code, isMacro);
     } catch (WarpScriptException wse) {
-      throw new IOException("Error while instatiating WarpScript executor", wse);
+      throw new IOException("Error while instantiating WarpScript executor", wse);
     }
 
     done = false;

@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package io.warp10.script.functions;
 
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.warp.sdk.Capabilities;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
@@ -25,32 +26,34 @@ import io.warp10.script.WarpScriptStack;
  * Configure the gts limit of the stack
  */
 public class MAXGTS extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   public MAXGTS(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    
-    if (!stack.isAuthenticated()) {
-      throw new WarpScriptException(getName() + " requires the stack to be authenticated.");
+
+    if (null == Capabilities.get(stack, WarpScriptStack.CAPABILITY_LIMITS) && null == Capabilities.get(stack, WarpScriptStack.CAPABILITY_MAXGTS)) {
+      throw new WarpScriptException(getName() + " missing capability '" + WarpScriptStack.CAPABILITY_MAXGTS + "' or '" + WarpScriptStack.CAPABILITY_LIMITS + "'.");
     }
-    
+
     Object top = stack.pop();
-    
+
     if (!(top instanceof Long)) {
       throw new WarpScriptException(getName() + " expects a numeric (long) limit.");
     }
-    
+
     long limit = ((Number) top).longValue();
 
-    if (limit > (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_GTS_LIMIT_HARD)) {
-      throw new WarpScriptException(getName() + " cannot extend limit past " + stack.getAttribute(WarpScriptStack.ATTRIBUTE_GTS_LIMIT_HARD));
+    Long max = Capabilities.getLong(stack, WarpScriptStack.CAPABILITY_MAXGTS, (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_GTS_LIMIT_HARD));
+
+    if (limit > max) {
+      throw new WarpScriptException(getName() + " cannot extend limit past " + max);
     }
 
     stack.setAttribute(WarpScriptStack.ATTRIBUTE_GTS_LIMIT, limit);
-    
+
     return stack;
   }
 }

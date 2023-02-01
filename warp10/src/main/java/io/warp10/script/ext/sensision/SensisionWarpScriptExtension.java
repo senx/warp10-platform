@@ -32,8 +32,6 @@ public class SensisionWarpScriptExtension extends WarpScriptExtension {
 
   public static final String READ_CAPABILITY = "sensision.read";
   public static final String WRITE_CAPABILITY = "sensision.write";
-  private static final String CONF_USE_CAPABILITY = "sensision.capability";
-  private static final boolean useCapability;
 
   static {
     functions = new HashMap<String, Object>();
@@ -44,8 +42,7 @@ public class SensisionWarpScriptExtension extends WarpScriptExtension {
     functions.put("SENSISION.GET", new SENSISIONGET("SENSISION.GET"));
     functions.put("SENSISION.DUMP", new SENSISIONDUMP("SENSISION.DUMP"));
     functions.put("SENSISION.DUMPEVENTS", new SENSISIONDUMPEVENTS("SENSISION.DUMPEVENTS"));
-
-    useCapability = "true".equals(WarpConfig.getProperty(CONF_USE_CAPABILITY, "false"));
+    
   }
 
   @Override
@@ -53,7 +50,4 @@ public class SensisionWarpScriptExtension extends WarpScriptExtension {
     return functions;
   }
 
-  public static boolean useCapability() {
-    return useCapability;
-  }
 }

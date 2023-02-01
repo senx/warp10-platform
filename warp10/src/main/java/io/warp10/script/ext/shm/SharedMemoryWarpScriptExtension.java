@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -26,52 +26,56 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.warp.sdk.WarpScriptExtension;
 
 public class SharedMemoryWarpScriptExtension extends WarpScriptExtension implements Runnable {
-  
+
   private static final Map<String,Object> functions;
   private static final Map<String,ReentrantLock> locks;
   private static final Map<String,Long> lockUses;
-  
+
   private static final Map<String,Object> shmobjects;
   private static final Map<String,String> shmobjectLocks;
   private static final Map<String,Long> shmobjectUses;
 
   private static Thread janitor = null;
-  
+
   private static final long ttl;
 
   /**
    * TTL of shared objects and locks after their last access, in ms.
    */
   private static final String CONFIG_SHM_TTL = "shm.ttl";
-  
+
   /**
    * Default TTL for shared objects, 1H
    */
   private static final long DEFAULT_SHM_TTL = 1 * 3600 * 1000L;
-  
+
   static {
     locks = new HashMap<String,ReentrantLock>();
     lockUses = new HashMap<String,Long>();
-  
+
     shmobjects = new HashMap<String,Object>();
     shmobjectLocks = new HashMap<String,String>();
     shmobjectUses = new HashMap<String,Long>();
-  
+
     ttl = Long.parseLong(WarpConfig.getProperty(CONFIG_SHM_TTL, String.valueOf(DEFAULT_SHM_TTL)));
-    
+
     functions = new HashMap<String,Object>();
-    
+
     functions.put("SHMSTORE", new SHMSTORE("SHMSTORE"));
     functions.put("SHMLOAD", new SHMLOAD("SHMLOAD"));
     functions.put("SHMDEFINED", new SHMDEFINED("SHMDEFINED"));
     functions.put("MUTEX", new MUTEX("MUTEX"));
   }
-  
+
+  public static final String CAPABILITY_MUTEX = "mutex";
+  public static final String CAPABILITY_SHMLOAD = "shmload";
+  public static final String CAPABILITY_SHMSTORE = "shmstore";
+
   public SharedMemoryWarpScriptExtension() {
     //
     // Start the janitor thread if it is not yet started
     //
-    
+
     synchronized(functions) {
       if (null == janitor) {
         janitor = new Thread(this);
@@ -80,27 +84,27 @@ public class SharedMemoryWarpScriptExtension extends WarpScriptExtension impleme
       }
     }
   }
-  
+
   @Override
   public Map<String, Object> getFunctions() {
     return functions;
   }
-  
+
   public synchronized static final ReentrantLock getLock(String name) {
     ReentrantLock lock = locks.get(name);
-    
+
     if (null == lock) {
       lock = new ReentrantLock(true);
-      locks.put(name, lock);      
+      locks.put(name, lock);
     }
-    
+
     lockUses.put(name, System.currentTimeMillis());
-    
+
     return lock;
   }
-  
+
   public static final void store(String symbol, String mutex, Object o) throws WarpScriptException {
-    
+
     synchronized(locks) {
       if (null == o || null == mutex) {
         shmobjects.remove(symbol);
@@ -115,10 +119,10 @@ public class SharedMemoryWarpScriptExtension extends WarpScriptExtension impleme
       if (null != shmobjectLocks.get(symbol)) {
         return;
       }
-      
+
       shmobjects.put(symbol, o);
       shmobjectLocks.put(symbol, mutex);
-      shmobjectUses.put(symbol, System.currentTimeMillis());      
+      shmobjectUses.put(symbol, System.currentTimeMillis());
     }
   }
 
@@ -152,16 +156,16 @@ public class SharedMemoryWarpScriptExtension extends WarpScriptExtension impleme
       return null != mutex;
     }
   }
-  
+
   @Override
   public void run() {
     while(true) {
       try {
         LockSupport.parkNanos(Math.min(60000000000L, ttl * 500000L));
-        
+
         synchronized(locks) {
           long now = System.currentTimeMillis();
-          
+
           for (String symbol: shmobjects.keySet()) {
             // If SHM Object was not used for more than ttl, clear it
             // if its mutex is not currently held
@@ -175,7 +179,7 @@ public class SharedMemoryWarpScriptExtension extends WarpScriptExtension impleme
               }
             }
           }
-          
+
           for (Map.Entry<String, ReentrantLock> mutexAndLock: locks.entrySet()) {
             String mutex = mutexAndLock.getKey();
             // If lock has not been requested for over ttl, it is not associated with any shm object
@@ -183,12 +187,12 @@ public class SharedMemoryWarpScriptExtension extends WarpScriptExtension impleme
             if (now - lockUses.get(mutex) > ttl && !shmobjectLocks.containsValue(mutex)) {
               if (!mutexAndLock.getValue().isLocked()) {
                 locks.remove(mutex);
-                lockUses.remove(mutex);                
-              }                
+                lockUses.remove(mutex);
+              }
             }
           }
         }
-      } catch (Throwable t) {        
+      } catch (Throwable t) {
       }
     }
   }
