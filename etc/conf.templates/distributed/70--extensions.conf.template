@@ -67,14 +67,14 @@
 // SHM ttl in ms, default = 1 hour
 #shm.ttl = 3600000
 
-// TOKENDUMP, TOKENGEN, TOKENSECRET
+// TOKENDUMP, TOKENGEN
 #warpscript.extension.token = io.warp10.script.ext.token.TokenWarpScriptExtension
 
 // HTTP
 #warpscript.extension.http = io.warp10.script.ext.http.HttpWarpScriptExtension
 // see also warpscript.http.* configurations in 20-warpscript.conf
 
-// WSPS WSINFO WSKILL STACKPSSECRET
+// WSPS WSINFO WSKILL
 #warpscript.extension.stackps = io.warp10.script.ext.stackps.StackPSWarpScriptExtension
 
 //

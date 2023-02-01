@@ -26,7 +26,6 @@ sourceSets {
             include 'io/warp10/script/**'
             exclude 'io/warp10/script/ScriptRunner*.*'
             include 'io/warp10/CapacityExtractorOutputStream.*'
-            include 'io/warp10/udf/**'
             include 'io/warp10/thrift/**'
             include 'io/warp10/WarpConfig.*'
             include 'io/warp10/WarpConfig$1.*'

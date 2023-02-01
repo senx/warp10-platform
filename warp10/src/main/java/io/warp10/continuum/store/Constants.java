@@ -451,11 +451,6 @@ public class Constants {
   public static final String TOKEN_ATTR_NOFETCH = ".nofetch";
 
   /**
-   * Attribute used to specify that a READ token cannot be used to AUTHENTICATE.
-   */
-  public static final String TOKEN_ATTR_NOAUTH = ".noauth";
-
-  /**
    * Attribute to specify the maximum value size
    */
   public static final String TOKEN_ATTR_MAXSIZE = ".maxsize";

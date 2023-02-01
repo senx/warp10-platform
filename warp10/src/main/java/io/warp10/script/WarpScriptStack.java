@@ -119,11 +119,6 @@ public interface WarpScriptStack {
   public static final String ATTRIBUTE_MACRO_NAME = "macro.name";
 
   /**
-   * Flag indicating whether or not the stack is currently in documentation mode
-   */
-  public static final String ATTRIBUTE_DOCMODE = "docmode";
-
-  /**
    * Flag indicating whether or not the stack is currently in info mode
    */
   public static final String ATTRIBUTE_INFOMODE = "infomode";
