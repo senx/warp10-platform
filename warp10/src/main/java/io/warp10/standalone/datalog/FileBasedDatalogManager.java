@@ -75,6 +75,8 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
   public static final String CONFIG_DATALOG_MANAGER_ID = "datalog.manager.id";
   public static final String CONFIG_DATALOG_MANAGER_NOFORWARD = "datalog.manager.noforward";
   public static final String CONFIG_DATALOG_MANAGER_FORWARD = "datalog.manager.forward";
+  public static final String CONFIG_DATALOG_MANAGER_LOGUPDATES = "datalog.manager.logupdates";
+  public static final String CONFIG_DATALOG_MANAGER_LOGDELETES = "datalog.manager.logdeletes";
 
   public static final String CONFIG_DATALOG_FEEDER_ID = "datalog.feeder.id";
   public static final String CONFIG_DATALOG_FEEDER_HOST = "datalog.feeder.host";
@@ -155,6 +157,12 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
    * Set of ids that will NOT be forwarded in 'process'
    */
   private final Set<String> noforward;
+
+  /**
+   * Should we log data update/delete records (set to false when in standalone+)
+   */
+  private final boolean logupdates;
+  private final boolean logdeletes;
 
   public FileBasedDatalogManager() {
 
@@ -306,6 +314,11 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
   @Override
   protected void store(GTSEncoder encoder) throws IOException {
     //System.out.println("data store: " + encoder);
+
+    if (!logupdates) {
+      return;
+    }
+
     if (null == encoder) {
       append(null);
     } else {
@@ -315,6 +328,9 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
 
   @Override
   protected void delete(WriteToken token, Metadata metadata, long start, long end) throws IOException {
+    if (!logdeletes) {
+      return;
+    }
     System.out.println("delete: " + token + " " + metadata + " " + start + " " + end);
     append(DatalogHelper.getDeleteRecord(id, metadata, start, end));
   }
