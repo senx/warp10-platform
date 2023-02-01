@@ -213,6 +213,10 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
       throw new RuntimeException("Missing Datalog id '" + CONFIG_DATALOG_MANAGER_ID + "'.");
     }
 
+    // Should we log UPDATE / DELETE records?
+    this.logupdates = "true".equals(WarpConfig.getProperty(CONFIG_DATALOG_MANAGER_LOGUPDATES, "true"));
+    this.logdeletes = "true".equals(WarpConfig.getProperty(CONFIG_DATALOG_MANAGER_LOGDELETES, "true"));
+
     if (null != WarpConfig.getProperty(CONFIG_DATALOG_MANAGER_FORWARD)) {
       String[] ids =  WarpConfig.getProperty(CONFIG_DATALOG_MANAGER_FORWARD).split(",");
       forward = new LinkedHashSet<String>();
