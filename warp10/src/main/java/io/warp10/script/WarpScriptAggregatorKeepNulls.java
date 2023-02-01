@@ -16,11 +16,4 @@
 
 package io.warp10.script;
 
-import io.warp10.continuum.gts.AggregateList;
-
-public interface WarpScriptAggregatorKeepNulls extends WarpScriptAggregator {
-  static public AggregateList keepNulls(AggregateList aggregateList) throws WarpScriptException {
-    //todo
-    return null;
-  }
-}
+public interface WarpScriptAggregatorKeepNulls extends WarpScriptAggregator {}

@@ -19,8 +19,11 @@ package io.warp10.script;
 import io.warp10.continuum.gts.AggregateList;
 
 public interface WarpScriptAggregatorFailIfAnyNull extends WarpScriptAggregator {
-  static public AggregateList failIfAnyNull(AggregateList aggregateList) throws WarpScriptException {
-    //todo
-    return null;
+  static public void failIfAnyNull(AggregateList aggregateList) throws WarpScriptException {
+    for (Object o: aggregateList.getValues()) {
+      if (null == o) {
+        throw new WarpScriptException("Null value was encountered in an AGGREGATOR that does not support them.");
+      }
+    }
   }
 }
