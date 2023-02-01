@@ -56,16 +56,16 @@ public class SLEEP extends NamedWarpScriptFunction implements WarpScriptStackFun
     }
     long t = ((Long) o).longValue();
     // convert to milliseconds
-    if ((t / Constants.TIME_UNITS_PER_MS) > maxSleepMs) {
+    t = t / Constants.TIME_UNITS_PER_MS;
+    if (t > maxSleepMs) {
       throw new WarpScriptException(getName() + " cannot sleep during more than " + maxSleepMs + " ms, as defined in " + WarpScriptStack.CAPABILITY_SLEEP_MAXTIME + " capability.");
     }
-    // convert to nanoseconds, check for overflow
-    if (t > (Long.MAX_VALUE / Constants.NS_PER_TIME_UNIT)) {
-      t = Long.MAX_VALUE / Constants.NS_PER_TIME_UNIT;
-    }
-    
-    LockSupport.parkNanos(t * Constants.NS_PER_TIME_UNIT);
 
+    try {
+      Thread.sleep(t);
+    } catch (InterruptedException e) {
+      throw new WarpScriptException(getName() + " interrupted");
+    }
     return stack;
   }
 
