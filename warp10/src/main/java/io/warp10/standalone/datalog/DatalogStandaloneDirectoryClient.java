@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2022  SenX S.A.S.
+//   Copyright 2020-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -42,19 +42,27 @@ public class DatalogStandaloneDirectoryClient extends StandaloneDirectoryClient 
 
   @Override
   public boolean register(Metadata metadata) throws IOException {
-    // Make a copy of Metadata so we have the original attributes
-    Metadata original = new Metadata(metadata);
-    boolean stored = directory.register(metadata);
-    // Only record the metadata update in the WAL if the directory
-    // actually persisted it or if systematic recording was requested.
-    if (stored || registerAll) {
-      // Copy class/labels Id and lastactivity
-      original.setClassId(metadata.getClassId());
-      original.setLabelsId(metadata.getLabelsId());
-      if (metadata.isSetLastActivity()) {
-        original.setLastActivity(metadata.getLastActivity());
+    boolean stored;
+
+    if (null == metadata) {
+      stored = directory.register(null);
+      manager.register(null);
+      stored = true;
+    } else {
+      // Make a copy of Metadata so we have the original attributes
+      Metadata original = new Metadata(metadata);
+      stored = directory.register(metadata);
+      // Only record the metadata update in the WAL if the directory
+      // actually persisted it or if systematic recording was requested.
+      if (stored || registerAll) {
+        // Copy class/labels Id and lastactivity
+        original.setClassId(metadata.getClassId());
+        original.setLabelsId(metadata.getLabelsId());
+        if (metadata.isSetLastActivity()) {
+          original.setLastActivity(metadata.getLastActivity());
+        }
+        manager.register(original);
       }
-      manager.register(original);
     }
     return stored;
   }
