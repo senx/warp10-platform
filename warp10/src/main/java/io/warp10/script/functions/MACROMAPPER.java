@@ -20,7 +20,10 @@ import com.geoxp.GeoXPLib;
 import io.warp10.continuum.gts.AggregateList;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptAggregatorFailIfAnyNull;
+import io.warp10.script.WarpScriptAggregatorKeepNulls;
 import io.warp10.script.WarpScriptAggregatorRemoveNulls;
+import io.warp10.script.WarpScriptAggregatorSkipIfAnyNull;
 import io.warp10.script.WarpScriptBucketizer;
 import io.warp10.script.WarpScriptBucketizerFunction;
 import io.warp10.script.WarpScriptException;
@@ -40,7 +43,7 @@ import java.util.Set;
 
 public class MACROMAPPER extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  public static class MacroMapperWrapper extends NamedWarpScriptFunction implements WarpScriptMapperFunction, WarpScriptReducerFunction, WarpScriptBucketizerFunction, WarpScriptMapper, WarpScriptReducer, WarpScriptBucketizer, WarpScriptAggregatorRemoveNulls {
+  public static class MacroMapperWrapper extends NamedWarpScriptFunction implements WarpScriptMapperFunction, WarpScriptReducerFunction, WarpScriptBucketizerFunction, WarpScriptMapper, WarpScriptReducer, WarpScriptBucketizer, WarpScriptAggregatorRemoveNulls, WarpScriptAggregatorKeepNulls, WarpScriptAggregatorSkipIfAnyNull, WarpScriptAggregatorFailIfAnyNull {
 
     private final WarpScriptStack stack;
     private final Macro macro;

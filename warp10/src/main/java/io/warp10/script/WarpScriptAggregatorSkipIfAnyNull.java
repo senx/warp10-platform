@@ -18,7 +18,7 @@ package io.warp10.script;
 
 import io.warp10.continuum.gts.AggregateList;
 
-public interface WarpScriptAggregatorSkipIfAnyNull extends WarpScriptAggregator {
+public interface WarpScriptAggregatorSkipIfAnyNull extends WarpScriptAggregatorHandleNulls {
   static public boolean containsAnyNull(AggregateList aggregateList) throws WarpScriptException {
     for (Object o: aggregateList.getValues()) {
       if (null == o) {

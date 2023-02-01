@@ -16,4 +16,4 @@
 
 package io.warp10.script;
 
-public interface WarpScriptAggregatorKeepNulls extends WarpScriptAggregator {}
+public interface WarpScriptAggregatorKeepNulls extends WarpScriptAggregatorHandleNulls {}

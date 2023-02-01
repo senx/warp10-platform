@@ -17,10 +17,66 @@
 package io.warp10.script;
 
 import io.warp10.continuum.gts.AggregateList;
+import io.warp10.continuum.gts.MultivariateAggregateCOWList;
+import io.warp10.continuum.gts.UnivariateAggregateCOWList;
 
-public interface WarpScriptAggregatorRemoveNulls extends WarpScriptAggregator {
+import java.util.ArrayList;
+import java.util.List;
+
+public interface WarpScriptAggregatorRemoveNulls extends WarpScriptAggregatorHandleNulls {
   static public AggregateList removeNulls(AggregateList aggregateList) throws WarpScriptException {
-    //todo
-    return null;
+    if (!aggregateList.hasValues()) {
+      return aggregateList;
+    }
+
+    // First case : COWList are backed by arrays of primitive objects that cannot contain any null value
+    if (aggregateList instanceof UnivariateAggregateCOWList) {
+      return aggregateList;
+    }
+
+    // Second case : this is the usual case from REDUCE or APPLY framework
+    if (aggregateList instanceof MultivariateAggregateCOWList) {
+
+      ((MultivariateAggregateCOWList) aggregateList).skipNulls();
+      return aggregateList;
+    }
+
+    // Third case : this covers all remaining cases for full compatibility with the interface but should not happen for optimised aggregators
+    List values = aggregateList.getValues();
+    List<Integer> skippedIndices= new ArrayList<Integer>(values.size() / 2);
+
+    for (int i = 0; i < values.size(); i++) {
+      if (null == values.get(i)) {
+        skippedIndices.add(i);
+      }
+    }
+
+    if (0 == skippedIndices.size()) {
+      return aggregateList;
+    }
+
+    if (1 == values.size()) {
+      for (int i = 1; i < 8; i++) {
+        aggregateList.set(i, new ArrayList<Object>(0));
+      }
+      return aggregateList;
+    }
+
+    for (int i = 1; i < 8; i++) {
+
+      List field = (List) aggregateList.get(i);
+      if (field.size() > 1) {
+
+        List newField = new ArrayList(field.size() - skippedIndices.size());
+
+        for (int j = 0; j < field.size(); j++) {
+          if (!skippedIndices.contains(j)) {
+            newField.add(field.get(j));
+          }
+        }
+      }
+    }
+
+    return aggregateList;
   }
 }
