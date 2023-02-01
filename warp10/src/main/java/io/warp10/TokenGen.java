@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -15,6 +15,16 @@
 //
 package io.warp10;
 
+import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.io.PrintWriter;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Map.Entry;
+import java.util.Properties;
+
 import io.warp10.continuum.Configuration;
 import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OSSKeyStore;
@@ -24,17 +34,6 @@ import io.warp10.script.StackUtils;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.script.ext.token.TokenWarpScriptExtension;
 import io.warp10.standalone.Warp;
-
-import java.io.ByteArrayOutputStream;
-import java.io.FileInputStream;
-import java.io.FileWriter;
-import java.io.InputStream;
-import java.io.PrintWriter;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Map.Entry;
-import java.util.Properties;
 
 public class TokenGen {
   public static void main(String[] args) throws Exception {
@@ -52,7 +51,7 @@ public class TokenGen {
   }
 
   public void parse(String[] args) throws Exception {
-    WarpConfig.setProperties(Arrays.copyOf(args, args.length - 2));
+    WarpConfig.setProperties(Arrays.copyOf(args, args.length - 1));
 
     Properties properties = WarpConfig.getProperties();
 
@@ -91,18 +90,14 @@ public class TokenGen {
   }
 
   public void usage(String[] args) {
-    if (args.length < 3) {
-      System.err.println("Usage: TokenGen config ... in out");
+    if (args.length < 2) {
+      System.err.println("Usage: TokenGen config ... in");
       System.exit(-1);
     }
   }
 
   public void process(String[] args) throws Exception {
     PrintWriter pw = new PrintWriter(System.out);
-
-    if (!"-".equals(args[args.length - 1])) {
-      pw = new PrintWriter(new FileWriter(args[args.length - 1]));
-    }
 
     MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null, WarpConfig.getProperties());
     stack.maxLimits();
@@ -113,10 +108,10 @@ public class TokenGen {
 
     InputStream in = null;
 
-    if ("-".equals(args[args.length - 2])) {
+    if ("-".equals(args[args.length - 1])) {
       in = System.in;
     } else {
-      in = new FileInputStream(args[args.length - 2]);
+      in = new FileInputStream(args[args.length - 1]);
     }
 
     while (true) {
