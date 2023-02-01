@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2022  SenX S.A.S.
+//   Copyright 2020-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -703,7 +703,9 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
 
               boolean secure = Boolean.TRUE.equals(this.getAttribute(WarpScriptStack.ATTRIBUTE_IN_SECURE_MACRO));
 
-              lastmacro.setSecure(secure);
+              if (!Boolean.TRUE.equals(this.getAttribute(WarpScriptStack.ATTRIBUTE_IN_XEVAL))) {
+                lastmacro.setSecure(secure);
+              }
 
               if (macros.isEmpty()) {
                 this.push(lastmacro);
