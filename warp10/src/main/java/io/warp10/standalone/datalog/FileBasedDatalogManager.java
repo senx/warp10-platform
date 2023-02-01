@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2022  SenX S.A.S.
+//   Copyright 2020-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -544,7 +544,7 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
         if (syncAll) {
           datalog.hsync();
         }
-        size.addAndGet(value.length);
+        size.set(datalog.getLength());
       } else {
         // FIXME(hbs): seems weird
         if (!syncAll) {
