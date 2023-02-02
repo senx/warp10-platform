@@ -121,7 +121,7 @@ public class TransversalCOWList implements List {
               }
               break;
 
-            //todo(optimization): entangle latitudes and longitudes so that if a writes triggers both list to be copied, then the conversion is done only once
+            //todo(optimization): entangle latitudes and longitudes so that if writes trigger both list to be copied, then the conversion is done only once
             case LATITUDES:
               if (gts.hasLocations() && GeoTimeSerie.NO_LOCATION != gts.locations[dataPointIndices[i]]) {
                 double lat = GeoXPLib.fromGeoXPPoint(gts.locations[dataPointIndices[i]])[0];
