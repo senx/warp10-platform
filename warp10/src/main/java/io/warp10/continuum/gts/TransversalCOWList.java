@@ -242,9 +242,44 @@ public class TransversalCOWList implements List {
   }
 
   @Override
-  public List subList(int i, int i1) {
-    //todo
-    return null;
+  public List subList(int fromIndex, int toIndex) {
+    if (readOnly) {
+      rangeCheck(fromIndex);
+      int newSize = toIndex - fromIndex;
+      if (newSize < 0 || newSize + toIndex > size()) {
+        throw new IndexOutOfBoundsException("Start index(" + fromIndex + ") + length(" + newSize + ") greater than original array size(" + size() + "), cannot create sublist.");
+      }
+
+      List newList = new ArrayList(gtsList.subList(fromIndex,toIndex));
+      int[] newIndices = new int[newSize];
+      for (int i = fromIndex; i < toIndex; i++) {
+        newIndices[i - fromIndex] = dataPointIndices[i];
+      }
+
+      int newSkippedSize = 0;
+      int firstSkippedIdx = -1;
+      int lastSkippedIdx = -1;
+      for (int i = 0; i < skippedGTSIndices.length; i++) {
+        if (skippedGTSIndices[i] >= fromIndex && skippedGTSIndices[i] < toIndex) {
+          newSkippedSize++;
+          lastSkippedIdx = i;
+          if (-1 == firstSkippedIdx) {
+            firstSkippedIdx = i;
+          }
+        }
+      }
+      int[] newSkipped = new int[newSkippedSize];
+      if (newSkippedSize > 0) {
+        for (int i = firstSkippedIdx; i < lastSkippedIdx + 1; i++) {
+          newSkipped[i - firstSkippedIdx] = i - fromIndex;
+        }
+      }
+
+      return new TransversalCOWList(newList, newIndices, newSkipped, type);
+
+    } else {
+      return mutableCopy.subList(fromIndex, toIndex);
+    }
   }
 
   // todo(refactoring): since most of the overrides below are the same than for COWList, they both could extend an AbstractCOWList class
