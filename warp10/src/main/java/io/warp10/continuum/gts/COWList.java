@@ -44,7 +44,7 @@ public class COWList implements List {
 
   /**
    * As long as readOnly is true, the List is backed by the original array (view). You can trust dataType.
-   * As soon as user ask for a modification of the list, data are copied in an ArrayList, and readOnly turns false.
+   * As soon as user asks for a modification of the list, data are copied in an ArrayList, and readOnly turns false.
    * When backed by the ArrayList, dataType can be heterogeneous
    */
   private boolean readOnly;

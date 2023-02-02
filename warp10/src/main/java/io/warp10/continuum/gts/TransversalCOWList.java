@@ -28,7 +28,6 @@ import java.util.NoSuchElementException;
 import java.util.function.UnaryOperator;
 
 /**
- *
  * Copy on Write List implementation backed by a list of GTS
  * and corresponding to one field, either one of: latitudes, longitudes, elevations, values
  *
@@ -72,7 +71,7 @@ public class TransversalCOWList implements List {
 
   /**
    * As long as readOnly is true, the List is backed by the GTS list (view).
-   * As soon as user ask for a modification of the list, data are copied in an ArrayList, and readOnly turns false.
+   * As soon as user asks for a modification of the list, data are copied in an ArrayList, and readOnly turns false.
    */
   private boolean readOnly;
   private ArrayList mutableCopy = null;
