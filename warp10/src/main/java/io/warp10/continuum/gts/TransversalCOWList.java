@@ -90,34 +90,42 @@ public class TransversalCOWList implements List {
       for (int i = 0; i < gtsList.size(); i++) {
         if (i == skippedGTSIndices[skippedIdx]) {
           if (exposeNullValues) {
-            mutableCopy.add(null);
+            switch (type) {
+              case VALUES:
+                mutableCopy.add(null);
+              case ELEVATIONS:
+              case LATITUDES:
+              case LONGITUDES:
+                mutableCopy.add(Double.NaN);
+            }
           }
-          skippedIdx++; // this skipped gts has been seen so we increase the index
+          skippedIdx++; // a skipped gts has been seen so we increase the index
 
         } else {
-          GeoTimeSerie gts = gtsList.get(i);
+          GeoTimeSerie gts = gtsList.get(i + skippedIdx);
+          int index = dataPointIndices[i + skippedIdx];
 
           switch (type) {
             case VALUES:
               switch (gts.type) {
                 case DOUBLE:
-                  mutableCopy.add(gts.doubleValues[dataPointIndices[i]]);
+                  mutableCopy.add(gts.doubleValues[index]);
                   break;
                 case LONG:
-                  mutableCopy.add(gts.longValues[dataPointIndices[i]]);
+                  mutableCopy.add(gts.longValues[index]);
                   break;
                 case BOOLEAN:
-                  mutableCopy.add(gts.booleanValues.get(dataPointIndices[i]));
+                  mutableCopy.add(gts.booleanValues.get(index));
                   break;
                 case STRING:
-                  mutableCopy.add(gts.stringValues[dataPointIndices[i]]);
+                  mutableCopy.add(gts.stringValues[index]);
                   break;
               }
               break;
 
             case ELEVATIONS:
-              if (gts.hasElevations() && GeoTimeSerie.NO_ELEVATION != gts.elevations[dataPointIndices[i]]) {
-                mutableCopy.add(gts.elevations[dataPointIndices[i]]);
+              if (gts.hasElevations() && GeoTimeSerie.NO_ELEVATION != gts.elevations[index]) {
+                mutableCopy.add(gts.elevations[index]);
               } else {
                 mutableCopy.add(Double.NaN);
               }
@@ -125,8 +133,8 @@ public class TransversalCOWList implements List {
 
             //todo(optimization): entangle latitudes and longitudes so that if writes trigger both list to be copied, then the conversion is done only once
             case LATITUDES:
-              if (gts.hasLocations() && GeoTimeSerie.NO_LOCATION != gts.locations[dataPointIndices[i]]) {
-                double lat = GeoXPLib.fromGeoXPPoint(gts.locations[dataPointIndices[i]])[0];
+              if (gts.hasLocations() && GeoTimeSerie.NO_LOCATION != gts.locations[index]) {
+                double lat = GeoXPLib.fromGeoXPPoint(gts.locations[index])[0];
                 mutableCopy.add(lat);
               } else {
                 mutableCopy.add(Double.NaN);
@@ -134,9 +142,9 @@ public class TransversalCOWList implements List {
               break;
 
             case LONGITUDES:
-              if (gts.hasLocations() && GeoTimeSerie.NO_LOCATION != gts.locations[dataPointIndices[i]]) {
-                double lat = GeoXPLib.fromGeoXPPoint(gts.locations[dataPointIndices[i]])[1];
-                mutableCopy.add(lat);
+              if (gts.hasLocations() && GeoTimeSerie.NO_LOCATION != gts.locations[index]) {
+                double lon = GeoXPLib.fromGeoXPPoint(gts.locations[index])[1];
+                mutableCopy.add(lon);
               } else {
                 mutableCopy.add(Double.NaN);
               }
@@ -157,9 +165,79 @@ public class TransversalCOWList implements List {
     }
   }
 
+  private void rangeCheck(int index) {
+    if (index < 0 || index >= size()) {
+      throw new IndexOutOfBoundsException("Index: " + index + ", Size: " + size());
+    }
+  }
+
   @Override
   public Object get(int i) {
-    //todo
+    if (readOnly) {
+      rangeCheck(i);
+
+      int skipped = 0;
+      for (int j = 0; j < skippedGTSIndices.length; j++) {
+        skipped++;
+        if (i == skippedGTSIndices[j]) {
+          if (exposeNullValues) {
+            switch (type) {
+              case VALUES:
+                return null;
+              case ELEVATIONS:
+              case LONGITUDES:
+              case LATITUDES:
+                return Double.NaN;
+            }
+          }
+        }
+      }
+
+      GeoTimeSerie gts = gtsList.get(i + skipped);
+      int index = dataPointIndices[i + skipped];
+
+      switch (type) {
+        case VALUES:
+          switch (gts.type) {
+            case DOUBLE:
+              return gts.doubleValues[index];
+            case LONG:
+              return gts.longValues[index];
+            case BOOLEAN:
+              return gts.booleanValues.get(index);
+            case STRING:
+              return gts.stringValues[index];
+          }
+          break;
+
+        case ELEVATIONS:
+          if (gts.hasElevations() && GeoTimeSerie.NO_ELEVATION != gts.elevations[index]) {
+            return gts.elevations[index];
+          } else {
+            return Double.NaN;
+          }
+
+        //todo(optimization): entangle latitudes and longitudes so that if needed conversion is done only once
+        case LATITUDES:
+          if (gts.hasLocations() && GeoTimeSerie.NO_LOCATION != gts.locations[index]) {
+            return GeoXPLib.fromGeoXPPoint(gts.locations[index])[0];
+          } else {
+            return Double.NaN;
+          }
+
+        case LONGITUDES:
+          if (gts.hasLocations() && GeoTimeSerie.NO_LOCATION != gts.locations[index]) {
+            return GeoXPLib.fromGeoXPPoint(gts.locations[index])[1];
+          } else {
+            return Double.NaN;
+          }
+      }
+
+    } else {
+      return mutableCopy.get(i);
+    }
+
+    // this line should not be reached
     return null;
   }
 
