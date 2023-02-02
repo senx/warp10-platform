@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -121,6 +121,11 @@ public class Constants {
   public static final String RUNNER_SCHEDULEDAT = "runner.scheduledat";
   public static final String RUNNER_NONCE = "runner.nonce";
   public static final String RUNNER_CONTEXT_EXEC_COUNT = "runner.execution.count";
+
+  /**
+   * Default number of SST files which can be removed during a call to SSTPURGE
+   */
+  public static final int LEVELDB_MAXPURGE_DEFAULT = 1000;
 
   private static final Map<String,String> HEADERS = new HashMap<String,String>();
 

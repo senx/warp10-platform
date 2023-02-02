@@ -29,6 +29,16 @@ import io.warp10.continuum.gts.IFFT;
 import io.warp10.continuum.gts.INTERPOLATE;
 import io.warp10.continuum.gts.LOCATIONOFFSET;
 import io.warp10.continuum.gts.ZIP;
+import io.warp10.leveldb.LEVELDBOPEN;
+import io.warp10.leveldb.LEVELDBCLOSE;
+import io.warp10.leveldb.LEVELDBCOMPACT;
+import io.warp10.leveldb.LEVELDBREPAIR;
+import io.warp10.leveldb.LEVELDBSNAPSHOT;
+import io.warp10.leveldb.SSTFIND;
+import io.warp10.leveldb.SSTINFO;
+import io.warp10.leveldb.SSTPURGE;
+import io.warp10.leveldb.SSTREPORT;
+import io.warp10.leveldb.SSTTIMESTAMP;
 import io.warp10.script.aggregator.And;
 import io.warp10.script.aggregator.Argminmax;
 import io.warp10.script.aggregator.CircularMean;
@@ -1791,6 +1801,21 @@ public class WarpScriptLib {
 
   public static final String EQ = "==";
 
+  //
+  // LevelDB
+  //
+
+  public static final String LEVELDBCLOSE = "LEVELDBCLOSE";
+  public static final String LEVELDBOPEN = "LEVELDBOPEN";
+  public static final String LEVELDBREPAIR = "LEVELDBREPAIR";
+  public static final String LEVELDBCOMPACT = "LEVELDBCOMPACT";
+  public static final String LEVELDBSNAPSHOT = "LEVELDBSNAPSHOT";
+  public static final String LEVELDBSNAPSHOTINC = "LEVELDBSNAPSHOTINC";
+  public static final String SSTFIND = "SSTFIND";
+  public static final String SSTINFO = "SSTINFO";
+  public static final String SSTPURGE = "SSTPURGE";
+  public static final String SSTREPORT = "SSTREPORT";
+  public static final String SSTTIMESTAMP = "SSTTIMESTAMP";
 
   static {
 
@@ -3142,6 +3167,21 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new TDESCRIBE(TDESCRIBE));
     addNamedWarpScriptFunction(new SLEEP(SLEEP));
 
+    //
+    // LevelDB
+    //
+
+    addNamedWarpScriptFunction(new LEVELDBOPEN(LEVELDBOPEN));
+    addNamedWarpScriptFunction(new LEVELDBCLOSE(LEVELDBCLOSE));
+    addNamedWarpScriptFunction(new LEVELDBREPAIR(LEVELDBREPAIR));
+    addNamedWarpScriptFunction(new LEVELDBCOMPACT(LEVELDBCOMPACT));
+    addNamedWarpScriptFunction(new LEVELDBSNAPSHOT(LEVELDBSNAPSHOT, false));
+    addNamedWarpScriptFunction(new LEVELDBSNAPSHOT(LEVELDBSNAPSHOTINC, true));
+    addNamedWarpScriptFunction(new SSTFIND(SSTFIND));
+    addNamedWarpScriptFunction(new SSTINFO(SSTINFO));
+    addNamedWarpScriptFunction(new SSTPURGE(SSTPURGE));
+    addNamedWarpScriptFunction(new SSTREPORT(SSTREPORT));
+    addNamedWarpScriptFunction(new SSTTIMESTAMP(SSTTIMESTAMP));
 
     /////////////////////////
 

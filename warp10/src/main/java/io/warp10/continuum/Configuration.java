@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -1476,6 +1476,11 @@ public class Configuration {
   public static final String LEVELDB_DATA_SYNCRATE = "leveldb.data.syncrate";
 
   /**
+   * Maximum number of SST files that can be removed during a single call to SSTPURGE
+   */
+  public static final String LEVELDB_MAXPURGE_KEY = "leveldb.maxpurge";
+
+  /**
    * Rate of synchronous writes for the directory writes.
    * This is a double between 0.0 (all writes asynchronous) and 1.0 (all writes synchronous)
    * The default value is 1.0 (all writes are synchronous)
@@ -1622,16 +1627,6 @@ public class Configuration {
    * Maximum size in bytes of a value
    */
   public static final String STANDALONE_VALUE_MAXSIZE = "standalone.value.maxsize";
-
-  /**
-   * Path to a file to use for triggering compaction suspension to take snapshots
-   */
-  public static final String STANDALONE_SNAPSHOT_TRIGGER = "standalone.snapshot.trigger";
-
-  /**
-   * Path to a file to use for signaling that compactions are suspended
-   */
-  public static final String STANDALONE_SNAPSHOT_SIGNAL = "standalone.snapshot.signal";
 
   /**
    * Set to 'true' to ignore timestamp limits (maxpast/maxfuture) when receiving data via datalog.

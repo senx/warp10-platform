@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -126,16 +126,6 @@ standalone.selectors = 4
 // Maximum encoder size (in bytes) for internal data transfers. Typical values from 64k to 512k, but any value will do. Lower ones will increase the number of array re-allocations.
 //
 standalone.max.encoder.size = 100000
-
-//
-// Path to a file to use for triggering compaction suspension to take snapshots
-//
-standalone.snapshot.trigger = ${leveldb.home}/snapshot.trigger
-
-//
-// Path to a file to use for signaling that compactions are suspended
-//
-standalone.snapshot.signal = ${leveldb.home}/snapshot.signal
 
 //
 // Set to true to disable the delete endpoint.
