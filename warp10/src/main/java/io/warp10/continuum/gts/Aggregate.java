@@ -25,10 +25,6 @@ public abstract class Aggregate {
   protected long referenceTick;
   final protected List[] lists = new List[7];
 
-  public boolean isEmpty() {
-    return 0 == lists.length;
-  }
-
   public Long getReferenceTick() {
     return referenceTick;
   }
