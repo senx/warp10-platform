@@ -16,8 +16,6 @@
 
 package io.warp10.continuum.gts;
 
-import com.geoxp.GeoXPLib;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -29,14 +27,15 @@ import java.util.function.UnaryOperator;
 
 /**
  * Copy on Write List implementation backed by a list of GTS
- * and corresponding to one field, either one of: latitudes, longitudes, elevations, values
+ * and corresponding to one field, either one of: locations, elevations, values
  *
  * This is meant to be used by REDUCE and APPLY frameworks
  */
 public class TransversalCOWList implements List {
 
+  // todo(fix)
   public static enum TYPE {
-    LATITUDES, LONGITUDES, ELEVATIONS, VALUES
+    LOCATIONS, ELEVATIONS, VALUES
   }
 
   private final List<GeoTimeSerie> gtsList;
@@ -92,10 +91,10 @@ public class TransversalCOWList implements List {
             switch (type) {
               case VALUES:
                 mutableCopy.add(null);
+              case LOCATIONS:
+                mutableCopy.add(GeoTimeSerie.NO_LOCATION);
               case ELEVATIONS:
-              case LATITUDES:
-              case LONGITUDES:
-                mutableCopy.add(Double.NaN);
+                mutableCopy.add(GeoTimeSerie.NO_ELEVATION);
             }
           }
           skippedIdx++; // a skipped gts has been seen so we increase the index
@@ -122,30 +121,19 @@ public class TransversalCOWList implements List {
               }
               break;
 
+            case LOCATIONS:
+              if (gts.hasLocations()) {
+                mutableCopy.add(gts.locations[index]);
+              } else {
+                mutableCopy.add(GeoTimeSerie.NO_LOCATION);
+              }
+              break;
+
             case ELEVATIONS:
               if (gts.hasElevations() && GeoTimeSerie.NO_ELEVATION != gts.elevations[index]) {
                 mutableCopy.add(gts.elevations[index]);
               } else {
-                mutableCopy.add(Double.NaN);
-              }
-              break;
-
-            //todo(optimization): entangle latitudes and longitudes so that if writes trigger both list to be copied, then the conversion is done only once
-            case LATITUDES:
-              if (gts.hasLocations() && GeoTimeSerie.NO_LOCATION != gts.locations[index]) {
-                double lat = GeoXPLib.fromGeoXPPoint(gts.locations[index])[0];
-                mutableCopy.add(lat);
-              } else {
-                mutableCopy.add(Double.NaN);
-              }
-              break;
-
-            case LONGITUDES:
-              if (gts.hasLocations() && GeoTimeSerie.NO_LOCATION != gts.locations[index]) {
-                double lon = GeoXPLib.fromGeoXPPoint(gts.locations[index])[1];
-                mutableCopy.add(lon);
-              } else {
-                mutableCopy.add(Double.NaN);
+                mutableCopy.add(GeoTimeSerie.NO_ELEVATION);
               }
               break;
           }
@@ -183,10 +171,10 @@ public class TransversalCOWList implements List {
             switch (type) {
               case VALUES:
                 return null;
+              case LOCATIONS:
+                return GeoTimeSerie.NO_LOCATION;
               case ELEVATIONS:
-              case LONGITUDES:
-              case LATITUDES:
-                return Double.NaN;
+                return GeoTimeSerie.NO_ELEVATION;
             }
           }
         }
@@ -209,26 +197,18 @@ public class TransversalCOWList implements List {
           }
           break;
 
+        case LOCATIONS:
+          if (gts.hasLocations()) {
+            return gts.locations[index];
+          } else {
+            return GeoTimeSerie.NO_LOCATION;
+          }
+
         case ELEVATIONS:
           if (gts.hasElevations() && GeoTimeSerie.NO_ELEVATION != gts.elevations[index]) {
             return gts.elevations[index];
           } else {
-            return Double.NaN;
-          }
-
-        //todo(optimization): entangle latitudes and longitudes so that if needed conversion is done only once
-        case LATITUDES:
-          if (gts.hasLocations() && GeoTimeSerie.NO_LOCATION != gts.locations[index]) {
-            return GeoXPLib.fromGeoXPPoint(gts.locations[index])[0];
-          } else {
-            return Double.NaN;
-          }
-
-        case LONGITUDES:
-          if (gts.hasLocations() && GeoTimeSerie.NO_LOCATION != gts.locations[index]) {
-            return GeoXPLib.fromGeoXPPoint(gts.locations[index])[1];
-          } else {
-            return Double.NaN;
+            return GeoTimeSerie.NO_ELEVATION;
           }
       }
 
