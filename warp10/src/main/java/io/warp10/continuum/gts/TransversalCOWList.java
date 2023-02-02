@@ -16,6 +16,8 @@
 
 package io.warp10.continuum.gts;
 
+import com.geoxp.GeoXPLib;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -24,31 +26,49 @@ import java.util.ListIterator;
 
 /**
  *
- * Draft: this class is a WIP
- *
- * Copy on Write List implementation backed by GTS array
- * and corresponding to one field, either one of: locations, elevations, values
+ * Copy on Write List implementation backed by a list of GTS
+ * and corresponding to one field, either one of: latitudes, longitudes, elevations, values
  *
  * This is meant to be used by REDUCE and APPLY frameworks
  */
-public abstract class TransversalCOWList implements List {
+public class TransversalCOWList implements List {
 
-  GeoTimeSerie[] gtsList;
+  public static enum TYPE {
+    LATITUDES, LONGITUDES, ELEVATIONS, VALUES
+  }
 
-  abstract Object[] getValues();
+  private final List<GeoTimeSerie> gtsList;
+  private final int[] dataPointIndices; // these are the pointers that are updated during the reduce loop, one per gts
+  private final int[] skippedGTSIndices; // these are the indices of gts from the gtsList that returns no value for the current aggregate
+  private final TYPE type;
 
-  /**
-   * This field allows to skip values from the original data collection.
-   * In particular, this is used to implement null value remover.
-   */
-  private int[] skippedIndices;
+  public TransversalCOWList(List<GeoTimeSerie> gtsList, int[] indices, int[] skipped, TYPE type) {
+    if (gtsList.size() != indices.length) {
+      throw new RuntimeException("Size mismatch while constructing transversal aggregator");
+    }
 
-  public void setSkippedIndices(int[] skippedIndices) {
-    this.skippedIndices = skippedIndices;
+    this.gtsList = gtsList;
+    this.dataPointIndices = indices;
+    this.skippedGTSIndices = skipped;
+    this.type = type;
+    exposeNullValues = true;
   }
 
   /**
-   * As long as readOnly is true, the List is backed by the GTS array (view).
+   * This field tracks if the null values must be exposed or not
+   */
+  private boolean exposeNullValues = true;
+
+  public void setExposeNullValues(boolean exposeNullValues) {
+    this.exposeNullValues = exposeNullValues;
+  }
+
+  public boolean isExposeNullValues() {
+    return exposeNullValues;
+  }
+
+  /**
+   * As long as readOnly is true, the List is backed by the GTS list (view).
    * As soon as user ask for a modification of the list, data are copied in an ArrayList, and readOnly turns false.
    */
   private boolean readOnly;
@@ -58,8 +78,76 @@ public abstract class TransversalCOWList implements List {
     return readOnly;
   }
 
+  private synchronized void initialDeepCopy() {
+    if (readOnly) {
+      int size = exposeNullValues ? gtsList.size() : gtsList.size() - skippedGTSIndices.length;
+      mutableCopy = new ArrayList(size);
+
+      // loop through each gts and extract its value at given index if it is not a skipped gts
+      int skippedIdx = 0; // we assume skippedGTSIndices are sorted
+      for (int i = 0; i < gtsList.size(); i++) {
+        if (i == skippedGTSIndices[skippedIdx]) {
+          if (exposeNullValues) {
+            mutableCopy.add(null);
+          }
+          skippedIdx++; // this skipped gts has been seen so we increase the index
+
+        } else {
+          GeoTimeSerie gts = gtsList.get(i);
+
+          switch (type) {
+            case VALUES:
+              switch (gts.type) {
+                case DOUBLE:
+                  mutableCopy.add(gts.doubleValues[dataPointIndices[i]]);
+                  break;
+                case LONG:
+                  mutableCopy.add(gts.longValues[dataPointIndices[i]]);
+                  break;
+                case BOOLEAN:
+                  mutableCopy.add(gts.booleanValues.get(dataPointIndices[i]));
+                  break;
+                case STRING:
+                  mutableCopy.add(gts.stringValues[dataPointIndices[i]]);
+                  break;
+              }
+              break;
+
+            case ELEVATIONS:
+              if (gts.hasElevations() && GeoTimeSerie.NO_ELEVATION != gts.elevations[dataPointIndices[i]]) {
+                mutableCopy.add(gts.elevations[dataPointIndices[i]]);
+              } else {
+                mutableCopy.add(Double.NaN);
+              }
+              break;
+
+            //todo(optimization): entangle latitudes and longitudes so that if a writes triggers both list to be copied, then the conversion is done only once
+            case LATITUDES:
+              if (gts.hasLocations() && GeoTimeSerie.NO_LOCATION != gts.locations[dataPointIndices[i]]) {
+                double lat = GeoXPLib.fromGeoXPPoint(gts.locations[dataPointIndices[i]])[0];
+                mutableCopy.add(lat);
+              } else {
+                mutableCopy.add(Double.NaN);
+              }
+              break;
+
+            case LONGITUDES:
+              if (gts.hasLocations() && GeoTimeSerie.NO_LOCATION != gts.locations[dataPointIndices[i]]) {
+                double lat = GeoXPLib.fromGeoXPPoint(gts.locations[dataPointIndices[i]])[1];
+                mutableCopy.add(lat);
+              } else {
+                mutableCopy.add(Double.NaN);
+              }
+              break;
+          }
+        }
+      }
+      readOnly = false;
+    }
+  }
+
   //
-  // Todo: check following
+  // Todo: following
   //
 
   @Override
