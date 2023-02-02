@@ -37,7 +37,7 @@ public interface WarpScriptAggregatorRemoveNulls extends WarpScriptAggregatorHan
     // Second case : this is the usual case from REDUCE or APPLY framework
     if (aggregateList instanceof MultivariateAggregateCOWList) {
 
-      ((MultivariateAggregateCOWList) aggregateList).skipNulls();
+      ((MultivariateAggregateCOWList) aggregateList).removeNulls();
       return aggregateList;
     }
 

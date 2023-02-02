@@ -28,7 +28,7 @@ public class MultivariateAggregateCOWList extends AggregateList {
 
   /**
    * For each input gts, a datapoint is aggregated if the tick at the corresponding index is equal to the reference tick.
-   * In this case this index is incremented.
+   * In this case the index corresponding to this gts is incremented.
    */
   public MultivariateAggregateCOWList(List<GeoTimeSerie> gtsList, int[] idx, long reference) {
     super(8);
@@ -41,7 +41,7 @@ public class MultivariateAggregateCOWList extends AggregateList {
 
   }
 
-  public void skipNulls() {
+  public void removeNulls() {
     // todo
   }
 
