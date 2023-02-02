@@ -24,8 +24,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public interface WarpScriptAggregatorRemoveNulls extends WarpScriptAggregatorHandleNulls {
-  static public Aggregate removeNulls(Aggregate aggregate) throws WarpScriptException {
-    if (!aggregate.hasValues()) {
+  public static Aggregate removeNulls(Aggregate aggregate) {
+    if (null == aggregate.getValues()) {
       return aggregate;
     }
 
@@ -57,14 +57,15 @@ public interface WarpScriptAggregatorRemoveNulls extends WarpScriptAggregatorHan
 
     if (1 == values.size()) {
       for (int i = 1; i < 8; i++) {
-        aggregate.set(i, new ArrayList<Object>(0));
+        aggregate.setValues(new ArrayList<Object>(0));
       }
       return aggregate;
     }
 
-    for (int i = 1; i < 8; i++) {
+    List[] fields = aggregate.getLists();
+    for (int i = 0; i < fields.length - 1; i++) {
 
-      List field = (List) aggregate.get(i);
+      List field = fields[i];
       if (field.size() > 1) {
 
         List newField = new ArrayList(field.size() - skippedIndices.size());

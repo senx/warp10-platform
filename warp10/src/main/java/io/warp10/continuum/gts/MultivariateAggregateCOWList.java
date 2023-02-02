@@ -31,7 +31,7 @@ public class MultivariateAggregateCOWList extends Aggregate {
    * In this case the index corresponding to this gts is incremented.
    */
   public MultivariateAggregateCOWList(List<GeoTimeSerie> gtsList, int[] idx, long reference) {
-    super(8);
+    //super(8);
 
     if (gtsList.size() != idx.length) {
       throw new RuntimeException("Size mismatch");
@@ -45,4 +45,8 @@ public class MultivariateAggregateCOWList extends Aggregate {
     // todo
   }
 
+  @Override
+  public List<Object> toList() {
+    return null;
+  }
 }

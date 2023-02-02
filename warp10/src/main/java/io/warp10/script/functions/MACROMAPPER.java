@@ -151,7 +151,7 @@ public class MACROMAPPER extends NamedWarpScriptFunction implements WarpScriptSt
 
     @Override
     public Object apply(Aggregate aggregate) throws WarpScriptException {
-      stack.push(aggregate);
+      stack.push(aggregate.toList());
       stack.exec(this.macro);
 
       return collectMacroMapperOutput();

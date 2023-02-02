@@ -16,70 +16,84 @@
 
 package io.warp10.continuum.gts;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
  * This is the base class for the aggregate that is given as input to BUCKETIZE, MAP, REDUCE and APPLY frameworks.
  */
-public class Aggregate extends ArrayList {
-  public Aggregate(int sizeHint) {
-    super(sizeHint);
-  }
+public abstract class Aggregate {
+  protected long referenceTick;
+  final protected List[] lists = new List[7];
 
   public boolean isEmpty() {
-    return size() < 1;
-  }
-  public boolean hasClassnames() {
-    return size() > 1;
-  }
-  public boolean hasLabels() {
-    return size() > 2;
-  }
-  public boolean hasTicks() {
-    return size() > 3;
-  }
-  public boolean hasLatitudes() {
-    return size() > 4;
-  }
-  public boolean hasLongitudes() {
-    return size() > 5;
-  }
-  public boolean hasElevations() {
-    return size() > 6;
-  }
-  public boolean hasValues() {
-    return size() > 7;
-  }
-  public boolean hasAdditionalParams() {
-    return size() > 8;
+    return 0 == lists.length;
   }
 
   public Long getReferenceTick() {
-    return isEmpty() ? null : (Long) get(0);
+    return referenceTick;
   }
+
+  public List[] getLists() {
+    return lists;
+  }
+
   public List getClassnames() {
-    return hasClassnames() ? (List) get(1) : null;
+    return lists[0];
   }
   public List getLabels() {
-    return hasLabels() ? (List) get(2) : null;
+    return lists[1];
   }
   public List getTicks() {
-    return hasTicks() ? (List) get(3) : null;
+    return lists[2];
   }
-  public List getLatitudes() {
-    return hasLatitudes() ? (List) get(4) : null;
-  }
-  public List getLongitudes() {
-    return hasLongitudes() ? (List) get(5) : null;
+  public List getLocations() {
+    return lists[3];
   }
   public List getElevations() {
-    return hasElevations() ? (List) get(6) : null;
+    return lists[4];
   }
   public List getValues() {
-    return hasValues() ? (List) get(7) : null;
+    return lists[5];
   }
   public List getAdditionalParams() {
-    return hasAdditionalParams() ? (List) get(8) : null;
+    return lists[6];
+  }
+
+  public void setReferenceTick(long referenceTick) {
+    this.referenceTick = referenceTick;
+  }
+  public void setClassnames(List classnames) {
+    lists[0] = classnames;
+  }
+  public void setLabels(List labels) {
+    lists[1] = labels;
+  }
+  public void setTicks(List ticks) {
+    lists[2] = ticks;
+  }
+  public void setLocations(List locations) {
+    lists[3] = locations;
+  }
+  public void setElevations(List elevations) {
+    lists[4] = elevations;
+  }
+  public void setValues(List values) {
+    lists[5] = values;
+  }
+  public void setAdditionalParams(List additionalParams) {
+    lists[6] = additionalParams;
+  }
+
+  /**
+   * Convert into a List (to be used by MACROMAPPER, MACROREDUCER)
+   * @return a list that can be pushed on a WarpScript stack
+   */
+  abstract public List<Object> toList();
+
+  public List<Object> toListWithAdditionalParams() {
+    List res = toList();
+
+    res.add(getAdditionalParams());
+    return res;
   }
 }
