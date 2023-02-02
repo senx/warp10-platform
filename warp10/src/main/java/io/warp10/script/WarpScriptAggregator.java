@@ -16,8 +16,8 @@
 
 package io.warp10.script;
 
-import io.warp10.continuum.gts.AggregateList;
+import io.warp10.continuum.gts.Aggregate;
 
 public interface WarpScriptAggregator {
-  public Object apply(AggregateList aggregateList) throws WarpScriptException;
+  public Object apply(Aggregate aggregate) throws WarpScriptException;
 }

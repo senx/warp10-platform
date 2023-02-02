@@ -16,7 +16,7 @@
 
 package io.warp10.script.aggregator.modifier;
 
-import io.warp10.continuum.gts.AggregateList;
+import io.warp10.continuum.gts.Aggregate;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptAggregator;
 import io.warp10.script.WarpScriptAggregatorRemoveNulls;
@@ -63,8 +63,8 @@ public class NULLS_REMOVE extends NamedWarpScriptFunction implements WarpScriptS
     }
 
     @Override
-    public Object apply(AggregateList aggregateList) throws WarpScriptException {
-      return aggregator.apply(WarpScriptAggregatorRemoveNulls.removeNulls(aggregateList));
+    public Object apply(Aggregate aggregate) throws WarpScriptException {
+      return aggregator.apply(WarpScriptAggregatorRemoveNulls.removeNulls(aggregate));
     }
 
     @Override

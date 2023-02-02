@@ -21,10 +21,9 @@ import java.util.List;
 
 /**
  * This is the base class for the aggregate that is given as input to BUCKETIZE, MAP, REDUCE and APPLY frameworks.
- * It is treated as a LIST on the warpscript stack.
  */
-public class AggregateList extends ArrayList {
-  public AggregateList(int sizeHint) {
+public class Aggregate extends ArrayList {
+  public Aggregate(int sizeHint) {
     super(sizeHint);
   }
 

@@ -16,7 +16,7 @@
 
 package io.warp10.script;
 
-import io.warp10.continuum.gts.AggregateList;
+import io.warp10.continuum.gts.Aggregate;
 import io.warp10.continuum.gts.MultivariateAggregateCOWList;
 import io.warp10.continuum.gts.UnivariateAggregateCOWList;
 
@@ -24,25 +24,25 @@ import java.util.ArrayList;
 import java.util.List;
 
 public interface WarpScriptAggregatorRemoveNulls extends WarpScriptAggregatorHandleNulls {
-  static public AggregateList removeNulls(AggregateList aggregateList) throws WarpScriptException {
-    if (!aggregateList.hasValues()) {
-      return aggregateList;
+  static public Aggregate removeNulls(Aggregate aggregate) throws WarpScriptException {
+    if (!aggregate.hasValues()) {
+      return aggregate;
     }
 
     // First case : COWList are backed by arrays of primitive objects that cannot contain any null value
-    if (aggregateList instanceof UnivariateAggregateCOWList) {
-      return aggregateList;
+    if (aggregate instanceof UnivariateAggregateCOWList) {
+      return aggregate;
     }
 
     // Second case : this is the usual case from REDUCE or APPLY framework
-    if (aggregateList instanceof MultivariateAggregateCOWList) {
+    if (aggregate instanceof MultivariateAggregateCOWList) {
 
-      ((MultivariateAggregateCOWList) aggregateList).removeNulls();
-      return aggregateList;
+      ((MultivariateAggregateCOWList) aggregate).removeNulls();
+      return aggregate;
     }
 
     // Third case : this covers all remaining cases for full compatibility with the interface but should not happen for optimised aggregators
-    List values = aggregateList.getValues();
+    List values = aggregate.getValues();
     List<Integer> skippedIndices= new ArrayList<Integer>(values.size() / 2);
 
     for (int i = 0; i < values.size(); i++) {
@@ -52,19 +52,19 @@ public interface WarpScriptAggregatorRemoveNulls extends WarpScriptAggregatorHan
     }
 
     if (0 == skippedIndices.size()) {
-      return aggregateList;
+      return aggregate;
     }
 
     if (1 == values.size()) {
       for (int i = 1; i < 8; i++) {
-        aggregateList.set(i, new ArrayList<Object>(0));
+        aggregate.set(i, new ArrayList<Object>(0));
       }
-      return aggregateList;
+      return aggregate;
     }
 
     for (int i = 1; i < 8; i++) {
 
-      List field = (List) aggregateList.get(i);
+      List field = (List) aggregate.get(i);
       if (field.size() > 1) {
 
         List newField = new ArrayList(field.size() - skippedIndices.size());
@@ -77,6 +77,6 @@ public interface WarpScriptAggregatorRemoveNulls extends WarpScriptAggregatorHan
       }
     }
 
-    return aggregateList;
+    return aggregate;
   }
 }

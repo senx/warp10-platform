@@ -17,7 +17,7 @@
 package io.warp10.script.functions;
 
 import com.geoxp.GeoXPLib;
-import io.warp10.continuum.gts.AggregateList;
+import io.warp10.continuum.gts.Aggregate;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptAggregatorFailIfAnyNull;
@@ -150,8 +150,8 @@ public class MACROMAPPER extends NamedWarpScriptFunction implements WarpScriptSt
     }
 
     @Override
-    public Object apply(AggregateList aggregateList) throws WarpScriptException {
-      stack.push(aggregateList);
+    public Object apply(Aggregate aggregate) throws WarpScriptException {
+      stack.push(aggregate);
       stack.exec(this.macro);
 
       return collectMacroMapperOutput();

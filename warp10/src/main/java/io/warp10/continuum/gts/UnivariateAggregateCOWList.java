@@ -24,7 +24,7 @@ import java.util.List;
 /**
  * This aggregate class can be used for BUCKETIZE and MAP
  */
-public class UnivariateAggregateCOWList extends AggregateList {
+public class UnivariateAggregateCOWList extends Aggregate {
 
   public UnivariateAggregateCOWList(GeoTimeSerie gts, int startIdx, int length, Long reference, List additionalParams) {
     super(9);

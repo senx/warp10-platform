@@ -24,7 +24,7 @@ import java.util.List;
  *
  * This aggregate class can be used for REDUCE and APPLY
  */
-public class MultivariateAggregateCOWList extends AggregateList {
+public class MultivariateAggregateCOWList extends Aggregate {
 
   /**
    * For each input gts, a datapoint is aggregated if the tick at the corresponding index is equal to the reference tick.

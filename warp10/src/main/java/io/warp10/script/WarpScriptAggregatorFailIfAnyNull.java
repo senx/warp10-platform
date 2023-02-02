@@ -16,11 +16,11 @@
 
 package io.warp10.script;
 
-import io.warp10.continuum.gts.AggregateList;
+import io.warp10.continuum.gts.Aggregate;
 
 public interface WarpScriptAggregatorFailIfAnyNull extends WarpScriptAggregatorHandleNulls {
-  static public void failIfAnyNull(AggregateList aggregateList) throws WarpScriptException {
-    for (Object o: aggregateList.getValues()) {
+  static public void failIfAnyNull(Aggregate aggregate) throws WarpScriptException {
+    for (Object o: aggregate.getValues()) {
       if (null == o) {
         throw new WarpScriptException("Null value was encountered in an AGGREGATOR that does not support them.");
       }

@@ -2391,8 +2391,8 @@ public class GTSHelper {
           lastParms.add(currentBucketEnd);
 
           // aggregate and collect the result
-          AggregateList aggregateList = new UnivariateAggregateCOWList(gts, currentBucketStartPosition, count, currentBucketEnd, lastParms);
-          aggregated = (Object[]) ((WarpScriptAggregator) aggregator).apply(aggregateList);
+          Aggregate aggregate = new UnivariateAggregateCOWList(gts, currentBucketStartPosition, count, currentBucketEnd, lastParms);
+          aggregated = (Object[]) ((WarpScriptAggregator) aggregator).apply(aggregate);
 
           if (null != aggregated[3]) {
             setValue(bucketized, currentBucketEnd, (long) aggregated[1], (long) aggregated[2], aggregated[3], false);
@@ -5871,7 +5871,7 @@ public class GTSHelper {
           // Second case: the aggregator is capable to process an AggregateList structure.
           // It uses a special class for lists that saves a memory allocation.
 
-          AggregateList aggregateList;
+          Aggregate aggregate;
 
           // additional parameters
           List<Object> lastParams = new ArrayList<Object>(5); //{prewindow, postwindow, start, stop, tickidx};
@@ -5885,18 +5885,18 @@ public class GTSHelper {
           int[] indices = GTSHelper.indicesRange(gts, start, stop);
 
           if (null == indices) {
-            aggregateList = new UnivariateAggregateCOWList(gts, 0, 0, tick, lastParams);
+            aggregate = new UnivariateAggregateCOWList(gts, 0, 0, tick, lastParams);
 
           } else {
             int lastIdx = indices[1];
             int firstIdx = indices[0];
             int count = lastIdx - firstIdx + 1;
 
-            aggregateList = new UnivariateAggregateCOWList(gts, firstIdx, count, tick, lastParams);
+            aggregate = new UnivariateAggregateCOWList(gts, firstIdx, count, tick, lastParams);
           }
 
           // apply mapper
-          mapResult = ((WarpScriptAggregator) mapper).apply(aggregateList);
+          mapResult = ((WarpScriptAggregator) mapper).apply(aggregate);
 
         } else {
           // Third case: the aggregator is a standard one, that expects most of its params to be arrays
