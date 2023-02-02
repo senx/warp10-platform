@@ -20,9 +20,12 @@ import com.geoxp.GeoXPLib;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.NoSuchElementException;
+import java.util.function.UnaryOperator;
 
 /**
  *
@@ -80,8 +83,7 @@ public class TransversalCOWList implements List {
 
   private synchronized void initialDeepCopy() {
     if (readOnly) {
-      int size = exposeNullValues ? gtsList.size() : gtsList.size() - skippedGTSIndices.length;
-      mutableCopy = new ArrayList(size);
+      mutableCopy = new ArrayList(size());
 
       // loop through each gts and extract its value at given index if it is not a skipped gts
       int skippedIdx = 0; // we assume skippedGTSIndices are sorted
@@ -146,122 +148,200 @@ public class TransversalCOWList implements List {
     }
   }
 
-  //
-  // Todo: following
-  //
-
   @Override
   public int size() {
-    return 0;
-  }
-
-  @Override
-  public boolean isEmpty() {
-    return false;
-  }
-
-  @Override
-  public boolean contains(Object o) {
-    return false;
-  }
-
-  @Override
-  public Iterator iterator() {
-    return null;
-  }
-
-  @Override
-  public Object[] toArray() {
-    return new Object[0];
-  }
-
-  @Override
-  public boolean add(Object o) {
-    return false;
-  }
-
-  @Override
-  public boolean remove(Object o) {
-    return false;
-  }
-
-  @Override
-  public boolean addAll(Collection collection) {
-    return false;
-  }
-
-  @Override
-  public boolean addAll(int i, Collection collection) {
-    return false;
-  }
-
-  @Override
-  public void clear() {
-
+    if (readOnly) {
+      return exposeNullValues ? gtsList.size() : gtsList.size() - skippedGTSIndices.length;
+    } else {
+      return mutableCopy.size();
+    }
   }
 
   @Override
   public Object get(int i) {
-    return null;
-  }
-
-  @Override
-  public Object set(int i, Object o) {
-    return null;
-  }
-
-  @Override
-  public void add(int i, Object o) {
-
-  }
-
-  @Override
-  public Object remove(int i) {
-    return null;
-  }
-
-  @Override
-  public int indexOf(Object o) {
-    return 0;
-  }
-
-  @Override
-  public int lastIndexOf(Object o) {
-    return 0;
-  }
-
-  @Override
-  public ListIterator listIterator() {
-    return null;
-  }
-
-  @Override
-  public ListIterator listIterator(int i) {
+    //todo
     return null;
   }
 
   @Override
   public List subList(int i, int i1) {
+    //todo
     return null;
   }
 
+  // todo(refactoring): since most of the overrides below are the same than for COWList, they both could extend an AbstractCOWList class
+
   @Override
-  public boolean retainAll(Collection collection) {
-    return false;
+  public int indexOf(Object o) {
+    if (readOnly) {
+      for (int i = 0; i < size(); i++) {
+        if (o.equals(get(i))) {
+          return i;
+        }
+      }
+      return -1;
+    } else {
+      return mutableCopy.indexOf(o);
+    }
   }
 
   @Override
-  public boolean removeAll(Collection collection) {
-    return false;
+  public int lastIndexOf(Object o) {
+    //todo
+    return 0;
   }
 
   @Override
-  public boolean containsAll(Collection collection) {
-    return false;
+  public boolean isEmpty() {
+    return 0 == size();
   }
 
   @Override
-  public Object[] toArray(Object[] objects) {
-    return new Object[0];
+  public boolean contains(Object o) {
+    return indexOf(o) >= 0;
+  }
+
+  @Override
+  public Iterator iterator() {
+    if (readOnly) {
+      return new Iterator() {
+        int cursor = 0;
+
+        @Override
+        public boolean hasNext() {
+          return cursor < size();
+        }
+
+        @Override
+        public Object next() {
+          if (!hasNext()) {
+            throw new NoSuchElementException();
+          }
+          Object res = get(cursor);
+          cursor++;
+          return res;
+        }
+
+        public void remove() {}
+      };
+
+    } else {
+      return mutableCopy.iterator();
+    }
+  }
+
+  @Override
+  public boolean add(Object o) {
+    initialDeepCopy();
+    return mutableCopy.add(o);
+  }
+
+  @Override
+  public boolean remove(Object o) {
+    initialDeepCopy();
+    return mutableCopy.remove(o);
+  }
+
+  @Override
+  public boolean addAll(Collection c) {
+    initialDeepCopy();
+    return mutableCopy.addAll(c);
+  }
+
+  @Override
+  public boolean addAll(int i, Collection c) {
+    initialDeepCopy();
+    return mutableCopy.addAll(i, c);
+  }
+
+  @Override
+  public void replaceAll(UnaryOperator operator) {
+    initialDeepCopy();
+    mutableCopy.replaceAll(operator);
+  }
+
+  @Override
+  public void sort(Comparator c) {
+    initialDeepCopy();
+    mutableCopy.sort(c);
+  }
+
+  @Override
+  public void clear() {
+    mutableCopy = new ArrayList();
+    readOnly = false;
+  }
+
+  @Override
+  public Object set(int i, Object o) {
+    initialDeepCopy();
+    return mutableCopy.set(i, o);
+  }
+
+  @Override
+  public void add(int i, Object o) {
+    initialDeepCopy();
+    mutableCopy.add(i, o);
+  }
+
+  @Override
+  public Object remove(int i) {
+    initialDeepCopy();
+    return mutableCopy.remove(i);
+  }
+
+  @Override
+  public ListIterator listIterator() {
+    initialDeepCopy();
+    return mutableCopy.listIterator();
+  }
+
+  @Override
+  public ListIterator listIterator(int i) {
+
+    initialDeepCopy();
+    return mutableCopy.listIterator(i);
+  }
+
+  @Override
+  public boolean retainAll(Collection c) {
+    initialDeepCopy();
+    return mutableCopy.retainAll(c);
+  }
+
+  @Override
+  public boolean removeAll(Collection c) {
+    initialDeepCopy();
+    return mutableCopy.removeAll(c);
+  }
+
+  @Override
+  public boolean containsAll(Collection c) {
+    for (Object e: c)
+      if (!contains(e)) {
+        return false;
+      }
+    return true;
+  }
+
+  @Override
+  public Object[] toArray(Object[] a) {
+    if (readOnly) {
+      Object[] r = a;
+      if (r.length < size()) {
+        r = new Object[size()];
+      }
+      for (int i = 0; i < size(); i++) {
+        r[i] = get(i);
+      }
+      return r;
+    } else {
+      return mutableCopy.toArray(a);
+    }
+  }
+
+  @Override
+  public Object[] toArray() {
+    return toArray(new Object[size()]);
   }
 }
