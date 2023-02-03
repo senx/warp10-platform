@@ -58,6 +58,10 @@ import io.warp10.script.aggregator.TrueCourse;
 import io.warp10.script.aggregator.VDist;
 import io.warp10.script.aggregator.VSpeed;
 import io.warp10.script.aggregator.Variance;
+import io.warp10.script.aggregator.modifier.NULLS_FAIL;
+import io.warp10.script.aggregator.modifier.NULLS_KEEP;
+import io.warp10.script.aggregator.modifier.NULLS_REMOVE;
+import io.warp10.script.aggregator.modifier.NULLS_SKIP;
 import io.warp10.script.binary.ADD;
 import io.warp10.script.binary.BitwiseAND;
 import io.warp10.script.binary.BitwiseOR;
@@ -1161,6 +1165,10 @@ public class WarpScriptLib {
   public static final String MACROFILLER = "MACROFILLER";
   public static final String STRICTMAPPER = "STRICTMAPPER";
   public static final String STRICTREDUCER = "STRICTREDUCER";
+  public static final String NULLS_FAIL = "NULLS.FAIL";
+  public static final String NULLS_KEEP = "NULLS.KEEP";
+  public static final String NULLS_REMOVE = "NULLS.REMOVE";
+  public static final String NULLS_SKIP = "NULLS.SKIP";
   public static final String TOSELECTOR = "TOSELECTOR";
   public static final String PARSE = "PARSE";
   public static final String SMARTPARSE = "SMARTPARSE";
@@ -2027,7 +2035,10 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new MACROFILLER(MACROFILLER));
     addNamedWarpScriptFunction(new STRICTMAPPER(STRICTMAPPER));
     addNamedWarpScriptFunction(new STRICTREDUCER(STRICTREDUCER));
-
+    addNamedWarpScriptFunction(new NULLS_FAIL(NULLS_FAIL));
+    addNamedWarpScriptFunction(new NULLS_KEEP(NULLS_KEEP));
+    addNamedWarpScriptFunction(new NULLS_REMOVE(NULLS_REMOVE));
+    addNamedWarpScriptFunction(new NULLS_SKIP(NULLS_SKIP));
     addNamedWarpScriptFunction(new PARSESELECTOR(PARSESELECTOR));
     addNamedWarpScriptFunction(new TOSELECTOR(TOSELECTOR));
     addNamedWarpScriptFunction(new PARSE(PARSE));

@@ -17,17 +17,16 @@
 package io.warp10.script.aggregator.modifier;
 
 import io.warp10.continuum.gts.Aggregate;
-import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptAggregator;
-import io.warp10.script.WarpScriptAggregatorSkipIfAnyNull;
+import io.warp10.script.WarpScriptAggregatorFailIfAnyNull;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
-public class NULLS_SKIPIFANY extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  public NULLS_SKIPIFANY(String name) {
+public class NULLS_FAIL extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+  public NULLS_FAIL(String name) {
     super(name);
   }
 
@@ -39,11 +38,11 @@ public class NULLS_SKIPIFANY extends NamedWarpScriptFunction implements WarpScri
       throw new WarpScriptException(getName() + " expects an AGGREGATOR");
     }
 
-    if (!(o instanceof WarpScriptAggregatorSkipIfAnyNull)) {
+    if (!(o instanceof WarpScriptAggregatorFailIfAnyNull)) {
       throw new WarpScriptException(getName() + " can not be be applied to this AGGREGATOR");
     }
 
-    WarpScriptAggregatorSkipIfAnyNull aggregator = (WarpScriptAggregatorSkipIfAnyNull) o;
+    WarpScriptAggregatorFailIfAnyNull aggregator = (WarpScriptAggregatorFailIfAnyNull) o;
 
     if (aggregator.actionOnNullsIsSet()) {
       throw new WarpScriptException(getName() + " can not be applied on an AGGREGATOR that already has an action on null values");
@@ -54,20 +53,18 @@ public class NULLS_SKIPIFANY extends NamedWarpScriptFunction implements WarpScri
     return stack;
   }
 
-  private static final class ModifiedAggregator extends NamedWarpScriptFunction implements WarpScriptAggregatorSkipIfAnyNull {
+  private static final class ModifiedAggregator extends NamedWarpScriptFunction implements WarpScriptAggregatorFailIfAnyNull {
 
-    private final WarpScriptAggregatorSkipIfAnyNull aggregator;
+    private final WarpScriptAggregatorFailIfAnyNull aggregator;
 
-    public ModifiedAggregator(String name, WarpScriptAggregatorSkipIfAnyNull aggregator) {
+    public ModifiedAggregator(String name, WarpScriptAggregatorFailIfAnyNull aggregator) {
       super(name);
       this.aggregator = aggregator;
     }
 
     @Override
     public Object apply(Aggregate aggregate) throws WarpScriptException {
-      if (WarpScriptAggregatorSkipIfAnyNull.containsAnyNull(aggregate)) {
-        return new Object[] { Long.MAX_VALUE, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, null };
-      }
+      WarpScriptAggregatorFailIfAnyNull.failIfAnyNull(aggregate);
       return aggregator.apply(aggregate);
     }
 
