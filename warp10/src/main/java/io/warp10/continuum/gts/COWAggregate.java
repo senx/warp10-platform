@@ -22,7 +22,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * This aggregate class can be used for BUCKETIZE and MAP
+ * Copy On Write Aggregate
+ *
+ * This aggregate class can be used for BUCKETIZE and MAP, it contains COWLists
  */
 public class COWAggregate extends Aggregate {
 

@@ -19,10 +19,10 @@ package io.warp10.continuum.gts;
 import java.util.List;
 
 /**
- *
+ * Copy On Write Transversal Aggregate
  * Draft: this class is a WIP
  *
- * This aggregate class can be used for REDUCE and APPLY
+ * This aggregate class can be used for REDUCE and APPLY, it contains COWTLists
  */
 public class COWTAggregate extends Aggregate {
 
