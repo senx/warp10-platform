@@ -17,8 +17,8 @@
 package io.warp10.script;
 
 import io.warp10.continuum.gts.Aggregate;
-import io.warp10.continuum.gts.MultivariateAggregateCOWList;
-import io.warp10.continuum.gts.UnivariateAggregateCOWList;
+import io.warp10.continuum.gts.COWTAggregate;
+import io.warp10.continuum.gts.COWAggregate;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,14 +30,14 @@ public interface WarpScriptAggregatorRemoveNulls extends WarpScriptAggregatorHan
     }
 
     // First case : COWList are backed by arrays of primitive objects that cannot contain any null value
-    if (aggregate instanceof UnivariateAggregateCOWList) {
+    if (aggregate instanceof COWAggregate) {
       return aggregate;
     }
 
     // Second case : this is the usual case from REDUCE or APPLY framework
-    if (aggregate instanceof MultivariateAggregateCOWList) {
+    if (aggregate instanceof COWTAggregate) {
 
-      ((MultivariateAggregateCOWList) aggregate).removeNulls();
+      ((COWTAggregate) aggregate).removeNulls();
       return aggregate;
     }
 

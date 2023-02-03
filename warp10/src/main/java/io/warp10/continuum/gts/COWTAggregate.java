@@ -24,13 +24,13 @@ import java.util.List;
  *
  * This aggregate class can be used for REDUCE and APPLY
  */
-public class MultivariateAggregateCOWList extends Aggregate {
+public class COWTAggregate extends Aggregate {
 
   /**
    * For each input gts, a datapoint is aggregated if the tick at the corresponding index is equal to the reference tick.
    * In this case the index corresponding to this gts is incremented.
    */
-  public MultivariateAggregateCOWList(List<GeoTimeSerie> gtsList, int[] idx, long reference) {
+  public COWTAggregate(List<GeoTimeSerie> gtsList, int[] idx, long reference) {
     //super(8);
 
     if (gtsList.size() != idx.length) {

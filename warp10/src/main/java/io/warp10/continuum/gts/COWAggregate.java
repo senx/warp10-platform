@@ -24,15 +24,15 @@ import java.util.List;
 /**
  * This aggregate class can be used for BUCKETIZE and MAP
  */
-public class UnivariateAggregateCOWList extends Aggregate {
+public class COWAggregate extends Aggregate {
 
-  public UnivariateAggregateCOWList() {}
+  public COWAggregate() {}
 
-  public UnivariateAggregateCOWList(GeoTimeSerie gts, int startIdx, int length, Long reference) {
+  public COWAggregate(GeoTimeSerie gts, int startIdx, int length, Long reference) {
     this(gts, startIdx, length, reference, null);
   }
 
-  public UnivariateAggregateCOWList(GeoTimeSerie gts, int startIdx, int length, Long reference, List additionalParams) {
+  public COWAggregate(GeoTimeSerie gts, int startIdx, int length, Long reference, List additionalParams) {
     // tick of computation
     setReferenceTick(reference);
 

@@ -26,14 +26,14 @@ import java.util.NoSuchElementException;
 import java.util.function.UnaryOperator;
 
 /**
- * Copy on Write List implementation backed by a list of GTS
- * and corresponding to one field, either one of: locations, elevations, values
+ * Copy On Write Transversal List
+ * It is transversal across a list of GTS
+ * It is bounded to one field, either one of: locations, elevations, values
  *
- * This is meant to be used by REDUCE and APPLY frameworks
+ * For instance, it is used by REDUCE and APPLY frameworks
  */
-public class TransversalCOWList implements List {
+public class COWTList implements List {
 
-  // todo(fix)
   public static enum TYPE {
     LOCATIONS, ELEVATIONS, VALUES
   }
@@ -43,7 +43,7 @@ public class TransversalCOWList implements List {
   private final int[] skippedGTSIndices; // these are the indices of gts from the gtsList that returns no value for the current aggregate
   private final TYPE type;
 
-  public TransversalCOWList(List<GeoTimeSerie> gtsList, int[] indices, int[] skipped, TYPE type) {
+  public COWTList(List<GeoTimeSerie> gtsList, int[] indices, int[] skipped, TYPE type) {
     if (gtsList.size() != indices.length) {
       throw new RuntimeException("Size mismatch while constructing transversal aggregator");
     }
@@ -254,7 +254,7 @@ public class TransversalCOWList implements List {
         }
       }
 
-      return new TransversalCOWList(newList, newIndices, newSkipped, type);
+      return new COWTList(newList, newIndices, newSkipped, type);
 
     } else {
       return mutableCopy.subList(fromIndex, toIndex);

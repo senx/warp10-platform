@@ -2366,7 +2366,7 @@ public class GTSHelper {
       if (aggregator instanceof WarpScriptAggregator) {
         // Second case: the aggregator is capable to process an Aggregate structure.
         // It uses a special class for lists that saves a memory allocation.
-        UnivariateAggregateCOWList aggregate = new UnivariateAggregateCOWList();
+        COWAggregate aggregate = new COWAggregate();
         aggregate.setMetaData(gts);
 
         // iterate on input to find buckets
@@ -5889,14 +5889,14 @@ public class GTSHelper {
           int[] indices = GTSHelper.indicesRange(gts, start, stop);
 
           if (null == indices) {
-            aggregate = new UnivariateAggregateCOWList(gts, 0, 0, tick, lastParams);
+            aggregate = new COWAggregate(gts, 0, 0, tick, lastParams);
 
           } else {
             int lastIdx = indices[1];
             int firstIdx = indices[0];
             int count = lastIdx - firstIdx + 1;
 
-            aggregate = new UnivariateAggregateCOWList(gts, firstIdx, count, tick, lastParams);
+            aggregate = new COWAggregate(gts, firstIdx, count, tick, lastParams);
           }
 
           // apply mapper
