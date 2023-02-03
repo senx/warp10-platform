@@ -45,6 +45,7 @@ import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptMapper;
 import io.warp10.script.WarpScriptMapperFunction;
 import io.warp10.script.WarpScriptNAryFunction;
+import io.warp10.script.WarpScriptReducer;
 import io.warp10.script.WarpScriptReducerFunction;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
@@ -7744,6 +7745,289 @@ public class GTSHelper {
         params[6] = values;
 
         Object reducerResult = reducer.apply(params);
+
+        if (reducerResult instanceof Map) {
+          for (Entry<Object,Object> entry: ((Map<Object,Object>) reducerResult).entrySet()) {
+            GeoTimeSerie gts = multipleResults.get(entry.getKey().toString());
+            if (null == gts) {
+              if (0L != bucketspan) {
+                gts = new GeoTimeSerie(lastbucket, bucketcount, bucketspan, 0);
+              } else {
+                gts = new GeoTimeSerie();
+              }
+
+              gts.setName(entry.getKey().toString());
+              gts.setLabels(partitionLabels);
+              multipleResults.put(entry.getKey().toString(), gts);
+            }
+
+            Object[] reduced = (Object[]) entry.getValue();
+
+            if (null != reduced[3]) {
+              GTSHelper.setValue(gts, overrideTick ? (long) reduced[0] : smallest, (long) reduced[1], (long) reduced[2], reduced[3], false);
+            }
+          }
+        } else {
+          Object[] reduced = (Object[]) reducerResult;
+          singleGTSResult = true;
+          if (null != reduced[3]) {
+            GTSHelper.setValue(result, overrideTick ? (long) reduced[0] : smallest, (long) reduced[1], (long) reduced[2], reduced[3], false);
+          }
+        }
+
+      }
+
+      if (!results.containsKey(partitionLabels)) {
+        results.put(partitionLabels, new ArrayList<GeoTimeSerie>());
+      }
+
+      if (singleGTSResult) {
+        results.get(partitionLabels).add(result);
+      }
+
+      if (!multipleResults.isEmpty()) {
+        results.get(partitionLabels).addAll(multipleResults.values());
+      }
+    }
+
+    return results;
+  }
+
+  //
+  // Reduce implementation v2 using COWTLists
+  //
+
+  public static List<GeoTimeSerie> reduce2(WarpScriptReducer reducer, Collection<GeoTimeSerie> series, Collection<String> bylabels) throws WarpScriptException {
+    return reduce2(reducer, series, bylabels, false);
+  }
+
+  public static List<GeoTimeSerie> reduce2(WarpScriptReducer reducer, Collection<GeoTimeSerie> series, Collection<String> bylabels, boolean overrideTick) throws WarpScriptException {
+    Map<Map<String,String>,List<GeoTimeSerie>> unflattened = reduceUnflattened2(reducer, series, bylabels, overrideTick);
+
+    List<GeoTimeSerie> results = new ArrayList<GeoTimeSerie>();
+
+    for (List<GeoTimeSerie> l: unflattened.values()) {
+      results.addAll(l);
+    }
+
+    return results;
+  }
+
+  public static Map<Map<String, String>, List<GeoTimeSerie>> reduceUnflattened2(WarpScriptReducer reducer, Collection<GeoTimeSerie> series, Collection<String> bylabels) throws WarpScriptException {
+    return reduceUnflattened2(reducer, series, bylabels, false);
+  }
+
+  public static Map<Map<String, String>, List<GeoTimeSerie>> reduceUnflattened2(WarpScriptReducer reducer, Collection<GeoTimeSerie> series, Collection<String> bylabels, boolean overrideTick) throws WarpScriptException {
+    //
+    // Partition the GTS instances using the given labels
+    //
+
+    Map<Map<String,String>, List<GeoTimeSerie>> partitions = partition(series, bylabels);
+
+    Map<Map<String,String>,List<GeoTimeSerie>> results = new LinkedHashMap<Map<String,String>, List<GeoTimeSerie>>();
+
+
+    for (Entry<Map<String, String>, List<GeoTimeSerie>> partitionLabelsAndGtss: partitions.entrySet()) {
+      boolean singleGTSResult = false;
+
+      Map<String, String> partitionLabels = partitionLabelsAndGtss.getKey();
+      List<GeoTimeSerie> partitionSeries = partitionLabelsAndGtss.getValue();
+
+      //
+      // Extract labels and common labels
+      //
+
+      Map[] partlabels = new Map[partitionSeries.size() + 1];
+
+      for (int i = 0; i < partitionSeries.size(); i++) {
+        partlabels[i] = partitionSeries.get(i).getLabels();
+      }
+
+      partlabels[partitionSeries.size()] = Collections.unmodifiableMap(partitionLabelsAndGtss.getKey());
+
+      //
+      // Determine if result should be bucketized or not.
+      // Result will be bucketized if all GTS instances in the partition are
+      // bucketized, have the same bucketspan and have congruent lastbucket values
+      //
+
+      long lastbucket = Long.MIN_VALUE;
+      long startbucket = Long.MAX_VALUE;
+      long bucketspan = 0L;
+
+      for (GeoTimeSerie gts: partitionSeries) {
+        // One GTS instance is not bucketized, result won't be either
+        if (!isBucketized(gts)) {
+          bucketspan = 0L;
+          break;
+        }
+        if (0L == bucketspan) {
+          bucketspan = gts.bucketspan;
+        } else if (bucketspan != gts.bucketspan) {
+          // GTS has a bucketspan which differs from the previous one,
+          // so result won't be bucketized.
+          bucketspan = 0L;
+          break;
+        }
+        if (Long.MIN_VALUE == lastbucket) {
+          lastbucket = gts.lastbucket;
+        }
+        if (lastbucket % bucketspan != gts.lastbucket % gts.bucketspan) {
+          // GTS has a lastbucket value which is not congruent to the other
+          // lastbucket values, so result GTS won't be bucketized.
+          bucketspan = 0L;
+          break;
+        }
+
+        //
+        // Update start/end bucket
+        //
+
+        if (gts.lastbucket > lastbucket) {
+          lastbucket = gts.lastbucket;
+        }
+        if (gts.lastbucket - gts.bucketcount * gts.bucketspan < startbucket) {
+          startbucket = gts.lastbucket - gts.bucketcount * gts.bucketspan;
+        }
+      }
+
+      //
+      // Determine bucketcount if result is to be bucketized
+      // startbucket is the end of the first bucket not considered
+      //
+
+      int bucketcount = 0;
+
+      if (0L != bucketspan) {
+        bucketcount = (int) ((lastbucket - startbucket) / bucketspan);
+      }
+
+      //
+      // Create target GTS
+      //
+
+      GeoTimeSerie result;
+
+      if (0L != bucketspan) {
+        result = new GeoTimeSerie(lastbucket, bucketcount, bucketspan, 0);
+      } else {
+        result = new GeoTimeSerie();
+      }
+
+      result.setName("");
+      result.setLabels(partitionLabels);
+      result.getMetadata().setAttributes(commonAttributes(partitionSeries));
+
+      //
+      // Sort all series in the partition so we can scan their ticks in order
+      //
+
+      String resultName = null;
+
+      for (GeoTimeSerie gts: partitionSeries) {
+        sort(gts, false);
+        if (null == resultName) {
+          resultName = gts.getName();
+        } else if (!resultName.equals(gts.getName())) {
+          resultName = "";
+        }
+      }
+
+      result.setName(resultName);
+
+      Map<String,GeoTimeSerie> multipleResults = new TreeMap<String,GeoTimeSerie>();
+
+      //
+      // Initialize indices for each gts
+      //
+
+      int[] idx = new int[partitionSeries.size()];
+
+      //
+      // Initialize names/labels/location/elevation/value arrays
+      //
+
+      COWTAggregate aggregate = new COWTAggregate();
+
+      // skippedGTS that have no value at reference tick
+      List<Integer> skippedGTS = new ArrayList<Integer>(partitionSeries.size() - 1);
+      aggregate.setAdditionalParams(skippedGTS);
+
+      // classnames
+      List<String> classnames = new ArrayList<String>(partitionSeries.size());
+      for (GeoTimeSerie gts: partitionSeries) {
+        classnames.add(gts.getName());
+      }
+      aggregate.setClassnames(classnames);
+
+      // labels
+      List<Map<String,String>> lbls = Arrays.asList(Arrays.copyOf(partlabels, partlabels.length));
+      aggregate.setLabels(lbls);
+
+      while(true) {
+        //
+        // Determine the tick span at the given indices
+        //
+
+        long smallest = Long.MAX_VALUE;
+
+        for (int i = 0; i < idx.length; i++) {
+          GeoTimeSerie gts = partitionSeries.get(i);
+          if (idx[i] < gts.values) {
+            if (gts.ticks[idx[i]] < smallest) {
+              smallest = gts.ticks[idx[i]];
+            }
+          }
+        }
+
+        //
+        // No smallest tick, this means we've exhausted all values
+        //
+
+        if (Long.MAX_VALUE == smallest) {
+          break;
+        }
+
+        //
+        // Now fill the locations/elevations/values arrays for all GTS
+        // instances whose current tick is 'smallest'
+        //
+
+        skippedGTS.clear();
+        for (int i = 0; i < partitionSeries.size(); i++) {
+          GeoTimeSerie gts = partitionSeries.get(i);
+          if (idx[i] >= gts.values || smallest != gts.ticks[idx[i]]) {
+            skippedGTS.add(i);
+          }
+        }
+
+        aggregate.setReferenceTick(smallest);
+        aggregate.setTicks(new ReadOnlyConstantList(idx.length, smallest)); // note: break previous convention that had MIN_LONG when no value
+        aggregate.setLocations(new COWTList(partitionSeries, idx, skippedGTS, COWTList.TYPE.LOCATIONS));
+        aggregate.setElevations(new COWTList(partitionSeries, idx, skippedGTS, COWTList.TYPE.ELEVATIONS));
+        aggregate.setValues(new COWTList(partitionSeries, idx, skippedGTS, COWTList.TYPE.VALUES));
+
+        // advance indices that had the smallest tick (for which the aggregate have a non null value)
+        int skipIdx = 0;
+        for (int i = 0; i < idx.length; i++) {
+          if (i == skippedGTS.get(skipIdx)) {
+            skipIdx++;
+          } else {
+            idx[i]++;
+          }
+        }
+
+        //
+        // Call the reducer for the current tick
+        //
+        // Return value will be an array [tick, location, elevation, value]
+        //
+
+        // TODO(hbs): extend reducers to use a window instead of a single value when reducing.
+        //            ticks/locations/elevations/values would be arrays of arrays and an 8th param
+        //            could contain the values.
+
+        Object reducerResult = reducer.apply(aggregate);
 
         if (reducerResult instanceof Map) {
           for (Entry<Object,Object> entry: ((Map<Object,Object>) reducerResult).entrySet()) {

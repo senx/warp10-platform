@@ -19,10 +19,11 @@ package io.warp10.script.functions;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptReducerFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptReducer;
+import io.warp10.script.WarpScriptReducerFunction;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -85,9 +86,10 @@ public class REDUCE extends NamedWarpScriptFunction implements WarpScriptStackFu
         }        
       }
     }
-      
-    if (!(params.get(reducerIndex) instanceof WarpScriptReducerFunction)) {
-      throw new WarpScriptException(getName() + " expects a function as parameter number " + (reducerIndex + 1) + ".");
+
+    Object reducer = params.get(reducerIndex);
+    if (!(reducer instanceof WarpScriptReducerFunction) && !(reducer instanceof WarpScriptReducer)) {
+      throw new WarpScriptException(getName() + " expects a reducer as parameter number " + (reducerIndex + 1) + ".");
     }
 
     Collection<GeoTimeSerie> series = new ArrayList<GeoTimeSerie>();
@@ -101,12 +103,20 @@ public class REDUCE extends NamedWarpScriptFunction implements WarpScriptStackFu
           throw new WarpScriptException(getName() + " expects lists of Geo Time Series as first parameter.");
         }
       }
-    }    
+    }
 
     if (this.flatten) {
-      stack.push(GTSHelper.reduce((WarpScriptReducerFunction) params.get(reducerIndex), series, bylabels, overrideTick));
+      if (reducer instanceof WarpScriptReducer) {
+        stack.push(GTSHelper.reduce2((WarpScriptReducer) reducer, series, bylabels, overrideTick));
+      } else {
+        stack.push(GTSHelper.reduce((WarpScriptReducerFunction) reducer, series, bylabels, overrideTick));
+      }
     } else {
-      stack.push(GTSHelper.reduceUnflattened((WarpScriptReducerFunction) params.get(reducerIndex), series, bylabels, overrideTick));
+      if (reducer instanceof WarpScriptReducer) {
+        stack.push(GTSHelper.reduceUnflattened2((WarpScriptReducer) reducer, series, bylabels, overrideTick));
+      } else {
+        stack.push(GTSHelper.reduceUnflattened((WarpScriptReducerFunction) reducer, series, bylabels, overrideTick));
+      }
     }
     return stack;
   }

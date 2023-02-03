@@ -40,10 +40,10 @@ public class COWTList implements List {
 
   private final List<GeoTimeSerie> gtsList;
   private final int[] dataPointIndices; // these are the pointers that are updated during the reduce loop, one per gts
-  private final int[] skippedGTSIndices; // these are the indices of gts from the gtsList that returns no value for the current aggregate
+  private final List<Integer> skippedGTSIndices; // these are the indices of gts from the gtsList that returns no value for the current aggregate
   private final TYPE type;
 
-  public COWTList(List<GeoTimeSerie> gtsList, int[] indices, int[] skipped, TYPE type) {
+  public COWTList(List<GeoTimeSerie> gtsList, int[] indices, List<Integer> skipped, TYPE type) {
     if (gtsList.size() != indices.length) {
       throw new RuntimeException("Size mismatch while constructing transversal aggregator");
     }
@@ -86,7 +86,7 @@ public class COWTList implements List {
       // loop through each gts and extract its value at given index if it is not a skipped gts
       int skippedIdx = 0; // we assume skippedGTSIndices are sorted
       for (int i = 0; i < gtsList.size(); i++) {
-        if (i == skippedGTSIndices[skippedIdx]) {
+        if (i == skippedGTSIndices.get(skippedIdx)) {
           if (exposeNullValues) {
             switch (type) {
               case VALUES:
@@ -146,7 +146,7 @@ public class COWTList implements List {
   @Override
   public int size() {
     if (readOnly) {
-      return exposeNullValues ? gtsList.size() : gtsList.size() - skippedGTSIndices.length;
+      return exposeNullValues ? gtsList.size() : gtsList.size() - skippedGTSIndices.size();
     } else {
       return mutableCopy.size();
     }
@@ -164,9 +164,9 @@ public class COWTList implements List {
       rangeCheck(i);
 
       int skipped = 0;
-      for (int j = 0; j < skippedGTSIndices.length; j++) {
+      for (int j = 0; j < skippedGTSIndices.size(); j++) {
         skipped++;
-        if (i == skippedGTSIndices[j]) {
+        if (i == skippedGTSIndices.get(j)) {
           if (exposeNullValues) {
             switch (type) {
               case VALUES:
@@ -238,8 +238,8 @@ public class COWTList implements List {
       int newSkippedSize = 0;
       int firstSkippedIdx = -1;
       int lastSkippedIdx = -1;
-      for (int i = 0; i < skippedGTSIndices.length; i++) {
-        if (skippedGTSIndices[i] >= fromIndex && skippedGTSIndices[i] < toIndex) {
+      for (int i = 0; i < skippedGTSIndices.size(); i++) {
+        if (skippedGTSIndices.get(i) >= fromIndex && skippedGTSIndices.get(i) < toIndex) {
           newSkippedSize++;
           lastSkippedIdx = i;
           if (-1 == firstSkippedIdx) {
@@ -247,10 +247,10 @@ public class COWTList implements List {
           }
         }
       }
-      int[] newSkipped = new int[newSkippedSize];
+      List<Integer> newSkipped = new ArrayList<Integer>(newSkippedSize);
       if (newSkippedSize > 0) {
         for (int i = firstSkippedIdx; i < lastSkippedIdx + 1; i++) {
-          newSkipped[i - firstSkippedIdx] = i - fromIndex;
+          newSkipped.set(i - firstSkippedIdx, i - fromIndex);
         }
       }
 

@@ -26,6 +26,8 @@ import java.util.List;
  */
 public class COWTAggregate extends Aggregate {
 
+  public COWTAggregate() {}
+
   /**
    * For each input gts, a datapoint is aggregated if the tick at the corresponding index is equal to the reference tick.
    * In this case the index corresponding to this gts is incremented.
