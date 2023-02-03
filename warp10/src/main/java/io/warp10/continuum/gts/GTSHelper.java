@@ -8007,7 +8007,7 @@ public class GTSHelper {
         // advance indices that had the smallest tick (for which the aggregate have a non null value)
         int skipIdx = 0;
         for (int i = 0; i < idx.length; i++) {
-          if (i == skippedGTS.get(skipIdx)) {
+          if (skipIdx < skippedGTS.size() && i == skippedGTS.get(skipIdx)) {
             skipIdx++;
           } else {
             idx[i]++;

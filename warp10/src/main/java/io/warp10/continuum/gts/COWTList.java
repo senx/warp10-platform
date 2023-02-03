@@ -72,7 +72,7 @@ public class COWTList implements List {
    * As long as readOnly is true, the List is backed by the GTS list (view).
    * As soon as user asks for a modification of the list, data are copied in an ArrayList, and readOnly turns false.
    */
-  private boolean readOnly;
+  private boolean readOnly = true;
   private ArrayList mutableCopy = null;
 
   public boolean isReadOnly() {
@@ -165,7 +165,6 @@ public class COWTList implements List {
 
       int skipped = 0;
       for (int j = 0; j < skippedGTSIndices.size(); j++) {
-        skipped++;
         if (i == skippedGTSIndices.get(j)) {
           if (exposeNullValues) {
             switch (type) {
@@ -178,6 +177,11 @@ public class COWTList implements List {
             }
           }
         }
+        if (i < skippedGTSIndices.get(j)) {
+          break;
+        }
+        // todo fix counting bug
+        skipped++;
       }
 
       GeoTimeSerie gts = gtsList.get(i + skipped);
