@@ -19,10 +19,10 @@ package io.warp10.script.aggregator.modifier;
 import io.warp10.continuum.gts.Aggregate;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptAggregator;
 import io.warp10.script.WarpScriptAggregatorSkipIfAnyNull;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptLib;
+import io.warp10.script.WarpScriptReducer;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.functions.SNAPSHOT;
@@ -36,8 +36,8 @@ public class NULLS_SKIP extends NamedWarpScriptFunction implements WarpScriptSta
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object o = stack.pop();
 
-    if (!(o instanceof WarpScriptAggregator)) {
-      throw new WarpScriptException(getName() + " expects an AGGREGATOR");
+    if (!(o instanceof WarpScriptReducer)) {
+      throw new WarpScriptException(getName() + " expects a reducer");
     }
 
     if (!(o instanceof WarpScriptAggregatorSkipIfAnyNull)) {
@@ -55,7 +55,7 @@ public class NULLS_SKIP extends NamedWarpScriptFunction implements WarpScriptSta
     return stack;
   }
 
-  private static final class ModifiedAggregator extends NamedWarpScriptFunction implements WarpScriptAggregatorSkipIfAnyNull, SNAPSHOT.Snapshotable {
+  private static final class ModifiedAggregator extends NamedWarpScriptFunction implements WarpScriptReducer, WarpScriptAggregatorSkipIfAnyNull, SNAPSHOT.Snapshotable {
 
     private final WarpScriptAggregatorSkipIfAnyNull aggregator;
 
