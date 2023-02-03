@@ -16,13 +16,13 @@
 
 package io.warp10.json;
 
-import java.io.IOException;
-
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
-
 import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.functions.SNAPSHOT;
+
+import java.io.IOException;
 
 public class NamedWarpScriptFunctionSerializer extends StdSerializer<NamedWarpScriptFunction> {
 
@@ -32,6 +32,10 @@ public class NamedWarpScriptFunctionSerializer extends StdSerializer<NamedWarpSc
 
   @Override
   public void serialize(NamedWarpScriptFunction namedWarpScriptFunction, JsonGenerator gen, SerializerProvider provider) throws IOException {
-    gen.writeString(namedWarpScriptFunction.toString());
+    if (namedWarpScriptFunction instanceof SNAPSHOT.Snapshotable) {
+      gen.writeString(((SNAPSHOT.Snapshotable) namedWarpScriptFunction).snapshot());
+    } else {
+      gen.writeString(namedWarpScriptFunction.toString());
+    }
   }
 }

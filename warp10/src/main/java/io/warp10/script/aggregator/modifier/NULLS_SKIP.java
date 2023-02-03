@@ -25,6 +25,7 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.functions.SNAPSHOT;
 
 public class NULLS_SKIP extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   public NULLS_SKIP(String name) {
@@ -54,7 +55,7 @@ public class NULLS_SKIP extends NamedWarpScriptFunction implements WarpScriptSta
     return stack;
   }
 
-  private static final class ModifiedAggregator extends NamedWarpScriptFunction implements WarpScriptAggregatorSkipIfAnyNull {
+  private static final class ModifiedAggregator extends NamedWarpScriptFunction implements WarpScriptAggregatorSkipIfAnyNull, SNAPSHOT.Snapshotable {
 
     private final WarpScriptAggregatorSkipIfAnyNull aggregator;
 
@@ -72,7 +73,7 @@ public class NULLS_SKIP extends NamedWarpScriptFunction implements WarpScriptSta
     }
 
     @Override
-    public String toString() {
+    public String snapshot() {
       StringBuilder sb = new StringBuilder();
       sb.append(WarpScriptStack.MACRO_START);
       sb.append(" ");

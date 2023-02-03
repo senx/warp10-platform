@@ -24,6 +24,7 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.functions.SNAPSHOT;
 
 public class NULLS_REMOVE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   public NULLS_REMOVE(String name) {
@@ -53,7 +54,7 @@ public class NULLS_REMOVE extends NamedWarpScriptFunction implements WarpScriptS
     return stack;
   }
 
-  private static final class ModifiedAggregator extends NamedWarpScriptFunction implements WarpScriptAggregatorRemoveNulls {
+  private static final class ModifiedAggregator extends NamedWarpScriptFunction implements WarpScriptAggregatorRemoveNulls, SNAPSHOT.Snapshotable {
 
     private final WarpScriptAggregatorRemoveNulls aggregator;
 
@@ -68,7 +69,7 @@ public class NULLS_REMOVE extends NamedWarpScriptFunction implements WarpScriptS
     }
 
     @Override
-    public String toString() {
+    public String snapshot() {
       StringBuilder sb = new StringBuilder();
       sb.append(WarpScriptStack.MACRO_START);
       sb.append(" ");
