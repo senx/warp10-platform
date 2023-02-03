@@ -16,4 +16,11 @@
 
 package io.warp10.script;
 
-public interface WarpScriptAggregatorKeepNulls extends WarpScriptAggregatorHandleNulls {}
+import io.warp10.continuum.gts.Aggregate;
+
+public interface WarpScriptAggregatorKeepNulls extends WarpScriptAggregatorHandleNulls {
+  public static Aggregate keepNulls(Aggregate aggregate) {
+    // do nothing since nulls are exposed by default
+    return aggregate;
+  }
+}
