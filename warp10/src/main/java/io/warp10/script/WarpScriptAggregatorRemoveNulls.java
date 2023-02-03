@@ -55,18 +55,11 @@ public interface WarpScriptAggregatorRemoveNulls extends WarpScriptAggregatorHan
       return aggregate;
     }
 
-    if (1 == values.size()) {
-      for (int i = 1; i < 8; i++) {
-        aggregate.setValues(new ArrayList<Object>(0));
-      }
-      return aggregate;
-    }
-
     List[] fields = aggregate.getLists();
     for (int i = 0; i < fields.length - 1; i++) {
 
       List field = fields[i];
-      if (field.size() > 1) {
+      if (field.size() > 1 || i > 1) { // classnames and labels can be singletons so they are skipped in this case
 
         List newField = new ArrayList(field.size() - skippedIndices.size());
 

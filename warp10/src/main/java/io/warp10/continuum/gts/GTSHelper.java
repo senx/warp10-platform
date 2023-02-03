@@ -8002,10 +8002,7 @@ public class GTSHelper {
         }
 
         aggregate.setReferenceTick(smallest);
-        aggregate.setTicks(new ReadOnlyConstantList(idx.length, smallest)); // note: break previous convention that had MIN_LONG when no value
-        aggregate.setLocations(new COWTList(partitionSeries, idx, skippedGTS, COWTList.TYPE.LOCATIONS));
-        aggregate.setElevations(new COWTList(partitionSeries, idx, skippedGTS, COWTList.TYPE.ELEVATIONS));
-        aggregate.setValues(new COWTList(partitionSeries, idx, skippedGTS, COWTList.TYPE.VALUES));
+        aggregate.setDataPoints(partitionSeries, idx, skippedGTS, smallest);
 
         // advance indices that had the smallest tick (for which the aggregate have a non null value)
         int skipIdx = 0;

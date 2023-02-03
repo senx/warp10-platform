@@ -20,7 +20,6 @@ import java.util.List;
 
 /**
  * Copy On Write Transversal Aggregate
- * Draft: this class is a WIP
  *
  * This aggregate class can be used for REDUCE and APPLY, it contains COWTLists
  */
@@ -28,19 +27,11 @@ public class COWTAggregate extends Aggregate {
 
   public COWTAggregate() {}
 
-  /**
-   * For each input gts, a datapoint is aggregated if the tick at the corresponding index is equal to the reference tick.
-   * In this case the index corresponding to this gts is incremented.
-   */
-  public COWTAggregate(List<GeoTimeSerie> gtsList, int[] idx, long reference) {
-    //super(8);
-
-    if (gtsList.size() != idx.length) {
-      throw new RuntimeException("Size mismatch");
-    }
-
-    //todo
-
+  public void setDataPoints(List<GeoTimeSerie> gtsList, int[] indices, List<Integer> skippedGTS, long referenceTick) {
+    setTicks(new ReadOnlyConstantList(indices.length, referenceTick)); // note: break previous REDUCE convention that had MIN_LONG when no value
+    setLocations(new COWTList(gtsList, indices, skippedGTS, COWTList.TYPE.LOCATIONS));
+    setElevations(new COWTList(gtsList, indices, skippedGTS, COWTList.TYPE.ELEVATIONS));
+    setValues(new COWTList(gtsList, indices, skippedGTS, COWTList.TYPE.VALUES));
   }
 
   public void removeNulls() {
