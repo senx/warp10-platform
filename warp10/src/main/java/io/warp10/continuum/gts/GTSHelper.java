@@ -2364,8 +2364,10 @@ public class GTSHelper {
       }
 
       if (aggregator instanceof WarpScriptAggregator) {
-        // Second case: the aggregator is capable to process an AggregateList structure.
+        // Second case: the aggregator is capable to process an Aggregate structure.
         // It uses a special class for lists that saves a memory allocation.
+        UnivariateAggregateCOWList aggregate = new UnivariateAggregateCOWList();
+        aggregate.setMetaData(gts);
 
         // iterate on input to find buckets
         long currentBucketEnd;
@@ -2391,7 +2393,9 @@ public class GTSHelper {
           lastParms.add(currentBucketEnd);
 
           // aggregate and collect the result
-          Aggregate aggregate = new UnivariateAggregateCOWList(gts, currentBucketStartPosition, count, currentBucketEnd, lastParms);
+          aggregate.setReferenceTick(currentBucketEnd);
+          aggregate.setDataPoints(gts, currentBucketStartPosition, count);
+          aggregate.setAdditionalParams(lastParms);
           aggregated = (Object[]) ((WarpScriptAggregator) aggregator).apply(aggregate);
 
           if (null != aggregated[3]) {

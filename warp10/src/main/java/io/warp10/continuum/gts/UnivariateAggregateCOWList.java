@@ -26,6 +26,8 @@ import java.util.List;
  */
 public class UnivariateAggregateCOWList extends Aggregate {
 
+  public UnivariateAggregateCOWList() {}
+
   public UnivariateAggregateCOWList(GeoTimeSerie gts, int startIdx, int length, Long reference) {
     this(gts, startIdx, length, reference, null);
   }
@@ -34,6 +36,17 @@ public class UnivariateAggregateCOWList extends Aggregate {
     // tick of computation
     setReferenceTick(reference);
 
+    // metadata
+    setMetaData(gts);
+
+    // data points
+    setDataPoints(gts, startIdx, length);
+
+    // additional parameters
+    setAdditionalParams(additionalParams);
+  }
+
+  public void setMetaData(GeoTimeSerie gts) {
     // classnames
     List classnames = new ArrayList(1);
     classnames.add(gts.getName());
@@ -43,7 +56,9 @@ public class UnivariateAggregateCOWList extends Aggregate {
     List labels = new ArrayList(1);
     labels.add(gts.getLabels());
     setLabels(labels);
+  }
 
+  public void setDataPoints(GeoTimeSerie gts, int startIdx, int length) {
     // ticks
     setTicks(new COWList(gts.ticks, startIdx, length));
 
@@ -78,9 +93,6 @@ public class UnivariateAggregateCOWList extends Aggregate {
       default:
         throw new RuntimeException("Undefined GeoTimeSeries Type.");
     }
-
-    // additional parameters
-    setValues(additionalParams);
   }
 
   @Override
