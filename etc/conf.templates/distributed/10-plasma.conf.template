@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2022  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -62,7 +62,7 @@ plasma.backend.subscriptions.zk.quorum = ${zk.quorum}
 ##
 ## MANDATORY (backend) - Parent znode under which subscription znodes will be created
 ##
-plasma.backend.subscriptions.zk.znode = /zk/warp/localhost/plasma
+plasma.backend.subscriptions.zk.znode = /zk/warp/${warp10.instance}/plasma
 
 ##
 ## MANDATORY (frontend) - Comma separated list of Kafka brokers to connect to for consuming messages from backends
@@ -113,7 +113,7 @@ plasma.frontend.zk.quorum = ${zk.quorum}
 ##
 ## MANDATORY (frontend) - ZooKeeper root znode for subscriptions
 ##
-plasma.frontend.zk.znode = /zk/warp/localhost/plasma
+plasma.frontend.zk.znode = /zk/warp/${warp10.instance}/plasma
 
 ##
 ## MANDATORY (frontend) - How often (in ms) to pause between checking if we need to update the subscriptions

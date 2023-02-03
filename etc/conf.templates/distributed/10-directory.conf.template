@@ -32,7 +32,7 @@ directory.zk.quorum = ${zk.quorum}
 ##
 ## MANDATORY - ZooKeeper znode under which to register
 ##
-directory.zk.znode = /zk/warp/localhost/services
+directory.zk.znode = /zk/warp/${warp10.instance}/services
 
 ##
 ## MANDATORY - Number of threads to run for ingesting metadata from Kafka
