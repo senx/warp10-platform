@@ -16,12 +16,15 @@
 
 package io.warp10.continuum.gts;
 
+import com.geoxp.GeoXPLib;
+
+import java.util.ArrayList;
 import java.util.List;
 
 /**
  * This is the base class for the aggregate that is given as input to BUCKETIZE, MAP, REDUCE and APPLY frameworks.
  */
-public abstract class Aggregate {
+public class Aggregate {
   protected long referenceTick;
   final protected List[] lists = new List[7];
 
@@ -64,16 +67,16 @@ public abstract class Aggregate {
   public void setLabels(List labels) {
     lists[1] = labels;
   }
-  protected void setTicks(List ticks) {
+  public void setTicks(List ticks) {
     lists[2] = ticks;
   }
-  protected void setLocations(List locations) {
+  public void setLocations(List locations) {
     lists[3] = locations;
   }
-  protected void setElevations(List elevations) {
+  public void setElevations(List elevations) {
     lists[4] = elevations;
   }
-  protected void setValues(List values) {
+  public void setValues(List values) {
     lists[5] = values;
   }
   public void setAdditionalParams(List additionalParams) {
@@ -84,12 +87,62 @@ public abstract class Aggregate {
    * Convert into a List (to be used by MACROMAPPER, MACROREDUCER)
    * @return a list that can be pushed on a WarpScript stack
    */
-  abstract public List<Object> toList();
+  public List<Object> toList() {
+    List<Object> params = new ArrayList<>(8);
 
-  public List<Object> toListWithAdditionalParams() {
-    List res = toList();
+    params.add(getReferenceTick());
+    params.add(getClassnames());
+    params.add(getLabels());
+    params.add(getTicks());
 
-    res.add(getAdditionalParams());
-    return res;
+    // locations need to be converted
+    if (null != getLocations()) {
+      List locations = getLocations();
+
+      ArrayList<Double> lats = new ArrayList<Double>(locations.size());
+      ArrayList<Double> lons = new ArrayList<Double>(locations.size());
+
+      for (int i = 0; i < locations.size(); i++) {
+        Long location = (Long) locations.get(i);
+        if (GeoTimeSerie.NO_LOCATION == location) {
+          lats.add(Double.NaN);
+          lons.add(Double.NaN);
+        } else {
+          double[] latlon = GeoXPLib.fromGeoXPPoint(location);
+          lats.add(latlon[0]);
+          lons.add(latlon[1]);
+        }
+      }
+      params.add(lats);
+      params.add(lons);
+
+    } else {
+      // in this case, it is a readOnlyConstantList with value Double.NaN
+      Object o = new ReadOnlyConstantList(getTicks().size(), Double.NaN);
+      params.add(o);
+      params.add(o);
+    }
+
+    if (null != getElevations()) {
+      List elevations = getElevations();
+
+      ArrayList<Object> elevs = new ArrayList<Object>(elevations.size());
+      for (int i = 0; i < elevations.size(); i++) {
+        if (GeoTimeSerie.NO_ELEVATION == (Long) elevations.get(i)) {
+          elevs.add(Double.NaN);
+        } else {
+          elevs.add(elevations.get(i));
+        }
+      }
+      params.add(elevs);
+
+    } else {
+      // in this case, it is a readOnlyConstantList with value Double.NaN
+      params.add(new ReadOnlyConstantList(getTicks().size(), Double.NaN));
+    }
+
+    params.add(getValues());
+
+    return params;
   }
 }

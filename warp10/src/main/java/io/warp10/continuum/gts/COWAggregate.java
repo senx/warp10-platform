@@ -16,8 +16,6 @@
 
 package io.warp10.continuum.gts;
 
-import com.geoxp.GeoXPLib;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -95,65 +93,5 @@ public class COWAggregate extends Aggregate {
       default:
         throw new RuntimeException("Undefined GeoTimeSeries Type.");
     }
-  }
-
-  @Override
-  public List<Object> toList() {
-    List<Object> params = new ArrayList<>(8);
-
-    params.add(getReferenceTick());
-    params.add(getClassnames());
-    params.add(getLabels());
-    params.add(getTicks());
-
-    // locations need to be converted
-    if (null != getLocations()) {
-      COWList locations = (COWList) getLocations();
-
-      ArrayList<Double> lats = new ArrayList<Double>(locations.size());
-      ArrayList<Double> lons = new ArrayList<Double>(locations.size());
-
-      for (int i = 0; i < locations.size(); i++) {
-        Long location = (Long) locations.get(i);
-        if (GeoTimeSerie.NO_LOCATION == location) {
-          lats.add(Double.NaN);
-          lons.add(Double.NaN);
-        } else {
-          double[] latlon = GeoXPLib.fromGeoXPPoint(location);
-          lats.add(latlon[0]);
-          lons.add(latlon[1]);
-        }
-      }
-      params.add(lats);
-      params.add(lons);
-
-    } else {
-      // in this case, it is a readOnlyConstantList with value Double.NaN
-      Object o = new ReadOnlyConstantList(getTicks().size(), Double.NaN);
-      params.add(o);
-      params.add(o);
-    }
-
-    if (null != getElevations()) {
-      COWList elevations = (COWList) getElevations();
-
-      ArrayList<Object> elevs = new ArrayList<Object>(elevations.size());
-      for (int i = 0; i < elevations.size(); i++) {
-        if (GeoTimeSerie.NO_ELEVATION == (Long) elevations.get(i)) {
-          elevs.add(Double.NaN);
-        } else {
-          elevs.add(elevations.get(i));
-        }
-      }
-      params.add(elevs);
-
-    } else {
-      // in this case, it is a readOnlyConstantList with value Double.NaN
-      params.add(new ReadOnlyConstantList(getTicks().size(), Double.NaN));
-    }
-
-    params.add(getValues());
-
-    return params;
   }
 }

@@ -45,10 +45,4 @@ public class COWTAggregate extends Aggregate {
     ((COWTList) getElevations()).setExposeNullValues(true);
     ((COWTList) getValues()).setExposeNullValues(true);
   }
-
-  @Override
-  public List<Object> toList() {
-    // todo
-    return null;
-  }
 }
