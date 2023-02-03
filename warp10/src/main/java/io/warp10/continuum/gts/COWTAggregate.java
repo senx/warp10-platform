@@ -35,11 +35,20 @@ public class COWTAggregate extends Aggregate {
   }
 
   public void removeNulls() {
-    // todo
+    ((COWTList) getLocations()).setExposeNullValues(false);
+    ((COWTList) getElevations()).setExposeNullValues(false);
+    ((COWTList) getValues()).setExposeNullValues(false);
+  }
+
+  public void keepNulls() {
+    ((COWTList) getLocations()).setExposeNullValues(true);
+    ((COWTList) getElevations()).setExposeNullValues(true);
+    ((COWTList) getValues()).setExposeNullValues(true);
   }
 
   @Override
   public List<Object> toList() {
+    // todo
     return null;
   }
 }

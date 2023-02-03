@@ -64,16 +64,16 @@ public abstract class Aggregate {
   public void setLabels(List labels) {
     lists[1] = labels;
   }
-  public void setTicks(List ticks) {
+  protected void setTicks(List ticks) {
     lists[2] = ticks;
   }
-  public void setLocations(List locations) {
+  protected void setLocations(List locations) {
     lists[3] = locations;
   }
-  public void setElevations(List elevations) {
+  protected void setElevations(List elevations) {
     lists[4] = elevations;
   }
-  public void setValues(List values) {
+  protected void setValues(List values) {
     lists[5] = values;
   }
   public void setAdditionalParams(List additionalParams) {
