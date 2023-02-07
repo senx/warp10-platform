@@ -180,12 +180,12 @@ public class COWTList implements List {
         if (i < skippedGTSIndices.get(j)) {
           break;
         }
-        // todo fix counting bug
         skipped++;
       }
 
-      GeoTimeSerie gts = gtsList.get(i + skipped);
-      int index = dataPointIndices[i + skipped];
+      int i_adjusted = exposeNullValues ? i : i + skipped;
+      GeoTimeSerie gts = gtsList.get(i_adjusted);
+      int index = dataPointIndices[i_adjusted];
 
       switch (type) {
         case VALUES:
