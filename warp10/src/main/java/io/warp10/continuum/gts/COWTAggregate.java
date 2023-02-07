@@ -29,8 +29,22 @@ public class COWTAggregate extends Aggregate {
 
   public void setDataPoints(List<GeoTimeSerie> gtsList, int[] indices, List<Integer> skippedGTS, long referenceTick) {
     setTicks(new ReadOnlyConstantList(indices.length, referenceTick)); // note: break previous REDUCE convention that had MIN_LONG when no value
-    setLocations(new COWTList(gtsList, indices, skippedGTS, COWTList.TYPE.LOCATIONS));
-    setElevations(new COWTList(gtsList, indices, skippedGTS, COWTList.TYPE.ELEVATIONS));
+
+    boolean hasLoc = false;
+    boolean hasElev = false;
+    for (GeoTimeSerie gts: gtsList) {
+      if (!hasLoc && gts.hasLocations()) {
+        hasLoc = true;
+      }
+      if (!hasElev && gts.hasElevations()) {
+        hasElev = true;
+      }
+      if (hasLoc && hasElev) {
+        break;
+      }
+    }
+    setLocations(hasLoc ? new COWTList(gtsList, indices, skippedGTS, COWTList.TYPE.LOCATIONS) : null);
+    setElevations(hasElev ? new COWTList(gtsList, indices, skippedGTS, COWTList.TYPE.ELEVATIONS) : null);
     setValues(new COWTList(gtsList, indices, skippedGTS, COWTList.TYPE.VALUES));
   }
 
