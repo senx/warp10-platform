@@ -49,14 +49,36 @@ public class COWTAggregate extends Aggregate {
   }
 
   public void removeNulls() {
-    ((COWTList) getLocations()).setExposeNullValues(false);
-    ((COWTList) getElevations()).setExposeNullValues(false);
-    ((COWTList) getValues()).setExposeNullValues(false);
+    List locations = getLocations();
+    if (null != locations && locations instanceof COWTList) {
+      ((COWTList) locations).setExposeNullValues(false);
+    }
+
+    List elevations = getElevations();
+    if (null != elevations && elevations instanceof COWTList) {
+      ((COWTList) elevations).setExposeNullValues(false);
+    }
+
+    List values = getValues();
+    if (null != values && values instanceof COWTList) {
+      ((COWTList) values).setExposeNullValues(false);
+    }
   }
 
   public void keepNulls() {
-    ((COWTList) getLocations()).setExposeNullValues(true);
-    ((COWTList) getElevations()).setExposeNullValues(true);
-    ((COWTList) getValues()).setExposeNullValues(true);
+    List locations = getLocations();
+    if (null != locations && locations instanceof COWTList) {
+      ((COWTList) locations).setExposeNullValues(true);
+    }
+
+    List elevations = getElevations();
+    if (null != elevations && elevations instanceof COWTList) {
+      ((COWTList) elevations).setExposeNullValues(true);
+    }
+
+    List values = getValues();
+    if (null != values && values instanceof COWTList) {
+      ((COWTList) values).setExposeNullValues(true);
+    }
   }
 }
