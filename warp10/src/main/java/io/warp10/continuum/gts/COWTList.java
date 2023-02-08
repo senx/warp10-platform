@@ -163,12 +163,13 @@ public class COWTList implements List {
     if (readOnly) {
       rangeCheck(i);
 
-      int skipped = 0;
+      int i_adjusted = i;
       int prevSkippedGTS = -1;
       for (int j = 0; j < skippedGTSIndices.size(); j++) {
         int skippedGTS = skippedGTSIndices.get(j);
-        if (i == skippedGTS) {
-          if (exposeNullValues) {
+
+        if (exposeNullValues) {
+          if (i == skippedGTS) {
             switch (type) {
               case VALUES:
                 return null;
@@ -178,21 +179,21 @@ public class COWTList implements List {
                 return GeoTimeSerie.NO_ELEVATION;
             }
           }
-        }
 
-        //
-        // If we do not expose null values, we must count how many null values have been skipped
-        // and how many more we need to skip to attain a non null value
-        //
+        } else {
+          //
+          // If we do not expose null values, we must increment i for each null values before i
+          // and up until we attain a non null value
+          //
 
-        if (i < skippedGTS && skippedGTS - prevSkippedGTS > 1) {
-          break;
+          if (i_adjusted < skippedGTS && skippedGTS - prevSkippedGTS > 1) {
+            break;
+          }
+          i_adjusted++;
+          prevSkippedGTS = skippedGTS;
         }
-        prevSkippedGTS = skippedGTS;
-        skipped++;
       }
-
-      int i_adjusted = exposeNullValues ? i : i + skipped;
+      
       GeoTimeSerie gts = gtsList.get(i_adjusted);
       int index = dataPointIndices[i_adjusted];
 
