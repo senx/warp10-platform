@@ -164,8 +164,10 @@ public class COWTList implements List {
       rangeCheck(i);
 
       int skipped = 0;
+      int prevSkippedGTS = -1;
       for (int j = 0; j < skippedGTSIndices.size(); j++) {
-        if (i == skippedGTSIndices.get(j)) {
+        int skippedGTS = skippedGTSIndices.get(j);
+        if (i == skippedGTS) {
           if (exposeNullValues) {
             switch (type) {
               case VALUES:
@@ -177,9 +179,16 @@ public class COWTList implements List {
             }
           }
         }
-        if (i < skippedGTSIndices.get(j)) {
+
+        //
+        // If we do not expose null values, we must count how many null values have been skipped
+        // and how many more we need to skip to attain a non null value
+        //
+
+        if (i < skippedGTS && skippedGTS - prevSkippedGTS > 1) {
           break;
         }
+        prevSkippedGTS = skippedGTS;
         skipped++;
       }
 
