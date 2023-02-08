@@ -82,62 +82,8 @@ public class COWTList implements List {
   private synchronized void initialDeepCopy() {
     if (readOnly) {
       mutableCopy = new ArrayList(size());
-
-      // loop through each gts and extract its value at given index if it is not a skipped gts
-      int skippedIdx = 0; // we assume skippedGTSIndices are sorted
-      for (int i = 0; i < gtsList.size(); i++) {
-        if (i == skippedGTSIndices.get(skippedIdx)) {
-          if (exposeNullValues) {
-            switch (type) {
-              case VALUES:
-                mutableCopy.add(null);
-              case LOCATIONS:
-                mutableCopy.add(GeoTimeSerie.NO_LOCATION);
-              case ELEVATIONS:
-                mutableCopy.add(GeoTimeSerie.NO_ELEVATION);
-            }
-          }
-          skippedIdx++; // a skipped gts has been seen so we increase the index
-
-        } else {
-          GeoTimeSerie gts = gtsList.get(i + skippedIdx);
-          int index = dataPointIndices[i + skippedIdx];
-
-          switch (type) {
-            case VALUES:
-              switch (gts.type) {
-                case DOUBLE:
-                  mutableCopy.add(gts.doubleValues[index]);
-                  break;
-                case LONG:
-                  mutableCopy.add(gts.longValues[index]);
-                  break;
-                case BOOLEAN:
-                  mutableCopy.add(gts.booleanValues.get(index));
-                  break;
-                case STRING:
-                  mutableCopy.add(gts.stringValues[index]);
-                  break;
-              }
-              break;
-
-            case LOCATIONS:
-              if (gts.hasLocations()) {
-                mutableCopy.add(gts.locations[index]);
-              } else {
-                mutableCopy.add(GeoTimeSerie.NO_LOCATION);
-              }
-              break;
-
-            case ELEVATIONS:
-              if (gts.hasElevations() && GeoTimeSerie.NO_ELEVATION != gts.elevations[index]) {
-                mutableCopy.add(gts.elevations[index]);
-              } else {
-                mutableCopy.add(GeoTimeSerie.NO_ELEVATION);
-              }
-              break;
-          }
-        }
+      for (int i = 0; i < size(); i++) {
+        mutableCopy.add(get(i));
       }
       readOnly = false;
     }
@@ -181,7 +127,7 @@ public class COWTList implements List {
 
         } else {
           //
-          // If we do not expose null values, we must increment i for each null values before i
+          // If we do not expose null values, we must increment i for each null value before i
           // and up until we attain a non null value
           //
 
