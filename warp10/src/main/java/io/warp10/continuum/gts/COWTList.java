@@ -164,7 +164,6 @@ public class COWTList implements List {
       rangeCheck(i);
 
       int i_adjusted = i;
-      int prevSkippedGTS = -1;
       for (int j = 0; j < skippedGTSIndices.size(); j++) {
         int skippedGTS = skippedGTSIndices.get(j);
 
@@ -186,11 +185,10 @@ public class COWTList implements List {
           // and up until we attain a non null value
           //
 
-          if (i_adjusted < skippedGTS && skippedGTS - prevSkippedGTS > 1) {
+          if (i_adjusted < skippedGTS) {
             break;
           }
           i_adjusted++;
-          prevSkippedGTS = skippedGTS;
         }
       }
       
