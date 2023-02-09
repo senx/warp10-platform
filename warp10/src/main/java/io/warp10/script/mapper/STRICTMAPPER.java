@@ -16,14 +16,17 @@
 
 package io.warp10.script.mapper;
 
+import io.warp10.continuum.gts.Aggregate;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptLib;
+import io.warp10.script.WarpScriptMapper;
 import io.warp10.script.WarpScriptMapperFunction;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.functions.SNAPSHOT;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,7 +39,6 @@ public class STRICTMAPPER extends NamedWarpScriptFunction implements WarpScriptS
   public STRICTMAPPER(String name) {
     super(name);
   }
-
 
   private static final class StringentMapper extends NamedWarpScriptFunction implements WarpScriptMapperFunction {
 
@@ -72,6 +74,56 @@ public class STRICTMAPPER extends NamedWarpScriptFunction implements WarpScriptS
 
     @Override
     public String toString() {
+      StringBuilder sb = new StringBuilder();
+      sb.append(WarpScriptStack.MACRO_START);
+      sb.append(" ");
+      sb.append(mapper.toString());
+      sb.append(" ");
+      sb.append(min);
+      sb.append(" ");
+      sb.append(max);
+      sb.append(" ");
+      sb.append(getName());
+      sb.append(" ");
+      sb.append(WarpScriptStack.MACRO_END);
+      sb.append(" ");
+      sb.append(WarpScriptLib.EVAL);
+      return sb.toString();
+    }
+  }
+
+  private static final class StringentMapper2 extends NamedWarpScriptFunction implements WarpScriptMapper, SNAPSHOT.Snapshotable {
+    private final long min;
+    private final long max;
+    private final WarpScriptMapper mapper;
+
+    public StringentMapper2(String name, long min, long max, WarpScriptMapper mapper) {
+      super(name);
+      this.min = min;
+      this.max = max;
+      this.mapper = mapper;
+    }
+
+    @Override
+    public Object apply(Aggregate aggregate) throws WarpScriptException {
+
+      List<Long> ticks = aggregate.getTicks();
+      long timespan;
+      if (0 == ticks.size()) {
+        timespan = 0;
+      } else {
+        timespan = ticks.get(ticks.size() - 1) - ticks.get(0) + 1;
+      }
+
+      if (min > 0 && ticks.size() < min || max > 0 && ticks.size() > max || min < 0 && timespan < -min || max < 0 && timespan > -max) {
+        return new Object[]{aggregate.getReferenceTick(), GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, null};
+      }
+
+      return mapper.apply(aggregate);
+    }
+
+    @Override
+    public String snapshot() {
       StringBuilder sb = new StringBuilder();
       sb.append(WarpScriptStack.MACRO_START);
       sb.append(" ");
@@ -189,6 +241,10 @@ public class STRICTMAPPER extends NamedWarpScriptFunction implements WarpScriptS
     if (o instanceof WarpScriptMapperFunction) {
       WarpScriptMapperFunction mapper = (WarpScriptMapperFunction) o;
       stack.push(new StringentMapper(getName(), min, max, mapper));
+
+    } else if (o instanceof WarpScriptMapper) {
+      WarpScriptMapper mapper = (WarpScriptMapper) o;
+      stack.push(new StringentMapper2(getName(), min, max, mapper));
 
     } else if (o instanceof WarpScriptStack.Macro) {
       WarpScriptStack.Macro macro = new WarpScriptStack.Macro();
