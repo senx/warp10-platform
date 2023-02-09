@@ -36,8 +36,9 @@ public class COWTList extends AbstractCOWList {
   private final int[] dataPointIndices; // these are the pointers that are updated during the reduce loop, one per gts
   private final List<Integer> skippedGTSIndices; // these are the indices of gts from the gtsList that returns no value for the current aggregate
   private final TYPE type;
+  private final long referenceTick;
 
-  public COWTList(List<GeoTimeSerie> gtsList, int[] indices, List<Integer> skipped, TYPE type) {
+  public COWTList(List<GeoTimeSerie> gtsList, int[] indices, List<Integer> skipped, long referenceTick, TYPE type) {
     if (gtsList.size() != indices.length) {
       throw new RuntimeException("Size mismatch while constructing transversal aggregator");
     }
@@ -45,6 +46,7 @@ public class COWTList extends AbstractCOWList {
     this.gtsList = gtsList;
     this.dataPointIndices = indices;
     this.skippedGTSIndices = skipped;
+    this.referenceTick = referenceTick;
     this.type = type;
     exposeNullValues = true;
   }
@@ -54,8 +56,31 @@ public class COWTList extends AbstractCOWList {
    */
   private boolean exposeNullValues = true;
 
+  // sub collections are used if null values are not exposed
+  private List<GeoTimeSerie> subGTSList = null;
+  private int[] subDataPointIndices = null;
+
   public void setExposeNullValues(boolean exposeNullValues) {
+    if (exposeNullValues == this.exposeNullValues) {
+      return;
+    }
+
     this.exposeNullValues = exposeNullValues;
+    if (!exposeNullValues && null == subGTSList) {
+      subGTSList = new ArrayList<GeoTimeSerie>(size());
+      subDataPointIndices = new int[size()];
+
+      int count = 0;
+      for (int i = 0; i < gtsList.size(); i++) {
+        if (!isNullAt(i)) {
+          subGTSList.add(gtsList.get(i));
+          subDataPointIndices[count++] = dataPointIndices[i];
+        }
+        if (count == size()) {
+          break;
+        }
+      }
+    }
   }
 
   public boolean isExposeNullValues() {
@@ -71,42 +96,28 @@ public class COWTList extends AbstractCOWList {
     }
   }
 
+  private boolean isNullAt(int i) {
+    return dataPointIndices[i] >= gtsList.get(i).values || referenceTick != gtsList.get(i).ticks[dataPointIndices[i]];
+  }
+
   @Override
   public Object get(int i) {
     if (readOnly) {
       rangeCheck(i);
 
-      int i_adjusted = i;
-      for (int j = 0; j < skippedGTSIndices.size(); j++) {
-        int skippedGTS = skippedGTSIndices.get(j);
-
-        if (exposeNullValues) {
-          if (i == skippedGTS) {
-            switch (type) {
-              case VALUES:
-                return null;
-              case LOCATIONS:
-                return GeoTimeSerie.NO_LOCATION;
-              case ELEVATIONS:
-                return GeoTimeSerie.NO_ELEVATION;
-            }
-          }
-
-        } else {
-          //
-          // If we do not expose null values, we must increment i for each null value before i
-          // and up until we attain a non null value
-          //
-
-          if (i_adjusted < skippedGTS) {
-            break;
-          }
-          i_adjusted++;
+      if (exposeNullValues && isNullAt(i)) {
+        switch (type) {
+          case VALUES:
+            return null;
+          case LOCATIONS:
+            return GeoTimeSerie.NO_LOCATION;
+          case ELEVATIONS:
+            return GeoTimeSerie.NO_ELEVATION;
         }
       }
       
-      GeoTimeSerie gts = gtsList.get(i_adjusted);
-      int index = dataPointIndices[i_adjusted];
+      GeoTimeSerie gts = exposeNullValues ? gtsList.get(i) : subGTSList.get(i);
+      int index = exposeNullValues ? dataPointIndices[i] : subDataPointIndices[i];
 
       switch (type) {
         case VALUES:
@@ -179,7 +190,7 @@ public class COWTList extends AbstractCOWList {
         }
       }
 
-      return new COWTList(newList, newIndices, newSkipped, type);
+      return new COWTList(newList, newIndices, newSkipped, referenceTick, type);
 
     } else {
       return mutableCopy.subList(fromIndex, toIndex);

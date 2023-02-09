@@ -43,9 +43,9 @@ public class COWTAggregate extends Aggregate {
         break;
       }
     }
-    setLocations(hasLoc ? new COWTList(gtsList, indices, skippedGTS, COWTList.TYPE.LOCATIONS) : null);
-    setElevations(hasElev ? new COWTList(gtsList, indices, skippedGTS, COWTList.TYPE.ELEVATIONS) : null);
-    setValues(new COWTList(gtsList, indices, skippedGTS, COWTList.TYPE.VALUES));
+    setLocations(hasLoc ? new COWTList(gtsList, indices, skippedGTS, referenceTick, COWTList.TYPE.LOCATIONS) : null);
+    setElevations(hasElev ? new COWTList(gtsList, indices, skippedGTS, referenceTick, COWTList.TYPE.ELEVATIONS) : null);
+    setValues(new COWTList(gtsList, indices, skippedGTS, referenceTick, COWTList.TYPE.VALUES));
   }
 
   public void removeNulls() {
