@@ -34,21 +34,25 @@ public class COWTList extends AbstractCOWList {
 
   private final List<GeoTimeSerie> gtsList;
   private final int[] dataPointIndices; // these are the pointers that are updated during the reduce loop, one per gts
-  private final List<Integer> skippedGTSIndices; // these are the indices of gts from the gtsList that returns no value for the current aggregate
+  private final int nullValueCount;
   private final TYPE type;
   private final long referenceTick;
 
-  public COWTList(List<GeoTimeSerie> gtsList, int[] indices, List<Integer> skipped, long referenceTick, TYPE type) {
+  public COWTList(List<GeoTimeSerie> gtsList, int[] indices, int count, long referenceTick, TYPE type) {
     if (gtsList.size() != indices.length) {
       throw new RuntimeException("Size mismatch while constructing transversal aggregator");
     }
 
     this.gtsList = gtsList;
     this.dataPointIndices = indices;
-    this.skippedGTSIndices = skipped;
+    this.nullValueCount = count;
     this.referenceTick = referenceTick;
     this.type = type;
     exposeNullValues = true;
+  }
+
+  public int getNullValueCount() {
+    return nullValueCount;
   }
 
   /**
@@ -90,14 +94,14 @@ public class COWTList extends AbstractCOWList {
   @Override
   public int size() {
     if (readOnly) {
-      return exposeNullValues ? gtsList.size() : gtsList.size() - skippedGTSIndices.size();
+      return exposeNullValues ? gtsList.size() : gtsList.size() - nullValueCount;
     } else {
       return mutableCopy.size();
     }
   }
 
-  private boolean isNullAt(int i) {
-    return dataPointIndices[i] >= gtsList.get(i).values || referenceTick != gtsList.get(i).ticks[dataPointIndices[i]];
+  public boolean isNullAt(int i) {
+    return dataPointIndices[i] >= gtsList.get(i).size() || referenceTick != gtsList.get(i).ticks[dataPointIndices[i]];
   }
 
   @Override
@@ -165,32 +169,24 @@ public class COWTList extends AbstractCOWList {
         throw new IndexOutOfBoundsException("Start index(" + fromIndex + ") + length(" + newSize + ") greater than original array size(" + size() + "), cannot create sublist.");
       }
 
-      List newList = new ArrayList(gtsList.subList(fromIndex,toIndex));
+      List<GeoTimeSerie> newList = new ArrayList(gtsList.subList(fromIndex,toIndex));
       int[] newIndices = new int[newSize];
       for (int i = fromIndex; i < toIndex; i++) {
         newIndices[i - fromIndex] = dataPointIndices[i];
       }
 
-      int newSkippedSize = 0;
-      int firstSkippedIdx = -1;
-      int lastSkippedIdx = -1;
-      for (int i = 0; i < skippedGTSIndices.size(); i++) {
-        if (skippedGTSIndices.get(i) >= fromIndex && skippedGTSIndices.get(i) < toIndex) {
-          newSkippedSize++;
-          lastSkippedIdx = i;
-          if (-1 == firstSkippedIdx) {
-            firstSkippedIdx = i;
-          }
-        }
-      }
-      List<Integer> newSkipped = new ArrayList<Integer>(newSkippedSize);
-      if (newSkippedSize > 0) {
-        for (int i = firstSkippedIdx; i < lastSkippedIdx + 1; i++) {
-          newSkipped.set(i - firstSkippedIdx, i - fromIndex);
+      int nullValueCount = 0;
+      for (int i = 0; i < newList.size(); i++) {
+        GeoTimeSerie gts = newList.get(i);
+        if (newIndices[i] >= gts.values || referenceTick != gts.ticks[newIndices[i]]) {
+          nullValueCount++;
         }
       }
 
-      return new COWTList(newList, newIndices, newSkipped, referenceTick, type);
+      COWTList res = new COWTList(newList, newIndices, nullValueCount, referenceTick, type);
+      res.setExposeNullValues(exposeNullValues);
+
+      return res;
 
     } else {
       return mutableCopy.subList(fromIndex, toIndex);

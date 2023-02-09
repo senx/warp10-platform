@@ -7949,10 +7949,6 @@ public class GTSHelper {
 
       COWTAggregate aggregate = new COWTAggregate();
 
-      // skippedGTS that have no value at reference tick
-      List<Integer> skippedGTS = new ArrayList<Integer>(partitionSeries.size() - 1);
-      aggregate.setAdditionalParams(skippedGTS);
-
       // classnames
       List<String> classnames = new ArrayList<String>(partitionSeries.size());
       for (GeoTimeSerie gts: partitionSeries) {
@@ -7993,16 +7989,16 @@ public class GTSHelper {
         // instances whose current tick is 'smallest'
         //
 
-        skippedGTS.clear();
+        int nullValueCount = 0;
         for (int i = 0; i < partitionSeries.size(); i++) {
           GeoTimeSerie gts = partitionSeries.get(i);
           if (idx[i] >= gts.values || smallest != gts.ticks[idx[i]]) {
-            skippedGTS.add(i);
+            nullValueCount++;
           }
         }
 
         aggregate.setReferenceTick(smallest);
-        aggregate.setDataPoints(partitionSeries, idx, skippedGTS, smallest);
+        aggregate.setDataPoints(partitionSeries, idx, nullValueCount, smallest);
 
         //
         // Call the reducer for the current tick
@@ -8046,11 +8042,9 @@ public class GTSHelper {
         }
 
         // advance indices that had the smallest tick (for which the aggregate have a non null value)
-        int skipIdx = 0;
-        for (int i = 0; i < idx.length; i++) {
-          if (skipIdx < skippedGTS.size() && i == skippedGTS.get(skipIdx)) {
-            skipIdx++;
-          } else {
+        for (int i = 0; i < partitionSeries.size(); i++) {
+          GeoTimeSerie gts = partitionSeries.get(i);
+          if (idx[i] < gts.values && smallest == gts.ticks[idx[i]]) {
             idx[i]++;
           }
         }
