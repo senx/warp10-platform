@@ -43,13 +43,7 @@ public class NULLS_FAIL extends NamedWarpScriptFunction implements WarpScriptSta
       throw new WarpScriptException(getName() + " can not be be applied to this AGGREGATOR");
     }
 
-    WarpScriptAggregatorFailIfAnyNull aggregator = (WarpScriptAggregatorFailIfAnyNull) o;
-
-    if (aggregator.actionOnNullsIsSet()) {
-      throw new WarpScriptException(getName() + " can not be applied on an AGGREGATOR that already has an action on null values");
-    }
-
-    stack.push(new ModifiedAggregator(getName(), aggregator));
+    stack.push(new ModifiedAggregator(getName(), (WarpScriptAggregatorFailIfAnyNull) o));
 
     return stack;
   }

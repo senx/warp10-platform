@@ -17,7 +17,4 @@
 package io.warp10.script;
 
 public interface WarpScriptAggregatorHandleNulls extends WarpScriptAggregator {
-  default boolean actionOnNullsIsSet() {
-    return false;
-  }
 }
