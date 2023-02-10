@@ -18,7 +18,6 @@ package io.warp10.script.aggregator.modifier;
 
 import io.warp10.continuum.gts.Aggregate;
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptAggregatorFailIfAnyNull;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptReducer;
@@ -39,28 +38,32 @@ public class NULLSFAIL extends NamedWarpScriptFunction implements WarpScriptStac
       throw new WarpScriptException(getName() + " expects a reducer");
     }
 
-    if (!(o instanceof WarpScriptAggregatorFailIfAnyNull)) {
-      throw new WarpScriptException(getName() + " cannot be be applied to this AGGREGATOR");
-    }
-
-    stack.push(new FailIfAnyNullDecorator(getName(), (WarpScriptAggregatorFailIfAnyNull) o));
+    stack.push(new FailIfAnyNullDecorator(getName(), (WarpScriptReducer) o));
 
     return stack;
   }
 
-  private static final class FailIfAnyNullDecorator extends NamedWarpScriptFunction implements WarpScriptReducer, WarpScriptAggregatorFailIfAnyNull, SNAPSHOT.Snapshotable {
+  private static final class FailIfAnyNullDecorator extends NamedWarpScriptFunction implements WarpScriptReducer, SNAPSHOT.Snapshotable {
 
-    private final WarpScriptAggregatorFailIfAnyNull aggregator;
+    private final WarpScriptReducer aggregator;
 
-    public FailIfAnyNullDecorator(String name, WarpScriptAggregatorFailIfAnyNull aggregator) {
+    public FailIfAnyNullDecorator(String name, WarpScriptReducer aggregator) {
       super(name);
       this.aggregator = aggregator;
     }
 
     @Override
     public Object apply(Aggregate aggregate) throws WarpScriptException {
-      WarpScriptAggregatorFailIfAnyNull.failIfAnyNull(aggregate);
+      failIfAnyNull(aggregate);
       return aggregator.apply(aggregate);
+    }
+
+    private void failIfAnyNull(Aggregate aggregate) throws WarpScriptException {
+      for (Object o: aggregate.getValues()) {
+        if (null == o) {
+          throw new WarpScriptException("Null value was encountered in an AGGREGATOR that does not support them.");
+        }
+      }
     }
 
     @Override

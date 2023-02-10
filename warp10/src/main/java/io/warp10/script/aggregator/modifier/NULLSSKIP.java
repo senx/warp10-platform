@@ -19,7 +19,6 @@ package io.warp10.script.aggregator.modifier;
 import io.warp10.continuum.gts.Aggregate;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptAggregatorSkipIfAnyNull;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptReducer;
@@ -40,30 +39,35 @@ public class NULLSSKIP extends NamedWarpScriptFunction implements WarpScriptStac
       throw new WarpScriptException(getName() + " expects a reducer");
     }
 
-    if (!(o instanceof WarpScriptAggregatorSkipIfAnyNull)) {
-      throw new WarpScriptException(getName() + " cannot be be applied to this AGGREGATOR");
-    }
-
-    stack.push(new SkipIfAnyNullDecorator(getName(), (WarpScriptAggregatorSkipIfAnyNull) o));
+    stack.push(new SkipIfAnyNullDecorator(getName(), (WarpScriptReducer) o));
 
     return stack;
   }
 
-  private static final class SkipIfAnyNullDecorator extends NamedWarpScriptFunction implements WarpScriptReducer, WarpScriptAggregatorSkipIfAnyNull, SNAPSHOT.Snapshotable {
+  private static final class SkipIfAnyNullDecorator extends NamedWarpScriptFunction implements WarpScriptReducer, SNAPSHOT.Snapshotable {
 
-    private final WarpScriptAggregatorSkipIfAnyNull aggregator;
+    private final WarpScriptReducer aggregator;
 
-    public SkipIfAnyNullDecorator(String name, WarpScriptAggregatorSkipIfAnyNull aggregator) {
+    public SkipIfAnyNullDecorator(String name, WarpScriptReducer aggregator) {
       super(name);
       this.aggregator = aggregator;
     }
 
     @Override
     public Object apply(Aggregate aggregate) throws WarpScriptException {
-      if (WarpScriptAggregatorSkipIfAnyNull.containsAnyNull(aggregate)) {
+      if (containsAnyNull(aggregate)) {
         return new Object[] { Long.MAX_VALUE, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, null };
       }
       return aggregator.apply(aggregate);
+    }
+
+    private boolean containsAnyNull(Aggregate aggregate) {
+      for (Object o: aggregate.getValues()) {
+        if (null == o) {
+          return true;
+        }
+      }
+      return false;
     }
 
     @Override

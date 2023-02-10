@@ -18,7 +18,6 @@ package io.warp10.script.aggregator.modifier;
 
 import io.warp10.continuum.gts.Aggregate;
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptAggregatorKeepNulls;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptReducer;
@@ -39,27 +38,28 @@ public class NULLSKEEP extends NamedWarpScriptFunction implements WarpScriptStac
       throw new WarpScriptException(getName() + " expects a reducer");
     }
 
-    if (!(o instanceof WarpScriptAggregatorKeepNulls)) {
-      throw new WarpScriptException(getName() + " cannot be be applied to this AGGREGATOR");
-    }
-
-    stack.push(new KeepNullsDecorator(getName(), (WarpScriptAggregatorKeepNulls) o));
+    stack.push(new KeepNullsDecorator(getName(), (WarpScriptReducer) o));
 
     return stack;
   }
 
-  private static final class KeepNullsDecorator extends NamedWarpScriptFunction implements WarpScriptReducer, WarpScriptAggregatorKeepNulls, SNAPSHOT.Snapshotable {
+  private static final class KeepNullsDecorator extends NamedWarpScriptFunction implements WarpScriptReducer, SNAPSHOT.Snapshotable {
 
-    private final WarpScriptAggregatorKeepNulls aggregator;
+    private final WarpScriptReducer aggregator;
 
-    public KeepNullsDecorator(String name, WarpScriptAggregatorKeepNulls aggregator) {
+    public KeepNullsDecorator(String name, WarpScriptReducer aggregator) {
       super(name);
       this.aggregator = aggregator;
     }
 
     @Override
     public Object apply(Aggregate aggregate) throws WarpScriptException {
-      return aggregator.apply(WarpScriptAggregatorKeepNulls.keepNulls(aggregate));
+      return aggregator.apply(keepNulls(aggregate));
+    }
+
+    private Aggregate keepNulls(Aggregate aggregate) {
+      // do nothing since nulls are exposed by default
+      return aggregate;
     }
 
     @Override
