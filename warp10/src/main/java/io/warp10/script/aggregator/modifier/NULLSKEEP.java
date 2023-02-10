@@ -20,7 +20,6 @@ import io.warp10.continuum.gts.Aggregate;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptAggregatorKeepNulls;
 import io.warp10.script.WarpScriptException;
-import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptReducer;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
@@ -74,15 +73,9 @@ public class NULLSKEEP extends NamedWarpScriptFunction implements WarpScriptStac
     @Override
     public String snapshot() {
       StringBuilder sb = new StringBuilder();
-      sb.append(WarpScriptStack.MACRO_START);
-      sb.append(" ");
       sb.append(aggregator.toString());
       sb.append(" ");
       sb.append(getName());
-      sb.append(" ");
-      sb.append(WarpScriptStack.MACRO_END);
-      sb.append(" ");
-      sb.append(WarpScriptLib.EVAL);
       return sb.toString();
     }
   }
