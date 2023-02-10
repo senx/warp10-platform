@@ -44,16 +44,16 @@ public class NULLSSKIP extends NamedWarpScriptFunction implements WarpScriptStac
       throw new WarpScriptException(getName() + " cannot be be applied to this AGGREGATOR");
     }
 
-    stack.push(new ModifiedAggregator(getName(), (WarpScriptAggregatorSkipIfAnyNull) o));
+    stack.push(new SkipIfAnyNullDecorator(getName(), (WarpScriptAggregatorSkipIfAnyNull) o));
 
     return stack;
   }
 
-  private static final class ModifiedAggregator extends NamedWarpScriptFunction implements WarpScriptReducer, WarpScriptAggregatorSkipIfAnyNull, SNAPSHOT.Snapshotable {
+  private static final class SkipIfAnyNullDecorator extends NamedWarpScriptFunction implements WarpScriptReducer, WarpScriptAggregatorSkipIfAnyNull, SNAPSHOT.Snapshotable {
 
     private final WarpScriptAggregatorSkipIfAnyNull aggregator;
 
-    public ModifiedAggregator(String name, WarpScriptAggregatorSkipIfAnyNull aggregator) {
+    public SkipIfAnyNullDecorator(String name, WarpScriptAggregatorSkipIfAnyNull aggregator) {
       super(name);
       this.aggregator = aggregator;
     }

@@ -43,16 +43,16 @@ public class NULLSFAIL extends NamedWarpScriptFunction implements WarpScriptStac
       throw new WarpScriptException(getName() + " cannot be be applied to this AGGREGATOR");
     }
 
-    stack.push(new ModifiedAggregator(getName(), (WarpScriptAggregatorFailIfAnyNull) o));
+    stack.push(new FailIfAnyNullDecorator(getName(), (WarpScriptAggregatorFailIfAnyNull) o));
 
     return stack;
   }
 
-  private static final class ModifiedAggregator extends NamedWarpScriptFunction implements WarpScriptReducer, WarpScriptAggregatorFailIfAnyNull, SNAPSHOT.Snapshotable {
+  private static final class FailIfAnyNullDecorator extends NamedWarpScriptFunction implements WarpScriptReducer, WarpScriptAggregatorFailIfAnyNull, SNAPSHOT.Snapshotable {
 
     private final WarpScriptAggregatorFailIfAnyNull aggregator;
 
-    public ModifiedAggregator(String name, WarpScriptAggregatorFailIfAnyNull aggregator) {
+    public FailIfAnyNullDecorator(String name, WarpScriptAggregatorFailIfAnyNull aggregator) {
       super(name);
       this.aggregator = aggregator;
     }

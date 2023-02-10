@@ -43,16 +43,16 @@ public class NULLSREMOVE extends NamedWarpScriptFunction implements WarpScriptSt
       throw new WarpScriptException(getName() + " cannot be be applied to this AGGREGATOR");
     }
 
-    stack.push(new ModifiedAggregator(getName(), (WarpScriptAggregatorRemoveNulls) o));
+    stack.push(new RemoveNullsDecorator(getName(), (WarpScriptAggregatorRemoveNulls) o));
 
     return stack;
   }
 
-  private static final class ModifiedAggregator extends NamedWarpScriptFunction implements WarpScriptReducer, WarpScriptAggregatorRemoveNulls, SNAPSHOT.Snapshotable {
+  private static final class RemoveNullsDecorator extends NamedWarpScriptFunction implements WarpScriptReducer, WarpScriptAggregatorRemoveNulls, SNAPSHOT.Snapshotable {
 
     private final WarpScriptAggregatorRemoveNulls aggregator;
 
-    public ModifiedAggregator(String name, WarpScriptAggregatorRemoveNulls aggregator) {
+    public RemoveNullsDecorator(String name, WarpScriptAggregatorRemoveNulls aggregator) {
       super(name);
       this.aggregator = aggregator;
     }

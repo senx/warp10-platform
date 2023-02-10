@@ -43,16 +43,16 @@ public class NULLSKEEP extends NamedWarpScriptFunction implements WarpScriptStac
       throw new WarpScriptException(getName() + " cannot be be applied to this AGGREGATOR");
     }
 
-    stack.push(new ModifiedAggregator(getName(), (WarpScriptAggregatorKeepNulls) o));
+    stack.push(new KeepNullsDecorator(getName(), (WarpScriptAggregatorKeepNulls) o));
 
     return stack;
   }
 
-  private static final class ModifiedAggregator extends NamedWarpScriptFunction implements WarpScriptReducer, WarpScriptAggregatorKeepNulls, SNAPSHOT.Snapshotable {
+  private static final class KeepNullsDecorator extends NamedWarpScriptFunction implements WarpScriptReducer, WarpScriptAggregatorKeepNulls, SNAPSHOT.Snapshotable {
 
     private final WarpScriptAggregatorKeepNulls aggregator;
 
-    public ModifiedAggregator(String name, WarpScriptAggregatorKeepNulls aggregator) {
+    public KeepNullsDecorator(String name, WarpScriptAggregatorKeepNulls aggregator) {
       super(name);
       this.aggregator = aggregator;
     }
