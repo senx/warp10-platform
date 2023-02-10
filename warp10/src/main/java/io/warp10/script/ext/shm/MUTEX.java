@@ -20,6 +20,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 
+import io.warp10.continuum.store.Constants;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
@@ -41,13 +42,42 @@ public class MUTEX extends NamedWarpScriptFunction implements WarpScriptStackFun
     String cap = Capabilities.get(stack, SharedMemoryWarpScriptExtension.CAPABILITY_MUTEX);
 
     if (null == cap) {
-      throw new WarpScriptException(getName() + " expected capability '" + SharedMemoryWarpScriptExtension.CAPABILITY_MUTEX + "' to be set.");
+      throw new WarpScriptException(getName() + " expected capability '" + SharedMemoryWarpScriptExtension.CAPABILITY_MUTEX + "' to be set to a value >= 0.");
+    }
+
+    long maxwait = SharedMemoryWarpScriptExtension.MUTEX_DEFAULT_MAXWAIT;
+
+    if (null != Capabilities.get(stack, SharedMemoryWarpScriptExtension.CAPABILITY_MUTEX_MAXWAIT)) {
+      try {
+        maxwait = Long.parseLong(Capabilities.get(stack, SharedMemoryWarpScriptExtension.CAPABILITY_MUTEX_MAXWAIT));
+      } catch(NumberFormatException nfe) {
+        throw new WarpScriptException(getName() + " invalid '" + SharedMemoryWarpScriptExtension.CAPABILITY_MUTEX_MAXWAIT + "' capability value, expected a value >= 0.");
+      }
     }
 
     Object top = stack.pop();
 
+    if (top instanceof Long) {
+      long wait = ((Long) top).longValue() / Constants.TIME_UNITS_PER_MS;
+
+      if (wait < 0) {
+        throw new WarpScriptException(getName() + " invalid timeout, MUST be >= 0.");
+      }
+
+      // Default is 0, so allow any value.
+      if (0 == maxwait) {
+        maxwait = wait;
+      } else if (wait <= maxwait && wait > 0) {
+        maxwait = wait;
+      } else {
+        throw new WarpScriptException(getName() + " invalid timeout, may not exceed " + maxwait + " ms.");
+      }
+
+      top = stack.pop();
+    }
+
     if (!(top instanceof String)) {
-      throw new WarpScriptException(getName() + " expects the mutex name on top of the stack.");
+      throw new WarpScriptException(getName() + " expects the mutex name.");
     }
 
     String mutex = String.valueOf(top);
@@ -69,16 +99,6 @@ public class MUTEX extends NamedWarpScriptFunction implements WarpScriptStackFun
     }
 
     ReentrantLock lock = SharedMemoryWarpScriptExtension.getLock(mutex);
-
-    long maxwait = SharedMemoryWarpScriptExtension.MUTEX_DEFAULT_MAXWAIT;
-
-    if (null != Capabilities.get(stack, SharedMemoryWarpScriptExtension.CAPABILITY_MUTEX_MAXWAIT)) {
-      try {
-        maxwait = Long.parseLong(Capabilities.get(stack, SharedMemoryWarpScriptExtension.CAPABILITY_MUTEX_MAXWAIT));
-      } catch(NumberFormatException nfe) {
-        throw new WarpScriptException(getName() + " invalid '" + SharedMemoryWarpScriptExtension.CAPABILITY_MUTEX_MAXWAIT + "' capability value.");
-      }
-    }
 
     boolean locked = false;
     boolean clearAttr = null == stack.getAttribute(MUTEX_ATTRIBUTE + stack.getUUID());

@@ -52,6 +52,11 @@ public class SharedMemoryWarpScriptExtension extends WarpScriptExtension impleme
   private static final String CONFIG_MUTEX_MAXWAIT = "mutex.maxwait";
 
   /**
+   * Default timeout for MUTEX is 5 s
+   */
+  private static final String DEFAULT_MUTEX_MAXWAIT = Long.toString(5000L);
+
+  /**
    * Default TTL for shared objects, 1H
    */
   private static final long DEFAULT_SHM_TTL = 1 * 3600 * 1000L;
@@ -59,7 +64,11 @@ public class SharedMemoryWarpScriptExtension extends WarpScriptExtension impleme
   static final long MUTEX_DEFAULT_MAXWAIT;
 
   static {
-    MUTEX_DEFAULT_MAXWAIT = Long.parseLong(WarpConfig.getProperty(CONFIG_MUTEX_MAXWAIT, "0"));
+    MUTEX_DEFAULT_MAXWAIT = Long.parseLong(WarpConfig.getProperty(CONFIG_MUTEX_MAXWAIT, DEFAULT_MUTEX_MAXWAIT));
+
+    if (MUTEX_DEFAULT_MAXWAIT < 0) {
+      throw new RuntimeException("Invalid value for '" + CONFIG_MUTEX_MAXWAIT + "', expected value >= 0.");
+    }
 
     locks = new HashMap<String,ReentrantLock>();
     lockUses = new HashMap<String,Long>();
