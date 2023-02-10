@@ -73,7 +73,12 @@ public class NULLSSKIP extends NamedWarpScriptFunction implements WarpScriptStac
     @Override
     public String snapshot() {
       StringBuilder sb = new StringBuilder();
-      sb.append(aggregator.toString());
+      try {
+        SNAPSHOT.addElement(sb, aggregator);
+      }
+      catch (WarpScriptException wse) {
+        throw new RuntimeException(wse);
+      }
       sb.append(" ");
       sb.append(getName());
       return sb.toString();
