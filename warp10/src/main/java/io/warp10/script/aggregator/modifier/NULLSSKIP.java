@@ -62,6 +62,10 @@ public class NULLSSKIP extends NamedWarpScriptFunction implements WarpScriptStac
     }
 
     private boolean containsAnyNull(Aggregate aggregate) {
+      if (null == aggregate.getValues()) {
+        return false;
+      }
+
       for (Object o: aggregate.getValues()) {
         if (null == o) {
           return true;

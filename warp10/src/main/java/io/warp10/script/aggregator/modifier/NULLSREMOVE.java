@@ -17,7 +17,6 @@
 package io.warp10.script.aggregator.modifier;
 
 import io.warp10.continuum.gts.Aggregate;
-import io.warp10.continuum.gts.COWAggregate;
 import io.warp10.continuum.gts.COWTAggregate;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptAggregatorRemoveNulls;
@@ -26,9 +25,6 @@ import io.warp10.script.WarpScriptReducer;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.functions.SNAPSHOT;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class NULLSREMOVE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
   public NULLSREMOVE(String name) {
@@ -70,54 +66,17 @@ public class NULLSREMOVE extends NamedWarpScriptFunction implements WarpScriptSt
       return aggregator.apply(agg);
     }
 
-    private Aggregate removeNulls(Aggregate aggregate) {
+    private Aggregate removeNulls(Aggregate aggregate) throws WarpScriptException {
       if (null == aggregate.getValues()) {
         return aggregate;
       }
 
-      // First case : COWList are backed by arrays of primitive objects that cannot contain any null value
-      if (aggregate instanceof COWAggregate) {
-        return aggregate;
-      }
-
-      // Second case : this is the usual case from REDUCE or APPLY framework
       if (aggregate instanceof COWTAggregate) {
-
         ((COWTAggregate) aggregate).removeNulls();
         return aggregate;
+      } else {
+        throw new WarpScriptException(getName() + " cannot remove null values from this aggregate.");
       }
-
-      // Third case : this covers all remaining cases for full compatibility with the interface but should not happen for optimised aggregators
-      List values = aggregate.getValues();
-      List<Integer> skippedIndices = new ArrayList<Integer>(values.size() / 2);
-
-      for (int i = 0; i < values.size(); i++) {
-        if (null == values.get(i)) {
-          skippedIndices.add(i);
-        }
-      }
-
-      if (0 == skippedIndices.size()) {
-        return aggregate;
-      }
-
-      List[] fields = aggregate.getLists();
-      for (int i = 0; i < fields.length - 1; i++) {
-
-        List field = fields[i];
-        if (field.size() > 1 || i > 1) { // classnames and labels can be singletons so they are skipped in this case
-
-          List newField = new ArrayList(field.size() - skippedIndices.size());
-
-          for (int j = 0; j < field.size(); j++) {
-            if (!skippedIndices.contains(j)) {
-              newField.add(field.get(j));
-            }
-          }
-        }
-      }
-
-      return aggregate;
     }
 
     @Override

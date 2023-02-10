@@ -58,6 +58,10 @@ public class NULLSFAIL extends NamedWarpScriptFunction implements WarpScriptStac
     }
 
     private void failIfAnyNull(Aggregate aggregate) throws WarpScriptException {
+      if (null == aggregate.getValues()) {
+        return;
+      }
+
       for (Object o: aggregate.getValues()) {
         if (null == o) {
           throw new WarpScriptException("Null value was encountered in an AGGREGATOR that does not support them.");

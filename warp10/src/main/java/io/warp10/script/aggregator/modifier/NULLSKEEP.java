@@ -17,6 +17,7 @@
 package io.warp10.script.aggregator.modifier;
 
 import io.warp10.continuum.gts.Aggregate;
+import io.warp10.continuum.gts.COWTAggregate;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptAggregatorKeepNulls;
 import io.warp10.script.WarpScriptException;
@@ -65,9 +66,17 @@ public class NULLSKEEP extends NamedWarpScriptFunction implements WarpScriptStac
       return aggregator.apply(agg);
     }
 
-    private Aggregate keepNulls(Aggregate aggregate) {
-      // do nothing since nulls are exposed by default
-      return aggregate;
+    private Aggregate keepNulls(Aggregate aggregate) throws WarpScriptException {
+      if (null == aggregate.getValues()) {
+        return aggregate;
+      }
+
+      if (aggregate instanceof COWTAggregate) {
+        ((COWTAggregate) aggregate).keepNulls();
+        return aggregate;
+      } else {
+        throw new WarpScriptException(getName() + " cannot expose null values from this aggregate.");
+      }
     }
 
     @Override
