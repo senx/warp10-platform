@@ -43,6 +43,9 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
   private static final String PARAM_STEP = "step";
   private static final String PARAM_OVERRIDE = "override";
 
+  private static final String DEPRECATED_PARAM_OCCURENCES = "occurences";
+  private static final String DEPRECATED_PARAM_TICKS = "ticks";
+
   public MAP(String name) {
     super(name);
   }
@@ -138,6 +141,14 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
   }
 
   private Object applyWithParamsFromMap(WarpScriptStack stack, Map params) throws WarpScriptException {
+    if (params.containsKey(DEPRECATED_PARAM_OCCURENCES)) {
+      throw new WarpScriptException(getName() + " was given a deprecated parameter: " + DEPRECATED_PARAM_OCCURENCES + ". Use instead parameter " + PARAM_OCCURRENCES);
+    }
+
+    if (params.containsKey(DEPRECATED_PARAM_TICKS)) {
+      throw new WarpScriptException(getName() + " was given a deprecated parameter: " + DEPRECATED_PARAM_TICKS + ". Use instead parameter " + PARAM_OCCURRENCES);
+    }
+
     //
     // Get and check parameters
     //
