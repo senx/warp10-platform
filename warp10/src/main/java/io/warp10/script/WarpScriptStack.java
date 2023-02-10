@@ -119,11 +119,6 @@ public interface WarpScriptStack {
   public static final String ATTRIBUTE_MACRO_NAME = "macro.name";
 
   /**
-   * Flag indicating whether or not the stack is currently in documentation mode
-   */
-  public static final String ATTRIBUTE_DOCMODE = "docmode";
-
-  /**
    * Flag indicating whether or not the stack is currently in info mode
    */
   public static final String ATTRIBUTE_INFOMODE = "infomode";
@@ -254,6 +249,12 @@ public interface WarpScriptStack {
    * Maximum number of WEBCALL invocations per script run
    */
   public static final String ATTRIBUTE_MAX_WEBCALLS = "stack.maxwebcalls";
+
+  /**
+   * Flag indicating if we are currently executing an XEVAL call, in which
+   * case generated macros should not be flagged secure.
+   */
+  public static final String ATTRIBUTE_IN_XEVAL = "in.xeval";
 
   /**
    * Flag indicating if we are currently in a secure macro execution

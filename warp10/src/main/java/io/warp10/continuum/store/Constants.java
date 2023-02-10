@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -449,11 +449,6 @@ public class Constants {
    * Attribute used to specify that a READ token cannot be used to query for data.
    */
   public static final String TOKEN_ATTR_NOFETCH = ".nofetch";
-
-  /**
-   * Attribute used to specify that a READ token cannot be used to AUTHENTICATE.
-   */
-  public static final String TOKEN_ATTR_NOAUTH = ".noauth";
 
   /**
    * Attribute to specify the maximum value size
