@@ -18,7 +18,7 @@ package io.warp10.script.aggregator.modifier;
 
 import io.warp10.continuum.gts.Aggregate;
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptAggregatorRemoveNulls;
+import io.warp10.script.WarpScriptAggregatorFailIfAnyNull;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptReducer;
@@ -26,8 +26,8 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.functions.SNAPSHOT;
 
-public class NULLS_REMOVE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  public NULLS_REMOVE(String name) {
+public class NULLSFAIL extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+  public NULLSFAIL(String name) {
     super(name);
   }
 
@@ -39,27 +39,28 @@ public class NULLS_REMOVE extends NamedWarpScriptFunction implements WarpScriptS
       throw new WarpScriptException(getName() + " expects a reducer");
     }
 
-    if (!(o instanceof WarpScriptAggregatorRemoveNulls)) {
+    if (!(o instanceof WarpScriptAggregatorFailIfAnyNull)) {
       throw new WarpScriptException(getName() + " cannot be be applied to this AGGREGATOR");
     }
 
-    stack.push(new ModifiedAggregator(getName(), (WarpScriptAggregatorRemoveNulls) o));
+    stack.push(new ModifiedAggregator(getName(), (WarpScriptAggregatorFailIfAnyNull) o));
 
     return stack;
   }
 
-  private static final class ModifiedAggregator extends NamedWarpScriptFunction implements WarpScriptReducer, WarpScriptAggregatorRemoveNulls, SNAPSHOT.Snapshotable {
+  private static final class ModifiedAggregator extends NamedWarpScriptFunction implements WarpScriptReducer, WarpScriptAggregatorFailIfAnyNull, SNAPSHOT.Snapshotable {
 
-    private final WarpScriptAggregatorRemoveNulls aggregator;
+    private final WarpScriptAggregatorFailIfAnyNull aggregator;
 
-    public ModifiedAggregator(String name, WarpScriptAggregatorRemoveNulls aggregator) {
+    public ModifiedAggregator(String name, WarpScriptAggregatorFailIfAnyNull aggregator) {
       super(name);
       this.aggregator = aggregator;
     }
 
     @Override
     public Object apply(Aggregate aggregate) throws WarpScriptException {
-      return aggregator.apply(WarpScriptAggregatorRemoveNulls.removeNulls(aggregate));
+      WarpScriptAggregatorFailIfAnyNull.failIfAnyNull(aggregate);
+      return aggregator.apply(aggregate);
     }
 
     @Override
