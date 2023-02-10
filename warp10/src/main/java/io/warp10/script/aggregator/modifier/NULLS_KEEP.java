@@ -40,7 +40,7 @@ public class NULLS_KEEP extends NamedWarpScriptFunction implements WarpScriptSta
     }
 
     if (!(o instanceof WarpScriptAggregatorKeepNulls)) {
-      throw new WarpScriptException(getName() + " can not be be applied to this AGGREGATOR");
+      throw new WarpScriptException(getName() + " cannot be be applied to this AGGREGATOR");
     }
 
     stack.push(new ModifiedAggregator(getName(), (WarpScriptAggregatorKeepNulls) o));

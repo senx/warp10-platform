@@ -40,7 +40,7 @@ public class NULLS_REMOVE extends NamedWarpScriptFunction implements WarpScriptS
     }
 
     if (!(o instanceof WarpScriptAggregatorRemoveNulls)) {
-      throw new WarpScriptException(getName() + " can not be be applied to this AGGREGATOR");
+      throw new WarpScriptException(getName() + " cannot be be applied to this AGGREGATOR");
     }
 
     stack.push(new ModifiedAggregator(getName(), (WarpScriptAggregatorRemoveNulls) o));

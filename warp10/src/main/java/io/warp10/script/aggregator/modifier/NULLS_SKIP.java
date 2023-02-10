@@ -41,7 +41,7 @@ public class NULLS_SKIP extends NamedWarpScriptFunction implements WarpScriptSta
     }
 
     if (!(o instanceof WarpScriptAggregatorSkipIfAnyNull)) {
-      throw new WarpScriptException(getName() + " can not be be applied to this AGGREGATOR");
+      throw new WarpScriptException(getName() + " cannot be be applied to this AGGREGATOR");
     }
 
     stack.push(new ModifiedAggregator(getName(), (WarpScriptAggregatorSkipIfAnyNull) o));
