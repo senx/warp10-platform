@@ -18,7 +18,6 @@ package io.warp10.script.aggregator.modifier;
 
 import io.warp10.continuum.gts.Aggregate;
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptAggregatorFailIfAnyNull;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptReducer;
 import io.warp10.script.WarpScriptStack;
@@ -54,12 +53,7 @@ public class NULLSFAIL extends NamedWarpScriptFunction implements WarpScriptStac
 
     @Override
     public Object apply(Aggregate aggregate) throws WarpScriptException {
-      if (aggregator instanceof WarpScriptAggregatorFailIfAnyNull) {
-        ((WarpScriptAggregatorFailIfAnyNull) aggregator).failIfAnyNull(aggregate);
-      } else {
-        failIfAnyNull(aggregate);
-      }
-
+      failIfAnyNull(aggregate);
       return aggregator.apply(aggregate);
     }
 
