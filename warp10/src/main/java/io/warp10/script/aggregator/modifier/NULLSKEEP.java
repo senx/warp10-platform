@@ -18,6 +18,7 @@ package io.warp10.script.aggregator.modifier;
 
 import io.warp10.continuum.gts.Aggregate;
 import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptAggregatorKeepNulls;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptReducer;
@@ -54,7 +55,15 @@ public class NULLSKEEP extends NamedWarpScriptFunction implements WarpScriptStac
 
     @Override
     public Object apply(Aggregate aggregate) throws WarpScriptException {
-      return aggregator.apply(keepNulls(aggregate));
+      Aggregate agg;
+
+      if (aggregator instanceof WarpScriptAggregatorKeepNulls) {
+        agg = ((WarpScriptAggregatorKeepNulls) (aggregator)).keepNulls(aggregate);
+      } else {
+        agg = keepNulls(aggregate);
+      }
+
+      return aggregator.apply(agg);
     }
 
     private Aggregate keepNulls(Aggregate aggregate) {

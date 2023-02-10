@@ -19,6 +19,7 @@ package io.warp10.script.aggregator.modifier;
 import io.warp10.continuum.gts.Aggregate;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptAggregatorSkipIfAnyNull;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptReducer;
@@ -55,9 +56,14 @@ public class NULLSSKIP extends NamedWarpScriptFunction implements WarpScriptStac
 
     @Override
     public Object apply(Aggregate aggregate) throws WarpScriptException {
-      if (containsAnyNull(aggregate)) {
+      if (aggregator instanceof WarpScriptAggregatorSkipIfAnyNull) {
+        if (((WarpScriptAggregatorSkipIfAnyNull) aggregator).containsAnyNull(aggregate)) {
+          return new Object[] { Long.MAX_VALUE, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, null };
+        }
+      } else if (containsAnyNull(aggregate)) {
         return new Object[] { Long.MAX_VALUE, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, null };
       }
+
       return aggregator.apply(aggregate);
     }
 

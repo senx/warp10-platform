@@ -20,6 +20,7 @@ import io.warp10.continuum.gts.Aggregate;
 import io.warp10.continuum.gts.COWAggregate;
 import io.warp10.continuum.gts.COWTAggregate;
 import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptAggregatorRemoveNulls;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptReducer;
@@ -59,7 +60,15 @@ public class NULLSREMOVE extends NamedWarpScriptFunction implements WarpScriptSt
 
     @Override
     public Object apply(Aggregate aggregate) throws WarpScriptException {
-      return aggregator.apply(removeNulls(aggregate));
+      Aggregate agg;
+
+      if (aggregator instanceof WarpScriptAggregatorRemoveNulls) {
+        agg = ((WarpScriptAggregatorRemoveNulls) (aggregator)).removeNulls(aggregate);
+      } else {
+        agg = removeNulls(aggregate);
+      }
+
+      return aggregator.apply(agg);
     }
 
     private Aggregate removeNulls(Aggregate aggregate) {
