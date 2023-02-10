@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -56,8 +56,8 @@ public class Configuration {
    * with JDK9+, those libraries may fail to parse the java version. This configuration key
    * can be used to force the "java.version" property to the given value.
    */
-  public static final String JAVA_VERSION = "java.version";
-  
+  public static final String WARP_JAVA_VERSION = "warp.java.version";
+
   /**
    * Set to 'true' to only run the analytics engine, i.e. not backend database
    */

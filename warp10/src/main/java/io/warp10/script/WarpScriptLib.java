@@ -284,6 +284,8 @@ import io.warp10.script.unary.TOSTRING;
 import io.warp10.script.unary.TOTIMESTAMP;
 import io.warp10.script.unary.UNIT;
 import io.warp10.warp.sdk.WarpScriptExtension;
+import processing.core.PApplet;
+
 import org.bouncycastle.crypto.digests.GOST3411Digest;
 import org.bouncycastle.crypto.digests.KeccakDigest;
 import org.bouncycastle.crypto.digests.MD2Digest;
@@ -844,6 +846,8 @@ import io.warp10.script.functions.SLEEP;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
 
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -2806,9 +2810,20 @@ public class WarpScriptLib {
 
     //
     // Processing
+    // We need to force Java Version so it looks like x.y.z-aaa while the PApplet class is loaded
     //
 
+    String jversion = WarpConfig.getOriginalFormatJavaVersion();
+
+    if (!jversion.equals(System.getProperty("java.version"))) {
+      String tmp = System.getProperty("java.version");
+      System.setProperty("java.version", jversion);
+      Preconditions.checkArgument(jversion.equals(PApplet.javaVersionName), "Processing was not correctly initialized, consider setting configuraiton " + Configuration.WARP_JAVA_VERSION + ".");
+      System.setProperty("java.version", tmp);
+    }
+
     addNamedWarpScriptFunction(new Pencode(PENCODE));
+
 
     // Structure
 
