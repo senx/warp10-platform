@@ -117,7 +117,7 @@ WARP10_JAR=${WARP10_HOME}/bin/warp10-${WARP10_REVISION}.jar
 WARP10_CLASS=io.warp10.standalone.Warp
 WARP10_INIT=io.warp10.standalone.WarpInit
 #
-# The lib directory is dedicated to user libraries except of UDF(jars directory): extensions;..
+# The lib directory is dedicated to user libraries (extensions, plugins...)
 #
 WARP10_CP=${WARP10_HOME}/etc:${WARP10_JAR}:${WARP10_HOME}/lib/*
 WARP10_HEAP=${WARP10_HEAP:-1g}
