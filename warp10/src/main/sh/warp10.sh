@@ -120,8 +120,14 @@ WARP10_INIT=io.warp10.standalone.WarpInit
 # The lib directory is dedicated to user libraries (extensions, plugins...)
 #
 WARP10_CP=${WARP10_HOME}/etc:${WARP10_JAR}:${WARP10_HOME}/lib/*
-WARP10_HEAP=${WARP10_HEAP:-1g}
-WARP10_HEAP_MAX=${WARP10_HEAP_MAX:-1g}
+
+# Please configure initial and maximum RAM here. For example:
+# WARP10_HEAP=4g
+# WARP10_HEAP_MAX=8g 
+# You may also export them as environment variables earlier in the launch process.
+# Default value, when not defined, is 1023 megabytes
+WARP10_HEAP=${WARP10_HEAP:-1023m}
+WARP10_HEAP_MAX=${WARP10_HEAP_MAX:-1023m}
 
 LEVELDB_HOME=${WARP10_DATA_DIR}/leveldb
 
@@ -141,6 +147,17 @@ export MALLOC_ARENA_MAX=1
 
 # Sed suffix allows compatibility between Linux and MacOS
 SED_SUFFIX=".bak"
+
+checkRam() {
+  if [[ ${WARP10_HEAP} == "1023m" ]]; then
+    echo "Warp 10 was launched with the default 1GB initial RAM setting."
+    echo " Please edit warp10.sh to change the default value of WARP10_HEAP."
+  fi
+  if [[ ${WARP10_HEAP_MAX} == "1023m" ]]; then
+    echo "Warp 10 was launched with the default 1GB maximum RAM setting." 
+    echo " Please edit warp10.sh to change the default value of WARP10_HEAP_MAX."
+  fi  
+}
 
 moveDir() {
   dir=$1
@@ -339,8 +356,8 @@ bootstrap() {
   sed -i${SED_SUFFIX} -e 's|^standalone\.home.*|standalone.home = '${WARP10_HOME_ESCAPED}'|' ${WARP10_CONFIG_DIR}/*
   rm ${WARP10_CONFIG_DIR}/*${SED_SUFFIX}
 
-  sed -i -e 's|^ExecStart=.*|ExecStart='${WARP10_HOME_ESCAPED}'/bin/warp10-standalone.sh start|' ${WARP10_HOME}/bin/warp10.service
-  sed -i -e 's|^ExecStop=.*|ExecStop='${WARP10_HOME_ESCAPED}'/bin/warp10-standalone.sh stop|' ${WARP10_HOME}/bin/warp10.service
+  sed -i -e 's|^ExecStart=.*|ExecStart='${WARP10_HOME_ESCAPED}'/bin/warp10.sh start|' ${WARP10_HOME}/bin/warp10.service
+  sed -i -e 's|^ExecStop=.*|ExecStop='${WARP10_HOME_ESCAPED}'/bin/warp10.sh stop|' ${WARP10_HOME}/bin/warp10.service
 
   sed -i${SED_SUFFIX} -e 's|^\(\s\{0,100\}\)WARP10_HOME=/opt/warp10-.*|\1WARP10_HOME='${WARP10_HOME_ESCAPED}'|' ${WARP10_HOME}/bin/snapshot.sh
   sed -i${SED_SUFFIX} -e 's|^\(\s\{0,100\}\)LEVELDB_HOME=${WARP10_HOME}/leveldb|\1LEVELDB_HOME='${LEVELDB_HOME_ESCAPED}'|' ${WARP10_HOME}/bin/snapshot.sh
@@ -371,6 +388,8 @@ bootstrap() {
   rm "${WARP10_HOME}/etc/initial.tokens${SED_SUFFIX}"
 
   echo "Warp 10 config has been generated here: ${WARP10_CONFIG_DIR}"
+
+  echo "You can now configure the initial and maximum amount of RAM allowed to Warp 10. Edit bin/warp10.sh, and look for WARP10_HEAP and WARP10_HEAP_MAX variables."
 
   touch ${FIRSTINIT_FILE}
 
@@ -486,6 +505,9 @@ start() {
     rm -f ${FIRSTINIT_FILE}
 
   fi
+  
+  # display a warning
+  checkRam
 
   # Check again 5s later (time for plugin load errors)
   sleep 5
@@ -529,6 +551,8 @@ status() {
   else
     echo "No instance of Warp 10 is currently running"
   fi
+  
+  checkRam
 }
 
 snapshot() {

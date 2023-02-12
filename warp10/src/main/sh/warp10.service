@@ -6,8 +6,8 @@ Description=Warp 10 Standalone
 [Service]
 Type=forking
 User=warp10
-ExecStart=/opt/warp10-@VERSION@/bin/warp10-standalone.sh start
-ExecStop=/opt/warp10-@VERSION@/bin/warp10-standalone.sh stop
+ExecStart=/opt/warp10-@VERSION@/bin/warp10.sh start
+ExecStop=/opt/warp10-@VERSION@/bin/warp10.sh stop
 SuccessExitStatus=143
 RestartSec=10s
 TimeoutStartSec=60s
@@ -31,7 +31,7 @@ Slice=warp10.slice
 #LimitNOFILE=1000000
 
 # You can prevent Warp 10 from being killed by linux out of memory management.
-# Make sure properly configured WARP10_HEAP and WARP10_HEAP_MAX in warp10-standalone.sh to fit your system RAM.
+# Make sure properly configured WARP10_HEAP and WARP10_HEAP_MAX in warp10.sh to fit your system RAM.
 #ManagedOOMPreference=omit
 #OOMScoreAdjust=-1000
 

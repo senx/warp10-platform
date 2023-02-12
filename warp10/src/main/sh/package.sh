@@ -53,9 +53,9 @@ mkdir -p ${WARP10_HOME}/runners/test/60000
 cd ${ARCHIVE}
 # Copy startup scripts
 sed -e "s/@VERSION@/${VERSION}/g" ../src/main/sh/warp10.service >> ${WARP10_HOME}/bin/warp10.service
-sed -e "s/@VERSION@/${VERSION}/g" ../src/main/sh/warp10-standalone.init >> ${WARP10_HOME}/bin/warp10-standalone.init
+sed -e "s/@VERSION@/${VERSION}/g" ../src/main/sh/warp10.init >> ${WARP10_HOME}/bin/warp10.init
 sed -e "s/@VERSION@/${VERSION}/g" ../src/main/sh/snapshot.sh >> ${WARP10_HOME}/bin/snapshot.sh
-sed -e "s/@VERSION@/${VERSION}/g" ../src/main/sh/warp10-standalone.sh >> ${WARP10_HOME}/bin/warp10-standalone.sh
+sed -e "s/@VERSION@/${VERSION}/g" ../src/main/sh/warp10.sh >> ${WARP10_HOME}/bin/warp10.sh
 
 # Copy log4j README, config, runner, bootstrap...
 cp ../../etc/bootstrap/*.mc2 ${WARP10_HOME}/etc/bootstrap

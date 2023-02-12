@@ -28,10 +28,10 @@ fi
 export WARP10_HOME
 
 if [ "$1" = "bootstrap" ]; then
-  ${WARP10_HOME}/bin/warp10-standalone.sh bootstrap
+  ${WARP10_HOME}/bin/warp10.sh bootstrap
 else
   args="$@"
-  su ${WARP10_USER} -c "${WARP10_HOME}/bin/warp10-standalone.sh $args"
+  su ${WARP10_USER} -c "${WARP10_HOME}/bin/warp10.sh $args"
 fi
 
 exit $?
