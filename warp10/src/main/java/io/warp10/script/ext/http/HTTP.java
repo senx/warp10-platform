@@ -152,7 +152,7 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
       if (l < 0) {
         throw new RuntimeException("Configuration key " + HttpWarpScriptExtension.WARPSCRIPT_HTTP_TIMEOUT + " must be positive.");
       }
-      if (l > Integer.MAX_VALUE) {
+      if (l == 0 || l > Integer.MAX_VALUE) {
         l = Integer.MAX_VALUE;
       }
       baseMaxTimeout = (int) l;
@@ -288,10 +288,10 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
       }
       Long capTimeout = Capabilities.getLong(stack, HttpWarpScriptExtension.CAPABILITY_HTTP_TIMEOUT);
       if (capTimeout != null) {
-        if (capTimeout <= 0) {
-          throw new WarpScriptException("Capability " + HttpWarpScriptExtension.CAPABILITY_HTTP_TIMEOUT + " must be a strictly positive LONG");
+        if (capTimeout < 0) {
+          throw new WarpScriptException("Capability " + HttpWarpScriptExtension.CAPABILITY_HTTP_TIMEOUT + " must be a positive LONG");
         }
-        if (capTimeout > Integer.MAX_VALUE) {
+        if (capTimeout == 0 || capTimeout > Integer.MAX_VALUE) {
           timeout = Integer.MAX_VALUE;
         } else {
           timeout = Math.max(capTimeout.intValue(), timeout);
