@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2022  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -209,6 +209,8 @@ warpscript.mobius.pool = 16
 #warpscript.http.maxsize =
 // Maximum chunk size allowed when dowloading per chunk using HTTP, 65536 by default, can be raised with capability http.chunksize
 #warpscript.http.maxchunksize =
+// Maximum timeout for HTTP calls in milliseconds, 60000 ms by default, can be raised with capability http.timeout
+#warpscript.http.maxtimeout = 60000
 // List of patterns to include/exclude for hosts, works the same way as webcall.host.patterns. Defaults to the value of webcall.host.patterns.
 #warpscript.http.host.patterns =
 
