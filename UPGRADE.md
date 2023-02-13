@@ -11,7 +11,7 @@ Upgrading to some releases might require some specific steps, they are detailed 
 In this major release, the `warp10-standalone.sh` script was modified and renamed `warp10.sh`. `warp10.init` and `warp10.service` were updated accordingly. 
 
 `3.0.0` comes with breaking changes: 
-- the well known `AUTHENTICATE` functions was removed. It is replaced by a new security model based on fine grained capabilies contained into tokens. 
+- the well known `AUTHENTICATE` functions was removed. It is replaced by a new security model based on fine-grained capabilities contained into tokens. 
 - all the functions marked deprecated during the `2.x` lifetime were removed.
 
 We encourage you to look at the [blog](https://blog.senx.io/) to read all the 3.x tagged articles to help you during the migration process.
