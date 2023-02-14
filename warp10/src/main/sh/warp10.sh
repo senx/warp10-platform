@@ -15,6 +15,13 @@
 #   limitations under the License.
 #
 
+############################################################################
+#                                                                          #
+#  Tip: customize values in warp10-env.sh, not in this file !              #
+#  Future updates will be simpler if you do not change this file.          #
+#                                                                          #
+############################################################################
+
 ### BEGIN INIT INFO
 # Provides:          warp10
 # Required-Start:
@@ -33,6 +40,12 @@ fi
 # Extract JAVA_OPTS before we switch to strict mode
 JAVA_OPTS=${JAVA_OPTS:-}
 set -euo pipefail
+
+# run warp10-env.sh, when the file exists, to predefine user variables
+BIN_DIR=$(dirname $0)
+if [[ -e "${BIN_DIR}/warp10-env.sh" ]]; then
+  source "${BIN_DIR}/warp10-env.sh"
+fi
 
 #JAVA_HOME=/opt/java8
 #WARP10_HOME=/opt/warp10-@VERSION@
@@ -121,13 +134,10 @@ WARP10_INIT=io.warp10.standalone.WarpInit
 #
 WARP10_CP=${WARP10_HOME}/etc:${WARP10_JAR}:${WARP10_HOME}/lib/*
 
-# Please configure initial and maximum RAM here. For example:
-# WARP10_HEAP=4g
-# WARP10_HEAP_MAX=8g 
-# You may also export them as environment variables earlier in the launch process.
+# Initial and maximum RAM should be defined in warp10-env.sh
 # Default value, when not defined, is 1023 megabytes
-WARP10_HEAP=${WARP10_HEAP:-1023m}
-WARP10_HEAP_MAX=${WARP10_HEAP_MAX:-1023m}
+WARP10_HEAP=${WARP10_HEAP:-1023M}
+WARP10_HEAP_MAX=${WARP10_HEAP_MAX:-1023M}
 
 LEVELDB_HOME=${WARP10_DATA_DIR}/leveldb
 
@@ -149,13 +159,15 @@ export MALLOC_ARENA_MAX=1
 SED_SUFFIX=".bak"
 
 checkRam() {
-  if [[ ${WARP10_HEAP} == "1023m" ]]; then
-    echo "Warp 10 was launched with the default 1GB initial RAM setting."
-    echo " Please edit warp10.sh to change the default value of WARP10_HEAP."
+  if [[ ${WARP10_HEAP} == "1023M" ]]; then
+    echo "#### WARNING ####"
+    echo "## Warp 10 was launched with the default 1GB initial RAM setting."
+    echo "## Please edit ${WARP10_HOME}/warp10-env.sh to change the default value of WARP10_HEAP."
   fi
-  if [[ ${WARP10_HEAP_MAX} == "1023m" ]]; then
-    echo "Warp 10 was launched with the default 1GB maximum RAM setting." 
-    echo " Please edit warp10.sh to change the default value of WARP10_HEAP_MAX."
+  if [[ ${WARP10_HEAP_MAX} == "1023M" ]]; then
+    echo "#### WARNING ####"
+    echo "## Warp 10 was launched with the default 1GB maximum RAM setting." 
+    echo "## Please edit ${WARP10_HOME}/warp10-env.sh to change the default value of WARP10_HEAP_MAX."
   fi  
 }
 
@@ -389,7 +401,7 @@ bootstrap() {
 
   echo "Warp 10 config has been generated here: ${WARP10_CONFIG_DIR}"
 
-  echo "You can now configure the initial and maximum amount of RAM allowed to Warp 10. Edit bin/warp10.sh, and look for WARP10_HEAP and WARP10_HEAP_MAX variables."
+  echo "You can now configure the initial and maximum amount of RAM allocated to Warp 10. Edit ${WARP10_HOME}/bin/warp10-env.sh, and look for WARP10_HEAP and WARP10_HEAP_MAX variables."
 
   touch ${FIRSTINIT_FILE}
 
@@ -506,14 +518,15 @@ start() {
 
   fi
   
-  # display a warning
-  checkRam
 
   # Check again 5s later (time for plugin load errors)
   sleep 5
   if ! isStarted; then
     echo "Start failed! - See ${WARP10_HOME}/logs/warp10.log for more details"
     exit 1
+  else
+    # display a warning
+    checkRam
   fi
 
 }
