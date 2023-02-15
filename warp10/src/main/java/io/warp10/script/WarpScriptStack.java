@@ -246,11 +246,6 @@ public interface WarpScriptStack {
   public static final String ATTRIBUTE_HADOOP_PROGRESSABLE = "hadoop.progressable";
 
   /**
-   * Maximum number of WEBCALL invocations per script run
-   */
-  public static final String ATTRIBUTE_MAX_WEBCALLS = "stack.maxwebcalls";
-
-  /**
    * Flag indicating if we are currently executing an XEVAL call, in which
    * case generated macros should not be flagged secure.
    */

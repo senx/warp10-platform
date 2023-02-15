@@ -822,7 +822,6 @@ import io.warp10.script.functions.VARINTTO;
 import io.warp10.script.functions.VARS;
 import io.warp10.script.functions.VECTO;
 import io.warp10.script.functions.VECTORTO;
-import io.warp10.script.functions.WEBCALL;
 import io.warp10.script.functions.WFOFF;
 import io.warp10.script.functions.WFON;
 import io.warp10.script.functions.WFADDREPO;
@@ -1404,7 +1403,6 @@ public class WarpScriptLib {
   public static final String METAMATCH = "METAMATCH";
   public static final String METADIFF = "METADIFF";
   public static final String DELETE = "DELETE";
-  public static final String WEBCALL = "WEBCALL";
   public static final String MATCH = "MATCH";
   public static final String MATCHER = "MATCHER";
   public static final String REPLACE = "REPLACE";
@@ -2383,7 +2381,6 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new METAMATCH(METAMATCH));
     addNamedWarpScriptFunction(new META(METADIFF, true));
     addNamedWarpScriptFunction(new DELETE(DELETE));
-    addNamedWarpScriptFunction(new WEBCALL(WEBCALL));
     addNamedWarpScriptFunction(new MATCH(MATCH));
     addNamedWarpScriptFunction(new MATCHER(MATCHER));
     addNamedWarpScriptFunction(new REPLACE(REPLACE, false));

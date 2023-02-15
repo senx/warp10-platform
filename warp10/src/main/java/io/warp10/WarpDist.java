@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -17,8 +17,6 @@
 package io.warp10;
 
 import io.warp10.continuum.Configuration;
-import io.warp10.continuum.KafkaWebCallBroker;
-import io.warp10.continuum.KafkaWebCallService;
 import io.warp10.continuum.ThrottlingManager;
 import io.warp10.continuum.egress.Egress;
 import io.warp10.continuum.ingress.Ingress;
@@ -218,8 +216,6 @@ public class WarpDist {
 
     WarpScriptLib.registerExtensions();
 
-    KafkaWebCallService.initKeys(keystore, properties);
-
     //
     // Initialize ThrottlingManager
     //
@@ -272,11 +268,6 @@ public class WarpDist {
         PlasmaBackEnd plasmaBE = new PlasmaBackEnd(getKeyStore(), getProperties());
         Map<String,String> labels = new HashMap<String, String>();
         labels.put(SensisionConstants.SENSISION_LABEL_COMPONENT, "plasmabe");
-        Sensision.set(SensisionConstants.SENSISION_CLASS_WARP_REVISION, labels, Revision.REVISION);
-      } else if ("webcall".equals(subprocess)) {
-        KafkaWebCallBroker webcall = new KafkaWebCallBroker(getKeyStore(), getProperties());
-        Map<String,String> labels = new HashMap<String, String>();
-        labels.put(SensisionConstants.SENSISION_LABEL_COMPONENT, "webcall");
         Sensision.set(SensisionConstants.SENSISION_CLASS_WARP_REVISION, labels, Revision.REVISION);
       } else if ("runner".equals(subprocess)) {
         ScriptRunner runner = new ScriptRunner(getKeyStore(), getProperties());
