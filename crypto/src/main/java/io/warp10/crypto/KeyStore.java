@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022 SenX S.A.S.
+//   Copyright 2018-2023 SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -240,7 +240,7 @@ public interface KeyStore {
   public static byte[] checkAndSetKey(KeyStore keystore, String keyname, Properties props, String configurationKey, String defaultKeyValue, int... sizeInBits) {
     String keyspec = props.getProperty(configurationKey, defaultKeyValue);
 
-    if (null != keyspec) {
+    if (null != keyspec && !"".equals(keyspec.trim())) {
       byte[] key = keystore.decodeKey(keyspec);
 
       // Check the size of the key
