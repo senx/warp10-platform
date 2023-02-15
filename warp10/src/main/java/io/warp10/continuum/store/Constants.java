@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -466,6 +466,11 @@ public class Constants {
    * Attribute to specify that owner and producer should be exposed instead of hidden
    */
   public static final String TOKEN_ATTR_EXPOSE = ".expose";
+
+  /**
+   * Default max pending mutations size for FDB transactions - MUST be less than 10000000 which is the maximum transaction size in FDB
+   */
+  public static final String DEFAULT_FDB_DATA_PENDINGMUTATIONS_MAXSIZE = Long.toString(5000000L);
 
   /**
    * FoundationDB tenant key prefix. The value is OPB64 encoded

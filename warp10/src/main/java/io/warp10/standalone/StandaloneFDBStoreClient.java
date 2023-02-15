@@ -89,7 +89,7 @@ public class StandaloneFDBStoreClient extends FDBStoreClient {
     this.fdbContext = FDBUtils.getContext(properties.getProperty(Configuration.STORE_FDB_CLUSTERFILE), properties.getProperty(Configuration.STORE_FDB_TENANT));
     // TODO(hbs): implement a pool for writing?
     this.fdb = fdbContext.getDatabase();
-    this.fdbMaxTransactionSize = (long) Math.min(FDBUtils.MAX_TXN_SIZE * 0.95, Long.parseLong(properties.getProperty(Configuration.STORE_FDB_DATA_PENDINGMUTATIONS_MAXSIZE)));
+    this.fdbMaxTransactionSize = (long) Math.min(FDBUtils.MAX_TXN_SIZE * 0.95, Long.parseLong(properties.getProperty(Configuration.STORE_FDB_DATA_PENDINGMUTATIONS_MAXSIZE, Constants.DEFAULT_FDB_DATA_PENDINGMUTATIONS_MAXSIZE)));
     this.fdbRetryLimit = Long.parseLong(properties.getProperty(Configuration.STORE_FDB_RETRYLIMIT, Store.DEFAULT_FDB_RETRYLIMIT));
   }
 
