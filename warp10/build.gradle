@@ -1,7 +1,7 @@
 import java.nio.charset.StandardCharsets
 
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -42,8 +42,8 @@ dependencies {
     // https://mvnrepository.com/artifact/org.foundationdb/fdb-java
     api 'org.foundationdb:fdb-java:7.1.25'
 
-    api 'org.apache.hadoop:hadoop-common:2.5.1'
-    api 'org.apache.hadoop:hadoop-mapreduce-client-core:2.5.1'
+    api 'org.apache.hadoop:hadoop-common:3.3.4'
+    api 'org.apache.hadoop:hadoop-mapreduce-client-core:3.3.4'
 
     //
     // Processing
