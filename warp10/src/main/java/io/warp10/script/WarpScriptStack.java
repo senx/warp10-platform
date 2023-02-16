@@ -59,7 +59,6 @@ public interface WarpScriptStack {
   public static final int DEFAULT_MAX_DEPTH = 1000;
   public static final long DEFAULT_MAX_LOOP_DURATION = 5000L;
   public static final int DEFAULT_MAX_SYMBOLS = 64;
-  public static final int DEFAULT_MAX_WEBCALLS = 4;
   public static final long DEFAULT_MAX_PIXELS = 1000000L;
   public static final long DEFAULT_MAX_JSON = 20L * 1024L * 1024L; // 20MB
   public static final long DEFAULT_REGISTERS = 256;
