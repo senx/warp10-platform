@@ -50,6 +50,10 @@ public class MUTEX extends NamedWarpScriptFunction implements WarpScriptStackFun
     if (null != Capabilities.get(stack, SharedMemoryWarpScriptExtension.CAPABILITY_MUTEX_MAXWAIT)) {
       try {
         maxwait = Long.parseLong(Capabilities.get(stack, SharedMemoryWarpScriptExtension.CAPABILITY_MUTEX_MAXWAIT));
+
+        if (maxwait < 0) {
+          throw new NumberFormatException("expected value >= 0");
+        }
       } catch(NumberFormatException nfe) {
         throw new WarpScriptException(getName() + " invalid '" + SharedMemoryWarpScriptExtension.CAPABILITY_MUTEX_MAXWAIT + "' capability value, expected a value >= 0.");
       }
