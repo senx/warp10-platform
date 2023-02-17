@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -250,7 +250,6 @@ public class WarpDist {
       } else if ("store".equals(subprocess)) {
         int nthreads = Integer.valueOf(properties.getProperty(Configuration.STORE_NTHREADS));
         for (int i = 0; i < nthreads; i++) {
-          //Store store = new Store(getKeyStore(), getProperties(), null);
           Store store = new Store(getKeyStore(), getProperties(), null);
         }
         Map<String,String> labels = new HashMap<String, String>();
@@ -261,8 +260,6 @@ public class WarpDist {
         Map<String,String> labels = new HashMap<String, String>();
         labels.put(SensisionConstants.SENSISION_LABEL_COMPONENT, "directory");
         Sensision.set(SensisionConstants.SENSISION_CLASS_WARP_REVISION, labels, Revision.REVISION);
-      //} else if ("index".equals(subprocess)) {
-      //  Index index = new Index(getKeyStore(), getProperties());
       } else if ("plasmaFE".equalsIgnoreCase(subprocess)) {
         PlasmaFrontEnd plasmaFE = new PlasmaFrontEnd(getKeyStore(), getProperties());
         Map<String,String> labels = new HashMap<String, String>();
@@ -281,7 +278,7 @@ public class WarpDist {
       } else if ("runner".equals(subprocess)) {
         ScriptRunner runner = new ScriptRunner(getKeyStore(), getProperties());
         Map<String,String> labels = new HashMap<String, String>();
-        labels.put(SensisionConstants.SENSISION_LABEL_COMPONENT, "runner");        
+        labels.put(SensisionConstants.SENSISION_LABEL_COMPONENT, "runner");
         Sensision.set(SensisionConstants.SENSISION_CLASS_WARP_REVISION, labels, Revision.REVISION);
       } else {
         System.err.println("Unknown component '" + subprocess + "', skipping.");

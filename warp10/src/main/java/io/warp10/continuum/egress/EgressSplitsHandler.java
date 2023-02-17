@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -15,23 +15,6 @@
 //
 
 package io.warp10.continuum.egress;
-
-import io.warp10.continuum.Tokens;
-import io.warp10.continuum.store.Constants;
-import io.warp10.continuum.store.DirectoryClient;
-import io.warp10.continuum.store.MetadataIterator;
-import io.warp10.continuum.store.thrift.data.DirectoryRequest;
-import io.warp10.continuum.store.thrift.data.GTSSplit;
-import io.warp10.continuum.store.thrift.data.Metadata;
-import io.warp10.crypto.CryptoUtils;
-import io.warp10.crypto.KeyStore;
-import io.warp10.crypto.OrderPreservingBase64;
-import io.warp10.fdb.FDBPool;
-import io.warp10.fdb.FDBStoreClient;
-import io.warp10.fdb.FDBUtils;
-import io.warp10.quasar.token.thrift.data.ReadToken;
-import io.warp10.script.WarpScriptException;
-import io.warp10.script.functions.PARSESELECTOR;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -54,8 +37,24 @@ import org.eclipse.jetty.server.handler.AbstractHandler;
 import com.apple.foundationdb.Database;
 import com.apple.foundationdb.FDBException;
 import com.apple.foundationdb.LocalityUtil;
-import com.apple.foundationdb.Tenant;
 import com.apple.foundationdb.Transaction;
+
+import io.warp10.continuum.Tokens;
+import io.warp10.continuum.store.Constants;
+import io.warp10.continuum.store.DirectoryClient;
+import io.warp10.continuum.store.MetadataIterator;
+import io.warp10.continuum.store.thrift.data.DirectoryRequest;
+import io.warp10.continuum.store.thrift.data.GTSSplit;
+import io.warp10.continuum.store.thrift.data.Metadata;
+import io.warp10.crypto.CryptoUtils;
+import io.warp10.crypto.KeyStore;
+import io.warp10.crypto.OrderPreservingBase64;
+import io.warp10.fdb.FDBPool;
+import io.warp10.fdb.FDBStoreClient;
+import io.warp10.fdb.FDBUtils;
+import io.warp10.quasar.token.thrift.data.ReadToken;
+import io.warp10.script.WarpScriptException;
+import io.warp10.script.functions.PARSESELECTOR;
 
 /**
  * This handler will generate splits from a selector and a token, those
