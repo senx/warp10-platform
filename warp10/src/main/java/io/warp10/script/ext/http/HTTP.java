@@ -1,5 +1,5 @@
 //
-//   Copyright 2021-2022  SenX S.A.S.
+//   Copyright 2021-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WebAccessController;
-import io.warp10.standalone.StandaloneWebCallService;
 import io.warp10.warp.sdk.Capabilities;
 
 import org.apache.commons.codec.binary.Base64;
@@ -107,20 +106,17 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
   private static final long baseMaxSize;
   private static final long baseMaxChunkSize;
 
+  private static final String DEFAULT_HTTP_HOST_PATTERN = "!.*";
+
   //
   // Parameter extraction
   //
 
   static {
-    String patternConf = WarpConfig.getProperty(HttpWarpScriptExtension.WARPSCRIPT_HTTP_HOST_PATTERNS);
+    String patternConf = WarpConfig.getProperty(HttpWarpScriptExtension.WARPSCRIPT_HTTP_HOST_PATTERNS, DEFAULT_HTTP_HOST_PATTERN);
 
-    // If not defined, use already existing StandaloneWebCallService webAccessController which uses Configuration.WEBCALL_HOST_PATTERNS
-    if (null == patternConf) {
-      webAccessController = StandaloneWebCallService.getWebAccessController();
-    } else {
-      webAccessController = new WebAccessController(patternConf);
-    }
-    
+    webAccessController = new WebAccessController(patternConf);
+
     // retrieve limits
     String confMaxRequests = WarpConfig.getProperty(HttpWarpScriptExtension.WARPSCRIPT_HTTP_REQUESTS);
     if (null == confMaxRequests) {

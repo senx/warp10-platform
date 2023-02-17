@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2021  SenX S.A.S.
+//   Copyright 2020-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -70,8 +70,6 @@ public class GenerateCryptoKey {
     keys.put(Configuration.INGRESS_KAFKA_DATA_AES, 256);
     keys.put(Configuration.EGRESS_HBASE_DATA_AES, 256);
     keys.put(Configuration.EGRESS_FETCHER_AES, 256);
-    keys.put(Configuration.WEBCALL_KAFKA_AES, 256);
-    keys.put(Configuration.WEBCALL_KAFKA_MAC, 128);
     keys.put(Configuration.DATALOG_PSK, 256);
   }
 

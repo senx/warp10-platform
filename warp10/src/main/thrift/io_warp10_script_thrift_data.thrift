@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -57,57 +57,6 @@ struct StackInteractionReport {
    * List of all tokens used in the script
    */
   5: list<string> tokens,
-}
-
-enum WebCallMethod {
-  GET = 1,
-  POST = 2,
-}
-
-/**
- * Structure which holds parameters for a WebCall request
- */
-struct WebCallRequest {
-  /**
-   * Timestamp at which the request was created.
-   */
-  1: i64 timestamp,
-  
-  /**
-   * UUID of the stack on which it was issued, this is used
-   * to match it with a StackInteractionReport.
-   */
-  2: string stackUUID,
-  
-  /**
-   * UUID of the WebCall.
-   */
-  3: string webCallUUID,
-  
-  /**
-   * Token used to issue the WebCall
-   */
-  4: string token,
-  
-  /**
-   * URL to call
-   */
-  5: string url,
-  
-  /**
-   * HTTP Method to use for the call
-   */
-  6: WebCallMethod method,
-  
-  /**
-   * Request headers
-   */
-  7: map<string,string> headers,
-  
-  /**
-   * Request body
-   */
-  8: string body,
 }
 
 /**

@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -105,11 +105,6 @@ public interface KeyStore {
   public static final String SIPHASH_KAFKA_PLASMA_FRONTEND_IN = "warp.siphash.kafka.plasma.frontend.in";
 
   /**
-   * Name of key for computing MAC for WebCall requests in Kafka
-   */
-  public static final String SIPHASH_KAFKA_WEBCALL = "warp.siphash.kafka.webcall";
-
-  /**
    * Name of key for computing MAC for DirectoryFindRequest instances
    */
   public static final String SIPHASH_DIRECTORY_PSK = "warp.siphash.directory.psk";
@@ -143,11 +138,6 @@ public interface KeyStore {
    * Name of key for wrapping kafka messages consumed by plasma frontends
    */
   public static final String AES_KAFKA_PLASMA_FRONTEND_IN = "warp.aes.kafka.plasma.frontend.in";
-
-  /**
-   * Name of key for wrapping WebCall requests in Kafka
-   */
-  public static final String AES_KAFKA_WEBCALL = "warp.aes.kafka.webcall";
 
   /**
    * AES key to use for wrapping sensitive logging messages
