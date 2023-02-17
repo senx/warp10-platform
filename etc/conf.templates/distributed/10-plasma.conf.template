@@ -133,7 +133,7 @@ plasma.frontend.selectors = 4
 ##
 ## MANDATORY (frontend) - Jetty idle timeout (in ms)
 ##
-plasma.frontend.idle.timout = 300000
+plasma.frontend.idle.timeout = 300000
 
 ###
 ### O P T I O N A L   C O N F I G U R A T I O N
