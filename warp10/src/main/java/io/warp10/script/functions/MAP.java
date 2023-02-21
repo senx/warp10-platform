@@ -142,11 +142,11 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
 
   private Object applyWithParamsFromMap(WarpScriptStack stack, Map params) throws WarpScriptException {
     if (params.containsKey(DEPRECATED_PARAM_OCCURENCES)) {
-      throw new WarpScriptException(getName() + " was given a deprecated parameter: " + DEPRECATED_PARAM_OCCURENCES + ". Use instead parameter " + PARAM_OCCURRENCES);
+      throw new WarpScriptException(getName() + " was given a deprecated parameter with a typo: " + DEPRECATED_PARAM_OCCURENCES + ". Use instead parameter " + PARAM_OCCURRENCES);
     }
 
     if (params.containsKey(DEPRECATED_PARAM_TICKS)) {
-      throw new WarpScriptException(getName() + " was given a deprecated parameter: " + DEPRECATED_PARAM_TICKS + ". Use instead parameter " + PARAM_OCCURRENCES);
+      throw new WarpScriptException(getName() + " was given a deprecated parameter: " + DEPRECATED_PARAM_TICKS + ". Consider using " + PARAM_OCCURRENCES + " instead (behaviour is slightly different - see documentation)");
     }
 
     //
