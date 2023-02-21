@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -5604,6 +5604,18 @@ public class GTSHelper {
     unbucketize(gts);
   }
 
+  public static List<GeoTimeSerie> map(GeoTimeSerie gts, WarpScriptMapperFunction mapper, long prewindow, long postwindow, long occurrences, boolean reversed, int step, boolean overrideTick) throws WarpScriptException {
+    return map(gts, mapper, prewindow, postwindow, occurrences, reversed, step, overrideTick, null);
+  }
+
+  public static List<GeoTimeSerie> map(GeoTimeSerie gts, Object mapper, long prewindow, long postwindow, long occurrences, boolean reversed, int step, boolean overrideTick, WarpScriptStack stack) throws WarpScriptException {
+    return map(gts, mapper, prewindow, postwindow, occurrences, reversed, step, overrideTick, stack, null);
+  }
+
+  public static List<GeoTimeSerie> map(GeoTimeSerie gts, Object mapper, long prewindow, long postwindow, long occurrences, boolean reversed, int step, boolean overrideTick, WarpScriptStack stack,
+                                       List<Long> outputTicks) throws WarpScriptException {
+    return map(gts, mapper, prewindow, postwindow, occurrences, reversed, step, overrideTick, stack, outputTicks, false);
+  }
   /**
    * Apply a mapper on a GeoTimeSerie instance and produce a new
    * GTS instance with the result of the mapper application.
@@ -5620,23 +5632,11 @@ public class GTSHelper {
    *                    sums where the only result that might matter is that of the latest tick
    * @param reversed Compute ticks backwards, starting from most recent one
    * @param step How many ticks to move the sliding window after each mapper application (>=1)
+   * @param outputTicks Sorted list of ticks to use instead of the gts ticks (reverse sorted if <code>reversed</code> is true)
    * @param overrideTick If true, use the tick returned by the mapper instead of the current tick. This may lead to duplicate ticks, need to run DEDUP.
    *
    * @return A new GTS instance with the result of the Mapper.
    */
-  public static List<GeoTimeSerie> map(GeoTimeSerie gts, WarpScriptMapperFunction mapper, long prewindow, long postwindow, long occurrences, boolean reversed, int step, boolean overrideTick) throws WarpScriptException {
-    return map(gts, mapper, prewindow, postwindow, occurrences, reversed, step, overrideTick, null);
-  }
-
-  public static List<GeoTimeSerie> map(GeoTimeSerie gts, Object mapper, long prewindow, long postwindow, long occurrences, boolean reversed, int step, boolean overrideTick, WarpScriptStack stack) throws WarpScriptException {
-    return map(gts, mapper, prewindow, postwindow, occurrences, reversed, step, overrideTick, stack, null);
-  }
-
-  public static List<GeoTimeSerie> map(GeoTimeSerie gts, Object mapper, long prewindow, long postwindow, long occurrences, boolean reversed, int step, boolean overrideTick, WarpScriptStack stack,
-                                       List<Long> outputTicks) throws WarpScriptException {
-    return map(gts, mapper, prewindow, postwindow, occurrences, reversed, step, overrideTick, stack, outputTicks, false);
-  }
-
   public static List<GeoTimeSerie> map(GeoTimeSerie gts, Object mapper, long prewindow, long postwindow, long occurrences, boolean reversed, int step, boolean overrideTick, WarpScriptStack stack,
                                        List<Long> outputTicks, boolean dedup) throws WarpScriptException {
 
@@ -5683,15 +5683,6 @@ public class GTSHelper {
     sort(mapped, reversed);
     // Retrieve ticks if GTS is not bucketized.
     long[] ticks = isBucketized(gts) ? null : Arrays.copyOf(mapped.ticks, gts.values);
-
-    // Sort outputTicks
-    if (null != outputTicks) {
-      if (reversed) {
-        Collections.sort(outputTicks, Collections.<Long>reverseOrder());
-      } else {
-        Collections.sort(outputTicks);
-      }
-    }
 
     // Clear clone
     GTSHelper.clear(mapped);

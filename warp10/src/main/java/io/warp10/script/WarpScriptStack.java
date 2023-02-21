@@ -59,7 +59,6 @@ public interface WarpScriptStack {
   public static final int DEFAULT_MAX_DEPTH = 1000;
   public static final long DEFAULT_MAX_LOOP_DURATION = 5000L;
   public static final int DEFAULT_MAX_SYMBOLS = 64;
-  public static final int DEFAULT_MAX_WEBCALLS = 4;
   public static final long DEFAULT_MAX_PIXELS = 1000000L;
   public static final long DEFAULT_MAX_JSON = 20L * 1024L * 1024L; // 20MB
   public static final long DEFAULT_REGISTERS = 256;
@@ -117,11 +116,6 @@ public interface WarpScriptStack {
    * Name of the current macro, or null if not in a macro or in an anonymous one
    */
   public static final String ATTRIBUTE_MACRO_NAME = "macro.name";
-
-  /**
-   * Flag indicating whether or not the stack is currently in documentation mode
-   */
-  public static final String ATTRIBUTE_DOCMODE = "docmode";
 
   /**
    * Flag indicating whether or not the stack is currently in info mode
@@ -251,9 +245,10 @@ public interface WarpScriptStack {
   public static final String ATTRIBUTE_HADOOP_PROGRESSABLE = "hadoop.progressable";
 
   /**
-   * Maximum number of WEBCALL invocations per script run
+   * Flag indicating if we are currently executing an XEVAL call, in which
+   * case generated macros should not be flagged secure.
    */
-  public static final String ATTRIBUTE_MAX_WEBCALLS = "stack.maxwebcalls";
+  public static final String ATTRIBUTE_IN_XEVAL = "in.xeval";
 
   /**
    * Flag indicating if we are currently in a secure macro execution

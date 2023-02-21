@@ -822,7 +822,6 @@ import io.warp10.script.functions.VARINTTO;
 import io.warp10.script.functions.VARS;
 import io.warp10.script.functions.VECTO;
 import io.warp10.script.functions.VECTORTO;
-import io.warp10.script.functions.WEBCALL;
 import io.warp10.script.functions.WFOFF;
 import io.warp10.script.functions.WFON;
 import io.warp10.script.functions.WFADDREPO;
@@ -890,6 +889,8 @@ public class WarpScriptLib {
   public static final String COMPILED = "COMPILED";
 
   public static final String EVAL = "EVAL";
+  // e'X'posing EVAL, will never mark macros it produces as secure
+  public static final String XEVAL = "XEVAL";
   public static final String EVALSECURE = "EVALSECURE";
   public static final String MSEC = "MSEC";
   public static final String MRSEC = "MRSEC";
@@ -1402,7 +1403,6 @@ public class WarpScriptLib {
   public static final String METAMATCH = "METAMATCH";
   public static final String METADIFF = "METADIFF";
   public static final String DELETE = "DELETE";
-  public static final String WEBCALL = "WEBCALL";
   public static final String MATCH = "MATCH";
   public static final String MATCHER = "MATCHER";
   public static final String REPLACE = "REPLACE";
@@ -1672,7 +1672,7 @@ public class WarpScriptLib {
   public static final String ASREGS = "ASREGS";
   public static final String ASENCODERS = "ASENCODERS";
   public static final String SLEEP = "SLEEP";
-  
+
   public static final String TOLIST = "->LIST";
   public static final String TOMAP = "->MAP";
   public static final String TOJSON = "->JSON";
@@ -1899,6 +1899,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new FUNCTIONS(FUNCTIONS));
     addNamedWarpScriptFunction(new MAXJSON(MAXJSON));
     addNamedWarpScriptFunction(new EVAL(EVAL));
+    addNamedWarpScriptFunction(new EVAL(XEVAL, true));
     addNamedWarpScriptFunction(new FUNCREF(FUNCREF));
     addNamedWarpScriptFunction(new NOW(NOW));
     addNamedWarpScriptFunction(new AGO(AGO));
@@ -2380,7 +2381,6 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new METAMATCH(METAMATCH));
     addNamedWarpScriptFunction(new META(METADIFF, true));
     addNamedWarpScriptFunction(new DELETE(DELETE));
-    addNamedWarpScriptFunction(new WEBCALL(WEBCALL));
     addNamedWarpScriptFunction(new MATCH(MATCH));
     addNamedWarpScriptFunction(new MATCHER(MATCHER));
     addNamedWarpScriptFunction(new REPLACE(REPLACE, false));

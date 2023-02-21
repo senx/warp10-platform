@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -154,11 +154,6 @@ public class Constants {
    * Header containing a comma separated list of tokens with capabilities
    */
   public static final String HTTP_HEADER_CAPABILITIES_DEFAULT = "X-Warp10-Capabilities";
-
-  /**
-   * Header containing the request UUID when calling the endpoint
-   */
-  public static final String HTTP_HEADER_WEBCALL_UUID_DEFAULT = "X-Warp10-WebCall";
 
   /**
    * HTTP Header for elapsed time of WarpScript scripts
@@ -451,11 +446,6 @@ public class Constants {
   public static final String TOKEN_ATTR_NOFETCH = ".nofetch";
 
   /**
-   * Attribute used to specify that a READ token cannot be used to AUTHENTICATE.
-   */
-  public static final String TOKEN_ATTR_NOAUTH = ".noauth";
-
-  /**
    * Attribute to specify the maximum value size
    */
   public static final String TOKEN_ATTR_MAXSIZE = ".maxsize";
@@ -578,7 +568,6 @@ public class Constants {
     // Initialize headers
     //
 
-    HEADERS.put(Configuration.HTTP_HEADER_WEBCALL_UUIDX, WarpConfig.getProperty(Configuration.HTTP_HEADER_WEBCALL_UUIDX, HTTP_HEADER_WEBCALL_UUID_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_ELAPSEDX, WarpConfig.getProperty(Configuration.HTTP_HEADER_ELAPSEDX, HTTP_HEADER_ELAPSED_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_OPSX, WarpConfig.getProperty(Configuration.HTTP_HEADER_OPSX, HTTP_HEADER_OPS_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_FETCHEDX, WarpConfig.getProperty(Configuration.HTTP_HEADER_FETCHEDX, HTTP_HEADER_FETCHED_DEFAULT));
