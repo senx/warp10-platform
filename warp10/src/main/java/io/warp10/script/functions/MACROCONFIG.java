@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@ package io.warp10.script.functions;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Properties;
 
 import io.warp10.WarpConfig;
 import io.warp10.script.NamedWarpScriptFunction;
@@ -73,49 +72,48 @@ public class MACROCONFIG extends NamedWarpScriptFunction implements WarpScriptSt
 
     boolean resolved = false;
 
-    if (this.defaultValue) {
-      attempts.add(key + "@" + macro);
-      value = WarpConfig.getProperty(key + "@" + macro, defVal);
-      resolved = true;
-    } else {
-      //
-      // We will attempt to find key@name/of/macro
-      // then fallback to key@name/of
-      // then fallback to key@name
-      //
+    //
+    // We will attempt to find key@name/of/macro
+    // then fallback to key@name/of
+    // then fallback to key@name
+    //
 
-      String m = macro;
+    String m = macro;
 
-      while(true) {
-        attempts.add(key + "@"  + m);
+    while (true) {
+      attempts.add(key + "@" + m);
 
-        value =  WarpConfig.getProperty(key + "@" + m);
+      value = WarpConfig.getProperty(key + "@" + m);
 
-        if (null != value) {
-          resolved = true;
-          break;
-        }
-
-        if (!m.contains("/")) {
-          break;
-        }
-
-        m = m.replaceAll("/[^/]+$", "");
+      if (null != value) {
+        resolved = true;
+        break;
       }
+
+      if (!m.contains("/")) {
+        break;
+      }
+
+      m = m.replaceAll("/[^/]+$", "");
     }
 
-    if (!resolved) {
-      StringBuilder sb = new StringBuilder();
-      sb.append(getName() + " macro configuration '" + key + "' not found, need to set one of [");
-      for (String attempt: attempts) {
-        sb.append(" '" + attempt + "'");
-      }
-      sb.append(" ].");
-      throw new WarpScriptException(sb.toString());
+    if (resolved) {
+      stack.push(value);
+      return stack;
     }
 
-    stack.push(value);
+    if (defaultValue) {
+      stack.push(defVal);
+      return stack;
+    }
 
-    return stack;
+    StringBuilder sb = new StringBuilder();
+    sb.append(getName() + " macro configuration '" + key + "' not found, need to set one of [");
+    for (String attempt: attempts) {
+      sb.append(" '" + attempt + "'");
+    }
+    sb.append(" ].");
+    throw new WarpScriptException(sb.toString());
+
   }
 }
