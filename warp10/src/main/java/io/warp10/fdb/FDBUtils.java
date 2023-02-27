@@ -251,10 +251,8 @@ public class FDBUtils {
 
     //
     // If the estimated size is greater or equal to 4,500,000 (45 % of FDB max size), then we return true.
-    if (size >= 4500000) {
-      return true;
-    } else {
-      return false;
-    }
+    //
+
+    return size >= 4500000;
   }
 }

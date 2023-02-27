@@ -56,17 +56,8 @@ public class WritableUtils {
   private static final boolean rawWritables;
 
   static {
-    if ("true".equals(WarpConfig.getProperty(Configuration.CONFIG_WARPSCRIPT_HADOOP_STRICTWRITABLES))) {
-      strictWritables = true;
-    } else {
-      strictWritables = false;
-    }
-
-    if ("true".equals(WarpConfig.getProperty(Configuration.CONFIG_WARPSCRIPT_HADOOP_RAWWRITABLES))) {
-      rawWritables = true;
-    } else {
-      rawWritables = false;
-    }
+    strictWritables = "true".equals(WarpConfig.getProperty(Configuration.CONFIG_WARPSCRIPT_HADOOP_STRICTWRITABLES));
+    rawWritables = "true".equals(WarpConfig.getProperty(Configuration.CONFIG_WARPSCRIPT_HADOOP_RAWWRITABLES));
   }
 
   public static Object fromWritable(Object w) throws IOException {
