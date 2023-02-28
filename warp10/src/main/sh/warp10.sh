@@ -47,9 +47,6 @@ if [[ -e "${BIN_DIR}/warp10-env.sh" ]]; then
   source "${BIN_DIR}/warp10-env.sh"
 fi
 
-#JAVA_HOME=/opt/java8
-#WARP10_HOME=/opt/warp10-@VERSION@
-JMX_PORT=1098
 
 # Strongly inspired by gradlew
 # Determine the Java command to use to start the JVM.
@@ -152,7 +149,7 @@ LOG4J_CONF=${WARP10_HOME}/etc/log4j.properties
 JAVA_HEAP_DUMP=${WARP10_HOME}/logs/java.heapdump
 # you can specialize your metrics for this instance of Warp10
 #SENSISION_DEFAULT_LABELS=-Dsensision.default.labels=instance=warp10-test,env=dev
-JAVA_OPTS="-Djava.awt.headless=true -Dlog4j.configuration=file:${LOG4J_CONF} -Dsensision.server.port=0 ${SENSISION_DEFAULT_LABELS:-} -Dsensision.events.dir=${SENSISION_EVENTS_DIR} -Dfile.encoding=UTF-8 -Xms${WARP10_HEAP} -Xmx${WARP10_HEAP_MAX} -XX:+UseG1GC ${JAVA_OPTS}"
+JAVA_OPTS="-Djava.awt.headless=true -Dlog4j.configuration=file:${LOG4J_CONF} -Dsensision.server.port=0 ${SENSISION_DEFAULT_LABELS:-} -Dsensision.events.dir=${SENSISION_EVENTS_DIR} -Dfile.encoding=UTF-8 -Xms${WARP10_HEAP} -Xmx${WARP10_HEAP_MAX} -XX:+UseG1GC ${JAVA_OPTS} ${JAVA_EXTRA_OPTS:-}"
 export MALLOC_ARENA_MAX=1
 
 # Sed suffix allows compatibility between Linux and MacOS
@@ -622,8 +619,8 @@ case "${1:-}" in
   start
   ;;
   jmxstart)
-  JAVA_OPTS="${JAVA_OPTS} -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.port=${JMX_PORT}"
-  echo "## WARNING: JMX is enabled on port ${JMX_PORT}"
+  JAVA_OPTS="${JAVA_OPTS} -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.port=${JMX_PORT:-1098}"
+  echo "## WARNING: JMX is enabled on port ${JMX_PORT:-1098}"
   start
   ;;
   stop)
