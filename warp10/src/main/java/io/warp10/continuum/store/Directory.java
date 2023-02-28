@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigInteger;
 import java.net.InetAddress;
-import java.net.ServerSocket;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
@@ -71,11 +70,6 @@ import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
-import org.apache.thrift.server.TServer;
-import org.apache.thrift.server.TThreadPoolServer;
-import org.apache.thrift.transport.TServerSocket;
-import org.apache.thrift.transport.TServerTransport;
-import org.apache.thrift.transport.TTransportException;
 import org.bouncycastle.crypto.CipherParameters;
 import org.bouncycastle.crypto.InvalidCipherTextException;
 import org.bouncycastle.crypto.engines.AESWrapEngine;
@@ -113,15 +107,10 @@ import io.warp10.continuum.MetadataUtils;
 import io.warp10.continuum.MetadataUtils.MetadataID;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.sensision.SensisionConstants;
-import io.warp10.continuum.store.thrift.data.DirectoryFindRequest;
-import io.warp10.continuum.store.thrift.data.DirectoryFindResponse;
-import io.warp10.continuum.store.thrift.data.DirectoryGetRequest;
-import io.warp10.continuum.store.thrift.data.DirectoryGetResponse;
 import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.DirectoryStatsRequest;
 import io.warp10.continuum.store.thrift.data.DirectoryStatsResponse;
 import io.warp10.continuum.store.thrift.data.Metadata;
-import io.warp10.continuum.store.thrift.service.DirectoryService;
 import io.warp10.continuum.thrift.data.LoggingEvent;
 import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
@@ -144,7 +133,7 @@ import kafka.message.MessageAndMetadata;
  * Manages Metadata for a subset of known GTS.
  * Listens to Kafka to get updates of and new Metadatas
  */
-public class Directory extends AbstractHandler implements DirectoryService.Iface, Runnable {
+public class Directory extends AbstractHandler implements Runnable {
 
   private static final Logger LOG = LoggerFactory.getLogger(Directory.class);
 
@@ -185,9 +174,6 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
 
   public static final String PAYLOAD_MODULUS_KEY = "modulus";
   public static final String PAYLOAD_REMAINDER_KEY = "remainder";
-  public static final String PAYLOAD_THRIFT_PROTOCOL_KEY = "thrift.protocol";
-  public static final String PAYLOAD_THRIFT_TRANSPORT_KEY = "thrift.transport";
-  public static final String PAYLOAD_THRIFT_MAXFRAMELEN_KEY = "thrift.maxframelen";
   public static final String PAYLOAD_STREAMING_PORT_KEY = "streaming.port";
 
   /**
@@ -1152,40 +1138,17 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_JVM_FREEMEMORY, Sensision.EMPTY_LABELS, Runtime.getRuntime().freeMemory());
 
     //
-    // Start the Thrift Service
+    // Register the service
     //
-
-    DirectoryService.Processor processor = new DirectoryService.Processor(this);
 
     this.instance = null;
 
     try {
       InetAddress bindAddress = InetAddress.getByName(this.host);
-      TServerTransport transport = new TServerSocket(new ServerSocket(this.port, this.tcpBacklog, bindAddress));
-      TThreadPoolServer.Args args = new TThreadPoolServer.Args(transport);
-      args.processor(processor);
-      //
-      // FIXME(dmn): Set the min/max threads in the config file ?
-      args.maxWorkerThreads(this.serviceNThreads);
-      args.minWorkerThreads(this.serviceNThreads);
-      if (0 != maxThriftFrameLength) {
-        args.inputTransportFactory(new io.warp10.thrift.TFramedTransport.Factory(maxThriftFrameLength));
-        args.outputTransportFactory(new io.warp10.thrift.TFramedTransport.Factory(maxThriftFrameLength));
-      } else {
-        args.inputTransportFactory(new io.warp10.thrift.TFramedTransport.Factory());
-        args.outputTransportFactory(new io.warp10.thrift.TFramedTransport.Factory());
-      }
-      args.inputProtocolFactory(new TCompactProtocol.Factory());
-      args.outputProtocolFactory(new TCompactProtocol.Factory());
-      TServer server = new TThreadPoolServer(args);
-
-      //
-      // TODO(hbs): Check that the number of registered services does not go over the licensed number
-      //
 
       ServiceInstanceBuilder<Map> builder = ServiceInstance.builder();
-      builder.port(((TServerSocket) transport).getServerSocket().getLocalPort());
-      builder.address(((TServerSocket) transport).getServerSocket().getInetAddress().getHostAddress());
+      builder.port(this.streamingport);
+      builder.address(bindAddress.getHostAddress());
       builder.id(UUID.randomUUID().toString());
       builder.name(DIRECTORY_SERVICE);
       builder.serviceType(ServiceType.DYNAMIC);
@@ -1193,12 +1156,8 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
 
       payload.put(PAYLOAD_MODULUS_KEY, Integer.toString(modulus));
       payload.put(PAYLOAD_REMAINDER_KEY, Integer.toString(remainder));
-      payload.put(PAYLOAD_THRIFT_PROTOCOL_KEY, "org.apache.thrift.protocol.TCompactProtocol");
-      payload.put(PAYLOAD_THRIFT_TRANSPORT_KEY, "org.apache.thrift.transport.TFramedTransport");
       payload.put(PAYLOAD_STREAMING_PORT_KEY, Integer.toString(this.streamingport));
-      if (0 != maxThriftFrameLength) {
-        payload.put(PAYLOAD_THRIFT_MAXFRAMELEN_KEY, Integer.toString(maxThriftFrameLength));
-      }
+
       builder.payload(payload);
 
       this.instance = builder.build();
@@ -1208,10 +1167,9 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
         sd.registerService(instance);
       }
 
-      server.serve();
-
-    } catch (TTransportException tte) {
-      LOG.error("",tte);
+      while(true) {
+        LockSupport.parkNanos(Long.MAX_VALUE);
+      }
     } catch (Exception e) {
       LOG.error("", e);
     } finally {
@@ -1977,445 +1935,6 @@ public class Directory extends AbstractHandler implements DirectoryService.Iface
     }
   }
 
-  @Override
-  public DirectoryFindResponse find(DirectoryFindRequest request) throws TException {
-
-    DirectoryFindResponse response = new DirectoryFindResponse();
-
-    //
-    // Check request age
-    //
-
-    long now = System.currentTimeMillis();
-
-    if (now - request.getTimestamp() > this.maxage) {
-      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_FIND_EXPIRED, Sensision.EMPTY_LABELS, 1);
-      response.setError("Request has expired.");
-      return response;
-    }
-
-    //
-    // Compute request hash
-    //
-
-    long hash = DirectoryUtil.computeHash(SIPHASH_PSK_LONGS[0], SIPHASH_PSK_LONGS[1], request);
-
-    // Check hash against value in the request
-
-    if (hash != request.getHash()) {
-      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_FIND_INVALID, Sensision.EMPTY_LABELS, 1);
-      response.setError("Invalid request.");
-      return response;
-    }
-
-    //
-    // Build patterns from expressions
-    //
-
-    Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_FIND_REQUESTS, Sensision.EMPTY_LABELS, 1);
-
-    SmartPattern classSmartPattern;
-
-    Collection<Metadata> metas;
-
-    //
-    // Allocate a set if there is more than one class selector as we may have
-    // duplicate results
-    //
-
-    if (request.getClassSelectorSize() > 1) {
-      metas = new HashSet<Metadata>();
-    } else {
-      metas = new ArrayList<Metadata>();
-    }
-
-    long count = 0;
-
-    List<String> missingLabels = Constants.ABSENT_LABEL_SUPPORT ? new ArrayList<String>() : null;
-
-    for (int i = 0; i < request.getClassSelectorSize(); i++) {
-
-      //
-      // Call external plugin if it is defined
-      //
-
-      if (null != this.plugin) {
-
-        long time = 0;
-        long precount = 0;
-        long nano = System.nanoTime();
-
-        if (!trustedPlugin) {
-          try (DirectoryPlugin.GTSIterator iter = this.plugin.find(this.remainder, request.getClassSelector().get(i), request.getLabelsSelectors().get(i))) {
-
-            while(iter.hasNext()) {
-
-              GTS gts = iter.next();
-              nano = System.nanoTime() - nano;
-              time += nano;
-
-              count++;
-
-              if (count >= maxHardFindResults) {
-                Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_FIND_LIMITED, Sensision.EMPTY_LABELS, 1);
-                response.setError("Find request would return more than " + maxHardFindResults + " results, aborting.");
-                return response;
-              }
-
-              Metadata meta = new Metadata();
-              meta.setName(gts.getName());
-              //meta.setLabels(ImmutableMap.copyOf(metadata.getLabels()));
-              meta.setLabels(new HashMap<String, String>(gts.getLabels()));
-              //meta.setAttributes(ImmutableMap.copyOf(metadata.getAttributes()));
-              meta.setAttributes(new HashMap<String,String>(gts.getAttributes()));
-              meta.setClassId(GTSHelper.classId(SIPHASH_CLASS_LONGS, meta.getName()));
-              meta.setLabelsId(GTSHelper.labelsId(SIPHASH_LABELS_LONGS, meta.getLabels()));
-
-              metas.add(meta);
-              nano = System.nanoTime();
-            }
-          } catch (Exception e) {
-          } finally {
-            Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_PLUGIN_FIND_CALLS, Sensision.EMPTY_LABELS, 1);
-            Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_PLUGIN_FIND_RESULTS, Sensision.EMPTY_LABELS, count - precount);
-            Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_PLUGIN_FIND_TIME_NANOS, Sensision.EMPTY_LABELS, time);
-          }
-        } else {
-          DirectoryRequest dr = new DirectoryRequest();
-          dr.setClassSelectors(request.getClassSelector());
-          dr.setLabelsSelectors(request.getLabelsSelectors());
-
-          try (TrustedDirectoryPlugin.MetadataIterator iter = ((TrustedDirectoryPlugin) this.plugin).find(this.remainder, dr)) {
-            while(iter.hasNext()) {
-              Metadata meta = iter.next();
-              nano = System.nanoTime() - nano;
-              time += nano;
-
-              count++;
-
-              if (count >= maxHardFindResults) {
-                Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_FIND_LIMITED, Sensision.EMPTY_LABELS, 1);
-                response.setError("Find request would return more than " + maxHardFindResults + " results, aborting.");
-                return response;
-              }
-
-              meta.setClassId(GTSHelper.classId(SIPHASH_CLASS_LONGS, meta.getName()));
-              meta.setLabelsId(GTSHelper.labelsId(SIPHASH_LABELS_LONGS, meta.getLabels()));
-
-              metas.add(meta);
-              nano = System.nanoTime();
-            }
-          } catch (Exception e) {
-          } finally {
-            Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_PLUGIN_FIND_CALLS, Sensision.EMPTY_LABELS, 1);
-            Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_PLUGIN_FIND_RESULTS, Sensision.EMPTY_LABELS, count - precount);
-            Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_PLUGIN_FIND_TIME_NANOS, Sensision.EMPTY_LABELS, time);
-          }
-        }
-      } else { // No Directory plugin
-        String exactClassName = null;
-
-        if (request.getClassSelector().get(i).startsWith("=") || !request.getClassSelector().get(i).startsWith("~")) {
-          exactClassName = request.getClassSelector().get(i).startsWith("=") ? request.getClassSelector().get(i).substring(1) : request.getClassSelector().get(i);
-          classSmartPattern = new SmartPattern(exactClassName);
-        } else {
-          classSmartPattern = new SmartPattern(Pattern.compile(request.getClassSelector().get(i).substring(1)));
-        }
-
-        Map<String,SmartPattern> labelPatterns = new LinkedHashMap<String,SmartPattern>();
-
-        if (null != missingLabels) {
-          missingLabels.clear();
-        }
-
-        if (request.getLabelsSelectors().get(i).size() > 0) {
-          for (Entry<String,String> entry: request.getLabelsSelectors().get(i).entrySet()) {
-            String label = entry.getKey();
-            String expr = entry.getValue();
-            SmartPattern pattern;
-
-            if (null != missingLabels && ("=".equals(expr) || "".equals(expr))) {
-              missingLabels.add(label);
-              continue;
-            }
-
-            if (expr.startsWith("=") || !expr.startsWith("~")) {
-              pattern = new SmartPattern(expr.startsWith("=") ? expr.substring(1) : expr);
-            } else {
-              pattern = new SmartPattern(Pattern.compile(expr.substring(1)));
-            }
-
-            labelPatterns.put(label,  pattern);
-          }
-        }
-
-        //
-        // Loop over the class names to find matches
-        //
-
-        // Copy the class names as 'this.classNames' might be updated while in the for loop
-        Collection<String> classNames = new ArrayList<String>();
-
-        if (null != exactClassName) {
-          // If the class name is an exact match, check if it is known, if not, skip to the next selector
-          if(!this.metadatas.containsKey(exactClassName)) {
-            continue;
-          }
-          classNames.add(exactClassName);
-        } else {
-          //
-          // Extract per owner classes if owner selector exists
-          //
-          if (request.getLabelsSelectors().get(i).size() > 0) {
-            String ownersel = request.getLabelsSelectors().get(i).get(Constants.OWNER_LABEL);
-
-            if (null != ownersel && ownersel.startsWith("=")) {
-              classNames = classesPerOwner.get(ownersel.substring(1)).values();
-            } else {
-              classNames = this.classNames.values();
-            }
-          } else {
-            classNames = this.classNames.values();
-          }
-        }
-
-        List<String> labelNames = new ArrayList<String>(labelPatterns.size());
-        List<SmartPattern> labelSmartPatterns = new ArrayList<SmartPattern>(labelPatterns.size());
-        String[] labelValues = null;
-
-        for(Entry<String,SmartPattern> entry: labelPatterns.entrySet()) {
-          labelNames.add(entry.getKey());
-          labelSmartPatterns.add(entry.getValue());
-        }
-
-        labelValues = new String[labelNames.size()];
-
-        for (String className: classNames) {
-
-          //
-          // If class matches, check all labels for matches
-          //
-
-          if (classSmartPattern.matches(className)) {
-            for (Metadata metadata: this.metadatas.get(className).values()) {
-              boolean exclude = false;
-
-              if (null != missingLabels) {
-                for (String missing: missingLabels) {
-                  // If the Metadata contain one of the missing labels, exclude the entry
-                  if (null != metadata.getLabels().get(missing)) {
-                    exclude = true;
-                    break;
-                  }
-                }
-                // Check attributes
-                if (!exclude && metadata.getAttributesSize() > 0) {
-                  for (String missing: missingLabels) {
-                    // If the Metadata contain one of the missing labels, exclude the entry
-                    if (null != metadata.getAttributes().get(missing)) {
-                      exclude = true;
-                      break;
-                    }
-                  }
-                }
-                if (exclude) {
-                  continue;
-                }
-              }
-
-              int idx = 0;
-
-              for (String labelName: labelNames) {
-                //
-                // Immediately exclude metadata which do not contain one of the
-                // labels for which we have patterns either in labels or in attributes
-                //
-
-                String labelValue = metadata.getLabels().get(labelName);
-
-                if (null == labelValue) {
-                  labelValue = metadata.getAttributes().get(labelName);
-                  if (null == labelValue) {
-                    exclude = true;
-                    break;
-                  }
-                }
-
-                labelValues[idx++] = labelValue;
-              }
-
-              // If we did not collect enough label/attribute values, exclude the GTS
-              if (idx < labelNames.size()) {
-                exclude = true;
-              }
-
-              if (exclude) {
-                continue;
-              }
-
-              //
-              // Check if the label value matches, if not, exclude the GTS
-              //
-
-              for (int j = 0; j < labelNames.size(); j++) {
-                if (!labelSmartPatterns.get(j).matches(labelValues[j])) {
-                  exclude = true;
-                  break;
-                }
-              }
-
-              if (exclude) {
-                continue;
-              }
-
-              //
-              // We have a match, rebuild metadata
-              //
-
-              if (count >= maxHardFindResults) {
-                Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_FIND_LIMITED, Sensision.EMPTY_LABELS, 1);
-                response.setError("Find request would return more than " + maxHardFindResults + " results, aborting.");
-                return response;
-              }
-
-              Metadata meta = new Metadata();
-              meta.setName(className);
-              //meta.setLabels(ImmutableMap.copyOf(metadata.getLabels()));
-              meta.setLabels(new HashMap<String, String>(metadata.getLabels()));
-              //meta.setAttributes(ImmutableMap.copyOf(metadata.getAttributes()));
-              meta.setAttributes(new HashMap<String,String>(metadata.getAttributes()));
-              meta.setClassId(GTSHelper.classId(SIPHASH_CLASS_LONGS, meta.getName()));
-              meta.setLabelsId(GTSHelper.labelsId(SIPHASH_LABELS_LONGS, meta.getLabels()));
-
-              metas.add(meta);
-
-              count++;
-            }
-          }
-        }
-      }
-    }
-
-    if (request.getClassSelectorSize() > 1) {
-      // We create a list because 'metas' is a set
-      response.setMetadatas(new ArrayList<Metadata>());
-      response.getMetadatas().addAll(metas);
-    } else {
-      response.setMetadatas((List<Metadata>) metas);
-    }
-
-    //
-    // Optimize the result when the number of matching Metadata exceeds maxFindResults.
-    // We extract common labels and attempt to compress the result
-    //
-
-    count = response.getMetadatasSize();
-
-    if (count >= this.maxFindResults) {
-
-      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_FIND_COMPACTED, Sensision.EMPTY_LABELS, 1);
-
-      //
-      // Extract common labels
-      //
-
-      Map<String,String> commonLabels = null;
-      Set<String> remove = new HashSet<String>();
-
-      for (Metadata metadata: response.getMetadatas()) {
-        if (null == commonLabels) {
-          commonLabels = new HashMap<String, String>(metadata.getLabels());
-          continue;
-        }
-
-        remove.clear();
-
-        for (Entry<String,String> entry: commonLabels.entrySet()) {
-          if (!metadata.getLabels().containsKey(entry.getKey()) || !entry.getValue().equals(metadata.getLabels().get(entry.getKey()))) {
-            remove.add(entry.getKey());
-          }
-        }
-
-        if (!remove.isEmpty()) {
-          for (String label: remove) {
-            commonLabels.remove(label);
-          }
-        }
-      }
-
-      //
-      // Remove common labels from all Metadata
-      //
-
-      long commonLabelsSize = 0;
-
-      if (!commonLabels.isEmpty()) {
-        for (Metadata metadata: response.getMetadatas()) {
-          for (String label: commonLabels.keySet()) {
-            metadata.getLabels().remove(label);
-          }
-        }
-
-        //
-        // Estimate common labels size
-        //
-
-        for (Entry<String,String> entry: commonLabels.entrySet()) {
-          commonLabelsSize += entry.getKey().length() * 2 + entry.getValue().length() * 2;
-        }
-
-        response.setCommonLabels(commonLabels);
-      }
-
-
-      TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
-
-      byte[] serialized = serializer.serialize(response);
-
-      ByteArrayOutputStream baos = new ByteArrayOutputStream();
-      try {
-        GZIPOutputStream gzos = new GZIPOutputStream(baos);
-        gzos.write(serialized);
-        gzos.close();
-      } catch (IOException ioe) {
-        throw new TException(ioe);
-      }
-
-      serialized = baos.toByteArray();
-
-      if (serialized.length > this.maxThriftFrameLength - commonLabelsSize - 256) {
-        response.setError("Find request result would exceed maximum result size (" + this.maxThriftFrameLength + " bytes).");
-        response.getMetadatas().clear();
-        response.getCommonLabels().clear();
-        return response;
-      }
-
-      response = new DirectoryFindResponse();
-      response.setCompressed(serialized);
-    }
-
-    Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_FIND_RESULTS, Sensision.EMPTY_LABELS, count);
-
-    return response;
-  }
-
-  @Override
-  public DirectoryGetResponse get(DirectoryGetRequest request) throws TException {
-    DirectoryGetResponse response = new DirectoryGetResponse();
-
-    String name = this.classNames.get(request.getClassId());
-
-    if (null != name) {
-      Metadata metadata = this.metadatas.get(name).get(request.getLabelsId());
-      if (null != metadata) {
-        response.setMetadata(metadata);
-      }
-    }
-
-    return response;
-  }
-
-  @Override
   public DirectoryStatsResponse stats(DirectoryStatsRequest request) throws TException {
     return DirectoryUtil.stats(request, null, metadatas, classesPerOwner, LIMIT_CLASS_CARDINALITY, LIMIT_LABELS_CARDINALITY, maxage, SIPHASH_CLASS_LONGS, SIPHASH_LABELS_LONGS, SIPHASH_PSK_LONGS);
   }

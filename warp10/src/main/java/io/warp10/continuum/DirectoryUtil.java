@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -21,7 +21,6 @@ import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.Directory;
-import io.warp10.continuum.store.thrift.data.DirectoryFindRequest;
 import io.warp10.continuum.store.thrift.data.DirectoryStatsRequest;
 import io.warp10.continuum.store.thrift.data.DirectoryStatsResponse;
 import io.warp10.continuum.store.thrift.data.Metadata;
@@ -54,17 +53,6 @@ import org.slf4j.LoggerFactory;
 public class DirectoryUtil {
 
   private static final Logger LOG = LoggerFactory.getLogger(DirectoryUtil.class);
-
-  /**
-   * Compute the hash of a DirectoryFindRequest for the provided SipHash key
-   *
-   * @param k0 first half of SipHash key
-   * @param k1 second half of SipHash key
-   * @param request DirectoryFindRequest to hash
-   */
-  public static long computeHash(long k0, long k1, DirectoryFindRequest request) {
-    return computeHash(k0, k1, request.getTimestamp(), request.getClassSelector(), request.getLabelsSelectors());
-  }
 
   public static long computeHash(long k0, long k1, DirectoryStatsRequest request) {
     return computeHash(k0, k1, request.getTimestamp(), request.getClassSelector(), request.getLabelsSelectors());

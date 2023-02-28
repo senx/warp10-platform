@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -160,72 +160,6 @@ struct GTSData {
    * Encoded values of the Geo Time Serie.
    */
   5: binary data,
-}
-
-struct DirectoryFindRequest {
-  /**
-   * Pattern for selecting GTS class.
-   */
-  1: list<string> classSelector,
-  
-  /**
-   * Patterns for selecting labels
-   */
-  2: list<map<string,string>> labelsSelectors,
-  
-  /**
-   * Timestamp at which the request object was created
-   */
-  3: i64 timestamp,
-  
-  /**
-   * SipHash of the request, used to ensure the requester has
-   * the pre-shared key of the Directory instance.
-   *
-   * This hash is computed on timestamp/classSelector/labelsSelectors
-   */
-  4: i64 hash,
-}
-
-struct DirectoryFindResponse {
-  /**
-   * List of matching Metadata instances
-   */
-  1: list<Metadata> metadatas,
-  
-  /**
-   * Error message
-   */
-  2: string error,
-  
-  /**
-   * Map of common labels
-   */
-  3: optional map<string,string> commonLabels,
-  
-  /**
-   * Compressed embedded DiectoryFindResponse
-   */
-  4: optional binary compressed,
-}
-
-struct DirectoryGetRequest {
-  /**
-   * Class Id for which to retrieve the Metadata
-   */
-  1: i64 classId,
-  
-  /**
-   * Labels Id for which to retrieve the Metadata
-   */
-  2: i64 labelsId,
-}
-
-struct DirectoryGetResponse {
-  /**
-   * Returned metadata, not set if not found
-   */
-  1: Metadata metadata,
 }
 
 /**
