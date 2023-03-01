@@ -1,1 +1,1 @@
-include 'warp10', 'warpscript', 'crypto', 'token', 'hbaseFilters'
+include 'warp10', 'warpscript', 'crypto', 'token'

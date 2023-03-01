@@ -55,18 +55,23 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPOutputStream;
 
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import io.warp10.CustomThreadFactory;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.geoxp.oss.CryptoHelper;
 import com.google.common.base.Preconditions;
 import com.google.common.primitives.Longs;
-import com.netflix.curator.framework.CuratorFramework;
-import com.netflix.curator.framework.CuratorFrameworkFactory;
-import com.netflix.curator.framework.recipes.leader.LeaderLatch;
-import com.netflix.curator.retry.RetryNTimes;
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.CuratorFrameworkFactory;
+import org.apache.curator.framework.recipes.leader.LeaderLatch;
+import org.apache.curator.retry.RetryNTimes;
 
 import io.warp10.WarpConfig;
 import io.warp10.WarpDist;
@@ -83,9 +88,6 @@ import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.crypto.SipHashInline;
 import io.warp10.sensision.Sensision;
-import kafka.javaapi.producer.Producer;
-import kafka.producer.KeyedMessage;
-import kafka.producer.ProducerConfig;
 
 /**
  * Periodically submit WarpScript scripts residing in subdirectories of the given root.
@@ -93,7 +95,13 @@ import kafka.producer.ProducerConfig;
  */
 public class ScriptRunner extends Thread {
 
-  protected static final byte[] CLEAR = "\nCLEAR\n".getBytes(StandardCharsets.UTF_8);
+  private static final Logger LOG = LoggerFactory.getLogger(ScriptRunner.class);
+
+  /*
+   * CLEAR footer, used to remove all symbols and clear the stack so no output is returned
+   * even if EXPORT was called
+   */
+  protected static final byte[] CLEAR = ("\n" + WarpScriptLib.CLEARSYMBOLS + " " + WarpScriptLib.CLEAR + "\n").getBytes(StandardCharsets.UTF_8);
 
   protected ExecutorService executor;
 
@@ -138,7 +146,7 @@ public class ScriptRunner extends Thread {
    * Required properties for the distributed 'worker' role of ScriptRunner
    */
   public static final String[] REQUIRED_PROPERTIES_WORKER = {
-      Configuration.RUNNER_KAFKA_ZKCONNECT,
+      Configuration.RUNNER_KAFKA_CONSUMER_BOOTSTRAP_SERVERS,
       Configuration.RUNNER_KAFKA_TOPIC,
       Configuration.RUNNER_KAFKA_GROUPID,
       Configuration.RUNNER_KAFKA_COMMITPERIOD,
@@ -152,7 +160,7 @@ public class ScriptRunner extends Thread {
    * Required properties for the distributed 'scheduler' role of ScriptRunner
    */
   public static final String[] REQUIRED_PROPERTIES_SCHEDULER = {
-      Configuration.RUNNER_KAFKA_BROKERLIST,
+      Configuration.RUNNER_KAFKA_PRODUCER_BOOTSTRAP_SERVERS,
       Configuration.RUNNER_KAFKA_TOPIC,
       Configuration.RUNNER_KAFKA_POOLSIZE,
       Configuration.RUNNER_ROOT,
@@ -175,7 +183,6 @@ public class ScriptRunner extends Thread {
   private static final Pattern VAR = Pattern.compile("\\$\\{([^}]+)\\}");
 
   public ScriptRunner(KeyStore keystore, Properties config) throws IOException {
-
     //
     // Extract our roles
     //
@@ -255,7 +262,8 @@ public class ScriptRunner extends Thread {
 
       this.endpoint = config.getProperty(Configuration.RUNNER_ENDPOINT);
 
-      String zkconnect = config.getProperty(Configuration.RUNNER_KAFKA_ZKCONNECT);
+      String zkconnect = config.getProperty(Configuration.RUNNER_KAFKA_CONSUMER_BOOTSTRAP_SERVERS);
+      Properties initialConfig = Configuration.extractPrefixed(config, config.getProperty(Configuration.RUNNER_KAFKA_CONSUMER_CONF_PREFIX));
       this.topic = config.getProperty(Configuration.RUNNER_KAFKA_TOPIC);
       String groupid = config.getProperty(Configuration.RUNNER_KAFKA_GROUPID);
       String clientid = config.getProperty(Configuration.RUNNER_KAFKA_CONSUMER_CLIENTID);
@@ -268,7 +276,7 @@ public class ScriptRunner extends Thread {
 
       this.executor = runnersExecutor;
 
-      this.consumerPool = new KafkaSynchronizedConsumerPool(zkconnect, topic, clientid, groupid, strategy, nthreads, commitPeriod, new ScriptRunnerConsumerFactory(this));
+      this.consumerPool = new KafkaSynchronizedConsumerPool(initialConfig, zkconnect, topic, clientid, groupid, strategy, nthreads, commitPeriod, new ScriptRunnerConsumerFactory(this));
     }
 
     if (isScheduler) {
@@ -282,19 +290,22 @@ public class ScriptRunner extends Thread {
       this.topic = config.getProperty(Configuration.RUNNER_KAFKA_TOPIC);
 
       Properties props = new Properties();
+
+      props.putAll(Configuration.extractPrefixed(config, config.getProperty(Configuration.RUNNER_KAFKA_PRODUCER_CONF_PREFIX)));
+
       // @see <a href="http://kafka.apache.org/documentation.html#producerconfigs">http://kafka.apache.org/documentation.html#producerconfigs</a>
-      props.setProperty("metadata.broker.list", props.getProperty(Configuration.RUNNER_KAFKA_BROKERLIST));
-      if (null != props.getProperty(Configuration.RUNNER_KAFKA_PRODUCER_CLIENTID)) {
-        props.setProperty("client.id", props.getProperty(Configuration.RUNNER_KAFKA_PRODUCER_CLIENTID));
+      props.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, config.getProperty(Configuration.RUNNER_KAFKA_PRODUCER_BOOTSTRAP_SERVERS));
+      if (null != config.getProperty(Configuration.RUNNER_KAFKA_PRODUCER_CLIENTID)) {
+        props.setProperty(ProducerConfig.CLIENT_ID_CONFIG, config.getProperty(Configuration.RUNNER_KAFKA_PRODUCER_CLIENTID));
       }
-      props.setProperty("request.required.acks", "-1");
-      props.setProperty("producer.type", "sync");
-      props.setProperty("serializer.class", "kafka.serializer.DefaultEncoder");
+      props.setProperty(ProducerConfig.ACKS_CONFIG, "-1");
+      props.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArraySerializer");
+      props.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArraySerializer");
+      // Only a single in flight request to remove risk of message reordering during retries
+      props.setProperty(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, "1");
 
-      ProducerConfig kafkaConfig = new ProducerConfig(props);
-
-      this.kafkaProducerPool = new KafkaProducerPool(kafkaConfig,
-          Integer.parseInt(props.getProperty(Configuration.RUNNER_KAFKA_POOLSIZE)),
+      this.kafkaProducerPool = new KafkaProducerPool(props,
+          Integer.parseInt(config.getProperty(Configuration.RUNNER_KAFKA_POOLSIZE)),
           SensisionConstants.SENSISION_CLASS_CONTINUUM_RUNNER_KAFKA_PRODUCER_POOL_GET,
           SensisionConstants.SENSISION_CLASS_CONTINUUM_RUNNER_KAFKA_PRODUCER_WAIT_NANOS);
 
@@ -314,8 +325,13 @@ public class ScriptRunner extends Thread {
       try {
         this.leaderLatch.start();
       } catch (Exception e) {
+        LOG.error("Error starting leader latch", e);
         throw new IOException(e);
       }
+
+      this.setDaemon(true);
+      this.setName("[Warp ScriptRunner]");
+      this.start();
     }
 
     this.id = config.getProperty(Configuration.RUNNER_ID);
@@ -329,7 +345,7 @@ public class ScriptRunner extends Thread {
    */
   protected void removeRunnerContext(String scriptName) {
   }
-  
+
   @Override
   public void run() {
 
@@ -380,7 +396,6 @@ public class ScriptRunner extends Thread {
         Set<String> currentScripts = new HashSet<String>(scripts.keySet()); // copy object
         scripts.clear();
         scripts.putAll(newscripts);
-
 
         //
         // Clear entries from 'nextrun' which are for scripts which no longer exist
@@ -444,7 +459,7 @@ public class ScriptRunner extends Thread {
         }
       }
 
-      LockSupport.parkNanos(10000000L);
+      LockSupport.parkNanos(50000000L);
     }
   }
 
@@ -740,16 +755,16 @@ public class ScriptRunner extends Thread {
       content = CryptoUtils.addMAC(this.KAFKA_MAC, content);
     }
 
-    Producer<byte[], byte[]> producer = null;
+    KafkaProducer<byte[], byte[]> producer = null;
 
     // Use the script path as the scheduling key so the same script ends up in the same partition
     byte[] key = path.getBytes(StandardCharsets.UTF_8);
-    KeyedMessage<byte[], byte[]> message = new KeyedMessage<byte[], byte[]>(this.topic, key, content);
+    ProducerRecord<byte[],byte[]> record = new ProducerRecord<byte[],byte[]>(this.topic, key, content);
 
     try {
       producer = this.kafkaProducerPool.getProducer();
-
-      producer.send(message);
+      // Call get() so we simulate a synchronous producer
+      producer.send(record).get();
     } catch (Exception e) {
       // Reschedule immediately
       nextrun.put(script, System.nanoTime());
@@ -872,5 +887,4 @@ public class ScriptRunner extends Thread {
 
     this.keystore.forget();
   }
-
 }

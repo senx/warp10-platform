@@ -99,7 +99,7 @@ dependencies {
     api withVersion('org.apache.commons:commons-math3')
     api withVersion('com.github.spullara.mustache.java:compiler')
     api withVersion('org.processing:core')
-    api withVersion('com.netflix.curator:curator-x-discovery')
+    api withVersion('org.apache.curator:curator-x-discovery')
     api withVersion('io.senx:geoxplib')
     api withVersion('com.google.guava:guava')
     api withVersion('org.apache.hadoop:hadoop-common')
