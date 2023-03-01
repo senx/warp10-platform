@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -45,11 +45,31 @@ public class SharedMemoryWarpScriptExtension extends WarpScriptExtension impleme
   private static final String CONFIG_SHM_TTL = "shm.ttl";
 
   /**
+   * Maximum time to wait for a mutex, in ms. If 0, then unlimited waiting is
+   * allowed.
+   * This value can be altered by the value of the mutex.maxwait capability.
+   */
+  private static final String CONFIG_MUTEX_MAXWAIT = "mutex.maxwait";
+
+  /**
+   * Default timeout for MUTEX is 5 s
+   */
+  private static final String DEFAULT_MUTEX_MAXWAIT = Long.toString(5000L);
+
+  /**
    * Default TTL for shared objects, 1H
    */
   private static final long DEFAULT_SHM_TTL = 1 * 3600 * 1000L;
 
+  static final long MUTEX_DEFAULT_MAXWAIT;
+
   static {
+    MUTEX_DEFAULT_MAXWAIT = Long.parseLong(WarpConfig.getProperty(CONFIG_MUTEX_MAXWAIT, DEFAULT_MUTEX_MAXWAIT));
+
+    if (MUTEX_DEFAULT_MAXWAIT < 0) {
+      throw new RuntimeException("Invalid value for '" + CONFIG_MUTEX_MAXWAIT + "', expected value >= 0.");
+    }
+
     locks = new HashMap<String,ReentrantLock>();
     lockUses = new HashMap<String,Long>();
 
@@ -68,6 +88,7 @@ public class SharedMemoryWarpScriptExtension extends WarpScriptExtension impleme
   }
 
   public static final String CAPABILITY_MUTEX = "mutex";
+  public static final String CAPABILITY_MUTEX_MAXWAIT = "mutex.maxwait";
   public static final String CAPABILITY_SHMLOAD = "shmload";
   public static final String CAPABILITY_SHMSTORE = "shmstore";
 

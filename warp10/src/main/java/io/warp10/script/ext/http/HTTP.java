@@ -41,8 +41,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
-import io.warp10.script.WarpScriptStack;
-
 /**
  * Send an HTTP request to a url
  *
@@ -96,7 +94,7 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
   // Control
   //
 
-  private static final WebAccessController webAccessController;
+  private static final WebAccessController defaultWebAccessController;
 
   //
   // Limits
@@ -115,7 +113,7 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
   static {
     String patternConf = WarpConfig.getProperty(HttpWarpScriptExtension.WARPSCRIPT_HTTP_HOST_PATTERNS, DEFAULT_HTTP_HOST_PATTERN);
 
-    webAccessController = new WebAccessController(patternConf);
+    defaultWebAccessController = new WebAccessController(patternConf);
 
     // retrieve limits
     String confMaxRequests = WarpConfig.getProperty(HttpWarpScriptExtension.WARPSCRIPT_HTTP_REQUESTS);
@@ -157,11 +155,19 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
     //
     // Check authorization
     //
-
-    if (null == Capabilities.get(stack,WarpScriptStack.CAPABILITY_HTTP)) {
+    String httpCap = Capabilities.get(stack, WarpScriptStack.CAPABILITY_HTTP);
+    if (null == httpCap) {
       throw new WarpScriptException(getName() + " requires capability '" + WarpScriptStack.CAPABILITY_HTTP + "'.");
     }
 
+    //
+    // The http capability may contain the url filter. If not, use the default one.
+    //
+    WebAccessController webAccessController = defaultWebAccessController;
+    if (!httpCap.isEmpty()) {
+      webAccessController = new WebAccessController(httpCap);
+    }
+    
     //
     // Retrieve call number limit and download size limit
     //
