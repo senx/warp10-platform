@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,10 +16,9 @@
 
 package io.warp10.continuum;
 
-import io.warp10.continuum.store.Directory;
-
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.CyclicBarrier;
@@ -27,85 +26,91 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.LockSupport;
+import java.util.concurrent.locks.ReentrantLock;
 
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import kafka.consumer.Consumer;
-import kafka.consumer.ConsumerConfig;
-import kafka.consumer.KafkaStream;
-import kafka.javaapi.consumer.ConsumerConnector;
 
 /**
  * Generic class handling Kafka topic consumption and handling
  * by multiple threads.
- * 
+ *
  * One thread called the spawner will create consuming threads
  * at launch time and when an abort situation is encountered.
- * 
+ *
  * One thread called the synchronizer will periodically synchronize
  * the consuming threads via a cyclic barrier and commit the offsets.
- * 
+ *
  * The consuming threads consume the Kafka messages and act upon them.
  */
 public class KafkaSynchronizedConsumerPool {
 
   private static final Logger LOG = LoggerFactory.getLogger(KafkaSynchronizedConsumerPool.class);
 
+  private Properties initialConfig;
   private CyclicBarrier barrier;
   private final AtomicBoolean abort;
   private final AtomicBoolean initialized;
-  
+
   private final Synchronizer synchronizer;
   private final Spawner spawner;
 
   private final KafkaOffsetCounters counters;
-  
+
   private final AtomicBoolean shutdown = new AtomicBoolean(false);
-  
+
   private final AtomicBoolean stopped = new AtomicBoolean(false);
-  
+
+  private Map<KafkaConsumer,ReentrantLock> consumerLocks = null;
+  private Map<KafkaConsumer,AtomicBoolean> pending = null;
+
+  private AtomicBoolean mustCommit = new AtomicBoolean(false);
+
   public static interface ConsumerFactory {
-    public Runnable getConsumer(KafkaSynchronizedConsumerPool pool, KafkaStream<byte[], byte[]> stream);
+    public Runnable getConsumer(KafkaSynchronizedConsumerPool pool, KafkaConsumer<byte[], byte[]> stream, Collection<String> topics);
   }
 
   public static interface Hook {
     public void call();
   }
-  
+
   private static class Synchronizer extends Thread {
-    
+
     private final KafkaSynchronizedConsumerPool pool;
     private final long commitPeriod;
     private Hook syncHook = null;
-    
+
     public Synchronizer(KafkaSynchronizedConsumerPool pool, long commitPeriod) {
       this.pool = pool;
       this.commitPeriod = commitPeriod;
     }
-    
+
     @Override
     public void run() {
       long lastsync = System.currentTimeMillis();
-        
+
       //
       // Check for how long we've been storing readings, if we've reached the commitperiod,
       // flush any pending commits and synchronize with the other threads so offsets can be committed
       //
 
-      while(true) { 
+      while(true) {
         long now = System.currentTimeMillis();
-          
+
         //
         // Only do something is the pool has been initialized (or re-initialized)
         //
-        
+
         if (pool.getInitialized().get() && !pool.getAbort().get() && (now - lastsync > commitPeriod)) {
           //
           // Now join the cyclic barrier which will trigger the
           // commit of offsets
           //
           try {
+            pool.mustCommit.set(true);
             pool.getBarrier().await();
             if (null != syncHook) {
               syncHook.call();
@@ -118,14 +123,11 @@ public class KafkaSynchronizedConsumerPool {
           }
         }
 
-        try {
-          Thread.sleep(100L);
-        } catch (InterruptedException ie) {                
-        }
+        LockSupport.parkNanos(100000000L);
       }
     }
   }
-  
+
   private static class Spawner extends Thread {
 
     private final KafkaSynchronizedConsumerPool pool;
@@ -137,11 +139,11 @@ public class KafkaSynchronizedConsumerPool {
     private final String autoOffsetReset;
     private final int nthreads;
     private final ConsumerFactory factory;
-    
+
     private Hook abortHook = null;
     private Hook preCommitOffsetHook = null;
     private Hook commitOffsetHook = null;
-    
+
     public Spawner(KafkaSynchronizedConsumerPool pool, String zkconnect, String topic, String clientid, String groupid, String strategy, String autoOffsetReset, int nthreads, ConsumerFactory factory) {
       this.pool = pool;
       this.zkconnect = zkconnect;
@@ -153,66 +155,74 @@ public class KafkaSynchronizedConsumerPool {
       this.nthreads = nthreads;
       this.factory = factory;
     }
-    
+
     public void run() {
-        
+
       ExecutorService executor = null;
-      ConsumerConnector connector = null;
-        
+
       while(!pool.shutdown.get()) {
+
+        KafkaConsumer[] consumers = null;
+
         try {
           //
           // Enter an endless loop which will spawn 'nthreads' threads
-          // each time the Kafka consumer is shut down (which will happen if an error
-          // happens while talking to HBase for example, to get a chance to re-read data from the
-          // previous snapshot).
+          // each time the Kafka consumer is shut down
           //
-          
-          Map<String,Integer> topicCountMap = new HashMap<String, Integer>();
-              
-          topicCountMap.put(topic, nthreads);
-              
+
           Properties props = new Properties();
-          props.setProperty("zookeeper.connect", this.zkconnect);
-          props.setProperty("group.id",this.groupid);
+
+          // Load explicit configuration
+          props.putAll(this.pool.initialConfig);
+
+          props.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, this.zkconnect);
+          props.setProperty(ConsumerConfig.GROUP_ID_CONFIG,this.groupid);
           if (null != this.clientid) {
-            props.setProperty("client.id", this.clientid);
+            props.setProperty(ConsumerConfig.CLIENT_ID_CONFIG, this.clientid);
           }
           if (null != this.strategy) {
-            props.setProperty("partition.assignment.strategy", this.strategy);
+            props.setProperty(ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, this.strategy);
           }
-          props.setProperty("auto.commit.enable", "false");
-          
-          if (null != this.autoOffsetReset) {
-            props.setProperty("auto.offset.reset", this.autoOffsetReset);
-          }
-          
-          ConsumerConfig config = new ConsumerConfig(props);
-          connector = Consumer.createJavaConsumerConnector(config);
+          props.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
 
-          Map<String,List<KafkaStream<byte[], byte[]>>> consumerMap = connector.createMessageStreams(topicCountMap);
-          
+          if (null != this.autoOffsetReset) {
+            props.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, this.autoOffsetReset);
+          }
+
+          props.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArrayDeserializer");
+          props.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArrayDeserializer");
+
+          // Only retrieve a single message per call to poll
+          props.setProperty(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "1");
+
           // Reset counters so we only export metrics for partitions we really consume
           pool.getCounters().reset();
-          
-          List<KafkaStream<byte[], byte[]>> streams = consumerMap.get(topic);
-            
+
           // 1 for the Synchronizer, 1 for the Spawner
-          
+
           pool.setBarrier(new CyclicBarrier(1 + 1));
-            
+
           executor = Executors.newFixedThreadPool(nthreads);
-            
+
           //
           // now create runnables which will consume messages
           //
-            
-          for (final KafkaStream<byte[],byte[]> stream : streams) {
-            executor.submit(factory.getConsumer(pool,stream));
-          }      
-                
+
+          consumers = new KafkaConsumer[nthreads];
+          pool.consumerLocks = new HashMap<KafkaConsumer,ReentrantLock>(nthreads);
+          pool.pending = new HashMap<KafkaConsumer,AtomicBoolean>(nthreads);
+
+          Collection<String> topics = Collections.singletonList(topic);
+
+          for (int i = 0; i < nthreads; i++) {
+            consumers[i] = new KafkaConsumer<>(props);
+            pool.consumerLocks.put(consumers[i], new ReentrantLock());
+            pool.pending.put(consumers[i], new AtomicBoolean(false));
+            executor.submit(factory.getConsumer(pool,consumers[i], topics));
+          }
+
           pool.getInitialized().set(true);
-          
+
           while(!pool.getAbort().get() && !Thread.currentThread().isInterrupted()) {
             try {
               if (1 == pool.getBarrier().getNumberWaiting()) {
@@ -221,42 +231,68 @@ public class KafkaSynchronizedConsumerPool {
                 // an exception was thrown when flushing the commits just before
                 // entering the barrier
                 //
-                    
+
                 if (pool.getAbort().get()) {
                   break;
                 }
-                      
+
                 //
                 // All processing threads are waiting on the barrier, this means we can flush the offsets because
                 // they have all processed data successfully for the given activity period
                 //
-                    
-                
+
+
                 if (null != preCommitOffsetHook) {
                   preCommitOffsetHook.call();
                 }
-                
+
                 // Commit offsets
-                connector.commitOffsets();
+                try {
+                  for (KafkaConsumer consumer: consumers) {
+                    ReentrantLock lock = pool.consumerLocks.get(consumer);
+                    AtomicBoolean pending = pool.pending.get(consumer);
+
+                    while(true) {
+                      try {
+                        lock.lockInterruptibly();
+                        // Check if the consumer has pending records, if so,
+                        // continue the look
+                        if (pending.get()) {
+                          continue;
+                        }
+                        // No pending records, commit the offsets and exit the loop
+                        consumer.commitSync();
+                        break;
+                      } finally {
+                        if (lock.isHeldByCurrentThread()) {
+                          lock.unlock();
+                        }
+                      }
+                    }
+                  }
+                } finally {
+                  pool.mustCommit.set(false);
+                }
+
                 pool.getCounters().commit();
                 pool.getCounters().sensisionPublish();
-                
+
                 if (null != commitOffsetHook) {
                   commitOffsetHook.call();
                 }
                 // MOVE in COMMIT HOOK - Sensision.update(SensisionConstants.SENSISION_CLASS_WEBCALL_KAFKA_IN_COMMITS, Sensision.EMPTY_LABELS, 1);
-                  
+
                 // Release the waiting threads
                 try {
                   pool.getBarrier().await();
                 } catch (Exception e) {
                   break;
                 }
-              }              
+              }
             } catch (Throwable t) {
               pool.getAbort().set(true);
             }
-            
+
             LockSupport.parkNanos(100000000L);
           }
 
@@ -267,25 +303,25 @@ public class KafkaSynchronizedConsumerPool {
           // We exited the loop, this means one of the threads triggered an abort,
           // we will shut down the executor and shut down the connector to start over.
           //
-        
+
           if (null != executor) {
             try {
               executor.shutdownNow();
-            } catch (Exception e) {                
-            }
-          }
-          if (null != connector) {
-            try {
-              connector.shutdown();
             } catch (Exception e) {
-                
             }
           }
-            
+          if (null != consumers) {
+            for (KafkaConsumer consumer: consumers) {
+              try {
+                consumer.close();
+              } catch (Exception e) {
+              }
+            }
+          }
+
           if (null != abortHook) {
             abortHook.call();
           }
-          // MOVE in ABORT HOOK -           Sensision.update(SensisionConstants.SENSISION_CLASS_WEBCALL_IN_ABORTS, Sensision.EMPTY_LABELS, 1);
 
           // Set initialized to false first as this is what is checked by the Synchronizer
           pool.getInitialized().set(false);
@@ -294,54 +330,55 @@ public class KafkaSynchronizedConsumerPool {
           LockSupport.parkNanos(1000000000L);
         }
       }
-      
+
       pool.stopped.set(true);
-    }    
+    }
   }
-  
-  public KafkaSynchronizedConsumerPool(String zkconnect, String topic, String clientid, String groupid, String strategy, int nthreads, long commitPeriod, ConsumerFactory factory) {
-    this(zkconnect, topic, clientid, groupid, strategy, null, nthreads, commitPeriod, factory);
+
+  public KafkaSynchronizedConsumerPool(Properties initialConfig, String zkconnect, String topic, String clientid, String groupid, String strategy, int nthreads, long commitPeriod, ConsumerFactory factory) {
+    this(initialConfig, zkconnect, topic, clientid, groupid, strategy, null, nthreads, commitPeriod, factory);
   }
-  
-  public KafkaSynchronizedConsumerPool(String zkconnect, String topic, String clientid, String groupid, String strategy, String autoOffsetReset, int nthreads, long commitPeriod, ConsumerFactory factory) {
-    
+
+  public KafkaSynchronizedConsumerPool(Properties initialConfig, String zkconnect, String topic, String clientid, String groupid, String strategy, String autoOffsetReset, int nthreads, long commitPeriod, ConsumerFactory factory) {
+
+    this.initialConfig = initialConfig;
     this.abort = new AtomicBoolean(false);
     this.initialized = new AtomicBoolean(false);
-    
-    this.synchronizer = new Synchronizer(this, commitPeriod);    
+
+    this.synchronizer = new Synchronizer(this, commitPeriod);
     this.spawner = new Spawner(this, zkconnect, topic, clientid, groupid, strategy, autoOffsetReset, nthreads, factory);
-  
+
     this.counters = new KafkaOffsetCounters(topic, groupid, commitPeriod * 2);
-    
+
     synchronizer.setName("[Synchronizer '" + topic + "' (" + groupid + ") nthr=" + nthreads + " every " + commitPeriod + " ms]");
     synchronizer.setDaemon(true);
     synchronizer.start();
-    
+
     spawner.setName("[Spawner '" + topic + "' (" + groupid + ") nthr=" + nthreads + " every " + commitPeriod + " ms]");
     spawner.setDaemon(true);
-    spawner.start();    
+    spawner.start();
   }
 
   private void setBarrier(CyclicBarrier barrier) {
     this.barrier = barrier;
   }
-  
+
   private CyclicBarrier getBarrier() {
     return this.barrier;
   }
-  
+
   public AtomicBoolean getAbort() {
     return this.abort;
   }
-  
+
   public AtomicBoolean getInitialized() {
     return this.initialized;
   }
-  
+
   public void setAbortHook(Hook hook) {
     this.spawner.abortHook = hook;
   }
-  
+
   public void setPreCommitOffsetHook(Hook hook) {
     this.spawner.preCommitOffsetHook = hook;
   }
@@ -349,22 +386,47 @@ public class KafkaSynchronizedConsumerPool {
   public void setCommitOffsetHook(Hook hook) {
     this.spawner.commitOffsetHook = hook;
   }
-  
+
   public void setSyncHook(Hook hook) {
     this.synchronizer.syncHook = hook;
   }
-  
+
   public KafkaOffsetCounters getCounters() {
     return this.counters;
   }
-  
+
   public void shutdown() {
     // Set shutdown to true first
     this.shutdown.set(true);
     this.abort.set(true);
   }
-  
+
   public boolean isStopped() {
     return this.stopped.get();
+  }
+
+  //Kafka 2.xpublic ConsumerRecords poll(KafkaConsumer consumer, Duration delay) throws InterruptedException {
+  public ConsumerRecords poll(KafkaConsumer consumer, long delay) throws InterruptedException {
+    ReentrantLock lock = consumerLocks.get(consumer);
+
+    if (null == lock) {
+      throw new RuntimeException("Unknown consumer.");
+    }
+
+    try {
+      this.pending.get(consumer).set(false);
+      lock.lockInterruptibly();
+      // If the pool must commit, return an empty set of records
+      if (this.mustCommit.get()) {
+        return new ConsumerRecords(new HashMap());
+      }
+      ConsumerRecords records = consumer.poll(delay);
+      this.pending.get(consumer).set(records.count() > 0);
+      return records;
+    } finally {
+      if (lock.isHeldByCurrentThread()) {
+        lock.unlock();
+      }
+    }
   }
 }

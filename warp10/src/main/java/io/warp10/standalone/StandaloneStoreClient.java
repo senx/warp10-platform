@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -29,13 +29,13 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.hadoop.hbase.util.Bytes;
 import org.iq80.leveldb.DBIterator;
 import org.iq80.leveldb.ReadOptions;
 import org.iq80.leveldb.WriteBatch;
 import org.iq80.leveldb.WriteOptions;
 
 import io.warp10.WarpConfig;
+import io.warp10.BytesUtils;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.Tokens;
 import io.warp10.continuum.gts.GTSDecoder;
@@ -123,7 +123,6 @@ public class StandaloneStoreClient implements StoreClient {
     double sample = req.getSample();
     long preBoundary = req.getPreBoundary();
     long postBoundary = req.getPostBoundary();
-    final boolean writeTimestamp = req.isWriteTimestamp();
 
     if (preBoundary < 0) {
       preBoundary = 0;
@@ -158,10 +157,6 @@ public class StandaloneStoreClient implements StoreClient {
       preBoundary = 0;
     }
 
-    if (writeTimestamp) {
-      throw new RuntimeException("No support for write timestamp retrieval.");
-    }
-
     if (step < 1L) {
       step = 1L;
     }
@@ -175,7 +170,7 @@ public class StandaloneStoreClient implements StoreClient {
     final long fstep = step;
     final long ftimestep = timestep;
     // 128bits
-    final byte[] rowbuf = hasTimestep ? new byte[Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8] : null;
+    final byte[] rowbuf = hasTimestep ? new byte[Constants.FDB_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8] : null;
 
     ReadOptions options = new ReadOptions().fillCache(true);
 
@@ -285,9 +280,9 @@ public class StandaloneStoreClient implements StoreClient {
           Entry<byte[], byte[]> kv = iterator.prev();
           // Check if the previous row is for the same GTS (prefix + 8 bytes for class id + 8 bytes for labels id)
           // 128bits
-          int i = Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8;
+          int i = Constants.FDB_RAW_DATA_KEY_PREFIX.length + 8 + 8;
           // The post boundary scan exhausted the datapoints for the GTS, seek back to startrow
-          if (0 != Bytes.compareTo(kv.getKey(), 0, i, startrow, 0, i)) {
+          if (0 != BytesUtils.compareTo(kv.getKey(), 0, i, startrow, 0, i)) {
             postBoundary = 0;
             if (nvalues > 0) {
               iterator.seek(startrow);
@@ -339,7 +334,7 @@ public class StandaloneStoreClient implements StoreClient {
             Entry<byte[], byte[]> kv = iterator.next();
 
             // We've reached past 'stoprow', handle pre boundary
-            if (Bytes.compareTo(kv.getKey(), stoprow) > 0) {
+            if (BytesUtils.compareTo(kv.getKey(), stoprow) > 0) {
               //
               // If a boundary was requested, fetch it
               //
@@ -347,8 +342,8 @@ public class StandaloneStoreClient implements StoreClient {
               while (preBoundary > 0 && encoder.size() < MAX_ENCODER_SIZE) {
                 // Check if the row is for the same GTS, if not then we are done
                 // 128bits
-                int i = Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8;
-                if (0 != Bytes.compareTo(kv.getKey(), 0, i, stoprow, 0, i)) {
+                int i = Constants.FDB_RAW_DATA_KEY_PREFIX.length + 8 + 8;
+                if (0 != BytesUtils.compareTo(kv.getKey(), 0, i, stoprow, 0, i)) {
                   preBoundary = 0;
                   break;
                 }
@@ -387,7 +382,7 @@ public class StandaloneStoreClient implements StoreClient {
 
             ByteBuffer bb = ByteBuffer.wrap(kv.getKey()).order(ByteOrder.BIG_ENDIAN);
 
-            bb.position(Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8);
+            bb.position(Constants.FDB_RAW_DATA_KEY_PREFIX.length + 8 + 8);
 
             long basets = Long.MAX_VALUE - bb.getLong();
 
@@ -426,7 +421,7 @@ public class StandaloneStoreClient implements StoreClient {
 
               long rowts = Long.MAX_VALUE - nextTimestamp;
               // 128bits
-              int offset = Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8;
+              int offset = Constants.FDB_RAW_DATA_KEY_PREFIX.length + 8 + 8;
               rowbuf[offset + 7] = (byte) (rowts & 0xFFL);
               rowts >>>= 8;
               rowbuf[offset + 6] = (byte) (rowts & 0xFFL);
@@ -561,7 +556,7 @@ public class StandaloneStoreClient implements StoreClient {
 
               // Still some data if fetch is either time based or has not returned the requested number of points and stoprow was not yet reached.
               byte[] key = iterator.peekNext().getKey();
-              if ((-1 == fcount || nvalues > 0) && (Bytes.compareTo(key, stoprow) <= 0)) {
+              if ((-1 == fcount || nvalues > 0) && (BytesUtils.compareTo(key, stoprow) <= 0)) {
                 return true;
               }
             }
@@ -576,16 +571,16 @@ public class StandaloneStoreClient implements StoreClient {
           }
 
           // 128bits
-          startrow = new byte[Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
+          startrow = new byte[Constants.FDB_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
           ByteBuffer bb = ByteBuffer.wrap(startrow).order(ByteOrder.BIG_ENDIAN);
-          bb.put(Constants.HBASE_RAW_DATA_KEY_PREFIX);
+          bb.put(Constants.FDB_RAW_DATA_KEY_PREFIX);
           bb.putLong(metadatas.get(idx).getClassId());
           bb.putLong(metadatas.get(idx).getLabelsId());
           bb.putLong(Long.MAX_VALUE - now);
 
           stoprow = new byte[startrow.length];
           bb = ByteBuffer.wrap(stoprow).order(ByteOrder.BIG_ENDIAN);
-          bb.put(Constants.HBASE_RAW_DATA_KEY_PREFIX);
+          bb.put(Constants.FDB_RAW_DATA_KEY_PREFIX);
           bb.putLong(metadatas.get(idx).getClassId());
           bb.putLong(metadatas.get(idx).getLabelsId());
           bb.putLong(Long.MAX_VALUE - then);
@@ -687,8 +682,8 @@ public class StandaloneStoreClient implements StoreClient {
     List<byte[][]> kvs = new ArrayList<byte[][]>();
 
     while(decoder.next()) {
-      ByteBuffer bb = ByteBuffer.wrap(new byte[Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8]).order(ByteOrder.BIG_ENDIAN);
-      bb.put(Constants.HBASE_RAW_DATA_KEY_PREFIX);
+      ByteBuffer bb = ByteBuffer.wrap(new byte[Constants.FDB_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8]).order(ByteOrder.BIG_ENDIAN);
+      bb.put(Constants.FDB_RAW_DATA_KEY_PREFIX);
       bb.putLong(encoder.getClassId());
       bb.putLong(encoder.getLabelsId());
       bb.putLong(Long.MAX_VALUE - decoder.getTimestamp());
@@ -742,9 +737,9 @@ public class StandaloneStoreClient implements StoreClient {
       //
 
       // 128BITS
-      byte[] bend = new byte[Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
+      byte[] bend = new byte[Constants.FDB_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
       ByteBuffer bb = ByteBuffer.wrap(bend).order(ByteOrder.BIG_ENDIAN);
-      bb.put(Constants.HBASE_RAW_DATA_KEY_PREFIX);
+      bb.put(Constants.FDB_RAW_DATA_KEY_PREFIX);
       bb.putLong(metadata.getClassId());
       bb.putLong(metadata.getLabelsId());
       bb.putLong(Long.MAX_VALUE - end);
@@ -753,7 +748,7 @@ public class StandaloneStoreClient implements StoreClient {
 
       byte[] bstart = new byte[bend.length];
       bb = ByteBuffer.wrap(bstart).order(ByteOrder.BIG_ENDIAN);
-      bb.put(Constants.HBASE_RAW_DATA_KEY_PREFIX);
+      bb.put(Constants.FDB_RAW_DATA_KEY_PREFIX);
       bb.putLong(metadata.getClassId());
       bb.putLong(metadata.getLabelsId());
       bb.putLong(Long.MAX_VALUE - start);
@@ -772,7 +767,7 @@ public class StandaloneStoreClient implements StoreClient {
       while (iterator.hasNext()) {
         Entry<byte[],byte[]> entry = iterator.next();
 
-        if (Bytes.compareTo(entry.getKey(), bend) >= 0 && Bytes.compareTo(entry.getKey(), bstart) <= 0) {
+        if (BytesUtils.compareTo(entry.getKey(), bend) >= 0 && BytesUtils.compareTo(entry.getKey(), bstart) <= 0) {
           batch.delete(entry.getKey());
           batchsize++;
 

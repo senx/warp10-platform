@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -209,6 +209,11 @@ public class GTSEncoder implements Cloneable {
    * Number of values this encoder contains.
    */
   private long count = 0L;
+
+  /**
+   * Exploded size, in bytes
+   */
+  private long pessimisticSize = 0L;
 
   private boolean validLastGeoXPPoint = false;
   private boolean validLastElevation = false;
@@ -471,6 +476,9 @@ public class GTSEncoder implements Cloneable {
       } else {
         // Do nothing, implicitly we will encode location as raw GeoXPPoint
       }
+
+      // Account for location
+      this.pessimisticSize += 8;
     } else {
       validLastGeoXPPoint = false;
     }
@@ -506,6 +514,9 @@ public class GTSEncoder implements Cloneable {
           locElevFlag |= FLAGS_ELEVATION_ZIGZAG;
         }
       }
+
+      // Account for elevation
+      this.pessimisticSize += 8;
     } else {
       validLastElevation = false;
     }
@@ -517,9 +528,12 @@ public class GTSEncoder implements Cloneable {
     // First add the flags
 
     this.stream.write(tsTypeFlag);
+    this.pessimisticSize++;
 
     if (FLAGS_CONTINUATION == (tsTypeFlag & FLAGS_CONTINUATION)) {
       this.stream.write(locElevFlag);
+      // Account for additional continuation byte
+      this.pessimisticSize++;
     }
 
     // Write timestamp
@@ -562,6 +576,9 @@ public class GTSEncoder implements Cloneable {
       default:
         throw new RuntimeException("Invalid timestamp format.");
     }
+
+    // Account for timestamp
+    this.pessimisticSize += 8;
 
     // Keep track of timestamp
     lastTimestamp = timestamp;
@@ -647,6 +664,8 @@ public class GTSEncoder implements Cloneable {
             this.stream.write(bytes);
             lastStringValue = binaryString;
             validLastStringValue = true;
+
+            this.pessimisticSize += bytes.length + l;
           } else {
             // Convert String to UTF8 byte array
             byte[] utf8 = ((String) value).getBytes(StandardCharsets.UTF_8);
@@ -660,6 +679,8 @@ public class GTSEncoder implements Cloneable {
             // Keep track of last value
             lastStringValue = (String) value;
             validLastStringValue = true;
+
+            this.pessimisticSize += utf8.length + l;
           }
         }
         break;
@@ -698,6 +719,7 @@ public class GTSEncoder implements Cloneable {
           lastLongValue = lvalue;
           validLastLongValue = true;
         }
+        this.pessimisticSize += 8;
         break;
 
       case FLAGS_TYPE_DOUBLE:
@@ -732,6 +754,7 @@ public class GTSEncoder implements Cloneable {
             validLastDoubleValue = false;
           }
         }
+        this.pessimisticSize += 8;
         break;
 
       case FLAGS_TYPE_BOOLEAN:
@@ -815,6 +838,15 @@ public class GTSEncoder implements Cloneable {
    */
   public long getCount() {
     return this.count;
+  }
+
+  /**
+   * Return an estimation of the 'exploded' size, i.e. the size required to store
+   * all data points individually with no optimization. This is needed to ensure that we do not push to Kafka
+   * encoders which when exploded would lead to FDB transactions which would exceed 10M
+   */
+  public long getPessimisticSize() {
+    return this.pessimisticSize;
   }
 
   /**
@@ -1010,6 +1042,7 @@ public class GTSEncoder implements Cloneable {
 
     this.baseTimestamp = encoder.baseTimestamp;
     this.count = encoder.count;
+    this.pessimisticSize = encoder.pessimisticSize;
 
     this.lastTimestamp = encoder.lastTimestamp;
 
@@ -1064,6 +1097,7 @@ public class GTSEncoder implements Cloneable {
 
     metadata = null;
     count = 0L;
+    pessimisticSize = 0L;
 
     noDeltaMetaTimestamp = false;
 
@@ -1163,6 +1197,7 @@ public class GTSEncoder implements Cloneable {
       this.validLastStringValue = encoder.validLastStringValue;
 
       this.count += encoder.getCount();
+      this.pessimisticSize += encoder.getPessimisticSize();
     }
   }
 
@@ -1385,6 +1420,7 @@ public class GTSEncoder implements Cloneable {
     }
 
     clone.count = this.count;
+    clone.pessimisticSize = this.pessimisticSize;
 
     clone.noDeltaMetaTimestamp = this.noDeltaMetaTimestamp;
 

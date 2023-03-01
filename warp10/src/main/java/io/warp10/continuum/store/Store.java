@@ -16,105 +16,148 @@
 
 package io.warp10.continuum.store;
 
-import io.warp10.CustomThreadFactory;
-import io.warp10.continuum.KafkaOffsetCounters;
-import io.warp10.continuum.gts.GTSDecoder;
-import io.warp10.continuum.gts.GTSEncoder;
-import io.warp10.continuum.gts.GTSHelper;
-import io.warp10.continuum.sensision.SensisionConstants;
-import io.warp10.continuum.store.thrift.data.KafkaDataMessage;
-import io.warp10.continuum.store.thrift.data.KafkaDataMessageType;
-import io.warp10.continuum.store.thrift.data.Metadata;
-import io.warp10.crypto.CryptoUtils;
-import io.warp10.crypto.KeyStore;
-import io.warp10.sensision.Sensision;
-
-import java.net.InetAddress;
-import java.nio.charset.StandardCharsets;
-import java.util.UUID;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.nio.ByteBuffer;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Properties;
-import java.util.concurrent.Callable;
+import java.util.UUID;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantLock;
 
-import kafka.consumer.Consumer;
-import kafka.consumer.ConsumerConfig;
-import kafka.consumer.ConsumerIterator;
-import kafka.consumer.KafkaStream;
-import kafka.javaapi.consumer.ConsumerConnector;
-import kafka.message.MessageAndMetadata;
-
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.Connection;
-import org.apache.hadoop.hbase.client.ConnectionFactory;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.client.Table;
-import org.apache.hadoop.hbase.client.coprocessor.Batch;
-import org.apache.hadoop.hbase.coprocessor.example.generated.BulkDeleteProtos.BulkDeleteRequest;
-import org.apache.hadoop.hbase.coprocessor.example.generated.BulkDeleteProtos.BulkDeleteRequest.Builder;
-import org.apache.hadoop.hbase.coprocessor.example.generated.BulkDeleteProtos.BulkDeleteRequest.DeleteType;
-import org.apache.hadoop.hbase.coprocessor.example.generated.BulkDeleteProtos.BulkDeleteResponse;
-import org.apache.hadoop.hbase.coprocessor.example.generated.BulkDeleteProtos.BulkDeleteService;
-import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
-import org.apache.hadoop.hbase.ipc.ServerRpcController;
-import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.apple.foundationdb.Database;
+import com.apple.foundationdb.FDBException;
+import com.apple.foundationdb.Transaction;
 import com.google.common.base.Preconditions;
 import com.google.common.primitives.Longs;
+import com.google.common.util.concurrent.RateLimiter;
+
+import io.warp10.WarpConfig;
+import io.warp10.continuum.Configuration;
+import io.warp10.continuum.KafkaOffsetCounters;
+import io.warp10.continuum.gts.GTSDecoder;
+import io.warp10.continuum.gts.GTSEncoder;
+import io.warp10.continuum.sensision.SensisionConstants;
+import io.warp10.continuum.store.thrift.data.KafkaDataMessage;
+import io.warp10.continuum.store.thrift.data.KafkaDataMessageType;
+import io.warp10.crypto.CryptoUtils;
+import io.warp10.crypto.KeyStore;
+import io.warp10.crypto.OrderPreservingBase64;
+import io.warp10.fdb.FDBClearRange;
+import io.warp10.fdb.FDBContext;
+import io.warp10.fdb.FDBMutation;
+import io.warp10.fdb.FDBSet;
+import io.warp10.fdb.FDBUtils;
+import io.warp10.sensision.Sensision;
 
 /**
  * Class which implements pulling data from Kafka and storing it in
- * HBase
+ * FoundationDB
  */
 public class Store extends Thread {
 
   private static final Logger LOG = LoggerFactory.getLogger(Store.class);
 
+  private static final String DEFAULT_FDB_RETRYLIMIT = Long.toString(4);
+
+  private static RateLimiter rateLimit = null;
+
+  static {
+    //
+    // If instructed to do so, launch a thread which will read the throttling file periodically
+    //
+
+    if (null != WarpConfig.getProperty(Configuration.STORE_THROTTLING_FILE)) {
+
+      final File throttlingFile = new File(WarpConfig.getProperty(Configuration.STORE_THROTTLING_FILE));
+      final long period = Long.parseLong(WarpConfig.getProperty(Configuration.STORE_THROTTLING_PERIOD, "60000"));
+
+      Thread t = new Thread() {
+        @Override
+        public void run() {
+          while (true) {
+            BufferedReader br = null;
+            try {
+              if (throttlingFile.exists()) {
+                br = new BufferedReader(new FileReader(throttlingFile));
+
+                String line = br.readLine();
+
+                if (null == line) {
+                  Store.rateLimit = null;
+                } else {
+                  double rate = Double.parseDouble(line);
+                  if (null == Store.rateLimit && 0.0D != rate) {
+                    Store.rateLimit = RateLimiter.create(rate);
+                  } else if (0.0D != rate) {
+                    Store.rateLimit.setRate(rate);
+                  } else {
+                    Store.rateLimit = null;
+                  }
+                }
+              } else {
+                Store.rateLimit = null;
+                Sensision.clear(SensisionConstants.CLASS_WARP_STORE_THROTTLING_RATE, Sensision.EMPTY_LABELS);
+              }
+            } catch (Throwable t) {
+              // Clear current throttling rate
+              Store.rateLimit = null;
+              Sensision.clear(SensisionConstants.CLASS_WARP_STORE_THROTTLING_RATE, Sensision.EMPTY_LABELS);
+            } finally {
+              if (null != br) {
+                try { br.close(); } catch (IOException ioe) {}
+              }
+              if (null != Store.rateLimit) {
+                Sensision.set(SensisionConstants.CLASS_WARP_STORE_THROTTLING_RATE, Sensision.EMPTY_LABELS, Store.rateLimit.getRate());
+              }
+            }
+
+            LockSupport.parkNanos(period * 1000000L);
+          }
+        }
+      };
+
+      t.setName("[Store Throttling Reader]");
+      t.setDaemon(true);
+      t.start();
+    }
+  }
+
   /**
    * Set of required parameters, those MUST be set
    */
   private static final String[] REQUIRED_PROPERTIES = new String[] {
-    io.warp10.continuum.Configuration.STORE_NTHREADS,
-    io.warp10.continuum.Configuration.STORE_KAFKA_DATA_ZKCONNECT,
-    io.warp10.continuum.Configuration.STORE_KAFKA_DATA_BROKERLIST,
-    io.warp10.continuum.Configuration.STORE_KAFKA_DATA_TOPIC,
-    io.warp10.continuum.Configuration.STORE_KAFKA_DATA_GROUPID,
-    io.warp10.continuum.Configuration.STORE_KAFKA_DATA_COMMITPERIOD,
-    io.warp10.continuum.Configuration.STORE_HBASE_DATA_ZKCONNECT,
-    io.warp10.continuum.Configuration.STORE_HBASE_DATA_TABLE,
-    io.warp10.continuum.Configuration.STORE_HBASE_DATA_COLFAM,
-    io.warp10.continuum.Configuration.STORE_HBASE_DATA_ZNODE,
-    io.warp10.continuum.Configuration.STORE_HBASE_DATA_MAXPENDINGPUTSSIZE,
-    io.warp10.continuum.Configuration.STORE_KAFKA_DATA_INTERCOMMITS_MAXTIME,
+    Configuration.STORE_NTHREADS,
+    Configuration.STORE_KAFKA_DATA_CONSUMER_BOOTSTRAP_SERVERS,
+    Configuration.STORE_KAFKA_DATA_TOPIC,
+    Configuration.STORE_KAFKA_DATA_GROUPID,
+    Configuration.STORE_KAFKA_DATA_COMMITPERIOD,
+    Configuration.STORE_KAFKA_DATA_INTERCOMMITS_MAXTIME,
   };
 
   /**
@@ -123,11 +166,6 @@ public class Store extends Thread {
   private final KeyStore keystore;
 
   private final Properties properties;
-
-  /**
-   * Column family under which to store the readings
-   */
-  private final byte[] colfam;
 
   /**
    * Flag indicating an abort
@@ -150,30 +188,9 @@ public class Store extends Thread {
   private final long maxTimeBetweenCommits;
 
   /**
-   * Maximum size we allow the pending Puts list to grow
+   * Maximum size we allow the pending mutations list to grow
    */
-  private final long maxPendingPutsSize;
-
-  /**
-   * Pool used to retrieve HTableInterface instances
-   */
-  //private final HTablePool htpool;
-
-  /**
-   * Connection to HBase
-   */
-  private Connection conn;
-
-  /**
-   * Boolean indicating that we should recreate the connection to HBase
-   * due to IOErrors (such as regions which cannot be found due to region location cache not being updated)
-   */
-  private AtomicBoolean connReset = new AtomicBoolean(false);
-
-  /**
-   * HBase table where readings should be stored
-   */
-  private final TableName hbaseTable;
+  private final long maxPendingMutationsSize;
 
   private final boolean SKIP_WRITE;
 
@@ -181,30 +198,21 @@ public class Store extends Thread {
 
   private UUID uuid = UUID.randomUUID();
 
-  private static Map<String,Connection> connections = new HashMap<String,Connection>();
+  //
+  // FoundationDB
+  //
 
-  /**
-   * Optional executor service for deletions
-   */
-  private ExecutorService deleteExecutor = null;
+  private final FDBContext fdbContext;
 
-  private final int nthreadsDelete;
+  private final long fdbRetryLimit;
 
-  private AtomicInteger inflightDeletions = new AtomicInteger(0);
-  private AtomicInteger deletionErrors = new AtomicInteger(0);
-
-  /**
-   * Rate limit to slow consumption down
-   */
-  private Double rateLimit = null;
-
-  private long throttlingDelay = 10000000L;
+  private final boolean FDBUseTenantPrefix;
 
   public Store(KeyStore keystore, final Properties properties, Integer nthr) throws IOException {
     this.keystore = keystore;
     this.properties = properties;
 
-    if ("true".equals(properties.getProperty("store.skip.write"))) {
+    if ("true".equals(properties.getProperty(Configuration.STORE_SKIP_WRITE))) {
       this.SKIP_WRITE = true;
     } else {
       this.SKIP_WRITE = false;
@@ -222,76 +230,17 @@ public class Store extends Thread {
     // Extract parameters
     //
 
-    final String topic = properties.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_TOPIC);
-    final int nthreads = null != nthr ? nthr.intValue() : Integer.valueOf(properties.getProperty(io.warp10.continuum.Configuration.STORE_NTHREADS_KAFKA, "1"));
+    final String topic = properties.getProperty(Configuration.STORE_KAFKA_DATA_TOPIC);
+    final int nthreads = null != nthr ? nthr.intValue() : Integer.valueOf(properties.getProperty(Configuration.STORE_NTHREADS_KAFKA, "1"));
 
-    nthreadsDelete = Integer.parseInt(properties.getProperty(io.warp10.continuum.Configuration.STORE_NTHREADS_DELETE, "0"));
+    this.FDBUseTenantPrefix = "true".equals(properties.getProperty(Configuration.FDB_USE_TENANT_PREFIX));
 
-    //
-    // If instructed to do so, launch a thread which will read the throttling file periodically
-    //
-
-    if (null != properties.getProperty(io.warp10.continuum.Configuration.STORE_THROTTLING_FILE)) {
-
-      if (null != properties.getProperty(io.warp10.continuum.Configuration.STORE_THROTTLING_DELAY)) {
-        throttlingDelay = Long.parseLong(properties.getProperty(io.warp10.continuum.Configuration.STORE_THROTTLING_DELAY));
-      }
-
-      final File throttlingFile = new File(properties.getProperty(io.warp10.continuum.Configuration.STORE_THROTTLING_FILE));
-      final long period = Long.parseLong(properties.getProperty(io.warp10.continuum.Configuration.STORE_THROTTLING_PERIOD, "60000"));
-      final Store self = this;
-
-      Thread t = new Thread() {
-        @Override
-        public void run() {
-          while (true) {
-            BufferedReader br = null;
-            try {
-              if (throttlingFile.exists()) {
-                br = new BufferedReader(new FileReader(throttlingFile));
-
-                String line = br.readLine();
-
-                if (null == line) {
-                  self.rateLimit = null;
-                } else {
-                  self.rateLimit = Double.parseDouble(line);
-                }
-              } else {
-                self.rateLimit = null;
-                Sensision.clear(SensisionConstants.CLASS_WARP_STORE_THROTTLING_RATE, Sensision.EMPTY_LABELS);
-              }
-            } catch (Throwable t) {
-              // Clear current throttling rate
-              self.rateLimit = null;
-              Sensision.clear(SensisionConstants.CLASS_WARP_STORE_THROTTLING_RATE, Sensision.EMPTY_LABELS);
-            } finally {
-              if (null != br) {
-                try { br.close(); } catch (IOException ioe) {}
-              }
-              if (null != self.rateLimit) {
-                Sensision.set(SensisionConstants.CLASS_WARP_STORE_THROTTLING_RATE, Sensision.EMPTY_LABELS, self.rateLimit);
-              }
-            }
-
-            LockSupport.parkNanos(period * 1000000L);
-          }
-        }
-      };
-
-      t.setName("[Store Throttling Reader]");
-      t.setDaemon(true);
-      t.start();
+    if (this.FDBUseTenantPrefix && null != properties.getProperty(Configuration.STORE_FDB_TENANT)) {
+      throw new RuntimeException("Cannot set '" + Configuration.STORE_FDB_TENANT + "' when '" + Configuration.FDB_USE_TENANT_PREFIX + "' is true.");
     }
 
-    //
-    // Retrieve the connection singleton for this set of properties
-    //
-
-    this.conn = Store.getHBaseConnection(properties);
-
-    this.hbaseTable = TableName.valueOf(properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_DATA_TABLE));
-    this.colfam = properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_DATA_COLFAM).getBytes(StandardCharsets.UTF_8);
+    this.fdbContext = new FDBContext(properties.getProperty(Configuration.STORE_FDB_CLUSTERFILE), properties.getProperty(Configuration.STORE_FDB_TENANT));
+    this.fdbRetryLimit = Long.parseLong(properties.getProperty(Configuration.STORE_FDB_RETRYLIMIT, DEFAULT_FDB_RETRYLIMIT));
 
     //
     // Extract keys
@@ -301,16 +250,16 @@ public class Store extends Thread {
 
     final Store self = this;
 
-    commitPeriod = Long.parseLong(properties.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_COMMITPERIOD));
-    maxTimeBetweenCommits = Long.parseLong(properties.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_INTERCOMMITS_MAXTIME));
+    commitPeriod = Long.parseLong(properties.getProperty(Configuration.STORE_KAFKA_DATA_COMMITPERIOD));
+    maxTimeBetweenCommits = Long.parseLong(properties.getProperty(Configuration.STORE_KAFKA_DATA_INTERCOMMITS_MAXTIME));
 
     if (maxTimeBetweenCommits <= commitPeriod) {
-      throw new RuntimeException(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_INTERCOMMITS_MAXTIME + " MUST be set to a value above that of " + io.warp10.continuum.Configuration.STORE_KAFKA_DATA_COMMITPERIOD);
+      throw new RuntimeException(Configuration.STORE_KAFKA_DATA_INTERCOMMITS_MAXTIME + " MUST be set to a value above that of " + Configuration.STORE_KAFKA_DATA_COMMITPERIOD);
     }
 
-    maxPendingPutsSize = Long.parseLong(properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_DATA_MAXPENDINGPUTSSIZE));
+    this.maxPendingMutationsSize = (long) Math.min(FDBUtils.MAX_TXN_SIZE * 0.95, Long.parseLong(properties.getProperty(Configuration.STORE_FDB_DATA_PENDINGMUTATIONS_MAXSIZE)));
 
-    final String groupid = properties.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_GROUPID);
+    final String groupid = properties.getProperty(Configuration.STORE_KAFKA_DATA_GROUPID);
 
     final KafkaOffsetCounters counters = new KafkaOffsetCounters(topic, groupid, commitPeriod * 2);
 
@@ -319,17 +268,14 @@ public class Store extends Thread {
       public void run() {
 
         ExecutorService executor = null;
-        ConsumerConnector connector = null;
+
+        KafkaConsumer<byte[], byte[]>[] kconsumers = null;
 
         StoreConsumer[] consumers = new StoreConsumer[nthreads];
-        Table[] tables = new Table[nthreads];
+        Database[] databases = new Database[nthreads];
 
         for (int i = 0; i < nthreads; i++) {
-          try {
-            tables[i] = conn.getTable(hbaseTable);
-          } catch (IOException ioe) {
-            throw new RuntimeException(ioe);
-          }
+          databases[i] = fdbContext.getDatabase();
         }
 
         while(true) {
@@ -337,61 +283,49 @@ public class Store extends Thread {
             //
             // Enter an endless loop which will spawn 'nthreads' threads
             // each time the Kafka consumer is shut down (which will happen if an error
-            // happens while talking to HBase, to get a chance to re-read data from the
+            // happens while talking to FDB, to get a chance to re-read data from the
             // previous snapshot).
             //
 
-            Map<String,Integer> topicCountMap = new HashMap<String, Integer>();
-
-            topicCountMap.put(topic, nthreads);
-
             Properties props = new Properties();
-            props.setProperty("zookeeper.connect", properties.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_ZKCONNECT));
-            props.setProperty("group.id", groupid);
-            if (null != properties.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_CONSUMER_CLIENTID)) {
-              props.setProperty("client.id", properties.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_CONSUMER_CLIENTID));
+
+            // Load explicit configuration
+            props.putAll(Configuration.extractPrefixed(properties, properties.getProperty(Configuration.STORE_KAFKA_DATA_CONSUMER_CONF_PREFIX)));
+
+            props.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, properties.getProperty(Configuration.STORE_KAFKA_DATA_CONSUMER_BOOTSTRAP_SERVERS));
+            props.setProperty(ConsumerConfig.GROUP_ID_CONFIG, groupid);
+            if (null != properties.getProperty(Configuration.STORE_KAFKA_DATA_CONSUMER_CLIENTID)) {
+              props.setProperty(ConsumerConfig.CLIENT_ID_CONFIG, properties.getProperty(Configuration.STORE_KAFKA_DATA_CONSUMER_CLIENTID));
             }
-            if (null != properties.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_CONSUMERID_PREFIX)) {
+            if (null != properties.getProperty(Configuration.STORE_KAFKA_DATA_CONSUMERID_PREFIX)) {
               // If a consumerId prefix is provided, the consumerId is built the same way than inside the Kafka ConsumerConnector with the prefix part prepended to the hostname
               UUID uuid = UUID.randomUUID();
               String consumerUuid = String.format("%s_%s_%d-%s",
-                      properties.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_CONSUMERID_PREFIX),
+                      properties.getProperty(Configuration.STORE_KAFKA_DATA_CONSUMERID_PREFIX),
                       InetAddress.getLocalHost().getHostName(),
                       System.currentTimeMillis(),
                       Long.toHexString(uuid.getMostSignificantBits()).substring(0,8));
               props.setProperty("consumer.id", consumerUuid);
             }
-            if (null != properties.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY)) {
-              props.setProperty("partition.assignment.strategy", properties.getProperty(io.warp10.continuum.Configuration.STORE_KAFKA_DATA_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY));
+            if (null != properties.getProperty(Configuration.STORE_KAFKA_DATA_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY)) {
+              props.setProperty(ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, properties.getProperty(Configuration.STORE_KAFKA_DATA_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY));
             }
-            props.setProperty("auto.commit.enable", "false");
+            props.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
             //
-            // This is VERY important, offset MUST be reset to 'smallest' so we get a chance to store as many datapoints
+            // This is VERY important, offset MUST be reset to 'earliest' so we get a chance to store as many datapoints
             // as we can when the lag gets beyond the history Kafka maintains.
             //
-            props.setProperty("auto.offset.reset", "smallest");
 
-            ConsumerConfig config = new ConsumerConfig(props);
-            connector = Consumer.createJavaConsumerConnector(config);
+            props.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+            props.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArrayDeserializer");
+            props.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArrayDeserializer");
+            props.setProperty(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "1");
 
-            Map<String,List<KafkaStream<byte[], byte[]>>> consumerMap = connector.createMessageStreams(topicCountMap);
+            kconsumers = new KafkaConsumer[nthreads];
 
-            List<KafkaStream<byte[], byte[]>> streams = consumerMap.get(topic);
-
-            self.barrier = new CyclicBarrier(streams.size() + 1);
+            self.barrier = new CyclicBarrier(nthreads + 1);
 
             executor = Executors.newFixedThreadPool(nthreads);
-
-            if (nthreadsDelete > 0) {
-              deleteExecutor = new ThreadPoolExecutor(nthreadsDelete, nthreadsDelete, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(1), new CustomThreadFactory("Warp Store Thread"));
-            }
-
-            //
-            // Reset deletion counters
-            //
-
-            inflightDeletions = new AtomicInteger(0);
-            deletionErrors = new AtomicInteger(0);
 
             //
             // now create runnables which will consume messages
@@ -402,31 +336,23 @@ public class Store extends Thread {
 
             int idx = 0;
 
-            //
-            // Wait until HBase has been reset if need be
-            //
-
-            while(self.connReset.get()) {
-              LockSupport.parkNanos(100000L);
-            }
-
-            for (final KafkaStream<byte[],byte[]> stream : streams) {
-              if (null != consumers[idx] && consumers[idx].getHBaseReset()) {
+            for (int i = 0; i < nthreads; i++) {
+              if (null != consumers[idx] && consumers[idx].getShouldReset()) {
                 try {
-                  tables[idx].close();
+                  databases[idx].close();
                 } catch (Throwable t) {
-                  LOG.error("Caught throwable while closing HBase table.", t);
+                  LOG.error("Caught throwable while closing FoundationDB database.", t);
                 }
                 try {
-                  tables[idx] = conn.getTable(hbaseTable);
+                  databases[idx] = fdbContext.getDatabase();
                 } catch (Throwable t) {
-                  LOG.error("Caught throwable while getting new HBase connection.", t);
+                  LOG.error("Caught throwable while getting new FoundationDB database.", t);
                   // Force connection reset
-                  connReset.set(true);
                   throw new RuntimeException(t);
                 }
               }
-              consumers[idx] = new StoreConsumer(tables[idx], self, stream, counters);
+              kconsumers[i] = new KafkaConsumer<byte[],byte[]>(props);
+              consumers[idx] = new StoreConsumer(databases[idx], self, kconsumers[i], counters, Collections.singletonList(topic));
               executor.submit(consumers[idx]);
               idx++;
             }
@@ -435,7 +361,7 @@ public class Store extends Thread {
 
             while(!abort.get() && !Thread.currentThread().isInterrupted()) {
               try {
-                if (streams.size() == barrier.getNumberWaiting()) {
+                if (nthreads == barrier.getNumberWaiting()) {
                   //
                   // Check if we should abort, which could happen when
                   // an exception was thrown when flushing the commits just before
@@ -448,22 +374,30 @@ public class Store extends Thread {
 
                   //
                   // All processing threads are waiting on the barrier, this means we can flush the offsets because
-                  // they have all processed data successfully for the given activity period
+                  // they have all processed data successfully for the given activity period and none is currently calling
+                  // KafkaConsumer.poll
                   //
 
                   // Commit offsets
-                  connector.commitOffsets(true);
+
+                  for (KafkaConsumer kconsumer: kconsumers) {
+                    kconsumer.commitSync();
+                  }
+
                   counters.sensisionPublish();
                   Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_KAFKA_COMMITS, Sensision.EMPTY_LABELS, 1);
 
                   // Release the waiting threads
                   try {
+                    if (LOG.isDebugEnabled()) {
+                      LOG.debug("Releasing waiting threads.");
+                    }
                     barrier.await();
                     lastBarrierSync = System.currentTimeMillis();
                   } catch (Exception e) {
                     break;
                   }
-                } else if (System.currentTimeMillis() - lastBarrierSync > maxTimeBetweenCommits && 0 == inflightDeletions.get()) {
+                } else if (System.currentTimeMillis() - lastBarrierSync > maxTimeBetweenCommits) {
                   //
                   // If the last barrier synchronization was more than 'maxTimeBetweenCommits' ms ago
                   // we abort, because it probably means the call to htable.batch has hang and
@@ -476,7 +410,7 @@ public class Store extends Thread {
                     LOG.debug("Last Kafka commit was more than " + maxTimeBetweenCommits + " ms ago, aborting.");
                   }
                   for (int i = 0; i < consumers.length; i++) {
-                    consumers[i].setHBaseReset(true);
+                    consumers[i].setShouldReset(true);
                   }
                   abort.set(true);
                 }
@@ -500,14 +434,18 @@ public class Store extends Thread {
             // we will shut down the executor and shut down the connector to start over.
             //
 
-            if (null != connector) {
+            if (null != kconsumers) {
               if (LOG.isDebugEnabled()) {
-                LOG.debug("Closing Kafka connector.");
+                LOG.debug("Closing Kafka consumers.");
               }
-              try {
-                connector.shutdown();
-              } catch (Exception e) {
-                LOG.error("Error while closing connector", e);
+              for (KafkaConsumer kconsumer: kconsumers) {
+                try {
+                  if (null != kconsumer) {
+                    kconsumer.close();
+                  }
+                } catch (Exception e) {
+                  LOG.error("Error while closing Kafka consumer", e);
+                }
               }
             }
 
@@ -518,8 +456,9 @@ public class Store extends Thread {
               try {
                 for (StoreConsumer consumer: consumers) {
                   consumer.localabort.set(true);
-                  while(consumer.getSynchronizer().isAlive()) {
-                    consumer.getSynchronizer().interrupt();
+                  Thread sync = consumer.getSynchronizer();
+                  while(null != sync && sync.isAlive()) {
+                    sync.interrupt();
                     LockSupport.parkNanos(100000000L);
                   }
                   //
@@ -528,22 +467,14 @@ public class Store extends Thread {
                   //
                   executor.shutdownNow();
                   while(!consumer.isDone()) {
-                    consumer.getConsumerThread().interrupt();
-                    LockSupport.parkNanos(100000000L);
-                  }
-
-                  //
-                  // Force shutdown of deletion executor
-                  //
-                  if (null != deleteExecutor) {
-                    deleteExecutor.shutdownNow();
-
-                    //
-                    // Wait for the pending deletions to terminate
-                    //
-                    while(inflightDeletions.get() > 0) {
-                      LockSupport.parkNanos(10000000L);
+                    Thread consumerThread = consumer.getConsumerThread();
+                    if (null != consumerThread && consumerThread.isAlive()) {
+                      consumer.getConsumerThread().interrupt();
+                    } else {
+                      // We consider the consumer done if it does not have a current thread or if its current thread is no longer alive
+                      break;
                     }
+                    LockSupport.parkNanos(100000000L);
                   }
                 }
               } catch (Exception e) {
@@ -587,99 +518,24 @@ public class Store extends Thread {
   }
 
   @Override
-  public void run() {
-
+  public void run() { // Store#run
     while (true){
-      LockSupport.parkNanos(500000000L);
-
-      if (!this.connReset.get()) {
-        continue;
-      }
-
-      if (null != this.conn) {
-        try {
-          this.conn.close();
-
-          //
-          // Wait for the connection to be closed
-          //
-
-          long nano = System.nanoTime();
-
-          int loop = 0;
-
-          LOG.info("Closing HBase connection.");
-
-          while(!this.conn.isClosed() && !this.conn.isAborted()) {
-            LockSupport.parkNanos(100000000L);
-            loop++;
-
-            if (0 == loop % 10) {
-              LOG.info("Still waiting for HBase connection to be closed... " + ((System.nanoTime() - nano) / 1000000.0D) + " ms elapsed.");
-            }
-          }
-
-          nano = System.nanoTime() - nano;
-
-          LOG.info("HBase connection closed after " + (nano / 1000000.0D) + " ms.");
-        } catch (Exception e) {
-        }
-      }
-
-      try {
-        this.conn = getHBaseConnection(this.properties);
-      } catch (Exception e) {
-        this.conn = null;
-      }
-
-      if (null != this.conn) {
-        this.connReset.set(false);
-      }
-
-      //ConnectionHelper.clearMetaCache(this.conn);
-
-//      //
-//      // Regenerate the HBase connection
-//      //
-//
-//      Connection newconn = null;
-//      Connection oldconn = this.conn;
-//
-//      try {
-//        newconn = ConnectionFactory.createConnection(this.config);
-//      } catch (IOException ioe) {
-//        LOG.error("Error while creating HBase connection.", ioe);
-//        continue;
-//      }
-//
-//      if (null != newconn) {
-//        this.conn = newconn;
-//      } else {
-//        continue;
-//      }
-//
-//      try {
-//        if (null != oldconn) {
-//          oldconn.close();
-//        }
-//      } catch (IOException ioe) {
-//        LOG.error("Error closing previous HBase connection.", ioe);
-//      }
-
-      Sensision.update(SensisionConstants.CLASS_WARP_STORE_HBASE_CONN_RESETS, Sensision.EMPTY_LABELS, 1);
+      LockSupport.parkNanos(Long.MAX_VALUE);
     }
   }
 
   private static class StoreConsumer implements Runnable {
 
-    private boolean resetHBase = false;
+    private boolean shouldReset = false;
     private boolean done = false;
+    // Is the synchronizer done
+    private final AtomicBoolean syncDone = new AtomicBoolean(false);
     private final Store store;
-    private final KafkaStream<byte[],byte[]> stream;
-    private final byte[] hbaseAESKey;
-    private Table table = null;
-    private final AtomicLong lastPut = new AtomicLong(0L);
-    private final List<Put> puts;
+    private final KafkaConsumer<byte[],byte[]> consumer;
+    private final Collection<String> topics;
+    private final byte[] fdbAESKey;
+    private final AtomicLong lastMutation = new AtomicLong(0L);
+    private final List<FDBMutation> mutations;
 
     /**
      * Lock for protecting the access to the 'puts' list.
@@ -691,26 +547,33 @@ public class Store extends Thread {
      * Creating the lock with fairness to true solves this issue to the expense of slightly
      * lesser performance.
      */
-    private final ReentrantLock putslock = new ReentrantLock(true);
+    private final ReentrantLock mutationslock = new ReentrantLock(true);
 
-    private final AtomicLong putsSize = new AtomicLong(0L);
+    private final AtomicLong mutationsSize = new AtomicLong(0L);
     private final AtomicBoolean localabort = new AtomicBoolean(false);
-    private final AtomicBoolean forcecommit = new AtomicBoolean(false);
-    private final Semaphore flushsem = new Semaphore(0);
     private final KafkaOffsetCounters counters;
 
     private Thread synchronizer = null;
 
+    // Indicates there is a message currently being processed
     final AtomicBoolean inflightMessage = new AtomicBoolean(false);
+
+    // Indicates that an offset commit should take place, if this is true then
+    // retrieving a message will be delayed until after the offsets have been committed
     final AtomicBoolean needToSync = new AtomicBoolean(false);
 
-    public StoreConsumer(Table table, Store store, KafkaStream<byte[], byte[]> stream, KafkaOffsetCounters counters) {
+    private final Database db;
+
+    private Thread currentThread = null;
+
+    public StoreConsumer(Database db, Store store, KafkaConsumer<byte[], byte[]> consumer, KafkaOffsetCounters counters, Collection<String> topics) {
       this.store = store;
-      this.stream = stream;
-      this.puts = new ArrayList<Put>();
+      this.consumer = consumer;
+      this.topics = topics;
+      this.mutations = new ArrayList<FDBMutation>();
       this.counters = counters;
-      this.table = table;
-      this.hbaseAESKey = store.keystore.getKey(KeyStore.AES_HBASE_DATA);
+      this.fdbAESKey = store.keystore.getKey(KeyStore.AES_FDB_DATA);
+      this.db = db;
     }
 
     private Thread getSynchronizer() {
@@ -718,35 +581,38 @@ public class Store extends Thread {
     }
 
     private Thread getConsumerThread() {
-      return Thread.currentThread();
+      return currentThread;
     }
 
     private boolean isDone() {
-      return this.done;
+      // We are done if we are marked as done or if our synchronizer is done. This gives us more chances to detect we are done since
+      // interruptions tend to make us miss our own end....
+      return this.done || syncDone.get();
     }
 
-    private boolean getHBaseReset() {
-      return this.resetHBase;
+    private boolean getShouldReset() {
+      return this.shouldReset;
     }
 
-    private void setHBaseReset(boolean reset) {
-      this.resetHBase = reset;
+    private void setShouldReset(boolean reset) {
+      this.shouldReset = reset;
     }
 
     @Override
     public void run() {
 
+      this.currentThread = Thread.currentThread();
       Thread.currentThread().setName("[Store Consumer - gen " + this.store.uuid + "/" + store.generation + "]");
+
+      // We need to call subscribe here otherwise the thread associated with 'consumer' will be the one which created the consumer
+      // and any call to poll or close will lead to an exception stating that the consumer is not MT safe
+      this.consumer.subscribe(this.topics);
 
       long count = 0L;
 
       try {
-        ConsumerIterator<byte[],byte[]> iter = this.stream.iterator();
-
         byte[] siphashKey = store.keystore.getKey(KeyStore.SIPHASH_KAFKA_DATA);
         byte[] aesKey = store.keystore.getKey(KeyStore.AES_KAFKA_DATA);
-
-        final Table ht = table;
 
         //
         // AtomicLong with the timestamp of the last Put or 0 if
@@ -762,253 +628,164 @@ public class Store extends Thread {
         final CyclicBarrier ourbarrier = store.barrier;
 
         synchronizer = new Thread(new Runnable() {
+
           @Override
           public void run() {
             try {
-            long lastsync = System.currentTimeMillis();
+              // Last time we synced the Kafka offsets
+              long lastKafkaOffsetCommit = System.currentTimeMillis();
 
-            //
-            // Check for how long we've been storing readings, if we've reached the commitperiod,
-            // flush any pending commits and synchronize with the other threads so offsets can be committed
-            //
+              //
+              // Check for how long we've been storing readings, if we've reached the commitperiod,
+              // flush any pending commits and synchronize with the other threads so offsets can be committed
+              //
 
-            boolean doPause = false;
+              boolean doPause = false;
 
-            while(!localabort.get() && !synchronizer.isInterrupted()) {
-              long now = System.currentTimeMillis();
-
-              if (now - lastsync > store.commitPeriod
-                  && (!inflightMessage.get() || !needToSync.get()
-                      || !(forcecommit.get() || (0 != lastPut.get() && (now - lastPut.get() > 500) || putsSize.get() > store.maxPendingPutsSize)))) {
-
-                //
-                // We synchronize on 'puts' so the main Thread does not add Puts to ht
-                //
-
-                try {
-                  putslock.lockInterruptibly();
-
-                  //
-                  // If a message processing is ongoing we need to delay synchronization
-                  //
-                  if (inflightMessage.get()) {
-                    needToSync.set(true);
-                    // Indicate we should pause after we've relinquished the lock
-                    doPause = true;
-                    continue;
-                  }
-
-                  needToSync.set(false);
-
-                  //
-                  // Make sure we do not have pendingDeletes
-                  //
-
-                  while(store.inflightDeletions.get() > 0) {
-                    LockSupport.parkNanos(100000L);
-                  }
-
-                  if (store.deletionErrors.get() > 0) {
-                    throw new RuntimeException("Completed deletions had errors, aborting.");
-                  }
-
-                  //
-                  // Attempt to flush
-                  //
-
+              while(!localabort.get() && !synchronizer.isInterrupted()) {
+                long now = System.currentTimeMillis();
+                if (now - lastKafkaOffsetCommit > store.commitPeriod // We've committed too long ago
+                    && (!inflightMessage.get() // There is no message currently being processed
+                        || !needToSync.get()   // We do not need to sync offsets
+                        || !((0L != lastMutation.get() // there is at least one mutation to persist
+                               && (now - lastMutation.get() > 500L) // and it was processed more than 500ms ago
+                               || mutationsSize.get() > store.maxPendingMutationsSize) // or the size of all mutations to persist is above a threshold
+                            )
+                        )
+                    ) {
                   try {
-                    long nanos = System.nanoTime();
-                    if (!store.SKIP_WRITE) {
-                      if (LOG.isDebugEnabled()) {
-                        LOG.debug("HBase batch of " + puts.size() + " Puts.");
-                      }
-                      //
-                      // TODO(hbs): consider switching to streaming Puts???, i.e. setAutoFlush(false), then series of
-                      // calls to Table.put and finally a call to flushCommits to trigger the Kafka commit.
-                      //
-                      if (puts.size() > 0) {
-                        Object[] results = new Object[puts.size()];
-                        ht.batch(puts, results);
-                        // Check results for nulls
-                        for (Object o: results) {
-                          if (null == o) {
-                            throw new IOException("At least one Put failed.");
-                          }
-                        }
-                      }
+                    mutationslock.lockInterruptibly();
+
+                    //
+                    // If a message processing is ongoing we need to delay synchronization
+                    //
+
+                    if (inflightMessage.get()) {
+                      needToSync.set(true);
+                      // Indicate we should pause after we've relinquished the lock
+                      doPause = true;
+                      continue;
                     }
 
-                    Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_PUTS_COMMITTED, Sensision.EMPTY_LABELS, puts.size());
+                    needToSync.set(false);
 
-                    puts.clear();
-                    putsSize.set(0L);
-                    nanos = System.nanoTime() - nanos;
-                    if (LOG.isDebugEnabled()) {
-                      LOG.debug("HBase batch took " + nanos + " ns.");
-                    }
-                    Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_COMMITS, Sensision.EMPTY_LABELS, 1);
-                    Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_TIME_NANOS, Sensision.EMPTY_LABELS, nanos);
-                  } catch (InterruptedException ie) {
-                    // Clear list of Puts
-                    puts.clear();
-                    putsSize.set(0L);
-                    // If an exception is thrown, abort
-                    store.abort.set(true);
-                    LOG.error("Received InterruptedException", ie);
-                    return;
-                  } catch (Throwable t) {
-                    if (t.getCause() instanceof RejectedExecutionException) {
-                      store.connReset.set(true);
-                    }
-                    // Clear list of Puts
-                    int nputs = puts.size();
-                    puts.clear();
-                    putsSize.set(0L);
-                    // If an exception is thrown, abort
-                    store.abort.set(true);
-                    resetHBase = true;
-                    LOG.error("Received Throwable while writing " + nputs + " PUTs to HBase - forcing HBase reset", t);
-                    return;
-                  }
-                  //
-                  // Now join the cyclic barrier which will trigger the
-                  // commit of offsets
-                  //
-                  try {
-                    // We wait at most maxTimeBetweenCommits so we can abort in case the synchronization was too long ago
-                    ourbarrier.await(store.maxTimeBetweenCommits, TimeUnit.MILLISECONDS);
-                    Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_BARRIER_SYNCS, Sensision.EMPTY_LABELS, 1);
-                  } catch (Exception e) {
-                    store.abort.set(true);
-                    if (LOG.isDebugEnabled()) {
-                      LOG.debug("Received Exception while await barrier", e);
-                    }
-                    return;
-                  } finally {
-                    lastsync = System.currentTimeMillis();
-                  }
+                    //
+                    // Attempt to flush to FoundationDB
+                    //
 
-                  if (forcecommit.getAndSet(false)) {
-                    flushsem.release();
-                  }
-                } catch (InterruptedException ie) {
-                  store.abort.set(true);
-                  return;
-                } finally {
-                  if (putslock.isHeldByCurrentThread()) {
-                    putslock.unlock();
-                  }
-                  if (doPause) {
-                    doPause = false;
-                    LockSupport.parkNanos(100000L);
-                  }
-                }
-//                synchronized (puts) {
-//                }
-              } else if (forcecommit.get() || (0 != lastPut.get() && (now - lastPut.get() > 500) || putsSize.get() > store.maxPendingPutsSize)) {
-                //
-                // If the last Put was added to 'puts' more than 500ms ago, force a flush
-                //
-
-                try {
-                  putslock.lockInterruptibly();
-
-                  //
-                  // Make sure we do not have pendingDeletes
-                  //
-
-                  while(store.inflightDeletions.get() > 0) {
-                    LockSupport.parkNanos(10000000L);
-                  }
-
-                  if (store.deletionErrors.get() > 0) {
-                    throw new RuntimeException("Completed deletions had errors, aborting.");
-                  }
-
-                  if (!puts.isEmpty()) {
                     try {
-                      Object[] results = new Object[puts.size()];
                       long nanos = System.nanoTime();
                       if (!store.SKIP_WRITE) {
                         if (LOG.isDebugEnabled()) {
-                          LOG.debug("Forcing HBase batch of " + puts.size() + " Puts.");
+                          LOG.debug("FoundationDB commit of " + mutations.size() + " mutations (" + mutationsSize.get() + " bytes).");
                         }
-                        ht.batch(puts, results);
-                        // Check results for nulls
-                        for (Object o: results) {
-                          if (null == o) {
-                            throw new IOException("At least one Put failed.");
-                          }
+                        if (mutations.size() > 0) {
+                          flushMutations();
                         }
                       }
 
-                      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_PUTS_COMMITTED, Sensision.EMPTY_LABELS, puts.size());
-
-                      puts.clear();
-                      putsSize.set(0L);
+                      mutations.clear();
+                      mutationsSize.set(0L);
                       nanos = System.nanoTime() - nanos;
                       if (LOG.isDebugEnabled()) {
-                        LOG.debug("Forced HBase batch took " + nanos + " ns");
+                        LOG.debug("FoundationDB commit took " + nanos + " ns.");
                       }
-                      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_COMMITS, Sensision.EMPTY_LABELS, 1);
-                      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_TIME_NANOS, Sensision.EMPTY_LABELS, nanos);
-                      // Reset lastPut to 0
-                      lastPut.set(0L);
-                    } catch (InterruptedException ie) {
-                      // Clear list of Puts
-                      puts.clear();
-                      putsSize.set(0L);
-                      // If an exception is thrown, abort
-                      store.abort.set(true);
-                      LOG.error("Received InterruptedException", ie);
-                      return;
+                      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_FDB_COMMITS, Sensision.EMPTY_LABELS, 1);
+                      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_FDB_TIME_NANOS, Sensision.EMPTY_LABELS, nanos);
                     } catch (Throwable t) {
-                      // Some errors of HBase are reported as RuntimeException, so we
-                      // handle those in a more general Throwable catch clause.
-                      // Mark the HBase connection as needing reset
-                      if (t.getCause() instanceof RejectedExecutionException) {
-                        store.connReset.set(true);
-                      }
-                      // Clear list of Puts
-                      int nputs = puts.size();
-                      puts.clear();
-                      putsSize.set(0L);
+                      mutations.clear();
+                      mutationsSize.set(0L);
                       // If an exception is thrown, abort
                       store.abort.set(true);
-                      resetHBase = true;
-                      LOG.error("Received Throwable while forced writing of " + nputs + " PUTs to HBase - forcing HBase reset");
+                      LOG.error("Received Throwable while writing to FoundationDB - forcing reset", t);
                       return;
                     }
+
+                    //
+                    // Now join the cyclic barrier which will trigger the
+                    // commit of offsets
+                    //
+
+                    try {
+                      // We wait at most maxTimeBetweenCommits so we can abort in case the synchronization was too long ago
+                      ourbarrier.await(store.maxTimeBetweenCommits, TimeUnit.MILLISECONDS);
+                      needToSync.set(false);
+                      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_BARRIER_SYNCS, Sensision.EMPTY_LABELS, 1);
+                    } catch (Exception e) {
+                      store.abort.set(true);
+                      if (LOG.isDebugEnabled()) {
+                        LOG.debug("Received Exception while await barrier", e);
+                      }
+                      return;
+                    } finally {
+                      lastKafkaOffsetCommit = System.currentTimeMillis();
+                    }
+                  } catch (InterruptedException ie) {
+                    store.abort.set(true);
+                    return;
+                  } finally {
+                    if (mutationslock.isHeldByCurrentThread()) {
+                      mutationslock.unlock();
+                    }
+                    if (doPause) {
+                      doPause = false;
+                      LockSupport.parkNanos(100000L);
+                    }
                   }
-                } catch (InterruptedException ie) {
-                  store.abort.set(true);
-                  return;
-                } finally {
-                  if (putslock.isHeldByCurrentThread()) {
-                    putslock.unlock();
+                } else if ((0L != lastMutation.get() && (now - lastMutation.get() > 500L) || mutationsSize.get() > store.maxPendingMutationsSize)) {
+                  //
+                  // If the last mutation was added to 'puts' more than 500ms ago, force a flush
+                  //
+
+                  try {
+                    mutationslock.lockInterruptibly();
+
+                    if (!mutations.isEmpty()) {
+                      try {
+                        long nanos = System.nanoTime();
+                        if (!store.SKIP_WRITE) {
+                          if (LOG.isDebugEnabled()) {
+                            LOG.debug("Forcing FoundationDB batch of " + mutations.size() + " mutations (" + mutationsSize.get() + " bytes).");
+                          }
+                          flushMutations();
+                        }
+
+                        mutations.clear();
+                        mutationsSize.set(0L);
+                        nanos = System.nanoTime() - nanos;
+                        if (LOG.isDebugEnabled()) {
+                          LOG.debug("Forced FoundationDB flush took " + nanos + " ns");
+                        }
+                        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_FDB_COMMITS, Sensision.EMPTY_LABELS, 1);
+                        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_FDB_TIME_NANOS, Sensision.EMPTY_LABELS, nanos);
+                        // Reset lastPut to 0
+                        lastMutation.set(0L);
+                      } catch (Throwable t) {
+                        // Clear list of Puts
+                        int nmutations = mutations.size();
+                        long msize = mutationsSize.get();
+                        mutations.clear();
+                        mutationsSize.set(0L);
+                        // If an exception is thrown, abort
+                        store.abort.set(true);
+                        LOG.error("Received Throwable while forced writing of " + nmutations + " mutations (" + msize + " bytes) to FoundationDB - forcing reset", t);
+                        return;
+                      }
+                    }
+                  } catch (InterruptedException ie) {
+                    store.abort.set(true);
+                    return;
+                  } finally {
+                    if (mutationslock.isHeldByCurrentThread()) {
+                      mutationslock.unlock();
+                    }
                   }
                 }
 
-//                synchronized(puts) {
-//                }
+                LockSupport.parkNanos(1000000L);
               }
-
-              if (forcecommit.getAndSet(false)) {
-                flushsem.release();
-              }
-
-              LockSupport.parkNanos(1000000L);
-            }
             } finally {
-              //
-              // Attempt to close the Table instance
-              //
-              //if (null != ht) {
-              //  try {
-              //    ht.close();
-              //  } catch (Exception e) {
-              // }
-              //}
+              syncDone.set(true);
               if (LOG.isDebugEnabled()) {
                 LOG.debug("Synchronizer done.");
               }
@@ -1016,7 +793,49 @@ public class Store extends Thread {
               done = true;
             }
           }
-        });
+
+          private void flushMutations() throws IOException {
+            Transaction txn = null;
+
+            boolean retry = false;
+            long retries = store.fdbRetryLimit;
+
+            do {
+              try {
+                retry = false;
+                txn = db.createTransaction();
+                // Allow RAW access because we may manually force a tenant key prefix without actually setting a tenant
+                txn.options().setRawAccess();
+                int sets = 0;
+                int clearranges = 0;
+
+                for (FDBMutation mutation: mutations) {
+                  if (mutation instanceof FDBSet) {
+                    sets++;
+                  } else if (mutation instanceof FDBClearRange) {
+                    clearranges++;
+                  }
+                  mutation.apply(txn);
+                }
+
+                txn.commit().get();
+                Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_FDB_SETS_COMMITTED, Sensision.EMPTY_LABELS, sets);
+                Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_FDB_CLEARRANGES_COMMITTED, Sensision.EMPTY_LABELS, clearranges);
+              } catch (Throwable t) {
+                FDBUtils.errorMetrics("store", t.getCause());
+                if (t.getCause() instanceof FDBException && ((FDBException) t.getCause()).isRetryable() && retries-- > 0) {
+                  retry = true;
+                } else {
+                  throw new IOException("Error while commiting to FoundationDB.", t);
+                }
+              } finally {
+                if (null != txn) {
+                  try { txn.close(); } catch (Throwable t) {}
+                }
+              }
+            } while(retry);
+          }
+        }); // Synchronizer
 
         synchronizer.setName("[Continuum Store Synchronizer - gen " + this.store.uuid + "/" + store.generation + "]");
         synchronizer.setDaemon(true);
@@ -1024,61 +843,83 @@ public class Store extends Thread {
 
         TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
 
-        // TODO(hbs): allow setting of writeBufferSize
-
         // The call to resetInflight is a hack, we need to reset inflightMessage BUT iter.hasNext() may block
         // so we add an artificial call to resetInflight which always returns true but has the side effect
         // of resetting inflightMessage, this makes the code cleaner as we don't have to add calls to inflightMessage.set(false)
         // throughout the code
 
-        while (resetInflight() && iter.hasNext() && !Thread.currentThread().isInterrupted()) {
+        // Kafka 2.x
+        Duration delay = Duration.of(500L, ChronoUnit.MILLIS);
 
-          // Clear the 'inflight' status
-          inflightMessage.set(false);
+        while (resetInflight() && !store.abort.get() && !Thread.currentThread().isInterrupted()) {
 
-          //
-          // Since the call to 'next' may block, we need to first
-          // check that there is a message available, otherwise we
-          // will miss the synchronization point with the other
-          // threads.
-          //
+          ConsumerRecords<byte[], byte[]> consumerRecords = null;
 
-          boolean nonEmpty = iter.nonEmpty();
+          boolean doPause = false;
 
-          if (nonEmpty) {
+          try {
+            mutationslock.lockInterruptibly();
+            // Clear the 'inflight' status
+            inflightMessage.set(false);
 
-            //
-            // If throttling is defined, check if we should consume this message
-            //
-
-            if (null != store.rateLimit) {
-              double rand = Math.random();
-
-              if (rand >= store.rateLimit) {
-                // Wait 1us and continue
-                LockSupport.parkNanos(store.throttlingDelay);
-                continue;
-              }
+            // If we already have plenty of mutations to flush, wait until we sync
+            if (mutationsSize.get() >= store.maxPendingMutationsSize) {
+              doPause = true;
+              continue;
             }
+
+            // Do not call poll if we must commit the offsets
+            if (needToSync.get()) {
+              doPause = true;
+              continue;
+            }
+
+            consumerRecords = consumer.poll(delay);
+            inflightMessage.set(consumerRecords.count() > 0);
+          } finally {
+            if (mutationslock.isHeldByCurrentThread()) {
+              mutationslock.unlock();
+            }
+            // Wait a little if we need to sync
+            if (doPause) {
+              LockSupport.parkNanos(10000L);
+            }
+          }
+
+          boolean first = true;
+
+          Iterator<ConsumerRecord<byte[],byte[]>> iter = consumerRecords.iterator();
+
+          while(resetInflight() && iter.hasNext()) {
+
+            ConsumerRecord<byte[],byte[]> record = null;
 
             //
             // Indicate we have a message currently being processed.
-            // We change the value of the flag while holding putsLock so we know
+            // We change the value of the flag while holding mutationsLock so we know
             // we are not currently synchronizing.
             //
 
             try {
-              putslock.lockInterruptibly();
+              mutationslock.lockInterruptibly();
               // Continue the loop if we need to synchronize
               if (needToSync.get()) {
-                putslock.unlock();
+                mutationslock.unlock();
                 LockSupport.parkNanos(100000L);
                 continue;
               }
+
+              if (!first) {
+                throw new RuntimeException("Invalid input, expected a single record, got " + consumerRecords.count());
+              }
+
+              first = false;
+
+              record = iter.next();
               inflightMessage.set(true);
             } finally {
-              if (putslock.isHeldByCurrentThread()) {
-                putslock.unlock();
+              if (mutationslock.isHeldByCurrentThread()) {
+                mutationslock.unlock();
               }
             }
 
@@ -1087,10 +928,9 @@ public class Store extends Thread {
             //
 
             count++;
-            MessageAndMetadata<byte[], byte[]> msg = iter.next();
-            self.counters.count(msg.partition(), msg.offset());
+            self.counters.count(record.partition(), record.offset());
 
-            byte[] data = msg.message();
+            byte[] data = record.value();
 
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_KAFKA_COUNT, Sensision.EMPTY_LABELS, 1);
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_KAFKA_BYTES, Sensision.EMPTY_LABELS, data.length);
@@ -1127,25 +967,30 @@ public class Store extends Thread {
 
             switch(tmsg.getType()) {
               case STORE:
-                handleStore(ht, tmsg);
+                handleStore(tmsg);
                 break;
               case DELETE:
-                handleDelete(ht, tmsg);
+                handleDelete(tmsg);
                 break;
               default:
                 throw new RuntimeException("Invalid message type.");
             }
-
-
-          } else {
-            // Sleep a tiny while
-            LockSupport.parkNanos(10000L);
           }
         }
       } catch (Throwable t) {
-        // FIXME(hbs): log something/update Sensision metrics
         LOG.error("Received Throwable while processing Kafka message.", t);
       } finally {
+        //
+        // Attempt to close the KafkaConsumer from within this thread as it can only be closed
+        // from the thread which last acquired the semaphore, and since the thread could have
+        // been interrupted before the semaphore was released it could then be impossible to
+        // call close from another thread.
+        try {
+          this.consumer.close();
+        } catch (Exception e) {
+          LOG.error("Error closing consumer. The synchronizer thread might have a chance to do so.", e);
+        }
+
         // Interrupt the synchronizer thread
         this.localabort.set(true);
         try {
@@ -1170,8 +1015,7 @@ public class Store extends Thread {
       return true;
     }
 
-    private void handleStore(Table ht, KafkaDataMessage msg) throws IOException {
-
+    private void handleStore(KafkaDataMessage msg) throws IOException {
       if (KafkaDataMessageType.STORE != msg.getType()) {
         return;
       }
@@ -1189,20 +1033,23 @@ public class Store extends Thread {
 
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_GTSDECODERS,  Sensision.EMPTY_LABELS, 1);
 
-      long datapoints = 0L;
+      byte[] tenantPrefix = store.fdbContext.getTenantPrefix();
 
-      //
-      // Extract message attributes
-      //
-
-      long ttl = -1L;
-      boolean useDatapointTs = false;
-
-      if (msg.getAttributesSize() > 0) {
-        ttl = Long.parseLong(msg.getAttributes().getOrDefault(Constants.STORE_ATTR_TTL, Long.toString(ttl)));
-        String attr = msg.getAttributes().get(Constants.STORE_ATTR_USEDATAPOINTTS);
-        useDatapointTs = "true".equals(attr) || "t".equals(attr);
+      if (store.FDBUseTenantPrefix) {
+        if (msg.getAttributesSize() > 0 && msg.getAttributes().containsKey(Constants.STORE_ATTR_FDB_TENANT_PREFIX)) {
+          tenantPrefix = OrderPreservingBase64.decode(msg.getAttributes().get(Constants.STORE_ATTR_FDB_TENANT_PREFIX));
+        } else {
+          LOG.error("Incoherent configuration, Store mandates a tenant but the current Kafka STORE message did not have a tenant prefix set, aborting.");
+          throw new RuntimeException("Incoherent configuration, Store mandates a tenant but the current Kafka STORE message did not have a tenant prefix set, aborting.");
+        }
+      } else {
+        if (msg.getAttributesSize() > 0 && msg.getAttributes().containsKey(Constants.STORE_ATTR_FDB_TENANT_PREFIX)) {
+          LOG.error("Incoherent configuration, Store has no tenant support but the current Kafka STORE message has a tenant prefix set, aborting.");
+          throw new RuntimeException("Incoherent configuration, Store has no tenant support and the current Kafka STORE message has a tenant prefix set.");
+        }
       }
+
+      long datapoints = 0L;
 
       // We will store each reading separately, this makes readings storage idempotent
       // If BLOCK_ENCODING is enabled, prefix encoding will be used to shrink column qualifiers
@@ -1210,150 +1057,75 @@ public class Store extends Thread {
       while(decoder.next()) {
         // FIXME(hbs): allow for encrypting readings
         long basets = decoder.getTimestamp();
-        GTSEncoder encoder = new GTSEncoder(basets, hbaseAESKey);
+        GTSEncoder encoder = new GTSEncoder(basets, fdbAESKey);
         encoder.addValue(basets, decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue());
 
         // Prefix + classId + labelsId + timestamp
         // 128 bits
-        byte[] rowkey = new byte[Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
+        byte[] rowkey = new byte[Constants.FDB_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
 
-        System.arraycopy(Constants.HBASE_RAW_DATA_KEY_PREFIX, 0, rowkey, 0, Constants.HBASE_RAW_DATA_KEY_PREFIX.length);
+        System.arraycopy(Constants.FDB_RAW_DATA_KEY_PREFIX, 0, rowkey, 0, Constants.FDB_RAW_DATA_KEY_PREFIX.length);
         // Copy classId/labelsId
-        System.arraycopy(Longs.toByteArray(msg.getClassId()), 0, rowkey, Constants.HBASE_RAW_DATA_KEY_PREFIX.length, 8);
-        System.arraycopy(Longs.toByteArray(msg.getLabelsId()), 0, rowkey, Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8, 8);
+        System.arraycopy(Longs.toByteArray(msg.getClassId()), 0, rowkey, Constants.FDB_RAW_DATA_KEY_PREFIX.length, 8);
+        System.arraycopy(Longs.toByteArray(msg.getLabelsId()), 0, rowkey, Constants.FDB_RAW_DATA_KEY_PREFIX.length + 8, 8);
         // Copy timestamp % DEFAULT_MODULUS
         // It could be useful to have per GTS modulus BUT we don't do lookups for metadata, so we can't access a per GTS
         // modulus.... This means we will use the default.
 
-        Put put = null;
+        FDBSet set = null;
 
         byte[] bytes = encoder.getBytes();
 
         if (1 == Constants.DEFAULT_MODULUS) {
-          System.arraycopy(Longs.toByteArray(Long.MAX_VALUE - basets), 0, rowkey, Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 16, 8);
-          put = new Put(rowkey);
-          //
-          // If the modulus is 1, we don't use a column qualifier
-          //
-          if (useDatapointTs) {
-            // Use the timestamp of the datapoint as the timestamp of the HBase cell
-            // as Put instances cannot have negative timestamps, replace negative timestamps with 0 (issue#640)
-            put.addColumn(store.colfam, null, Math.max(0L, basets) / Constants.TIME_UNITS_PER_MS, bytes);
-          } else {
-            put.addColumn(store.colfam, null, bytes);
-          }
-
-          // Force the ttl if set
-          if (-1L != ttl) {
-            put.setTTL(ttl);
-          }
+          System.arraycopy(Longs.toByteArray(Long.MAX_VALUE - basets), 0, rowkey, Constants.FDB_RAW_DATA_KEY_PREFIX.length + 16, 8);
+          set = new FDBSet(tenantPrefix, rowkey, bytes);
         } else {
-          System.arraycopy(Longs.toByteArray(Long.MAX_VALUE - (basets - (basets % Constants.DEFAULT_MODULUS))), 0, rowkey, Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 16, 8);
-          put = new Put(rowkey);
-          //
-          // We use the reversed base timestamp as the column qualifier. This introduces some redundancy but it
-          // ensures that we have columns in reverse chronological order and can accomodate any modulus. Switching to
-          // a 32 bit representation of the offset from basets would restrict the modulus we could use as we might hit
-          // an overflow.
-          // By using DATA_BLOCK_ENCODING=FASTDIFF, we should mitigate the redundancy in the qualifiers and attain a
-          // storage size similar to the one we could have attained by simply storing a delta from basets in the qualifier,
-          // but with the added benefit of having a slightly faster decoding process since we don't have to read the row basets
-          // AND the qualifier, the qualifier is sufficient.
-          //
-          put.addColumn(store.colfam, Longs.toByteArray(Long.MAX_VALUE - basets), bytes);
+          throw new RuntimeException("DEFAULT_MODULUS should have been 1!!!!!");
         }
 
+        if (null != Store.rateLimit) {
+          while(!Store.rateLimit.tryAcquire(1, TimeUnit.SECONDS)) {}
+        }
+
+        //
+        // If throttling is defined, check if we should consume this message
+        //
+
         try {
-          putslock.lockInterruptibly();
-
-          //
-          // Wait until all deletions have finished.
-          // This is kinda overkill since we wait for all deletions
-          // from all partitions, but this is erring on the side of safety
-          // and pragmatism since we will wait anyway for all deletions to
-          // complete before batching mutations to HBase.
-          //
-
-          while(store.inflightDeletions.get() > 0) {
-            LockSupport.parkNanos(10000000L);
-          }
-
-          puts.add(put);
+          mutationslock.lockInterruptibly();
+          mutations.add(set);
           datapoints++;
-          // We should use put.heapSize()
-          putsSize.addAndGet(bytes.length);
-          lastPut.set(System.currentTimeMillis());
+          mutationsSize.addAndGet(set.size());
+          lastMutation.set(System.currentTimeMillis());
         } catch (InterruptedException ie) {
           localabort.set(true);
           return;
         } finally {
-          if (putslock.isHeldByCurrentThread()) {
-            putslock.unlock();
+          if (mutationslock.isHeldByCurrentThread()) {
+            mutationslock.unlock();
           }
         }
-//        synchronized (puts) {
-//        }
       }
-
-      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_PUTS, Sensision.EMPTY_LABELS, datapoints);
-
+      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_FDB_SETS, Sensision.EMPTY_LABELS, datapoints);
     }
 
-    private void handleDelete(Table ht, final KafkaDataMessage msg) throws Throwable {
+    private void handleDelete(final KafkaDataMessage msg) throws Throwable {
 
       if (KafkaDataMessageType.DELETE != msg.getType()) {
         return;
       }
 
       if (1 != Constants.DEFAULT_MODULUS) {
-        throw new IOException("Delete not implemented for modulus != 1");
+        throw new RuntimeException("DEFAULT_MODULUS should have been 1!!!!!");
       }
-
-      //
-      // We need to wait for the current data to be flushed to HBase, otherwise we might have data to delete which
-      // is not yet committed (depending on the commit period).
-      // We don't need to commit the Kafka offsets as the DELETE would also be replayed if Kafka is read over.
-      // We only need to wait if 'puts' is not empty. We first set forcecommit to true then attempt to acquire the
-      // 'flushsem' Semaphore every microsecond.
-      // 'flushsem' is released by the Synchronizer thread
-      //
-
-      if (!puts.isEmpty()) {
-        forcecommit.set(true);
-        while(!flushsem.tryAcquire()) {
-          LockSupport.parkNanos(1000);
-        }
-      }
-
-      //
-      // @see <a href="https://hbase.apache.org/apidocs/org/apache/hadoop/hbase/coprocessor/example/BulkDeleteEndpoint.html">https://hbase.apache.org/apidocs/org/apache/hadoop/hbase/coprocessor/example/BulkDeleteEndpoint.html</a>
-      //
-
-      //
-      // The Coprocessor MUST be declared on each RegionServer using the following property in the configuration file:
-      //
-      // <property>
-      //   <name>hbase.coprocessor.region.classes</name>
-      //   <value>org.apache.hadoop.hbase.coprocessor.example.BulkDeleteEndpoint</value>
-      // </property>
-      //
-      // This class is in the hbase-example jar file
-      //
-
-      //
-      // Create the Scan
-      //
-
-      final Scan scan = new Scan();
-      scan.addFamily(store.colfam);
 
       // Prefix + classId + labelsId + timestamp
-      byte[] rowkey = new byte[Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
+      byte[] rowkey = new byte[Constants.FDB_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
 
-      System.arraycopy(Constants.HBASE_RAW_DATA_KEY_PREFIX, 0, rowkey, 0, Constants.HBASE_RAW_DATA_KEY_PREFIX.length);
+      System.arraycopy(Constants.FDB_RAW_DATA_KEY_PREFIX, 0, rowkey, 0, Constants.FDB_RAW_DATA_KEY_PREFIX.length);
       // Copy classId/labelsId
-      System.arraycopy(Longs.toByteArray(msg.getClassId()), 0, rowkey, Constants.HBASE_RAW_DATA_KEY_PREFIX.length, 8);
-      System.arraycopy(Longs.toByteArray(msg.getLabelsId()), 0, rowkey, Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8, 8);
+      System.arraycopy(Longs.toByteArray(msg.getClassId()), 0, rowkey, Constants.FDB_RAW_DATA_KEY_PREFIX.length, 8);
+      System.arraycopy(Longs.toByteArray(msg.getLabelsId()), 0, rowkey, Constants.FDB_RAW_DATA_KEY_PREFIX.length + 8, 8);
 
       long start = msg.getDeletionStartTimestamp();
       long end = msg.getDeletionEndTimestamp();
@@ -1364,181 +1136,54 @@ public class Store extends Thread {
 
       if (Long.MAX_VALUE == end && Long.MIN_VALUE == start) {
         // Only set the end key.
-        Arrays.fill(endkey, Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8, endkey.length - 1, (byte) 0xff);
+        Arrays.fill(endkey, Constants.FDB_RAW_DATA_KEY_PREFIX.length + 8 + 8, endkey.length - 1, (byte) 0xff);
       } else {
         // Add reversed timestamps. The end timestamps is the start key
-        System.arraycopy(Longs.toByteArray(Long.MAX_VALUE - end), 0, startkey, Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8, 8);
-        System.arraycopy(Longs.toByteArray(Long.MAX_VALUE - start), 0, endkey, Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8, 8);
+        System.arraycopy(Longs.toByteArray(Long.MAX_VALUE - end), 0, startkey, Constants.FDB_RAW_DATA_KEY_PREFIX.length + 8 + 8, 8);
+        System.arraycopy(Longs.toByteArray(Long.MAX_VALUE - start), 0, endkey, Constants.FDB_RAW_DATA_KEY_PREFIX.length + 8 + 8, 8);
       }
 
-      scan.setStartRow(startkey);
-      scan.setStopRow(endkey);
-      scan.setMaxVersions();
-      //
-      // Set 'raw' to true so we correctly delete the cells still in memstore.
-      //
-      scan.setRaw(true);
+      byte[] tenantPrefix = store.fdbContext.getTenantPrefix();
 
-      //
-      // Do not pollute the block cache
-      //
-      scan.setCacheBlocks(false);
-
-      final long minage = msg.getDeletionMinAge();
-
-      //
-      // Add a timestamp range if 'minage' is > 0
-      //
-
-      if (minage > 0) {
-        long maxts = System.currentTimeMillis() - minage + 1;
-        scan.setTimeRange(0, maxts);
-      }
-
-      //
-      // Call the Coprocessor endpoint on each RegionServer
-      //
-
-      final AtomicBoolean error = new AtomicBoolean(false);
-
-      final Batch.Call<BulkDeleteService, BulkDeleteResponse> callable = new Batch.Call<BulkDeleteService, BulkDeleteResponse>() {
-        public BulkDeleteResponse call(BulkDeleteService service) throws IOException {
-          BlockingRpcCallback<BulkDeleteResponse> rpcCallback = new BlockingRpcCallback<BulkDeleteResponse>();
-          ServerRpcController controller = new ServerRpcController();
-
-          Builder builder = BulkDeleteRequest.newBuilder();
-          builder.setScan(ProtobufUtil.toScan(scan));
-
-          builder.setDeleteType(DeleteType.VERSION);
-
-          // Arbitrary for now, maybe come up with a better heuristic
-          builder.setRowBatchSize(1000);
-          service.delete(controller, builder.build(), rpcCallback);
-
-          BulkDeleteResponse resp = rpcCallback.get();
-
-          //
-          // Check if controller trapped an exception or an error message (may happen if a region is too busy)
-          //
-
-          if (controller.failed()) {
-            error.set(true);
-          }
-
-          controller.checkFailed();
-
-          return resp;
-        }
-      };
-
-      Callable<Object> deleteCallable = new Callable<Object>() {
-        @Override
-        public Object call() throws Exception {
-          store.inflightDeletions.addAndGet(1);
-
-          long nano = System.nanoTime();
-
-          try {
-            Map<byte[], BulkDeleteResponse> result = table.coprocessorService(BulkDeleteService.class, scan.getStartRow(), scan.getStopRow(), callable);
-
-            nano = System.nanoTime() - nano;
-
-            if (error.get()) {
-              throw new IOException("Error while processing delete request.");
-            }
-
-            long noOfDeletedRows = 0L;
-            long noOfDeletedVersions = 0L;
-            long noOfRegions = result.size();
-
-            // One element per region
-            for (BulkDeleteResponse response : result.values()) {
-              noOfDeletedRows += response.getRowsDeleted();
-              noOfDeletedVersions += response.getVersionsDeleted();
-            }
-
-            //
-            // Update Sensision metrics for deletion
-            //
-
-            Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_TIME_NANOS, Sensision.EMPTY_LABELS, nano);
-            Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_OPS, Sensision.EMPTY_LABELS, 1);
-            Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_REGIONS, Sensision.EMPTY_LABELS, noOfRegions);
-            Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_DATAPOINTS, Sensision.EMPTY_LABELS, noOfDeletedVersions);
-
-            Metadata meta = msg.getMetadata();
-            if (null != meta) {
-              Map<String, String> labels = new HashMap<String, String>();
-              labels.put(SensisionConstants.SENSISION_LABEL_OWNER, meta.getLabels().get(Constants.OWNER_LABEL));
-              labels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, meta.getLabels().get(Constants.APPLICATION_LABEL));
-              Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_DATAPOINTS_PEROWNERAPP, labels, noOfDeletedVersions);
-            }
-          } catch (Throwable t) {
-            LOG.error("Error while processing delete request", t);
-            if (t instanceof Exception) {
-              throw (Exception) t;
-            } else {
-              throw new Exception(t);
-            }
-          } finally {
-            if (error.get()) {
-              LOG.info("ERROR");
-              store.deletionErrors.addAndGet(1);
-              store.abort.set(true);
-              localabort.set(true);
-            }
-            store.inflightDeletions.addAndGet(-1);
-          }
-
-          return null;
-        }
-      };
-
-      if (null != store.deleteExecutor) {
-        //
-        // We attempt to lock so we do not issue asynchronous deletes while puts are being persisted
-        //
-        try {
-          putslock.lockInterruptibly();
-
-          boolean submitted = false;
-          while(!submitted && !store.deleteExecutor.isShutdown() && !store.deleteExecutor.isTerminated()) {
-            try {
-              store.deleteExecutor.submit(deleteCallable);
-              submitted = true;
-            } catch (RejectedExecutionException ree) {
-            }
-          }
-        } finally {
-          if (putslock.isHeldByCurrentThread()) {
-            putslock.unlock();
-          }
+      if (store.FDBUseTenantPrefix) {
+        if (msg.getAttributesSize() > 0 && msg.getAttributes().containsKey(Constants.STORE_ATTR_FDB_TENANT_PREFIX)) {
+          tenantPrefix = OrderPreservingBase64.decode(msg.getAttributes().get(Constants.STORE_ATTR_FDB_TENANT_PREFIX));
+        } else {
+          LOG.error("Incoherent configuration, Store mandates a tenant but the current Kafka DELETE message did not have a tenant prefix set, aborting.");
+          throw new RuntimeException("Incoherent configuration, Store mandates a tenant but the current Kafka DELETE message did not have a tenant prefix set, aborting.");
         }
       } else {
-        //
-        // We increase artificially pendingDeletions by holding the lock so
-        // we are sure we are mutually exclusive with the flush of offsets.
-        // The value of pendingDeletions will be incorrect but what matters is that
-        // it is > 0
-        //
-        try {
-          putslock.lockInterruptibly();
-          store.inflightDeletions.addAndGet(1);
-        } finally {
-          if (putslock.isHeldByCurrentThread()) {
-            putslock.unlock();
-          }
-        }
-        //
-        // Call the callable directly if we could not schedule it on the thread pool
-        // or if no thread pool is used
-        //
-        try {
-          deleteCallable.call();
-        } finally {
-          store.inflightDeletions.addAndGet(-1);
+        if (msg.getAttributesSize() > 0 && msg.getAttributes().containsKey(Constants.STORE_ATTR_FDB_TENANT_PREFIX)) {
+          LOG.error("Incoherent configuration, Store has no tenant support but the current Kafka DELETE message has a tenant prefix set, aborting.");
+          throw new RuntimeException("Incoherent configuration, Store has no tenant support and the current Kafka DELETE message has a tenant prefix set.");
         }
       }
+
+      FDBClearRange clearRange = new FDBClearRange(tenantPrefix, startkey, endkey);
+
+      if (null != Store.rateLimit) {
+        while(!Store.rateLimit.tryAcquire(1, TimeUnit.SECONDS)) {}
+      }
+
+      try {
+        mutationslock.lockInterruptibly();
+        mutations.add(clearRange);
+        mutationsSize.addAndGet(clearRange.size());
+        lastMutation.set(System.currentTimeMillis());
+      } catch (InterruptedException ie) {
+        localabort.set(true);
+        return;
+      } finally {
+        if (mutationslock.isHeldByCurrentThread()) {
+          mutationslock.unlock();
+        }
+      }
+
+      //
+      // Update Sensision metrics for deletion
+      //
+
+      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STORE_FDB_DELETE_OPS, Sensision.EMPTY_LABELS, 1);
     }
   }
 
@@ -1549,95 +1194,10 @@ public class Store extends Thread {
    * @param props Properties from which to extract the key specs
    */
   private void extractKeys(Properties props) {
-    KeyStore.checkAndSetKey(keystore, KeyStore.SIPHASH_KAFKA_DATA, props, io.warp10.continuum.Configuration.STORE_KAFKA_DATA_MAC, 128);
-    KeyStore.checkAndSetKey(keystore, KeyStore.AES_KAFKA_DATA, props, io.warp10.continuum.Configuration.STORE_KAFKA_DATA_AES, 128, 192, 256);
-    KeyStore.checkAndSetKey(keystore, KeyStore.AES_HBASE_DATA, props, io.warp10.continuum.Configuration.STORE_HBASE_DATA_AES, 128, 192, 256);
+    KeyStore.checkAndSetKey(keystore, KeyStore.SIPHASH_KAFKA_DATA, props, Configuration.STORE_KAFKA_DATA_MAC, 128);
+    KeyStore.checkAndSetKey(keystore, KeyStore.AES_KAFKA_DATA, props, Configuration.STORE_KAFKA_DATA_AES, 128, 192, 256);
+    KeyStore.checkAndSetKey(keystore, KeyStore.AES_FDB_DATA, props, Configuration.STORE_FDB_DATA_AES, 128, 192, 256);
 
     this.keystore.forget();
-  }
-
-  private static synchronized Connection getHBaseConnection(Properties properties) throws IOException {
-
-    //
-    // Compute two SipHash of the properties which will be used as a key in the singleton map
-    //
-
-    Map<String,String> props = new HashMap<String,String>();
-
-    for (Entry<Object,Object> prop: properties.entrySet()) {
-      props.put(prop.getKey().toString(), prop.getValue().toString());
-    }
-
-    long msb = GTSHelper.labelsId(0xAC1C573839114320L, 0x8638D30B3E5E3491L, props);
-    long lsb = GTSHelper.labelsId(0xC4DFC7F5A82D4626L, 0x9AB1748AF5EC0C16L, props);
-
-    String uuid = new UUID(msb,lsb).toString();
-
-    Connection conn = connections.get(uuid);
-
-    if (null != conn && !conn.isClosed() && !conn.isAborted()) {
-      return conn;
-    } else {
-      try { conn.close(); } catch (Throwable t) {}
-    }
-
-    //
-    // We need to create a new connection
-    //
-
-    Configuration config = new Configuration();
-    if (properties.containsKey(io.warp10.continuum.Configuration.STORE_HBASE_HCONNECTION_THREADS_MAX)) {
-      config.set("hbase.hconnection.threads.max", properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_HCONNECTION_THREADS_MAX));
-    } else {
-      config.set("hbase.hconnection.threads.max", Integer.toString(Runtime.getRuntime().availableProcessors() * 8));
-    }
-    if (properties.containsKey(io.warp10.continuum.Configuration.STORE_HBASE_HCONNECTION_THREADS_CORE)) {
-      config.set("hbase.hconnection.threads.core", properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_HCONNECTION_THREADS_MAX));
-    } else {
-      config.set("hbase.hconnection.threads.core", Integer.toString(Runtime.getRuntime().availableProcessors() * 8));
-    }
-    config.set(HConstants.ZOOKEEPER_QUORUM, properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_DATA_ZKCONNECT));
-    if (!"".equals(properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_DATA_ZNODE))) {
-      config.set(HConstants.ZOOKEEPER_ZNODE_PARENT, properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_DATA_ZNODE));
-    }
-    if (properties.containsKey(io.warp10.continuum.Configuration.STORE_HBASE_ZOOKEEPER_PROPERTY_CLIENTPORT)) {
-      config.set(HConstants.ZOOKEEPER_CLIENT_PORT, properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_ZOOKEEPER_PROPERTY_CLIENTPORT));
-    }
-    if (properties.containsKey(io.warp10.continuum.Configuration.STORE_HBASE_CLIENT_IPC_POOL_SIZE)) {
-      config.set(HConstants.HBASE_CLIENT_IPC_POOL_SIZE, properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_CLIENT_IPC_POOL_SIZE));
-    }
-
-    if (properties.containsKey(io.warp10.continuum.Configuration.STORE_HBASE_CLIENT_OPERATION_TIMEOUT)) {
-      config.set(HConstants.HBASE_CLIENT_OPERATION_TIMEOUT, properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_CLIENT_OPERATION_TIMEOUT));
-    }
-    if (properties.containsKey(io.warp10.continuum.Configuration.STORE_HBASE_RPC_TIMEOUT)) {
-      config.set(HConstants.HBASE_RPC_TIMEOUT_KEY, properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_RPC_TIMEOUT));
-    }
-    if (properties.containsKey(io.warp10.continuum.Configuration.STORE_HBASE_CLIENT_RETRIES_NUMBER)) {
-      config.set(HConstants.HBASE_CLIENT_RETRIES_NUMBER, properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_CLIENT_RETRIES_NUMBER));
-    }
-    if (properties.containsKey(io.warp10.continuum.Configuration.STORE_HBASE_CLIENT_PAUSE)) {
-      config.set(HConstants.HBASE_CLIENT_PAUSE, properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_CLIENT_PAUSE));
-    }
-
-    //
-    // Handle additional HBase configurations
-    //
-
-    if (properties.containsKey(io.warp10.continuum.Configuration.STORE_HBASE_CONFIG)) {
-      String[] keys = properties.getProperty(io.warp10.continuum.Configuration.STORE_HBASE_CONFIG).split(",");
-      for (String key: keys) {
-        if (!properties.containsKey("store." + key.trim())) {
-          throw new RuntimeException("Missing declared property 'store." + key.trim() + "'.");
-        }
-        config.set(key, properties.getProperty("store." + key.trim()));
-      }
-    }
-
-    conn = ConnectionFactory.createConnection(config);
-
-    connections.put(uuid,conn);
-
-    return conn;
   }
 }

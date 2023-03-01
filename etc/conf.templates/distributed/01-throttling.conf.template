@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -47,12 +47,12 @@ throttling.manager.period = 1000
 //
 // Default value for the rate when not configured through a file
 //
-#throttling.manager.rate.default = 0.0
+throttling.manager.rate.default = ${throttling.rate}
 
 //
 // Default value for the mads when not configured through a file
 //
-#throttling.manager.mads.default = 0
+throttling.manager.mads.default = ${throttling.mads}
 
 //
 // Default value for the maxwait timeout

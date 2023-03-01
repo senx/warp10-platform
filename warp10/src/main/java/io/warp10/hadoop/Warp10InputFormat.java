@@ -53,6 +53,7 @@ import com.fasterxml.sort.std.TextFileSorter;
 
 import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.TextFileShuffler;
+import io.warp10.continuum.egress.EgressSplitsHandler;
 import io.warp10.continuum.store.Constants;
 
 public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
@@ -402,7 +403,8 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
       subsplits++;
       lastserver = tokens[0];
 
-      split.addEntry(fallbacksonly ? null : tokens[0], tokens[2]);
+      // If we use only the fallbacks or if the server was the dummy value don't add the server
+      split.addEntry(fallbacksonly || EgressSplitsHandler.DUMMY_SERVER.equals(tokens[0]) ? null : tokens[0], tokens[2]);
     }
 
     br.close();

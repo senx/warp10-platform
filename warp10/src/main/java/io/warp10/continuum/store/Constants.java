@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -156,11 +156,6 @@ public class Constants {
   public static final String HTTP_HEADER_CAPABILITIES_DEFAULT = "X-Warp10-Capabilities";
 
   /**
-   * Header containing the request UUID when calling the endpoint
-   */
-  public static final String HTTP_HEADER_WEBCALL_UUID_DEFAULT = "X-Warp10-WebCall";
-
-  /**
    * HTTP Header for elapsed time of WarpScript scripts
    */
   public static final String HTTP_HEADER_ELAPSED_DEFAULT = "X-Warp10-Elapsed";
@@ -238,11 +233,6 @@ public class Constants {
   public static final String DATALOG_UPDATE = "UPDATE";
   public static final String DATALOG_META = "META";
   public static final String DATALOG_DELETE = "DELETE";
-
-  /**
-   * Empty column qualifier for HBase writes
-   */
-  public static final byte[] EMPTY_COLQ = new byte[0];
 
   /**
    * Endpoint for checks
@@ -451,11 +441,6 @@ public class Constants {
   public static final String TOKEN_ATTR_NOFETCH = ".nofetch";
 
   /**
-   * Attribute used to specify that a READ token cannot be used to AUTHENTICATE.
-   */
-  public static final String TOKEN_ATTR_NOAUTH = ".noauth";
-
-  /**
    * Attribute to specify the maximum value size
    */
   public static final String TOKEN_ATTR_MAXSIZE = ".maxsize";
@@ -468,27 +453,19 @@ public class Constants {
   public static final String TOKEN_ATTR_IGNOOR = ".ignoor";
 
   /**
-   * TTL for the written data (in ms)
-   */
-  public static final String TOKEN_ATTR_TTL = ".ttl";
-
-  /**
-   * Use the timestamp of the datapoints as the HBase cell timestamp.
-   * Use of this attribute has no effect on a standalone version of Warp 10
-   */
-  public static final String TOKEN_ATTR_DPTS = ".dpts";
-
-  /**
    * Attribute to specify that owner and producer should be exposed instead of hidden
    */
   public static final String TOKEN_ATTR_EXPOSE = ".expose";
 
-  //
-  // KafkaMessage Store attributes
-  //
+  /**
+   * FoundationDB tenant key prefix. The value is OPB64 encoded
+   */
+  public static final String TOKEN_ATTR_FDB_TENANT_PREFIX = ".fdbtp";
 
-  public static final String STORE_ATTR_TTL = "ttl";
-  public static final String STORE_ATTR_USEDATAPOINTTS = "dpts";
+  /**
+   * FoundationDB tenant key prefix. The value is OPB64 encoded
+   */
+  public static final String STORE_ATTR_FDB_TENANT_PREFIX = "fdb.tenant.prefix";
 
   /**
    * Limit to the size of errors message returned as the HTTP reason. In Jetty, this is limited to 1024 character.
@@ -578,7 +555,6 @@ public class Constants {
     // Initialize headers
     //
 
-    HEADERS.put(Configuration.HTTP_HEADER_WEBCALL_UUIDX, WarpConfig.getProperty(Configuration.HTTP_HEADER_WEBCALL_UUIDX, HTTP_HEADER_WEBCALL_UUID_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_ELAPSEDX, WarpConfig.getProperty(Configuration.HTTP_HEADER_ELAPSEDX, HTTP_HEADER_ELAPSED_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_OPSX, WarpConfig.getProperty(Configuration.HTTP_HEADER_OPSX, HTTP_HEADER_OPS_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_FETCHEDX, WarpConfig.getProperty(Configuration.HTTP_HEADER_FETCHEDX, HTTP_HEADER_FETCHED_DEFAULT));
@@ -620,10 +596,10 @@ public class Constants {
   /**
    * row key prefix for metadata
    */
-  public static final byte[] HBASE_METADATA_KEY_PREFIX = "M".getBytes(StandardCharsets.UTF_8);
+  public static final byte[] FDB_METADATA_KEY_PREFIX = "M".getBytes(StandardCharsets.UTF_8);
 
   /**
    * Prefix for 'raw' (individual datapoints) data
    */
-  public static final byte[] HBASE_RAW_DATA_KEY_PREFIX = "R".getBytes(StandardCharsets.UTF_8);
+  public static final byte[] FDB_RAW_DATA_KEY_PREFIX = "R".getBytes(StandardCharsets.UTF_8);
 }

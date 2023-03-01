@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ public class DummyKeyStore implements KeyStore {
     // Initialize key store
     //
 
-    setKey(KeyStore.AES_HBASE_METADATA, new byte[32]);
+    setKey(KeyStore.AES_FDB_METADATA, new byte[32]);
     setKey(KeyStore.AES_TOKEN, new byte[32]);
     setKey(KeyStore.SIPHASH_CLASS, new byte[16]);
     setKey(KeyStore.SIPHASH_LABELS, new byte[16]);

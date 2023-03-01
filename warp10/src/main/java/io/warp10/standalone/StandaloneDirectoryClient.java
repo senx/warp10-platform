@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -46,7 +46,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
@@ -65,6 +64,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.MapMaker;
 
+import io.warp10.BytesUtils;
 import io.warp10.SmartPattern;
 import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
@@ -361,7 +361,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       while(iter.hasNext()) {
         Entry<byte[],byte[]> kv = iter.next();
         byte[] key = kv.getKey();
-        if (Bytes.compareTo(key, stop) >= 0) {
+        if (BytesUtils.compareTo(key, stop) >= 0) {
           break;
         }
 

@@ -662,8 +662,6 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         req.setStep(step);
         req.setTimestep(timestep);
         req.setSample(sample);
-        req.setWriteTimestamp(writeTimestamp);
-        req.setTTL(ttl);
         req.setPreBoundary(preBoundary);
         req.setPostBoundary(postBoundary);
 
@@ -819,6 +817,8 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
                 // It is therefore necessary to keep track of how many data points were already fetched and
                 // shrink the GTS so we do not return too many.
                 //
+                // TODO(hbs): Even though we migrated to using FoundationDB, this test remains in place for the time being, to be assessed and possibly removed later
+                //
 
                 if (countOnly && lastCount + dpcount >= count) {
                   // We are done, exit
@@ -865,6 +865,8 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
             // and in this specific case the request will be forwarded to all RS serving regions for a given GTS.
             // It is therefore necessary to keep track of how many datapoints were already fetched and
             // shrink the GTS so we do not return too many.
+            //
+            // TODO(hbs): Even though we migrated to using FoundationDB, this test remains in place for the time being, to be assessed and possibly removed later
             //
 
             if (countOnly && lastCount + GTSHelper.nvalues(gts) > count) {
