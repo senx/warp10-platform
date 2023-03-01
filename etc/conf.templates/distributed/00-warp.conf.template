@@ -41,7 +41,7 @@ warp.timeunits = us
 // with JDK9+, those libraries may fail to parse the java version. This configuration key
 // can be used to force the "java.version" property to the given value.
 //
-#java.version = 1.11.0
+#warp.java.version = 1.11.0
 
 //
 // Comma separated list of headers to return in Access-Control-Allow-Headers on top of the token header.
