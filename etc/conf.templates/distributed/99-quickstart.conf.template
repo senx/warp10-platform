@@ -1,0 +1,70 @@
+//
+//   Copyright 2022-2023  SenX S.A.S.
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+//
+
+warp10.instance = RENAME.ME.PLEASE
+
+#aes.key = hex:.....
+#mac.key = hex:.....
+#hash.key = hex:.....
+
+components = ingress,directory,store,egress
+
+fdb.clusterfile = /path/to/fdb.cluster
+fdb.data.aes = ${aes.key}
+fdb.metadata.aes = ${aes.key}
+
+zk.quorum = 127.0.0.1:2181
+
+directory.hash.key = ${hash.key}
+
+kafka.bootstrap.servers = 127.0.0.1:9092
+
+kafka.metadata.bootstrap.servers = ${kafka.bootstrap.servers}
+kafka.metadata.topic = metadata
+kafka.metadata.mac = ${mac.key}
+kafka.metadata.aes = ${aes.key}
+
+kafka.data.bootstrap.servers = ${kafka.bootstrap.servers}
+kafka.data.topic = data
+kafka.data.mac = ${mac.key}
+kafka.data.aes = ${aes.key}
+
+kafka.throttling.bootstrap.servers = ${kafka.bootstrap.servers}
+kafka.throttling.topic = throttling
+
+kafka.runner.bootsreap.servers = ${kafka.bootstrap.servers}
+kafka.runner.topic = runner
+kafka.runner.mac = ${mac.key}
+kafka.runner.aes = ${aes.key}
+
+kafka.plasmafe.bootstrap.servers = ${kafka.bootstrap.servers}
+
+kafka.webcall.bootstrap.servers = ${kafka.bootstrap.servers}
+kafka.webcall.topic = webcall
+kafka.webcall.mac = ${mac.key}
+kafka.webcall.aes = ${aes.key}
+
+class.hash.key = ${hash.key}
+labels.hash.key = ${hash.key}
+token.hash.key = ${hash.key}
+app.hash.key = ${hash.key}
+
+token.aes.key = ${aes.key}
+scripts.aes.key = ${aes.key}
+metasets.aes.key = ${aes.key}
+
+throttling.mads = 10000
+throttling.rate = 1000000.0

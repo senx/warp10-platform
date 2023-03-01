@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.hadoop.io.ArrayWritable;
 import org.apache.hadoop.io.BooleanWritable;
@@ -50,30 +51,21 @@ import io.warp10.continuum.Configuration;
  * Utility class to convert to/from Writables
  */
 public class WritableUtils {
-  
+
   private static final boolean strictWritables;
   private static final boolean rawWritables;
-  
+
   static {
-    if ("true".equals(WarpConfig.getProperty(Configuration.CONFIG_WARPSCRIPT_HADOOP_STRICTWRITABLES))) {
-      strictWritables = true;
-    } else {
-      strictWritables = false;
-    }
-    
-    if ("true".equals(WarpConfig.getProperty(Configuration.CONFIG_WARPSCRIPT_HADOOP_RAWWRITABLES))) {
-      rawWritables = true;
-    } else {
-      rawWritables = false;
-    }  
+    strictWritables = "true".equals(WarpConfig.getProperty(Configuration.CONFIG_WARPSCRIPT_HADOOP_STRICTWRITABLES));
+    rawWritables = "true".equals(WarpConfig.getProperty(Configuration.CONFIG_WARPSCRIPT_HADOOP_RAWWRITABLES));
   }
-  
+
   public static Object fromWritable(Object w) throws IOException {
-    
+
     if (!(w instanceof Writable) || rawWritables) {
       return w;
     }
-  
+
     if (w instanceof Text) {
       return ((Text) w).toString();
     } else if (w instanceof BytesWritable) {
@@ -113,8 +105,8 @@ public class WritableUtils {
       return fromWritable(((GenericWritable) w).get());
     } else if (w instanceof SortedMapWritable) {
       Map<Object,Object> map = new LinkedHashMap<Object,Object>();
-      for (Entry<WritableComparable,Writable> entry: ((SortedMapWritable) w).entrySet()) {
-        map.put(fromWritable(entry.getKey()), fromWritable(entry.getValue()));        
+      for (Entry<WritableComparable,Writable> entry: (Set <Entry<WritableComparable,Writable>>)((SortedMapWritable) w).entrySet()) {
+        map.put(fromWritable(entry.getKey()), fromWritable(entry.getValue()));
       }
       return map;
     } else if (w instanceof VIntWritable) {
@@ -127,9 +119,9 @@ public class WritableUtils {
       } else {
         return w;
       }
-    }  
+    }
   }
-  
+
   public static Writable toWritable(Object o) throws IOException {
     if (o instanceof Long) {
       return new LongWritable(((Long) o).longValue());

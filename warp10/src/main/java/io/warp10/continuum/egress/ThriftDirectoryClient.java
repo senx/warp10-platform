@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -48,22 +48,18 @@ import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
-import org.apache.thrift.transport.TFramedTransport;
-import org.apache.thrift.transport.TSocket;
-import org.apache.thrift.transport.TTransport;
-import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.netflix.curator.framework.CuratorFramework;
-import com.netflix.curator.framework.CuratorFrameworkFactory;
-import com.netflix.curator.framework.state.ConnectionState;
-import com.netflix.curator.retry.RetryNTimes;
-import com.netflix.curator.x.discovery.ServiceCache;
-import com.netflix.curator.x.discovery.ServiceDiscovery;
-import com.netflix.curator.x.discovery.ServiceDiscoveryBuilder;
-import com.netflix.curator.x.discovery.ServiceInstance;
-import com.netflix.curator.x.discovery.details.ServiceCacheListener;
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.CuratorFrameworkFactory;
+import org.apache.curator.framework.state.ConnectionState;
+import org.apache.curator.retry.RetryNTimes;
+import org.apache.curator.x.discovery.ServiceCache;
+import org.apache.curator.x.discovery.ServiceDiscovery;
+import org.apache.curator.x.discovery.ServiceDiscoveryBuilder;
+import org.apache.curator.x.discovery.ServiceInstance;
+import org.apache.curator.x.discovery.details.ServiceCacheListener;
 
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.DirectoryUtil;
@@ -76,8 +72,6 @@ import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.DirectoryStatsRequest;
 import io.warp10.continuum.store.thrift.data.DirectoryStatsResponse;
 import io.warp10.continuum.store.thrift.data.Metadata;
-import io.warp10.continuum.store.thrift.service.DirectoryService;
-import io.warp10.continuum.store.thrift.service.DirectoryService.Client;
 import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.crypto.SipHashInline;
@@ -101,7 +95,7 @@ public class ThriftDirectoryClient implements ServiceCacheListener, DirectoryCli
 
   private final ServiceCache<Map> serviceCache;
 
-  private Map<String,DirectoryService.Client> clientCache = new ConcurrentHashMap<String, DirectoryService.Client>();
+  private Map<String,Object> clientCache = new ConcurrentHashMap<String, Object>();
 
   private Map<String,Integer> modulus = new ConcurrentHashMap<String, Integer>();
   private Map<String,Integer> remainder = new ConcurrentHashMap<String, Integer>();
@@ -168,8 +162,6 @@ public class ThriftDirectoryClient implements ServiceCacheListener, DirectoryCli
 
       transportException.set(false);
 
-      //System.out.println("in cacheChanged");
-
       //
       // Rebuild the Client cache
       //
@@ -180,7 +172,7 @@ public class ThriftDirectoryClient implements ServiceCacheListener, DirectoryCli
       // Allocate new clients
       //
 
-      Map<String,Client> newClients = new ConcurrentHashMap<String, DirectoryService.Client>();
+      Map<String,Object> newClients = new ConcurrentHashMap<String, Object>();
       Map<String,Integer> newModulus = new ConcurrentHashMap<String, Integer>();
       Map<String,Integer> newRemainder = new ConcurrentHashMap<String, Integer>();
       Map<String,String> newHosts = new ConcurrentHashMap<String,String>();
@@ -237,29 +229,12 @@ public class ThriftDirectoryClient implements ServiceCacheListener, DirectoryCli
 
         String id = instance.getId();
 
-        String host = instance.getAddress();
-        int port = instance.getPort();
-        TTransport transport = new TSocket(host, port);
-        try {
-          transport.open();
-        } catch (TTransportException tte) {
-          // FIXME(hbs): log
-          continue;
-        }
-
-        if (instance.getPayload().containsKey(Directory.PAYLOAD_THRIFT_MAXFRAMELEN_KEY)) {
-          transport = new TFramedTransport(transport, Integer.parseInt(instance.getPayload().get(Directory.PAYLOAD_THRIFT_MAXFRAMELEN_KEY).toString()));
-        } else {
-          transport = new TFramedTransport(transport);
-        }
-
         if (instance.getPayload().containsKey(Directory.PAYLOAD_STREAMING_PORT_KEY)) {
           newHosts.put(id, instance.getAddress());
           newStreamingPorts.put(id, Integer.parseInt(instance.getPayload().get(Directory.PAYLOAD_STREAMING_PORT_KEY).toString()));
         }
 
-        DirectoryService.Client client = new DirectoryService.Client(new TCompactProtocol(transport));
-        newClients.put(id, client);
+        newClients.put(id, Boolean.TRUE);
         newModulus.put(id, modulus);
         newRemainder.put(id, Integer.parseInt(instance.getPayload().get(Directory.PAYLOAD_REMAINDER_KEY).toString()));
       }
@@ -269,15 +244,6 @@ public class ThriftDirectoryClient implements ServiceCacheListener, DirectoryCli
       //
 
       synchronized(clientCacheMutex) {
-
-        for (Entry<String,DirectoryService.Client> entry: clientCache.entrySet()) {
-          synchronized(entry.getValue()) {
-            try {
-              entry.getValue().getInputProtocol().getTransport().close();
-            } catch (Exception e) {
-            }
-          }
-        }
 
         clientCache = newClients;
         modulus = newModulus;
@@ -313,184 +279,11 @@ public class ThriftDirectoryClient implements ServiceCacheListener, DirectoryCli
 
   @Override
   public List<Metadata> find(DirectoryRequest request) throws IOException {
-
     throw new IOException("USE ITERATOR");
-
-/*
-    final DirectoryFindRequest request = new DirectoryFindRequest();
-    request.setTimestamp(System.currentTimeMillis());
-    request.setClassSelector(classSelector);
-    request.setLabelsSelectors(labelsSelectors);
-
-    long hash = DirectoryUtil.computeHash(this.SIPHASH_PSK[0], this.SIPHASH_PSK[1], request);
-
-    request.setHash(hash);
-
-    List<Future<DirectoryFindResponse>> responses = new ArrayList<Future<DirectoryFindResponse>>();
-
-    // Set of already called remainders for the selected modulus
-    Set<Integer> called = new HashSet<Integer>();
-
-    long selectedmodulus = -1L;
-
-    List<Entry<String,DirectoryService.Client>> servers = new ArrayList<Entry<String,DirectoryService.Client>>();
-
-    synchronized(clientCacheMutex) {
-      servers.addAll(clientCache.entrySet());
-
-      // Shuffle the list
-      Collections.shuffle(servers);
-
-      synchronized(executorMutex) {
-        for (Entry<String,DirectoryService.Client> entry: servers) {
-          if (-1L == selectedmodulus) {
-            selectedmodulus = modulus.get(entry.getKey());
-          }
-
-          // Make sure we use a common modulus
-          if (modulus.get(entry.getKey()) != selectedmodulus) {
-            continue;
-          }
-
-          // Skip client if we already called one with this remainder
-          if (called.contains(remainder.get(entry.getKey()))) {
-            continue;
-          }
-
-          final DirectoryService.Client clnt = entry.getValue();
-          responses.add(executor.submit(new Callable<DirectoryFindResponse>() {
-            @Override
-            public DirectoryFindResponse call() throws Exception {
-              synchronized(clnt) {
-                try {
-                  DirectoryFindResponse response = clnt.find(request);
-
-                  //
-                  // Decompress compressed response if it is set
-                  //
-
-                  byte[] compressed = response.getCompressed();
-
-                  if (null != compressed) {
-
-                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                    ByteArrayInputStream bais = new ByteArrayInputStream(compressed);
-                    GZIPInputStream gzis = new GZIPInputStream(bais);
-
-                    byte[] buf = new byte[1024];
-
-                    while(true) {
-                      int len = gzis.read(buf);
-
-                      if (-1 == len) {
-                        break;
-                      }
-
-                      baos.write(buf, 0, len);
-                    }
-
-                    gzis.close();
-
-                    TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
-
-                    response = new DirectoryFindResponse();
-
-                    deserializer.deserialize(response, baos.toByteArray());
-                  }
-
-                  //
-                  // Force the common labels
-                  //
-
-                  if (response.getCommonLabelsSize() > 0) {
-                    Map<String,String> commonLabels = response.getCommonLabels();
-
-                    for (Metadata metadata: response.getMetadatas()) {
-                      metadata.getLabels().putAll(commonLabels);
-                    }
-                  }
-
-                  return response;
-                } catch (TTransportException tte) {
-                  LOG.error("call", tte);
-                  transportException.set(true);
-                  throw tte;
-                }
-              }
-            }
-          }));
-          called.add(remainder.get(entry.getKey()));
-        }
-      }
-    }
-
-
-    //
-    // Await for all requests to have completed, either successfully or not
-    //
-
-    int count = 0;
-
-    while(count != responses.size()) {
-      LockSupport.parkNanos(1000L);
-      count = 0;
-      for (Future<DirectoryFindResponse> response: responses) {
-        if (response.isDone()) {
-          count++;
-        }
-      }
-    }
-
-    //
-    // Force reload of cache since we have experienced an error
-    //
-
-    if (transportException.get()) {
-      cacheChanged();
-    }
-
-    //
-    // Build the list of all retrieved Metadatas
-    //
-
-    Throwable error = null;
-
-    List<Metadata> metadatas = new ArrayList<Metadata>();
-
-    for (Future<DirectoryFindResponse> response: responses) {
-      try {
-        DirectoryFindResponse resp = response.get();
-        if (resp.isSetError()) {
-          throw new IOException(resp.getError());
-        }
-        if (resp.getMetadatasSize() > 0) {
-          for (Metadata metadata: resp.getMetadatas()) {
-            GTSHelper.internalizeStrings(metadata);
-          }
-          metadatas.addAll(resp.getMetadatas());
-        }
-        // FIXME(hbs): log errors
-      } catch (CancellationException ce) {
-        error = ce;
-      } catch (ExecutionException ee) {
-        error = ee.getCause();
-      } catch (InterruptedException ie) {
-        error = ie;
-      } finally {
-        if (null != error) {
-          throw new IOException(error);
-        }
-      }
-    }
-
-
-    return metadatas;
-*/
   }
 
   @Override
   public Map<String,Object> stats(DirectoryRequest request) throws IOException {
-    //return statsThrift(classSelector, labelsSelectors);
     return statsHttp(request);
   }
 
@@ -510,7 +303,7 @@ public class ThriftDirectoryClient implements ServiceCacheListener, DirectoryCli
 
     final List<URL> urls = new ArrayList<URL>();
 
-    List<Entry<String,DirectoryService.Client>> servers = new ArrayList<Entry<String,DirectoryService.Client>>();
+    List<Entry<String,Object>> servers = new ArrayList<Entry<String,Object>>();
 
     synchronized(clientCacheMutex) {
       servers.addAll(clientCache.entrySet());
@@ -519,7 +312,7 @@ public class ThriftDirectoryClient implements ServiceCacheListener, DirectoryCli
     // Shuffle the list
     Collections.shuffle(servers);
 
-    for (Entry<String,DirectoryService.Client> entry: servers) {
+    for (Entry<String,Object> entry: servers) {
       //
       // Make sure the current entry has a streaming port defined
       //
@@ -660,96 +453,6 @@ public class ThriftDirectoryClient implements ServiceCacheListener, DirectoryCli
           count++;
         }
       }
-    }
-
-    return mergeStatsResponses(responses);
-  }
-
-  public Map<String,Object> statsThrift(List<String> classSelector, List<Map<String, String>> labelsSelectors) throws IOException {
-    final DirectoryStatsRequest request = new DirectoryStatsRequest();
-    request.setTimestamp(System.currentTimeMillis());
-    request.setClassSelector(classSelector);
-    request.setLabelsSelectors(labelsSelectors);
-
-    long hash = DirectoryUtil.computeHash(this.SIPHASH_PSK[0], this.SIPHASH_PSK[1], request);
-
-    request.setHash(hash);
-
-    List<Future<DirectoryStatsResponse>> responses = new ArrayList<Future<DirectoryStatsResponse>>();
-
-    // Set of already called modulus:remainder combos
-    Set<Integer> called = new HashSet<Integer>();
-
-    long selectedmodulus = -1L;
-
-    List<Entry<String,DirectoryService.Client>> servers = new ArrayList<Entry<String,DirectoryService.Client>>();
-
-    synchronized(clientCacheMutex) {
-      servers.addAll(clientCache.entrySet());
-
-      // Shuffle the list
-      Collections.shuffle(servers);
-
-      final AtomicBoolean transportException = new AtomicBoolean(false);
-
-      synchronized(executorMutex) {
-        for (Entry<String,DirectoryService.Client> entry: servers) {
-          if (-1L == selectedmodulus) {
-            selectedmodulus = modulus.get(entry.getKey());
-          }
-
-          // Make sure we use a common modulus
-          if (modulus.get(entry.getKey()) != selectedmodulus) {
-            continue;
-          }
-
-          // Skip client if we already called one with this remainder
-          if (called.contains(remainder.get(entry.getKey()))) {
-            continue;
-          }
-          final DirectoryService.Client clnt = entry.getValue();
-          responses.add(executor.submit(new Callable<DirectoryStatsResponse>() {
-            @Override
-            public DirectoryStatsResponse call() throws Exception {
-              synchronized(clnt) {
-                try {
-                  DirectoryStatsResponse response = clnt.stats(request);
-                  return response;
-                } catch (TTransportException tte) {
-                  LOG.error("call", tte);
-                  transportException.set(true);
-                  throw tte;
-                }
-              }
-            }
-          }));
-          called.add(remainder.get(entry.getKey()));
-        }
-      }
-    }
-
-    //
-    // Await for all requests to have completed, either successfully or not
-    //
-
-    int count = 0;
-
-    while(count != responses.size()) {
-      LockSupport.parkNanos(1000L);
-      count = 0;
-      for (Future<DirectoryStatsResponse> response: responses) {
-        if (response.isDone()) {
-          count++;
-        }
-      }
-    }
-
-    //
-    // Force reload of cache since we have experienced an error
-    //
-
-    if (transportException.get()) {
-      cacheChanged();
     }
 
     return mergeStatsResponses(responses);
@@ -918,7 +621,7 @@ public class ThriftDirectoryClient implements ServiceCacheListener, DirectoryCli
 
     final List<URL> urls = new ArrayList<URL>();
 
-    List<Entry<String,DirectoryService.Client>> servers = new ArrayList<Entry<String,DirectoryService.Client>>();
+    List<Entry<String,Object>> servers = new ArrayList<Entry<String,Object>>();
 
     synchronized(clientCacheMutex) {
       servers.addAll(clientCache.entrySet());
@@ -927,7 +630,7 @@ public class ThriftDirectoryClient implements ServiceCacheListener, DirectoryCli
     // Shuffle the list
     Collections.shuffle(servers);
 
-    for (Entry<String,DirectoryService.Client> entry: servers) {
+    for (Entry<String,Object> entry: servers) {
       //
       // Make sure the current entry has a streaming port defined
       //

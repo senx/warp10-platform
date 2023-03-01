@@ -34,9 +34,6 @@
 // LOGMSG, NOLOG, STDERR, STDOUT, TDESCRIBE
 #warpscript.extension.debug = io.warp10.script.ext.debug.DebugWarpScriptExtension
 
-// HLOCATE
-#warpscript.extension.hbase = io.warp10.script.ext.debug.HBaseWarpScriptExtension
-
 // FUNCTIONS
 #warpscript.extension.inventory = io.warp10.script.ext.inventory.InventoryWarpScriptExtension
 
@@ -66,6 +63,9 @@
 #warpscript.extension.shm = io.warp10.script.ext.shm.SharedMemoryWarpScriptExtension
 // SHM ttl in ms, default = 1 hour
 #shm.ttl = 3600000
+// Maximum time (in ms) to wait for a mutex. Use 0 (the default) to wait indefinitely.
+// This value can be modified via the capability mutex.maxwait
+#mutex.maxwait = 5000
 
 // TOKENDUMP, TOKENGEN
 #warpscript.extension.token = io.warp10.script.ext.token.TokenWarpScriptExtension

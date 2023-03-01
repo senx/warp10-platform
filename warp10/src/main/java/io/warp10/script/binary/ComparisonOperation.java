@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2021  SenX S.A.S.
+//   Copyright 2020-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,8 +16,7 @@
 
 package io.warp10.script.binary;
 
-import org.apache.hadoop.hbase.util.Bytes;
-
+import io.warp10.BytesUtils;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GTSOpsHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
@@ -27,13 +26,13 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
 public abstract class ComparisonOperation extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   public abstract boolean operator(int op1, int op2);
-  
+
   //default behavior for > < operators. For >= <= == or !=, you need to set these.
   private final boolean ifOneNaNOperand;
   private final boolean ifTwoNaNOperands;
-  
+
   /**
    * Default constructor with default behavior for > < operators. For >= <= == or !=, you need to set ifOneNaNOperand and ifTwoNaNOperands.
    *
@@ -44,7 +43,7 @@ public abstract class ComparisonOperation extends NamedWarpScriptFunction implem
     ifOneNaNOperand = false;
     ifTwoNaNOperands = false;
   }
-  
+
   /**
    * @param name                 WarpsScript function name
    * @param trueIfOneNaNOperand  set it for != comparison
@@ -55,7 +54,7 @@ public abstract class ComparisonOperation extends NamedWarpScriptFunction implem
     ifOneNaNOperand = trueIfOneNaNOperand;
     ifTwoNaNOperands = trueIfTwoNaNOperands;
   }
-  
+
   private final GTSOpsHelper.GTSBinaryOp stringOp = new GTSOpsHelper.GTSBinaryOp() {
     //could be optimized for string inequality operation
     @Override
@@ -63,20 +62,20 @@ public abstract class ComparisonOperation extends NamedWarpScriptFunction implem
       return operator((GTSHelper.valueAtIndex(gtsa, idxa)).toString().compareTo((GTSHelper.valueAtIndex(gtsb, idxb)).toString()), 0) ? GTSHelper.valueAtIndex(gtsa, idxa) : null;
     }
   };
-  
+
   // building four different Op for each combination avoid unnecessary type tests in each Operation :
   //  double / double : need to test every NaN use cases
   //  long / long : fastest
   //  double / long : need to test if gtsa value is NaN
   //  long / double : need to test if gtsb value is NaN
-  
+
   private final GTSOpsHelper.GTSBinaryOp longOp = new GTSOpsHelper.GTSBinaryOp() {
     @Override
     public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
       return operator(EQ.compare((Number) (GTSHelper.valueAtIndex(gtsa, idxa)), (Number) (GTSHelper.valueAtIndex(gtsb, idxb))), 0) ? GTSHelper.valueAtIndex(gtsa, idxa) : null;
     }
   };
-  
+
   private final GTSOpsHelper.GTSBinaryOp doublesOp = new GTSOpsHelper.GTSBinaryOp() {
     // both input GTS are doubles, we need to deal with NaN special cases.
     @Override
@@ -90,7 +89,7 @@ public abstract class ComparisonOperation extends NamedWarpScriptFunction implem
       }
     }
   };
-  
+
   private final GTSOpsHelper.GTSBinaryOp gtsaIsDoubleOp = new GTSOpsHelper.GTSBinaryOp() {
     @Override
     public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
@@ -101,7 +100,7 @@ public abstract class ComparisonOperation extends NamedWarpScriptFunction implem
       }
     }
   };
-  
+
   private final GTSOpsHelper.GTSBinaryOp gtsbIsDoubleOp = new GTSOpsHelper.GTSBinaryOp() {
     @Override
     public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
@@ -112,7 +111,7 @@ public abstract class ComparisonOperation extends NamedWarpScriptFunction implem
       }
     }
   };
-  
+
   // Default apply function for > < >= =<
   // It only supports number and strings.
   @Override
@@ -121,9 +120,9 @@ public abstract class ComparisonOperation extends NamedWarpScriptFunction implem
     Object op1 = stack.pop();
     return comparison(stack, op1, op2);
   }
-  
+
   public Object comparison(WarpScriptStack stack, Object op1, Object op2) throws WarpScriptException {
-    
+
     if (op1 instanceof Double && op2 instanceof Double && Double.isNaN((Double) op1) && Double.isNaN((Double) op2)) {
       //two NaN
       stack.push(ifTwoNaNOperands);
@@ -136,7 +135,7 @@ public abstract class ComparisonOperation extends NamedWarpScriptFunction implem
     } else if (op2 instanceof String && op1 instanceof String) {
       stack.push(operator(op1.toString().compareTo(op2.toString()), 0));
     } else if (op1 instanceof byte[] && op2 instanceof byte[]) {
-      stack.push(operator(Bytes.compareTo((byte[]) op1, (byte[]) op2), 0));
+      stack.push(operator(BytesUtils.compareTo((byte[]) op1, (byte[]) op2), 0));
     } else if (op1 instanceof GeoTimeSerie && op2 instanceof GeoTimeSerie) {
       // compare two GTS
       GeoTimeSerie gts1 = (GeoTimeSerie) op1;
@@ -325,7 +324,7 @@ public abstract class ComparisonOperation extends NamedWarpScriptFunction implem
   } else {
       throw new WarpScriptException(getName() + " can only operate when GTS values and the top stack operand have the same type.");
     }
-    
+
     return stack;
   }
 }

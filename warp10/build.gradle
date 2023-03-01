@@ -1,7 +1,7 @@
 import java.nio.charset.StandardCharsets
 
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -30,16 +30,20 @@ dependencies {
     //
     api project(':crypto')
     api project(':token')
-    api project(':hbaseFilters')
     api 'io.warp10:sensision:1.0.24'
 
     api 'joda-time:joda-time:2.2'
-    api 'org.apache.commons:commons-lang3:3.6'
-    api 'org.apache.commons:commons-math3:3.6'
-    api 'org.bouncycastle:bcprov-jdk15on:1.70'
+    api 'org.apache.commons:commons-lang3:3.12.0'
+    api 'org.apache.commons:commons-math3:3.6.1'
     // https://mvnrepository.com/artifact/org.bouncycastle/bcpg-jdk15on
+    api 'org.bouncycastle:bcprov-jdk15on:1.70'
     api 'org.bouncycastle:bcpg-jdk15on:1.70'
 
+    // https://mvnrepository.com/artifact/org.foundationdb/fdb-java
+    api 'org.foundationdb:fdb-java:7.1.25'
+
+    api 'org.apache.hadoop:hadoop-common:3.3.4'
+    api 'org.apache.hadoop:hadoop-mapreduce-client-core:3.3.4'
 
     //
     // Processing
@@ -49,27 +53,16 @@ dependencies {
     //
     // Commons CLI
     //
-    api 'commons-cli:commons-cli:1.3.1'
+    api 'commons-cli:commons-cli:1.5.0'
 
-    //
-    // HBase 1.0.0
-    //
-    api('org.apache.hbase:hbase-client:1.0.0') {
-        // commons-beanutils:commons-beanutils-core is an alias of commons-beanutils:commons-beanutils, which is already a transitive dependency.
-        exclude group: 'commons-beanutils', module: 'commons-beanutils-core'
-    }
-    // For BulkDeleteProtos
-    api('org.apache.hbase:hbase-examples:1.0.0') {
-        // This dependency is only for a single class, avoid pulling all the useless dependencies.
-        transitive = false
-    }
     // For Standalone(Chunked)MemoryStore
-    api('org.apache.hadoop:hadoop-hdfs:2.5.1')
+    api('org.apache.hadoop:hadoop-hdfs-client:3.3.4')
 
-    api 'org.eclipse.jetty:jetty-server:9.4.2.v20170220'
-    api 'org.eclipse.jetty.websocket:websocket-server:9.4.2.v20170220'
-    api 'org.eclipse.jetty.websocket:websocket-client:9.4.2.v20170220'
-    api 'com.netflix.curator:curator-x-discovery:1.3.3'
+    api 'org.eclipse.jetty:jetty-server:9.4.48.v20220622'
+    api 'org.eclipse.jetty.websocket:websocket-server:9.4.48.v20220622'
+    api 'org.eclipse.jetty.websocket:websocket-client:9.4.48.v20220622'
+    // https://mvnrepository.com/artifact/org.apache.curator/curator-x-discovery
+    api 'org.apache.curator:curator-x-discovery:5.3.0'
     api 'com.fasterxml.jackson.core:jackson-databind:2.10.2'
     api 'org.slf4j:slf4j-api:1.7.5'
 
@@ -85,7 +78,7 @@ dependencies {
     api 'com.github.rwl:jtransforms:2.4.0'
 
     //
-    // Pyrolite
+    // Pyrolite - need to stick with 4.x
     //
     api 'net.razorvine:pyrolite:4.10'
 
@@ -111,7 +104,7 @@ dependencies {
     //
     // This jar includes all jansi and some hawtjni classes instead of declaring them as dependencies. Remove/update when possible.
     // See configurations.all below for jansi.
-    api 'jline:jline:2.13'
+    api 'jline:jline:2.14.6'
 
     //
     // Mustache
@@ -134,12 +127,17 @@ dependencies {
     //
     api 'com.fasterxml.util:java-merge-sort:1.0.0'
 
-    api 'org.apache.kafka:kafka_2.11:0.8.2.2'
-
-    //
-    // Testing
-    //
-    testImplementation 'junit:junit:4.6'
+    // @see <a href="http://www.mail-archive.com/dev@kafka.apache.org/msg03829.html>http://www.mail-archive.com/dev@kafka.apache.org/msg03829.html</a>
+    if (null != System.getProperty("pulsar")) {
+      println '#### Building Warp 10 for Pulsar ###'
+      // https://mvnrepository.com/artifact/org.apache.pulsar/pulsar-client-kafka
+      api group: 'org.apache.pulsar', name: 'pulsar-client-kafka', version: '2.8.0'
+    } else {
+      println '#### Building Warp 10 for Kafka ###'
+      // https://mvnrepository.com/artifact/org.apache.kafka/kafka-clients
+      api group: 'org.apache.kafka', name: 'kafka-clients', version: '3.4.0'
+    }
+    testCompile 'junit:junit:4.6'
 }
 
 configurations.all {
@@ -296,4 +294,3 @@ compileJava.dependsOn("generateThrift")
 createTarArchive.dependsOn("generateChangelog")
 pack.dependsOn(":crypto:jar")
 pack.dependsOn(":token:jar")
-pack.dependsOn(":hbaseFilters:jar")

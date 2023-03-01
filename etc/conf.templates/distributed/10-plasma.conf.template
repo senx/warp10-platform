@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -20,198 +20,212 @@
 //
 /////////////////////////////////////////////////////////////////////////////////////////
 
+###
+### M A N D A T O R Y   C O N F I G U R A T I O N
+###
+
+##
+## MANDATORY (backend) - Comma separated list of Kafka brokers to connect to for consuming the data messages
+##
+plasma.backend.kafka.in.consumer.bootstrap.servers = ${kafka.data.bootstrap.servers}
+
+##
+## MANDATORY (backend) - Kafka topic to use for consuming data messages
+##
+plasma.backend.kafka.in.topic = ${kafka.data.topic}
+
+##
+## MANDATORY (backend) - Kafka group id with which to consume the in topic
+##
+plasma.backend.kafka.in.groupid = plasmabeIn-1
+
+##
+## MANDATORY (backend) - Delay (in ms) between synchronization for offset commit
+##
+plasma.backend.kafka.in.commitperiod = 1000
+
+##
+## MANDATORY (backend) - Number of threads to run for reading off of Kafka
+##
+plasma.backend.kafka.in.nthreads = 2
+
+##
+## MANDATORY (backend) - Comma separated list of Kafka brokers to connect to for producing messages for the frontends
+##
+plasma.backend.kafka.out.producer.bootstrap.servers = ${kafka.plasmafe.bootstrap.servers}
+
+##
+## MANDATORY (backend) - ZooKeeper Quorum for the ZK ensemble to use for retrieving subscriptions
+##
+plasma.backend.subscriptions.zk.quorum = ${zk.quorum}
+
+##
+## MANDATORY (backend) - Parent znode under which subscription znodes will be created
+##
+plasma.backend.subscriptions.zk.znode = /zk/warp/${warp10.instance}/plasma
+
+##
+## MANDATORY (frontend) - Comma separated list of Kafka brokers to connect to for consuming messages from backends
+##
+plasma.frontend.kafka.consumer.bootstrap.servers = ${kafka.plasmafe.bootstrap.servers}
+
+##
+## MANDATORY (frontend) - Kafka topic to consume. This topic is dedicated to this Plasma frontend.
+## One topic per instance of plasma frontend.
+##
+plasma.frontend.kafka.topic = plasmafe1
+
+##
+## MANDATORY (frontend) - Kafka groupid under which to consume above topic
+##
+plasma.frontend.kafka.groupid = plasmafe-1
+
+##
+## MANDATORY (frontend) - How often (in ms) to commit Kafka offsets
+##
+plasma.frontend.kafka.commitperiod = 1000
+
+##
+## MANDATORY (frontend) - Number of threads used for consuming Kafka topic
+##
+plasma.frontend.kafka.nthreads = 2
+
+##
+## MANDATORY (frontend) - Host/IP on which to bind
+##
+plasma.frontend.host = 127.0.0.1
+
+##
+## MANDATORY (frontend) - Port on which to listen
+##
+plasma.frontend.port = 8884
+
+##
+## MANDATORY (frontend) - Maximum size of each znode (in bytes)
+##
+plasma.frontend.maxznodesize = 100000
+
+##
+## MANDATORY (frontend) - ZooKeeper connect String for subscription
+##
+plasma.frontend.zk.quorum = ${zk.quorum}
+
+##
+## MANDATORY (frontend) - ZooKeeper root znode for subscriptions
+##
+plasma.frontend.zk.znode = /zk/warp/${warp10.instance}/plasma
+
+##
+## MANDATORY (frontend) - How often (in ms) to pause between checking if we need to update the subscriptions
+##
+plasma.frontend.subscribe.delay = 5000
+
+##
+## MANDATORY (frontend) - Number of Jetty acceptors
+##
+plasma.frontend.acceptors = 2
+
+##
+## MANDATORY (frontend) - Number of Jetty selectors
+##
+plasma.frontend.selectors = 4
+
+##
+## MANDATORY (frontend) - Jetty idle timeout (in ms)
+##
+plasma.frontend.idle.timeout = 300000
+
+###
+### O P T I O N A L   C O N F I G U R A T I O N
+###
+### Values shown are the default when they exist
+###
+
 //
 // Maximum number of Geo Time Series a single Plasma session can subscribe to
 //
 #warp.plasma.maxsubs
 
-//
-// ZooKeeper connect string for Kafka consumer
-//
-plasma.frontend.kafka.zkconnect = 127.0.0.1:2181/zk/kafka/localhost
-
-//
-// Kafka topic to consume. This topic is dedicated to this Plasma frontend.
-// One topic per instance of plasma frontend.
-//
-plasma.frontend.kafka.topic = plasmafe1
-
-//
-// Kafka groupid under which to consume above topic
-//
-plasma.frontend.kafka.groupid = plasmafe-1
-
-//
-// How often (in ms) to commit Kafka offsets
-//
-plasma.frontend.kafka.commitperiod = 1000
-
-//
-// Number of threads used for consuming Kafka topic
-//
-plasma.frontend.kafka.nthreads = 2
-
-//
-// 128/192/256 bits AES key for encrypting frontend messages in Kafka.
-// Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
-//
+##
+## 128/192/256 bits AES key for encrypting frontend messages in Kafka.
+## Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
+##
 #plasma.frontend.kafka.aes = hex:hhhhhh...
 
-//
-// ZooKeeper connect String for subscription
-//
-plasma.frontend.zkconnect = 127.0.0.1:2181
-
-//
-// ZooKeeper root znode for subscriptions
-//
-plasma.frontend.znode = /zk/warp/localhost/plasma
-
-//
-// Maximum size of each znode (in bytes)
-//
-plasma.frontend.maxznodesize = 100000
-
-//
-// Host/IP on which to bind
-//
-plasma.frontend.host = 127.0.0.1
-
-//
-// Port on which to listen
-//
-plasma.frontend.port = 8884
-
-//
-// Number of threads in Jetty's Thread Pool - defaults to 200
-//
+##
+## Number of threads in Jetty's Thread Pool - defaults to 200
+##
 #plasma.frontend.jetty.threadpool = 200
   
-//
-// Maximum size of Jetty ThreadPool queue size (unbounded by default)
-//
+##
+## Maximum size of Jetty ThreadPool queue size (unbounded by default)
+##
 #plasma.frontend.jetty.maxqueuesize = 
 
-//
-// TCP Backlog applied to the ingress server listener
-//
+##
+## TCP Backlog applied to the ingress server listener
+##
 #plasma.frontend.tcp.backlog =
 
-//
-// Number of acceptors
-//
-plasma.frontend.acceptors = 2
-
-//
-// Number of selectors
-//
-plasma.frontend.selectors = 4
-
-//
-// Max message size for the Plasma Frontend Websocket
-//
+##
+## Max message size for the Plasma Frontend Websocket
+##
 plasma.frontend.websocket.maxmessagesize = 1048576
 
-//
-// Idle timeout
-//
-plasma.frontend.idle.timout = 300000
+##
+## 128 bits SipHash key for computing MACs. Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
+##
+#plasma.frontend.kafka.mac = hex:hhhhhh...
 
-//
-// 128 bits SipHash key for computing MACs. Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
-//
-plasma.frontend.kafka.mac = hex:hhhhhh...
+##
+## 128 bits SipHash key for computing MACs. Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
+##
+#plasma.backend.kafka.in.mac = ${kafka.data.mac}
 
-plasma.frontend.subscribe.delay = 5000
+##
+## 128/192/256 bits AES key for encrypting backend messages in Kafka.
+## Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
+##
+#plasma.backend.kafka.in.aes = ${kafka.data.aes}
 
-//
-// Zookeeper ZK connect string for Kafka ('in' topic)
-//  
-plasma.backend.kafka.in.zkconnect = 127.0.0.1:2181/zk/kafka/localhost
+##
+## Maximum size of Kafka outward messages
+##
+#plasma.backend.kafka.out.maxsize = 900000
 
-//
-// Actual 'in' topic
-//
-plasma.backend.kafka.in.topic = data
+##
+## 128 bits SipHash key for computing MACs. Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
+##
+#plasma.backend.kafka.out.mac = hex:hhhhhh...
 
-//
-// 128 bits SipHash key for computing MACs. Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
-//
-plasma.backend.kafka.in.mac = hex:hhhhhh...
-
-//
-// 128/192/256 bits AES key for encrypting backend messages in Kafka.
-// Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
-//
-#plasma.backend.kafka.in.aes = hex:hhhhhh...
-
-//
-// Kafka group id with which to consume the in topic
-//
-plasma.backend.kafka.in.groupid = plasmabeIn-1
-
-//
-// Delay between synchronization for offset commit
-//
-plasma.backend.kafka.in.commitperiod = 1000
-
-//
-// Number of threads to run for reading off of Kafka
-//
-plasma.backend.kafka.in.nthreads = 2
-
-//
-// Kafka broker list for the 'out' topic
-//
-plasma.backend.kafka.out.brokerlist = 127.0.0.1:9092
-
-//
-// Maximum size of Kafka outward messages
-//
-plasma.backend.kafka.out.maxsize = 500000
-
-//
-// 128 bits SipHash key for computing MACs. Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
-//
-plasma.backend.kafka.out.mac = hex:hhhhhh...
-
-//
-// 128/192/256 bits AES key for encrypting backend messages in Kafka.
-// Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
-//
+##
+## 128/192/256 bits AES key for encrypting backend messages in Kafka.
+## Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
+##
 #plasma.backend.kafka.out.aes = hex:hhhhhh...
 
-//
-// ZooKeeper Quorum for the ZK ensemble to use for retrieving subscriptions
-//
-plasma.backend.subscriptions.zkconnect = 127.0.0.1:2181
 
-//
-// Parent znode under which subscription znodes will be created
-//
-plasma.backend.subscriptions.znode = /zk/warp/localhost/plasma
-
-//
-// Kafka client id to use for the data consumer
-//
+##
+## Kafka client id to use for the consumer of the backend data
+##
 #plasma.frontend.kafka.consumer.clientid =
 
-//
-// Kafka client id to use for the data consumer
-//
+##
+## Kafka client id to use for the consumer of the backend data
+##
 #plasma.backend.kafka.in.consumer.clientid =
 
-//
-// Kafka client id to use for the data producer towards the frontends
-//
+##
+## Kafka client id to use for the data producer towards the frontends
+##
 #plasma.backend.kafka.out.producer.clientid =
 
-//
-// Name of partition assignment strategy to use
-//
+##
+## Name of partition assignment strategy to use
+##
 #plasma.backend.kafka.in.consumer.partition.assignment.strategy =
 
-//
-// Name of partition assignment strategy to use
-//
+##
+## Name of partition assignment strategy to use
+##
 #plasma.frontend.kafka.consumer.partition.assignment.strategy =
