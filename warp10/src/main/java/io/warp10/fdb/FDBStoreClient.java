@@ -126,7 +126,7 @@ public class FDBStoreClient implements StoreClient {
 
 
     //
-    // Sort metadatas so as to optimize the range scans
+    // Sort metadatas to optimize the range scans
     //
 
     Collections.sort(metadatas, MetadataIdComparator.COMPARATOR);

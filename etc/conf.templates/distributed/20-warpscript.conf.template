@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2022  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -127,11 +127,6 @@ warpscript.maxjson = 20971520
 warpscript.maxjson.hard = 209715200
 
 //
-// WEBCALL limit per WarpScript
-//
-warpscript.maxwebcalls = 4
-
-//
 // CALL root directory property
 //
 #warpscript.call.directory =
@@ -209,8 +204,13 @@ warpscript.mobius.pool = 16
 #warpscript.http.maxsize =
 // Maximum chunk size allowed when dowloading per chunk using HTTP, 65536 by default, can be raised with capability http.chunksize
 #warpscript.http.maxchunksize =
-// List of patterns to include/exclude for hosts, works the same way as webcall.host.patterns. Defaults to the value of webcall.host.patterns.
-#warpscript.http.host.patterns =
+//
+// List of patterns to include/exclude for hosts in HTTP calls
+//
+// Typical value is .*,!^127.0.0.1$,!^localhost$,!^192.168.*,!^10.*,!^172.(16|17|18|19|20|21|22|23|24|25|26|27|28|29|39|31)\..*
+// Defaults to !.*
+//
+warpscript.http.host.patterns = !.*
 
 //
 // allow C style block comments. /**** valid block comment ****/

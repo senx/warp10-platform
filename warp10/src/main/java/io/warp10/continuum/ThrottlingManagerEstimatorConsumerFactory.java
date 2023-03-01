@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,34 +16,19 @@
 
 package io.warp10.continuum;
 
-import java.time.Duration;
-import java.time.temporal.ChronoUnit;
+import java.util.Collection;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.thrift.TDeserializer;
-import org.apache.thrift.protocol.TCompactProtocol;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.warp10.continuum.KafkaSynchronizedConsumerPool.ConsumerFactory;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.crypto.CryptoUtils;
 import io.warp10.script.HyperLogLogPlus;
 import io.warp10.sensision.Sensision;
-
-import java.math.BigInteger;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.Map.Entry;
-
-import org.apache.thrift.TDeserializer;
-import org.apache.thrift.protocol.TCompactProtocol;
-
-import com.google.common.primitives.Longs;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ThrottlingManagerEstimatorConsumerFactory implements ConsumerFactory {
 

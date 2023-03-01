@@ -1205,46 +1205,6 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_WARPSCRIPT_REPOSITORY_JARS = "warp.script.repository.jars";
 
   /**
-   * Number of messages consumed from Kafka
-   */
-  public static final String SENSISION_CLASS_WEBCALL_KAFKA_IN_COUNT = "warp.webcall.kafka.in.count";
-
-  /**
-   * Number of bytes consumed from Kafka
-   */
-  public static final String SENSISION_CLASS_WEBCALL_KAFKA_IN_BYTES = "warp.webcall.kafka.in.bytes";
-
-  /**
-   * Number of MAC verification failures
-   */
-  public static final String SENSISION_CLASS_WEBCALL_KAFKA_IN_FAILEDMACS = "warp.webcall.kafka.in.failedmacs";
-
-  /**
-   * Number of unwrapping failures
-   */
-  public static final String SENSISION_CLASS_WEBCALL_KAFKA_IN_FAILEDDECRYPTS = "warp.webcall.kafka.in.faileddecrypts";
-
-  /**
-   * Total latency of WebCallRequests handling
-   */
-  public static final String SENSISION_CLASS_WEBCALL_LATENCY_MS = "warp.webcall.latency.ms";
-
-  /**
-   * Number of offset commits
-   */
-  public static final String SENSISION_CLASS_WEBCALL_KAFKA_IN_COMMITS = "warp.webcall.kafka.in.commits";
-
-  /**
-   * Number of consuming loop abortions
-   */
-  public static final String SENSISION_CLASS_WEBCALL_IN_ABORTS = "warp.webcall.kafka.in.aborts";
-
-  /**
-   * Number of barrier synchronizations
-   */
-  public static final String SENSISION_CLASS_WEBCALL_BARRIER_SYNCS = "warp.webcall.barrier.syncs";
-
-  /**
    * Kafka Consumer Offset
    */
   public static final String SENSISION_CLASS_WARP_KAFKA_CONSUMER_OFFSET = "warp.kafka.consumer.offset";

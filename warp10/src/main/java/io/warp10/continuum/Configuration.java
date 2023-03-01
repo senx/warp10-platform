@@ -191,7 +191,6 @@ public class Configuration {
   public static final String WARPSCRIPT_MAX_LOOP_DURATION = "warpscript.maxloop";
   public static final String WARPSCRIPT_MAX_RECURSION = "warpscript.maxrecursion";
   public static final String WARPSCRIPT_MAX_SYMBOLS = "warpscript.maxsymbols";
-  public static final String WARPSCRIPT_MAX_WEBCALLS = "warpscript.maxwebcalls";
   public static final String WARPSCRIPT_MAX_PIXELS = "warpscript.maxpixels";
   public static final String WARPSCRIPT_MAX_JSON = "warpscript.maxjson";
 
@@ -217,81 +216,6 @@ public class Configuration {
    * Flag to enable REXEC
    */
   public static final String WARPSCRIPT_REXEC_ENABLE = "warpscript.rexec.enable";
-
-  public static final String WEBCALL_USER_AGENT = "webcall.user.agent";
-
-  /**
-   * List of patterns to include/exclude for hosts in WebCall calls
-   *
-   * Typical value is .*,!^127.0.0.1$,!^localhost$,!^192.168.*,!^10.*,!^172.(16|17|18|19|20|21|22|23|24|25|26|27|28|29|39|31)\..*
-   *
-   */
-  public static final String WEBCALL_HOST_PATTERNS = "webcall.host.patterns";
-
-  /**
-   * Comma separated list of Kafka broker host:port to use for reaching the Kafka cluster to consume WebCall requests
-   */
-  public static final String WEBCALL_KAFKA_CONSUMER_BOOTSTRAP_SERVERS = "webcall.kafka.consumer.bootstrap.servers";
-
-  /**
-   * List of Kafka brokers to use for sending WebCall requests
-   */
-  public static final String WEBCALL_KAFKA_PRODUCER_BOOTSTRAP_SERVERS = "webcall.kafka.producer.bootstrap.servers";
-
-  /**
-   * Prefix for WebCall Kafka Producer configuration keys
-   */
-  public static final String WEBCALL_KAFKA_PRODUCER_CONF_PREFIX = "webcall.kafka.producer.conf.prefix";
-
-  /**
-   * Topic to use for WebCall requests
-   */
-  public static final String WEBCALL_KAFKA_TOPIC = "webcall.kafka.topic";
-
-  /**
-   * AES key to use for encrypting WebCall requests
-   */
-  public static final String WEBCALL_KAFKA_AES = "webcall.kafka.aes";
-
-  /**
-   * SipHash key to use for computing WebCall requests HMACs
-   */
-  public static final String WEBCALL_KAFKA_MAC = "webcall.kafka.mac";
-
-  /**
-   * Kafka client id to use when consuming WebCall requests
-   */
-  public static final String WEBCALL_KAFKA_CONSUMER_CLIENTID = "webcall.kafka.consumer.clientid";
-
-  /**
-   * Name of partition assignment strategy to use
-   */
-  public static final String WEBCALL_KAFKA_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY = "webcall.kafka.consumer.partition.assignment.strategy";
-
-  /**
-   * Prefix of WebCall Kafka Consumer configuration keys
-   */
-  public static final String WEBCALL_KAFKA_CONSUMER_CONF_PREFIX = "webcall.kafka.consumer.conf.prefix";
-
-  /**
-   * Kafka client id to use when producing WebCall requests
-   */
-  public static final String WEBCALL_KAFKA_PRODUCER_CLIENTID = "webcall.kafka.producer.clientid";
-
-  /**
-   * How many threads to spawn
-   */
-  public static final String WEBCALL_NTHREADS = "webcall.nthreads";
-
-  /**
-   * Groupid to use when consuming Kafka
-   */
-  public static final String WEBCALL_KAFKA_GROUPID = "webcall.kafka.groupid";
-
-  /**
-   * How often to commit the Kafka offsets
-   */
-  public static final String WEBCALL_KAFKA_COMMITPERIOD = "webcall.kafka.commitperiod";
 
   /**
    * Number of continuum time units per millisecond
@@ -2238,11 +2162,6 @@ public class Configuration {
    * Name of WarpFleet repository macro. This macro consumes a URL and emits a boolean.
    */
   public static final String WARPFLEET_MACROS_VALIDATOR = "warpfleet.macros.validator";
-
-  /**
-   * Header containing the request UUID when calling the endpoint
-   */
-  public static final String HTTP_HEADER_WEBCALL_UUIDX = "http.header.webcall.uuid";
 
   /**
    * Configuration key to modify the capabilities header

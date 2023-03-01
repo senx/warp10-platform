@@ -1,5 +1,5 @@
 //
-//   Copyright 2022  SenX S.A.S.
+//   Copyright 2022-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -35,7 +35,7 @@ import com.apple.foundationdb.Database;
  * Warp 10 instance (sum of Databases created by all components) is <= N
  * then each Database will have its own client.
  *
- * Experimenting is key as sizing depends n the type of load of each deployment.
+ * Experimenting is key as sizing depends on the type of load of each deployment.
  */
 public class FDBPool {
   private final FDBContext context;
