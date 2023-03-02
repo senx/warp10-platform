@@ -1,5 +1,5 @@
 //
-//   Copyright 2022  SenX S.A.S.
+//   Copyright 2022-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -15,6 +15,9 @@
 //
 
 package io.warp10.fdb;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.script.NamedWarpScriptFunction;
@@ -32,8 +35,18 @@ public class FDBTENANT extends NamedWarpScriptFunction implements WarpScriptStac
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
 
-    if (null == Capabilities.get(stack, FDBUtils.CAPABILITY_ADMIN)) {
-      throw new WarpScriptException(getName() + " missing capability.");
+    String regexp;
+
+    if (null != Capabilities.get(stack, FDBUtils.CAPABILITY_ADMIN)) {
+      regexp = null;
+    } else if (null == Capabilities.get(stack, FDBUtils.CAPABILITY_TENANT)) {
+      regexp = Capabilities.get(stack, FDBUtils.CAPABILITY_TENANT);
+      // Empty string means match all tenants
+      if ("".equals(regexp)) {
+        regexp = null;
+      }
+    } else {
+      throw new WarpScriptException(getName() + " missing '" + FDBUtils.CAPABILITY_TENANT + "' or '" + FDBUtils.CAPABILITY_ADMIN + "' capability.");
     }
 
     StoreClient sc = stack.getStoreClient();
@@ -48,13 +61,23 @@ public class FDBTENANT extends NamedWarpScriptFunction implements WarpScriptStac
       throw new WarpScriptException(getName() + " expected a tenant name.");
     }
 
+    String tenant = (String) top;
+
+    if (null != regexp) {
+      Matcher m = Pattern.compile(regexp).matcher(tenant);
+
+      if (!m.matches()) {
+        throw new WarpScriptException(getName() + " capability '" + FDBUtils.CAPABILITY_TENANT + "' does not allow you to access this tenant.");
+      }
+    }
+
     FDBStoreClient fsc = (FDBStoreClient) sc;
 
     FDBPool pool = fsc.getPool();
 
     FDBContext context = pool.getContext();
 
-    stack.push(FDBUtils.getTenantInfo(context, (String) top));
+    stack.push(FDBUtils.getTenantInfo(context, tenant));
 
     return stack;
   }

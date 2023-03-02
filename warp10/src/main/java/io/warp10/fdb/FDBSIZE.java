@@ -1,5 +1,5 @@
 //
-//   Copyright 2022  SenX S.A.S.
+//   Copyright 2022-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -34,8 +34,8 @@ public class FDBSIZE extends NamedWarpScriptFunction implements WarpScriptStackF
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
 
-    if (null == Capabilities.get(stack, FDBUtils.CAPABILITY_ADMIN)) {
-      throw new WarpScriptException(getName() + " missing capability.");
+    if (null == Capabilities.get(stack, FDBUtils.CAPABILITY_ADMIN) && null == Capabilities.get(stack, FDBUtils.CAPABILITY_SIZE)) {
+      throw new WarpScriptException(getName() + " missing '" + FDBUtils.CAPABILITY_SIZE + "' or '" + FDBUtils.CAPABILITY_ADMIN + "' capability.");
     }
 
     StoreClient sc = stack.getStoreClient();
