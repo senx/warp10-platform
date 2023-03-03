@@ -31,6 +31,21 @@ public class SensisionConstants {
   //
 
   /**
+   * Number of times we have reached the maximum number of version attempts
+   */
+  public static final String CLASS_WARP_FDB_MAXFORCEDVERSION = "warp.fdb.maxforcedversion";
+
+  /**
+   * Number of times the read version was forced
+   */
+  public static final String CLASS_WARP_FDB_FORCEDVERSION = "warp.fdb.forcedversion";
+
+  /**
+   * Number of FoundationDB errors, labels are code and component
+   */
+  public static final String CLASS_WARP_FDB_ERRORS = "warp.fdb.errors";
+
+  /**
    * Number of datalog requests which were forwarded successfully
    */
   public static final String CLASS_WARP_DATALOG_FORWARDER_REQUESTS_FORWARDED = "warp.datalog.forwarder.requests.forwarded";
@@ -56,7 +71,7 @@ public class SensisionConstants {
   public static final String CLASS_WARP_DATALOG_REQUESTS_RECEIVED = "warp.datalog.requests.received";
 
   /**
-   * Number of errors encountered when fetching data, might be an indication of problem related to hbase
+   * Number of errors encountered when fetching data, might be an indication of problem related to DB access
    */
   public static final String CLASS_WARP_FETCH_ERRORS = "warp.fetch.errors";
 
@@ -531,14 +546,19 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_CONTINUUM_STREAM_UPDATE_PARSEERRORS = "warp.update.stream.parseerrors";
 
   /**
-   * Number of HBase Puts created in 'Store'
+   * Number of FDB Sets created in 'Store'
    */
-  public static final String SENSISION_CLASS_CONTINUUM_STORE_HBASE_PUTS = "warp.store.hbase.puts";
+  public static final String SENSISION_CLASS_CONTINUUM_STORE_FDB_SETS = "warp.store.fdb.sets";
 
   /**
-   * Number of HBase Puts committed in 'Store'
+   * Number of FoundationDB sets committed in 'Store'
    */
-  public static final String SENSISION_CLASS_CONTINUUM_STORE_HBASE_PUTS_COMMITTED = "warp.store.hbase.puts.committed";
+  public static final String SENSISION_CLASS_CONTINUUM_STORE_FDB_SETS_COMMITTED = "warp.store.fdb.sets.committed";
+
+  /**
+   * Number of FoundationDB clearranges committed in 'Store'
+   */
+  public static final String SENSISION_CLASS_CONTINUUM_STORE_FDB_CLEARRANGES_COMMITTED = "warp.store.fdb.clearranges.committed";
 
   /**
    * Number of GTSDecoders handled by 'Store'
@@ -548,12 +568,12 @@ public class SensisionConstants {
   /**
    * Number of calls to 'flushCommits' done in 'Store'
    */
-  public static final String SENSISION_CLASS_CONTINUUM_STORE_HBASE_COMMITS = "warp.store.hbase.commits";
+  public static final String SENSISION_CLASS_CONTINUUM_STORE_FDB_COMMITS = "warp.store.fdb.commits";
 
   /**
-   * Time spend writing to HBase in 'Store'
+   * Time spend writing to FoundationDB in 'Store'
    */
-  public static final String SENSISION_CLASS_CONTINUUM_STORE_HBASE_TIME_NANOS = "warp.store.hbase.time.nanos";
+  public static final String SENSISION_CLASS_CONTINUUM_STORE_FDB_TIME_NANOS = "warp.store.fdb.time.nanos";
 
   /**
    * Number of barrier synchronizations
@@ -596,90 +616,35 @@ public class SensisionConstants {
   public static final String CLASS_WARP_STORE_KAFKA_COMMITS_OVERDUE = "warp.store.kafka.commits.overdue";
 
   /**
-   * Number of times the HBase connection was reset. This is a total number across all Store instances within a JVM.
-   */
-  public static final String CLASS_WARP_STORE_HBASE_CONN_RESETS = "warp.store.hbase.conn.resets";
-
-  /**
    * Rate at which we throttle the Kafka consumers. This rate is used by generating a random number and only
    * process an incoming message if that number is <= CLASS_WARP_STORE_THROTTLING_RATE
    */
   public static final String CLASS_WARP_STORE_THROTTLING_RATE = "warp.store.throttling.rate";
 
   /**
-   * Time spent in DELETE ops in 'Store'
-   */
-  public static final String SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_TIME_NANOS = "warp.store.hbase.delete.time.nanos";
-
-  /**
    * Number of DELETE ops handled by 'Store'
    */
-  public static final String SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_OPS = "warp.store.hbase.delete.ops";
+  public static final String SENSISION_CLASS_CONTINUUM_STORE_FDB_DELETE_OPS = "warp.store.fdb.delete.ops";
 
   /**
-   * Number of regions contacted to handle the DELETE ops by 'Store'
+   * Number of results retrieved from scanners by FDBStoreClient
    */
-  public static final String SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_REGIONS = "warp.store.hbase.delete.regions";
+  public static final String SENSISION_CLASS_CONTINUUM_FDB_CLIENT_RESULTS = "warp.fdb.client.results";
 
   /**
-   * Number of datapoints deleted by 'Store'
+   * Number of GTSDecoder iterators produced by FDBStoreClient
    */
-  public static final String SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_DATAPOINTS = "warp.store.hbase.delete.datapoints";
+  public static final String SENSISION_CLASS_CONTINUUM_FDB_CLIENT_ITERATORS = "warp.fdb.client.iterators";
 
   /**
-   * Number of datapoints deleted by 'Store' per owner and application
+   * Number of scanners retrieved by FDBStoreClient
    */
-  public static final String SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_DATAPOINTS_PEROWNERAPP = "warp.store.hbase.delete.datapoints.perownerapp";
-
-  /**
-   * Number of results retrieved from scanners by HBaseStoreClient
-   */
-  public static final String SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_RESULTS = "warp.hbase.client.results";
-
-  /**
-   * Number of cells retrieved from scanners by HBaseStoreClient
-   */
-  public static final String SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_CELLS = "warp.hbase.client.cells";
-
-  /**
-   * Number of GTSDecoder iterators produced by HBaseStoreClient
-   */
-  public static final String SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_ITERATORS = "warp.hbase.client.iterators";
-
-  /**
-   * Number of GTSDecoder scanners retrieved by HBaseStoreClient
-   */
-  public static final String SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_SCANNERS = "warp.hbase.client.scanners";
-
-  /**
-   * Number of HBase scanners which used a filter (SlicedRowFilter)
-   */
-  public static final String SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_FILTERED_SCANNERS = "warp.hbase.client.scanners.filtered";
-
-  /**
-   * Number of ranges filtered by the filtered scanners
-   */
-  public static final String SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_FILTERED_SCANNERS_RANGES = "warp.hbase.client.scanners.filtered.ranges";
-
-  /**
-   * Number of optimized scanners created
-   */
-  public static final String SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_OPTIMIZED_SCANNERS = "warp.hbase.client.scanners.optimized";
-
-  /**
-   * Number of groups identified for optimized scanners
-   */
-  public static final String SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_OPTIMIZED_SCANNERS_GROUPS = "warp.hbase.client.scanners.optimized.groups";
-
-  /**
-   * Number of ranges identified for optimized scanners
-   */
-  public static final String SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_OPTIMIZED_SCANNERS_RANGES = "warp.hbase.client.scanners.optimized.ranges";
+  public static final String SENSISION_CLASS_CONTINUUM_FDB_CLIENT_SCANNERS = "warp.fdb.client.scanners";
 
   /**
    * Number of parallel scanners spawned
    */
-  public static final String SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_PARALLEL_SCANNERS = "warp.hbase.client.scanners.parallel";
+  public static final String SENSISION_CLASS_CONTINUUM_FDB_CLIENT_PARALLEL_SCANNERS = "warp.fdb.client.scanners.parallel";
 
   /**
    * Number of parallel scanners spawned in the standalone version
@@ -694,12 +659,12 @@ public class SensisionConstants {
   /**
    * Total number of nanoseconds spent waiting for a scanner to be scheduled
    */
-  public static final String SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_PARALLEL_SCANNERS_WAITNANOS = "warp.hbase.client.scanners.parallel.waitnanos";
+  public static final String SENSISION_CLASS_CONTINUUM_FDB_CLIENT_PARALLEL_SCANNERS_WAITNANOS = "warp.fdb.client.scanners.parallel.waitnanos";
 
   /**
    * Number of rejections when attempting to schedule parallel scanners in the distributed version
    */
-  public static final String SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_PARALLEL_SCANNERS_REJECTIONS = "warp.hbase.client.scanners.parallel.rejections";
+  public static final String SENSISION_CLASS_CONTINUUM_FDB_CLIENT_PARALLEL_SCANNERS_REJECTIONS = "warp.fdb.client.scanners.parallel.rejections";
 
   /**
    * Number of rejections when attempting to schedule parallel scanners in the standalone version
@@ -711,7 +676,7 @@ public class SensisionConstants {
    * to the same GTS, they must be pushed to the queue as a block. This can happen when the size of a GTSDecoder grows beyond
    * a limit or when a GTS spawns several regions.
    */
-  public static final String SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_PARALLEL_SCANNERS_MUTEX = "warp.hbase.client.scanners.parallel.mutex";
+  public static final String SENSISION_CLASS_CONTINUUM_FDB_CLIENT_PARALLEL_SCANNERS_MUTEX = "warp.fdb.client.scanners.parallel.mutex";
 
   /**
    * Number of times a mutex was requested among parallel scanners in the standalone version. A Mutex is requested when consecutive GTSDecoders belong
@@ -731,19 +696,19 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_CONTINUUM_DIRECTORY_KAFKA_FAILEDDECRYPTS = "warp.directory.kafka.faileddecrypts";
 
   /**
-   * Number of HBase Puts done in 'Directory'
+   * Number of FDB Puts done in 'Directory'
    */
-  public static final String SENSISION_CLASS_CONTINUUM_DIRECTORY_HBASE_PUTS = "warp.directory.hbase.puts";
+  public static final String SENSISION_CLASS_CONTINUUM_DIRECTORY_FDB_PUTS = "warp.directory.fdb.puts";
 
   /**
-   * Number of HBase Delete done in 'Directory'
+   * Number of FoundationDB Delete done in 'Directory'
    */
-  public static final String SENSISION_CLASS_CONTINUUM_DIRECTORY_HBASE_DELETES = "warp.directory.hbase.deletes";
+  public static final String SENSISION_CLASS_CONTINUUM_DIRECTORY_FDB_DELETES = "warp.directory.fdb.deletes";
 
   /**
    * Number of calls to 'flushCommits' done in 'Directory'
    */
-  public static final String SENSISION_CLASS_CONTINUUM_DIRECTORY_HBASE_COMMITS = "warp.directory.hbase.commits";
+  public static final String SENSISION_CLASS_CONTINUUM_DIRECTORY_FDB_COMMITS = "warp.directory.fdb.commits";
 
   /**
    * Number of barrier synchronizations
@@ -1289,11 +1254,6 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_WARP_RUNNER_FAILURES = "warp.runner.failures";
 
   /**
-   * Number of regions known by HBaseRegionKeys for the given table
-   */
-  public static final String SENSISION_CLASS_WARP_HBASE_KNOWNREGIONS = "warp.hbase.knownregions";
-
-  /**
    * Number of Producer get from the producer pool
    */
   public static final String SENSISION_CLASS_CONTINUUM_RUNNER_KAFKA_PRODUCER_POOL_GET = "warp.runner.kafka.producer.pool.get";
@@ -1302,11 +1262,6 @@ public class SensisionConstants {
    * Total number of nanoseconds spent waiting for a producer to be available
    */
   public static final String SENSISION_CLASS_CONTINUUM_RUNNER_KAFKA_PRODUCER_WAIT_NANOS = "warp.runner.kafka.producer.wait.nanos";
-
-  /**
-   * Number of tasks currently handled by a region server.
-   */
-  public static final String SENSISION_CLASS_WARP_HBASE_TASKS = "warp.hbase.tasks";
 
   //
   // Labels
@@ -1386,6 +1341,11 @@ public class SensisionConstants {
    * Component
    */
   public static final String SENSISION_LABEL_COMPONENT = "component";
+
+  /**
+   * Code, as in error codes
+   */
+  public static final String SENSISION_LABEL_CODE = "code";
 
   /**
    * Server (usually RegionServer)

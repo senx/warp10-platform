@@ -16,6 +16,7 @@
 
 package io.warp10.continuum.gts;
 
+import io.warp10.BytesUtils;
 import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
 import io.warp10.continuum.store.thrift.data.Metadata;
 
@@ -36,7 +37,6 @@ import java.util.Map.Entry;
 import java.util.zip.GZIPInputStream;
 
 import org.apache.commons.io.output.ByteArrayOutputStream;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.bouncycastle.crypto.CipherParameters;
 import org.bouncycastle.crypto.InvalidCipherTextException;
 import org.bouncycastle.crypto.engines.AESWrapEngine;
@@ -828,7 +828,7 @@ public class GTSDecoder {
           }
         } else if (value instanceof byte[]) {
           if (newValue instanceof byte[]) {
-            if (0 != Bytes.compareTo((byte[]) value, (byte[]) newValue)) {
+            if (0 != BytesUtils.compareTo((byte[]) value, (byte[]) newValue)) {
               dup = false;
             }
           } else {

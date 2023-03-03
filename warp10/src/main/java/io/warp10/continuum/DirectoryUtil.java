@@ -36,19 +36,28 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
 
-import io.warp10.script.HyperLogLogPlus;
-import io.warp10.sensision.Sensision;
-import io.warp10.standalone.StandaloneDirectoryClient;
 import org.apache.commons.io.output.ByteArrayOutputStream;
-
-import com.google.common.primitives.Longs;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.primitives.Longs;
+
+import io.warp10.SmartPattern;
+import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.sensision.SensisionConstants;
+import io.warp10.continuum.store.Constants;
+import io.warp10.continuum.store.Directory;
+import io.warp10.continuum.store.thrift.data.DirectoryStatsRequest;
+import io.warp10.continuum.store.thrift.data.DirectoryStatsResponse;
+import io.warp10.continuum.store.thrift.data.Metadata;
+import io.warp10.crypto.SipHashInline;
+import io.warp10.script.HyperLogLogPlus;
+import io.warp10.sensision.Sensision;
+import io.warp10.standalone.StandaloneDirectoryClient;
 
 public class DirectoryUtil {
 
@@ -93,6 +102,7 @@ public class DirectoryUtil {
     // Compute hash
 
     byte[] data = baos.toByteArray();
+    try { baos.close(); } catch (IOException ioe) {}
 
     long hash = SipHashInline.hash24(k0, k1, data, 0, data.length);
 

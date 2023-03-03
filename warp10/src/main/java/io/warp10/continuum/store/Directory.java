@@ -17,7 +17,6 @@
 package io.warp10.continuum.store;
 
 import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigInteger;
@@ -25,18 +24,20 @@ import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CyclicBarrier;
@@ -49,23 +50,17 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
-import java.util.zip.GZIPOutputStream;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.Connection;
-import org.apache.hadoop.hbase.client.ConnectionFactory;
-import org.apache.hadoop.hbase.client.Delete;
-import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.ResultScanner;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.client.Table;
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.CuratorFrameworkFactory;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
@@ -87,16 +82,19 @@ import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.apple.foundationdb.Database;
+import com.apple.foundationdb.FDB;
+import com.apple.foundationdb.FDBException;
+import com.apple.foundationdb.StreamingMode;
+import com.apple.foundationdb.Transaction;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.MapMaker;
-import com.netflix.curator.framework.CuratorFramework;
-import com.netflix.curator.framework.CuratorFrameworkFactory;
-import com.netflix.curator.retry.RetryNTimes;
-import com.netflix.curator.x.discovery.ServiceDiscovery;
-import com.netflix.curator.x.discovery.ServiceDiscoveryBuilder;
-import com.netflix.curator.x.discovery.ServiceInstance;
-import com.netflix.curator.x.discovery.ServiceInstanceBuilder;
-import com.netflix.curator.x.discovery.ServiceType;
+import org.apache.curator.retry.RetryNTimes;
+import org.apache.curator.x.discovery.ServiceDiscovery;
+import org.apache.curator.x.discovery.ServiceDiscoveryBuilder;
+import org.apache.curator.x.discovery.ServiceInstance;
+import org.apache.curator.x.discovery.ServiceInstanceBuilder;
+import org.apache.curator.x.discovery.ServiceType;
 
 import io.warp10.SmartPattern;
 import io.warp10.continuum.DirectoryUtil;
@@ -110,24 +108,27 @@ import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.DirectoryStatsRequest;
 import io.warp10.continuum.store.thrift.data.DirectoryStatsResponse;
+import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.continuum.thrift.data.LoggingEvent;
 import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.crypto.SipHashInline;
+import io.warp10.fdb.FDBClear;
+import io.warp10.fdb.FDBContext;
+import io.warp10.fdb.FDBKVScanner;
+import io.warp10.fdb.FDBKeyValue;
+import io.warp10.fdb.FDBMutation;
+import io.warp10.fdb.FDBScan;
+import io.warp10.fdb.FDBSet;
+import io.warp10.fdb.FDBUtils;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.functions.PARSESELECTOR;
 import io.warp10.sensision.Sensision;
 import io.warp10.warp.sdk.DirectoryPlugin;
 import io.warp10.warp.sdk.DirectoryPlugin.GTS;
 import io.warp10.warp.sdk.TrustedDirectoryPlugin;
-import kafka.consumer.Consumer;
-import kafka.consumer.ConsumerConfig;
-import kafka.consumer.ConsumerIterator;
-import kafka.consumer.KafkaStream;
-import kafka.javaapi.consumer.ConsumerConnector;
-import kafka.message.MessageAndMetadata;
 
 /**
  * Manages Metadata for a subset of known GTS.
@@ -137,13 +138,15 @@ public class Directory extends AbstractHandler implements Runnable {
 
   private static final Logger LOG = LoggerFactory.getLogger(Directory.class);
 
+  private static final String DEFAULT_FDB_RETRYLIMIT = Long.toString(4);
+
   /**
    * Maximum size of the input URI
    */
   public static final int DIRECTORY_REQUEST_HEADER_SIZE = 64 * 1024;
 
   /**
-   * Comparator which sorts the IDs in their lexicographical order suitable for scanning HBase keys
+   * Comparator which sorts the IDs in their lexicographical order suitable for scanning DB keys
    */
   public static final Comparator<Long> ID_COMPARATOR = new Comparator<Long>() {
     @Override
@@ -197,15 +200,13 @@ public class Directory extends AbstractHandler implements Runnable {
   /**
    * Name under which the directory service is registered in ZK
    */
-  public static final String DIRECTORY_SERVICE = "com.cityzendata.continuum.directory";
+  public static final String DIRECTORY_SERVICE = "io.warp10.directory";
 
   private static final String DIRECTORY_INIT_NTHREADS_DEFAULT = "4";
 
   private final int modulus;
   private final int remainder;
   private String host;
-  private int port;
-  private int tcpBacklog;
   private int streamingport;
   private int streamingTcpBacklog;
   private int streamingselectors;
@@ -217,20 +218,13 @@ public class Directory extends AbstractHandler implements Runnable {
   private static final String[] REQUIRED_PROPERTIES = new String[] {
     io.warp10.continuum.Configuration.DIRECTORY_ZK_QUORUM,
     io.warp10.continuum.Configuration.DIRECTORY_ZK_ZNODE,
-    io.warp10.continuum.Configuration.DIRECTORY_SERVICE_NTHREADS,
     io.warp10.continuum.Configuration.DIRECTORY_KAFKA_NTHREADS,
     io.warp10.continuum.Configuration.DIRECTORY_PARTITION,
     io.warp10.continuum.Configuration.DIRECTORY_HOST,
-    io.warp10.continuum.Configuration.DIRECTORY_PORT,
-    io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_ZKCONNECT,
+    io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_CONSUMER_BOOTSTRAP_SERVERS,
     io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_TOPIC,
     io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_GROUPID,
     io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_COMMITPERIOD,
-    io.warp10.continuum.Configuration.DIRECTORY_HBASE_METADATA_MAXPENDINGPUTSSIZE,
-    io.warp10.continuum.Configuration.DIRECTORY_HBASE_METADATA_ZKCONNECT,
-    io.warp10.continuum.Configuration.DIRECTORY_HBASE_METADATA_TABLE,
-    io.warp10.continuum.Configuration.DIRECTORY_HBASE_METADATA_COLFAM,
-    io.warp10.continuum.Configuration.DIRECTORY_HBASE_METADATA_ZNODE,
     io.warp10.continuum.Configuration.DIRECTORY_PSK,
     io.warp10.continuum.Configuration.DIRECTORY_MAXAGE,
     io.warp10.continuum.Configuration.DIRECTORY_STREAMING_PORT,
@@ -238,22 +232,21 @@ public class Directory extends AbstractHandler implements Runnable {
     io.warp10.continuum.Configuration.DIRECTORY_STREAMING_ACCEPTORS,
     io.warp10.continuum.Configuration.DIRECTORY_STREAMING_IDLE_TIMEOUT,
     io.warp10.continuum.Configuration.DIRECTORY_STREAMING_THREADPOOL,
-    io.warp10.continuum.Configuration.DIRECTORY_FIND_MAXRESULTS_HARD,
     io.warp10.continuum.Configuration.DIRECTORY_REGISTER,
     io.warp10.continuum.Configuration.DIRECTORY_INIT,
     io.warp10.continuum.Configuration.DIRECTORY_STORE,
     io.warp10.continuum.Configuration.DIRECTORY_DELETE,
   };
 
-  /**
-   * Name of HBase table where metadata should be written
-   */
-  private final TableName hbaseTable;
+  //
+  // FoundationDB related fields
+  //
 
-  /**
-   * Name of column family where metadata should be written
-   */
-  private final byte[] colfam;
+  private final FDBContext fdbContext;
+  private final long fdbRetryLimit;
+
+  private Database db;
+
 
   /**
    * How often to commit Kafka offsets
@@ -261,14 +254,9 @@ public class Directory extends AbstractHandler implements Runnable {
   private final long commitPeriod;
 
   /**
-   * How big do we allow the Put list to grow
+   * How big do we allow the mutation list to grow
    */
-  private final long maxPendingPutsSize;
-
-  /**
-   * Instance of HBase connection to create Table instances
-   */
-  private final Connection conn;
+  private final long maxPendingMutationsSize;
 
   /**
    * CyclicBarrier instance to synchronize consuming threads prior to committing offsets
@@ -295,11 +283,6 @@ public class Directory extends AbstractHandler implements Runnable {
 
   private final ReentrantLock metadatasLock = new ReentrantLock(true);
 
-  /**
-   * Number of threads for servicing requests
-   */
-  private final int serviceNThreads;
-
   private final AtomicBoolean cachePopulated = new AtomicBoolean(false);
   private final AtomicBoolean fullyInitialized = new AtomicBoolean(false);
 
@@ -312,15 +295,9 @@ public class Directory extends AbstractHandler implements Runnable {
   private final long[] SIPHASH_PSK_LONGS;
 
   /**
-   * Maximum age of a Find request
+   * Maximum age of signed requests
    */
   private final long maxage;
-
-  private final int maxThriftFrameLength;
-
-  private final int maxFindResults;
-
-  private final int maxHardFindResults;
 
   private final int initNThreads;
 
@@ -342,17 +319,17 @@ public class Directory extends AbstractHandler implements Runnable {
   private Thread deregisterHook = null;
 
   /**
-   * Should we initialize Directory upon startup by reading from HBase
+   * Should we initialize Directory upon startup by reading from DB
    */
   private final boolean init;
 
   /**
-   * Should we store in HBase metadata we receive via Kafka
+   * Should we store in DB metadata we receive via Kafka
    */
   private final boolean store;
 
   /**
-   * Should we delete in HBase
+   * Should we delete in DB
    */
   private final boolean delete;
 
@@ -405,11 +382,10 @@ public class Directory extends AbstractHandler implements Runnable {
       Preconditions.checkNotNull(properties.getProperty(required), "Missing configuration parameter '%s'.", required);
     }
 
-    maxThriftFrameLength = Integer.parseInt(this.properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_FRAME_MAXLEN, "0"));
+    this.fdbContext = FDBUtils.getContext(props.getProperty(io.warp10.continuum.Configuration.DIRECTORY_FDB_CLUSTERFILE), props.getProperty(io.warp10.continuum.Configuration.DIRECTORY_FDB_TENANT));
+    this.fdbRetryLimit = Long.parseLong(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_FDB_RETRYLIMIT, DEFAULT_FDB_RETRYLIMIT));
 
-    maxFindResults = Integer.parseInt(this.properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_FIND_MAXRESULTS, "100000"));
-
-    maxHardFindResults = Integer.parseInt(this.properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_FIND_MAXRESULTS_HARD));
+    this.db = fdbContext.getDatabase();
 
     this.register = "true".equals(this.properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_REGISTER));
     this.init = "true".equals(this.properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_INIT));
@@ -448,37 +424,6 @@ public class Directory extends AbstractHandler implements Runnable {
 
     final String topic = properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_TOPIC);
     final int nthreads = Integer.valueOf(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_NTHREADS));
-
-    Configuration conf = new Configuration();
-    conf.set("hbase.zookeeper.quorum", properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_HBASE_METADATA_ZKCONNECT));
-    if (!"".equals(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_HBASE_METADATA_ZNODE))) {
-      conf.set("zookeeper.znode.parent", properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_HBASE_METADATA_ZNODE));
-    }
-
-    if (properties.containsKey(io.warp10.continuum.Configuration.DIRECTORY_HBASE_ZOOKEEPER_PROPERTY_CLIENTPORT)) {
-      conf.set("hbase.zookeeper.property.clientPort", properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_HBASE_ZOOKEEPER_PROPERTY_CLIENTPORT));
-    }
-
-    //
-    // Handle additional HBase configurations
-    //
-
-    if (properties.containsKey(io.warp10.continuum.Configuration.DIRECTORY_HBASE_CONFIG)) {
-      String[] keys = properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_HBASE_CONFIG).split(",");
-      for (String key: keys) {
-        if (!properties.containsKey("directory." + key.trim())) {
-          throw new RuntimeException("Missing declared property 'directory." + key.trim() + "'.");
-        }
-        conf.set(key, properties.getProperty("directory." + key.trim()));
-      }
-    }
-
-    this.conn = ConnectionFactory.createConnection(conf);
-
-    this.hbaseTable = TableName.valueOf(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_HBASE_METADATA_TABLE));
-    this.colfam = properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_HBASE_METADATA_COLFAM).getBytes(StandardCharsets.UTF_8);
-
-    this.serviceNThreads = Integer.valueOf(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_SERVICE_NTHREADS));
 
     //
     // Extract keys
@@ -542,7 +487,7 @@ public class Directory extends AbstractHandler implements Runnable {
       Thread[] initThreads = new Thread[this.initNThreads];
       final AtomicBoolean[] stopMarkers = new AtomicBoolean[this.initNThreads];
 
-      final LinkedBlockingQueue<Result> resultQ = new LinkedBlockingQueue<Result>(initThreads.length * 8192);
+      final LinkedBlockingQueue<FDBKeyValue> kvQ = new LinkedBlockingQueue<FDBKeyValue>(initThreads.length * 8192);
 
       for (int i = 0; i < initThreads.length; i++) {
         stopMarkers[i] = new AtomicBoolean(false);
@@ -551,9 +496,9 @@ public class Directory extends AbstractHandler implements Runnable {
           @Override
           public void run() {
             AESWrapEngine engine = null;
-            if (null != self.keystore.getKey(KeyStore.AES_HBASE_METADATA)) {
+            if (null != self.keystore.getKey(KeyStore.AES_FDB_METADATA)) {
               engine = new AESWrapEngine();
-              CipherParameters params = new KeyParameter(self.keystore.getKey(KeyStore.AES_HBASE_METADATA));
+              CipherParameters params = new KeyParameter(self.keystore.getKey(KeyStore.AES_FDB_METADATA));
               engine.init(false, params);
             }
 
@@ -564,20 +509,20 @@ public class Directory extends AbstractHandler implements Runnable {
             while (!stopMe.get()) {
               try {
 
-                Result result = resultQ.poll(100, TimeUnit.MILLISECONDS);
+                FDBKeyValue kv = kvQ.poll(100, TimeUnit.MILLISECONDS);
 
-                if (null == result) {
+                if (null == kv) {
                   continue;
                 }
 
-                byte[] value = result.getValue(self.colfam, Constants.EMPTY_COLQ);
+                byte[] value = kv.getValueArray();
 
                 if (null != engine) {
                   //
                   // Unwrap
                   //
 
-                  byte[] unwrapped = engine.unwrap(value, 0, value.length);
+                  byte[] unwrapped = engine.unwrap(value, kv.getValueOffset(), kv.getValueLength());
 
                   //
                   // Unpad
@@ -611,9 +556,9 @@ public class Directory extends AbstractHandler implements Runnable {
                 if (self.remainder != rem) {
                   continue;
                 }
-
-                ByteBuffer bb = ByteBuffer.wrap(result.getRow()).order(ByteOrder.BIG_ENDIAN);
-                bb.position(1);
+                ByteBuffer bb = ByteBuffer.wrap(kv.getKeyArray(), kv.getKeyOffset(), kv.getKeyLength()).order(ByteOrder.BIG_ENDIAN);
+                // Skip key prefix
+                bb.position(bb.position() + Constants.FDB_METADATA_KEY_PREFIX.length);
                 long hbClassId = bb.getLong();
                 long hbLabelsId = bb.getLong();
 
@@ -749,48 +694,41 @@ public class Directory extends AbstractHandler implements Runnable {
 
           long nano = System.nanoTime();
 
-          Table htable = null;
-
           long count = 0L;
 
           boolean done = false;
 
-          byte[] lastrow = Constants.HBASE_METADATA_KEY_PREFIX;
+          byte[] lastrow = null;
+          int lastrowoffset = 0;
+          int lastrowlength = 0;
 
           while(!done) {
+
+            FDBKVScanner scanner = null;
+
             try {
               //
-              // Populate the metadata cache with initial data from HBase
+              // Populate the metadata cache with initial data from FoundationDB
               //
 
-              htable = self.conn.getTable(self.hbaseTable);
+              FDBScan scan = new FDBScan();
+              scan.setTenantPrefix(fdbContext.getTenantPrefix());
 
-              Scan scan = new Scan();
-              scan.setStartRow(lastrow);
-              // FIXME(hbs): we know the prefix is 'M', so we use 'N' as the stoprow
-              scan.setStopRow("N".getBytes(StandardCharsets.UTF_8));
-              scan.addFamily(self.colfam);
-              scan.setCaching(10000);
-              scan.setBatch(10000);
-              scan.setMaxResultSize(1000000L);
+              if (null != lastrow) {
+                scan.setStartKey(FDBUtils.getNextKey(lastrow, lastrowoffset, lastrowlength));
+              } else {
+                scan.setStartKey(Constants.FDB_METADATA_KEY_PREFIX);
+              }
 
-              ResultScanner scanner = htable.getScanner(scan);
+              scan.setEndKey(FDBUtils.getNextKey(Constants.FDB_METADATA_KEY_PREFIX));
+              scan.setReverse(false);
 
-              do {
-                Result result = scanner.next();
+              scanner = scan.getScanner(fdbContext, db, StreamingMode.WANT_ALL);
 
-                if (null == result) {
-                  done = true;
-                  break;
-                }
+              while(scanner.hasNext()) {
+                FDBKeyValue kv = scanner.next();
 
-                //
-                // FIXME(hbs): this could be done in a filter on the RS side
-                //
-
-                int r = (((int) result.getRow()[Constants.HBASE_METADATA_KEY_PREFIX.length + 8]) & 0xff) % self.modulus;
-
-                //byte r = (byte) (result.getRow()[HBASE_METADATA_KEY_PREFIX.length + 8] % self.modulus);
+                int r = (((int) kv.getKeyArray()[kv.getKeyOffset() + Constants.FDB_METADATA_KEY_PREFIX.length + 8]) & 0xff) % self.modulus;
 
                 // Skip metadata if its modulus is not the one we expect
                 if (self.remainder != r) {
@@ -801,30 +739,61 @@ public class Directory extends AbstractHandler implements Runnable {
                 // Store the current row so we can restart from there if an exception occurs
                 //
 
-                lastrow = result.getRow();
-
                 boolean interrupted = true;
 
                 while(interrupted) {
                   interrupted = false;
                   try {
-                    resultQ.put(result);
+                    kvQ.put(kv);
                     count++;
                     if (0 == count % 1000 && null == plugin) {
                       // We do not update this metric when using a Directory plugin
                       Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, count);
                     }
+                    lastrow = kv.getKeyArray();
+                    lastrowoffset = kv.getKeyOffset();
+                    lastrowlength = kv.getKeyLength();
                   } catch (InterruptedException ie) {
                     interrupted = true;
                   }
                 }
+              }
 
-              } while (true);
-
-            } catch (Exception e) {
-              LOG.error("Caught exception in scanning loop, will attempt to continue where we stopped", e);
+              done = true;
+            } catch (Throwable t) {
+              if (t.getCause() instanceof FDBException) {
+                try {
+                  db.close();
+                } catch (Exception e) {}
+                db = fdbContext.getDatabase();
+              }
+              LOG.error("Caught exception in scanning loop, will attempt to continue where we stopped", t);
             } finally {
-              if (null != htable) { try { htable.close(); } catch (Exception e) {} }
+              if (!done) {
+                // Try reopening FoundationDB database when an error was encountered
+                if (null != scanner) {
+                  try {
+                    scanner.close();
+                  } catch (Exception e) {
+                    LOG.error("Error closing FoundationDB scanner, will continue anyway.", e);
+                  }
+                }
+                if (null != db) {
+                  try {
+                    db.close();
+                  } catch (Exception e) {
+                    LOG.error("Error closing FoundationDB transaction context, will continue anyway.", e);
+                  }
+                }
+                db = fdbContext.getDatabase();
+              } else {
+                try {
+                  scanner.close();
+                } catch (Exception e) {
+                  LOG.error("Error closing FoundationDB scanner, will continue anyway.", e);
+                }
+              }
+
               if (null == plugin) {
                 // We do not update this metric when using a Directory plugin
                 Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, count);
@@ -836,7 +805,7 @@ public class Directory extends AbstractHandler implements Runnable {
           // Wait until resultQ is empty
           //
 
-          while(!resultQ.isEmpty()) {
+          while(!kvQ.isEmpty()) {
             LockSupport.parkNanos(100000000L);
           }
 
@@ -870,11 +839,9 @@ public class Directory extends AbstractHandler implements Runnable {
 
     this.commitPeriod = Long.valueOf(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_COMMITPERIOD));
 
-    this.maxPendingPutsSize = Long.parseLong(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_HBASE_METADATA_MAXPENDINGPUTSSIZE));
+    this.maxPendingMutationsSize = (long) Math.min(FDBUtils.MAX_TXN_SIZE * 0.95, Long.parseLong(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_FDB_METADATA_PENDINGMUTATIONS_MAXSIZE)));
 
     this.host = properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_HOST);
-    this.port = Integer.parseInt(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_PORT));
-    this.tcpBacklog = Integer.parseInt(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_TCP_BACKLOG, "0"));
     this.streamingport = Integer.parseInt(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_STREAMING_PORT));
     this.streamingTcpBacklog = Integer.parseInt(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_STREAMING_TCP_BACKLOG, "0"));
     this.streamingacceptors = Integer.parseInt(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_STREAMING_ACCEPTORS));
@@ -903,7 +870,7 @@ public class Directory extends AbstractHandler implements Runnable {
         //
         // Enter an endless loop which will spawn 'nthreads' threads
         // each time the Kafka consumer is shut down (which will happen if an error
-        // happens while talking to HBase, to get a chance to re-read data from the
+        // happens while talking to FDB, to get a chance to re-read data from the
         // previous snapshot).
         //
 
@@ -914,28 +881,31 @@ public class Directory extends AbstractHandler implements Runnable {
             topicCountMap.put(topic, nthreads);
 
             Properties props = new Properties();
-            props.setProperty("zookeeper.connect", properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_ZKCONNECT));
-            props.setProperty("group.id", groupid);
+
+            // Load explicit configuration
+            props.putAll(io.warp10.continuum.Configuration.extractPrefixed(properties, properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_CONSUMER_CONF_PREFIX)));
+
+            props.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_CONSUMER_BOOTSTRAP_SERVERS));
+            props.setProperty(ConsumerConfig.GROUP_ID_CONFIG, groupid);
             if (null != properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_CONSUMER_CLIENTID)) {
-              props.setProperty("client.id", properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_CONSUMER_CLIENTID));
+              props.setProperty(ConsumerConfig.CLIENT_ID_CONFIG, properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_CONSUMER_CLIENTID));
             }
             if (null != properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY)) {
-              props.setProperty("partition.assignment.strategy", properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY));
+              props.setProperty(ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY));
             }
-            props.setProperty("auto.commit.enable", "false");
+            props.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
 
             if (null != properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_CONSUMER_AUTO_OFFSET_RESET)) {
-              props.setProperty("auto.offset.reset", properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_CONSUMER_AUTO_OFFSET_RESET));
+              props.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_CONSUMER_AUTO_OFFSET_RESET));
             }
 
-            ConsumerConfig config = new ConsumerConfig(props);
-            ConsumerConnector connector = Consumer.createJavaConsumerConnector(config);
+            props.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArrayDeserializer");
+            props.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArrayDeserializer");
+            props.setProperty(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "1");
 
-            Map<String,List<KafkaStream<byte[], byte[]>>> consumerMap = connector.createMessageStreams(topicCountMap);
+            KafkaConsumer<byte[], byte[]>[] consumers = null;
 
-            List<KafkaStream<byte[], byte[]>> streams = consumerMap.get(topic);
-
-            self.barrier = new CyclicBarrier(streams.size() + 1);
+            self.barrier = new CyclicBarrier(nthreads + 1);
 
             ExecutorService executor = Executors.newFixedThreadPool(nthreads);
 
@@ -946,13 +916,17 @@ public class Directory extends AbstractHandler implements Runnable {
             // Reset counters
             counters.reset();
 
-            for (final KafkaStream<byte[],byte[]> stream : streams) {
-              executor.submit(new DirectoryConsumer(self, stream, counters));
+            consumers = new KafkaConsumer[nthreads];
+
+            Collection<String> topics = Collections.singletonList(topic);
+            for (int i = 0; i < nthreads; i++) {
+              consumers[i] = new KafkaConsumer<>(props);
+              executor.submit(new DirectoryConsumer(self, consumers[i], counters, topics));
             }
 
             while(!abort.get() && !Thread.currentThread().isInterrupted()) {
               try {
-                if (streams.size() == barrier.getNumberWaiting()) {
+                if (nthreads == barrier.getNumberWaiting()) {
                   //
                   // Check if we should abort, which could happen when
                   // an exception was thrown when flushing the commits just before
@@ -970,7 +944,9 @@ public class Directory extends AbstractHandler implements Runnable {
 
                   // Commit offsets
                   try {
-                    connector.commitOffsets(true);
+                    for (KafkaConsumer consumer: consumers) {
+                      consumer.commitSync();
+                    }
                   } catch (Throwable t) {
                     throw t;
                   } finally {
@@ -1007,7 +983,13 @@ public class Directory extends AbstractHandler implements Runnable {
 
             executor.shutdownNow();
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARP_DIRECTORY_KAFKA_SHUTDOWNS, Sensision.EMPTY_LABELS, 1);
-            connector.shutdown();
+
+            for (KafkaConsumer consumer: consumers) {
+              try {
+                consumer.close();
+              } catch (Exception e) {
+              }
+            }
           } catch (Throwable t) {
             LOG.error("Caught throwable in spawner.", t);
           } finally {
@@ -1157,7 +1139,6 @@ public class Directory extends AbstractHandler implements Runnable {
       payload.put(PAYLOAD_MODULUS_KEY, Integer.toString(modulus));
       payload.put(PAYLOAD_REMAINDER_KEY, Integer.toString(remainder));
       payload.put(PAYLOAD_STREAMING_PORT_KEY, Integer.toString(this.streamingport));
-
       builder.payload(payload);
 
       this.instance = builder.build();
@@ -1196,7 +1177,7 @@ public class Directory extends AbstractHandler implements Runnable {
   private void extractKeys(Properties props) {
     KeyStore.checkAndSetKey(keystore, KeyStore.SIPHASH_KAFKA_METADATA, props, io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_MAC, 128);
     KeyStore.checkAndSetKey(keystore, KeyStore.AES_KAFKA_METADATA, props, io.warp10.continuum.Configuration.DIRECTORY_KAFKA_METADATA_AES, 128, 192, 256);
-    KeyStore.checkAndSetKey(keystore, KeyStore.AES_HBASE_METADATA, props, io.warp10.continuum.Configuration.DIRECTORY_HBASE_METADATA_AES, 128, 192, 256);
+    KeyStore.checkAndSetKey(keystore, KeyStore.AES_FDB_METADATA, props, io.warp10.continuum.Configuration.DIRECTORY_FDB_METADATA_AES, 128, 192, 256);
     KeyStore.checkAndSetKey(keystore, KeyStore.SIPHASH_DIRECTORY_PSK, props, io.warp10.continuum.Configuration.DIRECTORY_PSK, 128);
 
     this.keystore.forget();
@@ -1205,31 +1186,40 @@ public class Directory extends AbstractHandler implements Runnable {
   private static class DirectoryConsumer implements Runnable {
 
     private final Directory directory;
-    private final KafkaStream<byte[],byte[]> stream;
-
+    private final KafkaConsumer<byte[],byte[]> consumer;
+    private final Collection<String> topics;
     private final KafkaOffsetCounters counters;
 
     private final AtomicBoolean localabort = new AtomicBoolean(false);
 
-    public DirectoryConsumer(Directory directory, KafkaStream<byte[], byte[]> stream, KafkaOffsetCounters counters) {
+    // Boolean indicating that the last call to poll returned records which
+    // must be stored prior to committing the offsets, if pending is true
+    // then we will not trigger a commit
+    private final AtomicBoolean pending = new AtomicBoolean(false);
+
+
+    public DirectoryConsumer(Directory directory, KafkaConsumer<byte[], byte[]> consumer, KafkaOffsetCounters counters, Collection<String> topics) {
       this.directory = directory;
-      this.stream = stream;
+      this.consumer = consumer;
+      this.topics = topics;
       this.counters = counters;
+    }
+
+    private boolean resetPending() {
+      pending.set(false);
+      return true;
     }
 
     @Override
     public void run() {
-      Table htable = null;
+      final FDBContext fdbContext = this.directory.fdbContext;
+      Database db = fdbContext.getDatabase();
 
       try {
-        ConsumerIterator<byte[],byte[]> iter = this.stream.iterator();
+        this.consumer.subscribe(this.topics);
 
         byte[] siphashKey = directory.keystore.getKey(KeyStore.SIPHASH_KAFKA_METADATA);
         byte[] kafkaAESKey = directory.keystore.getKey(KeyStore.AES_KAFKA_METADATA);
-
-        htable = directory.conn.getTable(directory.hbaseTable);
-
-        final Table ht = htable;
 
         //
         // AtomicLong with the timestamp of the last Put or 0 if
@@ -1238,10 +1228,14 @@ public class Directory extends AbstractHandler implements Runnable {
 
         final AtomicLong lastAction = new AtomicLong(0L);
 
-        final List<Mutation> actions = new ArrayList<Mutation>();
-        final ReentrantLock actionsLock = new ReentrantLock(true);
+        final List<FDBMutation> mutations = new ArrayList<FDBMutation>();
+        final ReentrantLock mutationsLock = new ReentrantLock(true);
 
-        final AtomicLong actionsSize = new AtomicLong(0L);
+        final AtomicLong mutationsSize = new AtomicLong(0L);
+
+        // Boolean indicating that we should commit the offsets. This is used
+        // to ensure that we do not call poll when a commit must be performed
+        final AtomicBoolean mustCommit = new AtomicBoolean(false);
 
         //
         // Start the synchronization Thread
@@ -1261,59 +1255,51 @@ public class Directory extends AbstractHandler implements Runnable {
               while(!localabort.get() && !Thread.currentThread().isInterrupted()) {
                 long now = System.currentTimeMillis();
 
-                if (now - lastsync > directory.commitPeriod) {
+                if (now - lastsync > directory.commitPeriod || (mustCommit.get() && !pending.get())) {
                   //
                   // We synchronize on 'puts' so the main Thread does not add Puts to it
                   //
 
                   //synchronized (puts) {
                   try {
-                    actionsLock.lockInterruptibly();
+                    mutationsLock.lockInterruptibly();
 
                     //
                     // Attempt to flush
                     //
 
                     try {
-                      Object[] results = new Object[actions.size()];
-
-                      if (directory.store||directory.delete) {
-                        ht.batch(actions, results);
-
-                        // Check results for nulls
-                        for (Object o: results) {
-                          if (null == o) {
-                            throw new IOException("At least one action (Put/Delete) failed.");
-                          }
-                        }
-                        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_HBASE_COMMITS, Sensision.EMPTY_LABELS, 1);
+                      if ((directory.store||directory.delete) && !mutations.isEmpty()) {
+                        flushMutations();
+                        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_FDB_COMMITS, Sensision.EMPTY_LABELS, 1);
                       }
 
-                      actions.clear();
-                      actionsSize.set(0L);
+                      mutations.clear();
+                      mutationsSize.set(0L);
                       // Reset lastPut to 0
                       lastAction.set(0L);
                     } catch (IOException ioe) {
                       // Clear list of Puts
-                      actions.clear();
-                      actionsSize.set(0L);
-                      // If an exception is thrown, abort
-                      directory.abort.set(true);
-                      return;
-                    } catch (InterruptedException ie) {
-                      // Clear list of Puts
-                      actions.clear();
-                      actionsSize.set(0L);
+                      mutations.clear();
+                      mutationsSize.set(0L);
                       // If an exception is thrown, abort
                       directory.abort.set(true);
                       return;
                     }
+
+                    mustCommit.set(true);
+                    // Do not trigger the commit if there are pending records
+                    if (pending.get()) {
+                      continue;
+                    }
+
                     //
                     // Now join the cyclic barrier which will trigger the
                     // commit of offsets
                     //
                     try {
                       directory.barrier.await();
+                      mustCommit.set(false);
                       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_BARRIER_SYNCS, Sensision.EMPTY_LABELS, 1);
                     } catch (Exception e) {
                       directory.abort.set(true);
@@ -1325,47 +1311,32 @@ public class Directory extends AbstractHandler implements Runnable {
                     directory.abort.set(true);
                     return;
                   } finally {
-                    if (actionsLock.isHeldByCurrentThread()) {
-                      actionsLock.unlock();
+                    if (mutationsLock.isHeldByCurrentThread()) {
+                      mutationsLock.unlock();
                     }
                   }
-                } else if (0 != lastAction.get() && (now - lastAction.get() > 500) || actionsSize.get() > directory.maxPendingPutsSize) {
+                } else if (0 != lastAction.get() && (now - lastAction.get() > 500) || mutationsSize.get() > directory.maxPendingMutationsSize) {
                   //
-                  // If the last Put was added to 'ht' more than 500ms ago, force a flush
+                  // If the last commit was performed more than 500ms ago, force a flush
                   //
 
                   try {
                     //synchronized(puts) {
-                    actionsLock.lockInterruptibly();
+                    mutationsLock.lockInterruptibly();
                     try {
-                      Object[] results = new Object[actions.size()];
-
                       if (directory.store||directory.delete) {
-                        ht.batch(actions, results);
-
-                        // Check results for nulls
-                        for (Object o: results) {
-                          if (null == o) {
-                            throw new IOException("At least one Put failed.");
-                          }
-                        }
-                        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_HBASE_COMMITS, Sensision.EMPTY_LABELS, 1);
+                        flushMutations();
+                        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_FDB_COMMITS, Sensision.EMPTY_LABELS, 1);
                       }
 
-                      actions.clear();
-                      actionsSize.set(0L);
+                      mutations.clear();
+                      mutationsSize.set(0L);
                       // Reset lastPut to 0
                       lastAction.set(0L);
                     } catch (IOException ioe) {
                       // Clear list of Puts
-                      actions.clear();
-                      actionsSize.set(0L);
-                      directory.abort.set(true);
-                      return;
-                    } catch(InterruptedException ie) {
-                      // Clear list of Puts
-                      actions.clear();
-                      actionsSize.set(0L);
+                      mutations.clear();
+                      mutationsSize.set(0L);
                       directory.abort.set(true);
                       return;
                     }
@@ -1373,8 +1344,8 @@ public class Directory extends AbstractHandler implements Runnable {
                     directory.abort.set(true);
                     return;
                   } finally {
-                    if (actionsLock.isHeldByCurrentThread()) {
-                      actionsLock.unlock();
+                    if (mutationsLock.isHeldByCurrentThread()) {
+                      mutationsLock.unlock();
                     }
                   }
                 }
@@ -1388,6 +1359,38 @@ public class Directory extends AbstractHandler implements Runnable {
               directory.abort.set(true);
             }
           }
+
+          private void flushMutations() throws IOException {
+            Transaction txn = null;
+
+            boolean retry = false;
+            long retries = directory.fdbRetryLimit;
+
+            do {
+              try {
+                retry = false;
+                txn = db.createTransaction();
+                // Allow RAW access because we may manually force a tenant key prefix without actually setting a tenant
+                txn.options().setRawAccess();
+
+                for (FDBMutation mutation: mutations) {
+                  mutation.apply(txn);
+                }
+                txn.commit().get();
+              } catch (Throwable t) {
+                FDBUtils.errorMetrics("directory", t.getCause());
+                if (t.getCause() instanceof FDBException && ((FDBException) t.getCause()).isRetryable() && retries-- > 0) {
+                  retry = true;
+                } else {
+                  throw new IOException("Error while commiting to FoundationDB.", t);
+                }
+              } finally {
+                if (null != txn) {
+                  txn.close();
+                }
+              }
+            } while(retry);
+          }
         });
 
         synchronizer.setName("Warp Directory Synchronizer");
@@ -1398,23 +1401,70 @@ public class Directory extends AbstractHandler implements Runnable {
 
         MetadataID id = null;
 
-        byte[] hbaseAESKey = directory.keystore.getKey(KeyStore.AES_HBASE_METADATA);
+        byte[] fdbAESKey = directory.keystore.getKey(KeyStore.AES_FDB_METADATA);
 
-        while (iter.hasNext()) {
+        Duration delay = Duration.of(500L, ChronoUnit.MILLIS);
+
+        while (!directory.abort.get()) {
           Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_JVM_FREEMEMORY, Sensision.EMPTY_LABELS, Runtime.getRuntime().freeMemory());
 
+          ConsumerRecords<byte[], byte[]> consumerRecords = null;
+
           //
-          // Since the call to 'next' may block, we need to first
-          // check that there is a message available, otherwise we
-          // will miss the synchronization point with the other
-          // threads.
+          // We acquire actionsLock prior to calling poll, so we know when the synchronizer
+          // thread is waiting on the barrier, as it holds the lock, no current call to poll
+          // is ongoing so we can safely call commitSync on the consumer.
           //
 
-          boolean nonEmpty = iter.nonEmpty();
+          try {
+            mutationsLock.lockInterruptibly();
 
-          if (nonEmpty) {
-            MessageAndMetadata<byte[], byte[]> msg = iter.next();
-            if (!counters.safeCount(msg.partition(), msg.offset())) {
+            pending.set(false);
+
+            // Do not call poll if we must commit the offsets
+            if (mustCommit.get()) {
+              continue;
+            }
+
+            consumerRecords = consumer.poll(delay);
+
+            pending.set(consumerRecords.count() > 0);
+          } finally {
+            if (mutationsLock.isHeldByCurrentThread()) {
+              mutationsLock.unlock();
+            }
+          }
+
+          boolean first = true;
+
+          Iterator<ConsumerRecord<byte[],byte[]>> iter = consumerRecords.iterator();
+          while(resetPending() && iter.hasNext()) {
+
+            ConsumerRecord<byte[],byte[]> record = null;
+
+            try {
+              mutationsLock.lockInterruptibly();
+
+              // Do not read record if we must commit the offsets
+              if (mustCommit.get()) {
+                continue;
+              }
+
+              if (!first) {
+                throw new RuntimeException("Invalid input, expected a single record, got " + consumerRecords.count());
+              }
+
+              first = false;
+
+              record = iter.next();
+              pending.set(true);
+            } finally {
+              if (mutationsLock.isHeldByCurrentThread()) {
+                mutationsLock.unlock();
+              }
+            }
+
+            if (!counters.safeCount(record.partition(), record.offset())) {
               continue;
             }
 
@@ -1423,7 +1473,7 @@ public class Directory extends AbstractHandler implements Runnable {
             // Since 20151104 we now correctly push the Kafka key (cf Ingress bug in pushMetadataMessage(k,v))
             //
 
-            int r = (((int) msg.key()[8]) & 0xff) % directory.modulus;
+            int r = (((int) record.key()[8]) & 0xff) % directory.modulus;
 
             if (directory.remainder != r) {
               continue;
@@ -1434,7 +1484,7 @@ public class Directory extends AbstractHandler implements Runnable {
             // We therefore unwrap all messages and decide later.
             //
 
-            byte[] data = msg.message();
+            byte[] data = record.value();
 
             if (null != siphashKey) {
               data = CryptoUtils.removeMAC(siphashKey, data);
@@ -1510,7 +1560,7 @@ public class Directory extends AbstractHandler implements Runnable {
             //
 
             //
-            // If Metadata is from Delete, remove it from the cache AND from HBase
+            // If Metadata is from Delete, remove it from the cache AND from FoundationDB
             //
 
             if (io.warp10.continuum.Configuration.INGRESS_METADATA_DELETE_SOURCE.equals(metadata.getSource())) {
@@ -1551,8 +1601,8 @@ public class Directory extends AbstractHandler implements Runnable {
                 }
 
               } else {
-                // If the name does not exist AND we actually loaded the metadata from HBase, continue.
-                // If we did not load from HBase, handle the delete
+                // If the name does not exist AND we actually loaded the metadata from FoundationDB, continue.
+                // If we did not load from FoundationDB, handle the delete
                 if (!directory.metadatas.containsKey(metadata.getName()) && directory.init) {
                   continue;
                 }
@@ -1591,34 +1641,28 @@ public class Directory extends AbstractHandler implements Runnable {
                 continue;
               }
 
-              // Remove HBase entry
+              // Remove FoundationDB entry
 
               // Prefix + classId + labelsId
-              byte[] rowkey = new byte[Constants.HBASE_METADATA_KEY_PREFIX.length + 8 + 8];
+              byte[] rowkey = new byte[Constants.FDB_METADATA_KEY_PREFIX.length + 8 + 8];
 
               // 128bits
               ByteBuffer bb = ByteBuffer.wrap(rowkey).order(ByteOrder.BIG_ENDIAN);
-              bb.put(Constants.HBASE_METADATA_KEY_PREFIX);
+              bb.put(Constants.FDB_METADATA_KEY_PREFIX);
               bb.putLong(classId);
               bb.putLong(labelsId);
 
-              //System.arraycopy(HBASE_METADATA_KEY_PREFIX, 0, rowkey, 0, HBASE_METADATA_KEY_PREFIX.length);
-              // Copy classId/labelsId
-              //System.arraycopy(data, 0, rowkey, HBASE_METADATA_KEY_PREFIX.length, 16);
-
-              Delete delete = new Delete(rowkey);
+              FDBClear clear = new FDBClear(fdbContext.getTenantPrefix(), rowkey);
 
               try {
-                actionsLock.lockInterruptibly();
-                //htable.delete(delete);
-                actions.add(delete);
-                // estimate the size of the Delete
-                actionsSize.addAndGet(rowkey.length + 16);
+                mutationsLock.lockInterruptibly();
+                mutations.add(clear);
+                mutationsSize.addAndGet(clear.size());
                 lastAction.set(System.currentTimeMillis());
-                Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_HBASE_DELETES, Sensision.EMPTY_LABELS, 1);
+                Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_FDB_DELETES, Sensision.EMPTY_LABELS, 1);
               } finally {
-                if (actionsLock.isHeldByCurrentThread()) {
-                  actionsLock.unlock();
+                if (mutationsLock.isHeldByCurrentThread()) {
+                  mutationsLock.unlock();
                 }
               }
 
@@ -1767,7 +1811,7 @@ public class Directory extends AbstractHandler implements Runnable {
                 }
 
                 // We need to update the attributes with those from 'meta' so we
-                // store the up to date version of the Metadata in HBase
+                // store the up to date version of the Metadata in FoundationDB
                 metadata.setAttributes(new HashMap<String,String>(meta.getAttributes()));
 
                 // We re-serialize metadata
@@ -1802,7 +1846,7 @@ public class Directory extends AbstractHandler implements Runnable {
             }
 
             //
-            // Write Metadata to HBase as it is either new or an updated version\
+            // Write Metadata to FoundationDB as it is either new or an updated version\
             // WARNING(hbs): in case of an updated version, we might erase a newer version of
             // the metadata (in case we updated it already but the Kafka offsets were not committed prior to
             // a failure of this Directory process). This will eventually be corrected when the newer version is
@@ -1810,42 +1854,38 @@ public class Directory extends AbstractHandler implements Runnable {
             //
 
             // Prefix + classId + labelsId
-            byte[] rowkey = new byte[Constants.HBASE_METADATA_KEY_PREFIX.length + 8 + 8];
+            byte[] rowkey = new byte[Constants.FDB_METADATA_KEY_PREFIX.length + 8 + 8];
 
             ByteBuffer bb = ByteBuffer.wrap(rowkey).order(ByteOrder.BIG_ENDIAN);
-            bb.put(Constants.HBASE_METADATA_KEY_PREFIX);
+            bb.put(Constants.FDB_METADATA_KEY_PREFIX);
             bb.putLong(classId);
             bb.putLong(labelsId);
-
-            //System.arraycopy(HBASE_METADATA_KEY_PREFIX, 0, rowkey, 0, HBASE_METADATA_KEY_PREFIX.length);
-            // Copy classId/labelsId
-            //System.arraycopy(data, 0, rowkey, HBASE_METADATA_KEY_PREFIX.length, 16);
 
             //
             // Encrypt contents
             //
 
-            Put put = null;
+            FDBSet put = null;
             byte[] encrypted = null;
 
             if (directory.store) {
-              put = new Put(rowkey);
-              if (null != hbaseAESKey) {
-                encrypted = CryptoUtils.wrap(hbaseAESKey, metadataBytes);
-                put.addColumn(directory.colfam, new byte[0], encrypted);
+              if (null != fdbAESKey) {
+                encrypted = CryptoUtils.wrap(fdbAESKey, metadataBytes);
+                put = new FDBSet(fdbContext.getTenantPrefix(), rowkey, encrypted);
               } else {
-                put.addColumn(directory.colfam, new byte[0], metadataBytes);
+                encrypted = metadataBytes;
+                put = new FDBSet(fdbContext.getTenantPrefix(), rowkey, metadataBytes);
               }
             }
 
             try {
-              actionsLock.lockInterruptibly();
+              mutationsLock.lockInterruptibly();
               //synchronized (puts) {
               if (directory.store) {
-                actions.add(put);
-                actionsSize.addAndGet(encrypted.length);
+                mutations.add(put);
+                mutationsSize.addAndGet(put.size());
                 lastAction.set(System.currentTimeMillis());
-                Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_HBASE_PUTS, Sensision.EMPTY_LABELS, 1);
+                Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_FDB_PUTS, Sensision.EMPTY_LABELS, 1);
               }
 
               if (null != directory.plugin) {
@@ -1913,13 +1953,10 @@ public class Directory extends AbstractHandler implements Runnable {
               }
 
             } finally {
-              if (actionsLock.isHeldByCurrentThread()) {
-                actionsLock.unlock();
+              if (mutationsLock.isHeldByCurrentThread()) {
+                mutationsLock.unlock();
               }
             }
-          } else {
-            // Sleep a tiny while
-            LockSupport.parkNanos(2000000L);
           }
         }
       } catch (Throwable t) {
@@ -1928,8 +1965,8 @@ public class Directory extends AbstractHandler implements Runnable {
         // Set abort to true in case we exit the 'run' method
         directory.abort.set(true);
         this.localabort.set(true);
-        if (null != htable) {
-          try { htable.close(); } catch (IOException ioe) {}
+        if (null != db) {
+          try { db.close(); } catch (Throwable t) {}
         }
       }
     }
@@ -2295,8 +2332,10 @@ public class Directory extends AbstractHandler implements Runnable {
           String ownersel = labelsSelector.get(Constants.OWNER_LABEL);
 
           if (null != ownersel && ownersel.startsWith("=")) {
-            classNames = classesPerOwner.get(ownersel.substring(1)).values();
-            if (null == classNames) {
+            Map<Long,String> cpo = classesPerOwner.get(ownersel.substring(1));
+            if (null != cpo) {
+              classNames = cpo.values();
+            } else {
               classNames = new ArrayList<String>();
             }
           } else {

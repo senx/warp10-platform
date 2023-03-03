@@ -235,11 +235,6 @@ public class Constants {
   public static final String DATALOG_DELETE = "DELETE";
 
   /**
-   * Empty column qualifier for HBase writes
-   */
-  public static final byte[] EMPTY_COLQ = new byte[0];
-
-  /**
    * Endpoint for checks
    */
   public static final String API_ENDPOINT_CHECK = "/api/v0/check";
@@ -458,27 +453,19 @@ public class Constants {
   public static final String TOKEN_ATTR_IGNOOR = ".ignoor";
 
   /**
-   * TTL for the written data (in ms)
-   */
-  public static final String TOKEN_ATTR_TTL = ".ttl";
-
-  /**
-   * Use the timestamp of the datapoints as the HBase cell timestamp.
-   * Use of this attribute has no effect on a standalone version of Warp 10
-   */
-  public static final String TOKEN_ATTR_DPTS = ".dpts";
-
-  /**
    * Attribute to specify that owner and producer should be exposed instead of hidden
    */
   public static final String TOKEN_ATTR_EXPOSE = ".expose";
 
-  //
-  // KafkaMessage Store attributes
-  //
+  /**
+   * FoundationDB tenant key prefix. The value is OPB64 encoded
+   */
+  public static final String TOKEN_ATTR_FDB_TENANT_PREFIX = ".fdbtp";
 
-  public static final String STORE_ATTR_TTL = "ttl";
-  public static final String STORE_ATTR_USEDATAPOINTTS = "dpts";
+  /**
+   * FoundationDB tenant key prefix. The value is OPB64 encoded
+   */
+  public static final String STORE_ATTR_FDB_TENANT_PREFIX = "fdb.tenant.prefix";
 
   /**
    * Limit to the size of errors message returned as the HTTP reason. In Jetty, this is limited to 1024 character.
@@ -609,10 +596,10 @@ public class Constants {
   /**
    * row key prefix for metadata
    */
-  public static final byte[] HBASE_METADATA_KEY_PREFIX = "M".getBytes(StandardCharsets.UTF_8);
+  public static final byte[] FDB_METADATA_KEY_PREFIX = "M".getBytes(StandardCharsets.UTF_8);
 
   /**
    * Prefix for 'raw' (individual datapoints) data
    */
-  public static final byte[] HBASE_RAW_DATA_KEY_PREFIX = "R".getBytes(StandardCharsets.UTF_8);
+  public static final byte[] FDB_RAW_DATA_KEY_PREFIX = "R".getBytes(StandardCharsets.UTF_8);
 }

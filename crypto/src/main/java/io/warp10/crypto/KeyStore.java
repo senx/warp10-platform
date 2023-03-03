@@ -57,12 +57,12 @@ public interface KeyStore {
   /**
    * Name of key for wrapping metadata
    */
-  public static final String AES_HBASE_METADATA = "warp.aes.hbase.metadata";
+  public static final String AES_FDB_METADATA = "warp.aes.fdb.metadata";
 
   /**
    * Name of key for wrapping data (readings)
    */
-  public static final String AES_HBASE_DATA = "warp.aes.hbase.data";
+  public static final String AES_FDB_DATA = "warp.aes.fdb.data";
 
   /**
    * Name of key for wrapping Tokens
@@ -230,7 +230,7 @@ public interface KeyStore {
   public static byte[] checkAndSetKey(KeyStore keystore, String keyname, Properties props, String configurationKey, String defaultKeyValue, int... sizeInBits) {
     String keyspec = props.getProperty(configurationKey, defaultKeyValue);
 
-    if (null != keyspec) {
+    if (null != keyspec && !"".equals(keyspec.trim())) {
       byte[] key = keystore.decodeKey(keyspec);
 
       // Check the size of the key
