@@ -16,16 +16,6 @@
 
 package io.warp10.continuum;
 
-import io.warp10.SmartPattern;
-import io.warp10.continuum.gts.GTSHelper;
-import io.warp10.continuum.sensision.SensisionConstants;
-import io.warp10.continuum.store.Constants;
-import io.warp10.continuum.store.Directory;
-import io.warp10.continuum.store.thrift.data.DirectoryStatsRequest;
-import io.warp10.continuum.store.thrift.data.DirectoryStatsResponse;
-import io.warp10.continuum.store.thrift.data.Metadata;
-import io.warp10.crypto.SipHashInline;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
