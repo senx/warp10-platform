@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -95,7 +95,7 @@ public class ThriftDirectoryClient implements ServiceCacheListener, DirectoryCli
 
   private final ServiceCache<Map> serviceCache;
 
-  private Map<String,Object> clientCache = new ConcurrentHashMap<String, Object>();
+  private List<String> clientCache = new ArrayList<String>();
 
   private Map<String,Integer> modulus = new ConcurrentHashMap<String, Integer>();
   private Map<String,Integer> remainder = new ConcurrentHashMap<String, Integer>();
@@ -172,7 +172,7 @@ public class ThriftDirectoryClient implements ServiceCacheListener, DirectoryCli
       // Allocate new clients
       //
 
-      Map<String,Object> newClients = new ConcurrentHashMap<String, Object>();
+      List<String> newClients = new ArrayList<String>();
       Map<String,Integer> newModulus = new ConcurrentHashMap<String, Integer>();
       Map<String,Integer> newRemainder = new ConcurrentHashMap<String, Integer>();
       Map<String,String> newHosts = new ConcurrentHashMap<String,String>();
@@ -229,12 +229,15 @@ public class ThriftDirectoryClient implements ServiceCacheListener, DirectoryCli
 
         String id = instance.getId();
 
+        String host = instance.getAddress();
+        int port = instance.getPort();
+
         if (instance.getPayload().containsKey(Directory.PAYLOAD_STREAMING_PORT_KEY)) {
           newHosts.put(id, instance.getAddress());
           newStreamingPorts.put(id, Integer.parseInt(instance.getPayload().get(Directory.PAYLOAD_STREAMING_PORT_KEY).toString()));
         }
 
-        newClients.put(id, Boolean.TRUE);
+        newClients.add(id);
         newModulus.put(id, modulus);
         newRemainder.put(id, Integer.parseInt(instance.getPayload().get(Directory.PAYLOAD_REMAINDER_KEY).toString()));
       }
@@ -303,35 +306,35 @@ public class ThriftDirectoryClient implements ServiceCacheListener, DirectoryCli
 
     final List<URL> urls = new ArrayList<URL>();
 
-    List<Entry<String,Object>> servers = new ArrayList<Entry<String,Object>>();
+    List<String> servers = new ArrayList<String>();
 
     synchronized(clientCacheMutex) {
-      servers.addAll(clientCache.entrySet());
+      servers.addAll(clientCache);
     }
 
     // Shuffle the list
     Collections.shuffle(servers);
 
-    for (Entry<String,Object> entry: servers) {
+    for (String server: servers) {
       //
       // Make sure the current entry has a streaming port defined
       //
 
-      if (!streamingPorts.containsKey(entry.getKey())) {
+      if (!streamingPorts.containsKey(server)) {
         continue;
       }
 
       if (-1L == selectedmodulus) {
-        selectedmodulus = modulus.get(entry.getKey());
+        selectedmodulus = modulus.get(server);
       }
 
       // Make sure we use a common modulus
-      if (modulus.get(entry.getKey()) != selectedmodulus) {
+      if (modulus.get(server) != selectedmodulus) {
         continue;
       }
 
       // Skip client if we already called one with this remainder
-      if (called.contains(remainder.get(entry.getKey()))) {
+      if (called.contains(remainder.get(server))) {
         continue;
       }
 
@@ -339,18 +342,16 @@ public class ThriftDirectoryClient implements ServiceCacheListener, DirectoryCli
       // Extract host and port
       //
 
-      String host = hosts.get(entry.getKey());
-      int port = streamingPorts.get(entry.getKey());
+      String host = hosts.get(server);
+      int port = streamingPorts.get(server);
 
       URL url = new URL("http://" + host + ":" + port + "" + Constants.API_ENDPOINT_DIRECTORY_STATS_INTERNAL);
 
       urls.add(url);
 
       // Track which remainders we already selected
-      called.add(remainder.get(entry.getKey()));
+      called.add(remainder.get(server));
     }
-
-
 
     final DirectoryStatsRequest request = new DirectoryStatsRequest();
     request.setTimestamp(System.currentTimeMillis());
@@ -621,35 +622,35 @@ public class ThriftDirectoryClient implements ServiceCacheListener, DirectoryCli
 
     final List<URL> urls = new ArrayList<URL>();
 
-    List<Entry<String,Object>> servers = new ArrayList<Entry<String,Object>>();
+    List<String> servers = new ArrayList<String>();
 
     synchronized(clientCacheMutex) {
-      servers.addAll(clientCache.entrySet());
+      servers.addAll(clientCache);
     }
 
     // Shuffle the list
     Collections.shuffle(servers);
 
-    for (Entry<String,Object> entry: servers) {
+    for (String server: servers) {
       //
       // Make sure the current entry has a streaming port defined
       //
 
-      if (!streamingPorts.containsKey(entry.getKey())) {
+      if (!streamingPorts.containsKey(server)) {
         continue;
       }
 
       if (-1L == selectedmodulus) {
-        selectedmodulus = modulus.get(entry.getKey());
+        selectedmodulus = modulus.get(server);
       }
 
       // Make sure we use a common modulus
-      if (modulus.get(entry.getKey()) != selectedmodulus) {
+      if (modulus.get(server) != selectedmodulus) {
         continue;
       }
 
       // Skip client if we already called one with this remainder
-      if (called.contains(remainder.get(entry.getKey()))) {
+      if (called.contains(remainder.get(server))) {
         continue;
       }
 
@@ -657,15 +658,15 @@ public class ThriftDirectoryClient implements ServiceCacheListener, DirectoryCli
       // Extract host and port
       //
 
-      String host = hosts.get(entry.getKey());
-      int port = streamingPorts.get(entry.getKey());
+      String host = hosts.get(server);
+      int port = streamingPorts.get(server);
 
       URL url = new URL("http://" + host + ":" + port + "" + Constants.API_ENDPOINT_DIRECTORY_STREAMING_INTERNAL);
 
       urls.add(url);
 
       // Track which remainders we already selected
-      called.add(remainder.get(entry.getKey()));
+      called.add(remainder.get(server));
     }
 
     return StreamingMetadataIterator.getIterator(SIPHASH_PSK, request, urls, this.noProxy);

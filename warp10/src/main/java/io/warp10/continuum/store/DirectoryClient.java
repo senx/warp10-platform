@@ -25,8 +25,8 @@ import java.util.Map;
 
 public interface DirectoryClient {
   public List<Metadata> find(DirectoryRequest request) throws IOException;
-  
+
   public Map<String,Object> stats(DirectoryRequest request) throws IOException;
-  
+
   public MetadataIterator iterator(DirectoryRequest request) throws IOException;
 }

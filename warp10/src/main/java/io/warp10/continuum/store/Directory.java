@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigInteger;
+import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
@@ -64,7 +65,6 @@ import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
-import org.apache.thrift.transport.TTransportException;
 import org.bouncycastle.crypto.CipherParameters;
 import org.bouncycastle.crypto.InvalidCipherTextException;
 import org.bouncycastle.crypto.engines.AESWrapEngine;
@@ -105,6 +105,7 @@ import io.warp10.continuum.MetadataUtils;
 import io.warp10.continuum.MetadataUtils.MetadataID;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.sensision.SensisionConstants;
+import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.DirectoryStatsRequest;
 import io.warp10.continuum.store.thrift.data.DirectoryStatsResponse;
 import io.warp10.continuum.store.thrift.data.DirectoryRequest;
@@ -1125,9 +1126,11 @@ public class Directory extends AbstractHandler implements Runnable {
     this.instance = null;
 
     try {
+      InetAddress bindAddress = InetAddress.getByName(this.host);
+
       ServiceInstanceBuilder<Map> builder = ServiceInstance.builder();
       builder.port(this.streamingport);
-      builder.address(this.host);
+      builder.address(bindAddress.getHostAddress());
       builder.id(UUID.randomUUID().toString());
       builder.name(DIRECTORY_SERVICE);
       builder.serviceType(ServiceType.DYNAMIC);
@@ -1144,11 +1147,10 @@ public class Directory extends AbstractHandler implements Runnable {
         sd.start();
         sd.registerService(instance);
       }
+
       while(true) {
         LockSupport.parkNanos(Long.MAX_VALUE);
       }
-    } catch (TTransportException tte) {
-      LOG.error("",tte);
     } catch (Exception e) {
       LOG.error("", e);
     } finally {
