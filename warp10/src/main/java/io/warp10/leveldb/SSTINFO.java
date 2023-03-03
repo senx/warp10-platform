@@ -22,11 +22,9 @@ import java.nio.file.Files;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 
 import org.iq80.leveldb.impl.Filename;
 
-import io.warp10.WarpConfig;
 import io.warp10.continuum.store.Constants;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
@@ -39,8 +37,6 @@ import io.warp10.warp.sdk.Capabilities;
  * Returns informations about an SST file
  */
 public class SSTINFO extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-
-  private Properties properties = null;
 
   private static final String SIZE_KEY = "size";
   private static final String CREATIONTIME_KEY = "creationTime";
@@ -64,9 +60,6 @@ public class SSTINFO extends NamedWarpScriptFunction implements WarpScriptStackF
 
     long number = (Long) top;
 
-    if (null == properties) {
-      properties = WarpConfig.getProperties();
-    }
     WarpDB db = Warp.getDB();
 
     if (null == db) {

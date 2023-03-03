@@ -40,10 +40,6 @@ import io.warp10.script.functions.SNAPSHOT;
  * Reads a MANIFEST file and outputs a report about each .sst file
  */
 public class WarpReport {
-  public static final String COMMAND = "report";
-  public static String HELP = COMMAND + " /path/to/MANIFEST";
-
-
   public static final String MAXLEVEL_KEY = "maxlevel";
   public static final String SST_KEY = "sst";
   public static final String MANIFEST = "manifest";
