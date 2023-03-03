@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -38,7 +38,6 @@ public interface StoreClient {
    *   step Index offset between two datapoints, defaults to 1, i.e. return every data point
    *   timestep Minimum time offset between datapoints, defaults to 1 time unit
    *   sample Double value representing the sampling rate. Use 1.0D for returning all values. Valid values are ] 0.0D, 1.0D ]
-   *   writeTimestamp Flag indicating we are interested in the HBase cell timestamp
    *   preBoundary Size of the pre boundary in number of values
    *   postBoundary Size of the post boundary in number of values
    */

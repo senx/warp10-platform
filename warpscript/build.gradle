@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -26,7 +26,6 @@ sourceSets {
             include 'io/warp10/script/**'
             exclude 'io/warp10/script/ScriptRunner*.*'
             include 'io/warp10/CapacityExtractorOutputStream.*'
-            include 'io/warp10/udf/**'
             include 'io/warp10/thrift/**'
             include 'io/warp10/WarpConfig.*'
             include 'io/warp10/WarpConfig$1.*'
@@ -100,7 +99,7 @@ dependencies {
     api withVersion('org.apache.commons:commons-math3')
     api withVersion('com.github.spullara.mustache.java:compiler')
     api withVersion('org.processing:core')
-    api withVersion('com.netflix.curator:curator-x-discovery')
+    api withVersion('org.apache.curator:curator-x-discovery')
     api withVersion('io.senx:geoxplib')
     api withVersion('com.google.guava:guava')
     api withVersion('org.apache.hadoop:hadoop-common')

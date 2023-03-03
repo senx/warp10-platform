@@ -27,11 +27,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.hadoop.hbase.util.Bytes;
 import org.bouncycastle.util.encoders.Hex;
 
+import com.google.common.primitives.Bytes;
 import com.google.common.primitives.Longs;
 
+import io.warp10.BytesUtils;
 import io.warp10.continuum.Tokens;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
@@ -165,15 +166,15 @@ public class SSTFIND extends NamedWarpScriptFunction implements WarpScriptStackF
 
     boolean smallestData = false;
 
-    if (0 == Bytes.indexOf(smallest, Constants.HBASE_RAW_DATA_KEY_PREFIX)) {
+    if (0 == Bytes.indexOf(smallest, Constants.FDB_RAW_DATA_KEY_PREFIX)) {
       // 128BITS
-      smallestClassId = Arrays.copyOfRange(smallest, Constants.HBASE_RAW_DATA_KEY_PREFIX.length, Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8);
-      smallestLabelsId = Arrays.copyOfRange(smallest, Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8, Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 16);
-      smallestTimestamp = Arrays.copyOfRange(smallest, Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 16, Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 24);
+      smallestClassId = Arrays.copyOfRange(smallest, Constants.FDB_RAW_DATA_KEY_PREFIX.length, Constants.FDB_RAW_DATA_KEY_PREFIX.length + 8);
+      smallestLabelsId = Arrays.copyOfRange(smallest, Constants.FDB_RAW_DATA_KEY_PREFIX.length + 8, Constants.FDB_RAW_DATA_KEY_PREFIX.length + 16);
+      smallestTimestamp = Arrays.copyOfRange(smallest, Constants.FDB_RAW_DATA_KEY_PREFIX.length + 16, Constants.FDB_RAW_DATA_KEY_PREFIX.length + 24);
       smallestData = true;
-    } else if (0 == Bytes.indexOf(smallest, Constants.HBASE_METADATA_KEY_PREFIX)) {
-      smallestClassId = Arrays.copyOfRange(smallest, Constants.HBASE_METADATA_KEY_PREFIX.length, Constants.HBASE_METADATA_KEY_PREFIX.length + 8);
-      smallestLabelsId = Arrays.copyOfRange(smallest, Constants.HBASE_METADATA_KEY_PREFIX.length + 8, Constants.HBASE_METADATA_KEY_PREFIX.length + 16);
+    } else if (0 == Bytes.indexOf(smallest, Constants.FDB_METADATA_KEY_PREFIX)) {
+      smallestClassId = Arrays.copyOfRange(smallest, Constants.FDB_METADATA_KEY_PREFIX.length, Constants.FDB_METADATA_KEY_PREFIX.length + 8);
+      smallestLabelsId = Arrays.copyOfRange(smallest, Constants.FDB_METADATA_KEY_PREFIX.length + 8, Constants.FDB_METADATA_KEY_PREFIX.length + 16);
       smallestTimestamp = null;
       smallestData = false;
     } else {
@@ -186,15 +187,15 @@ public class SSTFIND extends NamedWarpScriptFunction implements WarpScriptStackF
 
     boolean largestData = false;
 
-    if (0 == Bytes.indexOf(largest, Constants.HBASE_RAW_DATA_KEY_PREFIX)) {
+    if (0 == Bytes.indexOf(largest, Constants.FDB_RAW_DATA_KEY_PREFIX)) {
       // 128BITS
-      largestClassId = Arrays.copyOfRange(largest, Constants.HBASE_RAW_DATA_KEY_PREFIX.length, Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8);
-      largestLabelsId = Arrays.copyOfRange(largest, Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8, Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 16);
-      largestTimestamp = Arrays.copyOfRange(largest, Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 16, Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 24);
+      largestClassId = Arrays.copyOfRange(largest, Constants.FDB_RAW_DATA_KEY_PREFIX.length, Constants.FDB_RAW_DATA_KEY_PREFIX.length + 8);
+      largestLabelsId = Arrays.copyOfRange(largest, Constants.FDB_RAW_DATA_KEY_PREFIX.length + 8, Constants.FDB_RAW_DATA_KEY_PREFIX.length + 16);
+      largestTimestamp = Arrays.copyOfRange(largest, Constants.FDB_RAW_DATA_KEY_PREFIX.length + 16, Constants.FDB_RAW_DATA_KEY_PREFIX.length + 24);
       largestData = true;
-    } else if (0 == Bytes.indexOf(largest, Constants.HBASE_METADATA_KEY_PREFIX)) {
-      largestClassId = Arrays.copyOfRange(largest, Constants.HBASE_METADATA_KEY_PREFIX.length, Constants.HBASE_METADATA_KEY_PREFIX.length + 8);
-      largestLabelsId = Arrays.copyOfRange(largest, Constants.HBASE_METADATA_KEY_PREFIX.length + 8, Constants.HBASE_METADATA_KEY_PREFIX.length + 16);
+    } else if (0 == Bytes.indexOf(largest, Constants.FDB_METADATA_KEY_PREFIX)) {
+      largestClassId = Arrays.copyOfRange(largest, Constants.FDB_METADATA_KEY_PREFIX.length, Constants.FDB_METADATA_KEY_PREFIX.length + 8);
+      largestLabelsId = Arrays.copyOfRange(largest, Constants.FDB_METADATA_KEY_PREFIX.length + 8, Constants.FDB_METADATA_KEY_PREFIX.length + 16);
       largestTimestamp = null;
       largestData = false;
     } else {
@@ -210,7 +211,7 @@ public class SSTFIND extends NamedWarpScriptFunction implements WarpScriptStackF
     //
 
     // Boolean indicating the SST file contains only one GTS
-    boolean singleGTS = 0 == Bytes.compareTo(smallestClassId, largestClassId) && 0 == Bytes.compareTo(smallestLabelsId, largestLabelsId);
+    boolean singleGTS = 0 == BytesUtils.compareTo(smallestClassId, largestClassId) && 0 == BytesUtils.compareTo(smallestLabelsId, largestLabelsId);
 
     List<List<Object>> result = new ArrayList<List<Object>>();
 
@@ -266,7 +267,7 @@ public class SSTFIND extends NamedWarpScriptFunction implements WarpScriptStackF
 
         byte[] classId = Longs.toByteArray(meta.getClassId());
 
-        int comp = Bytes.compareTo(classId, smallestClassId);
+        int comp = BytesUtils.compareTo(classId, smallestClassId);
 
         if (comp < 0) {
           continue;
@@ -276,7 +277,7 @@ public class SSTFIND extends NamedWarpScriptFunction implements WarpScriptStackF
           // Identical class id, check labels id
           byte[] labelsId = Longs.toByteArray(meta.getLabelsId());
 
-          comp = Bytes.compareTo(labelsId, smallestLabelsId);
+          comp = BytesUtils.compareTo(labelsId, smallestLabelsId);
 
           if (comp < 0) {
             continue;
@@ -290,7 +291,7 @@ public class SSTFIND extends NamedWarpScriptFunction implements WarpScriptStackF
         // current metadata id is > smallest, check largest
 
         if (comp > 0) {
-          comp = Bytes.compareTo(classId, largestClassId);
+          comp = BytesUtils.compareTo(classId, largestClassId);
 
           // ClassId is after the range of the current SST file, exit prematurely
           if (comp > 0) {
@@ -300,7 +301,7 @@ public class SSTFIND extends NamedWarpScriptFunction implements WarpScriptStackF
           if (0 == comp) {
             // Identical class id, check labels id
             byte[] labelsId = Longs.toByteArray(meta.getLabelsId());
-            comp = Bytes.compareTo(labelsId, largestLabelsId);
+            comp = BytesUtils.compareTo(labelsId, largestLabelsId);
 
             // LabelsId is after the range of the current SST file for ClassId, exit
             if (comp > 0) {

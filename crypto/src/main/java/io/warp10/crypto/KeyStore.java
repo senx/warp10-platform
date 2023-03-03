@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -57,12 +57,12 @@ public interface KeyStore {
   /**
    * Name of key for wrapping metadata
    */
-  public static final String AES_HBASE_METADATA = "warp.aes.hbase.metadata";
+  public static final String AES_FDB_METADATA = "warp.aes.fdb.metadata";
 
   /**
    * Name of key for wrapping data (readings)
    */
-  public static final String AES_HBASE_DATA = "warp.aes.hbase.data";
+  public static final String AES_FDB_DATA = "warp.aes.fdb.data";
 
   /**
    * Name of key for wrapping Tokens
@@ -105,11 +105,6 @@ public interface KeyStore {
   public static final String SIPHASH_KAFKA_PLASMA_FRONTEND_IN = "warp.siphash.kafka.plasma.frontend.in";
 
   /**
-   * Name of key for computing MAC for WebCall requests in Kafka
-   */
-  public static final String SIPHASH_KAFKA_WEBCALL = "warp.siphash.kafka.webcall";
-
-  /**
    * Name of key for computing MAC for DirectoryFindRequest instances
    */
   public static final String SIPHASH_DIRECTORY_PSK = "warp.siphash.directory.psk";
@@ -143,11 +138,6 @@ public interface KeyStore {
    * Name of key for wrapping kafka messages consumed by plasma frontends
    */
   public static final String AES_KAFKA_PLASMA_FRONTEND_IN = "warp.aes.kafka.plasma.frontend.in";
-
-  /**
-   * Name of key for wrapping WebCall requests in Kafka
-   */
-  public static final String AES_KAFKA_WEBCALL = "warp.aes.kafka.webcall";
 
   /**
    * AES key to use for wrapping sensitive logging messages
@@ -240,7 +230,7 @@ public interface KeyStore {
   public static byte[] checkAndSetKey(KeyStore keystore, String keyname, Properties props, String configurationKey, String defaultKeyValue, int... sizeInBits) {
     String keyspec = props.getProperty(configurationKey, defaultKeyValue);
 
-    if (null != keyspec) {
+    if (null != keyspec && !"".equals(keyspec.trim())) {
       byte[] key = keystore.decodeKey(keyspec);
 
       // Check the size of the key

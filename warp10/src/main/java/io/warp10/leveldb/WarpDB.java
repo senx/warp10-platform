@@ -154,8 +154,7 @@ public class WarpDB extends Thread implements DB {
     this.setDaemon(true);
     this.start();
 
-    this.open(nativedisabled, javadisabled, home, options);
-
+    this.open(nativedisabled, javadisabled, home, options);    
   }
 
   private synchronized void open(boolean nativedisabled, boolean javadisabled, String home, Options options) throws IOException {
@@ -197,7 +196,7 @@ public class WarpDB extends Thread implements DB {
 
       try {
         // Create the key after the raw data prefix
-        byte[] key = Constants.HBASE_RAW_DATA_KEY_PREFIX;
+        byte[] key = Constants.FDB_RAW_DATA_KEY_PREFIX;
 
         // Find the first element of the prefix which differs from 0xFF
         int idx = 0;

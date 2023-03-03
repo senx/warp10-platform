@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,75 +16,68 @@
 
 package io.warp10.continuum;
 
-import io.warp10.continuum.KafkaSynchronizedConsumerPool.ConsumerFactory;
-import io.warp10.continuum.ingress.Ingress;
-import io.warp10.continuum.sensision.SensisionConstants;
-import io.warp10.continuum.store.thrift.data.Metadata;
-import io.warp10.crypto.CryptoUtils;
-import io.warp10.quasar.token.thrift.data.ReadToken;
-import io.warp10.script.HyperLogLogPlus;
-import io.warp10.sensision.Sensision;
+import java.util.Collection;
 
-import java.math.BigInteger;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.Map.Entry;
-
-import kafka.consumer.ConsumerIterator;
-import kafka.consumer.KafkaStream;
-import kafka.message.MessageAndMetadata;
-
-import org.apache.thrift.TDeserializer;
-import org.apache.thrift.protocol.TCompactProtocol;
-
-import com.google.common.primitives.Longs;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.warp10.continuum.KafkaSynchronizedConsumerPool.ConsumerFactory;
+import io.warp10.continuum.sensision.SensisionConstants;
+import io.warp10.crypto.CryptoUtils;
+import io.warp10.script.HyperLogLogPlus;
+import io.warp10.sensision.Sensision;
 
 public class ThrottlingManagerEstimatorConsumerFactory implements ConsumerFactory {
 
   private static final Logger LOG = LoggerFactory.getLogger(ThrottlingManagerEstimatorConsumerFactory.class);
-  
+
   private final byte[] macKey;
-  
+
   public ThrottlingManagerEstimatorConsumerFactory(byte[] macKey) {
     this.macKey = macKey;
   }
-  
+
   @Override
-  public Runnable getConsumer(final KafkaSynchronizedConsumerPool pool, final KafkaStream<byte[], byte[]> stream) {
-    
-    return new Runnable() {          
+  public Runnable getConsumer(final KafkaSynchronizedConsumerPool pool, final KafkaConsumer<byte[], byte[]> consumer, final Collection<String> topics) {
+
+    return new Runnable() {
       @Override
       public void run() {
-        ConsumerIterator<byte[],byte[]> iter = stream.iterator();
-
         // Iterate on the messages
         KafkaOffsetCounters counters = pool.getCounters();
-        
+
         try {
-          while (iter.hasNext()) {
-            //
-            // Since the call to 'next' may block, we need to first
-            // check that there is a message available
-            //
-            
-            boolean nonEmpty = iter.nonEmpty();
-            
-            if (nonEmpty) {
-              MessageAndMetadata<byte[], byte[]> msg = iter.next();
-              counters.count(msg.partition(), msg.offset());
-              
-              byte[] data = msg.message();
+          consumer.subscribe(topics);
+
+          // Kafka 2.x Duration delay = Duration.of(500L, ChronoUnit.MILLIS);
+          long delay = 500L;
+
+          while (!pool.getAbort().get()) {
+            ConsumerRecords<byte[], byte[]> records = pool.poll(consumer,delay);
+
+            boolean first = true;
+
+            for (ConsumerRecord<byte[], byte[]> record: records) {
+              if (!first) {
+                throw new RuntimeException("Invalid input, expected a single record, got " + records.count());
+              }
+
+              first = false;
+
+              counters.count(record.partition(), record.offset());
+
+              byte[] data = record.value();
 
               Sensision.update(SensisionConstants.CLASS_WARP_INGRESS_KAFKA_THROTTLING_IN_MESSAGES, Sensision.EMPTY_LABELS, 1);
               Sensision.update(SensisionConstants.CLASS_WARP_INGRESS_KAFKA_THROTTLING_IN_BYTES, Sensision.EMPTY_LABELS, data.length);
-              
+
               if (null != macKey) {
                 data = CryptoUtils.removeMAC(macKey, data);
               }
-              
+
               // Skip data whose MAC was not verified successfully
               if (null == data) {
                 Sensision.update(SensisionConstants.CLASS_WARP_INGRESS_KAFKA_THROTTLING_IN_INVALIDMACS, Sensision.EMPTY_LABELS, 1);
@@ -94,7 +87,7 @@ public class ThrottlingManagerEstimatorConsumerFactory implements ConsumerFactor
               //
               // Update throttling manager
               //
-              
+
               try {
                 ThrottlingManager.fuse(HyperLogLogPlus.fromBytes(data));
                 Sensision.update(SensisionConstants.CLASS_WARP_INGRESS_THROTLLING_FUSIONS, Sensision.EMPTY_LABELS, 1);
@@ -102,7 +95,7 @@ public class ThrottlingManagerEstimatorConsumerFactory implements ConsumerFactor
                 Sensision.update(SensisionConstants.CLASS_WARP_INGRESS_THROTLLING_FUSIONS_FAILED, Sensision.EMPTY_LABELS, 1);
               }
             }
-          }        
+          }
         } catch (Throwable t) {
           LOG.error("Error reading throttling messages.", t);
         } finally {

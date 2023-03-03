@@ -16,9 +16,9 @@
 
 package io.warp10.leveldb;
 
-import org.apache.hadoop.hbase.util.Bytes;
 import org.bouncycastle.util.encoders.Hex;
 
+import io.warp10.BytesUtils;
 import io.warp10.continuum.store.Constants;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
@@ -51,11 +51,11 @@ public class SSTTIMESTAMP extends NamedWarpScriptFunction implements WarpScriptS
     byte[] key = top instanceof byte[] ? (byte[]) top : Hex.decode(top.toString());
 
     // 128BITS
-    if (key.length < Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8) {
+    if (key.length < Constants.FDB_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8) {
       throw new WarpScriptException(getName() + " encountered an invalid key length.");
     }
 
-    if (0 != Bytes.compareTo(key, 0, Constants.HBASE_RAW_DATA_KEY_PREFIX.length, Constants.HBASE_RAW_DATA_KEY_PREFIX, 0, Constants.HBASE_RAW_DATA_KEY_PREFIX.length)) {
+    if (0 != BytesUtils.compareTo(key, 0, Constants.FDB_RAW_DATA_KEY_PREFIX.length, Constants.FDB_RAW_DATA_KEY_PREFIX, 0, Constants.FDB_RAW_DATA_KEY_PREFIX.length)) {
       throw new WarpScriptException(getName() + " invalid key prefix.");
     }
 

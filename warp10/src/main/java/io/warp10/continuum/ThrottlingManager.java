@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -36,8 +36,9 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.thrift.TSerializer;
-import org.apache.thrift.protocol.TCompactProtocol;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.joda.time.format.ISODateTimeFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,25 +55,22 @@ import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.script.HyperLogLogPlus;
 import io.warp10.sensision.Sensision;
-import kafka.javaapi.producer.Producer;
-import kafka.producer.KeyedMessage;
-import kafka.producer.ProducerConfig;
 
 /**
  * This class manages the throttling of data ingestion.
  * It controls both DDP (Daily Data Points) and MADS (Monthly Active Device Streams).
- * 
+ *
  */
 public class ThrottlingManager {
 
   private static final Logger LOG = LoggerFactory.getLogger(ThrottlingManager.class);
-  
+
   private static final char APPLICATION_PREFIX_CHAR = '+';
-  
+
   public static final String LIMITS_PRODUCER_RATE_CURRENT = "producer.rate.limit";
   public static final String LIMITS_PRODUCER_MADS_LIMIT = "producer.mads.limit";
   public static final String LIMITS_PRODUCER_MADS_CURRENT = "producer.mads.current";
-  
+
   public static final String LIMITS_APPLICATION_RATE_CURRENT = "application.rate.limit";
   public static final String LIMITS_APPLICATION_MADS_LIMIT = "application.mads.limit";
   public static final String LIMITS_APPLICATION_MADS_CURRENT = "application.mads.current";
@@ -81,12 +79,12 @@ public class ThrottlingManager {
    * Minimal limit (1 per hour) because 0 is not acceptable by RateLimiter.
    */
   public static final double MINIMUM_RATE_LIMIT = 1.0D/3600.0D;
-  
+
   /**
    * Default rate of datapoints per second per producer.
    */
   private static double DEFAULT_RATE_PRODUCER = 0.0D;
-  
+
   /**
    * Default rate of datapoints per second per applciation.
    */
@@ -101,12 +99,12 @@ public class ThrottlingManager {
    * Suffix of the throttle files in the throttle dir
    */
   private static final String THROTTLING_MANAGER_SUFFIX = ".throttle";
-    
+
   /**
    * Maximum number of HyperLogLogPlus estimators we retain in memory
    */
   private static int ESTIMATOR_CACHE_SIZE = 10000;
-  
+
   /**
    * Keys to compute the hash of classId/labelsId
    */
@@ -116,22 +114,22 @@ public class ThrottlingManager {
    * Maximum number of milliseconds to wait for RateLimiter permits
    */
   private static long MAXWAIT_PER_DATAPOINT;
-  
+
   /**
    * Default value for MAXWAIT_PER_DATAPOINT
    */
   private static final long MAXWAIT_PER_DATAPOINT_DEFAULT = 10L;
-  
+
   /**
    * Default value of 'p' parameter for estimator
    */
   private static final int DEFAULT_P = 14;
-  
+
   /**
    * Default value of 'pprime' parameter for estimator
    */
   private static final int DEFAULT_PPRIME = 25;
-  
+
   private static final double toleranceRatio = 1.0D + (1.04D / Math.sqrt(1L << DEFAULT_P));
 
   /**
@@ -155,11 +153,11 @@ public class ThrottlingManager {
       //
 
       boolean overflow = this.size() > ESTIMATOR_CACHE_SIZE;
-      
+
       if (!overflow) {
         Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_ESTIMATORS_CACHED, Sensision.EMPTY_LABELS, this.size());
       }
-      
+
       return overflow;
     }
   };
@@ -175,11 +173,11 @@ public class ThrottlingManager {
       //
 
       boolean overflow = this.size() > ESTIMATOR_CACHE_SIZE;
-      
+
       if (!overflow) {
         Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_ESTIMATORS_CACHED_PER_APP, Sensision.EMPTY_LABELS, this.size());
       }
-      
+
       return overflow;
     }
   };
@@ -187,19 +185,19 @@ public class ThrottlingManager {
   private static AtomicBoolean initialized = new AtomicBoolean(false);
 
   private static boolean loaded = false;
-  
+
   private static boolean enabled = false;
-  
-  private static Producer<byte[],byte[]> throttlingProducer = null;
+
+  private static KafkaProducer<byte[],byte[]> throttlingProducer = null;
   private static String throttlingTopic = null;
   private static byte[] throttlingMAC = null;
-  
+
   private static String dir;
-  
+
   static {
     init();
   }
-  
+
   /**
    * Map of per producer MADS (Monthly Active Data Streams) limits
    */
@@ -212,7 +210,7 @@ public class ThrottlingManager {
 
   /**
    * Check compatibility of a GTS with the current MADS limit
-   * 
+   *
    * @param metadata
    * @param producer
    * @param owner
@@ -222,28 +220,28 @@ public class ThrottlingManager {
    * @throws WarpException
    */
   public static void checkMADS(Metadata metadata, String producer, String owner, String application, long classId, long labelsId, boolean expose) throws WarpException {
-        
+
     if (!loaded) {
       return;
     }
-    
+
     //
     // Retrieve per producer limit
     //
-    
+
     Long oProducerLimit = producerMADSLimits.get(producer);
 
     //
     // Extract per application limit
     //
-    
+
     Long oApplicationLimit = applicationMADSLimits.get(application);
-    
+
     // If there is no per producer limit, check the default one
-    
-    if (null == oProducerLimit) {      
+
+    if (null == oProducerLimit) {
       oProducerLimit = DEFAULT_MADS_PRODUCER;
-      
+
       // -1 means don't check for MADS
       if (-1 == oProducerLimit && null == oApplicationLimit) {
         // No per producer limit and no per application limit
@@ -264,7 +262,7 @@ public class ThrottlingManager {
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_THROTTLING_GTS_GLOBAL, Sensision.EMPTY_LABELS, 1);
         throw new WarpException(sb.toString());
       }
-      
+
       // Adjust limit so we account for the error of the estimator
       if (-1 != oProducerLimit) {
         oProducerLimit = (long) Math.ceil(oProducerLimit * toleranceRatio);
@@ -277,9 +275,9 @@ public class ThrottlingManager {
     // Retrieve estimator. If none is defined or if the current estimator has expired
     // was created in the previous 30 days period, allocate a new one
     //
-    
+
     HyperLogLogPlus producerHLLP = null;
-    
+
     if (-1 != producerLimit) {
       synchronized(producerHLLPEstimators) {
         producerHLLP = producerHLLPEstimators.get(producer);
@@ -294,32 +292,32 @@ public class ThrottlingManager {
           producerHLLP.setKey(producer);
           producerHLLPEstimators.put(producer, producerHLLP);
         }
-      }      
+      }
     }
-    
+
     //
     // Compute hash
     //
-    
+
     long hash = GTSHelper.gtsId(SIP_KEYS, classId, labelsId);
-        
+
     //
     // Check if hash would impact per producer cardinality, if not, return immediately if there is no per app limit
     //
-    
+
     boolean newForProducer = null == producerHLLP ? false : producerHLLP.isNew(hash);
-    
+
     if (!newForProducer && null == oApplicationLimit) {
       return;
     }
-    
+
     HyperLogLogPlus applicationHLLP = null;
-    
+
     long applicationLimit = Long.MIN_VALUE;
-    
+
     if (null != oApplicationLimit) {
       applicationLimit = oApplicationLimit;
-      
+
       synchronized(applicationHLLPEstimators) {
         applicationHLLP = applicationHLLPEstimators.get(application);
         // If the HyperLogLogPlus is older than 30 days or not yet created, generate a new one
@@ -335,23 +333,23 @@ public class ThrottlingManager {
         }
       }
     }
-    
+
     //
     // Check per app estimator if it exists
     //
-    
+
     if (null != applicationHLLP) {
       // If the element is not new, return immediately
       if (!applicationHLLP.isNew(hash)) {
         return;
       }
-      
+
       try {
         long cardinality = applicationHLLP.cardinality();
-        
+
         Map<String,String> labels = new HashMap<String, String>();
         labels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, application);
-        
+
         if (cardinality > applicationLimit) {
           StringBuilder sb = new StringBuilder();
           sb.append("Geo Time Series ");
@@ -361,27 +359,27 @@ public class ThrottlingManager {
           sb.append(").");
           Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_THROTTLING_GTS_PER_APP, labels, 1);
           Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_THROTTLING_GTS_PER_APP_GLOBAL, Sensision.EMPTY_LABELS, 1);
-          throw new WarpException(sb.toString());          
+          throw new WarpException(sb.toString());
         }
-        
+
         applicationHLLP.aggregate(hash);
-        
+
         Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_DISTINCT_PER_APP, labels, applicationHLLP.cardinality());
       } catch (IOException ioe){
         // Ignore for now...
       }
     }
-    
+
     if (-1 == producerLimit) {
       return;
     }
-    
+
     //
     // If we are already above the monthly limit, throw an exception
     //
-        
+
     try {
-      
+
       long cardinality = producerHLLP.cardinality();
 
       Map<String,String> labels = new HashMap<String, String>();
@@ -400,18 +398,18 @@ public class ThrottlingManager {
       }
 
       producerHLLP.aggregate(hash);
-      
+
       Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_DISTINCT, labels, producerHLLP.cardinality());
     } catch (IOException ioe) {
       // Ignore for now...
     }
   }
-  
+
   /**
    * Validate the ingestion of datapoints against the DDP limit
-   * 
+   *
    * We tolerate inputs only if they wouldn't incur a wait greater than 2 seconds
-   * 
+   *
    * @param producer
    * @param owner
    * @param application
@@ -422,30 +420,30 @@ public class ThrottlingManager {
     if (!loaded) {
       return;
     }
-    
+
     //
     // Extract RateLimiter
     //
-    
+
     RateLimiter producerLimiter = producerRateLimiters.get(producer);
     RateLimiter applicationLimiter = applicationRateLimiters.get(application);
-    
+
     //
     // TODO(hbs): store per producer/per app maxwait values? Extract them from the throttling file?
     //
-    
+
     long appMaxWait = maxwait;
     long producerMaxWait = maxwait;
-      
+
     // -1.0 as the default rate means do not enforce DDP limit
-    if (null == producerLimiter && null == applicationLimiter && -1.0D == DEFAULT_RATE_PRODUCER) {      
+    if (null == producerLimiter && null == applicationLimiter && -1.0D == DEFAULT_RATE_PRODUCER) {
       return;
     } else if (null == producerLimiter && -1.0D != DEFAULT_RATE_PRODUCER) {
-      // Create a rate limiter with the default rate      
+      // Create a rate limiter with the default rate
       producerLimiter = RateLimiter.create(Math.max(MINIMUM_RATE_LIMIT,DEFAULT_RATE_PRODUCER));
       producerRateLimiters.put(producer, producerLimiter);
     }
-     
+
     // Check per application limiter
     if (null != applicationLimiter) {
       if (!applicationLimiter.tryAcquire(count, appMaxWait * count, TimeUnit.MILLISECONDS)) {
@@ -462,15 +460,15 @@ public class ThrottlingManager {
         labels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, application);
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_THROTTLING_RATE_PER_APP, labels, 1);
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_THROTTLING_RATE_PER_APP_GLOBAL, Sensision.EMPTY_LABELS, 1);
-        
-        throw new WarpException(sb.toString());      
+
+        throw new WarpException(sb.toString());
       }
     }
-    
+
     if (null == producerLimiter) {
       return;
     }
-    
+
     if (!producerLimiter.tryAcquire(count, producerMaxWait * count, TimeUnit.MILLISECONDS)) {
       StringBuilder sb = new StringBuilder();
       sb.append("Storing data for ");
@@ -485,18 +483,18 @@ public class ThrottlingManager {
       labels.put(SensisionConstants.SENSISION_LABEL_PRODUCER, producer);
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_THROTTLING_RATE, labels, 1);
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_THROTTLING_RATE_GLOBAL, Sensision.EMPTY_LABELS, 1);
-      
-      throw new WarpException(sb.toString());      
+
+      throw new WarpException(sb.toString());
     }
   }
 
   public static void checkDDP(Metadata metadata, String producer, String owner, String application, int count, boolean expose) throws WarpException {
     checkDDP(metadata, producer, owner, application, count, MAXWAIT_PER_DATAPOINT, expose);
   }
-  
+
   public static Map<String,Object> getLimits(String producer, String app) {
     Map<String,Object> limits = new HashMap<String, Object>();
-    
+
     RateLimiter producerLimiter = producerRateLimiters.get(producer);
     RateLimiter applicationLimiter = applicationRateLimiters.get(app);
 
@@ -505,78 +503,78 @@ public class ThrottlingManager {
 
     long producerLimit = Long.MAX_VALUE;
     long applicationLimit = Long.MAX_VALUE;
-    
+
     HyperLogLogPlus prodHLLP = producerHLLPEstimators.get(producer);
     HyperLogLogPlus appHLLP = applicationHLLPEstimators.get(app);
-    
+
     if (null != producerLimiter) {
       limits.put(LIMITS_PRODUCER_RATE_CURRENT, producerLimiter.getRate());
     }
-    
+
     if (null != applicationLimiter) {
       limits.put(LIMITS_APPLICATION_RATE_CURRENT, applicationLimiter.getRate());
     }
-    
+
     if (null != oProducerLimit) {
       limits.put(LIMITS_PRODUCER_MADS_LIMIT, oProducerLimit);
       producerLimit = (long) oProducerLimit;
     }
-    
+
     if (null != oApplicationLimit) {
       limits.put(LIMITS_APPLICATION_MADS_LIMIT, oApplicationLimit);
       applicationLimit = (long) oApplicationLimit;
     }
-    
+
     if (null != prodHLLP) {
       try {
         long cardinality = prodHLLP.cardinality();
-        
+
         // Change cardinality so it is capped by 'producerLimit', we don't want to expose the
         // toleranceRatio
-        
+
         if (cardinality > producerLimit) {
           cardinality = producerLimit;
-        }        
-        
+        }
+
         limits.put(LIMITS_PRODUCER_MADS_CURRENT, cardinality);
-      } catch (IOException ioe) {        
+      } catch (IOException ioe) {
       }
     }
-    
+
     if (null != appHLLP) {
       try {
         long cardinality = appHLLP.cardinality();
-        
+
         // Change cardinality so it is capped by 'producerLimit', we don't want to expose the
         // toleranceRatio
-        
+
         if (cardinality > applicationLimit) {
           cardinality = applicationLimit;
-        }        
-        
+        }
+
         limits.put(LIMITS_APPLICATION_MADS_CURRENT, cardinality);
-      } catch (IOException ioe) {        
-      }      
+      } catch (IOException ioe) {
+      }
     }
-    
+
     return limits;
   }
-  
-  public static void init() {    
+
+  public static void init() {
     if (initialized.get()) {
       return;
     }
-    
+
     ESTIMATOR_CACHE_SIZE = Integer.parseInt(WarpConfig.getProperty(Configuration.THROTTLING_MANAGER_ESTIMATOR_CACHE_SIZE, Integer.toString(ESTIMATOR_CACHE_SIZE)));
-    
+
     String rate = WarpConfig.getProperty(Configuration.THROTTLING_MANAGER_RATE_DEFAULT);
-    
+
     if (null != rate) {
-      DEFAULT_RATE_PRODUCER = Double.parseDouble(rate); 
+      DEFAULT_RATE_PRODUCER = Double.parseDouble(rate);
     }
 
     String mads = WarpConfig.getProperty(Configuration.THROTTLING_MANAGER_MADS_DEFAULT);
-    
+
     if (null != mads) {
       DEFAULT_MADS_PRODUCER = Long.parseLong(mads);
     }
@@ -586,58 +584,57 @@ public class ThrottlingManager {
     //
     // Start the thread which will read the throttling configuration periodically
     //
-    
+
     dir = WarpConfig.getProperty(Configuration.THROTTLING_MANAGER_DIR);
 
     final long now = System.currentTimeMillis();
-   
+
     final long rampup = Long.parseLong(WarpConfig.getProperty(Configuration.THROTTLING_MANAGER_RAMPUP, "0"));
-    
+
     //
     // Register a shutdown hook which will dump the current throttling configuration to a file
     //
-    
+
     Runtime.getRuntime().addShutdownHook(new Thread() {
       @Override
       public void run() {
         dumpCurrentConfig();
       }
     });
-    
+
     //
     // Configure Kafka if defined
     //
 
-    String brokerlistProp = WarpConfig.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_BROKERLIST);
-    if (null != brokerlistProp) {
+    if (null != WarpConfig.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_PRODUCER_BOOTSTRAP_SERVERS)) {
       Properties dataProps = new Properties();
+
+      dataProps.putAll(Configuration.extractPrefixed(WarpConfig.getProperties(), WarpConfig.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_PRODUCER_CONF_PREFIX)));
+
       // @see <a href="http://kafka.apache.org/documentation.html#producerconfigs">http://kafka.apache.org/documentation.html#producerconfigs</a>
-      dataProps.setProperty("metadata.broker.list", brokerlistProp);
-      String producerClientId = WarpConfig.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_PRODUCER_CLIENTID);
-      if (null != producerClientId) {
-        dataProps.setProperty("client.id", producerClientId);
+      dataProps.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, WarpConfig.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_PRODUCER_BOOTSTRAP_SERVERS));
+      if (null != WarpConfig.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_PRODUCER_CLIENTID)) {
+        dataProps.setProperty(ProducerConfig.CLIENT_ID_CONFIG, WarpConfig.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_PRODUCER_CLIENTID));
       }
-      dataProps.setProperty("request.required.acks", "-1");
-      dataProps.setProperty("producer.type","sync");
-      dataProps.setProperty("serializer.class", "kafka.serializer.DefaultEncoder");
+      dataProps.setProperty(ProducerConfig.ACKS_CONFIG, "-1");
+      dataProps.setProperty(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION,"1");
 
-      String timeoutProp = WarpConfig.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_REQUEST_TIMEOUT_MS);
-      if (null != timeoutProp) {
-        dataProps.setProperty("request.timeout.ms", timeoutProp);
+      if (null != WarpConfig.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_REQUEST_TIMEOUT_MS)) {
+        dataProps.setProperty(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, WarpConfig.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_REQUEST_TIMEOUT_MS));
       }
 
-      ProducerConfig dataConfig = new ProducerConfig(dataProps);
-      
-      throttlingProducer = new Producer<byte[],byte[]>(dataConfig);
+      dataProps.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArraySerializer");
+      dataProps.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArraySerializer");
+
+      throttlingProducer = new KafkaProducer<byte[],byte[]>(dataProps);
       throttlingTopic = WarpConfig.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_TOPIC);
     }
-    
+
     final long delay = Long.parseLong(WarpConfig.getProperty(Configuration.THROTTLING_MANAGER_PERIOD, "60000"));
 
-    String zkConnectProp = WarpConfig.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_ZKCONNECT);
-    if (null != zkConnectProp) {
+    if (null != WarpConfig.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_CONSUMER_BOOTSTRAP_SERVERS)) {
       ConsumerFactory estimatorConsumerFactory = new ThrottlingManagerEstimatorConsumerFactory(throttlingMAC);
-      
+
       //
       // The commitPeriod is set to twice the delay between throttling file reloads.
       // The reason behind this is that the estimators are pushed into Kafka when the file is reloaded
@@ -646,47 +643,49 @@ public class ThrottlingManager {
       // and would have empty estimators which it would push to kafka when the file is next read. This would have the
       // unwanted consequence of resetting MADS for all accounts.
       //
-      
+
       long commitOffset = 2 * delay;
-      
-      KafkaSynchronizedConsumerPool pool = new KafkaSynchronizedConsumerPool(zkConnectProp,
+
+      KafkaSynchronizedConsumerPool pool = new KafkaSynchronizedConsumerPool(
+          Configuration.extractPrefixed(WarpConfig.getProperties(), WarpConfig.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_CONSUMER_CONF_PREFIX)),
+          WarpConfig.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_CONSUMER_BOOTSTRAP_SERVERS),
           WarpConfig.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_TOPIC),
           WarpConfig.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_CONSUMER_CLIENTID),
           WarpConfig.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_GROUPID),
           null,
-          WarpConfig.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_CONSUMER_AUTO_OFFSET_RESET, "largest"),
+          WarpConfig.getProperty(Configuration.INGRESS_KAFKA_THROTTLING_CONSUMER_AUTO_OFFSET_RESET, "latest"),
           1,
           commitOffset,
-          estimatorConsumerFactory);      
+          estimatorConsumerFactory);
     }
-    
+
     Thread t = new Thread() {
-      
+
       // Set of files already read
-      
+
       private Set<String> read = new HashSet<String>();
-                  
+
       @Override
       public void run() {
-        
+
         while(true) {
-          
+
           //
           // If manager was not enabled, sleep then continue the loop
           //
-          
+
           if (!enabled) {
             try { Thread.sleep(1000); } catch (InterruptedException ie) {}
             continue;
           }
-          
+
           //
           // Open the directory
           //
-          
+
           final File root = new File(dir);
-          
-          String[] files = root.list(new FilenameFilter() {            
+
+          String[] files = root.list(new FilenameFilter() {
             @Override
             public boolean accept(File d, String name) {
               if (!d.equals(root)) {
@@ -698,30 +697,30 @@ public class ThrottlingManager {
               return true;
             }
           });
-          
+
           // Sort files in lexicographic order
-          
+
           if (null == files) {
             files = new String[0];
           }
-          
+
           Arrays.sort(files);
-          
+
           Set<String> newreads = new HashSet<String>();
-                    
+
           for (String file: files) {
             if (read.contains(file)) {
               newreads.add(file);
               continue;
             }
-            
+
             //
             // Read each line
             //
-            
+
             try {
               BufferedReader br = new BufferedReader(new FileReader(new File(dir, file)));
-              
+
               while (true) {
                 String line = br.readLine();
                 if (null == line) {
@@ -732,24 +731,24 @@ public class ThrottlingManager {
                   continue;
                 }
                 String[] tokens = line.split(":");
-                
+
                 if (5 != tokens.length) {
                   continue;
                 }
-                
+
                 // Lines end with ':#'
-                
+
                 if (!"#".equals(tokens[4])) {
                   continue;
                 }
-                
+
                 String entity = tokens[0];
                 String mads = tokens[1];
                 String rate = tokens[2];
                 String estimator = tokens[3];
-                
+
                 boolean isProducer = entity.charAt(0) != APPLICATION_PREFIX_CHAR;
-                
+
                 if (isProducer) {
                   // Attempt to read UUID
                   UUID uuid = UUID.fromString(entity);
@@ -758,13 +757,13 @@ public class ThrottlingManager {
                   // Remove leading '+' and decode application name which may be URL encoded
                   entity = WarpURLDecoder.decode(entity.substring(1), StandardCharsets.UTF_8);
                 }
-                
+
                 if ("-".equals(estimator)) {
                   //
                   // Clear estimator, we also push an event with a GTS_DISTINCT set to 0 for the producer/app
                   // We also remove the metric
                   //
-                  
+
                   if (isProducer) {
                     synchronized(producerHLLPEstimators) {
                       producerHLLPEstimators.remove(entity);
@@ -784,29 +783,29 @@ public class ThrottlingManager {
                       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_ESTIMATOR_RESETS_PER_APP, labels, 1);
                     }
                   }
-                } else if (!"".equals(estimator)) {                  
+                } else if (!"".equals(estimator)) {
                   byte[] ser = OrderPreservingBase64.decode(estimator.getBytes(StandardCharsets.US_ASCII));
                   HyperLogLogPlus hllp = HyperLogLogPlus.fromBytes(ser);
-                  
+
                   // Force mode to 'NORMAL', SPARSE is too slow as it calls merge repeatdly
                   hllp.toNormal();
-                  
+
                   //
                   // Ignore estimator if it has expired
                   //
-                  
+
                   if (hllp.hasExpired()) {
                     hllp = new HyperLogLogPlus(hllp.getP(), hllp.getPPrime());
                     hllp.toNormal();
                     hllp.setInitTime(0);
                   }
-                  
+
                   // Retrieve current estimator
-                  
+
                   if (isProducer) {
-                
+
                     isProducer = true;
-                    
+
                     HyperLogLogPlus old = producerHLLPEstimators.get(entity);
 
                     // Merge estimators and replace with the result, keeping the most recent estimator as the base
@@ -814,15 +813,15 @@ public class ThrottlingManager {
                       if (null != old){
                         hllp.fuse(old);
                       }
-                      
+
                       hllp.setKey(entity);
-                      
+
                       synchronized(producerHLLPEstimators) {
-                        producerHLLPEstimators.put(entity, hllp);                      
+                        producerHLLPEstimators.put(entity, hllp);
                       }
                     } else {
                       old.fuse(hllp);
-                    }                    
+                    }
                   } else {
                     HyperLogLogPlus old = applicationHLLPEstimators.get(entity);
 
@@ -833,9 +832,9 @@ public class ThrottlingManager {
                       }
 
                       hllp.setKey(APPLICATION_PREFIX_CHAR + entity);
-                      
+
                       synchronized(applicationHLLPEstimators) {
-                        applicationHLLPEstimators.put(entity, hllp);                      
+                        applicationHLLPEstimators.put(entity, hllp);
                       }
                     } else {
                       old.fuse(hllp);
@@ -843,30 +842,30 @@ public class ThrottlingManager {
 
                   }
                 }
-                
+
                 if (!"".equals(mads)) {
                   long limit = Long.parseLong(mads);
                   // Adjust limit so we account for the error of the estimator
                   limit = (long) Math.ceil(limit * toleranceRatio);
-                  
+
                   Map<String,String> labels = new HashMap<String, String>();
-                  
+
                   if (isProducer) {
                     producerMADSLimits.put(entity, limit);
                     labels.put(SensisionConstants.SENSISION_LABEL_PRODUCER, entity);
                     Sensision.event(SensisionConstants.SENSISION_CLASS_CONTINUUM_THROTTLING_GTS_LIMIT, labels, limit);
                   } else {
-                    applicationMADSLimits.put(entity, limit);                                        
+                    applicationMADSLimits.put(entity, limit);
                     labels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, entity);
                     Sensision.event(SensisionConstants.SENSISION_CLASS_CONTINUUM_THROTTLING_GTS_LIMIT_PER_APP, labels, limit);
                   }
                 }
-                
+
                 if (!"".equals(rate)) {
                   Map<String,String> labels = new HashMap<String, String>();
 
                   double rlimit = Double.parseDouble(rate);
-                  
+
                   if (isProducer) {
                     producerRateLimiters.put(entity, RateLimiter.create(Math.max(MINIMUM_RATE_LIMIT, rlimit)));
                     labels.put(SensisionConstants.SENSISION_LABEL_PRODUCER, entity);
@@ -883,11 +882,11 @@ public class ThrottlingManager {
                     applicationRateLimiters.remove(entity);
                   }
                 }
-                
+
               }
-              
+
               br.close();
-              
+
               newreads.add(file);
             } catch (Exception e) {
               LOG.error("Error reading throttling files.", e);
@@ -895,40 +894,40 @@ public class ThrottlingManager {
           }
 
           loaded = true;
-          
+
           //
           // Replace the list of read files
           //
-          
+
           read = newreads;
-          
+
           //
           // Store events with the current versions of all estimators.
           //
-          
+
           if (System.currentTimeMillis() - now > rampup) {
             try {
               for (Map.Entry<String, HyperLogLogPlus> keyAndHllp: producerHLLPEstimators.entrySet()) {
                 String key = keyAndHllp.getKey();
                 HyperLogLogPlus hllp = keyAndHllp.getValue();
-                
+
                 if (null == hllp) {
                   continue;
                 }
-                
+
                 if (hllp.hasExpired()) {
                   Map<String,String> labels = new HashMap<String, String>();
                   labels.put(SensisionConstants.SENSISION_LABEL_PRODUCER, key);
-                  Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_DISTINCT, labels, 0, 24 * 3600 * 1000L);              
+                  Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_DISTINCT, labels, 0, 24 * 3600 * 1000L);
                   continue;
                 }
-                
+
                 try {
                   byte[] bytes = hllp.toBytes();
                   String encoded = new String(OrderPreservingBase64.encode(bytes), StandardCharsets.US_ASCII);
                   Map<String,String> labels = new HashMap<String, String>();
                   labels.put(SensisionConstants.SENSISION_LABEL_PRODUCER, key);
-                  Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_DISTINCT, labels, hllp.cardinality());              
+                  Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_DISTINCT, labels, hllp.cardinality());
                   Sensision.event(0L, null, null, null, SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_ESTIMATOR, labels, encoded);
                   broadcastEstimator(bytes);
                 } catch (IOException ioe) {
@@ -943,14 +942,14 @@ public class ThrottlingManager {
                 if (null == hllp) {
                   continue;
                 }
-                
+
                 if (hllp.hasExpired()) {
                   Map<String,String> labels = new HashMap<String, String>();
                   labels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, key);
                   Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_DISTINCT_PER_APP, labels, 0L, 24 * 3600 * 1000L);
                   continue;
                 }
-                
+
                 try {
                   byte[] bytes = hllp.toBytes();
                   String encoded = new String(OrderPreservingBase64.encode(bytes), StandardCharsets.US_ASCII);
@@ -962,30 +961,30 @@ public class ThrottlingManager {
                 } catch (IOException ioe) {
                   // Ignore exception
                 }
-              }            
-            } catch (ConcurrentModificationException cme) {              
-            }            
+              }
+            } catch (ConcurrentModificationException cme) {
+            }
           }
 
           try { Thread.sleep(delay); } catch (InterruptedException ie) {}
         }
       }
     };
-    
+
     t.setName("[ThrottlingManager]");
     t.setDaemon(true);
-    
+
     if (null != dir) {
       t.start();
-    } 
-    
-    initialized.set(true); 
+    }
+
+    initialized.set(true);
   }
-  
+
   public static void enable() {
     enabled = true;
   }
-  
+
   /**
    * Broadcast an estimator on Kafka if Kafka is configured.
    * @param bytes serialized estimator to forward
@@ -996,14 +995,15 @@ public class ThrottlingManager {
         //
         // Apply the MAC if defined
         //
-        
+
         if (null != throttlingMAC) {
           bytes = CryptoUtils.addMAC(throttlingMAC, bytes);
         }
 
-        KeyedMessage<byte[], byte[]> message = new KeyedMessage<byte[], byte[]>(throttlingTopic, bytes);
-        
-        throttlingProducer.send(message);
+        ProducerRecord<byte[],byte[]> record = new ProducerRecord<byte[],byte[]>(throttlingTopic, bytes);
+
+        // Call get immediately so we simulate a synchronous producer
+        throttlingProducer.send(record).get();
         Sensision.update(SensisionConstants.CLASS_WARP_INGRESS_KAFKA_THROTTLING_OUT_MESSAGES, Sensision.EMPTY_LABELS, 1);
         Sensision.update(SensisionConstants.CLASS_WARP_INGRESS_KAFKA_THROTTLING_OUT_BYTES, Sensision.EMPTY_LABELS, bytes.length);
       } catch (Exception e) {
@@ -1011,37 +1011,37 @@ public class ThrottlingManager {
       }
     }
   }
-  
+
   public static void fuse(HyperLogLogPlus hllp) throws Exception {
     //
     // Ignore estimators with no keys
     //
-    
+
     if (null == hllp.getKey()) {
       return;
     }
-    
+
     //
     // Ignore expired estimators
     //
-    
+
     if (hllp.hasExpired()) {
       return;
     }
-    
+
     boolean isApp = false;
-    
+
     if (hllp.getKey().length() > 0 && hllp.getKey().charAt(0) == APPLICATION_PREFIX_CHAR) {
       isApp = true;
     }
-    
+
     if (isApp) {
       HyperLogLogPlus old = applicationHLLPEstimators.get(hllp.getKey().substring(1));
 
       if (null != old && old.hasExpired()) {
         old = null;
       }
-      
+
       // Merge estimators and replace with the result, keeping the most recent estimator as the base
       if (null == old || hllp.getInitTime() > old.getInitTime()) {
         if (null != old) {
@@ -1049,7 +1049,7 @@ public class ThrottlingManager {
         }
 
         synchronized(applicationHLLPEstimators) {
-          applicationHLLPEstimators.put(hllp.getKey().substring(1), hllp);                      
+          applicationHLLPEstimators.put(hllp.getKey().substring(1), hllp);
         }
         Map<String,String> labels = new HashMap<String,String>(1);
         labels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, hllp.getKey().substring(1));
@@ -1059,24 +1059,24 @@ public class ThrottlingManager {
         Map<String,String> labels = new HashMap<String,String>(1);
         labels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, old.getKey().substring(1));
         Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_DISTINCT_PER_APP, labels, old.cardinality());
-      }      
+      }
     } else {
       HyperLogLogPlus old = producerHLLPEstimators.get(hllp.getKey());
 
       if (null != old && old.hasExpired()) {
         old = null;
       }
-      
+
       // Merge estimators and replace with the result, keeping the most recent estimator as the base
       if (null == old || hllp.getInitTime() > old.getInitTime()) {
         if (null != old){
           hllp.fuse(old);
         }
-        
+
         synchronized(producerHLLPEstimators) {
-          producerHLLPEstimators.put(hllp.getKey(), hllp);                      
+          producerHLLPEstimators.put(hllp.getKey(), hllp);
         }
-        
+
         Map<String,String> labels = new HashMap<String,String>(1);
         labels.put(SensisionConstants.SENSISION_LABEL_PRODUCER, hllp.getKey());
         Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_DISTINCT, labels, hllp.cardinality());
@@ -1085,10 +1085,10 @@ public class ThrottlingManager {
         Map<String,String> labels = new HashMap<String,String>(1);
         labels.put(SensisionConstants.SENSISION_LABEL_PRODUCER, old.getKey());
         Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_GTS_DISTINCT, labels, old.cardinality());
-      }                          
+      }
     }
   }
-  
+
   private static void dumpCurrentConfig() {
     if (null != dir && !producerHLLPEstimators.isEmpty() && !applicationHLLPEstimators.isEmpty()) {
       String filename = "current" + THROTTLING_MANAGER_SUFFIX + ".dump";
@@ -1100,11 +1100,11 @@ public class ThrottlingManager {
 
       try {
         PrintWriter pw = new PrintWriter(config);
-        
+
         pw.println("###");
         pw.println("### Automatic throttling configuration dumped on " + ISODateTimeFormat.dateTime().print(System.currentTimeMillis()));
         pw.println("###");
-        
+
         Set<String> keys = producerHLLPEstimators.keySet();
         keys.addAll(producerRateLimiters.keySet());
 
@@ -1126,10 +1126,10 @@ public class ThrottlingManager {
           }
           pw.println(":#");
         }
-        
+
         keys = applicationHLLPEstimators.keySet();
         keys.addAll(applicationRateLimiters.keySet());
-        
+
         for (String key: keys) {
           pw.print(APPLICATION_PREFIX_CHAR);
           pw.print(URLEncoder.encode(key, StandardCharsets.UTF_8.name()));
@@ -1149,7 +1149,7 @@ public class ThrottlingManager {
           }
           pw.println(":#");
         }
-        
+
         pw.close();
       } catch (Exception e) {
         LOG.error("Error while dumping throttling configuration.");
