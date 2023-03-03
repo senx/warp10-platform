@@ -139,16 +139,6 @@ standalone.selectors = 4
 standalone.max.encoder.size = 100000
 
 //
-// Path to a file to use for triggering compaction suspension to take snapshots
-//
-standalone.snapshot.trigger = ${leveldb.home}/snapshot.trigger
-
-//
-// Path to a file to use for signaling that compactions are suspended
-//
-standalone.snapshot.signal = ${leveldb.home}/snapshot.signal
-
-//
 // Set to true to disable the delete endpoint.
 //
 standalone.delete.disable = false
