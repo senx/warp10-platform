@@ -16,7 +16,38 @@
 
 package io.warp10.standalone;
 
+import java.io.File;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Properties;
+import java.util.Set;
+
+import org.apache.commons.io.FileUtils;
+import org.eclipse.jetty.server.Connector;
+import org.eclipse.jetty.server.Handler;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.ServerConnector;
+import org.eclipse.jetty.server.handler.HandlerList;
+import org.eclipse.jetty.server.handler.gzip.GzipHandler;
+import org.eclipse.jetty.util.BlockingArrayQueue;
+import org.eclipse.jetty.util.thread.QueuedThreadPool;
+import org.iq80.leveldb.CompressionType;
+import org.iq80.leveldb.Options;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.base.Preconditions;
+
 import io.warp10.Revision;
 import io.warp10.SSLUtils;
 import io.warp10.WarpConfig;
@@ -39,39 +70,11 @@ import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OSSKeyStore;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.crypto.UnsecureKeyStore;
+import io.warp10.leveldb.WarpDB;
 import io.warp10.script.ScriptRunner;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.sensision.Sensision;
 import io.warp10.warp.sdk.AbstractWarp10Plugin;
-import org.apache.commons.io.FileUtils;
-import org.eclipse.jetty.server.Connector;
-import org.eclipse.jetty.server.Handler;
-import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.server.handler.HandlerList;
-import org.eclipse.jetty.server.handler.gzip.GzipHandler;
-import org.eclipse.jetty.util.BlockingArrayQueue;
-import org.eclipse.jetty.util.thread.QueuedThreadPool;
-import org.iq80.leveldb.CompressionType;
-import org.iq80.leveldb.Options;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.File;
-import java.io.IOException;
-import java.net.InetAddress;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Properties;
-import java.util.Set;
 
 public class Warp extends WarpDist implements Runnable {
 
@@ -269,22 +272,6 @@ public class Warp extends WarpDist implements Runnable {
 
     // Register shutdown hook to close the DB.
     Runtime.getRuntime().addShutdownHook(new Thread(new Warp()));
-
-    //
-    // Initialize the backup manager
-    //
-
-    if (null != db) {
-      String triggerPath = properties.getProperty(Configuration.STANDALONE_SNAPSHOT_TRIGGER);
-      String signalPath = properties.getProperty(Configuration.STANDALONE_SNAPSHOT_SIGNAL);
-
-      if (null != triggerPath && null != signalPath) {
-        Thread backupManager = new StandaloneSnapshotManager(triggerPath, signalPath);
-        backupManager.setDaemon(true);
-        backupManager.setName("[Snapshot Manager]");
-        backupManager.start();
-      }
-    }
 
     WarpScriptLib.registerExtensions();
 

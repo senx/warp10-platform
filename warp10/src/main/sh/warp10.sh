@@ -368,10 +368,6 @@ bootstrap() {
   sed -i -e 's|^ExecStart=.*|ExecStart='${WARP10_HOME_ESCAPED}'/bin/warp10.sh start|' ${WARP10_HOME}/bin/warp10.service
   sed -i -e 's|^ExecStop=.*|ExecStop='${WARP10_HOME_ESCAPED}'/bin/warp10.sh stop|' ${WARP10_HOME}/bin/warp10.service
 
-  sed -i${SED_SUFFIX} -e 's|^\(\s\{0,100\}\)WARP10_HOME=/opt/warp10-.*|\1WARP10_HOME='${WARP10_HOME_ESCAPED}'|' ${WARP10_HOME}/bin/snapshot.sh
-  sed -i${SED_SUFFIX} -e 's|^\(\s\{0,100\}\)LEVELDB_HOME=${WARP10_HOME}/leveldb|\1LEVELDB_HOME='${LEVELDB_HOME_ESCAPED}'|' ${WARP10_HOME}/bin/snapshot.sh
-  rm ${WARP10_HOME}/bin/snapshot.sh${SED_SUFFIX}
-
   sed -i${SED_SUFFIX} -e 's|warpLog\.File =.*|warpLog.File = '${WARP10_HOME_ESCAPED}'/logs/warp10.log|' ${WARP10_HOME}/etc/log4j.properties
   sed -i${SED_SUFFIX} -e 's|warpscriptLog\.File =.*|warpscriptLog.File = '${WARP10_HOME_ESCAPED}'/logs/warpscript.out|' ${WARP10_HOME}/etc/log4j.properties
   rm ${WARP10_HOME}/etc/log4j.properties${SED_SUFFIX}
@@ -444,7 +440,7 @@ start() {
   IN_MEMORY="$(echo "${CONFIG_KEYS}" | grep -e '^in\.memory=' | sed -e 's/^.*=//')"
   if [ "${IN_MEMORY:-}" != "true" ]; then
     #
-    # Leveldb exists ?
+    # Does LevelDB exist
     #
     if [ ! -e ${LEVELDB_HOME} ]; then
       echo "${LEVELDB_HOME} does not exist - Creating it..."
@@ -455,9 +451,9 @@ start() {
       fi
     fi
     if [ "$(find -L ${LEVELDB_HOME} -maxdepth 1 -type f | wc -l)" -eq 0 ]; then
-      echo "Init leveldb"
-      # Create leveldb database
-      echo \"Init leveldb database...\" >> ${WARP10_HOME}/logs/warp10.log
+      echo "Initializing LevelDB"
+      # Initialize LevelDB
+      echo \"Initializing LevelDB...\" >> ${WARP10_HOME}/logs/warp10.log
       ${JAVACMD} ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_INIT} ${LEVELDB_HOME} >> ${WARP10_HOME}/logs/warp10.log 2>&1
     fi
   fi
@@ -536,9 +532,9 @@ stop() {
   isUser ${WARP10_USER}
 
   if isStarted; then
-    echo "Stop Warp 10..."
+    echo "Stopping Warp 10..."
     kill $(cat ${PID_FILE})
-    echo "Wait for Warp 10 to stop..."
+    echo "Waiting for Warp 10 to stop..."
     while $(kill -0 $(cat ${PID_FILE}) 2>/dev/null); do
       sleep 2
     done
@@ -565,21 +561,6 @@ status() {
   checkRam
 }
 
-snapshot() {
-  if [ $# -ne 2 -a $# -ne 3 ]; then
-    echo $"Usage: $0 {snapshot 'snapshot_name' ['base_snapshot_name']}"
-    exit 2
-  fi
-  # Name of snapshot
-  SNAPSHOT=$2
-  if [ $# -eq 2 ]; then
-    ${WARP10_HOME}/bin/snapshot.sh ${SNAPSHOT} "${WARP10_HOME}" "${LEVELDB_HOME}" "${PID_FILE}"
-  else
-    BASE_SNAPSHOT=$3
-    ${WARP10_HOME}/bin/snapshot.sh ${SNAPSHOT} ${BASE_SNAPSHOT} "${WARP10_HOME}" "${LEVELDB_HOME}" "${PID_FILE}"
-  fi
-}
-
 tokengen() {
   if [ "$#" -ne 2 ]; then
     echo "Usage: $0 tokengen envelope.mc2"
@@ -602,11 +583,26 @@ repair() {
   isUser ${WARP10_USER}
 
   if isStarted; then
-    echo "Repair has been cancelled! - Warp 10 instance must be stopped for repair"
+    echo "Operation has been cancelled! - Warp 10 instance must be stopped for repair"
     exit 1
   else
-    echo "Repair Leveldb..."
+    echo "Repairing LevelDB..."
     ${JAVACMD} -cp ${WARP10_JAR} -Dfile.encoding=UTF-8 io.warp10.standalone.WarpRepair ${LEVELDB_HOME}
+  fi
+}
+
+compact() {
+  #
+  # Make sure the caller is WARP10_USER
+  #
+  isUser ${WARP10_USER}
+
+  if isStarted; then
+    echo "Operation has been cancelled! - Warp 10 instance must be stopped for compaction"
+    exit 1
+  else
+    echo "Compacting LevelDB..."
+    ${JAVACMD} -cp ${WARP10_JAR} io.warp10.leveldb.WarpCompact ${LEVELDB_HOME} $1 $2
   fi
 }
 
@@ -647,14 +643,14 @@ case "${1:-}" in
   run)
   run "$@"
   ;;
-  snapshot)
-  snapshot "$@"
-  ;;
   repair)
   repair
   ;;
+  compact)
+  compact
+  ;;
   *)
-  echo $"Usage: $0 {bootstrap|start|jmxstart|stop|status|snapshot 'snapshot_name'|tokengen envelope.mc2|repair|restart|jmxrestart|run file.mc2}"
+  echo $"Usage: $0 {bootstrap|start|jmxstart|stop|status|tokengen envelope.mc2|repair|compact begin end|restart|jmxrestart|run file.mc2}"
   exit 2
 esac
 
