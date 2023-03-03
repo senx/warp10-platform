@@ -15,6 +15,13 @@
 #   limitations under the License.
 #
 
+############################################################################
+#                                                                          #
+#  Tip: customize values in warp10-env.sh, not in this file !              #
+#  Future updates will be simpler if you do not change this file.          #
+#                                                                          #
+############################################################################
+
 ### BEGIN INIT INFO
 # Provides:          warp10
 # Required-Start:
@@ -34,9 +41,12 @@ fi
 JAVA_OPTS=${JAVA_OPTS:-}
 set -euo pipefail
 
-#JAVA_HOME=/opt/java8
-#WARP10_HOME=/opt/warp10-@VERSION@
-JMX_PORT=1098
+# run warp10-env.sh, when the file exists, to predefine user variables
+BIN_DIR=$(dirname $0)
+if [[ -e "${BIN_DIR}/warp10-env.sh" ]]; then
+  source "${BIN_DIR}/warp10-env.sh"
+fi
+
 
 # Strongly inspired by gradlew
 # Determine the Java command to use to start the JVM.
@@ -120,8 +130,11 @@ WARP10_INIT=io.warp10.standalone.WarpInit
 # The lib directory is dedicated to user libraries (extensions, plugins...)
 #
 WARP10_CP=${WARP10_HOME}/etc:${WARP10_JAR}:${WARP10_HOME}/lib/*
-WARP10_HEAP=${WARP10_HEAP:-1g}
-WARP10_HEAP_MAX=${WARP10_HEAP_MAX:-1g}
+
+# Initial and maximum RAM should be defined in warp10-env.sh
+# Default value, when not defined, is 1023 megabytes
+WARP10_HEAP=${WARP10_HEAP:-1023M}
+WARP10_HEAP_MAX=${WARP10_HEAP_MAX:-1023M}
 
 LEVELDB_HOME=${WARP10_DATA_DIR}/leveldb
 
@@ -136,11 +149,24 @@ LOG4J_CONF=${WARP10_HOME}/etc/log4j.properties
 JAVA_HEAP_DUMP=${WARP10_HOME}/logs/java.heapdump
 # you can specialize your metrics for this instance of Warp10
 #SENSISION_DEFAULT_LABELS=-Dsensision.default.labels=instance=warp10-test,env=dev
-JAVA_OPTS="-Djava.awt.headless=true -Dlog4j.configuration=file:${LOG4J_CONF} -Dsensision.server.port=0 ${SENSISION_DEFAULT_LABELS:-} -Dsensision.events.dir=${SENSISION_EVENTS_DIR} -Dfile.encoding=UTF-8 -Xms${WARP10_HEAP} -Xmx${WARP10_HEAP_MAX} -XX:+UseG1GC ${JAVA_OPTS}"
+JAVA_OPTS="-Djava.awt.headless=true -Dlog4j.configuration=file:${LOG4J_CONF} -Dsensision.server.port=0 ${SENSISION_DEFAULT_LABELS:-} -Dsensision.events.dir=${SENSISION_EVENTS_DIR} -Dfile.encoding=UTF-8 -Xms${WARP10_HEAP} -Xmx${WARP10_HEAP_MAX} -XX:+UseG1GC ${JAVA_OPTS} ${JAVA_EXTRA_OPTS:-}"
 export MALLOC_ARENA_MAX=1
 
 # Sed suffix allows compatibility between Linux and MacOS
 SED_SUFFIX=".bak"
+
+checkRam() {
+  if [[ ${WARP10_HEAP} == "1023M" ]]; then
+    echo "#### WARNING ####"
+    echo "## Warp 10 was launched with the default 1GB initial RAM setting."
+    echo "## Please edit ${WARP10_HOME}/warp10-env.sh to change the default value of WARP10_HEAP."
+  fi
+  if [[ ${WARP10_HEAP_MAX} == "1023M" ]]; then
+    echo "#### WARNING ####"
+    echo "## Warp 10 was launched with the default 1GB maximum RAM setting." 
+    echo "## Please edit ${WARP10_HOME}/warp10-env.sh to change the default value of WARP10_HEAP_MAX."
+  fi  
+}
 
 moveDir() {
   dir=$1
@@ -339,8 +365,8 @@ bootstrap() {
   sed -i${SED_SUFFIX} -e 's|^standalone\.home.*|standalone.home = '${WARP10_HOME_ESCAPED}'|' ${WARP10_CONFIG_DIR}/*
   rm ${WARP10_CONFIG_DIR}/*${SED_SUFFIX}
 
-  sed -i -e 's|^ExecStart=.*|ExecStart='${WARP10_HOME_ESCAPED}'/bin/warp10-standalone.sh start|' ${WARP10_HOME}/bin/warp10.service
-  sed -i -e 's|^ExecStop=.*|ExecStop='${WARP10_HOME_ESCAPED}'/bin/warp10-standalone.sh stop|' ${WARP10_HOME}/bin/warp10.service
+  sed -i -e 's|^ExecStart=.*|ExecStart='${WARP10_HOME_ESCAPED}'/bin/warp10.sh start|' ${WARP10_HOME}/bin/warp10.service
+  sed -i -e 's|^ExecStop=.*|ExecStop='${WARP10_HOME_ESCAPED}'/bin/warp10.sh stop|' ${WARP10_HOME}/bin/warp10.service
 
   sed -i${SED_SUFFIX} -e 's|warpLog\.File =.*|warpLog.File = '${WARP10_HOME_ESCAPED}'/logs/warp10.log|' ${WARP10_HOME}/etc/log4j.properties
   sed -i${SED_SUFFIX} -e 's|warpscriptLog\.File =.*|warpscriptLog.File = '${WARP10_HOME_ESCAPED}'/logs/warpscript.out|' ${WARP10_HOME}/etc/log4j.properties
@@ -367,6 +393,8 @@ bootstrap() {
   rm "${WARP10_HOME}/etc/initial.tokens${SED_SUFFIX}"
 
   echo "Warp 10 config has been generated here: ${WARP10_CONFIG_DIR}"
+
+  echo "You can now configure the initial and maximum amount of RAM allocated to Warp 10. Edit ${WARP10_HOME}/bin/warp10-env.sh, and look for WARP10_HEAP and WARP10_HEAP_MAX variables."
 
   touch ${FIRSTINIT_FILE}
 
@@ -482,12 +510,16 @@ start() {
     rm -f ${FIRSTINIT_FILE}
 
   fi
+  
 
   # Check again 5s later (time for plugin load errors)
   sleep 5
   if ! isStarted; then
     echo "Start failed! - See ${WARP10_HOME}/logs/warp10.log for more details"
     exit 1
+  else
+    # display a warning
+    checkRam
   fi
 
 }
@@ -525,6 +557,8 @@ status() {
   else
     echo "No instance of Warp 10 is currently running"
   fi
+  
+  checkRam
 }
 
 tokengen() {
@@ -581,8 +615,8 @@ case "${1:-}" in
   start
   ;;
   jmxstart)
-  JAVA_OPTS="${JAVA_OPTS} -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.port=${JMX_PORT}"
-  echo "## WARNING: JMX is enabled on port ${JMX_PORT}"
+  JAVA_OPTS="${JAVA_OPTS} -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.port=${JMX_PORT:-1098}"
+  echo "## WARNING: JMX is enabled on port ${JMX_PORT:-1098}"
   start
   ;;
   stop)
