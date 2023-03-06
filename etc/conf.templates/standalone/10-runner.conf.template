@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2022  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -46,7 +46,7 @@ runner.roles = standalone
 // 128/192/256 bits AES key for wrapping a runner nonce which can later be extracted using RUNNERNONCE.
 // Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
-#runner.psk = hex:hhhhhh...
+#runner.psk = ${runner.hash.key}
 
 //
 // Root directory under which scripts to run reside.
