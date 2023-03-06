@@ -175,7 +175,7 @@ public class Warp extends WarpDist implements Runnable {
           inmemory = true;
           break;
         default:
-          throw new RuntimeException("Missing '" + Configuration.BACKEND + "' specification.");
+          throw new RuntimeException("Missing valid '" + Configuration.BACKEND + "' specification.");
       }
     }
 
