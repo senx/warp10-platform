@@ -156,7 +156,7 @@ public class Warp extends WarpDist implements Runnable {
       }
     } else {
       if (null == backend) {
-        throw new RuntimeException("Backend specification '" + backend + "' MUST be set since Warp 10 3.0");
+        throw new RuntimeException("Backend specification '" + Configuration.BACKEND + "' MUST be set since Warp 10 3.0");
       }
       switch(backend) {
         case Constants.BACKEND_LEVELDB:
