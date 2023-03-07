@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2022  SenX S.A.S.
+//   Copyright 2020-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -143,38 +143,35 @@ public class TCPDatalogFeederWorker extends Thread {
       ECPrivateKey eccPrivate = null;
       ECPublicKey eccPublic = null;
 
-      if (encrypt) {
-        String eccpri = WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_FEEDER_ECC_PRIVATE);
-        String eccpub = WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_FEEDER_ECC_PUBLIC);
+      String eccpri = WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_FEEDER_ECC_PRIVATE);
+      String eccpub = WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_FEEDER_ECC_PUBLIC);
 
+      String[] tokens = eccpri.split(":");
+      Map<String,String> map = new HashMap<String,String>();
+      map.put(Constants.KEY_CURVE, tokens[0]);
+      map.put(Constants.KEY_D, tokens[1]);
 
-        String[] tokens = eccpri.split(":");
-        Map<String,String> map = new HashMap<String,String>();
-        map.put(Constants.KEY_CURVE, tokens[0]);
-        map.put(Constants.KEY_D, tokens[1]);
+      try {
+        stack.push(map);
+        new ECPRIVATE(WarpScriptLib.ECPRIVATE).apply(stack);
+        eccPrivate = (ECPrivateKey) stack.pop();
+      } catch (WarpScriptException wse) {
+        LOG.error("Error extracting ECC private key.", wse);
+        return;
+      }
 
-        try {
-          stack.push(map);
-          new ECPRIVATE(WarpScriptLib.ECPRIVATE).apply(stack);
-          eccPrivate = (ECPrivateKey) stack.pop();
-        } catch (WarpScriptException wse) {
-          LOG.error("Error extracting ECC private key.", wse);
-          return;
-        }
+      tokens = eccpub.split(":");
+      map.clear();
+      map.put(Constants.KEY_CURVE, tokens[0]);
+      map.put(Constants.KEY_Q, tokens[1]);
 
-        tokens = eccpub.split(":");
-        map.clear();
-        map.put(Constants.KEY_CURVE, tokens[0]);
-        map.put(Constants.KEY_Q, tokens[1]);
-
-        try {
-          stack.push(map);
-          new ECPUBLIC(WarpScriptLib.ECPUBLIC).apply(stack);
-          eccPublic = (ECPublicKey) stack.pop();
-        } catch (WarpScriptException wse) {
-          LOG.error("Error extracting ECC public key.", wse);
-          return;
-        }
+      try {
+        stack.push(map);
+        new ECPUBLIC(WarpScriptLib.ECPUBLIC).apply(stack);
+        eccPublic = (ECPublicKey) stack.pop();
+      } catch (WarpScriptException wse) {
+        LOG.error("Error extracting ECC public key.", wse);
+        return;
       }
 
       Configuration conf = new Configuration();
