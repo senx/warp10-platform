@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2021  SenX S.A.S.
+//   Copyright 2020-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -190,5 +190,12 @@ public class DatalogHelper {
     for (int i = 8 - len; i < 8; i++) {
       out.write((int) ((value >>> (56 - i * 8)) & 0xFFL));
     }
+  }
+
+  static long getShardId(long classid, long labelsid, long shardShift) {
+    long shifted = (labelsid >>> shardShift) & 0xFFFFFFFFL;
+    shifted |= (classid << (64 - shardShift)) & 0xFFFFFFFFL;
+    int sid = (int) shifted;
+    return sid;
   }
 }

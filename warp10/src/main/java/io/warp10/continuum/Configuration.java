@@ -1441,29 +1441,6 @@ public class Configuration {
   public static final String LEVELDB_COMPRESSION_TYPE = "leveldb.compression.type";
 
   /**
-   * Datalog Manager Fully Qualified Class Name
-   */
-  public static final String DATALOG_MANAGER = "datalog.manager";
-
-  /**
-   * Comma separated list of consumer names
-   */
-  public static final String DATALOG_CONSUMERS = "datalog.consumers";
-
-  /**
-   * Class name of consumer.
-   */
-  public static final String DATALOG_CONSUMER_CLASS = "datalog.consumer.class";
-
-  /**
-   * Flag indicating whether register events should be transmitted systematically (true)
-   * or simply when the local Directory actually stored the Metadata (false, the default).
-   * This will prevent architectures with multiple endpoints to miss Metadata creations when
-   * the feeds lag behind.
-   */
-  public static final String DATALOG_REGISTER_ALL = "datalog.register.all";
-
-  /**
    * Size of write buffer (in bytes) - defaults to 4194304
    */
   public static final String LEVELDB_WRITEBUFFER_SIZE = "leveldb.writebuffer.size";
@@ -1550,27 +1527,6 @@ public class Configuration {
   public static final String STANDALONE_SNAPSHOT_SIGNAL = "standalone.snapshot.signal";
 
   /**
-   * Set to 'true' to ignore timestamp limits (maxpast/maxfuture) when receiving data via datalog.
-   */
-  public static final String DATALOG_IGNORE_TIMESTAMPLIMITS = "datalog.ignore.timestamplimits";
-
-  /**
-   * Directory where data requests should be logged. This directory should be in 700 to protect sensitive token infos.
-   */
-  public static final String DATALOG_DIR = "datalog.dir";
-
-  /**
-   * Set to true to call fsync when closing datalog files
-   */
-  public static final String DATALOG_SYNC = "datalog.sync";
-
-  /**
-   * Id of this datalog node. The id will be used in the file name and will be passed down to child nodes via
-   * a header.
-   */
-  public static final String DATALOG_ID = "datalog.id";
-
-  /**
    * Comma separated list of shards this Warp 10 instance should store. The format of each
    * shard is MODULUS:REMAINDER
    */
@@ -1582,24 +1538,27 @@ public class Configuration {
   public static final String DATALOG_SHARDKEY_SHIFT = "datalog.shardkey.shift";
 
   /**
-   * Set to true or false to log the sharding key in the datalog request files
+   * Datalog Manager Fully Qualified Class Name
    */
-  public static final String DATALOG_LOGSHARDKEY = "datalog.logshardkey";
+  public static final String DATALOG_MANAGER = "datalog.manager";
 
   /**
-   * Pre-shared AES key to wrap datalog.id and datalog.timestamp header values
+   * Comma separated list of consumer names
    */
-  public static final String DATALOG_PSK = "datalog.psk";
+  public static final String DATALOG_CONSUMERS = "datalog.consumers";
 
   /**
-   * Flag indicating whether or not to log forwarded requests.
+   * Class name of consumer.
    */
-  public static final String DATALOG_LOGFORWARDED = "datalog.logforwarded";
+  public static final String DATALOG_CONSUMER_CLASS_PREFIX = "datalog.consumer.class.";
 
   /**
-   * Configuration key to modify the datalog header
+   * Flag indicating whether register events should be transmitted systematically (true)
+   * or simply when the local Directory actually stored the Metadata (false, the default).
+   * This will prevent architectures with multiple endpoints to miss Metadata creations when
+   * the feeds lag behind.
    */
-  public static final String HTTP_HEADER_DATALOG = "http.header.datalog";
+  public static final String DATALOG_REGISTER_ALL = "datalog.register.all";
 
   /**
    * Maximum length of class names - Defaults to 1024

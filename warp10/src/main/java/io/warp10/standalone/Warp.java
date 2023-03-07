@@ -366,14 +366,14 @@ public class Warp extends WarpDist implements Runnable {
 
     StandaloneDirectoryClient sdc = null;
     StoreClient scc = null;
-        
+
     DatalogManager dlm = null;
-    
+
     if (null != properties.getProperty(Configuration.DATALOG_MANAGER)) {
       Class clazz = Class.forName(properties.getProperty(Configuration.DATALOG_MANAGER));
       dlm = (DatalogManager) clazz.newInstance();
     }
-    
+
     if (inmemory) {
       sdc = new StandaloneDirectoryClient(null, keystore);
 
@@ -397,7 +397,7 @@ public class Warp extends WarpDist implements Runnable {
       }
     }
 
-    if (null != WarpConfig.getProperty(Configuration.DATALOG_DIR) && null != WarpConfig.getProperty(Configuration.DATALOG_SHARDS)) {
+    if (null != WarpConfig.getProperty(Configuration.DATALOG_SHARDS)) {
       sdc = new StandaloneShardedDirectoryClientWrapper(keystore, sdc);
       scc = new StandaloneShardedStoreClientWrapper(keystore, scc);
     }
@@ -410,13 +410,13 @@ public class Warp extends WarpDist implements Runnable {
     scc = DatalogManager.wrap(dlm, scc);
 
     if (null != properties.getProperty(Configuration.DATALOG_CONSUMERS)) {
-      
+
       DatalogWorkers.init(scc,sdc);
-      
+
       String[] consumers = properties.getProperty(Configuration.DATALOG_CONSUMERS).split(",");
       for (String consumer: consumers) {
-        consumer = consumer.trim();        
-        Class clazz = Class.forName(WarpConfig.getProperty(Configuration.DATALOG_CONSUMER_CLASS + "." + consumer));
+        consumer = consumer.trim();
+        Class clazz = Class.forName(WarpConfig.getProperty(Configuration.DATALOG_CONSUMER_CLASS_PREFIX +  consumer));
         DatalogConsumer dc = (DatalogConsumer) clazz.newInstance();
         dc.init(keystore, consumer);
       }
@@ -435,7 +435,7 @@ public class Warp extends WarpDist implements Runnable {
     }
 
     //
-    // Enable the ThrottlingManager (not 
+    // Enable the ThrottlingManager (not
     //
 
     if (!analyticsEngineOnly) {

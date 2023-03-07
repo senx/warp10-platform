@@ -335,14 +335,14 @@ public class TCPDatalogFeederWorker extends Thread {
 
       // Store the shards if they were defined
 
-      int[] modulus = new int[msg.getShardsSize()];
-      int[] remainder = new int[modulus.length];
+      long[] modulus = new long[msg.getShardsSize()];
+      long[] remainder = new long[modulus.length];
 
       boolean hasShards = msg.getShardsSize() > 0;
       for (int i = 0; i< modulus.length; i++) {
         long shard = msg.getShards().get(i);
-        modulus[i] = (int) ((shard >>> 32) & 0xFFFFFFFFL);
-        remainder[i] = (int) (shard & 0xFFFFFFFFL);
+        modulus[i] = ((shard >>> 32) & 0xFFFFFFFFL);
+        remainder[i] = (shard & 0xFFFFFFFFL);
       }
 
       // Store the excluded ids
@@ -355,7 +355,7 @@ public class TCPDatalogFeederWorker extends Thread {
 
       // This is the number of bits to shift the <classID><labelsID> combo to the right, defaults to 48.
       // The shard is determined by shifting <classID><labelsID> to the right and keeping the lower 32 bits
-      // on which a modulus is applied. The remainder of this operation is the shardid.
+      // on which a modulus is applied. The remainder of this operation is the shard id.
 
       long shardShift = 48;
       if (msg.isSetShardShift()) {
@@ -578,12 +578,11 @@ public class TCPDatalogFeederWorker extends Thread {
               long classId = DatalogHelper.bytesToLong(k, 8, 8);
               long labelsId = DatalogHelper.bytesToLong(k, 16, 8);
 
-              long shifted = (labelsId >>> shardShift) & 0xFFFFFFFFL;
-              shifted |= (classId << (64 - shardShift)) & 0xFFFFFFFFL;
+              long sid = DatalogHelper.getShardId(classId, labelsId, shardShift);
 
               // Now check all shards until one matches
               boolean matched = false;
-              int sid = (int) shifted;
+
               for (int i = 0; i < modulus.length; i++) {
                 if (0 != modulus[i] && remainder[i] == sid % modulus[i]) {
                   matched = true;

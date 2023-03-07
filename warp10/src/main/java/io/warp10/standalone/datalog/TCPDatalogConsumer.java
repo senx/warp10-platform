@@ -144,12 +144,12 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
         if (2 != subtokens.length) {
           throw new RuntimeException("Invalid feeder shard spec " + token + " in " + FileBasedDatalogManager.CONFIG_DATALOG_CONSUMER_FEEDER_SHARDS + suffix);
         }
-        feederShards[i] = (((long) Integer.parseInt(subtokens[0])) << 32) | ((long) Integer.parseInt(subtokens[1]) & 0xFFFFFFFFL);
+        feederShards[i] = (Long.parseLong(subtokens[0]) << 32) | (Long.parseLong(subtokens[1]) & 0xFFFFFFFFL);
       }
     }
 
-    int[] modulus = null;
-    int[] remainder = null;
+    long[] modulus = null;
+    long[] remainder = null;
 
     String shardSpec = WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_CONSUMER_SHARDS + suffix);
 
@@ -159,16 +159,16 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
     if (null != shardSpec) {
       hasShards = true;
       String[] tokens = feederShardsSpec.split(",");
-      modulus = new int[tokens.length];
-      remainder = new int[tokens.length];
+      modulus = new long[tokens.length];
+      remainder = new long[tokens.length];
       for (int i = 0; i < tokens.length; i++) {
         String token = tokens[i];
         String[] subtokens = token.trim().split(":");
         if (2 != subtokens.length) {
           throw new RuntimeException("Invalid shard spec " + token + " in " + FileBasedDatalogManager.CONFIG_DATALOG_CONSUMER_SHARDS + suffix);
         }
-        modulus[i] = Integer.parseInt(subtokens[0]);
-        remainder[i] = Integer.parseInt(subtokens[1]);
+        modulus[i] = Long.parseLong(subtokens[0]);
+        remainder[i] = Long.parseLong(subtokens[1]);
       }
     }
 
@@ -561,10 +561,8 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
           //
 
           if (hasShards) {
-            // compute shardid
-            long shifted = (labelsid >>> shardShift) & 0xFFFFFFFFL;
-            shifted |= (classid << (64 - shardShift)) & 0xFFFFFFFFL;
-            int sid = (int) shifted;
+            // compute shard id
+            long sid = DatalogHelper.getShardId(classid, labelsid, shardShift);
 
             boolean matched = false;
 
