@@ -88,12 +88,10 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
   public static final String CONFIG_DATALOG_FEEDER_TIMEOUT = "datalog.feeder.timeout";
   public static final String CONFIG_DATALOG_FEEDER_DIR = "datalog.feeder.dir";
   public static final String CONFIG_DATALOG_FEEDER_ECC_PRIVATE = "datalog.feeder.ecc.private";
-  public static final String CONFIG_DATALOG_FEEDER_ECC_PUBLIC = "datalog.feeder.ecc.public";
   public static final String CONFIG_DATALOG_FEEDER_ENCRYPT = "datalog.feeder.encrypt";
   public static final String CONFIG_DATALOG_FEEDER_CHECKMACRO = "datalog.feeder.checkmacro";
 
   public static final String CONFIG_DATALOG_CONSUMER_ECC_PRIVATE = "datalog.consumer.ecc.private";
-  public static final String CONFIG_DATALOG_CONSUMER_ECC_PUBLIC = "datalog.consumer.ecc.public";
   public static final String CONFIG_DATALOG_CONSUMER_FEEDER_ECC_PUBLIC = "datalog.consumer.feeder.ecc.public";
   public static final String CONFIG_DATALOG_CONSUMER_ID = "datalog.consumer.id";
   public static final String CONFIG_DATALOG_CONSUMER_EXCLUDED = "datalog.consumer.excluded";

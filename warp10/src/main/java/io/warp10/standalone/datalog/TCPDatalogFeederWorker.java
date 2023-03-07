@@ -144,7 +144,6 @@ public class TCPDatalogFeederWorker extends Thread {
       ECPublicKey eccPublic = null;
 
       String eccpri = WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_FEEDER_ECC_PRIVATE);
-      String eccpub = WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_FEEDER_ECC_PUBLIC);
 
       String[] tokens = eccpri.split(":");
       Map<String,String> map = new HashMap<String,String>();
@@ -157,20 +156,6 @@ public class TCPDatalogFeederWorker extends Thread {
         eccPrivate = (ECPrivateKey) stack.pop();
       } catch (WarpScriptException wse) {
         LOG.error("Error extracting ECC private key.", wse);
-        return;
-      }
-
-      tokens = eccpub.split(":");
-      map.clear();
-      map.put(Constants.KEY_CURVE, tokens[0]);
-      map.put(Constants.KEY_Q, tokens[1]);
-
-      try {
-        stack.push(map);
-        new ECPUBLIC(WarpScriptLib.ECPUBLIC).apply(stack);
-        eccPublic = (ECPublicKey) stack.pop();
-      } catch (WarpScriptException wse) {
-        LOG.error("Error extracting ECC public key.", wse);
         return;
       }
 

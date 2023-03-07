@@ -83,7 +83,6 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
   private WarpScriptStack stack;
 
   private ECPrivateKey eccPrivate;
-  private ECPublicKey eccPublic;
 
   private String id;
 
@@ -769,10 +768,9 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
     //
 
     String eccpri = WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_CONSUMER_ECC_PRIVATE + suffix);
-    String eccpub = WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_CONSUMER_ECC_PUBLIC + suffix);
 
-    if (null == eccpri || null == eccpub) {
-      throw new RuntimeException("Missing ECC keys.");
+    if (null == eccpri) {
+      throw new RuntimeException("Missing ECC private key.");
     }
 
     String[] tokens = eccpri.split(":");
@@ -786,19 +784,6 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
       eccPrivate = (ECPrivateKey) stack.pop();
     } catch (WarpScriptException wse) {
       throw new RuntimeException("Error extracting ECC private key.", wse);
-    }
-
-    tokens = eccpub.split(":");
-    map.clear();
-    map.put(Constants.KEY_CURVE, tokens[0]);
-    map.put(Constants.KEY_Q, tokens[1]);
-
-    try {
-      stack.push(map);
-      new ECPUBLIC(WarpScriptLib.ECPUBLIC).apply(stack);
-      eccPublic = (ECPublicKey) stack.pop();
-    } catch (WarpScriptException wse) {
-      throw new RuntimeException("Error extracting ECC public key.", wse);
     }
 
     this.id = WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_CONSUMER_ID + suffix);
