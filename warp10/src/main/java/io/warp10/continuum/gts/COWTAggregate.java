@@ -48,7 +48,34 @@ public class COWTAggregate extends Aggregate {
     setValues(new COWTList(gtsList, indices, nullValueCount, referenceTick, COWTList.TYPE.VALUES));
   }
 
+  /**
+   * This flag can be set by an aggregator to keep track of what strategy it employs to handle null values.
+   */
+  public static enum NULLS_STRATEGY {
+    KEEP,
+    REMOVE,
+    FAIL,
+    SKIP,
+    UNDEFINED
+  }
+
+  private NULLS_STRATEGY nullsStrategy = NULLS_STRATEGY.UNDEFINED;
+
+  public NULLS_STRATEGY getNullsStrategy() {
+    return nullsStrategy;
+  }
+
+  public void setNullsStrategy(NULLS_STRATEGY nullsStrategy) {
+    this.nullsStrategy = nullsStrategy;
+  }
+
+  //
+  // Default behaviour of NULLSREMOVE and NULLSKEEP
+  //
+
   public void removeNulls() {
+    nullsStrategy = NULLS_STRATEGY.REMOVE;
+
     List locations = getLocations();
     if (null != locations && locations instanceof COWTList) {
       ((COWTList) locations).setExposeNullValues(false);
@@ -66,6 +93,8 @@ public class COWTAggregate extends Aggregate {
   }
 
   public void keepNulls() {
+    nullsStrategy = NULLS_STRATEGY.KEEP;
+
     List locations = getLocations();
     if (null != locations && locations instanceof COWTList) {
       ((COWTList) locations).setExposeNullValues(true);
