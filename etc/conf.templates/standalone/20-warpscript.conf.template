@@ -204,13 +204,14 @@ warpscript.runner.bootstrap.period = 120000
 #warpscript.http.maxsize =
 // Maximum chunk size allowed when dowloading per chunk using HTTP, 65536 by default, can be raised with capability http.chunksize
 #warpscript.http.maxchunksize =
+// Maximum timeout for HTTP calls in milliseconds, 60000 ms by default, can be raised with capability http.timeout
+#warpscript.http.maxtimeout = 60000
 //
 // List of patterns to include/exclude for hosts in HTTP calls
-//
 // Typical value is .*,!^127.0.0.1$,!^localhost$,!^192.168.*,!^10.*,!^172.(16|17|18|19|20|21|22|23|24|25|26|27|28|29|39|31)\..*
 // Defaults to !.*
 //
-warpscript.http.host.patterns = !.*
+#warpscript.http.host.patterns = !.*
 
 //
 // allow C style block comments. /**** valid block comment ****/

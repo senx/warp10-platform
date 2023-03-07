@@ -17,6 +17,7 @@
 package io.warp10.script.ext.http;
 
 import io.warp10.WarpConfig;
+import io.warp10.continuum.store.Constants;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
@@ -79,7 +80,8 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
   public static final String CHUNK_MACRO = "chunk.macro";
   public static final String USERNAME = "username";
   public static final String PASSWORD = "password";
-
+  public static final String CONNECT_TIMEOUT = "timeout";
+  
   //
   // Output
   //
@@ -103,6 +105,7 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
   private static final long baseMaxRequests;
   private static final long baseMaxSize;
   private static final long baseMaxChunkSize;
+  private static final int baseMaxTimeout;
 
   private static final String DEFAULT_HTTP_HOST_PATTERN = "!.*";
 
@@ -136,6 +139,21 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
     } else {
       baseMaxChunkSize = Long.parseLong(confMaxChunkSize);
     }
+
+    String confMaxTimeout = WarpConfig.getProperty(HttpWarpScriptExtension.WARPSCRIPT_HTTP_TIMEOUT);
+    if (null == confMaxTimeout) {
+      baseMaxTimeout = HttpWarpScriptExtension.DEFAULT_HTTP_TIMEOUT;
+    } else {
+      long l = Long.parseLong(confMaxTimeout);
+      if (l < 0) {
+        throw new RuntimeException("Configuration key " + HttpWarpScriptExtension.WARPSCRIPT_HTTP_TIMEOUT + " must be positive.");
+      }
+      if (l == 0 || l > Integer.MAX_VALUE) {
+        l = Integer.MAX_VALUE;
+      }
+      baseMaxTimeout = (int) l;
+    }
+
   }
 
   public HTTP(String name) {
@@ -255,6 +273,44 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
       chunkMacro = (WarpScriptStack.Macro) o;
     }
 
+    int timeout = baseMaxTimeout;  // Default timeout is the one hardcoded in Warp 10 configuration
+    Object t = params.get(CONNECT_TIMEOUT);
+    if (t != null) {
+      // When user try to change it, it must be less than max(default timeout, capability timeout)
+      if (!(t instanceof Long)) {
+        throw new WarpScriptException(getName() + " expect a positive LONG for " + CONNECT_TIMEOUT + " parameter.");
+      }
+      Long tl = ((Long) t).longValue() / Constants.TIME_UNITS_PER_MS;
+      int ti;
+      if (tl > Integer.MAX_VALUE) {
+        ti = Integer.MAX_VALUE;
+      } else {
+        ti = tl.intValue();
+      }
+      if (ti <= 0) {  // Timeout 0 or a negative value is allowed for "no timeout"
+        ti = Integer.MAX_VALUE;
+      }
+      Long capTimeout = Capabilities.getLong(stack, HttpWarpScriptExtension.CAPABILITY_HTTP_TIMEOUT);
+      if (capTimeout != null) {
+        if (capTimeout < 0) {
+          throw new WarpScriptException("Capability " + HttpWarpScriptExtension.CAPABILITY_HTTP_TIMEOUT + " must be a positive LONG");
+        }
+        if (capTimeout == 0 || capTimeout > Integer.MAX_VALUE) {
+          timeout = Integer.MAX_VALUE;
+        } else {
+          timeout = Math.max(capTimeout.intValue(), timeout);
+        }
+      }
+      if (ti > timeout) {
+        throw new WarpScriptException(CONNECT_TIMEOUT + " is greater than maximum allowed timeout (" + timeout + "ms)");
+      }
+
+      // as timeout is an integer, Integer.MAX_VALUE is 24.8 days
+      // when user specify 'timeout' MAXLONG, and is allowed to do so by configuration or capability, there should be no timeout at all.
+      timeout = (ti == Integer.MAX_VALUE) ? 0 : ti;
+
+    }
+    
     //
     // Check URL
     //
@@ -312,7 +368,8 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
 
     try {
       conn = (HttpURLConnection) url.openConnection();
-
+      conn.setConnectTimeout(timeout);
+      conn.setReadTimeout(timeout);
       //
       // Set headers
       //

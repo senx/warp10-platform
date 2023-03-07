@@ -1,5 +1,5 @@
 //
-//   Copyright 2020  SenX S.A.S.
+//   Copyright 2020-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 //   limitations under the License.
 //
 
-package io.warp10.standalone;
+package io.warp10.leveldb;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -56,32 +56,32 @@ import org.iq80.leveldb.util.Slice;
 import org.iq80.leveldb.util.SliceInput;
 import org.iq80.leveldb.util.Slices;
 
-public class LevelDBRepair {
-  
+public class LevelDBRepairInternal {
+
   private static final InternalKeyComparator internalKeyComparator = new InternalKeyComparator(new BytewiseComparator());
 
   private static final AtomicLong nextFileNumber = new AtomicLong(0L);
-  
+
   public static synchronized void repair(File path, Options options) throws IOException {
     //
     // Lock the DB
     //
-    
+
     DbLock dbLock = new DbLock(new File(path, Filename.lockFileName()));
-    
+
     List<File> files = Filename.listFiles(path);
-    
+
     nextFileNumber.set(Long.MIN_VALUE);
 
     List<Long> logs = new ArrayList<Long>();
-    
+
     for (File file: files) {
       FileInfo fileInfo = Filename.parseFileName(file);
-      
+
       if (null == fileInfo) {
         continue;
       }
-      
+
       switch (fileInfo.getFileType()) {
         case DESCRIPTOR:
         case TABLE:
@@ -98,30 +98,30 @@ public class LevelDBRepair {
         default:
       }
     }
-    
+
     //
     // Convert log files to SST
     //
 
     // Sort log files per increasing number
     Collections.sort(logs);
-    
+
     long maxSequence = Long.MIN_VALUE;
-    
+
     for (long fileno: logs) {
       System.out.println("LOG #" + fileno + " - SCAN");
       long maxSeq = recoverLogFile(path, fileno, options);
-      
+
       if (maxSeq > maxSequence) {
         maxSequence = maxSeq;
       }
     }
-    
+
     //
     // Scan each SST to identify smallest/largest keys and largest sequence number
     //
     files = Filename.listFiles(path);
-    
+
     TableCache tcache = new TableCache(path, 1, new InternalUserComparator(internalKeyComparator), true);
 
     List<FileMetaData> meta = new ArrayList<FileMetaData>();
@@ -129,14 +129,14 @@ public class LevelDBRepair {
     long totalSize = 0;
     long totalCount = 0;
     long totalFiles = 0;
-    
+
     for (File file: files) {
       FileInfo fileInfo = Filename.parseFileName(file);
-      
+
       if (null == fileInfo) {
         continue;
       }
-      
+
       switch (fileInfo.getFileType()) {
         case TABLE:
           if (fileInfo.getFileNumber() > nextFileNumber.get()) {
@@ -145,31 +145,31 @@ public class LevelDBRepair {
 
           long number = fileInfo.getFileNumber();
           long fileSize = file.length();
-          
+
           InternalKey smallest = null;
           InternalKey largest = null;
 
           try {
             InternalIterator iter = tcache.newIterator(number);
-            
+
             long count = 0;
-            
+
             while(iter.hasNext()) {
               Entry<InternalKey, Slice> entry = iter.next();
-            
+
               if (null == smallest) {
                 smallest = entry.getKey();
               }
               largest = entry.getKey();
               count++;
             }
-            
+
             meta.add(new FileMetaData(number, fileSize, smallest, largest));
-            
+
             totalSize += fileSize;
             totalCount += count;
             totalFiles++;
-            System.out.println("SST #" + number + " - " + count + " entries, " + fileSize + " bytes.");            
+            System.out.println("SST #" + number + " - " + count + " entries, " + fileSize + " bytes.");
           } catch (Exception ioe) {
             //
             // Ignore the current SST file
@@ -183,11 +183,11 @@ public class LevelDBRepair {
     }
     System.out.println("------------------------");
     System.out.println("Scanned " + totalFiles + " SST files - " + totalCount + " entries, " + totalSize + " bytes.");
-    
+
     //
     // Sort the files by increasing sequence number
     //
-    
+
     Collections.sort(meta, new Comparator<FileMetaData>() {
       @Override
       public int compare(FileMetaData o1, FileMetaData o2) {
@@ -198,16 +198,16 @@ public class LevelDBRepair {
     //
     // Now generate the MANIFEST file, putting all files at level 0
     //
-    
+
     // Remove CURRENT file
-    
+
     File currentFile = new File(path, Filename.currentFileName());
     currentFile.delete();
-    
+
     //
     // Initialize a MANIFEST (from VersionSet constructor)
     //
-    
+
     long manifestFileNumber = nextFileNumber.addAndGet(1);
     VersionEdit edit = new VersionEdit();
     edit.setComparatorName(internalKeyComparator.name());
@@ -216,7 +216,7 @@ public class LevelDBRepair {
     edit.setLastSequenceNumber(maxSequence);
 
     LogWriter log = Logs.createLogWriter(new File(path, Filename.descriptorFileName(manifestFileNumber)), manifestFileNumber);
-    
+
     try {
       log.addRecord(edit.encode(), false);
     } finally {
@@ -227,21 +227,21 @@ public class LevelDBRepair {
 
     VersionSet set = new VersionSet(path, tcache, internalKeyComparator);
     set.recover();
-    
+
     edit = new VersionEdit();
-    
+
     for (FileMetaData f: meta) {
       edit.addFile(0, f);
     }
 
     set.logAndApply(edit);
     set.destroy();
-    
+
     tcache.close();
-    
+
     dbLock.release();
   }
-  
+
   private static class InsertIntoHandler implements Handler {
     private long sequence;
     private final MemTable memTable;
@@ -283,7 +283,7 @@ public class LevelDBRepair {
           logMonitor.corruption(sliceInput.available(), "log record too small");
           continue;
         }
-        
+
         long sequenceBegin = sliceInput.readLong();
         int updateSize = sliceInput.readInt();
 
@@ -294,7 +294,7 @@ public class LevelDBRepair {
         if (memTable == null) {
           memTable = new MemTable(internalKeyComparator);
         }
-        
+
         writeBatch.forEach(new InsertIntoHandler(memTable, sequenceBegin));
 
         // update the maxSequence
@@ -314,7 +314,7 @@ public class LevelDBRepair {
           memTable = null;
         }
       }
-      
+
       // flush mem table
       if (memTable != null && !memTable.isEmpty()) {
         FileMetaData sst = writeLevel0Table(databaseDir, memTable);
@@ -324,13 +324,13 @@ public class LevelDBRepair {
           System.out.println("LOG #" + fileNumber + " >>> NO SST");
         }
       }
-      
+
       file.renameTo(new File(file.getAbsolutePath() + ".converted"));
 
       return maxSequence;
     }
   }
-  
+
   private static WriteBatchImpl readWriteBatch(SliceInput record, int updateSize) throws IOException {
     WriteBatchImpl writeBatch = new WriteBatchImpl();
     int entries = 0;
@@ -370,7 +370,7 @@ public class LevelDBRepair {
 
   private static FileMetaData buildTable(File databaseDir, SeekingIterable<InternalKey, Slice> data, long fileNumber) throws IOException {
     Options options = new Options();
-    
+
     File file = new File(databaseDir, Filename.tableFileName(fileNumber));
     try {
       InternalKey smallest = null;
@@ -402,7 +402,7 @@ public class LevelDBRepair {
       if (smallest == null) {
         return null;
       }
-      
+
       FileMetaData fileMetaData = new FileMetaData(fileNumber, file.length(), smallest, largest);
 
       return fileMetaData;
@@ -411,8 +411,8 @@ public class LevelDBRepair {
       throw e;
     }
   }
-  
+
   public static void main(String[] args) throws Exception {
-    repair(new File(args[0]), new Options());       
+    repair(new File(args[0]), new Options());
   }
 }

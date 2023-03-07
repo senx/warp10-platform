@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 //   limitations under the License.
 //
 
-package io.warp10.standalone;
+package io.warp10.leveldb;
 
 import java.io.File;
 import java.io.IOException;
@@ -22,6 +22,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.bouncycastle.util.encoders.Hex;
 import org.fusesource.leveldbjni.JniDBFactory;
+import org.iq80.leveldb.CompressionType;
 import org.iq80.leveldb.DB;
 import org.iq80.leveldb.Options;
 import org.iq80.leveldb.impl.Iq80DBFactory;
@@ -103,6 +104,14 @@ public class WarpCompact {
 
     if (null != System.getProperty(Configuration.LEVELDB_BLOCK_SIZE)) {
       options.blockSize(Integer.parseInt(System.getProperty(Configuration.LEVELDB_BLOCK_SIZE)));
+    }
+
+    if (null != System.getProperty(Configuration.LEVELDB_COMPRESSION_TYPE)) {
+      if ("snappy".equalsIgnoreCase(System.getProperty(Configuration.LEVELDB_COMPRESSION_TYPE))) {
+        options.compressionType(CompressionType.SNAPPY);
+      } else {
+        options.compressionType(CompressionType.NONE);
+      }
     }
 
     boolean nativedisabled = "true".equals(System.getProperty(Configuration.LEVELDB_NATIVE_DISABLE));
