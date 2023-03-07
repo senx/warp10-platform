@@ -68,7 +68,8 @@ public class DatalogWorkers {
 
   public static void offer(DatalogConsumer consumer, String ref, DatalogRecord record) throws IOException {
     //
-    // Compute partitioning key and partition
+    // Compute partitioning key and partition.
+    // Note: this has nothing to do with the shard id
     //
 
     long classid = record.getMetadata().getClassId();
