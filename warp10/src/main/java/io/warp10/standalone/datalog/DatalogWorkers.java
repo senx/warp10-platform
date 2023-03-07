@@ -74,7 +74,7 @@ public class DatalogWorkers {
     long classid = record.getMetadata().getClassId();
     long labelsid = record.getMetadata().getLabelsId();
 
-    long partkey = (int) (((classid << 16) & 0xFFFF0000L) | ((labelsid >>> 48) & 0xFFFFL));
+    long partkey = (((classid << 16) & 0xFFFF0000L) | ((labelsid >>> 48) & 0xFFFFL));
     long partition = partkey % NUM_WORKERS;
 
     DatalogJob job = new DatalogJob(consumer, ref, record);
