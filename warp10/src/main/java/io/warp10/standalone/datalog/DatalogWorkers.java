@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2021  SenX S.A.S.
+//   Copyright 2020-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -68,17 +68,18 @@ public class DatalogWorkers {
 
   public static void offer(DatalogConsumer consumer, String ref, DatalogRecord record) throws IOException {
     //
-    // Compute partitioning key
+    // Compute partitioning key and partition
     //
 
     long classid = record.getMetadata().getClassId();
     long labelsid = record.getMetadata().getLabelsId();
 
-    int partkey = (int) (((classid << 16) & 0xFFFF0000L) | ((labelsid >>> 48) & 0xFFFFL));
+    long partkey = (int) (((classid << 16) & 0xFFFF0000L) | ((labelsid >>> 48) & 0xFFFFL));
+    long partition = partkey % NUM_WORKERS;
 
     DatalogJob job = new DatalogJob(consumer, ref, record);
 
-    if (!queues[partkey % NUM_WORKERS].offer(job)) {
+    if (!queues[(int) partition].offer(job)) {
       throw new IOException("Unable to offer record '" + ref + "'.");
     }
   }
