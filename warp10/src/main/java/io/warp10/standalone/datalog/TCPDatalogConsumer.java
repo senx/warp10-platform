@@ -539,7 +539,7 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
           // If our id or an exluded one created this message, ignore it, it would otherwise create a loop
           //
 
-          if (this.excluded.contains(record.getId()) || id.equals(record.getId())) {
+          if (id.equals(record.getId()) || this.excluded.contains(record.getId())) {
             Sensision.update(SensisionConstants.SENSISION_CLASS_DATALOG_IGNORED, labels, 1);
             success(msg.getCommitref());
             inflight.add(msg.getCommitref());

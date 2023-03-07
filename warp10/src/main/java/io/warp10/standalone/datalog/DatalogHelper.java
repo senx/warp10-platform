@@ -192,10 +192,10 @@ public class DatalogHelper {
     }
   }
 
-  static long getShardId(long classid, long labelsid, long shardShift) {
+  public static long getShardId(long classid, long labelsid, long shardShift) {
     long shifted = (labelsid >>> shardShift) & 0xFFFFFFFFL;
     shifted |= (classid << (64 - shardShift)) & 0xFFFFFFFFL;
-    int sid = (int) shifted;
+    long sid = shifted;
     return sid;
   }
 }
