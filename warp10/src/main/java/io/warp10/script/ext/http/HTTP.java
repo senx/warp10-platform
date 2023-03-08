@@ -335,7 +335,7 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
     }
 
     if (!webAccessController.checkURL(url)) {
-      throw new WarpScriptException(getName() + " URL forbidden by configuration.");
+      throw new WarpScriptException(getName() + " URL forbidden by configuration or capability.");
     }
 
     //
