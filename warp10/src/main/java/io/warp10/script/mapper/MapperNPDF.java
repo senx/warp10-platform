@@ -42,11 +42,15 @@ public class MapperNPDF extends NamedWarpScriptFunction implements WarpScriptMap
     public Object apply(WarpScriptStack stack) throws WarpScriptException {
       Object value = stack.pop();
 
-      if (!(value instanceof Number) || (0 >= ((Number) value).doubleValue())) {
+      if (!(value instanceof Number)) {
         throw new WarpScriptException(getName() + " expects a standard deviation (sigma) on top of the stack.");
       }
 
       double sigma = ((Number) value).doubleValue();
+
+      if (sigma <= 0) {
+        throw new WarpScriptException(getName() + " expects a positive standard deviation (sigma) on top of the stack.");
+      }
       
       value = stack.pop();
 
