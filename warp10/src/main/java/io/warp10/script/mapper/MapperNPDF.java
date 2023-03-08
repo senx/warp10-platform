@@ -19,12 +19,10 @@ package io.warp10.script.mapper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.StackUtils;
-import io.warp10.script.WarpScriptMapperFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptMapperFunction;
 import io.warp10.script.WarpScriptStack;
-
-import java.util.Map;
+import io.warp10.script.WarpScriptStackFunction;
 
 /**
  * Mapper which returns the probability of a value within a gaussian distribution with given mu/sigma
@@ -43,20 +41,20 @@ public class MapperNPDF extends NamedWarpScriptFunction implements WarpScriptMap
     @Override
     public Object apply(WarpScriptStack stack) throws WarpScriptException {
       Object value = stack.pop();
-      
-      if (!(value instanceof Double)) {
+
+      if (!(value instanceof Number) || (0 >= ((Number) value).doubleValue())) {
         throw new WarpScriptException(getName() + " expects a standard deviation (sigma) on top of the stack.");
       }
-      
-      double sigma = (double) value;
+
+      double sigma = ((Number) value).doubleValue();
       
       value = stack.pop();
-      
-      if (!(value instanceof Double)) {
+
+      if (!(value instanceof Number)) {
         throw new WarpScriptException(getName() + " expects a mean (mu) below the standard deviation.");
       }
-      
-      double mu = (double) value;
+
+      double mu = ((Number) value).doubleValue();
       
       stack.push(new MapperNPDF(getName(), mu, sigma));
       
