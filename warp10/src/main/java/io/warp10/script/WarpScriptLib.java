@@ -150,7 +150,10 @@ import io.warp10.script.mapper.MapperFinite;
 import io.warp10.script.mapper.MapperFloor;
 import io.warp10.script.mapper.MapperGeoApproximate;
 import io.warp10.script.mapper.MapperGeoClearPosition;
+import io.warp10.script.mapper.MapperGeoElevation;
 import io.warp10.script.mapper.MapperGeoFence;
+import io.warp10.script.mapper.MapperGeoLatitude;
+import io.warp10.script.mapper.MapperGeoLatitude;
 import io.warp10.script.mapper.MapperGeoOutside;
 import io.warp10.script.mapper.MapperGeoWithin;
 import io.warp10.script.mapper.MapperHourOfDay;
@@ -1995,6 +1998,10 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new MapperHourOfDay.Builder("mapper.hour"));
     addNamedWarpScriptFunction(new MapperMinuteOfHour.Builder("mapper.minute"));
     addNamedWarpScriptFunction(new MapperSecondOfMinute.Builder("mapper.second"));
+
+    addNamedWarpScriptFunction(new MapperGeoLatitude("mapper.lat"));
+    addNamedWarpScriptFunction(new MapperGeoLongitude("mapper.lon"));
+    addNamedWarpScriptFunction(new MapperGeoElevation("mapper.elev"));
 
     addNamedWarpScriptFunction(new MapperNPDF.Builder("mapper.npdf"));
     addNamedWarpScriptFunction(new MapperDotProduct.Builder("mapper.dotproduct"));
