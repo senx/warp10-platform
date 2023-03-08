@@ -116,6 +116,9 @@ public class StandaloneFDBStoreClient extends FDBStoreClient {
     if (this.FDBUseTenantPrefix) {
       if (token.getAttributesSize() > 0 && token.getAttributes().containsKey(Constants.TOKEN_ATTR_FDB_TENANT_PREFIX)) {
         tenantPrefix = OrderPreservingBase64.decode(token.getAttributes().get(Constants.TOKEN_ATTR_FDB_TENANT_PREFIX));
+        if (8 != tenantPrefix.length) {
+          throw new IOException("Invalid tenant prefix, length should be 8 bytes.");
+        }
       } else {
         LOG.error("Incoherent configuration, Warp 10 mandates a tenant but the specified write token did not have a tenant prefix set, aborting.");
         throw new IOException("Incoherent configuration, Warp 10 mandates a tenant but the specified write token did not have a tenant prefix set, aborting.");
@@ -179,6 +182,9 @@ public class StandaloneFDBStoreClient extends FDBStoreClient {
     if (this.FDBUseTenantPrefix) {
       if (token.getAttributesSize() > 0 && token.getAttributes().containsKey(Constants.TOKEN_ATTR_FDB_TENANT_PREFIX)) {
         tenantPrefix = OrderPreservingBase64.decode(token.getAttributes().get(Constants.TOKEN_ATTR_FDB_TENANT_PREFIX));
+        if (8 != tenantPrefix.length) {
+          throw new IOException("Invalid tenant prefix, length should be 8 bytes.");
+        }
       } else {
         LOG.error("Incoherent configuration, Warp 10 mandates a tenant but the specified write token did not have a tenant prefix set, aborting.");
         throw new IOException("Incoherent configuration, Warp 10 mandates a tenant but the specified write token did not have a tenant prefix set, aborting.");
