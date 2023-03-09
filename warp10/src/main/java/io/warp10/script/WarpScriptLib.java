@@ -25,6 +25,10 @@ import io.warp10.continuum.gts.CORRELATE;
 import io.warp10.continuum.gts.DISCORDS;
 import io.warp10.continuum.gts.FFT;
 import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
+import io.warp10.fdb.FDBGET;
+import io.warp10.fdb.FDBSIZE;
+import io.warp10.fdb.FDBSTATUS;
+import io.warp10.fdb.FDBTENANT;
 import io.warp10.continuum.gts.IFFT;
 import io.warp10.continuum.gts.INTERPOLATE;
 import io.warp10.continuum.gts.LOCATIONOFFSET;
@@ -1815,6 +1819,15 @@ public class WarpScriptLib {
   public static final String SSTREPORT = "SSTREPORT";
   public static final String SSTTIMESTAMP = "SSTTIMESTAMP";
 
+  //
+  // FDB
+  //
+
+  public static final String FDBTENANT = "FDBTENANT";
+  public static final String FDBSTATUS = "FDBSTATUS";
+  public static final String FDBSIZE = "FDBSIZE";
+  public static final String FDBGET = "FDBGET";
+
   static {
 
     addNamedWarpScriptFunction(new REV(REV));
@@ -3179,6 +3192,15 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new SSTPURGE(SSTPURGE));
     addNamedWarpScriptFunction(new SSTREPORT(SSTREPORT));
     addNamedWarpScriptFunction(new SSTTIMESTAMP(SSTTIMESTAMP));
+
+    //
+    // FDB
+    //
+
+    addNamedWarpScriptFunction(new FDBTENANT(FDBTENANT));
+    addNamedWarpScriptFunction(new FDBSTATUS(FDBSTATUS));
+    addNamedWarpScriptFunction(new FDBSIZE(FDBSIZE));
+    addNamedWarpScriptFunction(new FDBGET(FDBGET));
 
     /////////////////////////
 
