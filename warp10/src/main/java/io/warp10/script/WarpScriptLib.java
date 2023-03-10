@@ -153,7 +153,7 @@ import io.warp10.script.mapper.MapperGeoClearPosition;
 import io.warp10.script.mapper.MapperGeoElevation;
 import io.warp10.script.mapper.MapperGeoFence;
 import io.warp10.script.mapper.MapperGeoLatitude;
-import io.warp10.script.mapper.MapperGeoLatitude;
+import io.warp10.script.mapper.MapperGeoLongitude;
 import io.warp10.script.mapper.MapperGeoOutside;
 import io.warp10.script.mapper.MapperGeoWithin;
 import io.warp10.script.mapper.MapperHourOfDay;
