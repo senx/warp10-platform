@@ -17,6 +17,8 @@
 package io.warp10.fdb;
 
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.script.NamedWarpScriptFunction;
@@ -34,7 +36,17 @@ public class FDBSIZE extends NamedWarpScriptFunction implements WarpScriptStackF
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
 
-    if (null == Capabilities.get(stack, FDBUtils.CAPABILITY_ADMIN) && null == Capabilities.get(stack, FDBUtils.CAPABILITY_SIZE)) {
+    String regexp;
+
+    if (null != Capabilities.get(stack, FDBUtils.CAPABILITY_ADMIN)) {
+      regexp = null;
+    } else if (null == Capabilities.get(stack, FDBUtils.CAPABILITY_SIZE)) {
+      regexp = Capabilities.get(stack, FDBUtils.CAPABILITY_SIZE);
+      // Empty string means match all tenants
+      if ("".equals(regexp)) {
+        regexp = null;
+      }
+    } else {
       throw new WarpScriptException(getName() + " missing '" + FDBUtils.CAPABILITY_SIZE + "' or '" + FDBUtils.CAPABILITY_ADMIN + "' capability.");
     }
 
@@ -53,10 +65,20 @@ public class FDBSIZE extends NamedWarpScriptFunction implements WarpScriptStackF
     byte[] to = null;
 
     if (top instanceof String) {
-      Map<String,Object> tenant = FDBUtils.getTenantInfo(pool.getDatabase(), (String) top);
+      String tenant = (String) top;
 
-      if (tenant.containsKey(FDBUtils.KEY_PREFIX)) {
-        from = (byte[]) tenant.get(FDBUtils.KEY_PREFIX);
+      if (null != regexp) {
+        Matcher m = Pattern.compile(regexp).matcher(tenant);
+
+        if (!m.matches()) {
+          throw new WarpScriptException(getName() + " capability '" + FDBUtils.CAPABILITY_TENANT + "' does not allow you to access this tenant.");
+        }
+      }
+
+      Map<String,Object> tenantInfo = FDBUtils.getTenantInfo(pool.getDatabase(), tenant);
+
+      if (tenantInfo.containsKey(FDBUtils.KEY_PREFIX)) {
+        from = (byte[]) tenantInfo.get(FDBUtils.KEY_PREFIX);
         to = FDBUtils.getNextKey(from);
       } else {
         throw new WarpScriptException(getName() + " unknown tenant.");

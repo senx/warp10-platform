@@ -36,11 +36,11 @@ import io.warp10.sensision.Sensision;
 
 public class FDBUtils {
 
-  public static final String CAPABILITY_ADMIN = "fdbadmin";
-  public static final String CAPABILITY_STATUS = "fdbstatus";
-  public static final String CAPABILITY_TENANT = "fdbtenant";
-  public static final String CAPABILITY_SIZE = "fdbsize";
-  public static final String CAPABILITY_GET = "fdbget";
+  public static final String CAPABILITY_ADMIN = "fdb.admin";
+  public static final String CAPABILITY_STATUS = "fdb.status";
+  public static final String CAPABILITY_TENANT = "fdb.tenant";
+  public static final String CAPABILITY_SIZE = "fdb.size";
+  public static final String CAPABILITY_GET = "fdb.get";
 
   public static final String KEY_ID = "id";
   public static final String KEY_PREFIX = "prefix";
