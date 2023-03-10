@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicReference;
+
+import org.bouncycastle.util.encoders.Hex;
 
 import com.apple.foundationdb.StreamingMode;
 import com.apple.foundationdb.Transaction;
@@ -159,7 +161,7 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
     }
 
     //
-    // If scanner is not null let's close it as it does not have any more results
+    // If scanner is not null close it as it does not have any more results
     //
 
     if (null != scanner) {
@@ -269,11 +271,11 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
           scan.setStartKey(endkey);
           scan.setEndKey(endkey);
         } else {
-          // Start right after 'endkey'
-          scan.setStartKey(endkey);
+          // Start right after 'endkey' (strip the last byte of endkey)
+          scan.setStartKey(Arrays.copyOf(endkey, endkey.length - 1));
           byte[] k = Arrays.copyOf(endkey, endkey.length);
-          // Set the reversed time stamp to 0xFFFFFFFFFFFFFFFFL plus a 0x0 byte
-          Arrays.fill(k, endkey.length - 8, k.length - 1, (byte) 0xFF);
+          // Set the reversed time stamp to 0xFFFFFFFFFFFFFFFFL plus a 0x0 byte (endkey has 1 extra byte)
+          Arrays.fill(k, endkey.length - 8 - 1, k.length - 1, (byte) 0xFF);
           scan.setEndKey(k);
         }
       } else {
