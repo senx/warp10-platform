@@ -550,6 +550,18 @@ public interface WarpScriptStack {
   String CAPABILITY_HTTP = "http";
   String CAPABILITY_TIMEBOX_MAXTIME = "timebox.maxtime";
   String CAPABILITY_SLEEP_MAXTIME = "sleep.maxtime";
+  String CAPABILITY_LEVELDB = "leveldb";
+  String CAPABILITY_LEVELDB_ADMIN = "leveldb.admin";
+  String CAPABILITY_LEVELDB_CLOSE = "leveldb.close";
+  String CAPABILITY_LEVELDB_COMPACT = "leveldb.compact";
+  String CAPABILITY_LEVELDB_OPEN = "leveldb.open";
+  String CAPABILITY_LEVELDB_REPAIR = "leveldb.repair";
+  String CAPABILITY_LEVELDB_SNAPSHOT = "leveldb.snapshot";
+  String CAPABILITY_LEVELDB_PURGE = "leveldb.purge";
+  String CAPABILITY_LEVELDB_FIND = "leveldb.find";
+  String CAPABILITY_LEVELDB_INFO = "leveldb.info";
+  String CAPABILITY_LEVELDB_REPORT = "leveldb.report";
+  String CAPABILITY_LEVELDB_TIMESTAMP = "leveldb.timestamp";
 
   String CAPABILITY_LIMITS = "limits";
   String CAPABILITY_LIMIT = "limit";

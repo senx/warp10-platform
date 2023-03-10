@@ -122,6 +122,11 @@ public class Constants {
   public static final String RUNNER_NONCE = "runner.nonce";
   public static final String RUNNER_CONTEXT_EXEC_COUNT = "runner.execution.count";
 
+  /**
+   * Default number of SST files which can be removed during a call to SSTPURGE
+   */
+  public static final int LEVELDB_MAXPURGE_DEFAULT = 1000;
+
   private static final Map<String,String> HEADERS = new HashMap<String,String>();
 
   /**

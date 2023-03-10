@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -13,22 +13,22 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-package io.warp10.standalone;
+
+package io.warp10.leveldb;
 
 import java.io.File;
 import java.io.IOException;
 
 import org.fusesource.leveldbjni.JniDBFactory;
 import org.iq80.leveldb.Options;
-import org.iq80.leveldb.impl.Iq80DBFactory;
 
 import io.warp10.continuum.Configuration;
 
 public class WarpRepair {
-  
+
   public static final String DISABLE_CHECKSUMS = "disable.checksums";
   public static final String DISABLE_PARANOIDCHECKS = "disable.paranoidchecks";
-  
+
   public static void main(String[] args) throws IOException {
     String path = args[0];
 
@@ -37,14 +37,14 @@ public class WarpRepair {
     options.maxOpenFiles(200);
     options.verifyChecksums(!("true".equals(System.getProperty(DISABLE_CHECKSUMS))));
     options.paranoidChecks(!("true".equals(System.getProperty(DISABLE_PARANOIDCHECKS))));
-    
+
     boolean nativedisabled = "true".equals(System.getProperty(Configuration.LEVELDB_NATIVE_DISABLE));
     boolean javadisabled = "true".equals(System.getProperty(Configuration.LEVELDB_JAVA_DISABLE));
 
     repair(path, options, javadisabled, nativedisabled);
   }
-  
-  public static void repair(String path, Options options, boolean javadisabled, boolean nativedisabled) throws IOException {    
+
+  public static void repair(String path, Options options, boolean javadisabled, boolean nativedisabled) throws IOException {
     try {
       if (!nativedisabled) {
         JniDBFactory.factory.repair(new File(path), options);
@@ -54,10 +54,10 @@ public class WarpRepair {
     } catch (UnsatisfiedLinkError ule) {
       ule.printStackTrace();
       if (!javadisabled) {
-        LevelDBRepair.repair(new File(path), options);
+        LevelDBRepairInternal.repair(new File(path), options);
       } else {
         throw new RuntimeException("No usable LevelDB implementation, aborting.");
       }
-    }      
+    }
   }
 }

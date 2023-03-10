@@ -5732,7 +5732,8 @@ public class GTSHelper {
     // Sort ticks
     sort(mapped, reversed);
     // Retrieve ticks if GTS is not bucketized.
-    long[] ticks = isBucketized(gts) ? null : Arrays.copyOf(mapped.ticks, gts.values);
+    final boolean isBucketized = isBucketized(gts);
+    long[] ticks = isBucketized ? null : Arrays.copyOf(mapped.ticks, gts.values);
 
     // Clear clone
     GTSHelper.clear(mapped);
@@ -5746,11 +5747,11 @@ public class GTSHelper {
     // idx is the index of the current output tick,
     // if (!reversed), rightIdx is the index of the tick of the input gts that is the least greater or equal than the current output tick.
     // if (reversed), leftIdx is the index of the tick of the input gts that is the least lesser or equal than the current output tick.
-    // Note that they may not exist if all values are at the left (or right).
+    // Note that they may not exist if all values are at the left (or right), in that case rightIdx (or leftIdx) equals ticks.length
     //
 
     // Number of ticks for which to run the mapper
-    int nticks = null != ticks ? ticks.length : mapped.bucketcount;
+    int nticks = isBucketized ? mapped.bucketcount : ticks.length;
     if (null != outputTicks) {
       nticks = outputTicks.size();
     }
@@ -5780,20 +5781,21 @@ public class GTSHelper {
       if (null == outputTicks) {
 
         if (reversed) {
-          tick = null != ticks ? ticks[idx] : mapped.lastbucket - idx * mapped.bucketspan;
+          tick = isBucketized ? mapped.lastbucket - idx * mapped.bucketspan : ticks[idx];
         } else {
-          tick = null != ticks ? ticks[idx] : mapped.lastbucket - (mapped.bucketcount - 1 - idx) * mapped.bucketspan;
+          tick = isBucketized ? mapped.lastbucket - (mapped.bucketcount - 1 - idx) * mapped.bucketspan : ticks[idx];
         }
       } else {
         tick = outputTicks.get(idx);
 
-        if (null != ticks) { // means input gts is not bucketized
+        if (!isBucketized) {
 
           // calculate leftIdx and rightIdx
           if (reversed) {
             while (leftIdx < ticks.length && ticks[leftIdx] > tick) {
               leftIdx++;
             }
+
           } else {
             while (rightIdx < ticks.length && ticks[rightIdx] < tick) {
               rightIdx++;
@@ -5828,13 +5830,8 @@ public class GTSHelper {
         start = tick + prewindow;
       } else if (prewindow > 0) {
         // window is a number of ticks
-        if (null == ticks) {
-          // GTS is bucketized.
-          if (null == outputTicks || !reversed) {
-            start = prewindow <= mapped.bucketcount ? tick - prewindow * mapped.bucketspan : Long.MIN_VALUE;
-          } else {
-            start = prewindow - 1 <= mapped.bucketcount ? tick - (prewindow - 1) * mapped.bucketspan : Long.MIN_VALUE;
-          }
+        if (isBucketized) {
+          start = prewindow <= mapped.bucketcount ? tick - prewindow * mapped.bucketspan : Long.MIN_VALUE;
         } else {
           // GTS is not bucketized.
           if (null == outputTicks) {
@@ -5844,25 +5841,17 @@ public class GTSHelper {
               start = idx - prewindow >= 0 ? (ticks[idx - (int) prewindow]) : Long.MIN_VALUE;
             }
           } else {
-
-            //
-            // Note that if output ticks are provided,
-            // then if the current output tick matches an input tick,
-            // then if (reversed)
-            // then prewindow counts the current tick
-            // else it is postwindow that counts the current tick
-            //
-
             if (reversed) {
-              start = leftIdx - 1 + prewindow < ticks.length ? (ticks[leftIdx - 1 + (int) prewindow]) : Long.MIN_VALUE;
+              // if the current output tick matches an input tick then there will be one tick more in the sliding window
+              if (leftIdx < ticks.length && ticks[leftIdx] == tick) {
+                start = leftIdx + prewindow < ticks.length ? ticks[leftIdx + (int) prewindow] : Long.MIN_VALUE;
+              } else {
+                start = leftIdx - 1 + prewindow < ticks.length ? ticks[leftIdx - 1 + (int) prewindow] : Long.MIN_VALUE;
+              }
             } else {
-              start = rightIdx - prewindow >= 0 ? (ticks[rightIdx - (int) prewindow]) : Long.MIN_VALUE;
+              start = rightIdx - prewindow >= 0 ? ticks[rightIdx - (int) prewindow] : Long.MIN_VALUE;
             }
           }
-        }
-      } else {
-        if (null != outputTicks && reversed) {
-          start = tick + 1;
         }
       }
 
@@ -5870,13 +5859,8 @@ public class GTSHelper {
         stop = tick - postwindow;
       } else if (postwindow > 0) {
         // window is a number of ticks
-        if (null == ticks) {
-          // GTS is bucketized.
-          if (null == outputTicks || reversed) {
-            stop = postwindow <= mapped.bucketcount ? tick + postwindow * mapped.bucketspan : Long.MAX_VALUE;
-          } else {
-            stop = postwindow - 1 <= mapped.bucketcount ? tick + (postwindow - 1) * mapped.bucketspan : Long.MAX_VALUE;
-          }
+        if (isBucketized) {
+          stop = postwindow <= mapped.bucketcount ? tick + postwindow * mapped.bucketspan : Long.MAX_VALUE;
         } else {
           // GTS is not bucketized.
           if (null == outputTicks) {
@@ -5887,15 +5871,15 @@ public class GTSHelper {
             }
           } else {
             if (reversed) {
-              stop = leftIdx - postwindow >= 0 ? (ticks[leftIdx - (int) postwindow]) : Long.MAX_VALUE;
+              stop = leftIdx - postwindow >= 0 ? ticks[leftIdx - (int) postwindow] : Long.MAX_VALUE;
             } else {
-              stop = rightIdx - 1 + postwindow < ticks.length ? (ticks[rightIdx - 1 + (int) postwindow]) : Long.MAX_VALUE;
+              if (rightIdx < ticks.length && tick == ticks[rightIdx]) {
+                stop = rightIdx + postwindow < ticks.length ? ticks[rightIdx + (int) postwindow] : Long.MAX_VALUE;
+              } else {
+                stop = rightIdx - 1 + postwindow < ticks.length ? ticks[rightIdx - 1 + (int) postwindow] : Long.MAX_VALUE;
+              }
             }
           }
-        }
-      } else {
-        if (!(null == outputTicks) && !reversed) {
-          stop = tick - 1;
         }
       }
 

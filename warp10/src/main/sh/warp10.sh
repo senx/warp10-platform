@@ -15,6 +15,13 @@
 #   limitations under the License.
 #
 
+############################################################################
+#                                                                          #
+#  Tip: customize values in warp10-env.sh, not in this file !              #
+#  Future updates will be simpler if you do not change this file.          #
+#                                                                          #
+############################################################################
+
 ### BEGIN INIT INFO
 # Provides:          warp10
 # Required-Start:
@@ -34,9 +41,12 @@ fi
 JAVA_OPTS=${JAVA_OPTS:-}
 set -euo pipefail
 
-#JAVA_HOME=/opt/java8
-#WARP10_HOME=/opt/warp10-@VERSION@
-JMX_PORT=1098
+# run warp10-env.sh, when the file exists, to predefine user variables
+BIN_DIR=$(dirname $0)
+if [[ -e "${BIN_DIR}/warp10-env.sh" ]]; then
+  source "${BIN_DIR}/warp10-env.sh"
+fi
+
 
 # Strongly inspired by gradlew
 # Determine the Java command to use to start the JVM.
@@ -120,8 +130,11 @@ WARP10_INIT=io.warp10.standalone.WarpInit
 # The lib directory is dedicated to user libraries (extensions, plugins...)
 #
 WARP10_CP=${WARP10_HOME}/etc:${WARP10_JAR}:${WARP10_HOME}/lib/*
-WARP10_HEAP=${WARP10_HEAP:-1g}
-WARP10_HEAP_MAX=${WARP10_HEAP_MAX:-1g}
+
+# Initial and maximum RAM should be defined in warp10-env.sh
+# Default value, when not defined, is 1023 megabytes
+WARP10_HEAP=${WARP10_HEAP:-1023M}
+WARP10_HEAP_MAX=${WARP10_HEAP_MAX:-1023M}
 
 LEVELDB_HOME=${WARP10_DATA_DIR}/leveldb
 
@@ -136,11 +149,24 @@ LOG4J_CONF=${WARP10_HOME}/etc/log4j.properties
 JAVA_HEAP_DUMP=${WARP10_HOME}/logs/java.heapdump
 # you can specialize your metrics for this instance of Warp10
 #SENSISION_DEFAULT_LABELS=-Dsensision.default.labels=instance=warp10-test,env=dev
-JAVA_OPTS="-Djava.awt.headless=true -Dlog4j.configuration=file:${LOG4J_CONF} -Dsensision.server.port=0 ${SENSISION_DEFAULT_LABELS:-} -Dsensision.events.dir=${SENSISION_EVENTS_DIR} -Dfile.encoding=UTF-8 -Xms${WARP10_HEAP} -Xmx${WARP10_HEAP_MAX} -XX:+UseG1GC ${JAVA_OPTS}"
+JAVA_OPTS="-Djava.awt.headless=true -Dlog4j.configuration=file:${LOG4J_CONF} -Dsensision.server.port=0 ${SENSISION_DEFAULT_LABELS:-} -Dsensision.events.dir=${SENSISION_EVENTS_DIR} -Dfile.encoding=UTF-8 -Xms${WARP10_HEAP} -Xmx${WARP10_HEAP_MAX} -XX:+UseG1GC ${JAVA_OPTS} ${JAVA_EXTRA_OPTS:-}"
 export MALLOC_ARENA_MAX=1
 
 # Sed suffix allows compatibility between Linux and MacOS
 SED_SUFFIX=".bak"
+
+checkRam() {
+  if [[ ${WARP10_HEAP} == "1023M" ]]; then
+    echo "#### WARNING ####"
+    echo "## Warp 10 was launched with the default 1GB initial RAM setting."
+    echo "## Please edit ${WARP10_HOME}/warp10-env.sh to change the default value of WARP10_HEAP."
+  fi
+  if [[ ${WARP10_HEAP_MAX} == "1023M" ]]; then
+    echo "#### WARNING ####"
+    echo "## Warp 10 was launched with the default 1GB maximum RAM setting." 
+    echo "## Please edit ${WARP10_HOME}/warp10-env.sh to change the default value of WARP10_HEAP_MAX."
+  fi  
+}
 
 moveDir() {
   dir=$1
@@ -339,12 +365,8 @@ bootstrap() {
   sed -i${SED_SUFFIX} -e 's|^standalone\.home.*|standalone.home = '${WARP10_HOME_ESCAPED}'|' ${WARP10_CONFIG_DIR}/*
   rm ${WARP10_CONFIG_DIR}/*${SED_SUFFIX}
 
-  sed -i -e 's|^ExecStart=.*|ExecStart='${WARP10_HOME_ESCAPED}'/bin/warp10-standalone.sh start|' ${WARP10_HOME}/bin/warp10.service
-  sed -i -e 's|^ExecStop=.*|ExecStop='${WARP10_HOME_ESCAPED}'/bin/warp10-standalone.sh stop|' ${WARP10_HOME}/bin/warp10.service
-
-  sed -i${SED_SUFFIX} -e 's|^\(\s\{0,100\}\)WARP10_HOME=/opt/warp10-.*|\1WARP10_HOME='${WARP10_HOME_ESCAPED}'|' ${WARP10_HOME}/bin/snapshot.sh
-  sed -i${SED_SUFFIX} -e 's|^\(\s\{0,100\}\)LEVELDB_HOME=${WARP10_HOME}/leveldb|\1LEVELDB_HOME='${LEVELDB_HOME_ESCAPED}'|' ${WARP10_HOME}/bin/snapshot.sh
-  rm ${WARP10_HOME}/bin/snapshot.sh${SED_SUFFIX}
+  sed -i -e 's|^ExecStart=.*|ExecStart='${WARP10_HOME_ESCAPED}'/bin/warp10.sh start|' ${WARP10_HOME}/bin/warp10.service
+  sed -i -e 's|^ExecStop=.*|ExecStop='${WARP10_HOME_ESCAPED}'/bin/warp10.sh stop|' ${WARP10_HOME}/bin/warp10.service
 
   sed -i${SED_SUFFIX} -e 's|warpLog\.File =.*|warpLog.File = '${WARP10_HOME_ESCAPED}'/logs/warp10.log|' ${WARP10_HOME}/etc/log4j.properties
   sed -i${SED_SUFFIX} -e 's|warpscriptLog\.File =.*|warpscriptLog.File = '${WARP10_HOME_ESCAPED}'/logs/warpscript.out|' ${WARP10_HOME}/etc/log4j.properties
@@ -371,6 +393,8 @@ bootstrap() {
   rm "${WARP10_HOME}/etc/initial.tokens${SED_SUFFIX}"
 
   echo "Warp 10 config has been generated here: ${WARP10_CONFIG_DIR}"
+
+  echo "You can now configure the initial and maximum amount of RAM allocated to Warp 10. Edit ${WARP10_HOME}/bin/warp10-env.sh, and look for WARP10_HEAP and WARP10_HEAP_MAX variables."
 
   touch ${FIRSTINIT_FILE}
 
@@ -416,7 +440,7 @@ start() {
   IN_MEMORY="$(echo "${CONFIG_KEYS}" | grep -e '^in\.memory=' | sed -e 's/^.*=//')"
   if [ "${IN_MEMORY:-}" != "true" ]; then
     #
-    # Leveldb exists ?
+    # Does LevelDB exist
     #
     if [ ! -e ${LEVELDB_HOME} ]; then
       echo "${LEVELDB_HOME} does not exist - Creating it..."
@@ -427,9 +451,9 @@ start() {
       fi
     fi
     if [ "$(find -L ${LEVELDB_HOME} -maxdepth 1 -type f | wc -l)" -eq 0 ]; then
-      echo "Init leveldb"
-      # Create leveldb database
-      echo \"Init leveldb database...\" >> ${WARP10_HOME}/logs/warp10.log
+      echo "Initializing LevelDB"
+      # Initialize LevelDB
+      echo \"Initializing LevelDB...\" >> ${WARP10_HOME}/logs/warp10.log
       ${JAVACMD} ${JAVA_OPTS} -cp ${WARP10_CP} ${WARP10_INIT} ${LEVELDB_HOME} >> ${WARP10_HOME}/logs/warp10.log 2>&1
     fi
   fi
@@ -486,12 +510,16 @@ start() {
     rm -f ${FIRSTINIT_FILE}
 
   fi
+  
 
   # Check again 5s later (time for plugin load errors)
   sleep 5
   if ! isStarted; then
     echo "Start failed! - See ${WARP10_HOME}/logs/warp10.log for more details"
     exit 1
+  else
+    # display a warning
+    checkRam
   fi
 
 }
@@ -504,9 +532,9 @@ stop() {
   isUser ${WARP10_USER}
 
   if isStarted; then
-    echo "Stop Warp 10..."
+    echo "Stopping Warp 10..."
     kill $(cat ${PID_FILE})
-    echo "Wait for Warp 10 to stop..."
+    echo "Waiting for Warp 10 to stop..."
     while $(kill -0 $(cat ${PID_FILE}) 2>/dev/null); do
       sleep 2
     done
@@ -529,21 +557,8 @@ status() {
   else
     echo "No instance of Warp 10 is currently running"
   fi
-}
-
-snapshot() {
-  if [ $# -ne 2 -a $# -ne 3 ]; then
-    echo $"Usage: $0 {snapshot 'snapshot_name' ['base_snapshot_name']}"
-    exit 2
-  fi
-  # Name of snapshot
-  SNAPSHOT=$2
-  if [ $# -eq 2 ]; then
-    ${WARP10_HOME}/bin/snapshot.sh ${SNAPSHOT} "${WARP10_HOME}" "${LEVELDB_HOME}" "${PID_FILE}"
-  else
-    BASE_SNAPSHOT=$3
-    ${WARP10_HOME}/bin/snapshot.sh ${SNAPSHOT} ${BASE_SNAPSHOT} "${WARP10_HOME}" "${LEVELDB_HOME}" "${PID_FILE}"
-  fi
+  
+  checkRam
 }
 
 tokengen() {
@@ -568,11 +583,26 @@ repair() {
   isUser ${WARP10_USER}
 
   if isStarted; then
-    echo "Repair has been cancelled! - Warp 10 instance must be stopped for repair"
+    echo "Operation has been cancelled! - Warp 10 instance must be stopped for repair"
     exit 1
   else
-    echo "Repair Leveldb..."
+    echo "Repairing LevelDB..."
     ${JAVACMD} -cp ${WARP10_JAR} -Dfile.encoding=UTF-8 io.warp10.standalone.WarpRepair ${LEVELDB_HOME}
+  fi
+}
+
+compact() {
+  #
+  # Make sure the caller is WARP10_USER
+  #
+  isUser ${WARP10_USER}
+
+  if isStarted; then
+    echo "Operation has been cancelled! - Warp 10 instance must be stopped for compaction"
+    exit 1
+  else
+    echo "Compacting LevelDB..."
+    ${JAVACMD} -cp ${WARP10_JAR} io.warp10.leveldb.WarpCompact ${LEVELDB_HOME} $1 $2
   fi
 }
 
@@ -585,8 +615,8 @@ case "${1:-}" in
   start
   ;;
   jmxstart)
-  JAVA_OPTS="${JAVA_OPTS} -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.port=${JMX_PORT}"
-  echo "## WARNING: JMX is enabled on port ${JMX_PORT}"
+  JAVA_OPTS="${JAVA_OPTS} -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.port=${JMX_PORT:-1098}"
+  echo "## WARNING: JMX is enabled on port ${JMX_PORT:-1098}"
   start
   ;;
   stop)
@@ -613,14 +643,14 @@ case "${1:-}" in
   run)
   run "$@"
   ;;
-  snapshot)
-  snapshot "$@"
-  ;;
   repair)
   repair
   ;;
+  compact)
+  compact
+  ;;
   *)
-  echo $"Usage: $0 {bootstrap|start|jmxstart|stop|status|snapshot 'snapshot_name'|tokengen envelope.mc2|repair|restart|jmxrestart|run file.mc2}"
+  echo $"Usage: $0 {bootstrap|start|jmxstart|stop|status|tokengen envelope.mc2|repair|compact begin end|restart|jmxrestart|run file.mc2}"
   exit 2
 esac
 

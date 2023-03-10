@@ -49,11 +49,11 @@ If Warp 10 is running on the same machine that the one you are building on:
 cp warp10/build/libs/warp10-$(git describe).jar /opt/warp10/bin/
 ```
 
-Then, update WARP10_REVISION in /opt/warp10/bin/warp10-standalone.sh with the version number you just compiled.
+Then, update WARP10_REVISION in /opt/warp10/bin/warp10.sh with the version number you just compiled.
 
 If Warp 10 is running on the same machine that the one you are building on:
 ```bash
-sed -i "s/WARP10_REVISION=.*/WARP10_REVISION=$(git describe)/g" /opt/warp10/bin/warp10-standalone.sh
+sed -i "s/WARP10_REVISION=.*/WARP10_REVISION=$(git describe)/g" /opt/warp10/bin/warp10.sh
 ```
 
 You can now restart Warp 10.

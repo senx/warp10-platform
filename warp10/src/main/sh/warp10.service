@@ -1,13 +1,30 @@
+#
+#   Copyright 2023  SenX S.A.S.
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+
 [Unit]
 Description=Warp 10 Standalone
+Documentation=https://www.warp10.io
 # If Warp 10 depends on other disks, wait for them to be mounted. Use `systemctl list-units -t mount` to find unit
 #After=data.mount 
 
 [Service]
 Type=forking
 User=warp10
-ExecStart=/opt/warp10-@VERSION@/bin/warp10-standalone.sh start
-ExecStop=/opt/warp10-@VERSION@/bin/warp10-standalone.sh stop
+ExecStart=/opt/warp10-@VERSION@/bin/warp10.sh start
+ExecStop=/opt/warp10-@VERSION@/bin/warp10.sh stop
 SuccessExitStatus=143
 RestartSec=10s
 TimeoutStartSec=60s
@@ -31,7 +48,7 @@ Slice=warp10.slice
 #LimitNOFILE=1000000
 
 # You can prevent Warp 10 from being killed by linux out of memory management.
-# Make sure properly configured WARP10_HEAP and WARP10_HEAP_MAX in warp10-standalone.sh to fit your system RAM.
+# Make sure properly configured WARP10_HEAP and WARP10_HEAP_MAX in warp10.sh to fit your system RAM.
 #ManagedOOMPreference=omit
 #OOMScoreAdjust=-1000
 
