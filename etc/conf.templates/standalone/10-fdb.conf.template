@@ -31,15 +31,21 @@ fdb.api.version = 710
 ## Flag indicating whether or not to use tenant prefixes.
 ## When set to true, tokens are expected to have a '.fdbtp' (FoundationDB Tenant Prefix) attribute with an OPB64 encoded key prefix.
 ## When set to true, Store and Egress components cannot use a tenant.
+## The default value is false
 ##
-fdb.use.tenant.prefix = false
+#fdb.use.tenant.prefix = false
 
 ##
 ## Directory
 ##
 
 directory.fdb.clusterfile = ${fdb.clusterfile}
-directory.fdb.tenant =
+
+##
+## Tenant to use for the Directory data
+## The default is to not use a tenant for Directory data
+##
+#directory.fdb.tenant =
 
 ##
 ## Store/Egress
@@ -48,8 +54,14 @@ directory.fdb.tenant =
 store.fdb.clusterfile = ${fdb.clusterfile}
 egress.fdb.clusterfile = ${fdb.clusterfile}
 
-store.fdb.tenant =
-egress.fdb.tenant =
+##
+## Tenant to use for storing data. The value must
+## be the same for both keys.
+## The default is to not use a tenant for data.
+##
+
+#store.fdb.tenant =
+#egress.fdb.tenant = ${store.fdb.tenant}
 
 ##
 ## Maximum number of attempts when committing a transaction to FDB
