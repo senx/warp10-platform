@@ -40,12 +40,15 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
+import org.bouncycastle.util.encoders.Hex;
 import org.joda.time.Duration;
 import org.joda.time.Instant;
 import org.joda.time.MutablePeriod;
 import org.joda.time.Period;
 import org.joda.time.ReadWritablePeriod;
 import org.joda.time.format.ISOPeriodFormat;
+
+import com.google.common.primitives.Longs;
 
 import io.warp10.WarpDist;
 import io.warp10.continuum.MetadataUtils;
@@ -993,23 +996,40 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
 
             // Check if there are some Metadata with no data yet
             if (keepempty) {
-              while(MetadataUtils.compare(metadatas.get(j), meta) < 0) {
+              while(j < metadatas.size() && MetadataUtils.compare(metadatas.get(j), meta) < 0) {
                 if (asEncoders) {
                   GTSEncoder e = new GTSEncoder(0L);
-                  e.setMetadata(meta);
+                  e.setMetadata(metadatas.get(j));
                   series.add(e);
                 } else {
                   GeoTimeSerie g = new GeoTimeSerie();
-                  g.setMetadata(meta);
+                  g.setMetadata(metadatas.get(j));
                   series.add(g);
                 }
 
                 j++;
               }
+              j++;
             }
 
             if (!ignore) {
               series.add(o);
+            }
+          }
+
+          // Handle the post batch series
+          if (keepempty) {
+            while(j < metadatas.size()) {
+              if (asEncoders) {
+                GTSEncoder e = new GTSEncoder(0L);
+                e.setMetadata(metadatas.get(j));
+                series.add(e);
+              } else {
+                GeoTimeSerie g = new GeoTimeSerie();
+                g.setMetadata(metadatas.get(j));
+                series.add(g);
+              }
+              j++;
             }
           }
         } else {
