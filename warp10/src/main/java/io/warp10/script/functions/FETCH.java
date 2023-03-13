@@ -970,45 +970,61 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
 
         int j = 0;
 
-        for (int i = 0; i < batch.size(); i++) {
-          Object o = batch.get(i);
-          boolean ignore = false;
-          Metadata meta = null;
+        if (!batch.isEmpty()) {
+          for (int i = 0; i < batch.size(); i++) {
+            Object o = batch.get(i);
+            boolean ignore = false;
+            Metadata meta = null;
 
-          if (o instanceof GeoTimeSerie) {
-            GeoTimeSerie g = (GeoTimeSerie) o;
-            meta = g.getMetadata();
+            if (o instanceof GeoTimeSerie) {
+              GeoTimeSerie g = (GeoTimeSerie) o;
+              meta = g.getMetadata();
 
-            if (!keepempty && 0 == GTSHelper.nvalues(g)) {
-              ignore = true;
+              if (!keepempty && 0 == GTSHelper.nvalues(g)) {
+                ignore = true;
+              }
+            } else { // GTSEncoder
+              GTSEncoder e = (GTSEncoder) o;
+              meta = e.getRawMetadata();
+              if (!keepempty && 0 == e.getCount()) {
+                ignore = true;
+              }
             }
-          } else { // GTSEncoder
-            GTSEncoder e = (GTSEncoder) o;
-            meta = e.getRawMetadata();
-            if (!keepempty && 0 == e.getCount()) {
-              ignore = true;
+
+            // Check if there are some Metadata with no data yet
+            if (keepempty) {
+              while(MetadataUtils.compare(metadatas.get(j), meta) < 0) {
+                if (asEncoders) {
+                  GTSEncoder e = new GTSEncoder(0L);
+                  e.setMetadata(meta);
+                  series.add(e);
+                } else {
+                  GeoTimeSerie g = new GeoTimeSerie();
+                  g.setMetadata(meta);
+                  series.add(g);
+                }
+
+                j++;
+              }
+            }
+
+            if (!ignore) {
+              series.add(o);
             }
           }
-
-          // Check if there are some Metadata with no data yet
+        } else {
           if (keepempty) {
-            while(MetadataUtils.compare(metadatas.get(j), meta) < 0) {
+            for (Metadata meta: metadatas) {
               if (asEncoders) {
                 GTSEncoder e = new GTSEncoder(0L);
-                e.setMetadata(m);
+                e.setMetadata(meta);
                 series.add(e);
               } else {
                 GeoTimeSerie g = new GeoTimeSerie();
-                g.setMetadata(m);
+                g.setMetadata(meta);
                 series.add(g);
               }
-
-              j++;
             }
-          }
-
-          if (!ignore) {
-            series.add(o);
           }
         }
 
@@ -1473,7 +1489,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
     }
 
     if (map.containsKey(PARAM_KEEPEMPTY)) {
-      params.put(PARAM_KEEPEMPTY, Boolean.FALSE.equals(map.get(PARAM_KEEPEMPTY)));
+      params.put(PARAM_KEEPEMPTY, Boolean.TRUE.equals(map.get(PARAM_KEEPEMPTY)));
     }
 
     return params;
