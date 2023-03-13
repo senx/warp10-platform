@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2021  SenX S.A.S.
+//   Copyright 2020-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -75,8 +75,6 @@ public class DatalogWorker extends Thread {
 
         record = job.record;
 
-        System.out.println(job.record);
-
         if (hasManager) {
           manager.process(record);
           job.consumer.success(job.ref);
@@ -112,7 +110,7 @@ public class DatalogWorker extends Thread {
         }
       } finally {
         labels.put(SensisionConstants.SENSISION_LABEL_TYPE, job.record.getType().name());
-        if (null == err) {
+        if (null != err) {
           Sensision.update(SensisionConstants.SENSISION_CLASS_DATALOG_FAILURES, labels, 1);
         } else {
           Sensision.update(SensisionConstants.SENSISION_CLASS_DATALOG_SUCCESSES, labels, 1);
