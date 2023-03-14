@@ -26,10 +26,12 @@ import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
 
+import io.warp10.WarpConfig;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.store.thrift.data.DatalogRecord;
 import io.warp10.continuum.store.thrift.data.DatalogRecordType;
 import io.warp10.continuum.store.thrift.data.Metadata;
+import io.warp10.quasar.token.thrift.data.WriteToken;
 
 /**
  * This class contains helper methods to create WAL records.
@@ -45,10 +47,16 @@ public class DatalogHelper {
     record.setBaseTimestamp(encoder.getBaseTimestamp());
     record.setEncoder(encoder.getBytes());
 
+    WriteToken token = (WriteToken) WarpConfig.getThreadProperty(WarpConfig.THREAD_PROPERTY_TOKEN);
+
+    if (null != token) {
+      record.setToken(token);
+    }
+
     return record;
   }
 
-  public static DatalogRecord getDeleteRecord(String id,Metadata metadata, long start, long end) throws IOException {
+  public static DatalogRecord getDeleteRecord(String id, WriteToken token, Metadata metadata, long start, long end) throws IOException {
     DatalogRecord record = new DatalogRecord();
     record.setType(DatalogRecordType.DELETE);
     record.setId(id);
@@ -56,6 +64,7 @@ public class DatalogHelper {
     record.setMetadata(metadata);
     record.setStart(start);
     record.setStop(end);
+    record.setToken(token);
 
     return record;
   }

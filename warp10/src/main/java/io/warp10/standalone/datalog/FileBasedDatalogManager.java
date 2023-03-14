@@ -334,7 +334,7 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
       return;
     }
     System.out.println("delete: " + token + " " + metadata + " " + start + " " + end);
-    append(DatalogHelper.getDeleteRecord(id, metadata, start, end));
+    append(DatalogHelper.getDeleteRecord(id, token, metadata, start, end));
   }
 
   @Override
@@ -355,7 +355,18 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
         decoder.next();
         GTSEncoder encoder = decoder.getEncoder();
         encoder.setMetadata(record.getMetadata());
-        this.storeClient.store(encoder);
+        WriteToken token = null;
+        try {
+          token = (WriteToken) WarpConfig.getThreadProperty(WarpConfig.THREAD_PROPERTY_TOKEN);
+          WarpConfig.setThreadProperty(WarpConfig.THREAD_PROPERTY_TOKEN, record.getToken());
+          this.storeClient.store(encoder);
+        } finally {
+          if (null != token) {
+            WarpConfig.setThreadProperty(WarpConfig.THREAD_PROPERTY_TOKEN, token);
+          } else {
+            WarpConfig.removeThreadProperty(WarpConfig.THREAD_PROPERTY_TOKEN);
+          }
+        }
         break;
 
       case REGISTER:
@@ -367,7 +378,7 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
         break;
 
       case DELETE:
-        this.storeClient.delete(null, record.getMetadata(), record.getStart(), record.getStop());
+        this.storeClient.delete(record.getToken(), record.getMetadata(), record.getStart(), record.getStop());
         break;
     }
 

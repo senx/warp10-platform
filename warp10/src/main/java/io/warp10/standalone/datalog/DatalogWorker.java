@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.LockSupport;
 
+import io.warp10.WarpConfig;
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSWrapperHelper;
@@ -29,6 +30,7 @@ import io.warp10.continuum.store.StoreClient;
 import io.warp10.continuum.store.thrift.data.DatalogRecord;
 import io.warp10.continuum.store.thrift.data.DatalogRecordType;
 import io.warp10.continuum.store.thrift.data.Metadata;
+import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.sensision.Sensision;
 import io.warp10.standalone.StandaloneDirectoryClient;
 import io.warp10.standalone.datalog.DatalogWorkers.DatalogJob;
@@ -86,7 +88,19 @@ public class DatalogWorker extends Thread {
               GTSDecoder decoder = new GTSDecoder(record.getBaseTimestamp(), record.bufferForEncoder());
               decoder.next();
               enc = decoder.getEncoder();
-              storeClient.store(enc);
+              enc.setMetadata(record.getMetadata());
+              WriteToken token = null;
+              try {
+                token = (WriteToken) WarpConfig.getThreadProperty(WarpConfig.THREAD_PROPERTY_TOKEN);
+                WarpConfig.setThreadProperty(WarpConfig.THREAD_PROPERTY_TOKEN, record.getToken());
+                storeClient.store(enc);
+              } finally {
+                if (null != token) {
+                  WarpConfig.setThreadProperty(WarpConfig.THREAD_PROPERTY_TOKEN, token);
+                } else {
+                  WarpConfig.removeThreadProperty(WarpConfig.THREAD_PROPERTY_TOKEN);
+                }
+              }
               job.consumer.success(job.ref);
               break;
             case REGISTER:
@@ -98,7 +112,7 @@ public class DatalogWorker extends Thread {
               job.consumer.success(job.ref);
               break;
             case DELETE:
-              storeClient.delete(null, metadata, record.getStart(), record.getStop());
+              storeClient.delete(record.getToken(), metadata, record.getStart(), record.getStop());
               job.consumer.success(job.ref);
               break;
           }

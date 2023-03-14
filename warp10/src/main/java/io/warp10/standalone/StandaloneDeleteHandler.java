@@ -16,15 +16,9 @@
 
 package io.warp10.standalone;
 
-import java.io.File;
-import java.io.FileDescriptor;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -36,14 +30,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import com.google.common.base.Preconditions;
-import com.google.common.primitives.Longs;
-
 import org.eclipse.jetty.io.EofException;
-import org.apache.thrift.TDeserializer;
-import org.apache.thrift.TException;
-import org.apache.thrift.TSerializer;
-import org.apache.thrift.protocol.TCompactProtocol;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.joda.time.format.DateTimeFormat;
@@ -58,7 +45,6 @@ import io.warp10.WarpManager;
 import io.warp10.WarpURLDecoder;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.LogUtil;
-import io.warp10.continuum.TimeSource;
 import io.warp10.continuum.Tokens;
 import io.warp10.continuum.egress.EgressFetchHandler;
 import io.warp10.continuum.gts.GTSHelper;
@@ -66,13 +52,10 @@ import io.warp10.continuum.gts.MetadataIdComparator;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.StoreClient;
-import io.warp10.continuum.store.thrift.data.DatalogRequest;
 import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.continuum.thrift.data.LoggingEvent;
-import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
-import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.script.WarpScriptException;
 import io.warp10.sensision.Sensision;
@@ -128,11 +111,11 @@ public class StandaloneDeleteHandler extends AbstractHandler {
     response.setHeader("Access-Control-Allow-Origin", "*");
 
     long nano = System.nanoTime();
-        
+
     //
     // TODO(hbs): Extract producer/owner from token
     //
-    
+
     String token = request.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_TOKENX));
 
     if (null == token) {
