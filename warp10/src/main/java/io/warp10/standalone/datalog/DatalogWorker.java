@@ -109,11 +109,13 @@ public class DatalogWorker extends Thread {
           job.consumer.failure(job.ref);
         }
       } finally {
-        labels.put(SensisionConstants.SENSISION_LABEL_TYPE, job.record.getType().name());
-        if (null != err) {
-          Sensision.update(SensisionConstants.SENSISION_CLASS_DATALOG_FAILURES, labels, 1);
-        } else {
-          Sensision.update(SensisionConstants.SENSISION_CLASS_DATALOG_SUCCESSES, labels, 1);
+        if (null != job) {
+          labels.put(SensisionConstants.SENSISION_LABEL_TYPE, job.record.getType().name());
+          if (null != err) {
+            Sensision.update(SensisionConstants.SENSISION_CLASS_DATALOG_FAILURES, labels, 1);
+          } else {
+            Sensision.update(SensisionConstants.SENSISION_CLASS_DATALOG_SUCCESSES, labels, 1);
+          }
         }
       }
     }
