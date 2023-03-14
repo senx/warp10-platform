@@ -163,10 +163,6 @@ public class EgressSplitsHandler extends AbstractHandler {
     // Determine the list of fetchers we can use
     //
 
-    //
-    // Retrieve HRegionLocation for each GTS by considering the most recent timestamp
-    //
-
     FDBPool fdbPool = this.storeClient.getPool();
     Database db = fdbPool.getDatabase();
 

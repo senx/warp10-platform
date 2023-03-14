@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2022  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 
 //
-// Set to true to enable the Warp 10 Accelerator. This is incompatible with in.memory set to true
+// Set to true to enable the Warp 10 Accelerator. This is incompatible the memory backend
 //
 accelerator = false
 
@@ -91,11 +91,6 @@ accelerator.ephemeral = false
 // Defaults to 'cache persist'.
 //
 #accelerator.default.read = cache persist
-
-//
-// Set to 'true' to indicate the instance will use memory only for storage. This type of instance is non persistent.
-//
-in.memory = false
 
 //
 // Number of chunks to retain (defaults to 3)

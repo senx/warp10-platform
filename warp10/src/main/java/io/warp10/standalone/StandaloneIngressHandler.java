@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,8 +16,31 @@
 
 package io.warp10.standalone;
 
-import com.google.common.base.Preconditions;
-import com.google.common.primitives.Longs;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileDescriptor;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.text.ParseException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.zip.GZIPInputStream;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.eclipse.jetty.server.Request;
+import org.eclipse.jetty.server.handler.AbstractHandler;
+import org.joda.time.Instant;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.warp10.ThrowableUtils;
 import io.warp10.WarpConfig;
@@ -34,52 +57,13 @@ import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.continuum.store.thrift.data.Metadata;
-import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
-import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.crypto.SipHashInline;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.functions.DURATION;
 import io.warp10.sensision.Sensision;
 import io.warp10.warp.sdk.IngressPlugin;
-
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileDescriptor;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.text.ParseException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.zip.GZIPInputStream;
-
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import org.apache.commons.io.output.FileWriterWithEncoding;
-import org.apache.thrift.TDeserializer;
-import org.apache.thrift.TException;
-import org.apache.thrift.TSerializer;
-import org.apache.thrift.protocol.TCompactProtocol;
-import org.eclipse.jetty.server.Request;
-import org.eclipse.jetty.server.handler.AbstractHandler;
-import org.joda.time.Instant;
-import org.joda.time.format.DateTimeFormat;
-import org.joda.time.format.DateTimeFormatter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class StandaloneIngressHandler extends AbstractHandler {
 
@@ -105,8 +89,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
   private final StandaloneDirectoryClient directoryClient;
 
   private final byte[] classKey;
-  private final byte[] labelsKey;  
-  
+  private final byte[] labelsKey;
+
   private final long[] classKeyLongs;
   private final long ckl0;
   private final long ckl1;
@@ -258,7 +242,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
       boolean nopersist = AcceleratorConfig.getDefaultWriteNopersist();
       // boolean to indicate we were explicitely instructed a nopersist value
       boolean forcedNopersist = false;
-         
+
       if (null != request.getHeader(AcceleratorConfig.ACCELERATOR_HEADER)) {
         if (request.getHeader(AcceleratorConfig.ACCELERATOR_HEADER).contains(AcceleratorConfig.NOCACHE)) {
           nocache = true;
@@ -308,6 +292,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
         httpStatusCode = HttpServletResponse.SC_FORBIDDEN;
         throw ee;
       }
+
+      WarpConfig.setThreadProperty(WarpConfig.THREAD_PROPERTY_TOKEN, writeToken);
 
       long maxsize = maxValueSize;
 
@@ -489,9 +475,9 @@ public class StandaloneIngressHandler extends AbstractHandler {
         // A '*' which will mean to not set 'now', and to recompute its value
         // each time it's needed.
         //
-        
+
         String nowstr = request.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_NOW_HEADERX));
-        
+
         if (null != nowstr) {
           if ("*".equals(nowstr)) {
             now = null;
@@ -693,9 +679,9 @@ public class StandaloneIngressHandler extends AbstractHandler {
               // This is the case when lastencoder and encoder are identical, but lastencoder was too big and needed
               // to be flushed
             }
-          }          
-        } while (true); 
-        
+          }
+        } while (true);
+
         br.close();
 
         if (null != lastencoder && lastencoder.size() > 0) {
@@ -736,7 +722,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_UPDATE_DATAPOINTS_RAW, sensisionLabels, count);
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_UPDATE_REQUESTS, sensisionLabels, 1);
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_UPDATE_TIME_US, sensisionLabels, (System.nanoTime() - nano) / 1000);
-              
+
         //
         // Update stats with CDN
         //
@@ -799,9 +785,9 @@ public class StandaloneIngressHandler extends AbstractHandler {
       //
       // class{labels}{attributes}
       //
-      
+
       String token = request.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_TOKENX));
-          
+
       WriteToken wtoken;
 
       try {
@@ -904,7 +890,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
             }
           }
           this.directoryClient.register(metadata);
-        }      
+        }
       } finally {
         this.directoryClient.register(null);
       }

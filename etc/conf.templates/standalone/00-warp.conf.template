@@ -21,7 +21,18 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 
 //
-// Set to true to only run the Warp 10™ Analytics Engine
+// Storage backend to use. Possible values are:
+//
+// leveldb
+// fdb
+// memory
+// plasma
+// null
+
+backend = leveldb
+
+//
+// Set to true to only run the Warp 10 Analytics Engine
 //
 #analytics.engine.only = true
 
@@ -146,11 +157,6 @@ standalone.delete.disable = false
 // Max message size for the Plasma Frontend Websocket
 //
 plasma.frontend.websocket.maxmessagesize = 1048576
-
-//
-// Set to 'true' to only forward data to Plasma. Not data storage will take place.
-//
-#pureplasma =
 
 //
 // Number of threads to use for scheduling parallel scanners. Use 0 to disable parallel scanners

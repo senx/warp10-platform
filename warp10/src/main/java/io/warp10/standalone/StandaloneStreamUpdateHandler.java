@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,47 +16,11 @@
 
 package io.warp10.standalone;
 
-import com.google.common.base.Preconditions;
-import com.google.common.primitives.Longs;
-
-import io.warp10.ThrowableUtils;
-import io.warp10.WarpConfig;
-import io.warp10.WarpManager;
-import io.warp10.continuum.Configuration;
-import io.warp10.continuum.ThrottlingManager;
-import io.warp10.continuum.TimeSource;
-import io.warp10.continuum.Tokens;
-import io.warp10.continuum.gts.GTSEncoder;
-import io.warp10.continuum.gts.GTSHelper;
-import io.warp10.continuum.sensision.SensisionConstants;
-import io.warp10.continuum.store.Constants;
-import io.warp10.continuum.store.DirectoryClient;
-import io.warp10.continuum.store.StoreClient;
-import io.warp10.continuum.store.thrift.data.DatalogRequest;
-import io.warp10.continuum.store.thrift.data.Metadata;
-import io.warp10.crypto.CryptoUtils;
-import io.warp10.crypto.KeyStore;
-import io.warp10.crypto.OrderPreservingBase64;
-import io.warp10.crypto.SipHashInline;
-import io.warp10.quasar.token.thrift.data.WriteToken;
-import io.warp10.sensision.Sensision;
-import io.warp10.warp.sdk.IngressPlugin;
-
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileDescriptor;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
 import java.io.StringReader;
-import java.math.BigInteger;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.text.ParseException;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
@@ -67,9 +31,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.thrift.TException;
-import org.apache.thrift.TSerializer;
-import org.apache.thrift.protocol.TCompactProtocol;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketClose;
@@ -85,6 +46,26 @@ import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.warp10.ThrowableUtils;
+import io.warp10.WarpConfig;
+import io.warp10.WarpManager;
+import io.warp10.continuum.Configuration;
+import io.warp10.continuum.ThrottlingManager;
+import io.warp10.continuum.TimeSource;
+import io.warp10.continuum.Tokens;
+import io.warp10.continuum.gts.GTSEncoder;
+import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.sensision.SensisionConstants;
+import io.warp10.continuum.store.Constants;
+import io.warp10.continuum.store.DirectoryClient;
+import io.warp10.continuum.store.StoreClient;
+import io.warp10.continuum.store.thrift.data.Metadata;
+import io.warp10.crypto.KeyStore;
+import io.warp10.crypto.SipHashInline;
+import io.warp10.quasar.token.thrift.data.WriteToken;
+import io.warp10.sensision.Sensision;
+import io.warp10.warp.sdk.IngressPlugin;
 
 /**
  * WebSocket handler which handles streaming updates
@@ -291,6 +272,8 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
 
             boolean lastHadAttributes = false;
 
+            WarpConfig.setThreadProperty(WarpConfig.THREAD_PROPERTY_TOKEN, wtoken);
+
             do {
 
               if (this.handler.parseAttributes) {
@@ -311,6 +294,7 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
               if (line.startsWith("UPDATE ")) {
                 String[] subtokens = line.split("\\s+");
                 setToken(subtokens[1]);
+                WarpConfig.setThreadProperty(WarpConfig.THREAD_PROPERTY_TOKEN, wtoken);
                 continue;
               }
 

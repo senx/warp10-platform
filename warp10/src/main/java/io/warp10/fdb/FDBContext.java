@@ -38,7 +38,7 @@ public class FDBContext {
   public FDBContext(String clusterFile, String tenant) {
     this.clusterFile = clusterFile;
 
-    if (null != tenant) {
+    if (null != tenant && !"".equals(tenant.trim())) {
       Database db = null;
 
       try {

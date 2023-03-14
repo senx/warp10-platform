@@ -138,7 +138,7 @@ public class Directory extends AbstractHandler implements Runnable {
 
   private static final Logger LOG = LoggerFactory.getLogger(Directory.class);
 
-  private static final String DEFAULT_FDB_RETRYLIMIT = Long.toString(4);
+  public static final String DEFAULT_FDB_RETRYLIMIT = Long.toString(4);
 
   /**
    * Maximum size of the input URI

@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2022  SenX S.A.S.
+//   Copyright 2020-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -117,7 +117,7 @@ public class Capabilities {
     Map<String,String> caps = new LinkedHashMap<String,String>();
 
     if (null != capabilities) {
-      if (null == names) {
+      if (null == names || names.isEmpty()) {
         caps.putAll(capabilities.capabilities);
       } else {
         for (Object elt: names) {
@@ -128,10 +128,16 @@ public class Capabilities {
       }
     }
 
-    for (Object elt: names) {
-      String def = DEFAULT_CAPABILITIES.get(elt);
-      if (null != def) {
-        caps.putIfAbsent((String) elt, def);
+    if (null != names && !names.isEmpty()) {
+      for (Object elt: names) {
+        String def = DEFAULT_CAPABILITIES.get(elt);
+        if (null != def) {
+          caps.putIfAbsent((String) elt, def);
+        }
+      }
+    } else {
+      for (String cap: DEFAULT_CAPABILITIES.keySet()) {
+        caps.putIfAbsent(cap, DEFAULT_CAPABILITIES.get(cap));
       }
     }
 

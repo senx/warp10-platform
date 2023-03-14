@@ -81,7 +81,7 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
   public static final String USERNAME = "username";
   public static final String PASSWORD = "password";
   public static final String CONNECT_TIMEOUT = "timeout";
-  
+
   //
   // Output
   //
@@ -185,7 +185,7 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
     if (!httpCap.isEmpty()) {
       webAccessController = new WebAccessController(httpCap);
     }
-    
+
     //
     // Retrieve call number limit and download size limit
     //
@@ -310,7 +310,7 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
       timeout = (ti == Integer.MAX_VALUE) ? 0 : ti;
 
     }
-    
+
     //
     // Check URL
     //
@@ -335,7 +335,7 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
     }
 
     if (!webAccessController.checkURL(url)) {
-      throw new WarpScriptException(getName() + " invalid host or scheme in URL.");
+      throw new WarpScriptException(getName() + " URL forbidden by configuration or capability.");
     }
 
     //

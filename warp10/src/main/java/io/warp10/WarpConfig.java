@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -74,6 +74,8 @@ public class WarpConfig {
   private static Properties properties = null;
 
   public static final String THREAD_PROPERTY_SESSION = ".session";
+
+  public static final String THREAD_PROPERTY_TOKEN = ".token";
 
   /**
    * The concept of thread properties is to allocate a per thread map which can contain
