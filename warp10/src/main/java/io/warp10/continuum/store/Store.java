@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -83,7 +83,7 @@ public class Store extends Thread {
 
   private static final Logger LOG = LoggerFactory.getLogger(Store.class);
 
-  private static final String DEFAULT_FDB_RETRYLIMIT = Long.toString(4);
+  public static final String DEFAULT_FDB_RETRYLIMIT = Long.toString(4);
 
   private static RateLimiter rateLimit = null;
 
@@ -257,7 +257,7 @@ public class Store extends Thread {
       throw new RuntimeException(Configuration.STORE_KAFKA_DATA_INTERCOMMITS_MAXTIME + " MUST be set to a value above that of " + Configuration.STORE_KAFKA_DATA_COMMITPERIOD);
     }
 
-    this.maxPendingMutationsSize = (long) Math.min(FDBUtils.MAX_TXN_SIZE * 0.95, Long.parseLong(properties.getProperty(Configuration.STORE_FDB_DATA_PENDINGMUTATIONS_MAXSIZE)));
+    this.maxPendingMutationsSize = (long) Math.min(FDBUtils.MAX_TXN_SIZE * 0.95, Long.parseLong(properties.getProperty(Configuration.STORE_FDB_DATA_PENDINGMUTATIONS_MAXSIZE, Constants.DEFAULT_FDB_DATA_PENDINGMUTATIONS_MAXSIZE)));
 
     final String groupid = properties.getProperty(Configuration.STORE_KAFKA_DATA_GROUPID);
 

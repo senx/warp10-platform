@@ -75,6 +75,8 @@ public class WarpConfig {
 
   public static final String THREAD_PROPERTY_SESSION = ".session";
 
+  public static final String THREAD_PROPERTY_TOKEN = ".token";
+
   /**
    * The concept of thread properties is to allocate a per thread map which can contain
    * arbitrary elements keyed by STRINGs and therefore accessible to all methods invoked within

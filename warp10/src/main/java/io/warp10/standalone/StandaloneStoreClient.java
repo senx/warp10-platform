@@ -689,6 +689,10 @@ public class StandaloneStoreClient implements StoreClient {
   @Override
   public long delete(WriteToken token, Metadata metadata, long start, long end) throws IOException {
 
+    if (null == metadata) {
+      return 0L;
+    }
+
     //
     // Regen classId/labelsId
     //
