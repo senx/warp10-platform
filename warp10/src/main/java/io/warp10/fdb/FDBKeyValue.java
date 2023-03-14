@@ -1,4 +1,10 @@
+//
+//   Copyright 2022-2023  SenX S.A.S.
+//
+
 package io.warp10.fdb;
+
+import java.util.Map.Entry;
 
 import com.apple.foundationdb.KeyValue;
 
@@ -6,7 +12,7 @@ import com.apple.foundationdb.KeyValue;
  * A wrapper class which allows for easy stripping of key prefix without
  * allocating new arrays.
  */
-public class FDBKeyValue {
+public class FDBKeyValue implements Entry<byte[],byte[]> {
 
   private final int koffset;
   private final int klen;
@@ -52,5 +58,32 @@ public class FDBKeyValue {
 
   public int getValueLength() {
     return this.vlen;
+  }
+
+  @Override
+  public byte[] getKey() {
+    if (this.kv.getKey().length != klen) {
+      byte[] k = new byte[klen];
+      System.arraycopy(kv.getKey(), koffset, k, 0, klen);
+      return k;
+    } else {
+      return this.kv.getKey();
+    }
+  }
+
+  @Override
+  public byte[] getValue() {
+    if (this.kv.getValue().length != vlen) {
+      byte[] v = new byte[vlen];
+      System.arraycopy(kv.getValue(), voffset, v, 0, vlen);
+      return v;
+    } else {
+      return this.kv.getValue();
+    }
+  }
+
+  @Override
+  public byte[] setValue(byte[] value) {
+    throw new RuntimeException("Not implemented.");
   }
 }

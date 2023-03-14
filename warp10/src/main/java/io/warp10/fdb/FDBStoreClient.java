@@ -38,9 +38,8 @@ public class FDBStoreClient implements StoreClient {
 
   private final FDBPool pool;
 
-  private final KeyStore keystore;
-
-  private final boolean FDBUseTenantPrefix;
+  public final KeyStore keystore;
+  public final boolean FDBUseTenantPrefix;
 
   private static final String EGRESS_FDB_POOLSIZE_DEFAULT = Integer.toString(1);
 

@@ -463,6 +463,11 @@ public class Constants {
   public static final String TOKEN_ATTR_EXPOSE = ".expose";
 
   /**
+   * Default max pending mutations size for FDB transactions - MUST be less than 10000000 which is the maximum transaction size in FDB
+   */
+  public static final String DEFAULT_FDB_DATA_PENDINGMUTATIONS_MAXSIZE = Long.toString(5000000L);
+
+  /**
    * FoundationDB tenant key prefix. The value is OPB64 encoded
    */
   public static final String TOKEN_ATTR_FDB_TENANT_PREFIX = ".fdbtp";
@@ -607,4 +612,10 @@ public class Constants {
    * Prefix for 'raw' (individual datapoints) data
    */
   public static final byte[] FDB_RAW_DATA_KEY_PREFIX = "R".getBytes(StandardCharsets.UTF_8);
+
+  public static final String BACKEND_MEMORY = "memory";
+  public static final String BACKEND_PLASMA = "plasma";
+  public static final String BACKEND_NULL = "null";
+  public static final String BACKEND_LEVELDB = "leveldb";
+  public static final String BACKEND_FDB = "fdb";
 }

@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -49,6 +49,8 @@ import io.warp10.standalone.Warp;
 public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
 
   private static final boolean standalone;
+  private static final String backend;
+  private static final boolean FDBBackend;
 
   //
   // Have a semaphore which gets picked up by a thread having
@@ -90,7 +92,7 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
 
       long waitnanos = System.nanoTime() - this.creation;
 
-      if (standalone) {
+      if (standalone && !FDBBackend) {
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_CLIENT_PARALLEL_SCANNERS_WAITNANOS, Sensision.EMPTY_LABELS, waitnanos);
       } else {
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FDB_CLIENT_PARALLEL_SCANNERS_WAITNANOS, Sensision.EMPTY_LABELS, waitnanos);
@@ -108,7 +110,7 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
         this.thread = Thread.currentThread();
         name = this.thread.getName();
         this.thread.setName("GTSDecoderIteratorRunnable");
-        if (standalone) {
+        if (standalone && !FDBBackend) {
           Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_CLIENT_PARALLEL_SCANNERS, Sensision.EMPTY_LABELS, 1);
         } else {
           Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FDB_CLIENT_PARALLEL_SCANNERS, Sensision.EMPTY_LABELS, 1);
@@ -163,7 +165,7 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
             if (0 == held) {
               this.sem.acquire(POOLSIZE);
               held = POOLSIZE;
-              if (standalone) {
+              if (standalone && !FDBBackend) {
                 Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_CLIENT_PARALLEL_SCANNERS_MUTEX, Sensision.EMPTY_LABELS, 1);
               } else {
                 Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FDB_CLIENT_PARALLEL_SCANNERS_MUTEX, Sensision.EMPTY_LABELS, 1);
@@ -229,8 +231,10 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
 
   static {
     standalone = Warp.isStandaloneMode();
+    backend = Warp.getBackend();
+    FDBBackend = Constants.BACKEND_FDB.equals(backend);
 
-    if (standalone) {
+    if (standalone && !FDBBackend) {
       MAX_INFLIGHT = Integer.parseInt(WarpConfig.getProperty(Configuration.STANDALONE_PARALLELSCANNERS_MAXINFLIGHTPERREQUEST, "0"));
       POOLSIZE = Integer.parseInt(WarpConfig.getProperty(Configuration.STANDALONE_PARALLELSCANNERS_POOLSIZE, "0"));
 
@@ -280,7 +284,7 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
   private static final int MAX_PARALLEL_SCANNERS;
 
   public ParallelGTSDecoderIteratorWrapper(boolean fdbUseTenantPrefix, FetchRequest req, FDBPool pool, KeyStore keystore) throws IOException {
-    if (standalone) {
+    if (standalone && !FDBBackend) {
       throw new IOException("Incompatible parallel scanner instantiated.");
     }
 
@@ -360,7 +364,7 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
     //ReadToken token, long now, long then, long count, long skip, long step, long timestep, double sample, List<Metadata> metadatas, long preBoundary, long postBoundary
     List<Metadata> metadatas = req.getMetadatas();
 
-    if (!standalone) {
+    if (!standalone || FDBBackend) {
       throw new IOException("Incompatible parallel scanner instantiated.");
     }
 
@@ -451,7 +455,7 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
 
     while(!this.errorFlag.get() && this.queue.isEmpty() && !(0 == this.pending.get() &&  0 == this.inflight.get())) {
       schedule();
-      LockSupport.parkNanos(50000L);
+      LockSupport.parkNanos(500000L);
     }
 
     if (this.errorFlag.get()) {
@@ -503,7 +507,7 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
       idx++;
     } catch (RejectedExecutionException ree) {
       // WARN(hbs): the exception caught here is a singleton for the Executor (see initialization of the executor)
-      if (standalone) {
+      if (standalone && !FDBBackend) {
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_CLIENT_PARALLEL_SCANNERS_REJECTIONS, Sensision.EMPTY_LABELS, 1);
       } else {
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FDB_CLIENT_PARALLEL_SCANNERS_REJECTIONS, Sensision.EMPTY_LABELS, 1);
