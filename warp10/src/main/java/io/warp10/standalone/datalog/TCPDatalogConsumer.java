@@ -395,7 +395,7 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
         // Now retrieve the DATA messages and push them to a worker
         //
 
-        DatalogRecord record = new DatalogRecord();
+        DatalogRecord record = null;
 
         while(true) {
 
@@ -531,7 +531,7 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
           // Extract the DatalogRecord
           //
 
-          record.clear();
+          record = new DatalogRecord();
           DatalogHelper.deserialize(msg.getRecord(), record);
 
           //
