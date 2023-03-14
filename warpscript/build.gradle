@@ -150,7 +150,7 @@ def withVersion(String dependencyWithoutVersion) {
 //
 // Reproducible builds
 //
-tasks.withType(AbstractArchiveTask).configureEach {
-  preserveFileTimestamps = false
-  reproducibleFileOrder = true
-}
+//tasks.withType(AbstractArchiveTask).configureEach {
+//  preserveFileTimestamps = false
+//  reproducibleFileOrder = true
+//}

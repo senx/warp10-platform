@@ -62,7 +62,7 @@ compileJava.dependsOn generateThrift
 //
 // Reproducible builds
 //
-tasks.withType(AbstractArchiveTask).configureEach {
-  preserveFileTimestamps = false
-  reproducibleFileOrder = true
-}
+//tasks.withType(AbstractArchiveTask).configureEach {
+//  preserveFileTimestamps = false
+//  reproducibleFileOrder = true
+//}
