@@ -57,6 +57,8 @@ import io.warp10.continuum.store.thrift.data.DatalogRecordType;
 import io.warp10.continuum.store.thrift.data.GTSWrapper;
 import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.SipHashInline;
+import io.warp10.quasar.token.thrift.data.TokenType;
+import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.script.MemoryWarpScriptStack;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptLib;
@@ -600,7 +602,7 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
           if (null != macro) {
             stack.show();
             stack.clear();
-            Map<Object,Object> tokenMap = null;
+            Map<String,Object> tokenMap = null;
 
             if (macroToken && null != record.getToken()) {
               tokenMap = TOKENDUMP.mapFromToken(record.getToken());
@@ -721,7 +723,10 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
 
                     // If there is a map left on the stack, update the token
                     if (stack.depth() > 0 && stack.peek() instanceof Map) {
-                      record.setToken(TOKENGEN.tokenFromMap((Map<Object,Object> stack.pop(), "Datalog", Long.MAX_VALUE));
+                      tokenMap = (Map<String,Object>) stack.pop();
+                      // force token type
+                      tokenMap.put(TOKENGEN.KEY_TYPE, TokenType.WRITE.toString());
+                      record.setToken((WriteToken) TOKENGEN.tokenFromMap(tokenMap, "Datalog", Long.MAX_VALUE));
                     }
                     updateIds = true;
                   }
