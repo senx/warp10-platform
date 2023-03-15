@@ -105,6 +105,7 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
   public static final String CONFIG_DATALOG_CONSUMER_OFFSETDELAY = "datalog.consumer.offsetdelay";
   public static final String CONFIG_DATALOG_CONSUMER_MACRO = "datalog.consumer.macro";
   public static final String CONFIG_DATALOG_CONSUMER_MACRO_DATA = "datalog.consumer.macro.data";
+  public static final String CONFIG_DATALOG_CONSUMER_MACRO_TOKEN = "datalog.consumer.macro.token";
 
   public static final String SF_META_NOW = "now";
   public static final String SF_META_UUID = "uuid";

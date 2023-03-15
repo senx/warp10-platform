@@ -62,6 +62,8 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.binary.ADD;
+import io.warp10.script.ext.token.TOKENDUMP;
+import io.warp10.script.ext.token.TOKENGEN;
 import io.warp10.script.functions.ECDH;
 import io.warp10.script.functions.ECPRIVATE;
 import io.warp10.script.functions.ECPUBLIC;
@@ -176,6 +178,7 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
     stack.maxLimits();
 
     boolean macroData = "true".equals(WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_CONSUMER_MACRO_DATA + suffix));
+    boolean macroToken = "true".equals(WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_CONSUMER_MACRO_TOKEN + suffix));
 
     Map<String,String> labels = new HashMap<String,String>();
     labels.put(SensisionConstants.SENSISION_LABEL_CONSUMER, this.id);
@@ -589,13 +592,25 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
           // is fed with an encoder as above but with the actual data included for UPDATE messages.
           // The macro will then have the ability to alter the encoder to update metadata
           // and/or data. It is then expected to return a boolean or an encoder.
+          //
+          // The macro is called in the consumer thread, not in the worker threads so metadata alterations
+          // are reflected in the choice of the worker to respect the sequence of messages per GTS
+          //
 
           if (null != macro) {
             stack.show();
             stack.clear();
+            Map<Object,Object> tokenMap = null;
+
+            if (macroToken && null != record.getToken()) {
+              tokenMap = TOKENDUMP.mapFromToken(record.getToken());
+            }
+
             if (!macroData) {
               GTSEncoder encoder = new GTSEncoder(0L);
               encoder.setMetadata(record.getMetadata());
+
+              stack.push(tokenMap);
               stack.push(encoder);
               stack.push(record.getType().name());
               stack.push(macro);
@@ -618,86 +633,98 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
               }
               encoder.setMetadata(record.getMetadata());
 
-              // Call the macro with the encoder and the record type
+              // Call the macro with the token, the encoder and the record type
+              stack.push(tokenMap);
               stack.push(encoder);
               stack.push(record.getType().name());
               stack.push(macro);
               RUN.apply(stack);
-              // Skip if the macro returned an invalid number of values (!= 1) or if it returned a boolean with value false
-              boolean skip = (1 != stack.depth()) ||  (1 == stack.depth() && stack.peek() instanceof Boolean && !Boolean.TRUE.equals(stack.peek()));
+
+              // Skip if the macro did not return a boolean TRUE
+              boolean skip = !(stack.depth() >= 1 && Boolean.TRUE.equals(stack.peek()));
 
               boolean updateIds = false;
 
               if (!skip) {
+                // Discard the boolean
+                stack.pop();
+
                 // The macro returned a GTS or an ENCODER, update the record with the
                 // metadata and the content (for UPDATE records)
                 GTSEncoder forwardEncoder = null;
-                if (stack.peek() instanceof GeoTimeSerie) {
-                  GeoTimeSerie gts = (GeoTimeSerie) stack.peek();
-                  encoder = new GTSEncoder(0L);
-                  encoder.setMetadata(gts.getMetadata());
-                  encoder.encode(gts);
-                  updateIds = true;
-                } else if (stack.peek() instanceof GTSEncoder) {
-                  encoder = (GTSEncoder) stack.peek();
-                  updateIds = true;
-                } else if (stack.peek() instanceof List) {
-                  // The macro returned a list of two elements, either GTS or ENCODER. The first one is the
-                  // content to use for the action (UPDATE/REGISTER/UNREGISTER/DELETE), the second one is
-                  // the content to forward.
-                  List<Object> l = (List<Object>) stack.peek();
-                  if (2 == l.size()) {
-                    Object update = l.get(0);
-                    Object forward = l.get(1);
+                if (stack.depth() > 0) {
+                  if (stack.peek() instanceof GeoTimeSerie) {
+                    GeoTimeSerie gts = (GeoTimeSerie) stack.pop();
+                    encoder = new GTSEncoder(0L);
+                    encoder.setMetadata(gts.getMetadata());
+                    encoder.encode(gts);
+                    updateIds = true;
+                  } else if (stack.peek() instanceof GTSEncoder) {
+                    encoder = (GTSEncoder) stack.pop();
+                    updateIds = true;
+                  } else if (stack.peek() instanceof List) {
+                    // The macro returned a list of two elements, either GTS or ENCODER. The first one is the
+                    // content to use for the action (UPDATE/REGISTER/UNREGISTER/DELETE), the second one is
+                    // the content to forward.
+                    List<Object> l = (List<Object>) stack.pop();
+                    if (2 == l.size()) {
+                      Object update = l.get(0);
+                      Object forward = l.get(1);
 
-                    if (update instanceof GeoTimeSerie) {
-                      GeoTimeSerie gts = (GeoTimeSerie) update;
-                      encoder = new GTSEncoder(0L);
-                      encoder.setMetadata(gts.getMetadata());
-                      encoder.encode(gts);
-                      updateIds = true;
-                    } else if (update instanceof GTSEncoder) {
-                      encoder = (GTSEncoder) update;
-                      updateIds = true;
+                      if (update instanceof GeoTimeSerie) {
+                        GeoTimeSerie gts = (GeoTimeSerie) update;
+                        encoder = new GTSEncoder(0L);
+                        encoder.setMetadata(gts.getMetadata());
+                        encoder.encode(gts);
+                        updateIds = true;
+                      } else if (update instanceof GTSEncoder) {
+                        encoder = (GTSEncoder) update;
+                        updateIds = true;
+                      } else {
+                        skip = true;
+                      }
+
+                      // Create 'forward' wrapper
+                      if (forward instanceof GeoTimeSerie) {
+                        GeoTimeSerie gts = (GeoTimeSerie) forward;
+                        forwardEncoder = new GTSEncoder(0L);
+                        forwardEncoder.setMetadata(gts.getMetadata());
+                        forwardEncoder.encode(gts);
+                        updateIds = true;
+                      } else if (forward instanceof GTSEncoder) {
+                        forwardEncoder = (GTSEncoder) forward;
+                        updateIds = true;
+                      } else {
+                        skip = true;
+                      }
                     } else {
                       skip = true;
                     }
 
-                    // Create 'forward' wrapper
-                    if (forward instanceof GeoTimeSerie) {
-                      GeoTimeSerie gts = (GeoTimeSerie) forward;
-                      forwardEncoder = new GTSEncoder(0L);
-                      forwardEncoder.setMetadata(gts.getMetadata());
-                      forwardEncoder.encode(gts);
-                      updateIds = true;
-                    } else if (forward instanceof GTSEncoder) {
-                      forwardEncoder = (GTSEncoder) forward;
-                      updateIds = true;
-                    } else {
-                      skip = true;
+                    // Copy the forwardEncoder as a wrapper in the record. This will trigger the storing of this
+                    // encoder instead of the one in 'encoder' but will forward the latter if forwarding should happen.
+                    if (null != forwardEncoder) {
+                      GTSWrapper wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(forwardEncoder, false);
+                      record.setForward(wrapper);
                     }
                   } else {
                     skip = true;
                   }
 
-                  // Copy the forwardEncoder as a wrapper in the record. This will trigger the storing of this
-                  // encoder instead of the one in 'encoder' but will forward the latter if forwarding should happen.
-                  if (null != forwardEncoder) {
-                    GTSWrapper wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(forwardEncoder, false);
-                    record.setForward(wrapper);
-                  }
-                } else {
-                  skip = true;
-                }
+                  if (!skip) {
+                    // Copy the encoder
+                    record.setMetadata(encoder.getMetadata());
+                    if (DatalogRecordType.UPDATE.equals(record.getType())) {
+                      record.setBaseTimestamp(encoder.getBaseTimestamp());
+                      record.setEncoder(encoder.getBytes());
+                    }
 
-                if (!skip) {
-                  // Copy the encoder
-                  record.setMetadata(encoder.getMetadata());
-                  if (DatalogRecordType.UPDATE.equals(record.getType())) {
-                    record.setBaseTimestamp(encoder.getBaseTimestamp());
-                    record.setEncoder(encoder.getBytes());
+                    // If there is a map left on the stack, update the token
+                    if (stack.depth() > 0 && stack.peek() instanceof Map) {
+                      record.setToken(TOKENGEN.tokenFromMap((Map<Object,Object> stack.pop(), "Datalog", Long.MAX_VALUE));
+                    }
+                    updateIds = true;
                   }
-                  updateIds = true;
                 }
               }
 
