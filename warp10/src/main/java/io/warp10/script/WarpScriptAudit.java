@@ -1,6 +1,5 @@
 package io.warp10.script;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import io.warp10.WarpConfig;
 import io.warp10.WarpURLDecoder;
 import io.warp10.continuum.Configuration;
@@ -19,7 +18,6 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -39,15 +37,16 @@ public class WarpScriptAudit {
   private final boolean allowLooseBlockComments = !"false".equals(System.getProperty(Configuration.WARPSCRIPT_ALLOW_LOOSE_BLOCK_COMMENTS));
 
 
-  /**
-   * Stores an issue, and a possible advice or solution + the issue position
-   */
   public enum ISSUE_GRAVITY {
     ERROR,
     WARNING,
     INFO
   }
 
+  /**
+   * Stores an issue, and a possible advice or solution + the issue position
+   * Issue gravity is defined by {@link ISSUE_GRAVITY}
+   */
   public static class Issue {
     public String issue;
     public Long lineNumber;
@@ -126,12 +125,10 @@ public class WarpScriptAudit {
   /**
    * Parse a WarpScript the same way MemoryWarpScriptStack does.
    * Returns a List of Statements or ParsingIssue, if any.
-   * A function not in WarpScript leads to a statement typed UNKNOWN.
+   * A function not in WarpScript lib (or loaded extensions) results in a statement typed UNKNOWN.
    * <p>
    * As parseWarpScriptStatements do not execute any WarpScript, it cannot
    * detect errors produced by external macros or REDEF, or 'wrong ws' EVAL.
-   * <p>
-   * Secure scripts are not considered.
    * <p>
    * Syntax, variable name, blocks of code, are similar to MemoryWarpScriptStack.exec()
    *
@@ -157,8 +154,7 @@ public class WarpScriptAudit {
           break;
         }
 
-        // the following is nearly the same as MemoryWarpScriptStack, parsing of strings, multi line strings, macros, 
-        // should be the same
+        // the following is nearly the same as MemoryWarpScriptStack.exec()
 
         String rawline = line;
         String[] statements;
@@ -375,7 +371,11 @@ public class WarpScriptAudit {
     return stList;
   }
 
-
+  /**
+   * Extract the list of issues linked to WarpScript parsing: unknown functions + all the issues raised by 
+   * @param ws
+   * @return
+   */
   public static List<Issue> parsingAudit(String ws) {
 
     WarpScriptAudit wsa = new WarpScriptAudit();
@@ -524,13 +524,14 @@ public class WarpScriptAudit {
         }
         // Capability needed warning, if CAPADD not detected before, or info, if detected.
         if (st.type == STATEMENT_TYPE.FUNCTION_CALL && capabilityNeededFunctions.containsKey(st.statement)) {
-          // look for CAPADD or CAPCHECK before
-          boolean capManaged = backwardStatementSearch(sts, "CAPADD", i, Integer.MAX_VALUE, STATEMENT_TYPE.FUNCTION_CALL) > 0;
-          capManaged = capManaged || backwardStatementSearch(sts, "CAPCHECK", i, Integer.MAX_VALUE, STATEMENT_TYPE.FUNCTION_CALL) > 0;
+          // look for CAPADD or CAPCHECK or CAPGET before
+          boolean capManaged = backwardStatementSearch(sts, "CAPADD", i, Integer.MAX_VALUE, STATEMENT_TYPE.FUNCTION_CALL) > 0 ||
+              backwardStatementSearch(sts, "CAPCHECK", i, Integer.MAX_VALUE, STATEMENT_TYPE.FUNCTION_CALL) > 0 ||
+              backwardStatementSearch(sts, "CAPGET", i, Integer.MAX_VALUE, STATEMENT_TYPE.FUNCTION_CALL) > 0;
           if (capManaged) {
             issues.add(new Issue(ISSUE_GRAVITY.INFO, st.statement + " needs a capability", st.lineNumber, st.statementNumber, capabilityNeededFunctions.get(st.statement)));
           } else {
-            issues.add(new Issue(ISSUE_GRAVITY.WARNING, st.statement + " needs a capability, and there is no CAPADD or CAPCHECK before", st.lineNumber, st.statementNumber, capabilityNeededFunctions.get(st.statement)));
+            issues.add(new Issue(ISSUE_GRAVITY.WARNING, st.statement + " needs a capability, and there is no CAPADD or CAPCHECK or CAPGET before", st.lineNumber, st.statementNumber, capabilityNeededFunctions.get(st.statement)));
           }
         }
       }
@@ -559,7 +560,7 @@ public class WarpScriptAudit {
 
 
   public static void issuesToMarkDown(List<Issue> issues, StringBuilder sb) {
-    sb.append("|Line|Type|Issue|Advice|\n");
+    sb.append("|Type|Line|Issue|Advice|\n");
     sb.append("|---|---|---|---|\n");
     issues.sort(new Comparator<Issue>() {
       @Override
@@ -613,6 +614,19 @@ public class WarpScriptAudit {
       issues.add(new Issue(ISSUE_GRAVITY.ERROR, "Cannot read file " + p.toString(), 0L, 0));
     }
     return issues;
+  }
+
+  public static String auditWsToJon(String ws, String auditTask) throws IOException {
+    List<Issue> issues = new ArrayList<>();
+    if (auditTask.equalsIgnoreCase(AUDIT_TASK_3_X_MIGRATION)) {
+      issues = migration3xAudit(ws);
+    } else if (auditTask.equalsIgnoreCase(AUDIT_TASK_PARSING)) {
+      issues = parsingAudit(ws);
+    } else {
+      issues.add(new Issue(ISSUE_GRAVITY.ERROR, "Audit Task " + auditTask + " is not supported", 0L, 0,
+          "Supported tasks are: " + AUDIT_TASK_3_X_MIGRATION + ", " + AUDIT_TASK_PARSING));
+    }
+    return JsonUtils.objectToJson(issues, true);
   }
 
   /**
