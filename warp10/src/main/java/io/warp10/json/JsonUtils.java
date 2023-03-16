@@ -170,6 +170,7 @@ public class JsonUtils {
     module.addSerializer(new RealVectorSerializer());
     module.addSerializer(new RealMatrixSerializer());
     module.addSerializer(new COWListSerializer());
+    module.addSerializer(new IssueSerializer());
 
     //
     // Common configuration for both strict and loose mappers.
