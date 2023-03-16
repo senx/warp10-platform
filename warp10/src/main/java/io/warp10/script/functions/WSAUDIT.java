@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2021  SenX S.A.S.
+//   Copyright 2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -21,13 +21,8 @@ import io.warp10.script.WarpScriptAudit;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
-import io.warp10.warp.sdk.Capabilities;
 
 import java.io.IOException;
-import java.util.List;
-
-import static io.warp10.script.WarpScriptAudit.AUDIT_TASK_3_X_MIGRATION;
-import static io.warp10.script.WarpScriptAudit.AUDIT_TASK_PARSING;
 
 public class WSAUDIT extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
