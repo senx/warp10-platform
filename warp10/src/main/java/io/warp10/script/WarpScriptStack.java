@@ -123,6 +123,11 @@ public interface WarpScriptStack {
   public static final String ATTRIBUTE_INFOMODE = "infomode";
 
   /**
+   * List of parsing errors generated in WarpScript audit mode
+   */
+  public static final String ATTRIBUTE_PARSING_ERRORS = "wsaudit.errors";
+  
+  /**
    * Debug depth of the stack. This is the number
    * of elements to return when an error occurs.
    */
@@ -774,6 +779,14 @@ public interface WarpScriptStack {
   public void exec(String line) throws WarpScriptException;
 
   /**
+   * Execute a series of statements against the stack.
+   *
+   * @param line       String containing a space separated list of statements to execute
+   * @param lineNumber is the WarpScript line number, when known by exec() caller. Default value is -1.
+   */
+  public void exec(String line, long lineNumber) throws WarpScriptException;
+
+  /**
    * Empty the stack
    *
    */
@@ -971,4 +984,11 @@ public interface WarpScriptStack {
    * If macroOpen was not previously called, this function has no effect.
    */
   public void macroClose() throws WarpScriptException;
+  
+  /**
+   * Turn on/off auditMode. In auditMode, Macros contains WarpScriptTraceableStatement with line numbers or WarpScript parsing errors.
+   * auditMode exits automatically after closing the first macro level, leaving on stack a macro object.
+   */
+  public void auditMode(boolean auditMode);
+  
 }

@@ -108,6 +108,8 @@ import io.warp10.script.filter.FilterLastLE;
 import io.warp10.script.filter.FilterLastLT;
 import io.warp10.script.filter.FilterLastNE;
 import io.warp10.script.filter.LatencyFilter;
+import io.warp10.script.functions.WSAUDIT;
+import io.warp10.script.functions.WSAUDITMODE;
 import io.warp10.script.functions.math.GETEXPONENT;
 import io.warp10.script.functions.math.RANDOM;
 import io.warp10.script.functions.math.ROUND;
@@ -899,7 +901,9 @@ public class WarpScriptLib {
   public static final String STDERR = "STDERR";
   public static final String LOGMSG = "LOGMSG";
   public static final String TDESCRIBE = "TDESCRIBE";
-
+  public static final String WSAUDIT = "WSAUDIT";
+  public static final String WSAUDITMODE = "WSAUDITMODE";
+  
   public static final String REF = "REF";
   public static final String COMPILE = "COMPILE";
   public static final String SAFECOMPILE = "SAFECOMPILE";
@@ -3183,6 +3187,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new LOGINIT(LOGINIT));
     addNamedWarpScriptFunction(new TDESCRIBE(TDESCRIBE));
     addNamedWarpScriptFunction(new SLEEP(SLEEP));
+    addNamedWarpScriptFunction(new WSAUDIT(WSAUDIT));
+    addNamedWarpScriptFunction(new WSAUDITMODE(WSAUDITMODE));
 
     //
     // LevelDB
