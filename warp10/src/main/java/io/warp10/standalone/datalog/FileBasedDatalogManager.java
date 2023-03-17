@@ -334,6 +334,11 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
     if (!logdeletes) {
       return;
     }
+    // Do nothing if Metadata is null, this is simply a marker to instruct some StoreClient (namely FDB) to
+    // flush their mutations
+    if (null == metadata) {
+      return;
+    }
     System.out.println("delete: " + token + " " + metadata + " " + start + " " + end);
     append(DatalogHelper.getDeleteRecord(id, token, metadata, start, end));
   }
