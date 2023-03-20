@@ -59,6 +59,7 @@ import io.warp10.continuum.store.StoreClient;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.SipHashInline;
+import io.warp10.fdb.FDBUtils;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.functions.DURATION;
@@ -606,7 +607,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
             throw new IOException("Parse error at index " + pe.getErrorOffset() + " in '" + line + "'", pe);
           }
 
-          if (encoder != lastencoder || lastencoder.size() > ENCODER_SIZE_THRESHOLD) {
+          if (encoder != lastencoder || lastencoder.size() > ENCODER_SIZE_THRESHOLD || FDBUtils.hasCriticalTransactionSize(lastencoder, maxValueSize)) {
 
             //
             // Check throttling
