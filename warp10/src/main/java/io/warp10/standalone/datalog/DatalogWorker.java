@@ -22,6 +22,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.LockSupport;
 
 import io.warp10.WarpConfig;
+import io.warp10.continuum.Configuration;
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSWrapperHelper;
@@ -39,10 +40,22 @@ public class DatalogWorker extends Thread {
 
   private final LinkedBlockingQueue<DatalogJob> queue;
 
+  /**
+   * How often should we flush the writes (in ms). This is so writes occur even if
+   * there is a gap in the incoming data.
+   */
   private static final long FLUSH_INTERVAL;
+
+  /**
+   * Should we attempt to register the series for every update operation. This can be
+   * useful when starting a new consumer which does not know the series for which data
+   * points are coming.
+   */
+  private static final boolean REGISTER_UPDATES;
 
   static {
     FLUSH_INTERVAL = Long.parseLong(WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_CONSUMER_FLUSH_INTERVAL, "15000"));
+    REGISTER_UPDATES = "true".equals(WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_CONSUMER_REGISTER_UPDATES));
   }
 
   public DatalogWorker(LinkedBlockingQueue<DatalogJob> queue) {
@@ -116,6 +129,10 @@ public class DatalogWorker extends Thread {
                 token = (WriteToken) WarpConfig.getThreadProperty(WarpConfig.THREAD_PROPERTY_TOKEN);
                 WarpConfig.setThreadProperty(WarpConfig.THREAD_PROPERTY_TOKEN, record.getToken());
                 storeClient.store(enc);
+                if (REGISTER_UPDATES) {
+                  enc.getMetadata().setSource(Configuration.INGRESS_METADATA_SOURCE);
+                  directoryClient.register(enc.getMetadata());
+                }
               } finally {
                 if (null != token) {
                   WarpConfig.setThreadProperty(WarpConfig.THREAD_PROPERTY_TOKEN, token);

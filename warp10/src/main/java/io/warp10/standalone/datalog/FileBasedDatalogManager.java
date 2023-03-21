@@ -107,6 +107,7 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
   public static final String CONFIG_DATALOG_CONSUMER_MACRO_DATA = "datalog.consumer.macro.data";
   public static final String CONFIG_DATALOG_CONSUMER_MACRO_TOKEN = "datalog.consumer.macro.token";
   public static final String CONFIG_DATALOG_CONSUMER_FLUSH_INTERVAL = "datalog.consumer.flush.interval";
+  public static final String CONFIG_DATALOG_CONSUMER_REGISTER_UPDATES = "datalog.consumer.register.updates";
 
   public static final String SF_META_NOW = "now";
   public static final String SF_META_UUID = "uuid";
@@ -163,6 +164,12 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
    */
   private final boolean logupdates;
   private final boolean logdeletes;
+
+  private static final boolean REGISTER_UPDATES;
+
+  static {
+    REGISTER_UPDATES = "true".equals(WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_CONSUMER_REGISTER_UPDATES));
+  }
 
   public FileBasedDatalogManager() {
 
@@ -376,6 +383,10 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
           token = (WriteToken) WarpConfig.getThreadProperty(WarpConfig.THREAD_PROPERTY_TOKEN);
           WarpConfig.setThreadProperty(WarpConfig.THREAD_PROPERTY_TOKEN, record.getToken());
           this.storeClient.store(encoder);
+          if (REGISTER_UPDATES) {
+            encoder.getMetadata().setSource(io.warp10.continuum.Configuration.INGRESS_METADATA_SOURCE);
+            this.directoryClient.register(encoder.getMetadata());
+          }
         } finally {
           if (null != token) {
             WarpConfig.setThreadProperty(WarpConfig.THREAD_PROPERTY_TOKEN, token);
