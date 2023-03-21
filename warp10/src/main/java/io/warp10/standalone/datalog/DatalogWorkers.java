@@ -49,11 +49,6 @@ public class DatalogWorkers {
   static {
     queues = new LinkedBlockingQueue[NUM_WORKERS];
     workers = new DatalogWorker[NUM_WORKERS];
-
-    for (int i = 0; i < NUM_WORKERS; i++) {
-      queues[i] = new LinkedBlockingQueue<DatalogJob>();
-      workers[i] = new DatalogWorker(queues[i]);
-    }
   }
 
   public static void init(StoreClient store, DirectoryClient directory) {
@@ -64,6 +59,11 @@ public class DatalogWorkers {
 
     DatalogWorkers.store = store;
     DatalogWorkers.directory = directory;
+
+    for (int i = 0; i < NUM_WORKERS; i++) {
+      queues[i] = new LinkedBlockingQueue<DatalogJob>();
+      workers[i] = new DatalogWorker(queues[i]);
+    }
   }
 
   public static void offer(DatalogConsumer consumer, String ref, DatalogRecord record) throws IOException {
