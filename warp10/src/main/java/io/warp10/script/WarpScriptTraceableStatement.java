@@ -36,7 +36,7 @@ public class WarpScriptTraceableStatement implements WarpScriptStackFunction {
   public String statement;
   public Long lineNumber;      // first line is numbered 1
   public int positionNumber;   // first statement in line is numbered 0
-  private Object statementObject;
+  public Object statementObject;
 
   public WarpScriptTraceableStatement(WarpScriptTraceableStatement.STATEMENT_TYPE type, Object statementObject, String statement, Long lineNumber, int statementNumber) {
     this.type = type;
@@ -95,22 +95,18 @@ public class WarpScriptTraceableStatement implements WarpScriptStackFunction {
   @Override
   public String toString() {
     switch (type) {
-      case FUNCTION_CALL:  // valid function
-        if (statementObject instanceof WarpScriptStackFunction) {
-          return StackUtils.toString(statement) + " " + WarpScriptLib.FUNCREF;
-        } else {
-          return StackUtils.toString(statement);
-        }
+      case FUNCTION_CALL:
+        return StackUtils.toString(statement) + " " + WarpScriptLib.FUNCREF;
       case UNKNOWN:  // invalid function 
         return StackUtils.toString("Unknown function (" + statement + ")" + formatWSAuditPosition() + ".") + " " + WarpScriptLib.MSGFAIL;
       case WS_EXCEPTION:  // other parsing exception
         return StackUtils.toString("Exception (" + statement + ")" + formatWSAuditPosition() + ".") + " " + WarpScriptLib.MSGFAIL;
-      case WS_EARLY_BINDING:
+      case WS_EARLY_BINDING:  // early binding execution will fail
         return StackUtils.toString(WarpScriptLib.WSAUDITMODE + " does not support indirect binding. (" + statement + ")" + formatWSAuditPosition() + ".") + " " + WarpScriptLib.MSGFAIL;
       case WS_LOAD:
-        return StackUtils.toString(statement.substring(1)) + " " + StackUtils.toString(WarpScriptLib.LOAD) + " " + WarpScriptLib.FUNCREF;
+        return StackUtils.toString(statement.substring(1)) + " " + WarpScriptLib.LOAD;
       case WS_RUN:
-        return StackUtils.toString(statement.substring(1)) + " " + StackUtils.toString(WarpScriptLib.RUN) + " " + WarpScriptLib.FUNCREF;
+        return StackUtils.toString(statement.substring(1)) + " " + WarpScriptLib.RUN;
       default:
         return "";
     }

@@ -469,12 +469,27 @@ public interface WarpScriptStack {
               sb.append(((Macro) o).snapshot(hideSecure));
               sb.append(" ");
             } else if (o instanceof WarpScriptStackFunction) {
-              String funcSnapshot = o.toString();
 
               // In the case the snapshot of the function is 'MYFUNC' FUNCREF, instead of adding
               // 'MYFUNC' FUNCREF EVAL to the snapshot, MYFUNC can simply be added.
               // This can be done only if the name of function contains no special character.
               boolean simplified = false;
+
+              if (o instanceof WarpScriptTraceableStatement) {
+                if (((WarpScriptTraceableStatement) o).type == WarpScriptTraceableStatement.STATEMENT_TYPE.FUNCTION_CALL
+                    && ((WarpScriptTraceableStatement) o).statementObject instanceof WarpScriptStackFunction) {
+                  // replace o by the object wrapped into the WarpScriptTraceableStatement
+                  o = ((WarpScriptTraceableStatement) o).statementObject;
+                } else {
+                  // the other types are handled by WarpScriptTraceableStatement directly
+                  sb.append(o.toString());
+                  simplified = true;
+                }
+              }
+              if (o.toString().equals("reducer.max")) {
+                System.out.println("popop");
+              }
+              String funcSnapshot = o.toString();
 
               if (o instanceof NamedWarpScriptFunction) {
                 NamedWarpScriptFunction namedWarpScriptFunction = (NamedWarpScriptFunction) o;
