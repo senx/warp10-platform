@@ -19,6 +19,7 @@ package io.warp10.standalone.datalog;
 import java.io.IOException;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import io.warp10.WarpConfig;
 import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.continuum.store.thrift.data.DatalogRecord;
@@ -43,10 +44,12 @@ public class DatalogWorkers {
   private static StoreClient store = null;
   private static DirectoryClient directory = null;
 
-  // FIXME(hbs): make this configurable
-  private static final int NUM_WORKERS = 8;
+  private static final int NUM_WORKERS;
 
   static {
+
+    NUM_WORKERS = Integer.parseInt(WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_CONSUMER_NUMWORKERS, "1"));
+
     queues = new LinkedBlockingQueue[NUM_WORKERS];
     workers = new DatalogWorker[NUM_WORKERS];
   }

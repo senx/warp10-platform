@@ -94,6 +94,10 @@ public class DatalogWorker extends Thread {
         if (null == job) {
           LockSupport.parkNanos(10000000L);
 
+          //
+          // We periodically force a flush of the underlying storage
+          //
+
           if (System.currentTimeMillis() - lastRecord > FLUSH_INTERVAL) {
             if (hasManager) {
               manager.process(null);

@@ -106,8 +106,10 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
   public static final String CONFIG_DATALOG_CONSUMER_MACRO = "datalog.consumer.macro";
   public static final String CONFIG_DATALOG_CONSUMER_MACRO_DATA = "datalog.consumer.macro.data";
   public static final String CONFIG_DATALOG_CONSUMER_MACRO_TOKEN = "datalog.consumer.macro.token";
+  // The following configuration are global to all consumers
   public static final String CONFIG_DATALOG_CONSUMER_FLUSH_INTERVAL = "datalog.consumer.flush.interval";
   public static final String CONFIG_DATALOG_CONSUMER_REGISTER_UPDATES = "datalog.consumer.register.updates";
+  public static final String CONFIG_DATALOG_CONSUMER_NUMWORKERS = "datalog.consumer.nworkers";
 
   public static final String SF_META_NOW = "now";
   public static final String SF_META_UUID = "uuid";
