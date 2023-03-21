@@ -48,7 +48,7 @@ public class DatalogWorkers {
 
   static {
 
-    NUM_WORKERS = Integer.parseInt(WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_CONSUMER_NUMWORKERS, "1"));
+    NUM_WORKERS = Integer.parseInt(WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_CONSUMER_NWORKERS, "1"));
 
     queues = new LinkedBlockingQueue[NUM_WORKERS];
     workers = new DatalogWorker[NUM_WORKERS];
