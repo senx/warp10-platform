@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 
+import io.warp10.script.WarpScriptStopException;
 import org.joda.time.Instant;
 
 import io.warp10.WarpConfig;
@@ -155,7 +156,9 @@ public class TIMEBOX extends NamedWarpScriptFunction implements WarpScriptStackF
       }
       throw new WarpScriptException(getName() + " reached the execution time limit (" + maxtime + " " + Constants.timeunit.name() + ").");
     } catch (ExecutionException ee) {
-      if (this.quiet && ee.getCause() instanceof WarpScriptException) {
+      if (ee.getCause() instanceof WarpScriptStopException) {
+        // Do not rethrow, this is a STOP
+      } else if (this.quiet && ee.getCause() instanceof WarpScriptException) {
         throw (WarpScriptException) ee.getCause();
       } else {
         throw new WarpScriptException(getName() + " encountered an exception while executing macro", ee.getCause());
