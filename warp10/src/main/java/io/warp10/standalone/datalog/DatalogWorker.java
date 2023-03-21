@@ -79,7 +79,15 @@ public class DatalogWorker extends Thread {
 
     Map<String,String> labels = new LinkedHashMap<String,String>();
 
-    long lastRecord = 0L;
+    //
+    // Tracking of when data/metadata records were last received
+    // in order to force flushes if need be
+    //
+
+    long lastUpdateRecord = 0L;
+    long lastDeleteRecord = 0L;
+    long lastRegisterRecord = 0L;
+    long lastUnregisterRecord = 0L;
 
     while(true) {
 
@@ -91,28 +99,46 @@ public class DatalogWorker extends Thread {
       try {
         job = queue.poll();
 
-        if (null == job) {
-          LockSupport.parkNanos(10000000L);
+        //
+        // We periodically force a flush of the underlying storage
+        //
 
-          //
-          // We periodically force a flush of the underlying storage
-          //
-
-          if (System.currentTimeMillis() - lastRecord > FLUSH_INTERVAL) {
-            if (hasManager) {
-              manager.process(null);
-            } else {
-              storeClient.store(null);
-              storeClient.delete(null, null, Long.MAX_VALUE, Long.MAX_VALUE);
-              directoryClient.unregister(null);
-              directoryClient.register(null);
-            }
-            lastRecord = System.currentTimeMillis();
+        if (hasManager) {
+          long now = System.currentTimeMillis();
+          if (now - lastRegisterRecord > FLUSH_INTERVAL
+              || now - lastUnregisterRecord > FLUSH_INTERVAL
+              || now - lastUpdateRecord > FLUSH_INTERVAL
+              || now - lastDeleteRecord > FLUSH_INTERVAL) {
+            manager.process(null);
+            lastRegisterRecord = now;
+            lastUnregisterRecord = now;
+            lastUpdateRecord = now;
+            lastDeleteRecord = now;
           }
-          continue;
+        } else {
+          long now = System.currentTimeMillis();
+          if (now - lastUpdateRecord > FLUSH_INTERVAL) {
+            storeClient.store(null);
+            lastUpdateRecord = now;
+          }
+          if (now - lastDeleteRecord > FLUSH_INTERVAL) {
+            storeClient.delete(null, null, Long.MAX_VALUE, Long.MAX_VALUE);
+            lastDeleteRecord = now;
+          }
+          if (now - lastRegisterRecord > FLUSH_INTERVAL) {
+            directoryClient.register(null);
+            lastRegisterRecord = now;
+          }
+          if (now - lastUnregisterRecord > FLUSH_INTERVAL) {
+            directoryClient.unregister(null);
+            lastUnregisterRecord = now;
+          }
         }
 
-        lastRecord = System.currentTimeMillis();
+        if (null == job) {
+          LockSupport.parkNanos(10000000L);
+          continue;
+        }
 
         record = job.record;
 
@@ -159,6 +185,20 @@ public class DatalogWorker extends Thread {
               job.consumer.success(job.ref);
               break;
           }
+        }
+        switch(job.record.getType()) {
+          case UPDATE:
+            lastUpdateRecord = System.currentTimeMillis();
+            break;
+          case DELETE:
+            lastDeleteRecord = System.currentTimeMillis();
+            break;
+          case REGISTER:
+            lastRegisterRecord = System.currentTimeMillis();
+            break;
+          case UNREGISTER:
+            lastUnregisterRecord = System.currentTimeMillis();
+            break;
         }
       } catch (Throwable t) {
         err = t;
