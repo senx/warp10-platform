@@ -39,6 +39,12 @@ public class DatalogWorker extends Thread {
 
   private final LinkedBlockingQueue<DatalogJob> queue;
 
+  private static final long FLUSH_INTERVAL;
+
+  static {
+    FLUSH_INTERVAL = Long.parseLong(WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_CONSUMER_FLUSH_INTERVAL, "15000"));
+  }
+
   public DatalogWorker(LinkedBlockingQueue<DatalogJob> queue) {
     this.queue = queue;
 
@@ -60,6 +66,8 @@ public class DatalogWorker extends Thread {
 
     Map<String,String> labels = new LinkedHashMap<String,String>();
 
+    long lastRecord = 0L;
+
     while(true) {
 
       DatalogJob job = null;
@@ -72,8 +80,22 @@ public class DatalogWorker extends Thread {
 
         if (null == job) {
           LockSupport.parkNanos(10000000L);
+
+          if (System.currentTimeMillis() - lastRecord > FLUSH_INTERVAL) {
+            if (hasManager) {
+              manager.process(null);
+            } else {
+              storeClient.store(null);
+              storeClient.delete(null, null, Long.MAX_VALUE, Long.MAX_VALUE);
+              directoryClient.unregister(null);
+              directoryClient.register(null);
+            }
+            lastRecord = System.currentTimeMillis();
+          }
           continue;
         }
+
+        lastRecord = System.currentTimeMillis();
 
         record = job.record;
 

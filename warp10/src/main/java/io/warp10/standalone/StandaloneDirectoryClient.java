@@ -713,7 +713,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     boolean stored = false;
 
     //
-    // Special case of null means flush leveldb
+    // Special case of null means flush leveldb/fdb
     //
 
     if (null == metadata) {
@@ -797,6 +797,11 @@ public class StandaloneDirectoryClient implements DirectoryClient {
   }
 
   public void unregister(Metadata metadata) throws IOException {
+
+    if (null == metadata) {
+      return;
+    }
+
     // Always compute the labelsId, even if the method early returns before needing it. This is because this operation
     // can be CPU-intensive and if done inside the synchronized(metadatas) block, would block other threads also
     // synchronizing on metadatas. As unregistering unknown metadata should be rare, this is an acceptable compromise.
