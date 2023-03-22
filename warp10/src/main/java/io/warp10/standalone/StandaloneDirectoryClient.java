@@ -944,7 +944,9 @@ public class StandaloneDirectoryClient implements DirectoryClient {
         }
 
         if (null != this.db) {
-          this.db.write(batch, options);
+          if (size.get() > 0) {
+            this.db.write(batch, options);
+          }
           size.set(0L);
           perThreadWriteBatch.remove();
         } else {
@@ -956,14 +958,16 @@ public class StandaloneDirectoryClient implements DirectoryClient {
           do {
             try {
               retry = false;
-              txn = this.fdb.createTransaction();
-              // Allow RAW access because we may manually force a tenant key prefix without actually setting a tenant
-              txn.options().setRawAccess();
+              if (!mutations.isEmpty()) {
+                txn = this.fdb.createTransaction();
+                // Allow RAW access because we may manually force a tenant key prefix without actually setting a tenant
+                txn.options().setRawAccess();
 
-              for (FDBMutation mutation: mutations) {
-                mutation.apply(txn);
+                for (FDBMutation mutation: mutations) {
+                  mutation.apply(txn);
+                }
+                txn.commit().get();
               }
-              txn.commit().get();
               size.set(0L);
             } catch (Throwable t) {
               FDBUtils.errorMetrics("directory", t.getCause());
