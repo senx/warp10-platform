@@ -19,23 +19,24 @@ package io.warp10.json;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
-import io.warp10.script.WarpScriptTraceableStatement;
+import io.warp10.script.WarpScriptAuditStatement;
 
 import java.io.IOException;
 
-public class WarpScriptTraceableStatementSerializer extends StdSerializer<WarpScriptTraceableStatement> {
+public class WarpScriptAuditStatementSerializer extends StdSerializer<WarpScriptAuditStatement> {
 
-  protected WarpScriptTraceableStatementSerializer() {
-    super(WarpScriptTraceableStatement.class);
+
+  protected WarpScriptAuditStatementSerializer() {
+    super(WarpScriptAuditStatement.class);
   }
 
   @Override
-  public void serialize(WarpScriptTraceableStatement st, JsonGenerator gen, SerializerProvider provider) throws IOException {
+  public void serialize(WarpScriptAuditStatement st, JsonGenerator gen, SerializerProvider provider) throws IOException {
     gen.writeStartObject();
-    gen.writeStringField("type",st.type.name());
-    gen.writeNumberField("line",st.lineNumber);
-    gen.writeNumberField("position",st.positionNumber);
-    gen.writeStringField("statement",st.statement);
+    gen.writeStringField(WarpScriptAuditStatement.KEY_TYPE,st.type.name());
+    gen.writeNumberField(WarpScriptAuditStatement.KEY_LINE,st.lineNumber);
+    gen.writeNumberField(WarpScriptAuditStatement.KEY_POSITION,st.positionNumber);
+    gen.writeStringField(WarpScriptAuditStatement.KEY_STATEMENT,st.statement);
     gen.writeEndObject();
   }
 }

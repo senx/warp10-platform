@@ -170,7 +170,7 @@ public class JsonUtils {
     module.addSerializer(new RealVectorSerializer());
     module.addSerializer(new RealMatrixSerializer());
     module.addSerializer(new COWListSerializer());
-    module.addSerializer(new WarpScriptTraceableStatementSerializer());
+    module.addSerializer(new WarpScriptAuditStatementSerializer());
 
     //
     // Common configuration for both strict and loose mappers.

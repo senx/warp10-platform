@@ -17,9 +17,13 @@
 package io.warp10.script.functions;
 
 import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptAuditStatement;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class WSAUDIT extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
@@ -30,8 +34,12 @@ public class WSAUDIT extends NamedWarpScriptFunction implements WarpScriptStackF
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
 
-    stack.push(stack.getAttribute(WarpScriptStack.ATTRIBUTE_PARSING_ERRORS));
+    List l = new ArrayList();
+    for (WarpScriptAuditStatement st: (List<WarpScriptAuditStatement>) stack.getAttribute(WarpScriptStack.ATTRIBUTE_PARSING_ERRORS)) {
+      l.add(st.toMap());
+    }
 
+    stack.push(l);
     return stack;
   }
 }

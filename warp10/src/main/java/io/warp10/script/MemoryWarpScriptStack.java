@@ -475,7 +475,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   @Override
   public void auditMode(boolean auditMode) {
     if (auditMode) {
-      setAttribute(ATTRIBUTE_PARSING_ERRORS, new ArrayList<WarpScriptTraceableStatement>());
+      setAttribute(ATTRIBUTE_PARSING_ERRORS, new ArrayList<WarpScriptAuditStatement>());
     }
     this.auditMode = auditMode;
   }
@@ -485,7 +485,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
    *
    * @param st list of unknown functions or exceptions
    */
-  private void addAuditError(WarpScriptTraceableStatement st) {
+  private void addAuditError(WarpScriptAuditStatement st) {
     Object o = getAttribute(ATTRIBUTE_PARSING_ERRORS);
     if (o instanceof List) {
       ((List) o).add(st);
@@ -642,7 +642,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
           if (WarpScriptStack.MULTILINE_END.equals(stmt)) {
             if (!inMultiline.get()) {
               if (auditMode && !(macros.isEmpty() || macros.size() == forcedMacro)) {
-                WarpScriptTraceableStatement err = new WarpScriptTraceableStatement(WarpScriptTraceableStatement.STATEMENT_TYPE.WS_EXCEPTION, null, "Not inside a multiline.", lineNumber, st);
+                WarpScriptAuditStatement err = new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_EXCEPTION, null, "Not inside a multiline.", lineNumber, st);
                 macros.get(0).add(err);
                 addAuditError(err);
               } else {
@@ -680,7 +680,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             // Legacy comments block: Comments block must start with /* and end with */ .
             if (!inComment.get()) {
               if (auditMode && !(macros.isEmpty() || macros.size() == forcedMacro)) {
-                WarpScriptTraceableStatement err = new WarpScriptTraceableStatement(WarpScriptTraceableStatement.STATEMENT_TYPE.WS_EXCEPTION, null, "Not inside a comment.", lineNumber, st);
+                WarpScriptAuditStatement err = new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_EXCEPTION, null, "Not inside a comment.", lineNumber, st);
                 macros.get(0).add(err);
                 addAuditError(err);
               } else {
@@ -709,7 +709,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
           } else if (WarpScriptStack.MULTILINE_START.equals(stmt)) {
             if (1 != statements.length) {
               if (auditMode && !(macros.isEmpty() || macros.size() == forcedMacro)) {
-                WarpScriptTraceableStatement err = new WarpScriptTraceableStatement(WarpScriptTraceableStatement.STATEMENT_TYPE.WS_EXCEPTION, null, "Can only start multiline strings by using " + WarpScriptStack.MULTILINE_START + " on a line by itself.", lineNumber, st);
+                WarpScriptAuditStatement err = new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_EXCEPTION, null, "Can only start multiline strings by using " + WarpScriptStack.MULTILINE_START + " on a line by itself.", lineNumber, st);
                 macros.get(0).add(err);
                 addAuditError(err);
               } else {
@@ -727,7 +727,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
           if (WarpScriptStack.SECURE_SCRIPT_END.equals(stmt)) {
             if (null == secureScript) {
               if (auditMode && !(macros.isEmpty() || macros.size() == forcedMacro)) {
-                WarpScriptTraceableStatement err = new WarpScriptTraceableStatement(WarpScriptTraceableStatement.STATEMENT_TYPE.WS_EXCEPTION, null, "Not inside a secure script definition.", lineNumber, st);
+                WarpScriptAuditStatement err = new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_EXCEPTION, null, "Not inside a secure script definition.", lineNumber, st);
                 macros.get(0).add(err);
                 addAuditError(err);
               } else {
@@ -743,7 +743,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
               secureScript = new StringBuilder();
             } else {
               if (auditMode && !(macros.isEmpty() || macros.size() == forcedMacro)) {
-                WarpScriptTraceableStatement err = new WarpScriptTraceableStatement(WarpScriptTraceableStatement.STATEMENT_TYPE.WS_EXCEPTION, null, "Already inside a secure script definition.", lineNumber, st);
+                WarpScriptAuditStatement err = new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_EXCEPTION, null, "Already inside a secure script definition.", lineNumber, st);
                 macros.get(0).add(err);
                 addAuditError(err);
               } else {
@@ -869,7 +869,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
               push(o);
             } else {
               if (auditMode) {
-                macros.get(0).add(new WarpScriptTraceableStatement(WarpScriptTraceableStatement.STATEMENT_TYPE.WS_LOAD,
+                macros.get(0).add(new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_LOAD,
                     stmt.substring(1), stmt, lineNumber, st));
               } else {
                 macros.get(0).add(stmt.substring(1));
@@ -881,13 +881,13 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             // This is an immediate variable dereference
             //
             if (auditMode && macros.size() > 1) {
-              macros.get(0).add(new WarpScriptTraceableStatement(WarpScriptTraceableStatement.STATEMENT_TYPE.WS_EARLY_BINDING, null, stmt.substring(2), lineNumber, st));
+              macros.get(0).add(new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_EARLY_BINDING, null, stmt.substring(2), lineNumber, st));
             } else {
               Object o = load(stmt.substring(2));
 
               if (null == o) {
                 if (!getSymbolTable().containsKey(stmt.substring(2))) {
-                  if (forcedMacro == 0) {
+                  if (0 == forcedMacro) {
                     if (macros.size() > 1) {
                       throw new WarpScriptException("Early binding is not possible inside a macro.");
                     } else {
@@ -919,7 +919,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             } else {
               macros.get(0).add(stmt.substring(1));
               if (auditMode) {
-                macros.get(0).add(new WarpScriptTraceableStatement(WarpScriptTraceableStatement.STATEMENT_TYPE.WS_LOAD,
+                macros.get(0).add(new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_LOAD,
                     stmt.substring(1), stmt, lineNumber, st));
               } else {
                 macros.get(0).add(WarpScriptLib.getFunction(WarpScriptLib.RUN));
@@ -932,9 +932,9 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             if (auditMode && !(macros.isEmpty() || macros.size() == forcedMacro)) {
               try {
                 Object func = findFunction(stmt);
-                macros.get(0).add(new WarpScriptTraceableStatement(WarpScriptTraceableStatement.STATEMENT_TYPE.FUNCTION_CALL, func, stmt, lineNumber, st));
+                macros.get(0).add(new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.FUNCTION_CALL, func, stmt, lineNumber, st));
               } catch (WarpScriptException e) {
-                WarpScriptTraceableStatement err = new WarpScriptTraceableStatement(WarpScriptTraceableStatement.STATEMENT_TYPE.UNKNOWN, null, stmt, lineNumber, st);
+                WarpScriptAuditStatement err = new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.UNKNOWN, null, stmt, lineNumber, st);
                 macros.get(0).add(err);
                 addAuditError(err);
               }

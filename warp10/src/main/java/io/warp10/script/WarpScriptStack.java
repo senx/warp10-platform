@@ -123,7 +123,8 @@ public interface WarpScriptStack {
   public static final String ATTRIBUTE_INFOMODE = "infomode";
 
   /**
-   * List of parsing errors generated in WarpScript audit mode
+   * List of parsing errors or unknown function errors generated in WarpScript audit mode.
+   * These errors are stored as WarpScriptAuditStatement with UNKNOWN or WS_EXCEPTION type.
    */
   public static final String ATTRIBUTE_PARSING_ERRORS = "wsaudit.errors";
   
@@ -475,20 +476,18 @@ public interface WarpScriptStack {
               // This can be done only if the name of function contains no special character.
               boolean simplified = false;
 
-              if (o instanceof WarpScriptTraceableStatement) {
-                if (((WarpScriptTraceableStatement) o).type == WarpScriptTraceableStatement.STATEMENT_TYPE.FUNCTION_CALL
-                    && ((WarpScriptTraceableStatement) o).statementObject instanceof WarpScriptStackFunction) {
-                  // replace o by the object wrapped into the WarpScriptTraceableStatement
-                  o = ((WarpScriptTraceableStatement) o).statementObject;
+              if (o instanceof WarpScriptAuditStatement) {
+                if (WarpScriptAuditStatement.STATEMENT_TYPE.FUNCTION_CALL == ((WarpScriptAuditStatement) o).type
+                    && ((WarpScriptAuditStatement) o).statementObject instanceof WarpScriptStackFunction) {
+                  // replace o by the object wrapped into the WarpScriptAuditStatement
+                  o = ((WarpScriptAuditStatement) o).statementObject;
                 } else {
-                  // the other types are handled by WarpScriptTraceableStatement directly
+                  // the other types are handled by WarpScriptAuditStatement directly
                   sb.append(o.toString());
                   simplified = true;
                 }
               }
-              if (o.toString().equals("reducer.max")) {
-                System.out.println("popop");
-              }
+
               String funcSnapshot = o.toString();
 
               if (o instanceof NamedWarpScriptFunction) {
@@ -1001,7 +1000,7 @@ public interface WarpScriptStack {
   public void macroClose() throws WarpScriptException;
   
   /**
-   * Turn on/off auditMode. In auditMode, Macros contains WarpScriptTraceableStatement with line numbers or WarpScript parsing errors.
+   * Turn on/off auditMode. In auditMode, Macros contains WarpScriptAuditStatement with line numbers or WarpScript parsing errors.
    * auditMode exits automatically after closing the first macro level, leaving on stack a macro object.
    */
   public void auditMode(boolean auditMode);
