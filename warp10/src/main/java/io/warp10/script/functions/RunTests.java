@@ -33,15 +33,17 @@ public class RunTests {
       stack.setAttribute(WarpScriptStack.ATTRIBUTE_MAX_OPS, Long.MAX_VALUE);
       
       BufferedReader br = new BufferedReader(new FileReader(arg));
-      
-      while(true) {
+
+      long lineno = 0;
+
+      while (true) {
         String line = br.readLine();
-        
+        lineno++;
         if (null == line) {
           break;
         }
-        
-        stack.exec(line);
+
+        stack.exec(line, lineno);
       }
       
       br.close();          

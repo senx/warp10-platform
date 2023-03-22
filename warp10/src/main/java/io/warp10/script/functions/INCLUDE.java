@@ -102,7 +102,7 @@ public class INCLUDE extends NamedWarpScriptFunction implements WarpScriptStackF
           break;
         }
         lineno++;
-        stack.exec(line);
+        stack.exec(line, lineno);
       }
 
     } catch (Exception e) {

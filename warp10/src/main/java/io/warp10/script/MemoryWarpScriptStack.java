@@ -538,7 +538,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
           break;
         }
 
-        exec(line);
+        exec(line, i);
         i++;
       }
       br.close();

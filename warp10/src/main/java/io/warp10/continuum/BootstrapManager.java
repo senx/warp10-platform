@@ -91,7 +91,7 @@ public class BootstrapManager extends Thread {
         
         lineno++;
         
-        stack.exec(line);
+        stack.exec(line, lineno);
       }
       
       br.close();

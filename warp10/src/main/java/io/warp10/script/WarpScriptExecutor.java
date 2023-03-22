@@ -432,7 +432,7 @@ public class WarpScriptExecutor implements Serializable {
 
           lineno++;
 
-          stck.exec(line);
+          stck.exec(line, lineno);
         }
 
         br.close();
@@ -579,7 +579,7 @@ public class WarpScriptExecutor implements Serializable {
 
         lineno++;
 
-        stck.exec(line);
+        stck.exec(line, lineno);
       }
 
       br.close();
