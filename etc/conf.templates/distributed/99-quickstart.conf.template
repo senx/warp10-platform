@@ -52,11 +52,6 @@ kafka.runner.aes = ${aes.key}
 
 kafka.plasmafe.bootstrap.servers = ${kafka.bootstrap.servers}
 
-kafka.webcall.bootstrap.servers = ${kafka.bootstrap.servers}
-kafka.webcall.topic = webcall
-kafka.webcall.mac = ${mac.key}
-kafka.webcall.aes = ${aes.key}
-
 class.hash.key = ${hash.key}
 labels.hash.key = ${hash.key}
 token.hash.key = ${hash.key}
