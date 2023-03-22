@@ -53,6 +53,12 @@ public class DatalogWorker extends Thread {
    */
   private static final boolean REGISTER_UPDATES;
 
+  private boolean hasManager = false;
+
+  private StoreClient storeClient = null;
+  private StandaloneDirectoryClient directoryClient = null;
+  private DatalogManager manager = null;
+
   static {
     FLUSH_INTERVAL = Long.parseLong(WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_CONSUMER_FLUSH_INTERVAL, "15000"));
     REGISTER_UPDATES = "true".equals(WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_CONSUMER_REGISTER_UPDATES));
@@ -68,14 +74,15 @@ public class DatalogWorker extends Thread {
 
   @Override
   public void run() {
-    StoreClient storeClient = DatalogWorkers.getStoreClient();
-    StandaloneDirectoryClient directoryClient = (StandaloneDirectoryClient) DatalogWorkers.getDirectoryClient();
+    storeClient = DatalogWorkers.getStoreClient();
+    directoryClient = (StandaloneDirectoryClient) DatalogWorkers.getDirectoryClient();
 
-    DatalogManager manager = null;
+    manager = null;
+
     if (storeClient instanceof DatalogStoreClient) {
       manager = ((DatalogStoreClient) storeClient).getDatalogManager();
     }
-    boolean hasManager = null != manager;
+    this.hasManager = null != manager;
 
     Map<String,String> labels = new LinkedHashMap<String,String>();
 
@@ -215,6 +222,17 @@ public class DatalogWorker extends Thread {
           }
         }
       }
+    }
+  }
+
+  public void flush() throws Exception {
+    if (hasManager) {
+      manager.process(null);
+    } else {
+      storeClient.store(null);
+      storeClient.delete(null, null, Long.MAX_VALUE, Long.MAX_VALUE);
+      directoryClient.register(null);
+      directoryClient.unregister(null);
     }
   }
 }

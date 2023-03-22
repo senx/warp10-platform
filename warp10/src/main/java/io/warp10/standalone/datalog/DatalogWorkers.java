@@ -70,6 +70,22 @@ public class DatalogWorkers {
   }
 
   public static void offer(DatalogConsumer consumer, String ref, DatalogRecord record) throws IOException {
+
+    //
+    // If record is null, force all workers to flush and return
+    //
+
+    if (null == record) {
+      try {
+        for (int i = 0; i < workers.length; i++) {
+          workers[i].flush();
+        }
+      } catch (Throwable e) {
+        throw new IOException(e);
+      }
+      return;
+    }
+
     //
     // Compute partitioning key and partition.
     // Note: this has nothing to do with the shard id

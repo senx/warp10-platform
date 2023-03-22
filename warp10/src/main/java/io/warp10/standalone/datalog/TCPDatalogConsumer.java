@@ -864,6 +864,10 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
   private void syncCommit(String ref) throws IOException {
     long now = System.currentTimeMillis();
     if (now - lastsync >= offsetDelay) {
+      //
+      // We must ensure that the workers have performed a flush first
+      //
+      DatalogWorkers.offer(this, ref, null);
       FileUtils.write(offsetFile, ref, StandardCharsets.UTF_8, false);
       lastsync = now;
     }
