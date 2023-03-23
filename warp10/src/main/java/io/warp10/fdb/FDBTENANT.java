@@ -39,7 +39,7 @@ public class FDBTENANT extends NamedWarpScriptFunction implements WarpScriptStac
 
     if (null != Capabilities.get(stack, FDBUtils.CAPABILITY_ADMIN)) {
       regexp = null;
-    } else if (null == Capabilities.get(stack, FDBUtils.CAPABILITY_TENANT)) {
+    } else if (null != Capabilities.get(stack, FDBUtils.CAPABILITY_TENANT)) {
       regexp = Capabilities.get(stack, FDBUtils.CAPABILITY_TENANT);
       // Empty string means match all tenants
       if ("".equals(regexp)) {

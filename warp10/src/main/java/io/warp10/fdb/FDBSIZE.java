@@ -40,7 +40,7 @@ public class FDBSIZE extends NamedWarpScriptFunction implements WarpScriptStackF
 
     if (null != Capabilities.get(stack, FDBUtils.CAPABILITY_ADMIN)) {
       regexp = null;
-    } else if (null == Capabilities.get(stack, FDBUtils.CAPABILITY_SIZE)) {
+    } else if (null != Capabilities.get(stack, FDBUtils.CAPABILITY_SIZE)) {
       regexp = Capabilities.get(stack, FDBUtils.CAPABILITY_SIZE);
       // Empty string means match all tenants
       if ("".equals(regexp)) {
