@@ -51,6 +51,7 @@ import org.joda.time.format.DateTimeFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.warp10.ThriftUtils;
 import io.warp10.ThrowableUtils;
 import io.warp10.WarpConfig;
 import io.warp10.WarpManager;
@@ -204,7 +205,7 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         return;
       }
 
-      TDeserializer deser = new TDeserializer(new TCompactProtocol.Factory());
+      TDeserializer deser = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
 
       try {
         dr = new DatalogRequest();
@@ -384,7 +385,7 @@ public class StandaloneDeleteHandler extends AbstractHandler {
         // Serialize the request
         //
 
-        TSerializer ser = new TSerializer(new TCompactProtocol.Factory());
+        TSerializer ser = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
 
         byte[] encoded;
 

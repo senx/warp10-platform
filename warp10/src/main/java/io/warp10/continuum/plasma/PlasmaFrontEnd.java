@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -51,6 +51,7 @@ import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.RetryNTimes;
 
 import io.warp10.SSLUtils;
+import io.warp10.ThriftUtils;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.JettyUtil;
 import io.warp10.continuum.KafkaOffsetCounters;
@@ -177,7 +178,7 @@ public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable,
             byte[] aesKey = frontend.keystore.getKey(KeyStore.AES_KAFKA_PLASMA_FRONTEND_IN);
 
             // Iterate on the messages
-            TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
+            TDeserializer deserializer = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
 
             KafkaOffsetCounters counters = pool.getCounters();
 

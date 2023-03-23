@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ dependencies {
     api project(':crypto')
     api 'io.warp10:sensision:1.0.24'
 
-    api 'org.apache.thrift:libthrift:0.11.0'
+    api 'org.apache.thrift:libthrift:0.17.0'
 }
 
 //

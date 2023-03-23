@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,11 +16,11 @@
 
 package io.warp10.quasar.encoder;
 
-import org.apache.commons.codec.binary.Hex;
 import org.apache.thrift.TBase;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
+import org.bouncycastle.util.encoders.Hex;
 
 import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
@@ -175,7 +175,7 @@ public class QuasarTokenEncoder {
   public String cypherToken(TBase<?, ?> token, KeyStore keyStore) throws TException {
     return encryptToken(token, keyStore.getKey(KeyStore.AES_TOKEN), keyStore.getKey(KeyStore.SIPHASH_TOKEN));
   }
-  
+
   public String encryptToken(TBase<?, ?> token, byte[] tokenAESKey, byte[] tokenSipHashKey) throws TException {
     // TSerializer is not thread-safe so we initialize one each time.
     TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
@@ -213,7 +213,7 @@ public class QuasarTokenEncoder {
     ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
     buffer.order(ByteOrder.BIG_ENDIAN);
     buffer.putLong(ident);
-    return Hex.encodeHexString(buffer.array());
+    return Hex.toHexString(buffer.array());
   }
 
   public ByteBuffer toByteBuffer(String strUUID) {

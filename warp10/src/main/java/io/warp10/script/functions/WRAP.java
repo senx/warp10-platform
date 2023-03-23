@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2020  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package io.warp10.script.functions;
 
+import io.warp10.ThriftUtils;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSWrapperHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
@@ -39,7 +40,7 @@ public class WRAP extends ElementOrListStackFunction {
   private final boolean compress;
   private final boolean raw;
   private final boolean mv;
-  
+
   private final ElementStackFunction function;
 
   public WRAP(String name) {
@@ -53,7 +54,7 @@ public class WRAP extends ElementOrListStackFunction {
   public WRAP(String name, boolean opt, boolean compress) {
     this(name, opt, compress, false, false);
   }
-  
+
   public WRAP(String name, boolean opt, boolean compress, boolean raw) {
     this(name, opt, compress, raw, false);
   }
@@ -64,8 +65,8 @@ public class WRAP extends ElementOrListStackFunction {
     this.compress = compress;
     this.raw = raw;
     this.mv = mv;
-    
-    function = generateFunctionOnce();    
+
+    function = generateFunctionOnce();
   }
 
   private ElementStackFunction generateFunctionOnce() {
@@ -94,8 +95,8 @@ public class WRAP extends ElementOrListStackFunction {
           wrapper.unsetMetadata();
           wrapper.unsetCount();
         }
-        
-        TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+
+        TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
 
         try {
           byte[] bytes = serializer.serialize(wrapper);

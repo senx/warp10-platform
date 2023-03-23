@@ -97,6 +97,7 @@ import org.apache.curator.x.discovery.ServiceInstanceBuilder;
 import org.apache.curator.x.discovery.ServiceType;
 
 import io.warp10.SmartPattern;
+import io.warp10.ThriftUtils;
 import io.warp10.continuum.DirectoryUtil;
 import io.warp10.continuum.JettyUtil;
 import io.warp10.continuum.KafkaOffsetCounters;
@@ -504,7 +505,7 @@ public class Directory extends AbstractHandler implements Runnable {
 
             PKCS7Padding padding = new PKCS7Padding();
 
-            TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
+            TDeserializer deserializer = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
 
             while (!stopMe.get()) {
               try {
@@ -1517,7 +1518,7 @@ public class Directory extends AbstractHandler implements Runnable {
 
             // 128bits
             byte[] metadataBytes = Arrays.copyOfRange(data, 16, data.length);
-            TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
+            TDeserializer deserializer = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
             Metadata metadata = new Metadata();
             deserializer.deserialize(metadata, metadataBytes);
 
@@ -1767,7 +1768,7 @@ public class Directory extends AbstractHandler implements Runnable {
                 // Copy attributes from the currently store Metadata instance
                 metadata.setAttributes(meta.getAttributes());
 
-                TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+                TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
                 metadataBytes = serializer.serialize(meta);
 
                 id = MetadataUtils.id(metadata);
@@ -1815,7 +1816,7 @@ public class Directory extends AbstractHandler implements Runnable {
                 metadata.setAttributes(new HashMap<String,String>(meta.getAttributes()));
 
                 // We re-serialize metadata
-                TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+                TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
                 metadataBytes = serializer.serialize(metadata);
               }
 
@@ -1839,7 +1840,7 @@ public class Directory extends AbstractHandler implements Runnable {
 
                 if (hasChanged) {
                   // We re-serialize metadata
-                  TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+                  TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
                   metadataBytes = serializer.serialize(metadata);
                 }
               }
@@ -2005,7 +2006,7 @@ public class Directory extends AbstractHandler implements Runnable {
       byte[] raw = OrderPreservingBase64.decode(line.getBytes(StandardCharsets.US_ASCII));
 
       // Extract DirectoryStatsRequest
-      TDeserializer deser = new TDeserializer(new TCompactProtocol.Factory());
+      TDeserializer deser = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
       DirectoryStatsRequest req = new DirectoryStatsRequest();
 
       try {
@@ -2015,7 +2016,7 @@ public class Directory extends AbstractHandler implements Runnable {
         response.setContentType("text/plain");
         OutputStream out = response.getOutputStream();
 
-        TSerializer ser = new TSerializer(new TCompactProtocol.Factory());
+        TSerializer ser = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
         byte[] data = ser.serialize(resp);
 
         OrderPreservingBase64.encodeToStream(data, out);
@@ -2128,7 +2129,7 @@ public class Directory extends AbstractHandler implements Runnable {
     long count = 0;
     long hits = 0;
 
-    TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+    TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
 
     MetadataID id = null;
 

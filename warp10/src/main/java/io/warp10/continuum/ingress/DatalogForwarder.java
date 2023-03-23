@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
+
 package io.warp10.continuum.ingress;
 
 import java.io.BufferedReader;
@@ -48,6 +49,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.warp10.SortedPathIterator;
+import io.warp10.ThriftUtils;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.Tokens;
 import io.warp10.continuum.sensision.SensisionConstants;
@@ -839,7 +841,7 @@ public class DatalogForwarder extends Thread {
           data = CryptoUtils.unwrap(this.datalogPSK, data);
         }
 
-        TDeserializer deser = new TDeserializer(new TCompactProtocol.Factory());
+        TDeserializer deser = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
 
         DatalogRequest dr = new DatalogRequest();
 

@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2019  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
 
+import io.warp10.ThriftUtils;
 import io.warp10.continuum.gts.GTSWrapperHelper;
 import io.warp10.continuum.store.thrift.data.GTSWrapper;
 import io.warp10.crypto.OrderPreservingBase64;
@@ -35,34 +36,34 @@ import io.warp10.script.WarpScriptStackFunction;
  * Unwraps a GTSWrapper into an encoder
  */
 public class UNWRAPENCODER extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   public UNWRAPENCODER(String name) {
     super(name);
-  }  
+  }
 
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
-    
+
     if (!(top instanceof String) && !(top instanceof byte[])) {
       throw new WarpScriptException(getName() + " operates on a string or byte array.");
     }
-    
+
     byte[] bytes = top instanceof String ? OrderPreservingBase64.decode(top.toString().getBytes(StandardCharsets.US_ASCII)) : (byte[]) top;
-    
-    TDeserializer deser = new TDeserializer(new TCompactProtocol.Factory());
-    
+
+    TDeserializer deser = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
+
     try {
-      GTSWrapper wrapper = new GTSWrapper();      
+      GTSWrapper wrapper = new GTSWrapper();
       deser.deserialize(wrapper, bytes);
 
-      stack.push(GTSWrapperHelper.fromGTSWrapperToGTSEncoder(wrapper));      
+      stack.push(GTSWrapperHelper.fromGTSWrapperToGTSEncoder(wrapper));
     } catch (TException te) {
       throw new WarpScriptException(getName() + " failed to unwrap encoder.", te);
     } catch (IOException ioe) {
       throw new WarpScriptException(getName() + " failed to unwrap encoder.", ioe);
-    }      
+    }
 
     return stack;
-  }  
+  }
 }
