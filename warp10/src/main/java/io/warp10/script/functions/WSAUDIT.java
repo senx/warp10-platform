@@ -35,8 +35,18 @@ public class WSAUDIT extends NamedWarpScriptFunction implements WarpScriptStackF
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
 
     List l = new ArrayList();
-    for (WarpScriptAuditStatement st: (List<WarpScriptAuditStatement>) stack.getAttribute(WarpScriptStack.ATTRIBUTE_PARSING_ERRORS)) {
-      l.add(st.toMap());
+
+    //
+    // Returns only WarpScriptAuditStatement as MAP objects in a new list
+    //
+
+    Object errorList = stack.getAttribute(WarpScriptStack.ATTRIBUTE_PARSING_ERRORS);
+    if (errorList instanceof List) {
+      for (Object o: (List) errorList) {
+        if (o instanceof WarpScriptAuditStatement) {
+          l.add(((WarpScriptAuditStatement) o).toMap());
+        }
+      }
     }
 
     stack.push(l);
