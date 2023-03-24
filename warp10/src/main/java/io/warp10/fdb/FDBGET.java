@@ -1,5 +1,5 @@
 //
-//   Copyright 2022  SenX S.A.S.
+//   Copyright 2022-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -32,8 +32,8 @@ public class FDBGET extends NamedWarpScriptFunction implements WarpScriptStackFu
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
 
-    if (null == Capabilities.get(stack, FDBUtils.CAPABILITY_ADMIN)) {
-      throw new WarpScriptException(getName() + " missing capability.");
+    if (null == Capabilities.get(stack, FDBUtils.CAPABILITY_ADMIN) && null == Capabilities.get(stack, FDBUtils.CAPABILITY_GET)) {
+      throw new WarpScriptException(getName() + " missing '" + FDBUtils.CAPABILITY_GET + "' or '" + FDBUtils.CAPABILITY_ADMIN + "' capability.");
     }
 
     StoreClient sc = stack.getStoreClient();
