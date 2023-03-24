@@ -153,6 +153,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
 
   private StringBuilder multiline;
 
+  private boolean auditMode = false;
   /**
    * (re)defined functions
    */
@@ -467,6 +468,31 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   }
 
   /**
+   * Turn on/off auditMode. In auditMode, macros contains special statements with line numbers or WarpScript parsing errors.
+   * Parsing errors are also stored into ATTRIBUTE_PARSING_ERRORS stack attribute, to avoid walking in macros.
+   * auditMode exits after the closing the first last macro level, leaving on stack a macro object.
+   */
+  @Override
+  public void auditMode(boolean auditMode) {
+    if (auditMode) {
+      setAttribute(ATTRIBUTE_PARSING_ERRORS, new ArrayList<WarpScriptAuditStatement>());
+    }
+    this.auditMode = auditMode;
+  }
+
+  /**
+   * Saves the statement to the error list contained in ATTRIBUTE_PARSING_ERRORS stack attribute.
+   *
+   * @param st list of unknown functions or exceptions
+   */
+  private void addAuditError(WarpScriptAuditStatement st) {
+    Object o = getAttribute(ATTRIBUTE_PARSING_ERRORS);
+    if (o instanceof List) {
+      ((List) o).add(st);
+    }
+  }
+  
+  /**
    * Consume the top of the stack and interpret it as
    * an int number.
    *
@@ -512,7 +538,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
           break;
         }
 
-        exec(line);
+        exec(line, i);
         i++;
       }
       br.close();
@@ -533,6 +559,10 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
 
   @Override
   public void exec(String line) throws WarpScriptException {
+    exec(line, -1);
+  }
+
+  public void exec(String line, long lineNumber) throws WarpScriptException {
 
     String rawline = line;
 
@@ -611,7 +641,13 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
 
           if (WarpScriptStack.MULTILINE_END.equals(stmt)) {
             if (!inMultiline.get()) {
-              throw new WarpScriptException("Not inside a multiline.");
+              if (auditMode && !(macros.isEmpty() || macros.size() == forcedMacro)) {
+                WarpScriptAuditStatement err = new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_EXCEPTION, null, "Not inside a multiline.", lineNumber, st);
+                macros.get(0).add(err);
+                addAuditError(err);
+              } else {
+                throw new WarpScriptException("Not inside a multiline.");
+              }
             }
             inMultiline.set(false);
 
@@ -643,7 +679,13 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
           } else if (!allowLooseBlockComments && WarpScriptStack.COMMENT_END.equals(stmt)) {
             // Legacy comments block: Comments block must start with /* and end with */ .
             if (!inComment.get()) {
-              throw new WarpScriptException("Not inside a comment.");
+              if (auditMode && !(macros.isEmpty() || macros.size() == forcedMacro)) {
+                WarpScriptAuditStatement err = new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_EXCEPTION, null, "Not inside a comment.", lineNumber, st);
+                macros.get(0).add(err);
+                addAuditError(err);
+              } else {
+                throw new WarpScriptException("Not inside a comment.");
+              }
             }
             inComment.set(false);
             continue;
@@ -666,7 +708,13 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             continue;
           } else if (WarpScriptStack.MULTILINE_START.equals(stmt)) {
             if (1 != statements.length) {
-              throw new WarpScriptException("Can only start multiline strings by using " + WarpScriptStack.MULTILINE_START + " on a line by itself.");
+              if (auditMode && !(macros.isEmpty() || macros.size() == forcedMacro)) {
+                WarpScriptAuditStatement err = new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_EXCEPTION, null, "Can only start multiline strings by using " + WarpScriptStack.MULTILINE_START + " on a line by itself.", lineNumber, st);
+                macros.get(0).add(err);
+                addAuditError(err);
+              } else {
+                throw new WarpScriptException("Can only start multiline strings by using " + WarpScriptStack.MULTILINE_START + " on a line by itself.");
+              }
             }
             inMultiline.set(true);
             multiline = new StringBuilder();
@@ -678,7 +726,13 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
 
           if (WarpScriptStack.SECURE_SCRIPT_END.equals(stmt)) {
             if (null == secureScript) {
-              throw new WarpScriptException("Not inside a secure script definition.");
+              if (auditMode && !(macros.isEmpty() || macros.size() == forcedMacro)) {
+                WarpScriptAuditStatement err = new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_EXCEPTION, null, "Not inside a secure script definition.", lineNumber, st);
+                macros.get(0).add(err);
+                addAuditError(err);
+              } else {
+                throw new WarpScriptException("Not inside a secure script definition.");
+              }             
             } else {
               this.push(secureScript.toString());
               secureScript = null;
@@ -688,7 +742,13 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             if (null == secureScript) {
               secureScript = new StringBuilder();
             } else {
-              throw new WarpScriptException("Already inside a secure script definition.");
+              if (auditMode && !(macros.isEmpty() || macros.size() == forcedMacro)) {
+                WarpScriptAuditStatement err = new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_EXCEPTION, null, "Already inside a secure script definition.", lineNumber, st);
+                macros.get(0).add(err);
+                addAuditError(err);
+              } else {
+                throw new WarpScriptException("Already inside a secure script definition.");
+              }
             }
           } else if (null != secureScript) {
             secureScript.append(" ");
@@ -698,7 +758,9 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
               throw new WarpScriptException("Not inside a macro definition.");
             } else {
               Macro lastmacro = macros.remove(0);
-
+              if (auditMode && (macros.isEmpty() || macros.size() == forcedMacro)) {
+                auditMode = false;  // the only way to exit audit mode is to close the last level of opened macro.
+              }
               boolean secure = Boolean.TRUE.equals(this.getAttribute(WarpScriptStack.ATTRIBUTE_IN_SECURE_MACRO));
 
               if (!Boolean.TRUE.equals(this.getAttribute(WarpScriptStack.ATTRIBUTE_IN_XEVAL))) {
@@ -806,26 +868,45 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
 
               push(o);
             } else {
-              macros.get(0).add(stmt.substring(1));
-              macros.get(0).add(WarpScriptLib.getFunction(WarpScriptLib.LOAD));
+              if (auditMode) {
+                macros.get(0).add(new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_LOAD,
+                    stmt.substring(1), stmt, lineNumber, st));
+              } else {
+                macros.get(0).add(stmt.substring(1));
+                macros.get(0).add(WarpScriptLib.getFunction(WarpScriptLib.LOAD));
+              }
             }
           } else if (stmt.startsWith("!$")) {
             //
             // This is an immediate variable dereference
             //
-            Object o = load(stmt.substring(2));
+            if (auditMode && macros.size() > 1) {
+              macros.get(0).add(new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_EARLY_BINDING, null, stmt.substring(2), lineNumber, st));
+            } else {
+              Object o = load(stmt.substring(2));
 
-            if (null == o) {
-              if (!getSymbolTable().containsKey(stmt.substring(2))) {
-                throw new WarpScriptException("Unknown symbol '" + stmt.substring(2) + "'");
+              if (null == o) {
+                if (!getSymbolTable().containsKey(stmt.substring(2))) {
+                  if (0 == forcedMacro) {
+                    if (macros.size() > 1) {
+                      throw new WarpScriptException("Early binding is not possible inside a macro.");
+                    } else {
+                      throw new WarpScriptException("Unknown symbol '" + stmt.substring(2) + "'");
+                    }
+                  } else {
+                    throw new WarpScriptException("Early binding is not compatible with time execution limits such as " + Configuration.EGRESS_MAXTIME +
+                        " configuration or " + WarpScriptStack.CAPABILITY_TIMEBOX_MAXTIME + " capability.");
+                  }
+                }
+              }
+
+              if (macros.isEmpty()) {
+                push(o);
+              } else {
+                macros.get(0).add(o);
               }
             }
 
-            if (macros.isEmpty()) {
-              push(o);
-            } else {
-              macros.get(0).add(o);
-            }
           } else if (stmt.startsWith("@")) {
             if (macros.isEmpty()) {
               //
@@ -837,47 +918,62 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
               run(symbol);
             } else {
               macros.get(0).add(stmt.substring(1));
-              macros.get(0).add(WarpScriptLib.getFunction(WarpScriptLib.RUN));
+              if (auditMode) {
+                macros.get(0).add(new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_LOAD,
+                    stmt.substring(1), stmt, lineNumber, st));
+              } else {
+                macros.get(0).add(WarpScriptLib.getFunction(WarpScriptLib.RUN));
+              }
             }
           } else {
             //
             // This is a function call
             //
-
-            Object func = findFunction(stmt);
-
-            //
-            // Check WarpScript functions
-            //
-
-            Map<String,String> labels = new HashMap<String,String>();
-            labels.put(SensisionConstants.SENSISION_LABEL_FUNCTION, stmt);
-
-            long nano = System.nanoTime();
-
-            try {
-              if (func instanceof WarpScriptStackFunction && macros.isEmpty()) {
-                //
-                // Function is an WarpScriptStackFunction, call it on this stack
-                //
-
-                WarpScriptStackFunction esf = (WarpScriptStackFunction) func;
-
-                esf.apply(this);
-              } else {
-                //
-                // Push any other type of function onto the stack
-                //
-                if (macros.isEmpty()) {
-                  push(func);
-                } else {
-                  macros.get(0).add(func);
-                }
+            if (auditMode && !(macros.isEmpty() || macros.size() == forcedMacro)) {
+              try {
+                Object func = findFunction(stmt);
+                macros.get(0).add(new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.FUNCTION_CALL, func, stmt, lineNumber, st));
+              } catch (WarpScriptException e) {
+                WarpScriptAuditStatement err = new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.UNKNOWN, null, stmt, lineNumber, st);
+                macros.get(0).add(err);
+                addAuditError(err);
               }
-            } finally {
-              if (functionMetrics) {
-                Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_FUNCTION_COUNT, labels, 1);
-                Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_FUNCTION_TIME_US, labels, (System.nanoTime() - nano) / 1000L);
+            } else {
+              Object func = findFunction(stmt);
+
+              //
+              // Check WarpScript functions
+              //
+
+              Map<String, String> labels = new HashMap<String, String>();
+              labels.put(SensisionConstants.SENSISION_LABEL_FUNCTION, stmt);
+
+              long nano = System.nanoTime();
+
+              try {
+                if (func instanceof WarpScriptStackFunction && macros.isEmpty()) {
+                  //
+                  // Function is an WarpScriptStackFunction, call it on this stack
+                  //
+
+                  WarpScriptStackFunction esf = (WarpScriptStackFunction) func;
+
+                  esf.apply(this);
+                } else {
+                  //
+                  // Push any other type of function onto the stack
+                  //
+                  if (macros.isEmpty()) {
+                    push(func);
+                  } else {
+                    macros.get(0).add(func);
+                  }
+                }
+              } finally {
+                if (functionMetrics) {
+                  Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_FUNCTION_COUNT, labels, 1);
+                  Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_FUNCTION_TIME_US, labels, (System.nanoTime() - nano) / 1000L);
+                }
               }
             }
           }

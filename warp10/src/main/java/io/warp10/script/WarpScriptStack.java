@@ -123,6 +123,12 @@ public interface WarpScriptStack {
   public static final String ATTRIBUTE_INFOMODE = "infomode";
 
   /**
+   * List of parsing errors or unknown function errors generated in WarpScript audit mode.
+   * These errors are stored as WarpScriptAuditStatement with UNKNOWN or WS_EXCEPTION type.
+   */
+  public static final String ATTRIBUTE_PARSING_ERRORS = "wsaudit.errors";
+  
+  /**
    * Debug depth of the stack. This is the number
    * of elements to return when an error occurs.
    */
@@ -464,12 +470,25 @@ public interface WarpScriptStack {
               sb.append(((Macro) o).snapshot(hideSecure));
               sb.append(" ");
             } else if (o instanceof WarpScriptStackFunction) {
-              String funcSnapshot = o.toString();
 
               // In the case the snapshot of the function is 'MYFUNC' FUNCREF, instead of adding
               // 'MYFUNC' FUNCREF EVAL to the snapshot, MYFUNC can simply be added.
               // This can be done only if the name of function contains no special character.
               boolean simplified = false;
+
+              if (o instanceof WarpScriptAuditStatement) {
+                if (WarpScriptAuditStatement.STATEMENT_TYPE.FUNCTION_CALL == ((WarpScriptAuditStatement) o).type
+                    && ((WarpScriptAuditStatement) o).statementObject instanceof WarpScriptStackFunction) {
+                  // replace o by the object wrapped into the WarpScriptAuditStatement
+                  o = ((WarpScriptAuditStatement) o).statementObject;
+                } else {
+                  // the other types are handled by WarpScriptAuditStatement directly
+                  sb.append(o.toString());
+                  simplified = true;
+                }
+              }
+
+              String funcSnapshot = o.toString();
 
               if (o instanceof NamedWarpScriptFunction) {
                 NamedWarpScriptFunction namedWarpScriptFunction = (NamedWarpScriptFunction) o;
@@ -774,6 +793,14 @@ public interface WarpScriptStack {
   public void exec(String line) throws WarpScriptException;
 
   /**
+   * Execute a series of statements against the stack.
+   *
+   * @param line       String containing a space separated list of statements to execute
+   * @param lineNumber is the WarpScript line number, when known by exec() caller. Default value is -1.
+   */
+  public void exec(String line, long lineNumber) throws WarpScriptException;
+
+  /**
    * Empty the stack
    *
    */
@@ -971,4 +998,11 @@ public interface WarpScriptStack {
    * If macroOpen was not previously called, this function has no effect.
    */
   public void macroClose() throws WarpScriptException;
+  
+  /**
+   * Turn on/off auditMode. In auditMode, Macros contains WarpScriptAuditStatement with line numbers or WarpScript parsing errors.
+   * auditMode exits automatically after closing the first macro level, leaving on stack a macro object.
+   */
+  public void auditMode(boolean auditMode);
+  
 }
