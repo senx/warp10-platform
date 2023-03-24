@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -72,13 +72,13 @@ public class ASENCODERS extends ElementOrListStackFunction {
 
           return encoder;
         } catch (IOException ioe) {
-          throw new WarpScriptException(getName() + " cannot convert Encoder to Geo Time Series™.", ioe);
+          throw new WarpScriptException(getName() + " cannot convert Encoder to Geo Time Series.", ioe);
         }
       } else if (element instanceof GTSEncoder) {
         // Nothing to do, return instance.
         return element;
       } else {
-        throw new WarpScriptException(getName() + " expects a Geo Time Series™ or a list thereof on top on the stack.");
+        throw new WarpScriptException(getName() + " expects a Geo Time Series or a list thereof on top on the stack.");
       }
     }
   };

@@ -27,7 +27,7 @@ import io.warp10.script.WarpScriptStackFunction;
 
 /**
  * Reads macro configuration keys
- * This function is not intended to be used outside of Macro Repositories, Macro libraries and WarpFleet™ Resolver
+ * This function is not intended to be used outside of Macro Repositories, Macro libraries and WarpFleet Resolver
  */
 public class MACROCONFIG extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 

@@ -52,7 +52,7 @@ struct WriteToken {
     8:optional list<i64> indices,
 
     /**
-     * Default labels. Those labels will be added to the Geo Time Series™ labels whenever
+     * Default labels. Those labels will be added to the Geo Time Series labels whenever
      * this token is used for pushing data.
      */
     9:optional map<string,string> labels,
@@ -144,7 +144,7 @@ struct ReadToken {
 
     /**
      * Token extra labels. These are label selectors which will be added to
-     * the query parameters to restrain the set of returned Geo Time Series™.
+     * the query parameters to restrain the set of returned Geo Time Series.
      */
     14:optional map<string,string> labels,
 
