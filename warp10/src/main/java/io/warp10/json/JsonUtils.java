@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2021  SenX S.A.S.
+//   Copyright 2020-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -170,6 +170,7 @@ public class JsonUtils {
     module.addSerializer(new RealVectorSerializer());
     module.addSerializer(new RealMatrixSerializer());
     module.addSerializer(new COWListSerializer());
+    module.addSerializer(new WarpScriptAuditStatementSerializer());
 
     //
     // Common configuration for both strict and loose mappers.
