@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -437,7 +437,7 @@ public class EgressExecHandler extends AbstractHandler {
             stack.exec("'[Line #" + Long.toString(lineno) + "]'");
             stack.exec(WarpScriptLib.SECTION);
           }
-          stack.exec(line);
+          stack.exec(line, lineno);
         } catch (WarpScriptStopException ese) {
           // Do nothing, this is simply an early termination which should not generate errors
           terminate = true;
