@@ -90,7 +90,6 @@ import io.warp10.crypto.SipHashInline;
 import io.warp10.fdb.FDBClear;
 import io.warp10.fdb.FDBContext;
 import io.warp10.fdb.FDBKVScanner;
-import io.warp10.fdb.FDBKeyValue;
 import io.warp10.fdb.FDBMutation;
 import io.warp10.fdb.FDBScan;
 import io.warp10.fdb.FDBSet;
@@ -171,6 +170,22 @@ public class StandaloneDirectoryClient implements DirectoryClient {
 
   public static interface ShardFilter {
     public boolean exclude(long classId, long labelsId);
+  }
+
+  public StandaloneDirectoryClient() {
+    this.db = null;
+    this.keystore = null;
+    this.classKey = null;
+    this.labelsKey = null;
+    this.classLongs = null;
+    this.labelsLongs = null;
+    this.aesKey = null;
+    this.initNThreads = 0;
+    this.syncwrites = false;
+    this.syncrate = 0.0F;
+    this.fdbContext = null;
+    this.fdbRetryLimit = 0;
+    this.useFDB = false;
   }
 
   public StandaloneDirectoryClient(Object db, final KeyStore keystore) {
@@ -691,17 +706,20 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       metas = new ArrayList<Metadata>(requestedMetadatas);
     }
     return metas;
-  }
+  };
 
-  public void register(Metadata metadata) throws IOException {
+  public boolean register(Metadata metadata) throws IOException {
+
+    boolean stored = false;
 
     //
-    // Special case of null means flush leveldb
+    // Special case of null means flush leveldb/fdb
     //
 
     if (null == metadata) {
       store(null, null);
-      return;
+      stored = true;
+      return stored;
     }
 
     //
@@ -713,6 +731,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
 
       if (null == metadatasForClassname) {
         store(metadata);
+        stored = true;
       } else {
         // Compute labelsId
         // 128BITS
@@ -765,15 +784,24 @@ public class StandaloneDirectoryClient implements DirectoryClient {
             }
 
             store(metadata);
+            stored = true;
           }
         }
       } else {
         store(metadata);
+        stored = true;
       }
     }
+
+    return stored;
   }
 
-  public void unregister(Metadata metadata) {
+  public void unregister(Metadata metadata) throws IOException {
+
+    if (null == metadata) {
+      return;
+    }
+
     // Always compute the labelsId, even if the method early returns before needing it. This is because this operation
     // can be CPU-intensive and if done inside the synchronized(metadatas) block, would block other threads also
     // synchronizing on metadatas. As unregistering unknown metadata should be rare, this is an acceptable compromise.
@@ -916,7 +944,9 @@ public class StandaloneDirectoryClient implements DirectoryClient {
         }
 
         if (null != this.db) {
-          this.db.write(batch, options);
+          if (size.get() > 0) {
+            this.db.write(batch, options);
+          }
           size.set(0L);
           perThreadWriteBatch.remove();
         } else {
@@ -928,14 +958,16 @@ public class StandaloneDirectoryClient implements DirectoryClient {
           do {
             try {
               retry = false;
-              txn = this.fdb.createTransaction();
-              // Allow RAW access because we may manually force a tenant key prefix without actually setting a tenant
-              txn.options().setRawAccess();
+              if (!mutations.isEmpty()) {
+                txn = this.fdb.createTransaction();
+                // Allow RAW access because we may manually force a tenant key prefix without actually setting a tenant
+                txn.options().setRawAccess();
 
-              for (FDBMutation mutation: mutations) {
-                mutation.apply(txn);
+                for (FDBMutation mutation: mutations) {
+                  mutation.apply(txn);
+                }
+                txn.commit().get();
               }
-              txn.commit().get();
               size.set(0L);
             } catch (Throwable t) {
               FDBUtils.errorMetrics("directory", t.getCause());

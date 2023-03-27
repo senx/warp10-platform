@@ -1367,4 +1367,54 @@ public class SensisionConstants {
   //
 
   public static final long SENSISION_TTL_PERUSER = 24 * 3600L * 1000L;
+
+  /**
+   * Number of Datalog DATA messages ignored due to excluded ids
+   */
+  public static final String SENSISION_CLASS_DATALOG_IGNORED = "datalog.ignored";
+
+  /**
+   * Number of Datalog DATA messages skipped due to sharding macro returning false
+   */
+  public static final String SENSISION_CLASS_DATALOG_SKIPPED = "datalog.skipped";
+
+  /**
+   * Number of incoming Datalog consumer messages
+   */
+  public static final String SENSISION_CLASS_DATALOG_CONSUMER_MESSAGES_IN = "datalog.consumer.messages.in";
+
+  /**
+   * Number of outgoing Datalog consumer messages
+   */
+  public static final String SENSISION_CLASS_DATALOG_CONSUMER_MESSAGES_OUT = "datalog.consumer.messages.out";
+
+  /**
+   * Number of incoming Datalog feeder messages
+   */
+  public static final String SENSISION_CLASS_DATALOG_FEEDER_MESSAGES_IN = "datalog.feeder.messages.in";
+
+  /**
+   * Number of outgoing Datalog feeder messages
+   */
+  public static final String SENSISION_CLASS_DATALOG_FEEDER_MESSAGES_OUT = "datalog.feeder.messages.out";
+
+  /**
+   * Number of successful datalog records applied to the underlying datastore
+   */
+  public static final String SENSISION_CLASS_DATALOG_SUCCESSES = "datalog.successes";
+
+  /**
+   * Number of datalog records which failed to be applied
+   */
+  public static final String SENSISION_CLASS_DATALOG_FAILURES = "datalog.failures";
+
+  /**
+   * Datalog consumer id
+   */
+  public static final String SENSISION_LABEL_CONSUMER = "consumer";
+
+  /**
+   * Datalog feeder id
+   */
+  public static final String SENSISION_LABEL_FEEDER = "feeder";
 }

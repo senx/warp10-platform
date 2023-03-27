@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -14,28 +14,12 @@
 //   limitations under the License.
 //
 
-package io.warp10.standalone;
+package io.warp10.standalone.datalog;
 
-import io.warp10.continuum.store.thrift.data.DirectoryRequest;
-import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.KeyStore;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
-public class NullDirectoryClient extends StandaloneDirectoryClient {
-  public NullDirectoryClient(KeyStore keystore) {
-    super(null, keystore);
-  }
-  
-  @Override
-  public List<Metadata> find(DirectoryRequest request) {
-    return new ArrayList<Metadata>();
-  }
-  
-  @Override
-  public boolean register(Metadata metadata) {
-    return false;
-  }
+public interface DatalogConsumer {
+  public void init(KeyStore ks, String name);
+  public void success(String ref);
+  public void failure(String ref);  
 }
