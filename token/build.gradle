@@ -58,3 +58,11 @@ publishing {
 // Tasks dependencies
 //
 compileJava.dependsOn generateThrift
+
+//
+// Reproducible builds
+//
+//tasks.withType(AbstractArchiveTask).configureEach {
+//  preserveFileTimestamps = false
+//  reproducibleFileOrder = true
+//}

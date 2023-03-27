@@ -322,44 +322,6 @@ struct GTSSplit {
 }
 
 /**
- * Datalog request
- */
-struct DatalogRequest {
-  /**
-   * Timestamp at which the datalog request originated, in ns
-   */
-  1: i64 timestamp,
-  /**
-   * Id of the node where the datalog request originated
-   */
-  2: string id,  
-  /**
-   * Type of datalog request, UPDATE, META, DELETE
-   */
-  3: string type,
-  /**
-   * Associated token
-   */
-  4: string token,
-  /**
-   * Optional now parameter needed to decode relative timestamps
-   */
-  5: optional string now,
-  /**
-   * Delete query string. We store it in the request so it cannot be modified in the datalog file
-   */
-  6: optional string deleteQueryString,
-  /**
-   * Flag indicating whether or not the attributes should be treated as delta
-   */
-  7: optional bool deltaAttributes = false,
-  /**
-   * Additional attributes
-   */
-  8: optional map<string,string> attributes,
-}
-
-/**
  * A MetaSet is a container for giving access to specific GTS without giving
  * away a token. It can be used to cache Directory requests or to let third
  * party access specific GTS.
@@ -474,4 +436,126 @@ struct FetchRequest {
    * Map of attributes. This is used to pass information between client and backend if needed.
    */
   15: optional map<string,string> attributes,
+}
+
+enum DatalogRecordType {
+  UPDATE = 1,
+  DELETE = 2,
+  REGISTER = 3,
+  UNREGISTER = 4,
+}
+
+struct DatalogRecord {
+  /**
+   * Type of the Datalog Record
+   */
+  1: DatalogRecordType type,
+  
+  /**
+   * Id of the instance which created the record
+   */
+  2: string id,
+  
+  /**
+   * Timestamp of initial record creation, in ms since the Epoch
+   */
+  3: i64 timestamp,
+  
+  /**
+   * Timestamp at which the record was added to the DatalogFile. This
+   * may be different from the previous timestamp when processing a
+   * DatalogRecord which was forwarded.
+   */
+  4: i64 storeTimestamp,
+  
+  /**
+   * Associated Metadata
+   */
+  5: Metadata metadata,
+  
+  /**
+   * Optional encode base timestamp (for UPDATE messages)
+   */
+  6: optional i64 baseTimestamp = 0,
+  /**
+   * Optional encoder (for UPDATE messages)
+   */
+  7: optional binary encoder,
+  
+  /**
+   * Optional start timestamp (for DELETE messages)
+   */
+  8: optional i64 start = -9223372036854775808,
+  /**
+   * Optional end timestamp (for DELETE messages)
+   */
+  9: optional i64 stop = 9223372036854775807,
+  
+  /**
+   * Optional wrapper containing the data to forward. This is a placeholder
+   * where a wrapper can be stored for cases when a macro returned an extra encoder
+   * which differs from the one that should be stored (contained in metadata/encoder).
+   * This wrapper will be used to change the fields metadata/encoder/baseTimestamp prior
+   * to storing the message in the log file. It will not be serialized.
+   */
+  10: optional GTSWrapper forward,
+  
+  /**
+   * Write token associated with the request. This is needed when using FDB with tenant prefixes.
+   */
+  11: optional io_warp10_quasar_token_thrift_data.WriteToken token,
+}
+
+enum DatalogMessageType {
+  WELCOME = 1,
+  INIT = 2,
+  SEEK = 3,
+  TSEEK = 4,
+  COMMIT = 5,
+  DATA = 6,
+}
+
+struct DatalogMessage {
+  1: DatalogMessageType type,
+  
+  //
+  // Welcome related fields
+  //
+  // Nonce used for authentication and key derivation
+  2: optional i64 nonce,
+  // Timestamp used for authentication and key derivation
+  3: optional i64 timestamp,
+  // Flag indicating whether all further exchanges should be encrypted or not
+  4: optional bool encrypt,
+  
+  //
+  // Init related fields
+  //
+  11: optional string id,
+  12: optional binary sig,
+  13: optional list<i64> shards,
+  14: optional i64 shardShift,
+  15: optional list<string> excluded,
+  
+  //
+  // Seek/Commit related field, feed will start with that ref 
+  //
+  // Seek ref <TS>.<UUID>:<POSITION>
+  21: optional string ref,
+  
+  //
+  // TSeek related fields, feed will start at this timestamp
+  //
+  // Minimum timestamp to consider
+  31: optional i64 seekts,
+  
+  //
+  // DATA messages
+  //
+  51: optional binary record,
+  
+  /**
+   * Reference to use in the commit message
+   */
+  52: optional string commitref,
 }

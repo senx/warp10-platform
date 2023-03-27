@@ -1522,27 +1522,6 @@ public class Configuration {
   public static final String STANDALONE_VALUE_MAXSIZE = "standalone.value.maxsize";
 
   /**
-   * Set to 'true' to ignore timestamp limits (maxpast/maxfuture) when receiving data via datalog.
-   */
-  public static final String DATALOG_IGNORE_TIMESTAMPLIMITS = "datalog.ignore.timestamplimits";
-
-  /**
-   * Directory where data requests should be logged. This directory should be in 700 to protect sensitive token infos.
-   */
-  public static final String DATALOG_DIR = "datalog.dir";
-
-  /**
-   * Set to true to call fsync when closing datalog files
-   */
-  public static final String DATALOG_SYNC = "datalog.sync";
-
-  /**
-   * Id of this datalog node. The id will be used in the file name and will be passed down to child nodes via
-   * a header.
-   */
-  public static final String DATALOG_ID = "datalog.id";
-
-  /**
    * Comma separated list of shards this Warp 10 instance should store. The format of each
    * shard is MODULUS:REMAINDER
    */
@@ -1554,103 +1533,27 @@ public class Configuration {
   public static final String DATALOG_SHARDKEY_SHIFT = "datalog.shardkey.shift";
 
   /**
-   * Set to true or false to log the sharding key in the datalog request files
+   * Datalog Manager Fully Qualified Class Name
    */
-  public static final String DATALOG_LOGSHARDKEY = "datalog.logshardkey";
+  public static final String DATALOG_MANAGER = "datalog.manager";
 
   /**
-   * Pre-shared AES key to wrap datalog.id and datalog.timestamp header values
+   * Comma separated list of consumer names
    */
-  public static final String DATALOG_PSK = "datalog.psk";
+  public static final String DATALOG_CONSUMERS = "datalog.consumers";
 
   /**
-   * Flag indicating whether or not to log forwarded requests.
+   * Class name of consumer.
    */
-  public static final String DATALOG_LOGFORWARDED = "datalog.logforwarded";
+  public static final String DATALOG_CONSUMER_CLASS_PREFIX = "datalog.consumer.class.";
 
   /**
-   * Configuration key to modify the datalog header
+   * Flag indicating whether register events should be transmitted systematically (true)
+   * or simply when the local Directory actually stored the Metadata (false, the default).
+   * This will prevent architectures with multiple endpoints to miss Metadata creations when
+   * the feeds lag behind.
    */
-  public static final String HTTP_HEADER_DATALOG = "http.header.datalog";
-
-  /**
-   * Comma separated list of forwarders. Configuration for each forwarder will be suffixed with
-   * '.name' except for datalog.psk which is common to all forwarders
-   */
-  public static final String DATALOG_FORWARDERS = "datalog.forwarders";
-
-  /**
-   * Comma separated list of ids which should be ignored by the forwarder. This is to prevent loops from
-   * forming.
-   */
-  public static final String DATALOG_FORWARDER_IGNORED = "datalog.forwarder.ignored";
-
-  /**
-   * Directory from which to read the datalog files to forward
-   */
-  public static final String DATALOG_FORWARDER_SRCDIR = "datalog.forwarder.srcdir";
-
-  /**
-   * Directory where successfully forwarded files will be moved
-   */
-  public static final String DATALOG_FORWARDER_DSTDIR = "datalog.forwarder.dstdir";
-
-  /**
-   * Flag used to indicate that forwarded requests should be deleted instead of moved.
-   */
-  public static final String DATALOG_FORWARDER_DELETEFORWARDED = "datalog.forwarder.deleteforwarded";
-
-  /**
-   * Flag used to indicate that ignored requests should be deleted instead of moved.
-   */
-  public static final String DATALOG_FORWARDER_DELETEIGNORED = "datalog.forwarder.deleteignored";
-
-  /**
-   * Delay between directory scans (in ms)
-   */
-  public static final String DATALOG_FORWARDER_PERIOD = "datalog.forwarder.period";
-
-  /**
-   * Set to 'true' to compress forwarded update/meta requests
-   */
-  public static final String DATALOG_FORWARDER_COMPRESS = "datalog.forwarder.compress";
-
-  /**
-   * Set to 'true' to act as a regular client when forwarding actions. Otherwise the datalog request will be forwarded.
-   * This MUST be set to 'true' when forwarding to a distributed version of Warp 10.
-   */
-  public static final String DATALOG_FORWARDER_ACTASCLIENT = "datalog.forwarder.actasclient";
-
-  /**
-   * Number of threads to spawn to handle datalog actions
-   */
-  public static final String DATALOG_FORWARDER_NTHREADS = "datalog.forwarder.nthreads";
-
-  /**
-   * Endpoint to use when forwarding UPDATE actions
-   */
-  public static final String DATALOG_FORWARDER_ENDPOINT_UPDATE = "datalog.forwarder.endpoint.update";
-
-  /**
-   * Endpoint to use when forwarding DELETE actions
-   */
-  public static final String DATALOG_FORWARDER_ENDPOINT_DELETE = "datalog.forwarder.endpoint.delete";
-
-  /**
-   * Endpoint to use when forwarding META actions
-   */
-  public static final String DATALOG_FORWARDER_ENDPOINT_META = "datalog.forwarder.endpoint.meta";
-
-  /**
-   * Comma separated list of shards to forward, each shard being specified as MODULUS:REMAINDER
-   */
-  public static final String DATALOG_FORWARDER_SHARDS = "datalog.forwarder.shards";
-
-  /**
-   * Number of bits to right shift the shard key. If this is >= 24, then only the class id will be
-   * considered for sharding.
-   */
-  public static final String DATALOG_FORWARDER_SHARDKEY_SHIFT = "datalog.forwarder.shardkey.shift";
+  public static final String DATALOG_REGISTER_ALL = "datalog.register.all";
 
   /**
    * Maximum length of class names - Defaults to 1024
