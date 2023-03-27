@@ -251,7 +251,7 @@ public class FDBUtils {
       count += encoder.getCount();
     }
 
-    size += count * (103 + 8 /* tenant */ + 8 /* class ID */ + 8 /* labels ID */ + 1 /* key prefix, we do not count the timestamp which is already accounted for */);
+    size += (count + 1) * (103 + 8 /* tenant */ + 8 /* class ID */ + 8 /* labels ID */ + 1 /* key prefix, we do not count the timestamp which is already accounted for in the pessimistic size estimate */);
 
     //
     // If the estimated size is greater or equal to 4,500,000 (45 % of FDB max size), then we return true.

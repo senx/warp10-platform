@@ -61,7 +61,6 @@ import io.warp10.continuum.egress.EgressFetchHandler;
 import io.warp10.continuum.egress.EgressFindHandler;
 import io.warp10.continuum.egress.EgressInteractiveHandler;
 import io.warp10.continuum.egress.EgressMobiusHandler;
-import io.warp10.continuum.ingress.DatalogForwarder;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.ParallelGTSDecoderIteratorWrapper;
@@ -75,6 +74,9 @@ import io.warp10.leveldb.WarpDB;
 import io.warp10.script.ScriptRunner;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.sensision.Sensision;
+import io.warp10.standalone.datalog.DatalogConsumer;
+import io.warp10.standalone.datalog.DatalogManager;
+import io.warp10.standalone.datalog.DatalogWorkers;
 import io.warp10.warp.sdk.AbstractWarp10Plugin;
 
 public class Warp extends WarpDist implements Runnable {
@@ -389,6 +391,13 @@ public class Warp extends WarpDist implements Runnable {
     StandaloneDirectoryClient sdc = null;
     StoreClient scc = null;
 
+    DatalogManager dlm = null;
+
+    if (null != properties.getProperty(Configuration.DATALOG_MANAGER)) {
+      Class clazz = Class.forName(properties.getProperty(Configuration.DATALOG_MANAGER));
+      dlm = (DatalogManager) clazz.newInstance();
+    }
+
     if (inmemory) {
       sdc = new StandaloneDirectoryClient(null, keystore);
 
@@ -418,7 +427,7 @@ public class Warp extends WarpDist implements Runnable {
       }
     }
 
-    if (null != WarpConfig.getProperty(Configuration.DATALOG_DIR) && null != WarpConfig.getProperty(Configuration.DATALOG_SHARDS)) {
+    if (null != WarpConfig.getProperty(Configuration.DATALOG_SHARDS)) {
       sdc = new StandaloneShardedDirectoryClientWrapper(keystore, sdc);
       scc = new StandaloneShardedStoreClientWrapper(keystore, scc);
     }
@@ -427,6 +436,22 @@ public class Warp extends WarpDist implements Runnable {
     // otherwise we may end up in an endless loop attempting to schedule workers
     if (ParallelGTSDecoderIteratorWrapper.useParallelScanners() && !Constants.BACKEND_FDB.equals(backend)) {
       scc = new StandaloneParallelStoreClientWrapper(scc);
+    }
+
+    sdc = DatalogManager.wrap(dlm, sdc);
+    scc = DatalogManager.wrap(dlm, scc);
+
+    if (null != properties.getProperty(Configuration.DATALOG_CONSUMERS)) {
+
+      DatalogWorkers.init(scc,sdc);
+
+      String[] consumers = properties.getProperty(Configuration.DATALOG_CONSUMERS).split(",");
+      for (String consumer: consumers) {
+        consumer = consumer.trim();
+        Class clazz = Class.forName(WarpConfig.getProperty(Configuration.DATALOG_CONSUMER_CLASS_PREFIX +  consumer));
+        DatalogConsumer dc = (DatalogConsumer) clazz.newInstance();
+        dc.init(keystore, consumer);
+      }
     }
 
     if (properties.containsKey(Configuration.RUNNER_ROOT)) {
@@ -438,48 +463,6 @@ public class Warp extends WarpDist implements Runnable {
         // Allocate a normal runner
         //
         ScriptRunner runner = new ScriptRunner(keystore.clone(), properties);
-      }
-    }
-
-    //
-    // Start the Datalog Forwarders
-    //
-
-    if (!analyticsEngineOnly && properties.containsKey(Configuration.DATALOG_FORWARDERS)) {
-      // Extract the names of the forwarders and start them all, ensuring we only start each one once
-      String[] forwarders = properties.getProperty(Configuration.DATALOG_FORWARDERS).split(",");
-
-      Set<String> names = new HashSet<String>();
-      for (String name: forwarders) {
-        names.add(name.trim());
-      }
-
-      Set<Path> srcDirs = new HashSet<Path>();
-
-      Path datalogdir = new File(properties.getProperty(Configuration.DATALOG_DIR)).toPath().toRealPath();
-
-      for (String name: names) {
-        DatalogForwarder forwarder = new DatalogForwarder(name, keystore, properties);
-
-        Path root = forwarder.getRootDir().toRealPath();
-
-        if (datalogdir.equals(root)) {
-          throw new RuntimeException("Datalog directory '" + datalogdir + "' cannot be used as a forwarder source.");
-        }
-
-        if (!srcDirs.add(root)) {
-          throw new RuntimeException("Duplicate datalog source directory '" + root + "'.");
-        }
-      }
-
-      datalogSrcDirs = Collections.unmodifiableSet(srcDirs);
-
-    } else if (!analyticsEngineOnly && properties.containsKey(Configuration.DATALOG_FORWARDER_SRCDIR) && properties.containsKey(Configuration.DATALOG_FORWARDER_DSTDIR)) {
-      Path datalogdir = new File(properties.getProperty(Configuration.DATALOG_DIR)).toPath().toRealPath();
-      DatalogForwarder forwarder = new DatalogForwarder(keystore, properties);
-      Path root = forwarder.getRootDir().toRealPath();
-      if (datalogdir.equals(root)) {
-        throw new RuntimeException("Datalog directory '" + datalogdir + "' cannot be used as the source directory of a forwarder.");
       }
     }
 

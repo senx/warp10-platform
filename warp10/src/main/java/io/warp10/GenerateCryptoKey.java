@@ -71,7 +71,6 @@ public class GenerateCryptoKey {
     keys.put(Configuration.INGRESS_KAFKA_DATA_AES, 256);
     keys.put(Configuration.EGRESS_FDB_DATA_AES, 256);
     keys.put(Configuration.EGRESS_FETCHER_AES, 256);
-    keys.put(Configuration.DATALOG_PSK, 256);
   }
 
 
