@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2021  SenX S.A.S.
+//   Copyright 2020-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -97,7 +97,7 @@ public class ADD extends NamedWarpScriptFunction implements WarpScriptStackFunct
       TYPE type = TYPE.UNDEFINED;
       
       if (TYPE.BOOLEAN == gts1.getType() || TYPE.BOOLEAN == gts2.getType()) {
-        throw new WarpScriptException(getName() + " cannot operate on BOOLEAN Geo Time Series™.");
+        throw new WarpScriptException(getName() + " cannot operate on BOOLEAN Geo Time Series.");
       } else if (TYPE.STRING == gts1.getType() || TYPE.STRING == gts2.getType()) {
         type = TYPE.STRING;
       } else if (TYPE.DOUBLE == gts1.getType() || TYPE.DOUBLE == gts2.getType()) {
@@ -169,7 +169,7 @@ public class ADD extends NamedWarpScriptFunction implements WarpScriptStackFunct
         if (TYPE.DOUBLE == gts.getType() || TYPE.LONG == gts.getType()) {
           type = TYPE.DOUBLE;
         } else if (TYPE.BOOLEAN == gts.getType()) {
-          throw new WarpScriptException(getName() + " cannot operate on BOOLEAN Geo Time Series™.");
+          throw new WarpScriptException(getName() + " cannot operate on BOOLEAN Geo Time Series.");
         } else {
           type = TYPE.STRING;
         }
@@ -179,7 +179,7 @@ public class ADD extends NamedWarpScriptFunction implements WarpScriptStackFunct
         } else if (TYPE.LONG == gts.getType()) {
           type = TYPE.LONG;
         } else if (TYPE.BOOLEAN == gts.getType()) {
-          throw new WarpScriptException(getName() + " cannot operate on BOOLEAN Geo Time Series™.");
+          throw new WarpScriptException(getName() + " cannot operate on BOOLEAN Geo Time Series.");
         } else {
           type = TYPE.STRING;
         }

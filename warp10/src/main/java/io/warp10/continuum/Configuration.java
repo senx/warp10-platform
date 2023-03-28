@@ -2006,7 +2006,7 @@ public class Configuration {
   public static final String REPOSITORY_ONDEMAND = "warpscript.repository.ondemand";
 
   /**
-   * Comma separated list of configured WarpFleet™ repositories
+   * Comma separated list of configured WarpFleet repositories
    */
   public static final String WARPFLEET_MACROS_REPOS = "warpfleet.macros.repos";
 

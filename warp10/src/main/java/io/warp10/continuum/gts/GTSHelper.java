@@ -5119,7 +5119,7 @@ public class GTSHelper {
 
         if ((idxa < gtsa.values && curTickA == gtsa.ticks[idxa])
             || (idxb < gtsb.values && curTickB == gtsb.ticks[idxb])) {
-          throw new WarpScriptException("Cannot fill Geo Time Series™ with duplicate timestamps.");
+          throw new WarpScriptException("Cannot fill Geo Time Series with duplicate timestamps.");
         }
         continue;
       }

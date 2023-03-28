@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -49,7 +49,7 @@ public class RESETS extends NamedWarpScriptFunction implements WarpScriptStackFu
     Object top = stack.pop();
 
     if (!(top instanceof List) && !(top instanceof GeoTimeSerie)) {
-      throw new WarpScriptException(getName() + " operates on a Geo Time Series™ or list thereof.");
+      throw new WarpScriptException(getName() + " operates on a Geo Time Series or list thereof.");
     }
     
     List<Object> params = top instanceof List ? (List<Object>) top : new ArrayList<Object>();

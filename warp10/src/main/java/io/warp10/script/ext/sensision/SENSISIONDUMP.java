@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2022  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -46,7 +46,7 @@ public class SENSISIONDUMP extends NamedWarpScriptFunction implements WarpScript
     }
 
     if (!(top instanceof Boolean)) {
-      throw new WarpScriptException(getName() + " expects a flag (BOOLEAN) indicating whether to use the metrics update timestamps or the current timestamp when generating Geo Time Series™.");
+      throw new WarpScriptException(getName() + " expects a flag (BOOLEAN) indicating whether to use the metrics update timestamps or the current timestamp when generating Geo Time Series.");
     }
 
     boolean useMetricsTimestamps = Boolean.TRUE.equals(top);

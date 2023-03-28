@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -42,7 +42,7 @@ import io.warp10.script.WarpScriptExecutor.StackSemantics;
 
 /**
  * This InputFormat wraps another InputFormat and creates a RecordReader
- * which returns K/V processed by some WarpScript™ code.
+ * which returns K/V processed by some WarpScript code.
  */
 public class WarpScriptInputFormat extends InputFormat<Object, Object> {
 
