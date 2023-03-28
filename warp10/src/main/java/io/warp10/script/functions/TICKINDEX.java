@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2021  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -41,7 +41,7 @@ public class TICKINDEX extends ElementOrListStackFunction {
           } else if (element instanceof GTSEncoder) {
             return GTSHelper.tickindex((GTSEncoder) element);
           }
-          throw new WarpScriptException(getName() + " can only operate on Geo Time Series™ or GTS Encoder instances.");
+          throw new WarpScriptException(getName() + " can only operate on Geo Time Series or GTS Encoder instances.");
         } catch (Exception e) {
           throw new WarpScriptException(getName() + " caught an exception while converting encoder.", e);
         }

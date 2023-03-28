@@ -52,7 +52,7 @@ directory.fdb.clusterfile = ${fdb.clusterfile}
 ##
 
 store.fdb.clusterfile = ${fdb.clusterfile}
-egress.fdb.clusterfile = ${fdb.clusterfile}
+egress.fdb.clusterfile = ${store.fdb.clusterfile}
 
 ##
 ## Tenant to use for storing data. The value must
