@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2021  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -63,7 +63,7 @@ public class MVEXTRACT extends ElementOrListStackFunction implements ElementStac
   @Override
   public Object applyOnElement(Object element) throws WarpScriptException {
     if (!(element instanceof GTSEncoder) && !(element instanceof GeoTimeSerie)) {
-      throw new WarpScriptException(getName() + " can only be applied on Geo Time Series™ or GTS Encoders.");
+      throw new WarpScriptException(getName() + " can only be applied on Geo Time Series or GTS Encoders.");
     }
 
     try {

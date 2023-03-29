@@ -907,7 +907,7 @@ public class WarpScriptLib {
   public static final String TDESCRIBE = "TDESCRIBE";
   public static final String WSAUDIT = "WSAUDIT";
   public static final String WSAUDITMODE = "WSAUDITMODE";
-  
+
   public static final String REF = "REF";
   public static final String COMPILE = "COMPILE";
   public static final String SAFECOMPILE = "SAFECOMPILE";
@@ -2864,7 +2864,7 @@ public class WarpScriptLib {
     if (!jversion.equals(System.getProperty("java.version"))) {
       String tmp = System.getProperty("java.version");
       System.setProperty("java.version", jversion);
-      Preconditions.checkArgument(jversion.equals(PApplet.javaVersionName), "Processing was not correctly initialized, consider setting configuraiton " + Configuration.WARP_JAVA_VERSION + ".");
+      Preconditions.checkArgument(jversion.equals(PApplet.javaVersionName), "Processing was not correctly initialized, consider setting configuration " + Configuration.WARP_JAVA_VERSION + ".");
       System.setProperty("java.version", tmp);
     }
 

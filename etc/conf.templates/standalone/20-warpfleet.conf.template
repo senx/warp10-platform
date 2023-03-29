@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2022  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@
 // WarpFleet
 //
 
-// Comma separated list of default WarpFleet™ repositories
+// Comma separated list of default WarpFleet repositories
 warpfleet.macros.repos = https://warpfleet.senx.io/macros/{macro}
 
 // Read timeout when fetching macro source code from a repository, in ms. Defaults to 10s.
@@ -27,7 +27,7 @@ warpfleet.macros.repos = https://warpfleet.senx.io/macros/{macro}
 // Connection timeout when fetching macro source code from a repository, in ms. Defaults to 5s.
 #warpfleet.timeout.connect =
 
-// Maximum number of macros from WarpFleet™ to cache, defaults to 10000
+// Maximum number of macros from WarpFleet to cache, defaults to 10000
 #warpfleet.cache.size = 10000
 
 // Default TTL (in ms) for macros loaded from a WarpFleet repository (defaults to 10 minutes)

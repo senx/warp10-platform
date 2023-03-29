@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -95,7 +95,6 @@ subprojects {
         } else {
             options.compilerArgs << '-g'
         }
-
         //options.debug = false;
         //options.optimize = false;
         //options.debugOptions.debugLevel = ''
@@ -103,7 +102,12 @@ subprojects {
 
     // Disable crazy-strict fail-fast javadoc checks
     javadoc.options.addStringOption('Xdoclint:none', '-quiet')
-
+    if(JavaVersion.current() > JavaVersion.VERSION_1_8) {
+        javadoc.options.addMultilineStringsOption("-add-exports").setValue([
+                'java.desktop/com.sun.imageio.plugins.png=ALL-UNNAMED',
+                'java.base/sun.net.www.protocol.file=ALL-UNNAMED'
+        ])
+    }
     // Adds sourceJar and javadocJar task
     java {
         withSourcesJar()

@@ -161,7 +161,7 @@ public class WarpScriptRecordReader extends RecordReader<Object, Object> {
           for (int i = results.size() - 1; i >= 0; i--) {
             Object result = results.get(i);
             if (!(result instanceof List) || 2 != ((List) result).size()) {
-              throw new IOException("Invalid WarpScript™ output, expected a [ key value ] pair, got a " + (null == result ? "null" : result.getClass()));
+              throw new IOException("Invalid WarpScript output, expected a [ key value ] pair, got a " + (null == result ? "null" : result.getClass()));
             }
             List<Object> record = new ArrayList<Object>();
             record.add(WritableUtils.toWritable(((List) result).get(0)));
@@ -198,7 +198,7 @@ public class WarpScriptRecordReader extends RecordReader<Object, Object> {
           for (int i = results.size() - 1; i >= 0; i--) {
             Object result = results.get(i);
             if (!(result instanceof List) || 2 != ((List) result).size()) {
-              throw new IOException("Invalid WarpScript™ output, expected [ key value ] pairs, got a " + (null == result ? "null" : result.getClass()));
+              throw new IOException("Invalid WarpScript output, expected [ key value ] pairs, got a " + (null == result ? "null" : result.getClass()));
             }
             List<Object> record = new ArrayList<Object>();
             record.add(WritableUtils.toWritable(((List) result).get(0)));

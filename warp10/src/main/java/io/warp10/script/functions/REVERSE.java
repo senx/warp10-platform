@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@
 
 package io.warp10.script.functions;
 
-import io.warp10.continuum.gts.UnsafeString;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
@@ -29,22 +28,22 @@ import java.util.List;
 import com.geoxp.oss.jarjar.org.bouncycastle.util.Arrays;
 
 /**
- * Reverse the order of the elements in a list, either by copying the list or reversing it in place 
+ * Reverse the order of the elements in a list, either by copying the list or reversing it in place
  */
 public class REVERSE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   private final boolean stable;
-  
+
   public REVERSE(String name, boolean stable) {
     super(name);
     this.stable = stable;
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    
+
     Object top = stack.pop();
-    
+
     if (!(top instanceof List) && !(top instanceof String) && !(top instanceof byte[])) {
       throw new WarpScriptException(getName() + " operates on a list, byte array or String.");
     }
@@ -53,16 +52,16 @@ public class REVERSE extends NamedWarpScriptFunction implements WarpScriptStackF
       if (!this.stable) {
         List l = new ArrayList<Object>();
         l.addAll((List) top);
-        top = l;                
+        top = l;
       }
       Collections.reverse((List) top);
       stack.push(top);
     } else if (top instanceof String) {
       char[] chars = ((String) top).toCharArray();
-      
+
       int i = 0;
       int j = chars.length - 1;
-      
+
       while (i < j) {
         char tmp = chars[i];
         chars[i] = chars[j];
@@ -71,15 +70,15 @@ public class REVERSE extends NamedWarpScriptFunction implements WarpScriptStackF
         j--;
       }
 
-      stack.push(String.valueOf(chars));
+      stack.push(new String(chars));
     } else { // top instanceof byte[]
-      byte[] data = (byte[]) top; 
+      byte[] data = (byte[]) top;
       if (!this.stable) {
         data = Arrays.copyOf(data, data.length);
       }
       int i = 0;
       int j = data.length - 1;
-      
+
       while (i < j) {
         byte tmp = data[i];
         data[i] = data[j];
@@ -87,10 +86,10 @@ public class REVERSE extends NamedWarpScriptFunction implements WarpScriptStackF
         i++;
         j--;
       }
-      
+
       stack.push(data);
     }
-        
+
     return stack;
   }
 }
