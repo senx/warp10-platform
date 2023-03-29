@@ -16,10 +16,55 @@
 
 package io.warp10.continuum.gts;
 
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.net.URLDecoder;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.CharBuffer;
+import java.nio.charset.CharsetEncoder;
+import java.nio.charset.CoderResult;
+import java.nio.charset.CodingErrorAction;
+import java.nio.charset.StandardCharsets;
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.PriorityQueue;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.math3.fitting.PolynomialCurveFitter;
+import org.apache.commons.math3.fitting.WeightedObservedPoint;
+import org.apache.thrift.TSerializer;
+import org.apache.thrift.protocol.TCompactProtocol;
+import org.bouncycastle.util.encoders.Hex;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.geoxp.GeoXPLib;
 import com.geoxp.GeoXPLib.GeoXPShape;
 import io.warp10.CapacityExtractorOutputStream;
-import io.warp10.DoubleUtils;
 import io.warp10.WarpHexDecoder;
 import io.warp10.WarpURLDecoder;
 import io.warp10.WarpURLEncoder;
@@ -48,15 +93,6 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.functions.MACROMAPPER;
 import io.warp10.script.functions.TOQUATERNION;
-import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.math3.fitting.PolynomialCurveFitter;
-import org.apache.commons.math3.fitting.WeightedObservedPoint;
-import org.apache.thrift.TSerializer;
-import org.apache.thrift.protocol.TCompactProtocol;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import sun.nio.cs.ArrayEncoder;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -2748,7 +2784,8 @@ public class GTSHelper {
     }
 
     //idx = str.indexOf("/");
-    idx = UnsafeString.indexOf(str, '/', tsoffset);
+
+    idx = str.indexOf('/', tsoffset);
 
     if (-1 == idx){
       throw new ParseException("Missing timestamp separator.", tsoffset);
@@ -2794,8 +2831,7 @@ public class GTSHelper {
     // Advance past the '/'
     idx++;
 
-    //int idx2 = str.indexOf("/", idx);
-    int idx2 = UnsafeString.indexOf(str, '/', idx);
+    int idx2 = str.indexOf('/', idx);
 
     if (-1 == idx2){
       throw new ParseException("Missing location/elevation separator.", idx);
@@ -2808,9 +2844,8 @@ public class GTSHelper {
       String latlon = str.substring(idx, idx2);
       // Advance past the second '/'
       idx = idx2 + 1;
-      //idx2 = latlon.indexOf(":");
-      idx2 = UnsafeString.indexOf(latlon, ':');
 
+      idx2 = latlon.indexOf(':');
       try {
         if (-1 != idx2) {
           location = GeoXPLib.toGeoXPPoint(Double.parseDouble(latlon.substring(0, idx2)), Double.parseDouble(latlon.substring(idx2 + 1)));
@@ -2826,8 +2861,7 @@ public class GTSHelper {
       idx = idx2 + 1;
     }
 
-    //idx2 = str.indexOf(" ", idx);
-    idx2 = UnsafeString.indexOf(str, ' ', idx);
+    idx2 = str.indexOf(' ', idx);
 
     if (-1 == idx2){
       if(0 == tsoffset) {
@@ -2859,8 +2893,7 @@ public class GTSHelper {
     if (tsoffset > 0) {
       idx2 = -1;
     } else {
-      //idx2 = str.indexOf("{", idx);
-      idx2 = UnsafeString.indexOf(str, '{', idx);
+      idx2 = str.indexOf('{', idx);
     }
 
     String name = null;
@@ -2890,8 +2923,7 @@ public class GTSHelper {
       // Advance past the '{'
       idx = idx2 + 1;
 
-      //idx2 = str.indexOf("}", idx);
-      idx2 = UnsafeString.indexOf(str, '}', idx);
+      idx2 = str.indexOf('}', idx);
 
       if (-1 == idx2){
         throw new ParseException("Missing end of labels '}'.", str.length() - 1);
@@ -3126,7 +3158,7 @@ public class GTSHelper {
           }
         }
 
-        if (!DoubleUtils.isFinite(q[0]) || !DoubleUtils.isFinite(q[1]) || !DoubleUtils.isFinite(q[2]) || !DoubleUtils.isFinite(q[3])) {
+        if (!Double.isFinite(q[0]) || !Double.isFinite(q[1]) || !Double.isFinite(q[2]) || !Double.isFinite(q[3])) {
           throw new ParseException("Quaternion values require finite elements.", 0);
         }
 
@@ -3563,17 +3595,9 @@ public class GTSHelper {
   }
 
   public static final long classId(long k0, long k1, String name) {
-    CharsetEncoder ce = StandardCharsets.UTF_8.newEncoder();
+    byte[] ba = name.getBytes(StandardCharsets.UTF_8);
 
-    ce.onMalformedInput(CodingErrorAction.REPLACE)
-    .onUnmappableCharacter(CodingErrorAction.REPLACE)
-    .reset();
-
-    byte[] ba = new byte[(int) ((double) ce.maxBytesPerChar() * name.length())];
-
-    int blen = ((ArrayEncoder)ce).encode(UnsafeString.getChars(name), UnsafeString.getOffset(name), name.length(), ba);
-
-    return SipHashInline.hash24_palindromic(k0, k1, ba, 0, blen);
+    return SipHashInline.hash24_palindromic(k0, k1, ba, 0, ba.length);
   }
 
   /**
@@ -3680,6 +3704,9 @@ public class GTSHelper {
 
     int idx = 0;
 
+    CharBuffer cb = CharBuffer.allocate(calen);
+    ByteBuffer bb = ByteBuffer.allocate((int) ((double) ce.maxBytesPerChar() * calen));
+
     for (Entry<String, String> entry: labels.entrySet()) {
       String ekey = entry.getKey();
       String eval = entry.getValue();
@@ -3689,24 +3716,36 @@ public class GTSHelper {
 
       if (klen > calen || vlen > calen) {
         calen = Math.max(klen, vlen);
-        ba = new byte[(int) ((double) ce.maxBytesPerChar() * calen)];
+        cb = CharBuffer.allocate(calen);
+        bb = ByteBuffer.allocate((int) ((double) ce.maxBytesPerChar() * calen));
       }
 
       ce.onMalformedInput(CodingErrorAction.REPLACE)
       .onUnmappableCharacter(CodingErrorAction.REPLACE)
       .reset();
 
-      int blen = ((ArrayEncoder)ce).encode(UnsafeString.getChars(ekey), UnsafeString.getOffset(ekey), klen, ba);
+      cb.clear();
+      cb.put(ekey);
+      cb.flip();
+      bb.clear();
 
-      hashes[idx] = SipHashInline.hash24_palindromic(sipkey0, sipkey1, ba, 0, blen);
+      CoderResult res = ce.encode(cb, bb, true);
+      bb.flip();
 
+      hashes[idx] = SipHashInline.hash24_palindromic(sipkey0, sipkey1, bb.array(), 0, bb.limit());
       ce.onMalformedInput(CodingErrorAction.REPLACE)
       .onUnmappableCharacter(CodingErrorAction.REPLACE)
       .reset();
 
-      blen = ((ArrayEncoder)ce).encode(UnsafeString.getChars(eval), UnsafeString.getOffset(eval), vlen, ba);
+      cb.clear();
+      cb.put(eval);
+      cb.flip();
+      bb.clear();
 
-      hashes[idx+1] = SipHashInline.hash24_palindromic(sipkey0, sipkey1, ba, 0, blen);
+      res = ce.encode(cb, bb, true);
+      bb.flip();
+
+      hashes[idx+1] = SipHashInline.hash24_palindromic(sipkey0, sipkey1, bb.array(), 0, bb.limit());
       idx+=2;
     }
 
@@ -3761,7 +3800,10 @@ public class GTSHelper {
       buf[idx++] = (byte) (hash & 0xffL);
     }
 
-    return SipHashInline.hash24_palindromic(sipkey0, sipkey1, buf, 0, buf.length);
+    //return SipHashInline.hash24(sipkey[0], sipkey[1], buf, 0, buf.length);
+    long id = SipHashInline.hash24_palindromic(sipkey0, sipkey1, buf, 0, buf.length);
+    return id;
+    //return SipHashInline.hash24_palindromic(sipkey0, sipkey1, buf, 0, buf.length);
   }
 
   public static final long labelsId_slow(byte[] key, Map<String,String> labels) {
@@ -3867,11 +3909,10 @@ public class GTSHelper {
       return bytes;
     }
 
-    char[] c = UnsafeString.getChars(s);
-
     for (int i = 0; i < 8; i++) {
-      bytes[i * 2] = (byte) ((c[i] >> 8) & 0xFF);
-      bytes[1 + i * 2] = (byte) (c[i] & 0xFF);
+      char c = s.charAt(i);
+      bytes[i * 2] = (byte) ((c >> 8) & 0xFF);
+      bytes[1 + i * 2] = (byte) (c & 0xFF);
     }
 
     return bytes;
@@ -3880,12 +3921,11 @@ public class GTSHelper {
   public static long[] unpackGTSIdLongs(String s) {
     long[] clslbls = new long[2];
 
-    char[] c = UnsafeString.getChars(s);
     for (int i = 0; i < 4; i++) {
       clslbls[0] <<= 16;
-      clslbls[0] |= (c[i] & 0xFFFFL) & 0xFFFFL;
+      clslbls[0] |= (s.charAt(i) & 0xFFFFL) & 0xFFFFL;
       clslbls[1] <<= 16;
-      clslbls[1] |= (c[i + 4] & 0xFFFFL) & 0xFFFFL;
+      clslbls[1] |= (s.charAt(i + 4) & 0xFFFFL) & 0xFFFFL;
     }
 
 
@@ -3897,10 +3937,7 @@ public class GTSHelper {
   }
 
   public static String gtsIdToString(long classId, long labelsId, boolean intern) {
-    String s = new String("01234567");
-
-    // This way we don't create a char array twice...
-    char[] c = UnsafeString.getChars(s);
+    char[] c = new char[8];
 
     long x = classId;
     long y = labelsId;
@@ -3912,11 +3949,13 @@ public class GTSHelper {
       y >>>= 16;
     }
 
+    String s = new String(c);
+
     if (intern) {
-      return s.intern();
-    } else {
-      return s;
+      s = s.intern();
     }
+
+    return s;
   }
 
   public static long[] stringToGTSId(String s) {

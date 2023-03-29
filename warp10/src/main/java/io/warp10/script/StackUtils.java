@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -100,7 +100,7 @@ public class StackUtils {
 
         line = UnsafeString.sanitizeStrings(line);
 
-        if (-1 != UnsafeString.indexOf(line, ' ')) {
+        if (-1 != line.indexOf(' ')) {
           //statements = line.split(" +");
           statements = UnsafeString.split(line, ' ');
         } else {
@@ -162,7 +162,6 @@ public class StackUtils {
     } catch(IOException ioe) {
       throw new WarpScriptException(ioe);
     }
-
 
     return sb;
   }
