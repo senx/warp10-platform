@@ -16,13 +16,6 @@
 
 package io.warp10.continuum.gts;
 
-import java.lang.reflect.Field;
-import java.nio.CharBuffer;
-import java.util.ArrayList;
-
-import java.util.Arrays;
-import sun.misc.Unsafe;
-
 /**
  * The following class is inspired by:
  * 
@@ -31,86 +24,8 @@ import sun.misc.Unsafe;
  * 
  */
 
-public class UnsafeString {
-  private static final Unsafe unsafe;
-  private static final long valueOffset;
-  private static final long offsetOffset;
-  private static final long countOffset;
-  private static final long hashOffset;
-  
-  static {
-    try {
-      // This is a bit of voodoo to force the unsafe object into
-      // visibility and acquire it.
-      // This is not playing nice, but as an established back door it is
-      // not likely to be
-      // taken away.
-      Field field = Unsafe.class.getDeclaredField("theUnsafe");
-      field.setAccessible(true);
-      unsafe = (Unsafe) field.get(null);
-      valueOffset = unsafe.objectFieldOffset(String.class.getDeclaredField("value"));
-      Field declaredField;
-      try {
-        declaredField = String.class.getDeclaredField("count");
-      } catch (NoSuchFieldException e) {
-        // this will happen for jdk7 as these fields have been removed
-        declaredField = null;
-      }
-      
-      if (null != declaredField) {
-        countOffset = unsafe.objectFieldOffset(declaredField);
-      } else {
-        countOffset = -1L;
-      }
-      
-      try {
-        declaredField = String.class.getDeclaredField("offset");
-      } catch (NoSuchFieldException e) {
-        // this will happen for jdk7 as these fields have been removed
-        declaredField = null;
-      }
-      
-      if (null != declaredField) {
-        offsetOffset = unsafe.objectFieldOffset(declaredField);
-      } else {
-        offsetOffset = -1L;
-      }
-      
-      try {
-        declaredField = String.class.getDeclaredField("hash");
-      } catch (NoSuchFieldException e) {
-        // this will happen for jdk7 as these fields have been removed
-        declaredField = null;
-      }
-      
-      if (null != declaredField) {
-        hashOffset = unsafe.objectFieldOffset(declaredField);
-      } else {
-        hashOffset = -1L;
-      }
-
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
-  
-  public final static char[] getChars(String s) {
-    return (char[]) unsafe.getObject(s, valueOffset);
-  }
-  
-  public final static char charAt(String s, int idx) {
-    char[] chars = (char[]) unsafe.getObject(s, valueOffset);
-    return chars[idx];
-  }
-
-  public final static int getOffset(String s) {
-    if (-1L == offsetOffset) {
-      return 0;
-    } else {
-      return unsafe.getInt(s, offsetOffset);
-    }
-  }
-  
+public class UnsafeString {  
+    
   public final static String[] split(String s, char ch) {
         
     //ArrayList<String> tokens = new ArrayList<String>();
@@ -124,7 +39,7 @@ public class UnsafeString {
     
     int n = 1;
     
-    while((next = indexOf(s,ch,off)) != -1) {
+    while((next = s.indexOf(ch,off)) != -1) {
       off = next + 1;
       n++;
     }
@@ -135,7 +50,7 @@ public class UnsafeString {
     String[] tokens = new String[n];
     int idx = 0;
     
-    while ((next = indexOf(s, ch, off)) != -1) {
+    while ((next = s.indexOf(ch, off)) != -1) {
       //tokens.add(substring(s, off, next));
       //tokens.add(s.substring(off,next));
       tokens[idx++] = s.substring(off,next);
@@ -154,38 +69,19 @@ public class UnsafeString {
     //return tokens.toArray(new String[0]);
     return tokens;
   }
-
-  public final static String substring(String s, int start, int end) {
-    return buildUnsafe(getChars(s), start, (end - start));
-  }
-  
-  private final static String buildUnsafe(char[] chars, int offset, int count) {    
-    if (-1 != countOffset) {
-      // This is JDK7+
-      String mutable = new String();// an empty string to hack
-      unsafe.putObject(mutable, valueOffset, chars);
-      unsafe.putInt(mutable, countOffset, count);
-      unsafe.putIntVolatile(mutable, offsetOffset, offset);
-      return mutable;
-    } else {
-      return new String(chars, offset, count);
-    }
-  }
   
   public static boolean isLong(String s) {
-    char[] c = getChars(s);
-
     //
     // Skip leading whitespaces
     //
     
     int i = 0;
     
-    while(i < c.length && ' ' == c[i]) {
+    while(i < s.length() && ' ' == s.charAt(i)) {
       i++;
     }
     
-    if (i == c.length) {
+    if (i == s.length()) {
       return false;
     }
     
@@ -193,16 +89,19 @@ public class UnsafeString {
     // Check sign
     //
     
-    if ('+' != c[i] && '-' != c[i] && (c[i] < '0' || c[i] > '9')) {
+    char ch = s.charAt(i);
+    
+    if ('+' != ch && '-' != ch && (ch < '0' || ch > '9')) {
       return false;
-    } else if ('-' == c[i] || '+' == c[i]) {
+    } else if ('-' == ch || '+' == ch) {
       i++;
     }
     
     boolean hasDigits = false;
     
-    while(i < c.length) {
-      if (c[i] < '0' || c[i] > '9') {
+    while(i < s.length()) {
+      ch = s.charAt(i);
+      if (ch < '0' || ch > '9') {
         return false;
       }
       hasDigits = true;
@@ -215,83 +114,19 @@ public class UnsafeString {
   
     return true;
   }
-  
-  public static boolean isDouble_LIGHT(String s) {
-    char[] c = getChars(s);
-
-    //
-    // Skip leading whitespaces
-    //
     
-    int i = 0;
-    
-    while(i < c.length && ' ' == c[i]) {
-      i++;
-    }
-    
-    if (i == c.length) {
-      return false;
-    }
-
-    //
-    // Check sign
-    //
-
-    if ('-' == c[i] || '+' == c[i]) {
-      i++;
-      if (i >= c.length) {
-        return false;
-      }
-    }
-
-    //
-    // Handle NaN
-    //
-    
-    if (3 == c.length - i) {
-      if ('N' == c[i] && 'a' == c[i+1] && 'N' == c[i+2]) {
-        return true;
-      }
-    }
-
-    //
-    // Handle Infinity
-    //
-    
-    if (8 == c.length - i) {
-      if ('I' == c[i] && 'n' == c[i+1] && 'f' == c[i+2] && 'i' == c[i+3] && 'n' == c[i+4] && 'i' == c[i+5] && 't' == c[i+6] && 'y' == c[i+7]) {
-        return true;
-      }
-    }
-
-    //
-    // Check if there is a '.'
-    //
-    
-    while (i < c.length) {
-      if('.' == c[i]) {
-        return true;
-      }
-      i++;
-    }
-    
-    return false;
-  }
-  
   public static boolean isDouble(String s) {
-    char[] c = getChars(s);
-
     //
     // Skip leading whitespaces
     //
     
     int i = 0;
     
-    while(i < c.length && ' ' == c[i]) {
+    while(i < s.length() && ' ' == s.charAt(i)) {
       i++;
     }
     
-    if (i == c.length) {
+    if (i == s.length()) {
       return false;
     }
     
@@ -299,9 +134,11 @@ public class UnsafeString {
     // Check sign
     //
 
-    if ('-' == c[i] || '+' == c[i]) {
+    char ch = s.charAt(i);
+    
+    if ('-' == ch || '+' == ch) {
       i++;
-      if (i >= c.length) {
+      if (i >= s.length()) {
         return false;
       }
     }
@@ -310,8 +147,10 @@ public class UnsafeString {
     // Handle NaN
     //
     
-    if (3 == c.length - i) {
-      if ('N' == c[i] && 'a' == c[i+1] && 'N' == c[i+2]) {
+    ch = s.charAt(i);
+    
+    if (3 == s.length() - i) {
+      if ('N' == ch && 'a' == s.charAt(i + 1) && 'N' == s.charAt(i + 2)) {
         return true;
       }
     }
@@ -320,8 +159,8 @@ public class UnsafeString {
     // Handle Infinity
     //
     
-    if (8 == c.length - i) {
-      if ('I' == c[i] && 'n' == c[i+1] && 'f' == c[i+2] && 'i' == c[i+3] && 'n' == c[i+4] && 'i' == c[i+5] && 't' == c[i+6] && 'y' == c[i+7]) {
+    if (8 == s.length() - i) {
+      if ('I' == ch && 'n' == s.charAt(i+1) && 'f' == s.charAt(i+2) && 'i' == s.charAt(i+3) && 'n' == s.charAt(i+4) && 'i' == s.charAt(i+5) && 't' == s.charAt(i+6) && 'y' == s.charAt(i+7)) {
         return true;
       }
     }
@@ -330,7 +169,7 @@ public class UnsafeString {
     // If the next char is not a digit, exit
     //
     
-    if (c[i] < '0' || c[i] > '9') {
+    if (ch < '0' || ch > '9') {
       return false;
     }
 
@@ -338,13 +177,14 @@ public class UnsafeString {
     int nsign = 0;
     int ndot = 0;
     
-    while(i < c.length) {
-      if (c[i] >= '0' && c[i] <= '9') {
+    while(i < s.length()) {
+      ch = s.charAt(i);
+      if (ch >= '0' && ch <= '9') {
         i++;
         continue;
       }
       
-      if ('e' == c[i] || 'E' == c[i]) {
+      if ('e' == ch || 'E' == ch) {
         if (0 != nsign) {
           // 'e' MUST appear before the sign
           return false;
@@ -354,7 +194,7 @@ public class UnsafeString {
         continue;
       }
       
-      if ('-' == c[i] || '+' == c[i]) {
+      if ('-' == ch || '+' == ch) {
         if (0 == ne) {
           // We MUST have encountered an 'e' prior to a sign
           return false;
@@ -364,7 +204,7 @@ public class UnsafeString {
         continue;
       }
       
-      if ('.' == c[i]) {
+      if ('.' == ch) {
         // The dot cannot appear after 'e' or the exponent sign
         if (0 != ne || 0 != nsign) {
           return false;
@@ -401,40 +241,21 @@ public class UnsafeString {
    * would be.
    */
   public static boolean mayBeDecimalDouble(String s) {
-    char[] c = getChars(s);
-    
-    for (int i = 0; i < c.length; i++) {
-      if ((c[i] < '0' || c[i] > '9') && '.' != c[i] && '+' != c[i] && '-' != c[i]) {
+    for (int i = 0; i < s.length(); i++) {
+      char c = s.charAt(i);
+      if ((c < '0' || c > '9') && '.' != c && '+' != c && '-' != c) {
         return false;
       }
     }
     
     return true;
   }
-  
-  public static int indexOf(String str, char ch) {
-    return indexOf(str, ch, 0);
-  }
-  
-  public static int indexOf(String str, char ch, int idx) {
-    char[] c = getChars(str);
     
-    for (int i = idx; i < c.length; i++) {
-      if (ch == c[i]) {
-        return i;
-      }
-    }
-    
-    return -1;
-  }
-  
   /**
    * Replace whitespaces in Strings enclosed in single quotes
    * with '%20'
    */
   public static String sanitizeStrings(String str) {
-    char[] c = getChars(str);
-    
     int idx = 0;
     
     String newstr = str;
@@ -444,30 +265,34 @@ public class UnsafeString {
     
     int lastidx = 0;
     
-    while (idx < c.length) {
+    while (idx < str.length()) {
       
-      if (instring && stringsep == c[idx]) {
+      char ch = str.charAt(idx);
+      
+      if (instring && stringsep == ch) {
         instring = false;
         stringsep = '\0';
       } else if (!instring) {
-        if ('\'' == c[idx]) {
+        if ('\'' == ch) {
           instring = true; 
           stringsep = '\'';
-        } else if ('\"' == c[idx]) {
+        } else if ('\"' == ch) {
           instring = true;
           stringsep = '\"';
         }
       }
             
       if (instring) {
-        if (' ' == c[idx]) {
+        if (' ' == ch) {
           if (null == sb) {
             // This is the first space in a string we encounter, allocate a StringBuilder
             // and copy the prefix into it
             sb = new StringBuilder();
           }
           // We encountered a whitespace, copy everything since lastidx
-          sb.append(c, lastidx, idx - lastidx);
+          for (int offset = 0; offset < idx - lastidx; offset++) {
+            sb.append(str.charAt(lastidx + offset));
+          }
           sb.append("%20");
           lastidx = idx + 1;
         }
@@ -477,22 +302,14 @@ public class UnsafeString {
     }
     
     if (null != sb) {
-      if (lastidx < c.length) {
-        sb.append(c, lastidx, c.length - lastidx);
+      if (lastidx < str.length()) {
+        for (int offset = 0; offset < str.length() - lastidx; offset++) {
+          sb.append(str.charAt(lastidx + offset));
+        }
       }
       newstr = sb.toString();
     }
     
     return newstr;
-  }
-  
-  /**
-   * Reset the hash by setting it to 0 so hashcode computation is performed
-   * again when the internal char array has changed.
-   * 
-   * @param s
-   */
-  public static void resetHash(String s) {
-    unsafe.getAndSetInt(s, hashOffset,  0);
-  }
+  }  
 }

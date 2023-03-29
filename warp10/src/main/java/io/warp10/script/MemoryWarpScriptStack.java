@@ -578,8 +578,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       //
 
       line = UnsafeString.sanitizeStrings(line);
-
-      if (-1 != UnsafeString.indexOf(line, ' ') && !inMultiline.get()) {
+      
+      if (-1 != line.indexOf(' ') && !inMultiline.get()) {
         //statements = line.split(" +");
         statements = UnsafeString.split(line, ' ');
       } else {

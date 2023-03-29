@@ -355,6 +355,7 @@ public class WarpConfig {
   }
 
   private static void envVarsAndSysPropsOverride() throws IOException {
+
     //
     // Override properties with environment variables
     //
@@ -523,6 +524,53 @@ public class WarpConfig {
         }
       }
     }
+  }
+
+  /*
+   * Adapt the java.version system property so we stick to the previous versions format of 1.major.minor
+   * see https://openjdk.java.net/jeps/223
+   */
+  public static String getOriginalFormatJavaVersion() {
+    String jversion = System.getProperty("java.version");
+
+    if (properties.containsKey(Configuration.WARP_JAVA_VERSION)) {
+      jversion = properties.getProperty(Configuration.WARP_JAVA_VERSION);
+    } else {
+      if (jversion.startsWith("1.")) {
+        // Check that we have two colons, if not add ".0"
+        if (-1 == jversion.indexOf(".", 2)) {
+          jversion = jversion + ".0";
+        }
+      } else if (jversion.contains(".")) {
+        // version contains a dot, it's propably of the form
+        // x.y.z-www or x.y.z+www, so check if it has two dots
+        // and then prepend "1."
+        if (-1 != jversion.indexOf(".", jversion.indexOf(".") + 1)) {
+          jversion = "1." + jversion;
+        } else {
+          throw new RuntimeException("Unparseable Java version '" + jversion + "', please consider setting '" + Configuration.WARP_JAVA_VERSION + "' explicitely in your configuration file.");
+        }
+      } else {
+        // If version is of the form x-www or x+www, change it to
+        // 1.x.0-www or 1.x.0+www
+
+        if (jversion.contains("+")) {
+          String extra = jversion.substring(jversion.indexOf("+"));
+          jversion = jversion.substring(0, jversion.indexOf("+"));
+          jversion = "1." + jversion + ".0" + extra;
+        } else if (jversion.contains("-")) {
+          String extra = jversion.substring(jversion.indexOf("-"));
+          jversion = jversion.substring(0, jversion.indexOf("-"));
+          jversion = "1." + jversion + ".0" + extra;
+        } else if ("".equals(jversion.replaceAll("[0-9]+", ""))) {
+          // simple number, e.g. '20'
+          jversion = "1." + jversion + ".0";
+        } else {
+          throw new RuntimeException("Unparseable Java version '" + jversion + "', please consider setting '" + Configuration.WARP_JAVA_VERSION + "' explicitely in your configuration file.");
+        }
+      }
+    }
+    return jversion;
   }
 
   public static void main(String... args) {
