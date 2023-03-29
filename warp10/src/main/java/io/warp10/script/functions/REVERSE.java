@@ -70,7 +70,7 @@ public class REVERSE extends NamedWarpScriptFunction implements WarpScriptStackF
         j--;
       }
 
-      stack.push(String.valueOf(chars));
+      stack.push(new String(chars));
     } else { // top instanceof byte[]
       byte[] data = (byte[]) top;
       if (!this.stable) {
