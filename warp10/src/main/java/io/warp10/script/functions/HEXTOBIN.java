@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,37 +16,32 @@
 
 package io.warp10.script.functions;
 
-import io.warp10.continuum.gts.UnsafeString;
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
-
-import org.bouncycastle.util.encoders.Hex;
-
-import com.google.common.io.BaseEncoding;
+import io.warp10.script.WarpScriptStackFunction;
 
 /**
  * Decode a String in hexadecimal and immediately encode it as binary
  */
 public class HEXTOBIN extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   public HEXTOBIN(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object o = stack.pop();
-    
+
     if (!(o instanceof String)) {
       throw new WarpScriptException(getName() + " operates on a String.");
     }
-    
+
     StringBuilder sb = new StringBuilder();
-    
+
     String s = o.toString();
-    
+
     for (int i = 0; i < s.length(); i++) {
       switch(s.charAt(i)) {
         case '0':
@@ -105,11 +100,11 @@ public class HEXTOBIN extends NamedWarpScriptFunction implements WarpScriptStack
           break;
         default:
           throw new WarpScriptException(getName() + " encountered an invalid hex character '" + s.charAt(i) + "'.");
-      }          
+      }
     }
 
     stack.push(sb.toString());
-    
+
     return stack;
   }
 }

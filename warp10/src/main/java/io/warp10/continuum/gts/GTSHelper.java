@@ -2832,7 +2832,7 @@ public class GTSHelper {
     idx++;
 
     int idx2 = str.indexOf('/', idx);
-    
+
     if (-1 == idx2){
       throw new ParseException("Missing location/elevation separator.", idx);
     }
@@ -2844,7 +2844,7 @@ public class GTSHelper {
       String latlon = str.substring(idx, idx2);
       // Advance past the second '/'
       idx = idx2 + 1;
-            
+
       idx2 = latlon.indexOf(':');
       try {
         if (-1 != idx2) {
@@ -2893,7 +2893,7 @@ public class GTSHelper {
     if (tsoffset > 0) {
       idx2 = -1;
     } else {
-      idx2 = str.indexOf('{', idx);      
+      idx2 = str.indexOf('{', idx);
     }
 
     String name = null;
@@ -3703,10 +3703,10 @@ public class GTSHelper {
     //
 
     int idx = 0;
-    
+
     CharBuffer cb = CharBuffer.allocate(calen);
     ByteBuffer bb = ByteBuffer.allocate((int) ((double) ce.maxBytesPerChar() * calen));
-    
+
     for (Entry<String, String> entry: labels.entrySet()) {
       String ekey = entry.getKey();
       String eval = entry.getValue();
@@ -3728,7 +3728,7 @@ public class GTSHelper {
       cb.put(ekey);
       cb.flip();
       bb.clear();
-      
+
       CoderResult res = ce.encode(cb, bb, true);
       bb.flip();
 
@@ -3744,7 +3744,7 @@ public class GTSHelper {
 
       res = ce.encode(cb, bb, true);
       bb.flip();
-      
+
       hashes[idx+1] = SipHashInline.hash24_palindromic(sipkey0, sipkey1, bb.array(), 0, bb.limit());
       idx+=2;
     }
@@ -3798,9 +3798,8 @@ public class GTSHelper {
       buf[idx++] = (byte) ((hash >> 16) & 0xffL);
       buf[idx++] = (byte) ((hash >> 8) & 0xffL);
       buf[idx++] = (byte) (hash & 0xffL);
-      //bb.putLong(hash);
     }
-    
+
     //return SipHashInline.hash24(sipkey[0], sipkey[1], buf, 0, buf.length);
     long id = SipHashInline.hash24_palindromic(sipkey0, sipkey1, buf, 0, buf.length);
     return id;
@@ -3939,7 +3938,7 @@ public class GTSHelper {
 
   public static String gtsIdToString(long classId, long labelsId, boolean intern) {
     char[] c = new char[8];
-    
+
     long x = classId;
     long y = labelsId;
 
@@ -3951,15 +3950,15 @@ public class GTSHelper {
     }
 
     String s = new String(c);
-    
+
     if (intern) {
       s = s.intern();
     }
-    
+
     return s;
   }
-  
-  public static long[] stringToGTSId(String s) {    
+
+  public static long[] stringToGTSId(String s) {
     long x = 0L;
     long y = 0L;
 

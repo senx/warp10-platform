@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2022  SenX S.A.S.
+//   Copyright 2020-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,32 +16,6 @@
 
 package io.warp10.script.functions;
 
-import com.geoxp.GeoXPLib.GeoXPShape;
-import io.warp10.WarpURLEncoder;
-import io.warp10.continuum.gts.GTSEncoder;
-import io.warp10.continuum.gts.GeoTimeSerie;
-import io.warp10.continuum.gts.UnsafeString;
-import io.warp10.crypto.OrderPreservingBase64;
-import io.warp10.script.MemoryWarpScriptStack;
-import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptException;
-import io.warp10.script.WarpScriptLib;
-import io.warp10.script.WarpScriptStack;
-import io.warp10.script.WarpScriptStack.Mark;
-import io.warp10.script.WarpScriptStackFunction;
-import io.warp10.script.processing.Pencode;
-import org.apache.commons.math3.linear.RealMatrix;
-import org.apache.commons.math3.linear.RealVector;
-import org.bouncycastle.openpgp.PGPPrivateKey;
-import org.bouncycastle.openpgp.PGPPublicKey;
-import org.bouncycastle.openpgp.PGPPublicKeyRing;
-import org.bouncycastle.openpgp.PGPSecretKey;
-import org.bouncycastle.openpgp.PGPSecretKeyRing;
-
-import processing.core.PGraphics;
-import processing.core.PImage;
-import processing.core.PShapeSVG;
-
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
@@ -55,11 +29,34 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
-import java.util.UUID;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
+
+import org.apache.commons.math3.linear.RealMatrix;
+import org.apache.commons.math3.linear.RealVector;
+import org.bouncycastle.openpgp.PGPPublicKey;
+import org.bouncycastle.openpgp.PGPPublicKeyRing;
+import org.bouncycastle.openpgp.PGPSecretKeyRing;
+
+import com.geoxp.GeoXPLib.GeoXPShape;
+
+import io.warp10.WarpURLEncoder;
+import io.warp10.continuum.gts.GTSEncoder;
+import io.warp10.continuum.gts.GeoTimeSerie;
+import io.warp10.crypto.OrderPreservingBase64;
+import io.warp10.script.MemoryWarpScriptStack;
+import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptLib;
+import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStack.Mark;
+import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.processing.Pencode;
+import processing.core.PGraphics;
+import processing.core.PImage;
+import processing.core.PShapeSVG;
 
 /**
  * Replaces the stack so far with a WarpScript snippet which will regenerate
@@ -603,7 +600,7 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
 
     if (idx > lastIdx) {
       for (int i = 0; i < idx - lastIdx; i++) {
-        sb.append(s.charAt(lastIdx + i));        
+        sb.append(s.charAt(lastIdx + i));
       }
     }
   }
