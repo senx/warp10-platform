@@ -261,7 +261,6 @@ public class UnsafeString {
     String newstr = str;
     StringBuilder sb = null;
     boolean instring = false;
-    boolean hasSep = false;
     char stringsep = '\0';
 
     int lastidx = 0;
@@ -270,24 +269,21 @@ public class UnsafeString {
 
       char ch = str.charAt(idx);
 
-      if (instring && hasSep && stringsep == ch) {
+      if (instring && stringsep == ch) {
         // If the separator is at the end of the line or
         // followed by a whitespace then we consider we exited the string, otherwise
         // it is just part of the string
         if (idx == str.length() - 1 || ' ' == str.charAt(idx + 1)) {
           instring = false;
           stringsep = '\0';
-          hasSep = false;
         }
       } else if (!instring) {
         if ('\'' == ch) {
           instring = true;
           stringsep = '\'';
-          hasSep = true;
         } else if ('\"' == ch) {
           instring = true;
           stringsep = '\"';
-          hasSep = true;
         }
       }
 
