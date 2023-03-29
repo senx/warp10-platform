@@ -548,7 +548,7 @@ public class WarpConfig {
         if (-1 != jversion.indexOf(".", jversion.indexOf(".") + 1)) {
           jversion = "1." + jversion;
         } else {
-          throw new RuntimeException("Unparseable Java version, please consider setting '" + Configuration.WARP_JAVA_VERSION + "' explicitely in your configuration file.");
+          throw new RuntimeException("Unparseable Java version '" + jversion + "', please consider setting '" + Configuration.WARP_JAVA_VERSION + "' explicitely in your configuration file.");
         }
       } else {
         // If version is of the form x-www or x+www, change it to
@@ -562,8 +562,11 @@ public class WarpConfig {
           String extra = jversion.substring(jversion.indexOf("-"));
           jversion = jversion.substring(0, jversion.indexOf("-"));
           jversion = "1." + jversion + ".0" + extra;
+        } else if ("".equals(jversion.replaceAll("[0-9]+", ""))) {
+          // simple number, e.g. '20'
+          jversion = "1." + jversion + ".0";
         } else {
-          throw new RuntimeException("Unparseable Java version, please consider setting '" + Configuration.WARP_JAVA_VERSION + "' explicitely in your configuration file.");
+          throw new RuntimeException("Unparseable Java version '" + jversion + "', please consider setting '" + Configuration.WARP_JAVA_VERSION + "' explicitely in your configuration file.");
         }
       }
     }
