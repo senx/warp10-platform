@@ -356,13 +356,6 @@ public class WarpConfig {
 
   private static void envVarsAndSysPropsOverride() throws IOException {
 
-    //String jversion = getJavaVersion();
-
-    //if (!jversion.equals(System.getProperty("java.version"))) {
-    //  System.out.println("Forcing 'java.version' system property to '" + jversion + "'.");
-    //  System.setProperty("java.version", jversion);
-    //}
-
     //
     // Override properties with environment variables
     //
