@@ -491,7 +491,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       ((List) o).add(st);
     }
   }
-  
+
   /**
    * Consume the top of the stack and interpret it as
    * an int number.
@@ -578,7 +578,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       //
 
       line = UnsafeString.sanitizeStrings(line);
-      
+
       if (-1 != line.indexOf(' ') && !inMultiline.get()) {
         //statements = line.split(" +");
         statements = UnsafeString.split(line, ' ');
@@ -732,7 +732,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
                 addAuditError(err);
               } else {
                 throw new WarpScriptException("Not inside a secure script definition.");
-              }             
+              }
             } else {
               this.push(secureScript.toString());
               secureScript = null;
@@ -780,8 +780,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             //
 
             macros.add(0, new Macro());
-          } else if ((stmt.charAt(0) == '\'' && stmt.charAt(stmt.length() - 1) == '\'')
-              || (stmt.charAt(0) == '\"' && stmt.charAt(stmt.length() - 1) == '\"')) {
+          } else if (stmt.length() > 1 && ((stmt.charAt(0) == '\'' && stmt.charAt(stmt.length() - 1) == '\'')
+              || (stmt.charAt(0) == '\"' && stmt.charAt(stmt.length() - 1) == '\"'))) {
             //
             // Push Strings onto the stack
             //
