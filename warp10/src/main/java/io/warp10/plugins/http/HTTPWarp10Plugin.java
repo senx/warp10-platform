@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -130,12 +130,12 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
   private Map<String, Integer> sizes = new HashMap<String, Integer>();
 
   private boolean gzip = true;
-  
+
   /**
    * Should we convert header names to lower case in the request map
    */
   private boolean lcheaders = false;
-  
+
   public HTTPWarp10Plugin() {
     super();
   }
@@ -156,7 +156,7 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
     Server server = new Server(queuedThreadPool);
 
     int minthreads = 1;
-    
+
     if (-1 != this.port) {
       ServerConnector connector = new ServerConnector(server, acceptors, selectors);
       connector.setIdleTimeout(idleTimeout);
@@ -178,13 +178,13 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
     if (maxthreads < minthreads) {
       throw new RuntimeException(CONF_HTTP_MAXTHREADS + " should be >= " + minthreads);
     }
-    
+
     WarpScriptHandler handler = new WarpScriptHandler(this);
 
     if (this.gzip) {
       GzipHandler gzip = new GzipHandler();
       gzip.setHandler(handler);
-      gzip.setMinGzipSize(0);
+      gzip.setMinGzipSize(23);
       gzip.addIncludedMethods("GET","POST");
       server.setHandler(gzip);
     } else {
@@ -263,7 +263,7 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
           this.parsePayloads.remove(uri);
           this.streamDelimiters.remove(uri);
           this.prefixes.remove(uri);
-        }        
+        }
       } catch (Throwable t) {
         LOG.error("Error while loading a HTTP configuration script.", t);
       }
@@ -351,8 +351,8 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
     }
 
     this.period = Long.parseLong(properties.getProperty(CONF_HTTP_PERIOD, Long.toString(DEFAULT_PERIOD)));
-    
-    
+
+
     this.port = Integer.parseInt(properties.getProperty(CONF_HTTP_PORT, "-1"));
     this.tcpBacklog = Integer.parseInt(properties.getProperty(CONF_HTTP_TCP_BACKLOG, "0"));
     this.sslport = Integer.parseInt(properties.getProperty("http" + Configuration._SSL_PORT, "-1"));
@@ -360,11 +360,11 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
     if (-1 == this.port && -1 == this.sslport) {
       throw new RuntimeException("Either '" + CONF_HTTP_PORT + "' or 'http." + Configuration._SSL_PORT + "' must be set.");
     }
-    
+
     host = properties.getProperty(CONF_HTTP_HOST, null);
     acceptors = Integer.parseInt(properties.getProperty(CONF_HTTP_ACCEPTORS, String.valueOf(acceptors)));
     selectors = Integer.parseInt(properties.getProperty(CONF_HTTP_SELECTORS, String.valueOf(selectors)));
-    idleTimeout = Integer.parseInt(properties.getProperty(CONF_HTTP_IDLE_TIMEOUT, String.valueOf(idleTimeout)));      
+    idleTimeout = Integer.parseInt(properties.getProperty(CONF_HTTP_IDLE_TIMEOUT, String.valueOf(idleTimeout)));
 
     maxthreads = Integer.parseInt(properties.getProperty(CONF_HTTP_MAXTHREADS, String.valueOf(maxthreads)));
 
@@ -374,7 +374,7 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
 
     gzip = !"false".equals(properties.getProperty(CONF_HTTP_GZIP));
     lcheaders = "true".equals(properties.getProperty(CONF_HTTP_LCHEADERS));
-    
+
     Thread t = new Thread(this);
     t.setDaemon(true);
     t.setName("[Warp 10 HTTP Plugin " + this.dir + "]");
@@ -385,12 +385,12 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
     // Seek longest match
     int prefixLength = 0;
     String foundPrefix = uri; // Return uri if no prefix found
-    
+
     // Is there an exact match?
     if (null != this.macros.get(uri)) {
       return uri;
     }
-    
+
     for (String prefix: this.prefixes) {
       // Check if prefix is a prefix of uri (in term of path) and longer than previously found
       if (uri.startsWith(prefix)
@@ -414,7 +414,7 @@ public class HTTPWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
   public Byte streamDelimiter(String uri) {
     return this.streamDelimiters.get(uri);
   }
-  
+
   public boolean isLcHeaders() {
     return this.lcheaders;
   }

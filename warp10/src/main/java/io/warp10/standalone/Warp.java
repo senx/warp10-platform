@@ -16,7 +16,6 @@
 
 package io.warp10.standalone;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.charset.Charset;
@@ -477,7 +476,7 @@ public class Warp extends WarpDist implements Runnable {
     GzipHandler gzip = new GzipHandler();
     EgressExecHandler egressExecHandler = new EgressExecHandler(keystore, properties, sdc, scc);
     gzip.setHandler(egressExecHandler);
-    gzip.setMinGzipSize(0);
+    gzip.setMinGzipSize(23);
     gzip.addIncludedMethods("POST");
     handlers.addHandler(gzip);
     setEgress(true);
@@ -486,20 +485,20 @@ public class Warp extends WarpDist implements Runnable {
       gzip = new GzipHandler();
       StandaloneIngressHandler sih = new StandaloneIngressHandler(keystore, sdc, scc);
       gzip.setHandler(sih);
-      gzip.setMinGzipSize(0);
+      gzip.setMinGzipSize(23);
       gzip.addIncludedMethods("POST");
       handlers.addHandler(gzip);
 
       gzip = new GzipHandler();
       gzip.setHandler(new EgressFindHandler(keystore, sdc));
-      gzip.setMinGzipSize(0);
+      gzip.setMinGzipSize(23);
       gzip.addIncludedMethods("POST");
       handlers.addHandler(gzip);
 
       if ("true".equals(properties.getProperty(Configuration.STANDALONE_SPLITS_ENABLE))) {
         gzip = new GzipHandler();
         gzip.setHandler(new StandaloneSplitsHandler(keystore, sdc));
-        gzip.setMinGzipSize(0);
+        gzip.setMinGzipSize(23);
         gzip.addIncludedMethods("POST");
         handlers.addHandler(gzip);
       }
@@ -508,7 +507,7 @@ public class Warp extends WarpDist implements Runnable {
       StandaloneDeleteHandler sdh = new StandaloneDeleteHandler(keystore, sdc, scc);
       sdh.setPlugin(sih.getPlugin());
       gzip.setHandler(sdh);
-      gzip.setMinGzipSize(0);
+      gzip.setMinGzipSize(23);
       gzip.addIncludedMethods("POST");
       handlers.addHandler(gzip);
 
@@ -526,7 +525,7 @@ public class Warp extends WarpDist implements Runnable {
 
       gzip = new GzipHandler();
       gzip.setHandler(new EgressFetchHandler(keystore, properties, sdc, scc));
-      gzip.setMinGzipSize(0);
+      gzip.setMinGzipSize(23);
       gzip.addIncludedMethods("POST");
       handlers.addHandler(gzip);
     }
