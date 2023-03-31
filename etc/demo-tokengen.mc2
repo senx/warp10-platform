@@ -20,7 +20,7 @@
 //
 
 'demo' 'applicationName' STORE
-NOW 14 d 'expiryDate' STORE
+NOW 14 d + 'expiryDate' STORE
 UUID 'ownerAndProducer' STORE
 
 {
