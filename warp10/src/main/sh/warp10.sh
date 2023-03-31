@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 #
 #   Copyright 2016-2023  SenX S.A.S.
 #
