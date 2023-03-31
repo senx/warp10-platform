@@ -19,6 +19,8 @@
 // Create your own tokens for production use.
 //
 
+JSONPRETTY
+
 'demo' 'applicationName' STORE
 NOW 14 d + 'expiryDate' STORE
 UUID 'ownerAndProducer' STORE

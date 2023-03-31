@@ -165,7 +165,7 @@ init() {
   ## Test if user exists
   ##
   if ! id -u "${WARP10_USER}" >/dev/null 2>&1; then
-    die "ERROR: WARP10_USER does not exist, please create it before running this script."
+    die "ERROR: ${WARP10_USER} user does not exist, please create it before running this script."
   fi
 
   ##
@@ -235,7 +235,12 @@ postInit() {
   ##
   ## Generate AES and hash keys
   ##
-  echo "class.hash.key = hex:hhh
+  echo "//
+// AES and Hash definition
+//
+// This file was generated during initialization
+//
+class.hash.key = hex:hhh
 labels.hash.key = hex:hhh
 token.hash.key = hex:hhh
 app.hash.key = hex:hhh
@@ -389,7 +394,7 @@ stop() {
   isWarp10User
   if isStarted; then
     echo "Stopping Warp 10..."
-    kill $(cat "${PID_FILE}")
+    kill "$(cat "${PID_FILE}")"
     echo "Waiting for Warp 10 to stop..."
     while $(kill -0 $(cat "${PID_FILE}") 2>/dev/null); do
       sleep 2

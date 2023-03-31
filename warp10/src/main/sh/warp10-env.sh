@@ -46,7 +46,7 @@ JMX_PORT=1098
 ############################################ power user deployment options ############################################
 
 ##
-## By default, the initialization will create a user and a group for Warp 10. You may redefine it here:
+## Define a specific user, otherwise the user that runs init will be WARP10_USER.
 ##
 #WARP10_USER=warp10
 #WARP10_GROUP=warp10
