@@ -32,6 +32,16 @@ import java.util.Map;
 
 public class GenerateCryptoKey {
 
+  private static final String CLASS_HASH_KEY = "class.hash.key";
+  private static final String LABELS_HASH_KEY = "labels.hash.key";
+  private static final String TOKEN_HASH_KEY = "token.hash.key";
+  private static final String APP_HASH_KEY = "app.hash.key";
+  private static final String TOKEN_AES_KEY = "token.aes.key";
+  private static final String SCRIPTS_AES_KEY = "scripts.aes.key";
+  private static final String METASETS_AES_KEY = "metasets.aes.key";
+  private static final String LOGGING_AES_KEY = "logging.aes.key";
+  private static final String FETCH_HASH_KEY = "fetch.hash.key";
+
   private static final Logger LOG = LoggerFactory.getLogger(GenerateCryptoKey.class);
   private static final SecureRandom sr = new SecureRandom();
 
@@ -71,6 +81,15 @@ public class GenerateCryptoKey {
     keys.put(Configuration.INGRESS_KAFKA_DATA_AES, 256);
     keys.put(Configuration.EGRESS_FDB_DATA_AES, 256);
     keys.put(Configuration.EGRESS_FETCHER_AES, 256);
+    keys.put(CLASS_HASH_KEY, 128);
+    keys.put(LABELS_HASH_KEY, 128);
+    keys.put(TOKEN_HASH_KEY, 128);
+    keys.put(APP_HASH_KEY, 128);
+    keys.put(TOKEN_AES_KEY, 256);
+    keys.put(SCRIPTS_AES_KEY, 256);
+    keys.put(METASETS_AES_KEY, 256);
+    keys.put(LOGGING_AES_KEY, 256);
+    keys.put(FETCH_HASH_KEY, 128);
   }
 
 

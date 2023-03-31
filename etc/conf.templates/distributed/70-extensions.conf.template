@@ -31,9 +31,6 @@
 // CEVAL, SYNC
 #warpscript.extension.concurrent = io.warp10.script.ext.concurrent.ConcurrentWarpScriptExtension
 
-// LOGMSG, NOLOG, STDERR, STDOUT, TDESCRIBE
-#warpscript.extension.debug = io.warp10.script.ext.debug.DebugWarpScriptExtension
-
 // FUNCTIONS
 #warpscript.extension.inventory = io.warp10.script.ext.inventory.InventoryWarpScriptExtension
 
