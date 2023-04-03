@@ -102,11 +102,6 @@ public class Warp extends WarpDist {
         }
       });
     } else {
-      System.out.println();
-      System.out.println(Constants.WARP10_BANNER);
-      System.out.println("  Revision " + Revision.REVISION);
-      System.out.println();
-
       if (args.length > 0) {
         setProperties(args);
       } else if (null != System.getProperty(WarpConfig.WARP10_CONFIG)) {
@@ -115,9 +110,25 @@ public class Warp extends WarpDist {
         setProperties(System.getenv(WarpConfig.WARP10_CONFIG_ENV).split("[, ]+"));
       }
 
+      System.out.println();
+      System.out.println(Constants.WARP10_BANNER);
+      System.out.println("  Revision " + Revision.REVISION);
+
       if (null != WarpConfig.getProperty(io.warp10.continuum.Configuration.BACKEND)) {
+        if ("fdb".equals(WarpConfig.getProperty(io.warp10.continuum.Configuration.BACKEND))) {
+          System.out.println("      Mode standalone+");
+        } else {
+          System.out.println("      Mode standalone");
+        }
+        System.out.println();
         io.warp10.standalone.Warp.main(args);
       } else {
+        if (kerberos.get()) {
+          System.out.println("      Mode distributed with Kerberos");
+        } else {
+          System.out.println("      Mode distributed");
+        }
+        System.out.println();
         WarpDist.main(args);
       }
     }
