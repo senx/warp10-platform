@@ -23,8 +23,8 @@
 ##
 ## Initial and maximum RAM
 ##
-WARP10_HEAP=${WARP10_HEAP:-1023M}
-WARP10_HEAP_MAX=${WARP10_HEAP_MAX:-1023M}
+WARP10_HEAP=${WARP10_HEAP:-1023m}
+WARP10_HEAP_MAX=${WARP10_HEAP_MAX:-1023m}
 
 ##
 ## Define the identity of the Warp 10 instance
