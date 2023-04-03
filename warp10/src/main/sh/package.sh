@@ -76,9 +76,8 @@ mkdir -p "${WARP10_HOME}/runners/sensision/60000"
 ##
 ## Copy startup scripts
 ##
-sed -e "s/@VERSION@/${VERSION}/g" ../src/main/sh/warp10-env.sh >"${WARP10_HOME}/bin/warp10-env.sh"
 cp ../src/main/sh/warp10.service "${WARP10_HOME}/bin/warp10.service"
-cp ../src/main/sh/warp10.sh "${WARP10_HOME}/bin/warp10.sh"
+sed -e "s/@VERSION@/${VERSION}/g" ../src/main/sh/warp10.sh >"${WARP10_HOME}/bin/warp10.sh"
 
 ##
 ## Copy log4j, README, config, runner, bootstrap...
@@ -93,6 +92,7 @@ cp ../../etc/calls/testcall.sh "${WARP10_HOME}/calls/testcall.sh"
 cp ../../etc/calls/testcall.py "${WARP10_HOME}/calls/testcall.py"
 cp ../../etc/macros/README "${WARP10_HOME}/macros/README"
 sed -e "s/@VERSION@/${VERSION}/g" ../../etc/log4j.properties >"${WARP10_HOME}/etc/log4j.properties"
+cp ../../etc/warp10-env.sh "${WARP10_HOME}/etc/warp10-env.sh"
 
 ##
 ## Copy template configuration

@@ -16,19 +16,13 @@
 
 package io.warp10;
 
-import io.warp10.continuum.Configuration;
-import org.bouncycastle.util.encoders.Hex;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.security.SecureRandom;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+
+import org.bouncycastle.util.encoders.Hex;
+
+import io.warp10.continuum.Configuration;
 
 public class GenerateCryptoKey {
 
@@ -41,11 +35,9 @@ public class GenerateCryptoKey {
   private static final String METASETS_AES_KEY = "metasets.aes.key";
   private static final String LOGGING_AES_KEY = "logging.aes.key";
   private static final String FETCH_HASH_KEY = "fetch.hash.key";
-
-  private static final Logger LOG = LoggerFactory.getLogger(GenerateCryptoKey.class);
   private static final SecureRandom sr = new SecureRandom();
 
-  private static final Map<String, Integer> keys = new HashMap<String, Integer>();
+  private static final Map<String,Integer> keys = new HashMap<String,Integer>();
 
   static {
     // Always generate the longest key possible.
@@ -94,54 +86,10 @@ public class GenerateCryptoKey {
 
 
   public static void main(String[] args) {
-    if (0 == args.length) {
-      LOG.error("GenerateCryptoKey expects 1 or more configuration filenames");
-    }
-
-    GenerateCryptoKey.fillConfigFile(args);
-  }
-
-  public static String generateCryptoKey(final int size) {
-    byte[] key = new byte[size / 8];
-    sr.nextBytes(key);
-    return new String(Hex.encode(key));
-  }
-
-  public static void fillConfigFile(final String[] configFiles) {
-    // Generate crypto key in each file passed as argument
-    for (String configFile: configFiles) {
-      // Whether the file should be rewritten or not.
-      boolean rewrite = false;
-
-      Path configPath = Paths.get(configFile);
-      // Read current file
-      try {
-        List<String> lines = Files.readAllLines(configPath);
-
-        // Inline replace.
-        for (int i = 0; i < lines.size(); i++) {
-          String line = lines.get(i);
-
-          // Search of any of the keys.
-          for (Map.Entry<String, Integer> keyEntry: keys.entrySet()) {
-            // Only look for "hex:hhh" in case the template configuration contains pre-filled keys.
-            int indexOfLine = line.indexOf(keyEntry.getKey() + " = hex:hhh");
-            if (indexOfLine >= 0) {
-              // Replace, keeping the start of the line, so that we're leaving commented lines commented.
-              String replacedLine = line.substring(0, indexOfLine) + keyEntry.getKey() + " = hex:" + generateCryptoKey(keyEntry.getValue());
-              lines.set(i, replacedLine);
-              rewrite = true;
-              break; // Key found, no need to look for another key.
-            }
-          }
-        }
-
-        if (rewrite) {
-          Files.write(configPath, lines);
-        }
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
+    for (Map.Entry<String,Integer> keyEntry: keys.entrySet()) {
+      byte[] key = new byte[keyEntry.getValue() / 8];
+      sr.nextBytes(key);
+      System.out.println(keyEntry.getKey() + " = hex:" + new String(Hex.encode(key)));
     }
   }
 }

@@ -28,8 +28,8 @@ set -eu
 ## Source warp10-env.sh when the file exists to predefine user variables
 ##
 BIN_DIR=$(dirname "$0")
-if [ -f "${BIN_DIR}/warp10-env.sh" ]; then
-  . "${BIN_DIR}/warp10-env.sh"
+if [ -f "${BIN_DIR}/../etc/warp10-env.sh" ]; then
+  . "${BIN_DIR}/../etc/warp10-env.sh"
 fi
 
 warn() {
@@ -100,18 +100,6 @@ getWarp10Home() {
   fi
 }
 
-##
-## Move directory from WARP10_HOME to WARP10_DATA_DIR and create a link
-##
-moveDir() {
-  dir=$1
-  if [ -d "${WARP10_DATA_DIR}/${dir}" ]; then
-    die "ERROR: ${WARP10_DATA_DIR}/${dir} already exists"
-  fi
-  mv "${WARP10_HOME}/${dir}" "${WARP10_DATA_DIR}"
-  ln -s "${WARP10_DATA_DIR}/${dir}" "${WARP10_HOME}/${dir}"
-}
-
 checkRam() {
   if [ "1023m" = "${WARP10_HEAP}" ] || [ "1023m" = "${WARP10_HEAP_MAX}" ]; then
     warn "#### WARNING ####
@@ -124,7 +112,7 @@ checkRam() {
 ## Exit this script if user doesn't match
 ##
 isWarp10User() {
-  if [ "$(id -u -n)" != "${WARP10_USER}" ]; then
+  if [ -n "${WARP10_USER:+x}" ] && [ "$(id -u -n)" != "${WARP10_USER}" ]; then
     die "You must be '${WARP10_USER}' to run this script."
   fi
 }
@@ -147,7 +135,6 @@ init() {
   if [ -z "${WARP10_USER:+x}" ]; then
     WARP10_USER=$(id -u -n)
     warn "WARP10_USER is undefined, set it to WARP10_USER=${WARP10_USER}"
-    sed -i -e "s/^#WARP10_USER=.*/WARP10_USER=${WARP10_USER}/" "${BIN_DIR}/warp10-env.sh"
   else
     echo "WARP10_USER=${WARP10_USER}"
   fi
@@ -156,7 +143,6 @@ init() {
   if [ -z "${WARP10_GROUP:+x}" ]; then
     WARP10_GROUP=$(id -g -n)
     warn "WARP10_GROUP is undefined, set it to WARP10_GROUP=${WARP10_GROUP}"
-    sed -i -e "s/^#WARP10_GROUP=.*/WARP10_GROUP=${WARP10_GROUP}/" "${BIN_DIR}/warp10-env.sh"
   else
     echo "WARP10_GROUP=${WARP10_GROUP}"
   fi
@@ -167,6 +153,8 @@ init() {
   if ! id -u "${WARP10_USER}" >/dev/null 2>&1; then
     die "ERROR: ${WARP10_USER} user does not exist, please create it before running this script."
   fi
+
+  isWarp10User
 
   ##
   ##
@@ -181,32 +169,6 @@ init() {
 // This file contains configurations generated during initialization step.
 //
 " >"${WARP10_CONFIG_DIR}/99-init.conf"
-  ##
-  ## A dedicated data directory has been provided
-  ## Move data to ${WARP10_DATA_DIR}/etc, ${WARP10_DATA_DIR}/logs, ...
-  ##
-  if [ -n "${WARP10_DATA_DIR:-}" ]; then
-    echo "Move files to WARP10_DATA_DIR: ${WARP10_DATA_DIR}"
-
-    #
-    # ${WARP10_DATA_DIR} exists?
-    #
-    if [ ! -d "${WARP10_DATA_DIR}" ]; then
-      echo "${WARP10_DATA_DIR} does not exist - Creating it..."
-      mkdir -p "${WARP10_DATA_DIR}"
-    fi
-
-    # Move directories to ${WARP10_DATA_DIR}
-    moveDir calls
-    moveDir datalog-ng
-    moveDir etc
-    moveDir jars
-    moveDir lib
-    moveDir logs
-    moveDir macros
-    moveDir tokens
-    moveDir runners
-  fi
 
   WARP10_HOME_ESCAPED=$(echo "${WARP10_HOME}" | sed 's/\\/\\\\/g')        # Escape '\'
   WARP10_HOME_ESCAPED=$(echo "${WARP10_HOME_ESCAPED}" | sed 's/\&/\\&/g') # Escape '&'
@@ -232,35 +194,14 @@ postInit() {
   ##
   ## Generate AES and hash keys
   ##
+  echo "Generate AES and hash keys"
+  res=$(${JAVACMD} -cp "${WARP10_JAR}" -Dfile.encoding=UTF-8 io.warp10.GenerateCryptoKey)
   echo "
 //
 // AES and Hash definition
 //
-class.hash.key = hex:hhh
-labels.hash.key = hex:hhh
-token.hash.key = hex:hhh
-app.hash.key = hex:hhh
-token.aes.key = hex:hhh
-scripts.aes.key = hex:hhh
-metasets.aes.key = hex:hhh
-logging.aes.key = hex:hhh
-fetch.hash.key = hex:hhh
+$(echo "$res" | grep -E 'class.hash.key|labels.hash.key|token.hash.key|app.hash.key|token.aes.key|scripts.aes.key|metasets.aes.key|logging.aes.key|fetch.hash.key')
 " >>"${WARP10_CONFIG_DIR}/99-init.conf"
-
-  echo "Generate AES and hash keys"
-  getConfigFiles
-  # shellcheck disable=SC2086
-  if ! ${JAVACMD} -cp "${WARP10_JAR}" -Dfile.encoding=UTF-8 io.warp10.GenerateCryptoKey ${CONFIG_FILES}; then
-    die "ERROR: Failed to generated AES and hash keys"
-  fi
-#
-#  # Fix ownership
-#  echo "Fix ownership"
-#  chown -hRH "${WARP10_USER}:${WARP10_GROUP}" "${WARP10_HOME}"
-#  chown "${WARP10_USER}:${WARP10_GROUP}" "${WARP10_HOME}"
-#  if [ -n "${WARP10_DATA_DIR:-}" ]; then
-#    chown -hRH "${WARP10_USER}:${WARP10_GROUP}" "${WARP10_DATA_DIR}"
-#  fi
 
   echo
   echo "Warp 10 configuration has been generated here: ${WARP10_CONFIG_DIR}"
@@ -292,10 +233,6 @@ leveldbConf() {
   echo "Initialize LevelDB"
   if ! mkdir -p "${LEVELDB_HOME}/snapshots"; then
     die "ERROR: ${LEVELDB_HOME} creation failed"
-  fi
-
-  if [ -n "${WARP10_DATA_DIR:-}" ]; then
-    moveDir leveldb
   fi
 
   ${JAVACMD} -cp "${WARP10_JAR}" io.warp10.standalone.WarpInit "${LEVELDB_HOME}" >>"${WARP10_HOME}/logs/warp10.log" 2>&1
@@ -410,11 +347,11 @@ tokengen() {
   if [ "$#" -ne 2 ]; then
     die "Usage: $0 tokengen envelope.mc2"
   fi
-  ${JAVACMD} -cp "${WARP10_JAR}" -Dlog4j.configuration=file:"${LOG4J_CONF}" -Dfile.encoding=UTF-8 io.warp10.TokenGen ${CONFIG_FILES} "$2" 2>/dev/null
+  ${JAVACMD} -cp "${WARP10_CP}" -Dlog4j.configuration=file:"${LOG4J_CONF}" -Dfile.encoding=UTF-8 io.warp10.TokenGen ${CONFIG_FILES} "$2" 2>/dev/null
 }
 
 run() {
-  ${JAVACMD} -cp "${WARP10_JAR}" -Dlog4j.configuration=file:"${LOG4J_CONF}" -Dfile.encoding=UTF-8 -Dwarp10.config=${CONFIG_FILES} io.warp10.WarpRun "$2"
+  ${JAVACMD} -cp "${WARP10_CP}" -Dlog4j.configuration=file:"${LOG4J_CONF}" -Dfile.encoding=UTF-8 -Dwarp10.config=${CONFIG_FILES} io.warp10.WarpRun "$2"
 }
 
 repair() {
@@ -444,6 +381,7 @@ compact() {
 ##
 getWarp10Home
 WARP10_CONFIG_DIR=${WARP10_HOME}/etc/conf.d
+WARP10_REVISION=@VERSION@
 WARP10_JAR=${WARP10_HOME}/bin/warp10-${WARP10_REVISION}.jar
 WARP10_CLASS=io.warp10.standalone.Warp
 PID_FILE=${WARP10_HOME}/logs/warp10.pid
@@ -452,7 +390,18 @@ getJava
 
 JAVA_VERSION=$("${JAVACMD}" -XshowSettings:all -version 2>&1 | grep 'java.version = ' | sed -e 's/.* //' -e 's/^1\.//' -e 's/\..*//' -e 's/-.*//')
 if [ "${JAVA_VERSION}" -gt 8 ]; then
+  ## We need the following for PNGMetadata starting with JDK16
   JAVA_OPTS="--add-exports java.desktop/com.sun.imageio.plugins.png=ALL-UNNAMED ${JAVA_OPTS:-}"
+  ## We need the following for FileUrlConnection starting with JDK9
+  JAVA_OPTS="--add-exports java.base/sun.net.www.protocol.file=ALL-UNNAMED ${JAVA_OPTS:-}"
+fi
+
+##
+## Enable JMX
+##
+if [ -n "${JMX_PORT:+x}" ]; then
+  JAVA_OPTS="${JAVA_OPTS:-} -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.port=${JMX_PORT}"
+  warn "WARNING: JMX is enabled on port ${JMX_PORT}"
 fi
 
 ##
@@ -471,7 +420,9 @@ export SENSISIONID=warp10
 LOG4J_CONF=${WARP10_HOME}/etc/log4j.properties
 JAVA_HEAP_DUMP=${WARP10_HOME}/logs/java.heapdump
 # you can specialize your metrics for this instance of Warp10
-#SENSISION_DEFAULT_LABELS=-Dsensision.default.labels=instance=warp10-test,env=dev
+if [ -n "${WARP10_IDENT:+x}" ]; then
+  SENSISION_DEFAULT_LABELS=-Dsensision.default.labels=instance=${WARP10_IDENT}
+fi
 JAVA_OPTS="-Djava.awt.headless=true -Dlog4j.configuration=file:${LOG4J_CONF} -Dsensision.server.port=0 ${SENSISION_DEFAULT_LABELS:-} -Dsensision.events.dir=${SENSISION_EVENTS_DIR} -Dfile.encoding=UTF-8 -Xms${WARP10_HEAP} -Xmx${WARP10_HEAP_MAX} -XX:+UseG1GC ${JAVA_OPTS:-} ${JAVA_EXTRA_OPTS:-}"
 export MALLOC_ARENA_MAX=1
 
@@ -499,11 +450,6 @@ init)
 start)
   start
   ;;
-jmxstart)
-  JAVA_OPTS="${JAVA_OPTS} -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.port=${JMX_PORT}"
-  warn "WARNING: JMX is enabled on port ${JMX_PORT}"
-  start
-  ;;
 stop)
   stop
   ;;
@@ -516,7 +462,7 @@ restart)
   start
   ;;
 demotoken)
-  ${JAVACMD} -cp "${WARP10_JAR}" -Dlog4j.configuration=file:"${LOG4J_CONF}" -Dfile.encoding=UTF-8 io.warp10.TokenGen ${CONFIG_FILES} "${WARP10_HOME}/tokens/demo-tokengen.mc2" 2>/dev/null
+  ${JAVACMD} -cp "${WARP10_CP}" -Dlog4j.configuration=file:"${LOG4J_CONF}" -Dfile.encoding=UTF-8 io.warp10.TokenGen ${CONFIG_FILES} "${WARP10_HOME}/tokens/demo-tokengen.mc2" 2>/dev/null
   ;;
 tokengen)
   tokengen "$@"
@@ -531,7 +477,7 @@ compact)
   compact "$@"
   ;;
 *)
-  die "Usage: $0 {init|demotoken|tokengen|start|stop|restart|status|jmxstart|repair|compact|run}"
+  die "Usage: $0 {init|demotoken|tokengen|start|stop|restart|status|repair|compact|run}"
   ;;
 esac
 
