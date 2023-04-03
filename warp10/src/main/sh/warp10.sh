@@ -177,13 +177,10 @@ init() {
     die "ERROR: Configuration files already exist - Abort initialization."
   fi
 
-  # Fix permissions
-  echo "Fix permissions"
-  find "${WARP10_HOME}" -type d -exec chmod 755 {} \;
-  find "${WARP10_HOME}" -type f -exec chmod 644 {} \;
-  find "${WARP10_HOME}" -type f \( -name \*.sh -o -name \*.init -o -name \*.py \) -exec chmod 755 {} \;
-  chmod 750 "${WARP10_HOME}"
-
+  echo "//
+// This file contains configurations generated during initialization step.
+//
+" >"${WARP10_CONFIG_DIR}/99-init.conf"
   ##
   ## A dedicated data directory has been provided
   ## Move data to ${WARP10_DATA_DIR}/etc, ${WARP10_DATA_DIR}/logs, ...
@@ -235,10 +232,9 @@ postInit() {
   ##
   ## Generate AES and hash keys
   ##
-  echo "//
-// AES and Hash definition
+  echo "
 //
-// This file was generated during initialization
+// AES and Hash definition
 //
 class.hash.key = hex:hhh
 labels.hash.key = hex:hhh
@@ -249,7 +245,7 @@ scripts.aes.key = hex:hhh
 metasets.aes.key = hex:hhh
 logging.aes.key = hex:hhh
 fetch.hash.key = hex:hhh
-" >"${WARP10_CONFIG_DIR}/99-init.conf"
+" >>"${WARP10_CONFIG_DIR}/99-init.conf"
 
   echo "Generate AES and hash keys"
   getConfigFiles
@@ -257,14 +253,14 @@ fetch.hash.key = hex:hhh
   if ! ${JAVACMD} -cp "${WARP10_JAR}" -Dfile.encoding=UTF-8 io.warp10.GenerateCryptoKey ${CONFIG_FILES}; then
     die "ERROR: Failed to generated AES and hash keys"
   fi
-
-  # Fix ownership
-  echo "Fix ownership"
-  chown -hRH "${WARP10_USER}:${WARP10_GROUP}" "${WARP10_HOME}"
-  chown "${WARP10_USER}:${WARP10_GROUP}" "${WARP10_HOME}"
-  if [ -n "${WARP10_DATA_DIR:-}" ]; then
-    chown -hRH "${WARP10_USER}:${WARP10_GROUP}" "${WARP10_DATA_DIR}"
-  fi
+#
+#  # Fix ownership
+#  echo "Fix ownership"
+#  chown -hRH "${WARP10_USER}:${WARP10_GROUP}" "${WARP10_HOME}"
+#  chown "${WARP10_USER}:${WARP10_GROUP}" "${WARP10_HOME}"
+#  if [ -n "${WARP10_DATA_DIR:-}" ]; then
+#    chown -hRH "${WARP10_USER}:${WARP10_GROUP}" "${WARP10_DATA_DIR}"
+#  fi
 
   echo
   echo "Warp 10 configuration has been generated here: ${WARP10_CONFIG_DIR}"
@@ -283,21 +279,16 @@ leveldbConf() {
   echo "Initialize Warp 10 standalone configuration"
   init
 
-  sed -i -e 's|^standalone\.home.*|standalone.home = '"${WARP10_HOME_ESCAPED}"'|' "${WARP10_CONFIG_DIR}/00-warp.conf"
-  sed -i -e 's|^backend = .*|backend = leveldb|' "${WARP10_CONFIG_DIR}/00-warp.conf"
+  echo "standalone.home = ${WARP10_HOME_ESCAPED}" >>"${WARP10_CONFIG_DIR}/99-init.conf"
+  echo "backend = leveldb" >>"${WARP10_CONFIG_DIR}/99-init.conf"
   mv "${WARP10_CONFIG_DIR}/10-fdb.conf" "${WARP10_CONFIG_DIR}/10-fdb.conf.DISABLE"
   getConfigFiles
 
-  ##
-  ## Retrieve LevelDB Home
-  ##
-  # shellcheck disable=SC2086
-  CONFIG_KEYS=$(${JAVACMD} -cp "${WARP10_JAR}" -Dfile.encoding=UTF-8 io.warp10.WarpConfig ${CONFIG_FILES} . 'leveldb.home' 2>/dev/null | grep -e '^@CONF@ ' | sed -e 's/^@CONF@ //')
-  LEVELDB_HOME="$(echo "${CONFIG_KEYS}" | grep -e '^leveldb\.home=' | sed -e 's/^.*=//')"
 
   ##
   ##  Init LevelDB
   ##
+  LEVELDB_HOME="${WARP10_HOME_ESCAPED}/leveldb"
   echo "Initialize LevelDB"
   if ! mkdir -p "${LEVELDB_HOME}/snapshots"; then
     die "ERROR: ${LEVELDB_HOME} creation failed"
@@ -316,7 +307,7 @@ fdbConf() {
   echo "Initialize Warp 10 standalone+ configuration"
   init
 
-  sed -i -e 's|^backend = .*|backend = fdb|' "${WARP10_CONFIG_DIR}/00-warp.conf"
+  echo "backend = fdb" >>"${WARP10_CONFIG_DIR}/99-init.conf"
   mv "${WARP10_CONFIG_DIR}/10-leveldb.conf" "${WARP10_CONFIG_DIR}/10-leveldb.conf.DISABLE"
   getConfigFiles
 
@@ -328,17 +319,16 @@ fdbConf() {
 inmemoryConf() {
   echo "Initialize Warp 10 in-memory configuration"
   init
-  sed -i -e 's|^backend = .*|backend = memory|' "${WARP10_CONFIG_DIR}/00-warp.conf"
+  echo "backend = memory" >>"${WARP10_CONFIG_DIR}/99-init.conf"
   mv "${WARP10_CONFIG_DIR}/10-fdb.conf" "${WARP10_CONFIG_DIR}/10-fdb.conf.DISABLE"
   mv "${WARP10_CONFIG_DIR}/10-leveldb.conf" "${WARP10_CONFIG_DIR}/10-leveldb.conf.DISABLE"
   getConfigFiles
 
-  IN_MEMORY_CONFIG=${WARP10_HOME}/etc/conf.d/30-in-memory.conf
-  sed -i -e 's/.*in.memory.chunked =.*/in.memory.chunked = true/' "${IN_MEMORY_CONFIG}"
-  sed -i -e 's/.*in.memory.chunk.count =.*/in.memory.chunk.count = 2/' "${IN_MEMORY_CONFIG}"
-  sed -i -e 's/.*in.memory.chunk.length =.*/in.memory.chunk.length = 86400000000/' "${IN_MEMORY_CONFIG}"
-  sed -i -e "s|.*in.memory.load =.*|in.memory.load = ${WARP10_HOME}/memory.dump|" "${IN_MEMORY_CONFIG}"
-  sed -i -e "s|.*in.memory.dump =.*|in.memory.dump = ${WARP10_HOME}/memory.dump|" "${IN_MEMORY_CONFIG}"
+  echo "in.memory.chunked = true" >>"${WARP10_CONFIG_DIR}/99-init.conf"
+  echo "in.memory.chunk.count = 2" >>"${WARP10_CONFIG_DIR}/99-init.conf"
+  echo "in.memory.chunk.length = 86400000000" >>"${WARP10_CONFIG_DIR}/99-init.conf"
+  echo "in.memory.load = ${WARP10_HOME}/memory.dump" >>"${WARP10_CONFIG_DIR}/99-init.conf"
+  echo "in.memory.dump = ${WARP10_HOME}/memory.dump" >>"${WARP10_CONFIG_DIR}/99-init.conf"
 
   echo
   echo "The in-memory configuration has been generated here: ${IN_MEMORY_CONFIG}."
@@ -453,7 +443,6 @@ compact() {
 ## Initialize script
 ##
 getWarp10Home
-WARP10_REVISION=@VERSION@
 WARP10_CONFIG_DIR=${WARP10_HOME}/etc/conf.d
 WARP10_JAR=${WARP10_HOME}/bin/warp10-${WARP10_REVISION}.jar
 WARP10_CLASS=io.warp10.standalone.Warp
@@ -461,8 +450,7 @@ PID_FILE=${WARP10_HOME}/logs/warp10.pid
 getConfigFiles
 getJava
 
-
-JAVA_VERSION=$("${JAVACMD}" -XshowSettings:all -version 2>&1|grep 'java.version = '|sed -e 's/.* //' -e 's/^1\.//' -e 's/\..*//' -e 's/-.*//')
+JAVA_VERSION=$("${JAVACMD}" -XshowSettings:all -version 2>&1 | grep 'java.version = ' | sed -e 's/.* //' -e 's/^1\.//' -e 's/\..*//' -e 's/-.*//')
 if [ "${JAVA_VERSION}" -gt 8 ]; then
   JAVA_OPTS="--add-exports java.desktop/com.sun.imageio.plugins.png=ALL-UNNAMED ${JAVA_OPTS:-}"
 fi
@@ -527,13 +515,6 @@ restart)
   sleep 2
   start
   ;;
-jmxrestart)
-  stop
-  sleep 2
-  JAVA_OPTS="${JAVA_OPTS} -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.port=${JMX_PORT}"
-  warn "WARNING: JMX is enabled on port ${JMX_PORT}"
-  start
-  ;;
 demotoken)
   ${JAVACMD} -cp "${WARP10_JAR}" -Dlog4j.configuration=file:"${LOG4J_CONF}" -Dfile.encoding=UTF-8 io.warp10.TokenGen ${CONFIG_FILES} "${WARP10_HOME}/tokens/demo-tokengen.mc2" 2>/dev/null
   ;;
@@ -550,9 +531,8 @@ compact)
   compact "$@"
   ;;
 *)
-  die "Usage: $0 {init|demotoken|tokengen|start|stop|restart|status|jmxstart|jmxrestart|repair|compact|run}"
+  die "Usage: $0 {init|demotoken|tokengen|start|stop|restart|status|jmxstart|repair|compact|run}"
   ;;
 esac
 
 exit $?
-

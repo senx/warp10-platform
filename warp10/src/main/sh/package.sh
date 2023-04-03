@@ -18,14 +18,35 @@
 set -eu
 
 ##
-## Build the distribution .tar.gz for Warp 10
+## Build the Warp 10 distribution archive.
+## The archive generated is for installation and start up of a Warp 10 instance.
+##
+## This script includes the following steps:
+##  - Create the directory hierarchy
+##  - Copy startup scripts
+##  - Copy log4j, README, config, runner, bootstrap
+##  - Copy template configuration
+##  - Copy Warp 10 jar
+##  - Fix permissions
 ##
 
 VERSION=$1
+if [ -z "${VERSION:+x}" ]; then
+  echo "Usage: $0 VERSION WARP_ROOT_PATH"
+  exit 1
+fi
+WARP10_HOME=warp10-${VERSION}
+
 # Warp 10 root project path (../warp10)
 WARP_ROOT_PATH=$2
-
-WARP10_HOME=warp10-${VERSION}
+if [ -z "${WARP_ROOT_PATH:+x}" ]; then
+  echo "Usage: $0 VERSION WARP_ROOT_PATH"
+  exit 1
+fi
+if [ ! -d "${WARP_ROOT_PATH}" ]; then
+  echo "${WARP_ROOT_PATH} folder does not exists."
+  exit 1
+fi
 
 ARCHIVE=${WARP_ROOT_PATH}/archive
 
@@ -56,19 +77,21 @@ mkdir -p "${WARP10_HOME}/runners/sensision/60000"
 ## Copy startup scripts
 ##
 sed -e "s/@VERSION@/${VERSION}/g" ../src/main/sh/warp10-env.sh >"${WARP10_HOME}/bin/warp10-env.sh"
-sed -e "s/@VERSION@/${VERSION}/g" ../src/main/sh/warp10.service >"${WARP10_HOME}/bin/warp10.service"
-sed -e "s/@VERSION@/${VERSION}/g" ../src/main/sh/warp10.sh >"${WARP10_HOME}/bin/warp10.sh"
+cp ../src/main/sh/warp10.service "${WARP10_HOME}/bin/warp10.service"
+cp ../src/main/sh/warp10.sh "${WARP10_HOME}/bin/warp10.sh"
 
 ##
-## Copy log4j README, config, runner, bootstrap...
+## Copy log4j, README, config, runner, bootstrap...
 ##
-cp ../../etc/bootstrap/*.mc2 "${WARP10_HOME}/etc/bootstrap"
-cp ../../etc/install/README.md "${WARP10_HOME}"
-cp ../../CHANGELOG.md "${WARP10_HOME}"
-cp ../../etc/runners/*.mc2* "${WARP10_HOME}/runners/test/60000"
-cp ../../etc/calls/*.sh "${WARP10_HOME}/calls"
-cp ../../etc/calls/*.py "${WARP10_HOME}/calls"
-cp ../../etc/macros/* "${WARP10_HOME}/macros"
+cp ../../etc/bootstrap/egress.mc2 "${WARP10_HOME}/etc/bootstrap/egress.mc2"
+cp ../../etc/bootstrap/mobius.mc2 "${WARP10_HOME}/etc/bootstrap/mobius.mc2"
+cp ../../etc/bootstrap/runner.mc2 "${WARP10_HOME}/etc/bootstrap/runner.mc2"
+cp ../../etc/install/README.md "${WARP10_HOME}/README.md"
+cp ../../CHANGELOG.md "${WARP10_HOME}/CHANGELOG.md"
+cp ../../etc/runners/runner.mc2.DISABLE "${WARP10_HOME}/runners/test/60000/runner.mc2.DISABLE"
+cp ../../etc/calls/testcall.sh "${WARP10_HOME}/calls/testcall.sh"
+cp ../../etc/calls/testcall.py "${WARP10_HOME}/calls/testcall.py"
+cp ../../etc/macros/README "${WARP10_HOME}/macros/README"
 sed -e "s/@VERSION@/${VERSION}/g" ../../etc/log4j.properties >"${WARP10_HOME}/etc/log4j.properties"
 
 ##

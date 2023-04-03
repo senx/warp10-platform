@@ -21,10 +21,15 @@
 ############################################################################
 
 ##
+## Warp 10 revision
+##
+WARP10_REVISION=@VERSION@
+
+##
 ## Initial and maximum RAM
 ##
-WARP10_HEAP=1023m
-WARP10_HEAP_MAX=1023m
+WARP10_HEAP=${WARP10_HEAP:-1023M}
+WARP10_HEAP_MAX=${WARP10_HEAP_MAX:-1023M}
 
 ## JAVA_HOME is automatically detected by warp10.sh
 ## However, on a system with several version of java, you may want to specify the path explicitly.

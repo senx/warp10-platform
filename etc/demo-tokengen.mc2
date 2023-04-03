@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2023  SenX S.A.S.
+//   Copyright 2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -21,8 +21,8 @@
 
 JSONPRETTY
 
-'demo' 'applicationName' STORE
-NOW 14 d + 'expiryDate' STORE
+'demo.CHANGEME' 'applicationName' STORE
+NOW 14 d + MSTU / 'expiryDate' STORE
 UUID 'ownerAndProducer' STORE
 
 {
@@ -30,7 +30,7 @@ UUID 'ownerAndProducer' STORE
   'type' 'READ'
   'application' $applicationName
   'owner'  $ownerAndProducer
-  'issuance' NOW
+  'issuance' NOW MSTU /
   'expiry' $expiryDate
   'labels' { }
   'attributes' { }
@@ -46,7 +46,7 @@ TOKENGEN
   'application' $applicationName
   'owner'  $ownerAndProducer
   'producer' $ownerAndProducer
-  'issuance' NOW
+  'issuance' NOW MSTU /
   'expiry' $expiryDate
   'labels' { }
   'attributes' { }
