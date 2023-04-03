@@ -15,12 +15,12 @@
 #   limitations under the License.
 #
 
-############################################################################
-#                                                                          #
-#  Tip: customize values in warp10-env.sh, not in this file!               #
-#  Future updates will be simpler if you do not change this file.          #
-#                                                                          #
-############################################################################
+#################################################################################
+#                                                                               #
+#  Tip: customize values in ${WARP10_HOME}/etc/warp10-env.sh, not in this file! #
+#  Future updates will be simpler if you do not change this file.               #
+#                                                                               #
+#################################################################################
 
 set -eu
 
@@ -57,14 +57,14 @@ getJava() {
     if [ ! -x "$JAVACMD" ]; then
       die "ERROR: JAVA_HOME is set to an invalid directory: $JAVA_HOME
 
-Please set the JAVA_HOME variable in ${WARP10_HOME}/bin/warp10-env.sh to match the
+Please set the JAVA_HOME variable in ${WARP10_HOME}/etc/warp10-env.sh to match the
 location of your Java installation."
     fi
   else
     JAVACMD=java
     which java >/dev/null 2>&1 || die "ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH.
 
-Please set the JAVA_HOME variable in ${WARP10_HOME}/bin/warp10-env.sh to match the
+Please set the JAVA_HOME variable in ${WARP10_HOME}/etc/warp10-env.sh to match the
 location of your Java installation."
   fi
 }
@@ -104,7 +104,7 @@ checkRam() {
   if [ "1023m" = "${WARP10_HEAP}" ] || [ "1023m" = "${WARP10_HEAP_MAX}" ]; then
     warn "#### WARNING ####
 ## Warp 10 was launched with the default RAM setting (i.e. WARP10_HEAP=1023m and/or WARP10_HEAP_MAX=1023m).
-## Please edit ${WARP10_HOME}/warp10-env.sh to change the default values of WARP10_HEAD and WARP10_HEAP_MAX."
+## Please edit ${WARP10_HOME}/etc/warp10-env.sh to change the default values of WARP10_HEAD and WARP10_HEAP_MAX."
   fi
 }
 
@@ -131,20 +131,12 @@ isStarted() {
 
 init() {
   echo "WARP10_HOME=${WARP10_HOME}"
-  # If WARP10_USER is undefined set it to current user, also update warp10-env.sh
+  # If WARP10_USER is undefined set it to current user
   if [ -z "${WARP10_USER:+x}" ]; then
     WARP10_USER=$(id -u -n)
-    warn "WARP10_USER is undefined, set it to WARP10_USER=${WARP10_USER}"
+    warn "WARP10_USER is undefined, you may want to set it in ${WARP10_HOME}/etc/warp10-env.sh by adding WARP10_USER=${WARP10_USER}"
   else
     echo "WARP10_USER=${WARP10_USER}"
-  fi
-
-  # If WARP10_GROUP is undefined set it to current group, also update warp10-env.sh
-  if [ -z "${WARP10_GROUP:+x}" ]; then
-    WARP10_GROUP=$(id -g -n)
-    warn "WARP10_GROUP is undefined, set it to WARP10_GROUP=${WARP10_GROUP}"
-  else
-    echo "WARP10_GROUP=${WARP10_GROUP}"
   fi
 
   ##
@@ -177,7 +169,9 @@ init() {
   ##
   ## Copy the template configuration file
   ##
-  for file in "${WARP10_HOME}"/conf.templates/standalone/*.template; do
+  TEMPLATE=${TEMPLATE:=standalone}
+  echo "Copy ${TEMPLATE} configuration files"
+  for file in "${WARP10_HOME}/conf.templates/${TEMPLATE}"/*.template; do
     filename=$(basename "$file")
     cp "${file}" "${WARP10_CONFIG_DIR}/${filename%.template}"
   done
@@ -195,7 +189,7 @@ postInit() {
   ## Generate AES and hash keys
   ##
   echo "Generate AES and hash keys"
-  res=$(${JAVACMD} -cp "${WARP10_JAR}" -Dfile.encoding=UTF-8 io.warp10.GenerateCryptoKey)
+  res=$(${JAVACMD} -cp "${WARP10_JAR}" -Dfile.encoding=UTF-8 io.warp10.GenerateCryptoKeys)
   echo "
 //
 // AES and Hash definition
@@ -206,12 +200,13 @@ $(echo "$res" | grep -E 'class.hash.key|labels.hash.key|token.hash.key|app.hash.
   echo
   echo "Warp 10 configuration has been generated here: ${WARP10_CONFIG_DIR}"
   echo "You can now configure the initial and maximum amount of RAM allocated to Warp 10."
-  echo "Edit ${WARP10_HOME}/bin/warp10-env.sh and look for WARP10_HEAP and WARP10_HEAP_MAX variables."
+  echo "Edit ${WARP10_HOME}/etc/warp10-env.sh and look for WARP10_HEAP and WARP10_HEAP_MAX variables."
   echo
 }
 
 distConf() {
   echo "Initialize Warp 10 distributed configuration"
+  TEMPLATE="distributed"
   init
   postInit
 }
@@ -220,7 +215,8 @@ leveldbConf() {
   echo "Initialize Warp 10 standalone configuration"
   init
 
-  echo "standalone.home = ${WARP10_HOME_ESCAPED}" >>"${WARP10_CONFIG_DIR}/99-init.conf"
+  echo "
+standalone.home = ${WARP10_HOME_ESCAPED}" >>"${WARP10_CONFIG_DIR}/99-init.conf"
   echo "backend = leveldb" >>"${WARP10_CONFIG_DIR}/99-init.conf"
   mv "${WARP10_CONFIG_DIR}/10-fdb.conf" "${WARP10_CONFIG_DIR}/10-fdb.conf.DISABLE"
   getConfigFiles
@@ -234,17 +230,19 @@ leveldbConf() {
   if ! mkdir -p "${LEVELDB_HOME}/snapshots"; then
     die "ERROR: ${LEVELDB_HOME} creation failed"
   fi
+  chmod 700 "${LEVELDB_HOME}"
 
   ${JAVACMD} -cp "${WARP10_JAR}" io.warp10.standalone.WarpInit "${LEVELDB_HOME}" >>"${WARP10_HOME}/logs/warp10.log" 2>&1
 
   postInit
 }
 
-fdbConf() {
+standalonePlusConf() {
   echo "Initialize Warp 10 standalone+ configuration"
   init
 
-  echo "backend = fdb" >>"${WARP10_CONFIG_DIR}/99-init.conf"
+  echo "
+backend = fdb" >>"${WARP10_CONFIG_DIR}/99-init.conf"
   mv "${WARP10_CONFIG_DIR}/10-leveldb.conf" "${WARP10_CONFIG_DIR}/10-leveldb.conf.DISABLE"
   getConfigFiles
 
@@ -256,7 +254,8 @@ fdbConf() {
 inmemoryConf() {
   echo "Initialize Warp 10 in-memory configuration"
   init
-  echo "backend = memory" >>"${WARP10_CONFIG_DIR}/99-init.conf"
+  echo "
+backend = memory" >>"${WARP10_CONFIG_DIR}/99-init.conf"
   mv "${WARP10_CONFIG_DIR}/10-fdb.conf" "${WARP10_CONFIG_DIR}/10-fdb.conf.DISABLE"
   mv "${WARP10_CONFIG_DIR}/10-leveldb.conf" "${WARP10_CONFIG_DIR}/10-leveldb.conf.DISABLE"
   getConfigFiles
@@ -422,6 +421,7 @@ JAVA_HEAP_DUMP=${WARP10_HOME}/logs/java.heapdump
 # you can specialize your metrics for this instance of Warp10
 if [ -n "${WARP10_IDENT:+x}" ]; then
   SENSISION_DEFAULT_LABELS=-Dsensision.default.labels=instance=${WARP10_IDENT}
+  JAVA_OPTS="${JAVA_OPTS} -Dwarp.ident=${WARP10_IDENT}"
 fi
 JAVA_OPTS="-Djava.awt.headless=true -Dlog4j.configuration=file:${LOG4J_CONF} -Dsensision.server.port=0 ${SENSISION_DEFAULT_LABELS:-} -Dsensision.events.dir=${SENSISION_EVENTS_DIR} -Dfile.encoding=UTF-8 -Xms${WARP10_HEAP} -Xmx${WARP10_HEAP_MAX} -XX:+UseG1GC ${JAVA_OPTS:-} ${JAVA_EXTRA_OPTS:-}"
 export MALLOC_ARENA_MAX=1
@@ -437,7 +437,7 @@ init)
     leveldbConf
     ;;
   standalone+)
-    fdbConf
+    standalonePlusConf
     ;;
   in-memory)
     inmemoryConf

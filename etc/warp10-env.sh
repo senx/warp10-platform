@@ -54,19 +54,11 @@ WARP10_HEAP_MAX=${WARP10_HEAP_MAX:-1023m}
 ## Define a specific user, otherwise the user that runs init will be WARP10_USER.
 ##
 #WARP10_USER=warp10
-#WARP10_GROUP=warp10
 
 ##
 ## WARP10_HOME is automatically detected by warp10.sh as its parent directory. You may need to redefine it.
 ##
 #WARP10_HOME=/opt/warp10
-
-##
-## By default, Warp 10 is deployed in $WARP10_HOME.
-## An alternative deployment is to move the following folders to another volume:
-##    calls, datalog-ng, etc, jars, <leveldb>, lib, logs, macros, runners.
-## This can be done at bootstrap time or later, if you define WARP10_DATA_DIR.
-#WARP10_DATA_DIR=/data
 
 ##
 ## All configurations are loaded from $WARP10_HOME/etc/conf.d.

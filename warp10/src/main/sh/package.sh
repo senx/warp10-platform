@@ -44,7 +44,7 @@ if [ -z "${WARP_ROOT_PATH:+x}" ]; then
   exit 1
 fi
 if [ ! -d "${WARP_ROOT_PATH}" ]; then
-  echo "${WARP_ROOT_PATH} folder does not exists."
+  echo "${WARP_ROOT_PATH} folder does not exist."
   exit 1
 fi
 
@@ -60,7 +60,7 @@ mkdir "${ARCHIVE}"
 cd "${ARCHIVE}"
 mkdir -p "${WARP10_HOME}/bin"
 mkdir -p "${WARP10_HOME}/calls"
-mkdir -p "${WARP10_HOME}/datalog-ng"
+mkdir -p "${WARP10_HOME}/datalog"
 mkdir -p "${WARP10_HOME}/etc/bootstrap"
 mkdir -p "${WARP10_HOME}/etc/conf.d"
 mkdir -p "${WARP10_HOME}/etc/throttle"
@@ -110,6 +110,7 @@ cp "../build/libs/warp10-${VERSION}.jar" "${WARP10_HOME}/bin/warp10-${VERSION}.j
 find "${WARP10_HOME}" -type d -exec chmod 755 {} \;
 find "${WARP10_HOME}" -type f -exec chmod 644 {} \;
 find "${WARP10_HOME}" -type f \( -name \*.sh -o -name \*.py -o -name \*.init \) -exec chmod 755 {} \;
+chmod 700 "${WARP10_HOME}/etc"
 
 # Build tar
 tar czpf "../build/libs/warp10-${VERSION}.tar.gz" "${WARP10_HOME}"

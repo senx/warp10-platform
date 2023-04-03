@@ -17,14 +17,14 @@
 package io.warp10;
 
 import java.security.SecureRandom;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.bouncycastle.util.encoders.Hex;
 
 import io.warp10.continuum.Configuration;
 
-public class GenerateCryptoKey {
+public class GenerateCryptoKeys {
 
   private static final String CLASS_HASH_KEY = "class.hash.key";
   private static final String LABELS_HASH_KEY = "labels.hash.key";
@@ -37,7 +37,7 @@ public class GenerateCryptoKey {
   private static final String FETCH_HASH_KEY = "fetch.hash.key";
   private static final SecureRandom sr = new SecureRandom();
 
-  private static final Map<String,Integer> keys = new HashMap<String,Integer>();
+  private static final Map<String,Integer> keys = new LinkedHashMap<String,Integer>();
 
   static {
     // Always generate the longest key possible.
@@ -89,7 +89,7 @@ public class GenerateCryptoKey {
     for (Map.Entry<String,Integer> keyEntry: keys.entrySet()) {
       byte[] key = new byte[keyEntry.getValue() / 8];
       sr.nextBytes(key);
-      System.out.println(keyEntry.getKey() + " = hex:" + new String(Hex.encode(key)));
+      System.out.println(keyEntry.getKey() + " = hex:" + Hex.toHexString(key));
     }
   }
 }
