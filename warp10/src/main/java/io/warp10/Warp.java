@@ -115,7 +115,7 @@ public class Warp extends WarpDist {
       System.out.println("  Revision " + Revision.REVISION);
 
       if (null != WarpConfig.getProperty(io.warp10.continuum.Configuration.BACKEND)) {
-        if ("fdb".equals(WarpConfig.getProperty(io.warp10.continuum.Configuration.BACKEND))) {
+        if (Constants.BACKEND_FDB.equals(WarpConfig.getProperty(io.warp10.continuum.Configuration.BACKEND))) {
           System.out.println("      Mode standalone+");
         } else {
           System.out.println("      Mode standalone");
