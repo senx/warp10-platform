@@ -260,11 +260,6 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     this.registers = new Object[nregs];
   }
 
-  @Override
-  protected void finalize() throws Throwable {
-    WarpScriptStackRegistry.unregister(this);
-  }
-
   public void maxLimits() {
     setAttribute(WarpScriptStack.ATTRIBUTE_FETCH_LIMIT, Long.MAX_VALUE - 1);
     setAttribute(WarpScriptStack.ATTRIBUTE_GTS_LIMIT, Long.MAX_VALUE - 1);

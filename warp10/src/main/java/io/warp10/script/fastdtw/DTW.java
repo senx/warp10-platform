@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -22,10 +22,9 @@
 
 package io.warp10.script.fastdtw;
 
-import io.warp10.continuum.gts.GeoTimeSerie;
-
-import java.util.Arrays;
 import java.util.Iterator;
+
+import io.warp10.continuum.gts.GeoTimeSerie;
 
 public class DTW {
 
@@ -125,7 +124,7 @@ public class DTW {
     for (int j = 1; j <= maxJ; j++) {
       costMatrix[0][j] = costMatrix[0][j - 1] + distFn.calcDistance(tsI, 0, tsJ, j);
     }
-    
+
     for (int i = 1; i <= maxI; i++) // i = columns
     {
       // Calculate the value for the bottom row of the current column
@@ -299,8 +298,7 @@ public class DTW {
     return constrainedTimeWarp(tsI, tsJ, window, distFn);
   }
 
-  private static TimeWarpInfo constrainedTimeWarp(GeoTimeSerie tsI,
-      GeoTimeSerie tsJ, SearchWindow window, DistanceFunction distFn) {
+  private static TimeWarpInfo constrainedTimeWarp(GeoTimeSerie tsI, GeoTimeSerie tsJ, SearchWindow window, DistanceFunction distFn) {
     // COST MATRIX:
     // 5|_|_|_|_|_|_|E| E = min Global Cost
     // 4|_|_|_|_|_|_|_| S = Start point
@@ -312,135 +310,137 @@ public class DTW {
     // i
     // access is M(i,j)... column-row
     final WindowMatrix costMatrix = new WindowMatrix(window);
-    final int maxI = tsI.size() - 1;
-    final int maxJ = tsJ.size() - 1;
 
-    // Get an iterator that traverses the window cells in the order that the
-    // cost matrix is filled.
-    // (first to last row (1..maxI), bottom to top (1..MaxJ)
-    final Iterator matrixIterator = window.iterator();
+    try {
+      final int maxI = tsI.size() - 1;
+      final int maxJ = tsJ.size() - 1;
 
-    while (matrixIterator.hasNext()) {
-      final ColMajorCell currentCell = (ColMajorCell) matrixIterator.next(); // current
-      // cell
-      // being
-      // filled
-      final int i = currentCell.getCol();
-      final int j = currentCell.getRow();
+      // Get an iterator that traverses the window cells in the order that the
+      // cost matrix is filled.
+      // (first to last row (1..maxI), bottom to top (1..MaxJ)
+      final Iterator matrixIterator = window.iterator();
 
-      if ((i == 0) && (j == 0)) // bottom left cell (first row AND first column)
-        costMatrix.put(
-            i,
-            j,
-            distFn.calcDistance(tsI, 0, tsJ, 0));
-      else if (i == 0) // first column
-      {
-        costMatrix.put(
-            i,
-            j,
-            distFn.calcDistance(tsI, 0, tsJ, j)
-                + costMatrix.get(i, j - 1));
-      } else if (j == 0) // first row
-      {
-        costMatrix.put(
-            i,
-            j,
-            distFn.calcDistance(tsI, i, tsJ, 0)
-                + costMatrix.get(i - 1, j));
-      } else // not first column or first row
-      {
-        final double minGlobalCost = Math.min(costMatrix.get(i - 1, j),
-            Math.min(costMatrix.get(i - 1, j - 1), costMatrix.get(i, j - 1)));
-        costMatrix.put(
-            i,
-            j,
-            minGlobalCost
-            + distFn.calcDistance(tsI, i, tsJ, j));
-      } // end if
-    } // end while loop
+      while (matrixIterator.hasNext()) {
+        final ColMajorCell currentCell = (ColMajorCell) matrixIterator.next(); // current
+        // cell
+        // being
+        // filled
+        final int i = currentCell.getCol();
+        final int j = currentCell.getRow();
 
-    // Minimum Cost is at (maxI, maxJ)
-    final double minimumCost = costMatrix.get(maxI, maxJ);
+        if ((i == 0) && (j == 0)) // bottom left cell (first row AND first column)
+          costMatrix.put(
+              i,
+              j,
+              distFn.calcDistance(tsI, 0, tsJ, 0));
+        else if (i == 0) // first column
+        {
+          costMatrix.put(
+              i,
+              j,
+              distFn.calcDistance(tsI, 0, tsJ, j)
+                  + costMatrix.get(i, j - 1));
+        } else if (j == 0) // first row
+        {
+          costMatrix.put(
+              i,
+              j,
+              distFn.calcDistance(tsI, i, tsJ, 0)
+                  + costMatrix.get(i - 1, j));
+        } else // not first column or first row
+        {
+          final double minGlobalCost = Math.min(costMatrix.get(i - 1, j),
+              Math.min(costMatrix.get(i - 1, j - 1), costMatrix.get(i, j - 1)));
+          costMatrix.put(
+              i,
+              j,
+              minGlobalCost
+              + distFn.calcDistance(tsI, i, tsJ, j));
+        } // end if
+      } // end while loop
 
-    /*
-     * try
-     * {
-     * final PrintWriter out = new PrintWriter(new FileWriter("matrix2.csv"));
-     * for (int j=maxJ; j>=0; j--)
-     * {
-     * for (int i=0; i<=maxI; i++)
-     * {
-     * out.print(costMatrix.get(i, j));
-     * if (i != maxI)
-     * out.print(",");
-     * }
-     * out.println();
-     * }
-     * out.flush();
-     * out.close();
-     * }
-     * catch (Exception e)
-     * {
-     * System.out.println(e);
-     * e.printStackTrace();
-     * }
-     */
-    // Find the Warp Path by searching the matrix from the solution at
-    // (maxI, maxJ) to the beginning at (0,0). At each step move through
-    // the matrix 1 step left, down, or diagonal, whichever has the
-    // smallest cost. Favor diagonal moves and moves towards the i==j
-    // axis to break ties.
-    final WarpPath minCostPath = new WarpPath(maxI + maxJ - 1);
-    int i = maxI;
-    int j = maxJ;
-    minCostPath.addFirst(i, j);
-    while ((i > 0) || (j > 0)) {
-      // Find the costs of moving in all three possible directions (left,
-      // down, and diagonal (down and left at the same time).
-      final double diagCost;
-      final double leftCost;
-      final double downCost;
+      // Minimum Cost is at (maxI, maxJ)
+      final double minimumCost = costMatrix.get(maxI, maxJ);
 
-      if ((i > 0) && (j > 0))
-        diagCost = costMatrix.get(i - 1, j - 1);
-      else
-        diagCost = Double.POSITIVE_INFINITY;
-
-      if (i > 0)
-        leftCost = costMatrix.get(i - 1, j);
-      else
-        leftCost = Double.POSITIVE_INFINITY;
-
-      if (j > 0)
-        downCost = costMatrix.get(i, j - 1);
-      else
-        downCost = Double.POSITIVE_INFINITY;
-
-      // Determine which direction to move in. Prefer moving diagonally and
-      // moving towards the i==j axis of the matrix if there are ties.
-      if ((diagCost <= leftCost) && (diagCost <= downCost)) {
-        i--;
-        j--;
-      } else if ((leftCost < diagCost) && (leftCost < downCost))
-        i--;
-      else if ((downCost < diagCost) && (downCost < leftCost))
-        j--;
-      else if (i <= j) // leftCost==rightCost > diagCost
-        j--;
-      else
-        // leftCost==rightCost > diagCost
-        i--;
-
-      // Add the current step to the warp path.
+      /*
+       * try
+       * {
+       * final PrintWriter out = new PrintWriter(new FileWriter("matrix2.csv"));
+       * for (int j=maxJ; j>=0; j--)
+       * {
+       * for (int i=0; i<=maxI; i++)
+       * {
+       * out.print(costMatrix.get(i, j));
+       * if (i != maxI)
+       * out.print(",");
+       * }
+       * out.println();
+       * }
+       * out.flush();
+       * out.close();
+       * }
+       * catch (Exception e)
+       * {
+       * System.out.println(e);
+       * e.printStackTrace();
+       * }
+       */
+      // Find the Warp Path by searching the matrix from the solution at
+      // (maxI, maxJ) to the beginning at (0,0). At each step move through
+      // the matrix 1 step left, down, or diagonal, whichever has the
+      // smallest cost. Favor diagonal moves and moves towards the i==j
+      // axis to break ties.
+      final WarpPath minCostPath = new WarpPath(maxI + maxJ - 1);
+      int i = maxI;
+      int j = maxJ;
       minCostPath.addFirst(i, j);
-    } // end while loop
+      while ((i > 0) || (j > 0)) {
+        // Find the costs of moving in all three possible directions (left,
+        // down, and diagonal (down and left at the same time).
+        final double diagCost;
+        final double leftCost;
+        final double downCost;
 
-    // Free any rescources associated with the costMatrix (a swap file may have
-    // been created if the swa file did not
-    // fit into main memory).
-    costMatrix.freeMem();
+        if ((i > 0) && (j > 0))
+          diagCost = costMatrix.get(i - 1, j - 1);
+        else
+          diagCost = Double.POSITIVE_INFINITY;
 
-    return new TimeWarpInfo(minimumCost, minCostPath);
+        if (i > 0)
+          leftCost = costMatrix.get(i - 1, j);
+        else
+          leftCost = Double.POSITIVE_INFINITY;
+
+        if (j > 0)
+          downCost = costMatrix.get(i, j - 1);
+        else
+          downCost = Double.POSITIVE_INFINITY;
+
+        // Determine which direction to move in. Prefer moving diagonally and
+        // moving towards the i==j axis of the matrix if there are ties.
+        if ((diagCost <= leftCost) && (diagCost <= downCost)) {
+          i--;
+          j--;
+        } else if ((leftCost < diagCost) && (leftCost < downCost))
+          i--;
+        else if ((downCost < diagCost) && (downCost < leftCost))
+          j--;
+        else if (i <= j) // leftCost==rightCost > diagCost
+          j--;
+        else
+          // leftCost==rightCost > diagCost
+          i--;
+
+        // Add the current step to the warp path.
+        minCostPath.addFirst(i, j);
+      } // end while loop
+
+      return new TimeWarpInfo(minimumCost, minCostPath);
+    } finally {
+      // Free any rescources associated with the costMatrix (a swap file may have
+      // been created if the swap file did not fit into main memory).
+      costMatrix.freeMem();
+    }
   } // end ConstrainedTimeWarp
 
 } // end class DtwTest

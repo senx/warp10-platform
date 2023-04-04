@@ -1,5 +1,5 @@
 //
-//   Copyright 2020  SenX S.A.S.
+//   Copyright 2020-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -18,69 +18,106 @@ package io.warp10.script;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.LockSupport;
 
 import io.warp10.script.WarpScriptStack.Signal;
 import io.warp10.script.ext.stackps.StackPSWarpScriptExtension;
 
 public class WarpScriptStackRegistry {
-  
-  private static final Map<String,WeakReference<WarpScriptStack>> stacks = new HashMap<String,WeakReference<WarpScriptStack>>();
-  
+
+  private static final Map<String,WeakReference<WarpScriptStack>> stacks = new ConcurrentHashMap<String,WeakReference<WarpScriptStack>>();
+
   private static boolean enabled = false;
-  
-  public synchronized static void register(WarpScriptStack stack) {
+
+  static {
+    Thread janitor = new Thread(new Runnable() {
+      @Override
+      public void run() {
+        while(true) {
+          //
+          // Periodically purge the elements which have no reachable references
+          //
+
+          try {
+            Set<String> uuids = new HashSet<String>(stacks.keySet());
+
+            for (String uuid: uuids) {
+              WeakReference<WarpScriptStack> ref = stacks.get(uuid);
+
+              if (null != ref && null == ref.get()) {
+                stacks.remove(uuid);
+              }
+            }
+          } catch (Throwable t) {
+          } finally {
+            // Sleep for 1s
+            LockSupport.parkNanos(1000000000L);
+          }
+        }
+      }
+    });
+
+    janitor.setName("[WarpScriptStackRegistry janitor]");
+    janitor.setDaemon(true);
+    janitor.start();
+  }
+
+  public static void register(WarpScriptStack stack) {
     if (!enabled || null == stack) {
       return;
     }
     stacks.put(stack.getUUID(), new WeakReference<WarpScriptStack>(stack));
   }
-  
-  public synchronized static boolean unregister(WarpScriptStack stack) {
+
+  public static boolean unregister(WarpScriptStack stack) {
     if (!enabled || null == stack) {
       return false;
     }
     return null != stacks.remove(stack.getUUID());
   }
-  
+
   public static boolean unregister(String uuid) {
     return null != stacks.remove(uuid);
   }
-  
+
   public static boolean signalByUuid(String uuid, Signal signal) {
     if (!enabled) {
       return false;
     }
-    
+
     WeakReference<WarpScriptStack> stackref = stacks.get(uuid);
-    
+
     if (null == stackref) {
       return false;
     }
-    
+
     WarpScriptStack stack = stackref.get();
-    
+
     if (null == stack) {
       return false;
     }
+
     stack.signal(signal);
     return true;
   }
-  
+
   public static int signalBySession(String session, Signal signal) {
     if (null == session) {
       return 0;
     }
-    
+
     List<WeakReference<WarpScriptStack>> refs = new ArrayList<WeakReference<WarpScriptStack>>(stacks.values());
-    
+
     int aborted = 0;
-    
+
     for (WeakReference<WarpScriptStack> ref: refs) {
       WarpScriptStack stack = ref.get();
-      
+
       if (null != stack) {
         if (session.equals(stack.getAttribute(StackPSWarpScriptExtension.ATTRIBUTE_SESSION))) {
           stack.signal(signal);
@@ -88,30 +125,30 @@ public class WarpScriptStackRegistry {
         }
       }
     }
-    
+
     return aborted;
   }
-  
+
   public static void enable() {
     enabled = true;
   }
-  
+
   public static void disable() {
     // Clear the registered stacks
     stacks.clear();
     enabled = false;
   }
-  
+
   public static List<WarpScriptStack> stacks() {
     List<WarpScriptStack> stacks = new ArrayList<WarpScriptStack>(WarpScriptStackRegistry.stacks.size());
-    
+
     for (WeakReference<WarpScriptStack> ref: WarpScriptStackRegistry.stacks.values()) {
       WarpScriptStack stack = ref.get();
       if (null != stack) {
         stacks.add(stack);
       }
     }
-    
+
     return stacks;
-  }  
+  }
 }
