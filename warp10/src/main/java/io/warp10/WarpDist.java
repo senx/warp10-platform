@@ -125,23 +125,25 @@ public class WarpDist {
 
   public static void main(String[] args) throws Exception {
 
-    System.out.println();
-    System.out.println(Constants.WARP10_BANNER);
-    System.out.println("  Revision " + Revision.REVISION);
-    System.out.println();
+    if (null == properties) {
+      System.out.println();
+      System.out.println(Constants.WARP10_BANNER);
+      System.out.println("  Revision " + Revision.REVISION);
+      System.out.println();
 
-    System.setProperty("java.awt.headless", "true");
+      System.setProperty("java.awt.headless", "true");
 
-    if (StandardCharsets.UTF_8 != Charset.defaultCharset()) {
-      throw new RuntimeException("Default encoding MUST be UTF-8 but it is " + Charset.defaultCharset() + ". Aborting.");
-    }
+      if (StandardCharsets.UTF_8 != Charset.defaultCharset()) {
+        throw new RuntimeException("Default encoding MUST be UTF-8 but it is " + Charset.defaultCharset() + ". Aborting.");
+      }
 
-    if (args.length > 0) {
-      setProperties(args);
-    } else if (null != System.getProperty(WarpConfig.WARP10_CONFIG)) {
-      setProperties(System.getProperty(WarpConfig.WARP10_CONFIG).split("[, ]+"));
-    } else if (null != System.getenv(WarpConfig.WARP10_CONFIG_ENV)) {
-      setProperties(System.getenv(WarpConfig.WARP10_CONFIG_ENV).split("[, ]+"));
+      if (args.length > 0) {
+        setProperties(args);
+      } else if (null != System.getProperty(WarpConfig.WARP10_CONFIG)) {
+        setProperties(System.getProperty(WarpConfig.WARP10_CONFIG).split("[, ]+"));
+      } else if (null != System.getenv(WarpConfig.WARP10_CONFIG_ENV)) {
+        setProperties(System.getenv(WarpConfig.WARP10_CONFIG_ENV).split("[, ]+"));
+      }
     }
 
     //
