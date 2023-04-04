@@ -242,7 +242,8 @@ standalonePlusConf() {
   init
 
   echo "
-backend = fdb" >>"${WARP10_CONFIG_DIR}/99-init.conf"
+backend = fdb
+fdb.clusterfile=" >>"${WARP10_CONFIG_DIR}/99-init.conf"
   mv "${WARP10_CONFIG_DIR}/10-leveldb.conf" "${WARP10_CONFIG_DIR}/10-leveldb.conf.DISABLE"
   getConfigFiles
 
@@ -266,10 +267,6 @@ backend = memory" >>"${WARP10_CONFIG_DIR}/99-init.conf"
   echo "in.memory.load = ${WARP10_HOME}/memory.dump" >>"${WARP10_CONFIG_DIR}/99-init.conf"
   echo "in.memory.dump = ${WARP10_HOME}/memory.dump" >>"${WARP10_CONFIG_DIR}/99-init.conf"
 
-  echo
-  echo "The in-memory configuration has been generated here: ${IN_MEMORY_CONFIG}."
-  echo "Check this file and adjust it to your needs."
-  echo
   postInit
 }
 
