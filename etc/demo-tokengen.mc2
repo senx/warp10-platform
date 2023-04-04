@@ -33,7 +33,11 @@ UUID 'ownerAndProducer' STORE
   'issuance' NOW MSTU /
   'expiry' $expiryDate
   'labels' { }
-  'attributes' { }
+  'attributes' {
+    // '.cap:maxops'  10e9 TOLONG TOSTRING // capability to raise maxops to 10 billions of operations
+    // '.cap:tokengen'  ''                 // capability to use TOKENGEN within WarpScript
+    // '.cap:http' ''                      // capability to use HTTP
+  }
   'owners' [ $ownerAndProducer ]
   'producers' [ $ownerAndProducer ]
   'applications' [ $applicationName ]
