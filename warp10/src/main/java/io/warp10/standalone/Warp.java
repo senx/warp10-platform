@@ -121,22 +121,24 @@ public class Warp extends WarpDist implements Runnable {
     // Indicate standalone mode is on
     standaloneMode = true;
 
-    System.setProperty("java.awt.headless", "true");
+    if (null == getProperties()) {
+      System.setProperty("java.awt.headless", "true");
 
-    System.out.println();
-    System.out.println(Constants.WARP10_BANNER);
-    System.out.println("  Revision " + Revision.REVISION);
-    System.out.println();
+      System.out.println();
+      System.out.println(Constants.WARP10_BANNER);
+      System.out.println("  Revision " + Revision.REVISION);
+      System.out.println();
 
-    if (StandardCharsets.UTF_8 != Charset.defaultCharset()) {
-      throw new RuntimeException("Default encoding MUST be UTF-8 but it is " + Charset.defaultCharset() + ". Aborting.");
+      if (StandardCharsets.UTF_8 != Charset.defaultCharset()) {
+        throw new RuntimeException("Default encoding MUST be UTF-8 but it is " + Charset.defaultCharset() + ". Aborting.");
+      }
+
+      setProperties(args);
     }
 
     Map<String, String> labels = new HashMap<String, String>();
     labels.put(SensisionConstants.SENSISION_LABEL_COMPONENT, "standalone");
     Sensision.set(SensisionConstants.SENSISION_CLASS_WARP_REVISION, labels, Revision.REVISION);
-
-    setProperties(args);
 
     Properties properties = getProperties();
 
