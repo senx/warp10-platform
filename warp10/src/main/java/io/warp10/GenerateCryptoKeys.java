@@ -75,19 +75,21 @@ public class GenerateCryptoKeys {
       if ("distributed".equals(args[0])) {
         keys.put(KAFKA_DATA_MAC, 128);
         keys.put(KAFKA_DATA_AES, -256);
-        keys.put(FDB_DATA_AES, -256);
+
         keys.put(FDB_METADATA_AES, 256);
+        keys.put(FDB_DATA_AES, -256);
 
         keys.put(KAFKA_METADATA_MAC, 128);
         keys.put(KAFKA_METADATA_AES, -256);
+
         keys.put(Configuration.DIRECTORY_PSK, 128);
         keys.put(Configuration.RUNNER_KAFKA_MAC, 128);
       } else if ("standalone".equals(args[0])) {
         keys.put(Configuration.LEVELDB_METADATA_AES, 256);
-        keys.put(Configuration.LEVELDB_DATA_AES, 256);
+        keys.put(Configuration.LEVELDB_DATA_AES, -256);
       } else if ("standalone+".equals(args[0])) {
-        keys.put(FDB_DATA_AES, -256);
         keys.put(FDB_METADATA_AES, 256);
+        keys.put(FDB_DATA_AES, -256);
       } else if ("in-memory".equals(args[0])) {
         // Nothing special for in-memory
       } else {
