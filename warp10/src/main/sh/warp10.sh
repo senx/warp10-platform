@@ -130,12 +130,15 @@ isStarted() {
 }
 
 init() {
+  echo
   echo "WARP10_HOME=${WARP10_HOME}"
   # If WARP10_USER is undefined set it to current user
   if [ -z "${WARP10_USER:+x}" ]; then
     WARP10_USER=$(id -u -n)
+    echo
     warn "WARP10_USER is undefined, you may want to set it in ${WARP10_HOME}/etc/warp10-env.sh by adding WARP10_USER=${WARP10_USER}"
   else
+    echo
     echo "WARP10_USER=${WARP10_USER}"
   fi
 
@@ -170,7 +173,8 @@ init() {
   ## Copy the template configuration file
   ##
   TEMPLATE=${TEMPLATE:=standalone}
-  echo "Copy ${TEMPLATE} configuration files"
+  echo
+  echo "Copying ${TEMPLATE} configuration files"
   for file in "${WARP10_HOME}/conf.templates/${TEMPLATE}"/*.template; do
     filename=$(basename "$file")
     cp "${file}" "${WARP10_CONFIG_DIR}/${filename%.template}"
@@ -188,7 +192,8 @@ postInit() {
   ##
   ## Generate AES and hash keys
   ##
-  echo "Generate AES and hash keys"
+  echo
+  echo "Generating AES and hash keys"
   res=$(${JAVACMD} -cp "${WARP10_JAR}" -Dfile.encoding=UTF-8 io.warp10.GenerateCryptoKeys)
   echo "
 //
@@ -198,21 +203,22 @@ $(echo "$res" | grep -E 'class.hash.key|labels.hash.key|token.hash.key|app.hash.
 " >>"${WARP10_CONFIG_DIR}/99-init.conf"
 
   echo
-  echo "Warp 10 configuration has been generated here: ${WARP10_CONFIG_DIR}"
+  echo "Warp 10 configuration has been generated in${WARP10_CONFIG_DIR}"
+  echo
   echo "You can now configure the initial and maximum amount of RAM allocated to Warp 10."
   echo "Edit ${WARP10_HOME}/etc/warp10-env.sh and look for WARP10_HEAP and WARP10_HEAP_MAX variables."
   echo
 }
 
 distConf() {
-  echo "Initialize Warp 10 distributed configuration"
+  echo "Initializing Warp 10 distributed configuration"
   TEMPLATE="distributed"
   init
   postInit
 }
 
 leveldbConf() {
-  echo "Initialize Warp 10 standalone configuration"
+  echo "Initializing Warp 10 standalone configuration"
   init
 
   echo "
@@ -226,7 +232,7 @@ standalone.home = ${WARP10_HOME_ESCAPED}" >>"${WARP10_CONFIG_DIR}/99-init.conf"
   ##  Init LevelDB
   ##
   LEVELDB_HOME="${WARP10_HOME_ESCAPED}/leveldb"
-  echo "Initialize LevelDB"
+  echo "Initializing LevelDB"
   if ! mkdir -p "${LEVELDB_HOME}/snapshots"; then
     die "ERROR: ${LEVELDB_HOME} creation failed"
   fi
@@ -238,7 +244,7 @@ standalone.home = ${WARP10_HOME_ESCAPED}" >>"${WARP10_CONFIG_DIR}/99-init.conf"
 }
 
 standalonePlusConf() {
-  echo "Initialize Warp 10 standalone+ configuration"
+  echo "Initializing Warp 10 standalone+ configuration"
   init
 
   echo "
@@ -247,13 +253,14 @@ fdb.clusterfile=" >>"${WARP10_CONFIG_DIR}/99-init.conf"
   mv "${WARP10_CONFIG_DIR}/10-leveldb.conf" "${WARP10_CONFIG_DIR}/10-leveldb.conf.DISABLE"
   getConfigFiles
 
+  echo
   echo "Please define the your FoundationDB cluster with 'fdb.clusterfile'"
   echo "See ${WARP10_CONFIG_DIR}/10-fdb.conf for more settings."
   postInit
 }
 
 inmemoryConf() {
-  echo "Initialize Warp 10 in-memory configuration"
+  echo "Initializing Warp 10 in-memory configuration"
   init
   echo "
 backend = memory" >>"${WARP10_CONFIG_DIR}/99-init.conf"
@@ -261,6 +268,7 @@ backend = memory" >>"${WARP10_CONFIG_DIR}/99-init.conf"
   mv "${WARP10_CONFIG_DIR}/10-leveldb.conf" "${WARP10_CONFIG_DIR}/10-leveldb.conf.DISABLE"
   getConfigFiles
 
+  echo
   echo "in.memory.chunked = true" >>"${WARP10_CONFIG_DIR}/99-init.conf"
   echo "in.memory.chunk.count = 2" >>"${WARP10_CONFIG_DIR}/99-init.conf"
   echo "in.memory.chunk.length = 86400000000" >>"${WARP10_CONFIG_DIR}/99-init.conf"
@@ -274,7 +282,7 @@ start() {
   getConfigFiles
   # Config file exists?
   if [ -z "${CONFIG_FILES}" ]; then
-    die "ERROR: Config file does not exist - Use '${WARP10_HOME}/warp10.sh init' script before the very first launch
+    die "ERROR: No configuration files - Use '${WARP10_HOME}/warp10.sh init' script before the very first launch
   WARNING: Since version 2.1.0, Warp 10 can use multiple configuration files. The files have to be present in ${WARP10_CONFIG_DIR}"
   fi
 
@@ -418,7 +426,7 @@ export SENSISIONID=warp10
 
 LOG4J_CONF=${WARP10_HOME}/etc/log4j.properties
 JAVA_HEAP_DUMP=${WARP10_HOME}/logs/java.heapdump
-# you can specialize your metrics for this instance of Warp10
+# you can specialize your metrics for this instance of Warp 10
 if [ -n "${WARP10_IDENT:+x}" ]; then
   SENSISION_DEFAULT_LABELS=-Dsensision.default.labels=instance=${WARP10_IDENT}
   JAVA_OPTS="${JAVA_OPTS} -Dwarp.ident=${WARP10_IDENT}"
