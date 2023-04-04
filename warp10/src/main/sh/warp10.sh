@@ -199,6 +199,7 @@ postInit() {
 //
 // AES and Hash definition
 //
+
 $(echo "$res" | grep -E 'class.hash.key|labels.hash.key|token.hash.key|app.hash.key|token.aes.key|scripts.aes.key|metasets.aes.key|logging.aes.key|fetch.hash.key')
 " >>"${WARP10_CONFIG_DIR}/99-init.conf"
 
@@ -254,7 +255,7 @@ fdb.clusterfile=" >>"${WARP10_CONFIG_DIR}/99-init.conf"
   getConfigFiles
 
   echo
-  echo "Please define the your FoundationDB cluster with 'fdb.clusterfile'"
+  echo "Please define your FoundationDB cluster with the 'fdb.clusterfile' key"
   echo "See ${WARP10_CONFIG_DIR}/10-fdb.conf for more settings."
   postInit
 }
@@ -367,17 +368,29 @@ repair() {
   if isStarted; then
     die "Operation has been cancelled! - Warp 10 instance must be stopped for repair"
   else
+    # Retrieve LevelDB Home
+    # shellcheck disable=SC2086
+    CONFIG_KEYS=$(${JAVACMD} -cp "${WARP10_JAR}" -Dfile.encoding=UTF-8 io.warp10.WarpConfig ${CONFIG_FILES} . 'leveldb.home' 2>/dev/null | grep -e '^@CONF@ ' | sed -e 's/^@CONF@ //')
+    LEVELDB_HOME="$(echo "${CONFIG_KEYS}" | grep -e '^leveldb\.home=' | sed -e 's/^.*=//')"
     echo "Repairing LevelDB..."
-    ${JAVACMD} -cp "${WARP10_JAR}" -Dfile.encoding=UTF-8 io.warp10.standalone.WarpRepair "${LEVELDB_HOME}"
+    ${JAVACMD} -cp "${WARP10_JAR}" -Dfile.encoding=UTF-8 io.warp10.leveldb.WarpRepair "${LEVELDB_HOME}"
   fi
 }
 
 compact() {
+  if [ "$#" -ne 3 ]; then
+      die "Usage: $0 compact STARTKEY(hex) ENDKEY(hex)"
+  fi
+
   isWarp10User
 
   if isStarted; then
     die "Operation has been cancelled! - Warp 10 instance must be stopped for compaction"
   else
+    # Retrieve LevelDB Home
+    # shellcheck disable=SC2086
+    CONFIG_KEYS=$(${JAVACMD} -cp "${WARP10_JAR}" -Dfile.encoding=UTF-8 io.warp10.WarpConfig ${CONFIG_FILES} . 'leveldb.home' 2>/dev/null | grep -e '^@CONF@ ' | sed -e 's/^@CONF@ //')
+    LEVELDB_HOME="$(echo "${CONFIG_KEYS}" | grep -e '^leveldb\.home=' | sed -e 's/^.*=//')"
     echo "Compacting LevelDB..."
     ${JAVACMD} -cp "${WARP10_JAR}" io.warp10.leveldb.WarpCompact "${LEVELDB_HOME}" "$1" "$2"
   fi
