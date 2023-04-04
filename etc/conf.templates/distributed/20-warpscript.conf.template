@@ -129,12 +129,12 @@ warpscript.maxjson.hard = 209715200
 //
 // CALL root directory property
 //
-#warpscript.call.directory =
+warpscript.call.directory = ${warp10.home}/calls
 
 //   
 // Path of the 'bootstrap' WarpScript code    
 //    
-#warpscript.bootstrap.path = /opt/warp10/etc/hello.mc2
+warpscript.bootstrap.path = ${warp10.home}/etc/bootstrap/egress.mc2
 
 //
 // How often to reload the bootstrap code (in ms)
@@ -170,7 +170,7 @@ warpscript.delete.endpoint = http://127.0.0.1:8080/api/v0/delete
 //
 // Path of the 'bootstrap' WarpScript code for Mobius
 //
-#warpscript.mobius.bootstrap.path =
+warpscript.mobius.bootstrap.path = ${warp10.home}/etc/bootstrap/mobius.mc2
 
 //
 // Number of threads in the Mobius pool (those threads are used to execute the mobius macros)
@@ -185,7 +185,7 @@ warpscript.mobius.pool = 16
 //
 // Path of the 'bootstrap' WarpScript code for Runner
 //
-#warpscript.runner.bootstrap.path =
+warpscript.runner.bootstrap.path = ${warp10.home}/etc/bootstrap/runner.mc2
 
 //
 // How often to reload the bootstrap code (in ms) for Runner

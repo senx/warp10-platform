@@ -133,7 +133,7 @@ warp.token.read.attributes.default = { '.cap:limits' '' }
 //
 // root directory where trl files are stored.
 //
-# warp.trl.dir =
+warp.trl.dir = ${warp10.home}/etc/trl
 
 //
 // Period (in ms) between two scans of the trl directory

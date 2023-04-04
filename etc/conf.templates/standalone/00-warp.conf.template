@@ -93,7 +93,7 @@ backend = leveldb
 //
 // Directory of Warp10 standalone install
 //
-standalone.home = /opt/warp10-@VERSION@
+standalone.home = ${warp10.home}
 
 //
 // Time units of the platform
