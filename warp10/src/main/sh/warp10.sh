@@ -163,6 +163,8 @@ init() {
   echo "//
 // This file contains configurations generated during initialization step.
 //
+// File generated on `date`
+//
 " >"${WARP10_CONFIG_DIR}/99-init.conf"
 
   WARP10_HOME_ESCAPED=$(echo "${WARP10_HOME}" | sed 's/\\/\\\\/g')        # Escape '\'
@@ -193,14 +195,8 @@ postInit() {
   ## Generate AES and hash keys
   ##
   echo
-  echo "Generating AES and hash keys"
-  res=$(${JAVACMD} -cp "${WARP10_JAR}" -Dfile.encoding=UTF-8 io.warp10.GenerateCryptoKeys)
-  echo "
-//
-// AES and Hash definition
-//
-$(echo "$res" | grep -E 'class.hash.key|labels.hash.key|token.hash.key|app.hash.key|token.aes.key|scripts.aes.key|metasets.aes.key|logging.aes.key|fetch.hash.key')
-" >>"${WARP10_CONFIG_DIR}/99-init.conf"
+  echo "Generating cryptographic keys"
+  ${JAVACMD} -cp "${WARP10_JAR}" -Dfile.encoding=UTF-8 io.warp10.GenerateCryptoKeys ${TEMPLATE} >> "${WARP10_CONFIG_DIR}/99-init.conf"
 
   echo
   echo "Warp 10 configuration has been generated in${WARP10_CONFIG_DIR}"
