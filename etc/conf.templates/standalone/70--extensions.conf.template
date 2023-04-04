@@ -31,9 +31,6 @@
 // CEVAL, SYNC
 #warpscript.extension.concurrent = io.warp10.script.ext.concurrent.ConcurrentWarpScriptExtension
 
-// HLOCATE
-#warpscript.extension.hbase = io.warp10.script.ext.debug.HBaseWarpScriptExtension
-
 // FUNCTIONS
 #warpscript.extension.inventory = io.warp10.script.ext.inventory.InventoryWarpScriptExtension
 
