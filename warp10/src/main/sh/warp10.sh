@@ -196,6 +196,13 @@ postInit() {
   ##
   echo
   echo "Generating cryptographic keys"
+
+  echo "
+//
+// AES and Hash definition
+//
+
+" >>"${WARP10_CONFIG_DIR}/99-init.conf"
   ${JAVACMD} -cp "${WARP10_JAR}" -Dfile.encoding=UTF-8 io.warp10.GenerateCryptoKeys ${TEMPLATE} >> "${WARP10_CONFIG_DIR}/99-init.conf"
 
   echo
@@ -250,7 +257,7 @@ fdb.clusterfile=" >>"${WARP10_CONFIG_DIR}/99-init.conf"
   getConfigFiles
 
   echo
-  echo "Please define the your FoundationDB cluster with 'fdb.clusterfile'"
+  echo "Please define your FoundationDB cluster with the 'fdb.clusterfile' key"
   echo "See ${WARP10_CONFIG_DIR}/10-fdb.conf for more settings."
   postInit
 }
@@ -259,6 +266,7 @@ inmemoryConf() {
   echo "Initializing Warp 10 in-memory configuration"
   init
   echo "
+standalone.home = ${WARP10_HOME_ESCAPED}
 backend = memory" >>"${WARP10_CONFIG_DIR}/99-init.conf"
   mv "${WARP10_CONFIG_DIR}/10-fdb.conf" "${WARP10_CONFIG_DIR}/10-fdb.conf.DISABLE"
   mv "${WARP10_CONFIG_DIR}/10-leveldb.conf" "${WARP10_CONFIG_DIR}/10-leveldb.conf.DISABLE"
@@ -358,24 +366,37 @@ run() {
 }
 
 repair() {
+  if [ "$#" -ne 2 ]; then
+    die "Usage: $0 repair LEVELDB_HOME"
+  fi
   isWarp10User
 
   if isStarted; then
     die "Operation has been cancelled! - Warp 10 instance must be stopped for repair"
   else
+    if [ ! -d "$2" ]; then
+      die "LEVELDB_HOME: '$2' does not exist"
+    fi
     echo "Repairing LevelDB..."
-    ${JAVACMD} -cp "${WARP10_JAR}" -Dfile.encoding=UTF-8 io.warp10.standalone.WarpRepair "${LEVELDB_HOME}"
+    ${JAVACMD} -cp "${WARP10_JAR}" -Dfile.encoding=UTF-8 io.warp10.leveldb.WarpRepair "$2"
   fi
 }
 
 compact() {
+  if [ "$#" -ne 4 ]; then
+      die "Usage: $0 compact LEVELDB_HOME STARTKEY(hex) ENDKEY(hex)"
+  fi
+
   isWarp10User
 
   if isStarted; then
     die "Operation has been cancelled! - Warp 10 instance must be stopped for compaction"
   else
+    if [ ! -d "$2" ]; then
+      die "LEVELDB_HOME: '$2' does not exist"
+    fi
     echo "Compacting LevelDB..."
-    ${JAVACMD} -cp "${WARP10_JAR}" io.warp10.leveldb.WarpCompact "${LEVELDB_HOME}" "$1" "$2"
+    ${JAVACMD} -cp "${WARP10_JAR}" io.warp10.leveldb.WarpCompact "$2" "$3" "$4"
   fi
 }
 
@@ -472,7 +493,7 @@ run)
   run "$@"
   ;;
 repair)
-  repair
+  repair "$@"
   ;;
 compact)
   compact "$@"
