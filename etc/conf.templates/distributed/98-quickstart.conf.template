@@ -28,7 +28,7 @@ fdb.metadata.aes = ${aes.key}
 
 zk.quorum = 127.0.0.1:2181
 
-directory.hash.key = ${hash.key}
+directory.psk = ${hash.key}
 
 kafka.bootstrap.servers = 127.0.0.1:9092
 
