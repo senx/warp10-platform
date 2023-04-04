@@ -29,12 +29,7 @@
 ## Comma separated list of consumers. Those names are used as suffixes for the
 ## various consumer configuration keys.
 ##
-datalog.consumers =
-
-  /**
-   * Class name of consumer.
-   */
-  public static final String DATALOG_CONSUMER_CLASS = "datalog.consumer.class";
+#datalog.consumers =
 
 ##
 ## Flag indicating whether register events should be transmitted systematically (true)
