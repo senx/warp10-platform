@@ -392,7 +392,7 @@ compact() {
     CONFIG_KEYS=$(${JAVACMD} -cp "${WARP10_JAR}" -Dfile.encoding=UTF-8 io.warp10.WarpConfig ${CONFIG_FILES} . 'leveldb.home' 2>/dev/null | grep -e '^@CONF@ ' | sed -e 's/^@CONF@ //')
     LEVELDB_HOME="$(echo "${CONFIG_KEYS}" | grep -e '^leveldb\.home=' | sed -e 's/^.*=//')"
     echo "Compacting LevelDB..."
-    ${JAVACMD} -cp "${WARP10_JAR}" io.warp10.leveldb.WarpCompact "${LEVELDB_HOME}" "$1" "$2"
+    ${JAVACMD} -cp "${WARP10_JAR}" io.warp10.leveldb.WarpCompact "${LEVELDB_HOME}" "$2" "$3"
   fi
 }
 
