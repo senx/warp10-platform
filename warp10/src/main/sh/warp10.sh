@@ -248,7 +248,8 @@ standalonePlusConf() {
   init
 
   echo "
-backend = fdb" >>"${WARP10_CONFIG_DIR}/99-init.conf"
+backend = fdb
+fdb.clusterfile=" >>"${WARP10_CONFIG_DIR}/99-init.conf"
   mv "${WARP10_CONFIG_DIR}/10-leveldb.conf" "${WARP10_CONFIG_DIR}/10-leveldb.conf.DISABLE"
   getConfigFiles
 
@@ -274,10 +275,6 @@ backend = memory" >>"${WARP10_CONFIG_DIR}/99-init.conf"
   echo "in.memory.load = ${WARP10_HOME}/memory.dump" >>"${WARP10_CONFIG_DIR}/99-init.conf"
   echo "in.memory.dump = ${WARP10_HOME}/memory.dump" >>"${WARP10_CONFIG_DIR}/99-init.conf"
 
-  echo
-  echo "The in-memory configuration has been generated in ${IN_MEMORY_CONFIG}."
-  echo "Check this file and adjust it to your needs."
-  echo
   postInit
 }
 
@@ -358,7 +355,10 @@ tokengen() {
 }
 
 run() {
-  ${JAVACMD} -cp "${WARP10_CP}" -Dlog4j.configuration=file:"${LOG4J_CONF}" -Dfile.encoding=UTF-8 -Dwarp10.config=${CONFIG_FILES} io.warp10.WarpRun "$2"
+  if [ "$#" -ne 2 ]; then
+    die "Usage: $0 run script.mc2"
+  fi
+  ${JAVACMD} -cp "${WARP10_CP}" -Dlog4j.configuration=file:"${LOG4J_CONF}" -Dfile.encoding=UTF-8 -Dwarp10.config="${CONFIG_FILES}" io.warp10.WarpRun "$2"
 }
 
 repair() {
@@ -469,9 +469,6 @@ restart)
   sleep 2
   start
   ;;
-demotoken)
-  ${JAVACMD} -cp "${WARP10_CP}" -Dlog4j.configuration=file:"${LOG4J_CONF}" -Dfile.encoding=UTF-8 io.warp10.TokenGen ${CONFIG_FILES} "${WARP10_HOME}/tokens/demo-tokengen.mc2" 2>/dev/null
-  ;;
 tokengen)
   tokengen "$@"
   ;;
@@ -485,7 +482,7 @@ compact)
   compact "$@"
   ;;
 *)
-  die "Usage: $0 {init|demotoken|tokengen|start|stop|restart|status|repair|compact|run}"
+  die "Usage: $0 {init|tokengen|start|stop|restart|status|repair|compact|run}"
   ;;
 esac
 

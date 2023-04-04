@@ -51,7 +51,7 @@ WARP10_HEAP_MAX=${WARP10_HEAP_MAX:-1023m}
 ############################################ power user deployment options ############################################
 
 ##
-## Define a specific user, otherwise the user that runs init will be WARP10_USER.
+## Define a specific user, otherwise the user that runs init will be current user.
 ##
 #WARP10_USER=warp10
 
