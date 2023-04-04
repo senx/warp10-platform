@@ -163,7 +163,7 @@ init() {
   echo "//
 // This file contains configurations generated during initialization step.
 //
-// File generated on `date`
+// File generated on $(TZ=UTC date +%Y-%m-%dT%H:%M:%SZ)
 //
 " >"${WARP10_CONFIG_DIR}/99-init.conf"
 
