@@ -160,16 +160,18 @@ init() {
     die "ERROR: Configuration files already exist - Abort initialization."
   fi
 
+  WARP10_HOME_ESCAPED=$(echo "${WARP10_HOME}" | sed 's/\\/\\\\/g')        # Escape '\'
+  WARP10_HOME_ESCAPED=$(echo "${WARP10_HOME_ESCAPED}" | sed 's/\&/\\&/g') # Escape '&'
+  WARP10_HOME_ESCAPED=$(echo "${WARP10_HOME_ESCAPED}" | sed 's/|/\\|/g')  # Escape '|' (separator for sed)
+
   echo "//
 // This file contains configurations generated during initialization step.
 //
 // File generated on $(TZ=UTC date +%Y-%m-%dT%H:%M:%SZ)
 //
-" >"${WARP10_CONFIG_DIR}/99-init.conf"
 
-  WARP10_HOME_ESCAPED=$(echo "${WARP10_HOME}" | sed 's/\\/\\\\/g')        # Escape '\'
-  WARP10_HOME_ESCAPED=$(echo "${WARP10_HOME_ESCAPED}" | sed 's/\&/\\&/g') # Escape '&'
-  WARP10_HOME_ESCAPED=$(echo "${WARP10_HOME_ESCAPED}" | sed 's/|/\\|/g')  # Escape '|' (separator for sed)
+warp10.home = ${WARP10_HOME_ESCAPED}" >"${WARP10_CONFIG_DIR}/99-init.conf"
+
 
   ##
   ## Copy the template configuration file
@@ -199,9 +201,8 @@ postInit() {
 
   echo "
 //
-// AES and Hash definition
+// Cryptographic keys definition
 //
-
 " >>"${WARP10_CONFIG_DIR}/99-init.conf"
   ${JAVACMD} -cp "${WARP10_JAR}" -Dfile.encoding=UTF-8 io.warp10.GenerateCryptoKeys ${TEMPLATE} >> "${WARP10_CONFIG_DIR}/99-init.conf"
 
@@ -225,11 +226,9 @@ leveldbConf() {
   init
 
   echo "
-standalone.home = ${WARP10_HOME_ESCAPED}" >>"${WARP10_CONFIG_DIR}/99-init.conf"
-  echo "backend = leveldb" >>"${WARP10_CONFIG_DIR}/99-init.conf"
+backend = leveldb" >>"${WARP10_CONFIG_DIR}/99-init.conf"
   mv "${WARP10_CONFIG_DIR}/10-fdb.conf" "${WARP10_CONFIG_DIR}/10-fdb.conf.DISABLE"
   getConfigFiles
-
 
   ##
   ##  Init LevelDB
@@ -266,7 +265,6 @@ inmemoryConf() {
   echo "Initializing Warp 10 in-memory configuration"
   init
   echo "
-standalone.home = ${WARP10_HOME_ESCAPED}
 backend = memory" >>"${WARP10_CONFIG_DIR}/99-init.conf"
   mv "${WARP10_CONFIG_DIR}/10-fdb.conf" "${WARP10_CONFIG_DIR}/10-fdb.conf.DISABLE"
   mv "${WARP10_CONFIG_DIR}/10-leveldb.conf" "${WARP10_CONFIG_DIR}/10-leveldb.conf.DISABLE"
