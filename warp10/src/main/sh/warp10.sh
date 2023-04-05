@@ -251,7 +251,7 @@ standalonePlusConf() {
 
   echo "
 backend = fdb
-fdb.clusterfile=" >>"${WARP10_CONFIG_DIR}/99-init.conf"
+fdb.clusterfile=\${warp10.home}/etc/fdb.cluster" >>"${WARP10_CONFIG_DIR}/99-init.conf"
   mv "${WARP10_CONFIG_DIR}/10-leveldb.conf" "${WARP10_CONFIG_DIR}/10-leveldb.conf.DISABLE"
   getConfigFiles
 
