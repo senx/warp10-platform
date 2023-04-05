@@ -102,13 +102,15 @@ getWarp10Home() {
 
 checkRam() {
   if [ "1023m" = "${WARP10_HEAP}" ] || [ "1023m" = "${WARP10_HEAP_MAX}" ]; then
-    warn " #################
+    warn "
+#################
 #### WARNING ####
 #################
 ##
 ##  Warp 10 was launched with the default RAM setting (i.e. WARP10_HEAP=1023m and/or WARP10_HEAP_MAX=1023m).
 ##  Please edit ${WARP10_HOME}/etc/warp10-env.sh to change the default values of WARP10_HEAD and WARP10_HEAP_MAX.
-##"
+##
+"
   fi
 }
 
