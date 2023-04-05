@@ -102,9 +102,13 @@ getWarp10Home() {
 
 checkRam() {
   if [ "1023m" = "${WARP10_HEAP}" ] || [ "1023m" = "${WARP10_HEAP_MAX}" ]; then
-    warn "#### WARNING ####
-## Warp 10 was launched with the default RAM setting (i.e. WARP10_HEAP=1023m and/or WARP10_HEAP_MAX=1023m).
-## Please edit ${WARP10_HOME}/etc/warp10-env.sh to change the default values of WARP10_HEAD and WARP10_HEAP_MAX."
+    warn " #################
+#### WARNING ####
+#################
+##
+##  Warp 10 was launched with the default RAM setting (i.e. WARP10_HEAP=1023m and/or WARP10_HEAP_MAX=1023m).
+##  Please edit ${WARP10_HOME}/etc/warp10-env.sh to change the default values of WARP10_HEAD and WARP10_HEAP_MAX.
+##"
   fi
 }
 
@@ -298,6 +302,9 @@ start() {
     die "ERROR: Start failed - A Warp 10 instance is currently running"
   fi
 
+  # display a warning
+  checkRam
+
   #
   # Start Warp10 instance.
   # By default, standard and error output is redirected to warp10.log file, and error output is duplicated to standard output
@@ -316,11 +323,7 @@ start() {
   sleep 5
   if ! isStarted; then
     die "Start failed! - See ${WARP10_HOME}/logs/warp10.log for more details"
-  else
-    # display a warning
-    checkRam
   fi
-
 }
 
 stop() {
@@ -345,8 +348,6 @@ status() {
   else
     echo "No instance of Warp 10 is currently running"
   fi
-
-  checkRam
 }
 
 tokengen() {
