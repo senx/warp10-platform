@@ -17,6 +17,7 @@
 package io.warp10.continuum;
 
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.thrift.TBase;
 
@@ -33,35 +34,77 @@ import io.warp10.quasar.trl.QuasarTokenRevocationListLoader;
 import io.warp10.script.MemoryWarpScriptStack;
 import io.warp10.script.WarpFleetMacroRepository;
 import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStack.Macro;
+import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.ext.token.TOKENDUMP;
 import io.warp10.script.ext.token.TOKENGEN;
+import io.warp10.warp.sdk.Capabilities;
 
 public class MacroFilterAuthenticationPlugin implements AuthenticationPlugin {
 
   private static final String MACRO;
   private static final QuasarTokenFilter FILTER;
+  private static final String CAPSET = "CAPSET";
+  private static final Macro CAPSET_MACRO;
+
+  private static ThreadLocal<AtomicBoolean> reentrant = new ThreadLocal<AtomicBoolean>() {
+    protected AtomicBoolean initialValue() {
+      return new AtomicBoolean(Boolean.FALSE);
+    };
+  };
 
   static {
     FILTER = Tokens.getTokenFilter();
     MACRO = WarpConfig.getProperty(Configuration.WARP_TOKEN_FILTER_MACRO);
+
+    CAPSET_MACRO = new Macro();
+    CAPSET_MACRO.add(new WarpScriptStackFunction() {
+      @Override
+      public Object apply(WarpScriptStack stack) throws WarpScriptException {
+        Object value = stack.pop();
+        Object key = stack.pop();
+
+        Capabilities.get(stack).remove(String.valueOf(key));
+        // Don't stringify null so we get a chance to artificially remove capabilities
+        Capabilities.get(stack).putIfAbsent(String.valueOf(key), null != value ? String.valueOf(value) : null);
+        return stack;
+      }
+    });
   }
 
   @Override
   public ReadToken extractReadToken(String token) throws WarpScriptException {
-    if (null == MACRO || null == token || "".equals(token)) {
-      return null;
+    if (!reentrant.get().compareAndSet(false, true)) {
+      throw new WarpScriptException("Recursive token filtering.");
     }
 
-    return (ReadToken) extractToken(token, true);
+    try {
+      if (null == MACRO || null == token || "".equals(token)) {
+        return null;
+      }
+
+      return (ReadToken) extractToken(token, true);
+    } finally {
+      reentrant.remove();
+    }
   }
 
   @Override
   public WriteToken extractWriteToken(String token) throws WarpScriptException {
-    if (null == MACRO) {
-      return null;
+    if (!reentrant.get().compareAndSet(false, true)) {
+      throw new WarpScriptException("Recursive token filtering.");
     }
 
-    return (WriteToken) extractToken(token, true);
+    try {
+      if (null == MACRO) {
+        return null;
+      }
+
+      return (WriteToken) extractToken(token, true);
+    } finally {
+      reentrant.remove();
+    }
   }
 
   private static TBase extractToken(String token, boolean read) throws WarpScriptException {
@@ -131,7 +174,12 @@ public class MacroFilterAuthenticationPlugin implements AuthenticationPlugin {
 
     MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null, null);
     stack.maxLimits();
+    // Disable WarpFleet so the macro is only loaded from local sources
     stack.setAttribute(WarpFleetMacroRepository.ATTRIBUTE_WARPFLEET_DISABLE, true);
+    Capabilities capabilities = new Capabilities();
+    Capabilities.set(stack, capabilities);
+    // Expose CAPSET, must be called via 'CAPSET' EVAL though since it is only visible in this context
+    stack.define(CAPSET, CAPSET_MACRO);
     stack.push(map);
     stack.run(MACRO);
     map = (Map<String,Object>) stack.pop();
