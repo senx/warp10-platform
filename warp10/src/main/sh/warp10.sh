@@ -251,13 +251,14 @@ standalonePlusConf() {
 
   echo "
 backend = fdb
-fdb.clusterfile=" >>"${WARP10_CONFIG_DIR}/99-init.conf"
+fdb.clusterfile=\${warp10.home}/etc/fdb.cluster" >>"${WARP10_CONFIG_DIR}/99-init.conf"
   mv "${WARP10_CONFIG_DIR}/10-leveldb.conf" "${WARP10_CONFIG_DIR}/10-leveldb.conf.DISABLE"
   getConfigFiles
 
   echo
   echo "Please define your FoundationDB cluster with the 'fdb.clusterfile' key"
   echo "See ${WARP10_CONFIG_DIR}/10-fdb.conf for more settings."
+  echo
   postInit
 }
 
@@ -276,6 +277,7 @@ backend = memory" >>"${WARP10_CONFIG_DIR}/99-init.conf"
   echo "in.memory.chunk.length = 86400000000" >>"${WARP10_CONFIG_DIR}/99-init.conf"
   echo "in.memory.load = ${WARP10_HOME}/memory.dump" >>"${WARP10_CONFIG_DIR}/99-init.conf"
   echo "in.memory.dump = ${WARP10_HOME}/memory.dump" >>"${WARP10_CONFIG_DIR}/99-init.conf"
+  echo
 
   postInit
 }
