@@ -17,6 +17,7 @@
 package io.warp10.continuum;
 
 import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.thrift.TBase;
@@ -39,9 +40,10 @@ import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.ext.token.TOKENDUMP;
 import io.warp10.script.ext.token.TOKENGEN;
+import io.warp10.warp.sdk.AbstractWarp10Plugin;
 import io.warp10.warp.sdk.Capabilities;
 
-public class MacroFilterAuthenticationPlugin implements AuthenticationPlugin {
+public class MacroFilterAuthenticationPlugin extends AbstractWarp10Plugin implements AuthenticationPlugin {
 
   private static final String MACRO;
   private static final QuasarTokenFilter FILTER;
@@ -184,5 +186,10 @@ public class MacroFilterAuthenticationPlugin implements AuthenticationPlugin {
     stack.run(MACRO);
     map = (Map<String,Object>) stack.pop();
     return TOKENGEN.tokenFromMap(map, "", Long.MAX_VALUE);
+  }
+
+  @Override
+  public void init(Properties properties) {
+    Tokens.register(this);
   }
 }
