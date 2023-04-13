@@ -56,6 +56,11 @@ public class Configuration {
    */
   public static final String WARP_TOKEN_WRITE_ATTRIBUTES_DEFAULT = "warp.token.write.attributes.default";
 
+  /**
+   * Name of macro used to filter tokens
+   */
+  public static final String WARP_TOKEN_FILTER_MACRO = "warp.token.filter.macro";
+
   public static final String WARP_TOKEN_FILE = "warp.token.file";
 
   public static final String WARP_HASH_CLASS = "warp.hash.class";
