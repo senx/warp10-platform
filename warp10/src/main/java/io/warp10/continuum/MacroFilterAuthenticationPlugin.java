@@ -53,7 +53,7 @@ public class MacroFilterAuthenticationPlugin extends AbstractWarp10Plugin implem
   private static ThreadLocal<AtomicBoolean> reentrant = new ThreadLocal<AtomicBoolean>() {
     protected AtomicBoolean initialValue() {
       return new AtomicBoolean(Boolean.FALSE);
-    };
+    }
   };
 
   static {
