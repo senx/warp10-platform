@@ -220,8 +220,8 @@ postInit() {
 //
 // SENSISIONEVENT, SENSISIONGET, SENSISIONSET, SENSISIONUPDATE
 #warpscript.extension.sensision = io.warp10.script.ext.sensision.SensisionWarpScriptExtension
-#sensisionReadToken@/sensision=
-#sensisionWriteToken@/sensision=
+#sensisionReadToken@/sensision/sensision-update=
+#sensisionWriteToken@/sensision/sensision-update=
 " >>"${WARP10_CONFIG_DIR}/99-init.conf"
 
   echo

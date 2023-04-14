@@ -17,12 +17,21 @@
 //
 // This is an envelope to generate sensision tokens.
 //
+// 'expiryDate', 'issuance' and, 'ownerAndProducer' are chosen so multiple calls to tokengen with this envelope
+// lead to the same token.
+//
 
 JSONPRETTY
 
 'sensision' 'applicationName' STORE
-NOW 100 ADDYEARS 'expiryDate' STORE
-'33a1e9cf-15c5-4d5b-843c-05fbc40b459b' 'ownerAndProducer' STORE
+[ 2099 12 31 ] TSELEMENTS-> MSTU / 'expiryDate' STORE
+[ 2023 04 14 ] TSELEMENTS-> MSTU / 'issuance' STORE
+
+// Compute owner and producer UUID base on Warp 10 instance name
+IDENT ISNULL <% 'Warp 10' %> <% IDENT %> IFTE
+'UTF-8' ->BYTES MD5 ->HEX
+'(.{8})(.{4})(.{4})(.{4})(.{12})' '$1-$2-$3-$4-$5' REPLACE
+'ownerAndProducer' STORE
 
 //
 // Generate sensision read token
@@ -32,7 +41,7 @@ NOW 100 ADDYEARS 'expiryDate' STORE
   'type' 'READ'
   'application' $applicationName
   'owner'  $ownerAndProducer
-  'issuance' NOW MSTU /
+  'issuance' $issuance
   'expiry' $expiryDate
   'labels' { }
   'attributes' {
@@ -53,7 +62,7 @@ TOKENGEN
   'application' $applicationName
   'owner'  $ownerAndProducer
   'producer' $ownerAndProducer
-  'issuance' NOW MSTU /
+  'issuance' $issuance
   'expiry' $expiryDate
   'labels' { }
   'attributes' {

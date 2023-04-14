@@ -14,12 +14,19 @@
 //   limitations under the License.
 //
 
-'${sensisionReadToken}' CAPADD // Add capability to read sensision metrics
+// Add capability to read sensision metrics
+'${sensisionReadToken}' CAPADD
 
+// Dump the Sensision metrics with the timestamp of last updates
 true SENSISION.DUMP
+
+// Create GTS from string
 PARSE
+
+// Rename each GTS to be able to store them
 <%
   '+' RENAME
 %> F LMAP
 
+// Write Sensision GTS into the Warp 10 instance
 '${sensisionWriteToken}' UPDATE
