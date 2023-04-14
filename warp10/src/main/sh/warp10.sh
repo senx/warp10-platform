@@ -75,12 +75,12 @@ location of your Java installation."
 getConfigFiles() {
   # Get configuration files from standard directory
   if [ -d "${WARP10_CONFIG_DIR}" ]; then
-    CONFIG_FILES=$(find "${WARP10_CONFIG_DIR}" -type f -name \*.conf | sort | tr '\n' ' ' 2>/dev/null)
+    CONFIG_FILES=$(find -L "${WARP10_CONFIG_DIR}" -type f -name \*.conf | sort | tr '\n' ' ' 2>/dev/null)
   fi
 
   # Get additional configuration files from extra directory
   if [ -d "${WARP10_EXT_CONFIG_DIR:-}" ]; then
-    CONFIG_FILES="${CONFIG_FILES} $(find "${WARP10_EXT_CONFIG_DIR}" -type f -name \*.conf | sort | tr '\n' ' ' 2>/dev/null)"
+    CONFIG_FILES="${CONFIG_FILES} $(find -L "${WARP10_EXT_CONFIG_DIR}" -type f -name \*.conf | sort | tr '\n' ' ' 2>/dev/null)"
   fi
 }
 
@@ -102,9 +102,15 @@ getWarp10Home() {
 
 checkRam() {
   if [ "1023m" = "${WARP10_HEAP}" ] || [ "1023m" = "${WARP10_HEAP_MAX}" ]; then
-    warn "#### WARNING ####
-## Warp 10 was launched with the default RAM setting (i.e. WARP10_HEAP=1023m and/or WARP10_HEAP_MAX=1023m).
-## Please edit ${WARP10_HOME}/etc/warp10-env.sh to change the default values of WARP10_HEAD and WARP10_HEAP_MAX."
+    warn "
+#################
+#### WARNING ####
+#################
+##
+##  Warp 10 was launched with the default RAM setting (i.e. WARP10_HEAP=1023m and/or WARP10_HEAP_MAX=1023m).
+##  Please edit ${WARP10_HOME}/etc/warp10-env.sh to change the default values of WARP10_HEAD and WARP10_HEAP_MAX.
+##
+"
   fi
 }
 
@@ -251,13 +257,14 @@ standalonePlusConf() {
 
   echo "
 backend = fdb
-fdb.clusterfile=" >>"${WARP10_CONFIG_DIR}/99-init.conf"
+fdb.clusterfile=\${warp10.home}/etc/fdb.cluster" >>"${WARP10_CONFIG_DIR}/99-init.conf"
   mv "${WARP10_CONFIG_DIR}/10-leveldb.conf" "${WARP10_CONFIG_DIR}/10-leveldb.conf.DISABLE"
   getConfigFiles
 
   echo
   echo "Please define your FoundationDB cluster with the 'fdb.clusterfile' key"
   echo "See ${WARP10_CONFIG_DIR}/10-fdb.conf for more settings."
+  echo
   postInit
 }
 
@@ -276,6 +283,7 @@ backend = memory" >>"${WARP10_CONFIG_DIR}/99-init.conf"
   echo "in.memory.chunk.length = 86400000000" >>"${WARP10_CONFIG_DIR}/99-init.conf"
   echo "in.memory.load = ${WARP10_HOME}/memory.dump" >>"${WARP10_CONFIG_DIR}/99-init.conf"
   echo "in.memory.dump = ${WARP10_HOME}/memory.dump" >>"${WARP10_CONFIG_DIR}/99-init.conf"
+  echo
 
   postInit
 }
@@ -298,6 +306,9 @@ start() {
     die "ERROR: Start failed - A Warp 10 instance is currently running"
   fi
 
+  # display a warning
+  checkRam
+
   #
   # Start Warp10 instance.
   # By default, standard and error output is redirected to warp10.log file, and error output is duplicated to standard output
@@ -316,11 +327,7 @@ start() {
   sleep 5
   if ! isStarted; then
     die "Start failed! - See ${WARP10_HOME}/logs/warp10.log for more details"
-  else
-    # display a warning
-    checkRam
   fi
-
 }
 
 stop() {
@@ -345,8 +352,6 @@ status() {
   else
     echo "No instance of Warp 10 is currently running"
   fi
-
-  checkRam
 }
 
 tokengen() {
