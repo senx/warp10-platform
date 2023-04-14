@@ -212,6 +212,18 @@ postInit() {
 " >>"${WARP10_CONFIG_DIR}/99-init.conf"
   ${JAVACMD} -cp "${WARP10_JAR}" -Dfile.encoding=UTF-8 io.warp10.GenerateCryptoKeys ${TEMPLATE} >> "${WARP10_CONFIG_DIR}/99-init.conf"
 
+
+  echo "
+//
+// Uncomment the following lines to enable metrics collections.
+// Report here the result of the token generation with the envelope ${WARP10_HOME}/tokens/sensision-tokengen.mc2
+//
+// SENSISIONEVENT, SENSISIONGET, SENSISIONSET, SENSISIONUPDATE
+#warpscript.extension.sensision = io.warp10.script.ext.sensision.SensisionWarpScriptExtension
+#sensisionReadToken@/sensision=
+#sensisionWriteToken@/sensision=
+" >>"${WARP10_CONFIG_DIR}/99-init.conf"
+
   echo
   echo "Warp 10 configuration has been generated in${WARP10_CONFIG_DIR}"
   echo
@@ -407,8 +419,6 @@ compact() {
 ## Initialize script
 ##
 getWarp10Home
-# Change directory to avoid "find: Failed to restore initial working directory"
-cd "${WARP10_HOME}"
 
 WARP10_CONFIG_DIR=${WARP10_HOME}/etc/conf.d
 WARP10_REVISION=@VERSION@
