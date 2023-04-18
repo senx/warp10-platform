@@ -31,6 +31,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import io.warp10.fdb.FDBUtils;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketClose;
@@ -96,7 +97,9 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
   private final boolean ignoreOutOfRange;
 
   private IngressPlugin plugin = null;
-
+  
+  private final boolean isFDBStore; // skip FDB tests when not necessary
+  
   private final DateTimeFormatter dtf = DateTimeFormat.forPattern("yyyyMMdd'T'HHmmss.SSS").withZoneUTC();
 
   @WebSocket(maxTextMessageSize=1024 * 1024, maxBinaryMessageSize=1024 * 1024)
@@ -319,7 +322,7 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
               // Force PRODUCER/OWNER
               //
 
-              if (encoder != lastencoder || lastencoder.size() > StandaloneIngressHandler.ENCODER_SIZE_THRESHOLD) {
+              if (encoder != lastencoder || lastencoder.size() > StandaloneIngressHandler.ENCODER_SIZE_THRESHOLD || (this.handler.isFDBStore && FDBUtils.hasCriticalTransactionSize(lastencoder, this.maxsize))) {
 
                 //
                 // Check throttling
@@ -622,6 +625,8 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
     }
 
     this.ignoreOutOfRange = "true".equals(WarpConfig.getProperty(Configuration.INGRESS_OUTOFRANGE_IGNORE));
+    
+    this.isFDBStore = Constants.BACKEND_FDB.equals(WarpConfig.getProperty(Configuration.BACKEND));
   }
 
   public void setPlugin(IngressPlugin plugin) {
