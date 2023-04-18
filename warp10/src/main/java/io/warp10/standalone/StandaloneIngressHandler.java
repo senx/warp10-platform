@@ -197,7 +197,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
 
     this.maxValueSize = Long.parseLong(WarpConfig.getProperty(Configuration.STANDALONE_VALUE_MAXSIZE, DEFAULT_VALUE_MAXSIZE));
     
-    this.isFDBStore = storeClient instanceof FDBStoreClient;
+    this.isFDBStore = Constants.BACKEND_FDB.equals(WarpConfig.getProperty(Configuration.BACKEND));
   }
 
   @Override
