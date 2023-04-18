@@ -29,6 +29,7 @@ import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.OrderPreservingBase64;
+import io.warp10.fdb.FDBUtils;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.sensision.Sensision;
 import io.warp10.standalone.StandaloneIngressHandler;
@@ -282,7 +283,7 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
               // Force PRODUCER/OWNER
               //
 
-              if (encoder != lastencoder || lastencoder.size() > StandaloneIngressHandler.ENCODER_SIZE_THRESHOLD) {
+              if (encoder != lastencoder || lastencoder.size() > StandaloneIngressHandler.ENCODER_SIZE_THRESHOLD || FDBUtils.hasCriticalTransactionSize(lastencoder, this.maxsize)) {
 
                 //
                 // Check throttling
