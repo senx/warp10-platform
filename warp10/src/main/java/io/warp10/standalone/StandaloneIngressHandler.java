@@ -34,6 +34,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import io.warp10.fdb.FDBStoreClient;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.joda.time.Instant;
@@ -113,6 +114,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
   private final boolean allowDeltaAttributes;
 
   private final IngressPlugin plugin;
+  
+  private final boolean isFDBStore; // skip FDB tests when not necessary
 
   public StandaloneIngressHandler(KeyStore keystore, StandaloneDirectoryClient directoryClient, StoreClient storeClient) {
 
@@ -193,6 +196,8 @@ public class StandaloneIngressHandler extends AbstractHandler {
     }
 
     this.maxValueSize = Long.parseLong(WarpConfig.getProperty(Configuration.STANDALONE_VALUE_MAXSIZE, DEFAULT_VALUE_MAXSIZE));
+    
+    this.isFDBStore = storeClient instanceof FDBStoreClient;
   }
 
   @Override
@@ -607,7 +612,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
             throw new IOException("Parse error at index " + pe.getErrorOffset() + " in '" + line + "'", pe);
           }
 
-          if (encoder != lastencoder || lastencoder.size() > ENCODER_SIZE_THRESHOLD || FDBUtils.hasCriticalTransactionSize(lastencoder, maxValueSize)) {
+          if (encoder != lastencoder || lastencoder.size() > ENCODER_SIZE_THRESHOLD || (isFDBStore && FDBUtils.hasCriticalTransactionSize(lastencoder, maxValueSize))) {
 
             //
             // Check throttling
