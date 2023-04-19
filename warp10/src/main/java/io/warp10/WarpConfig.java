@@ -326,7 +326,7 @@ public class WarpConfig {
       }
 
       //
-      // Remove properties if value is -
+      // Remove property if value is -
       //
 
       if ("-".equals(tokens[1])) {
