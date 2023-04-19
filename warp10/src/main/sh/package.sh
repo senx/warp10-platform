@@ -70,7 +70,6 @@ mkdir -p "${WARP10_HOME}/lib"
 mkdir -p "${WARP10_HOME}/logs"
 mkdir -p "${WARP10_HOME}/macros"
 mkdir -p "${WARP10_HOME}/tokens"
-mkdir -p "${WARP10_HOME}/runners/test/60000"
 mkdir -p "${WARP10_HOME}/runners/sensision/60000"
 
 ##
@@ -87,7 +86,7 @@ cp ../../etc/bootstrap/mobius.mc2 "${WARP10_HOME}/etc/bootstrap/mobius.mc2"
 cp ../../etc/bootstrap/runner.mc2 "${WARP10_HOME}/etc/bootstrap/runner.mc2"
 cp ../../etc/install/README.md "${WARP10_HOME}/README.md"
 cp ../../CHANGELOG.md "${WARP10_HOME}/CHANGELOG.md"
-cp ../../etc/runners/runner.mc2.DISABLE "${WARP10_HOME}/runners/test/60000/runner.mc2.DISABLE"
+cp ../../etc/runners/sensision-update.mc2 "${WARP10_HOME}/runners/sensision/60000/sensision-update.mc2"
 cp ../../etc/calls/testcall.sh "${WARP10_HOME}/calls/testcall.sh"
 cp ../../etc/calls/testcall.py "${WARP10_HOME}/calls/testcall.py"
 cp ../../etc/macros/README "${WARP10_HOME}/macros/README"
@@ -100,6 +99,7 @@ cp ../../etc/warp10-env.sh "${WARP10_HOME}/etc/warp10-env.sh"
 cp -r ../../etc/conf.templates "${WARP10_HOME}"
 sed -i -e "s/@VERSION@/${VERSION}/g" "${WARP10_HOME}"/conf.templates/*/*
 cp ../../etc/demo-tokengen.mc2 "${WARP10_HOME}/tokens/demo-tokengen.mc2"
+cp ../../etc/sensision-tokengen.mc2 "${WARP10_HOME}/tokens/sensision-tokengen.mc2"
 
 # Copy jars
 cp "../build/libs/warp10-${VERSION}.jar" "${WARP10_HOME}/bin/warp10-${VERSION}.jar"
