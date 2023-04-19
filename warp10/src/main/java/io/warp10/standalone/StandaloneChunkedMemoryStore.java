@@ -242,7 +242,11 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
 
     return iterator;
   }
-
+  
+  /**
+   * CAUTION, this method assumes that class and labels Id HAVE BEEN
+   * computed for 'encoder'
+   */
   public void store(GTSEncoder encoder) throws IOException {
 
     if (null == encoder) {
@@ -606,7 +610,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
         }
       }
     } catch (FileNotFoundException fnfe) {
-      LOG.error("File '" + path + "' was not found, skipping.");
+      LOG.warn("File '" + path + "' was not found, skipping.");
       return;
     } catch (IOException ioe) {
       if (!failsafe) {

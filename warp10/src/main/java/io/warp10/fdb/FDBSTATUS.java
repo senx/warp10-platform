@@ -32,8 +32,8 @@ public class FDBSTATUS extends NamedWarpScriptFunction implements WarpScriptStac
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
 
-    if (null == Capabilities.get(stack, FDBUtils.CAPABILITY_ADMIN)) {
-      throw new WarpScriptException(getName() + " missing capability.");
+    if (null == Capabilities.get(stack, FDBUtils.CAPABILITY_ADMIN) && null == Capabilities.get(stack, FDBUtils.CAPABILITY_STATUS)) {
+      throw new WarpScriptException(getName() + " missing '" + FDBUtils.CAPABILITY_STATUS + "' or '" + FDBUtils.CAPABILITY_ADMIN + "' capability.");
     }
 
     StoreClient sc = stack.getStoreClient();

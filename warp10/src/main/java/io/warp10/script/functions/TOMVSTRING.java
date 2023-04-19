@@ -49,7 +49,7 @@ public class TOMVSTRING extends NamedWarpScriptFunction implements WarpScriptSta
     Object top = stack.pop();
 
     if (!(top instanceof String) && !(top instanceof byte[]) && !(top instanceof GTSEncoder) && !(top instanceof GeoTimeSerie)) {
-      throw new WarpScriptException(getName() + " operates on a Geo Time Series™, ENCODER, STRING or byte array.");
+      throw new WarpScriptException(getName() + " operates on a Geo Time Series, ENCODER, STRING or byte array.");
     }
 
     if (top instanceof GTSEncoder) {

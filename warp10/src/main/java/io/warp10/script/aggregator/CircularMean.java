@@ -18,7 +18,6 @@ package io.warp10.script.aggregator;
 
 import com.geoxp.GeoXPLib;
 
-import io.warp10.DoubleUtils;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
 import io.warp10.script.NamedWarpScriptFunction;
@@ -72,7 +71,7 @@ public class CircularMean extends NamedWarpScriptFunction implements WarpScriptM
       
       double period = ((Number) o).doubleValue();
       
-      if (!DoubleUtils.isFinite(period) || period <= 0.0D) {
+      if (!Double.isFinite(period) || period <= 0.0D) {
         throw new WarpScriptException(getName() + " expects a finite, strictly positive, numeric 'period' parameter.");
       }
       

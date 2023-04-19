@@ -73,13 +73,13 @@ public class ASENCODERS extends ElementOrListStackFunction {
 
           return encoder;
         } catch (IOException ioe) {
-          throw new WarpScriptException(getName() + " cannot convert Encoder to Geo Time Series™.", ioe);
+          throw new WarpScriptException(getName() + " cannot convert Encoder to Geo Time Series.", ioe);
         }
       } else if (element instanceof GTSEncoder) {
         // Nothing to do, return instance.
         return element;
       } else {
-        throw new WarpScriptException(getName() + " expects a Geo Time Series™ or a list thereof on top on the stack.");
+        throw new WarpScriptException(getName() + " expects a Geo Time Series or a list thereof on top on the stack.");
       }
     }
   };

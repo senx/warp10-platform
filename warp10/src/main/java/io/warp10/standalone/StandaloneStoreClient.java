@@ -34,6 +34,7 @@ import org.iq80.leveldb.ReadOptions;
 import org.iq80.leveldb.WriteBatch;
 import org.iq80.leveldb.WriteOptions;
 
+import io.warp10.WarpConfig;
 import io.warp10.BytesUtils;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.Tokens;
@@ -80,6 +81,21 @@ public class StandaloneStoreClient implements StoreClient {
   private final boolean syncwrites;
   private final double syncrate;
   private final int blockcacheThreshold;
+  
+  protected StandaloneStoreClient() {
+    MAX_ENCODER_SIZE = 0;
+    MAX_DELETE_BATCHSIZE = 0;
+    this.db = null;
+    this.keystore = null;
+    this.plasmaHandlers = null;
+    this.syncwrites = false;
+    this.syncrate = 0.0;
+    this.blockcacheThreshold = 0;
+    this.perThreadWriteBatch = null;
+    this.perThreadWriteBatchSize = null;
+    DELETE_FILLCACHE = Boolean.valueOf(WarpConfig.getProperty(Configuration.LEVELDB_DELETE_FILLCACHE, Boolean.toString(DEFAULT_DELETE_FILLCACHE)));
+    DELETE_VERIFYCHECKSUMS = Boolean.valueOf(WarpConfig.getProperty(Configuration.LEVELDB_DELETE_VERIFYCHECKSUMS, Boolean.toString(DEFAULT_DELETE_VERIFYCHECKSUMS)));
+  }
 
   public StandaloneStoreClient(WarpDB db, KeyStore keystore, Properties properties) {
     this.db = db;
@@ -649,7 +665,12 @@ public class StandaloneStoreClient implements StoreClient {
       }
     }
   }
-
+  
+  /**
+   * Persists a GTSEncoder instance.
+   * CAUTION, this method assumes that classId and labelsId HAVE BEEN computed for
+   * the encoder.
+   */
   public void store(GTSEncoder encoder) throws IOException {
 
     if (null == encoder) {

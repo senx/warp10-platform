@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -181,11 +181,11 @@ public class QuasarTokenFilter {
     return key;
   }
 
-  private long getTokenSipHash(byte[] nolookupToken) {
+  public long getTokenSipHash(byte[] nolookupToken) {
     return SipHashInline.hash24_palindromic(tokenSipHashKeyK0, tokenSipHashKeyK1, nolookupToken, 0, nolookupToken.length);
   }
 
-  private void checkTokenExpired(long issuanceTimestamp, long expiryTimestamp, long clientId) throws QuasarTokenExpired {
+  public void checkTokenExpired(long issuanceTimestamp, long expiryTimestamp, long clientId) throws QuasarTokenExpired {
     // check the token expiration
     if (isExpired(issuanceTimestamp, expiryTimestamp, clientId)) {
       throw new QuasarTokenExpired("Token Expired.");
@@ -207,5 +207,13 @@ public class QuasarTokenFilter {
 
     // the token is valid
     return false;
+  }
+
+  public QuasarTokenDecoder getTokenDecoder() {
+    return this.quasarTokenDecoder;
+  }
+
+  public QuasarTokensRevoked getTokensRevoked() {
+    return this.quasarTokenRevoked;
   }
 }

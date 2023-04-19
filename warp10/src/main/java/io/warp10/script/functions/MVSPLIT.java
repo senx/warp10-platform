@@ -133,7 +133,7 @@ public class MVSPLIT extends NamedWarpScriptFunction implements WarpScriptStackF
       inputs = (List) top;
       listinput = true;
     } else {
-      throw new WarpScriptException(getName() + " operates on Geo Time Series™ or ENCODER or a list thereof.");
+      throw new WarpScriptException(getName() + " operates on Geo Time Series or ENCODER or a list thereof.");
     }
 
     TDeserializer deser = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
@@ -156,7 +156,7 @@ public class MVSPLIT extends NamedWarpScriptFunction implements WarpScriptStackF
         isencoder = false;
         gts = ((GeoTimeSerie) input);
       } else {
-        throw new WarpScriptException(getName() + " operates on Geo Time Series™ or ENCODER or a list thereof.");
+        throw new WarpScriptException(getName() + " operates on Geo Time Series or ENCODER or a list thereof.");
       }
 
       encoders.clear();

@@ -94,7 +94,7 @@ public class TOENCODER extends NamedWarpScriptFunction implements WarpScriptStac
           encoder.encode((GeoTimeSerie) element);
           // GTS metadata is lost in the process
         } catch (IOException ioe) {
-          throw new WarpScriptException(getName() + " was unable to add Geo Time Series™", ioe);
+          throw new WarpScriptException(getName() + " was unable to add Geo Time Series", ioe);
         }
 
         // Geo Time Series all added to encoder, next.

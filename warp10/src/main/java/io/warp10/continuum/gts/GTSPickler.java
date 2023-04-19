@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -44,7 +44,7 @@ public class GTSPickler implements IObjectPickler {
 
   public void pickle(Object o, OutputStream out, Pickler currentPickler) throws PickleException, IOException {
     if (!(o instanceof GeoTimeSerie)) {
-      throw new IllegalArgumentException("Invalid type for first argument. It must be a GeoTimeSerie™.");
+      throw new IllegalArgumentException("Invalid type for first argument. It must be a GeoTimeSerie.");
     }
 
     GeoTimeSerie gts = (GeoTimeSerie) o;

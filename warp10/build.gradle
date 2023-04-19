@@ -48,7 +48,7 @@ dependencies {
     //
     // Processing
     //
-    api 'org.processing:core:3.0'
+    api 'org.processing:core:3.3.7'
 
     //
     // Commons CLI
@@ -109,7 +109,7 @@ dependencies {
     //
     // Mustache
     //
-    api 'com.github.spullara.mustache.java:compiler:0.9.1'
+    api 'com.github.spullara.mustache.java:compiler:0.9.6'
 
     //
     // Geo

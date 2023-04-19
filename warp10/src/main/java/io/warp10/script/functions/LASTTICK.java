@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -45,7 +45,7 @@ public class LASTTICK extends NamedWarpScriptFunction implements WarpScriptStack
       long last = Long.MIN_VALUE;
       for(Object o: (List) top) {
         if (!(o instanceof GeoTimeSerie)) {
-          throw new WarpScriptException(getName() + " expects a Geo Time Series™ or a list thereof on top of the stack.");          
+          throw new WarpScriptException(getName() + " expects a Geo Time Series or a list thereof on top of the stack.");          
         }
         long lt = GTSHelper.lasttick((GeoTimeSerie) o);
         if (lt > last) {
@@ -54,7 +54,7 @@ public class LASTTICK extends NamedWarpScriptFunction implements WarpScriptStack
       }
       stack.push(last);      
     } else {
-      throw new WarpScriptException(getName() + " expects a Geo Time Series™ or a list thereof on top of the stack.");
+      throw new WarpScriptException(getName() + " expects a Geo Time Series or a list thereof on top of the stack.");
     }
     
     return stack;

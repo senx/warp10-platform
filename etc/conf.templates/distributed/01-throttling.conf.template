@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2022  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@
 // Name of system property (configuration property) which contains the
 // root directory where throttle files are stored.
 //  
-throttling.manager.dir = /opt/warp10/etc/throttle
+throttling.manager.dir = ${warp10.home}/etc/throttle
 
 //
 // Period (in ms) between two scans of the THROTTLING_MANAGER_DIR

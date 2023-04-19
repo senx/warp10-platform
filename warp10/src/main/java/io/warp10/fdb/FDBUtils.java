@@ -30,13 +30,22 @@ import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.sensision.SensisionConstants;
+import io.warp10.continuum.store.Constants;
 import io.warp10.json.JsonUtils;
 import io.warp10.script.WarpScriptException;
 import io.warp10.sensision.Sensision;
+import io.warp10.standalone.Warp;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FDBUtils {
+  private static final Logger LOG = LoggerFactory.getLogger(FDBUtils.class);
 
-  public static final String CAPABILITY_ADMIN = "fdbadmin";
+  public static final String CAPABILITY_ADMIN = "fdb.admin";
+  public static final String CAPABILITY_STATUS = "fdb.status";
+  public static final String CAPABILITY_TENANT = "fdb.tenant";
+  public static final String CAPABILITY_SIZE = "fdb.size";
+  public static final String CAPABILITY_GET = "fdb.get";
 
   public static final String KEY_ID = "id";
   public static final String KEY_PREFIX = "prefix";
@@ -47,8 +56,15 @@ public class FDBUtils {
   private static final String DEFAULT_FDB_API_VERSION = Integer.toString(710);
 
   static {
-    int version = Integer.parseInt(WarpConfig.getProperty(Configuration.FDB_API_VERSION, DEFAULT_FDB_API_VERSION));
-    FDB.selectAPIVersion(version);
+    if (!Warp.isStandaloneMode() || Constants.BACKEND_FDB.equals(WarpConfig.getProperty(Configuration.BACKEND))) {
+      int version = Integer.parseInt(WarpConfig.getProperty(Configuration.FDB_API_VERSION, DEFAULT_FDB_API_VERSION));
+      try {
+        FDB.selectAPIVersion(version);
+      } catch (Throwable t) {
+        LOG.error("Unable to initialize FoundationDB API version, please ensure the FoundationDB clients package is installed.");
+        throw new RuntimeException("Caught exception when initializing FoundationDB API version, please ensure the FoundationDB clients package is installed.");
+      }
+    }
   }
 
   public static FDB getFDB() {
@@ -247,7 +263,7 @@ public class FDBUtils {
       count += encoder.getCount();
     }
 
-    size += count * (103 + 8 /* tenant */ + 8 /* class ID */ + 8 /* labels ID */ + 1 /* key prefix, we do not count the timestamp which is already accounted for */);
+    size += (count + 1) * (103 + 8 /* tenant */ + 8 /* class ID */ + 8 /* labels ID */ + 1 /* key prefix, we do not count the timestamp which is already accounted for in the pessimistic size estimate */);
 
     //
     // If the estimated size is greater or equal to 4,500,000 (45 % of FDB max size), then we return true.

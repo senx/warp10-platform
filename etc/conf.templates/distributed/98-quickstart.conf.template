@@ -22,13 +22,13 @@ warp10.instance = RENAME.ME.PLEASE
 
 components = ingress,directory,store,egress
 
-fdb.clusterfile = /path/to/fdb.cluster
+fdb.clusterfile = ${warp10.home}/etc/fdb.cluster
 fdb.data.aes = ${aes.key}
 fdb.metadata.aes = ${aes.key}
 
 zk.quorum = 127.0.0.1:2181
 
-directory.hash.key = ${hash.key}
+directory.psk = ${hash.key}
 
 kafka.bootstrap.servers = 127.0.0.1:9092
 

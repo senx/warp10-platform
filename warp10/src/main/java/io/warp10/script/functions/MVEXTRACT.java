@@ -65,7 +65,7 @@ public class MVEXTRACT extends ElementOrListStackFunction implements ElementStac
   @Override
   public Object applyOnElement(Object element) throws WarpScriptException {
     if (!(element instanceof GTSEncoder) && !(element instanceof GeoTimeSerie)) {
-      throw new WarpScriptException(getName() + " can only be applied on Geo Time Series™ or GTS Encoders.");
+      throw new WarpScriptException(getName() + " can only be applied on Geo Time Series or GTS Encoders.");
     }
 
     try {

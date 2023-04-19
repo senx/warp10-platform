@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2022  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -180,17 +180,21 @@ public class TOKENGEN extends NamedWarpScriptFunction implements WarpScriptStack
 
       if (null != params.get(KEY_TTL)) {
         long ttl = ((Number) params.get(KEY_TTL)).longValue();
-        if (ttl > Long.MAX_VALUE - rtoken.getIssuanceTimestamp()) {
+        try {
+          rtoken.setExpiryTimestamp(Math.addExact(ttl, rtoken.getIssuanceTimestamp()));
+        } catch (ArithmeticException ae) {
           rtoken.setExpiryTimestamp(Long.MAX_VALUE);
-        } else {
-          rtoken.setExpiryTimestamp(rtoken.getIssuanceTimestamp() + ttl);
         }
       } else if (null != params.get(KEY_EXPIRY)) {
         rtoken.setExpiryTimestamp(((Number) params.get(KEY_EXPIRY)).longValue());
       } else if (0L == defaultTtl) {
         throw new WarpScriptException(name + " missing '" + KEY_TTL + "' or '" + KEY_EXPIRY + "'.");
       } else {
-        rtoken.setExpiryTimestamp(rtoken.getIssuanceTimestamp() + defaultTtl);
+        try {
+          rtoken.setExpiryTimestamp(Math.addExact(defaultTtl, rtoken.getIssuanceTimestamp()));
+        } catch (ArithmeticException ae) {
+          rtoken.setExpiryTimestamp(Long.MAX_VALUE);
+        }
       }
 
       if (null != params.get(KEY_OWNERS)) {
@@ -277,17 +281,21 @@ public class TOKENGEN extends NamedWarpScriptFunction implements WarpScriptStack
 
       if (null != params.get(KEY_TTL)) {
         long ttl = ((Number) params.get(KEY_TTL)).longValue();
-        if (ttl > Long.MAX_VALUE - wtoken.getIssuanceTimestamp()) {
+        try {
+          wtoken.setExpiryTimestamp(Math.addExact(ttl, wtoken.getIssuanceTimestamp()));
+        } catch (ArithmeticException ae) {
           wtoken.setExpiryTimestamp(Long.MAX_VALUE);
-        } else {
-          wtoken.setExpiryTimestamp(wtoken.getIssuanceTimestamp() + ttl);
         }
       } else if (null != params.get(KEY_EXPIRY)) {
         wtoken.setExpiryTimestamp(((Number) params.get(KEY_EXPIRY)).longValue());
       } else if (0L == defaultTtl) {
         throw new WarpScriptException(name + " missing '" + KEY_TTL + "' or '" + KEY_EXPIRY + "'.");
       } else {
-        wtoken.setExpiryTimestamp(wtoken.getIssuanceTimestamp() + defaultTtl);
+        try {
+          wtoken.setExpiryTimestamp(Math.addExact(defaultTtl, wtoken.getIssuanceTimestamp()));
+        } catch (ArithmeticException ae) {
+          wtoken.setExpiryTimestamp(Long.MAX_VALUE);
+        }
       }
 
       if (null != params.get(KEY_OWNER)) {

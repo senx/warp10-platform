@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -13,12 +13,23 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-package io.warp10;
 
-import sun.misc.FloatConsts;
+package io.warp10.script.functions;
 
-public class FloatUtils {
-  public static boolean isFinite(float f) {
-    return Math.abs(f) <= FloatConsts.MAX_VALUE;
+import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
+
+public class WSAUDITMODE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+
+  public WSAUDITMODE(String name) {
+    super(name);
+  }
+
+  @Override
+  public Object apply(WarpScriptStack stack) throws WarpScriptException {
+    stack.auditMode(true);
+    return stack;
   }
 }

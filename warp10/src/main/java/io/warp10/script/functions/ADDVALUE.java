@@ -79,7 +79,7 @@ public class ADDVALUE extends NamedWarpScriptFunction implements WarpScriptStack
           && !(o instanceof byte[])
           && !(o instanceof GeoTimeSerie)
           && !(o instanceof GTSEncoder)) {
-        throw new WarpScriptException(getName() + " expects a LONG, DOUBLE, STRING, byte array or BOOLEAN value or a Geo Time Series™ or ENCODER.");
+        throw new WarpScriptException(getName() + " expects a LONG, DOUBLE, STRING, byte array or BOOLEAN value or a Geo Time Series or ENCODER.");
       }
 
       value = o;
