@@ -320,7 +320,7 @@ public class WarpConfig {
         continue;
       }
 
-      if (tokens.length < 2) {
+      if (tokens.length < 2 || "".equals(tokens[1])) {
         if (properties.containsKey(tokens[0])) {
           LOG.warn("Empty value for property '" + tokens[0] + "' on line " + lineno + ", has cleared the previous value of '" + properties.getProperty(tokens[0]) + "'");
           properties.remove(tokens[0]);
