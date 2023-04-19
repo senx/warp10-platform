@@ -309,11 +309,6 @@ public class WarpConfig {
         continue;
       }
 
-      if (tokens.length < 2) {
-        LOG.warn("Empty value for property '" + tokens[0] + "' on line " + lineno + ", ignoring.");
-        continue;
-      }
-
       // Remove URL encoding if a '%' sign is present in the token
       try {
         for (int i = 0; i < tokens.length; i++) {
@@ -325,14 +320,16 @@ public class WarpConfig {
         continue;
       }
 
-      //
-      // Remove property when empty
-      //
-
-      if ("".equals(tokens[1])) {
-        properties.remove(tokens[0]);
+      if (tokens.length < 2) {
+        if (properties.containsKey(tokens[0])) {
+          LOG.warn("Empty value for property '" + tokens[0] + "' on line " + lineno + ", has cleared the previous value of '" + properties.getProperty(tokens[0]) + "'");
+          properties.remove(tokens[0]);
+        } else {
+          LOG.warn("Empty value for property '" + tokens[0] + "' on line " + lineno + ", ignoring.");
+        }
         continue;
       }
+
 
       //
       // Set property
