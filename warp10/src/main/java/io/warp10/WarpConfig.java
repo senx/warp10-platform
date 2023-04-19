@@ -326,6 +326,15 @@ public class WarpConfig {
       }
 
       //
+      // Remove properties if value is -
+      //
+
+      if ("-".equals(tokens[1])) {
+        properties.remove(tokens[0]);
+        continue;
+      }
+      
+      //
       // Ignore empty properties
       //
 
