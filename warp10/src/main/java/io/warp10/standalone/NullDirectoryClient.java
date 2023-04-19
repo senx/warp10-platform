@@ -35,6 +35,7 @@ public class NullDirectoryClient extends StandaloneDirectoryClient {
   }
   
   @Override
-  public void register(Metadata metadata) {
+  public boolean register(Metadata metadata) {
+    return false;
   }
 }

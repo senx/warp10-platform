@@ -303,6 +303,8 @@ import io.warp10.script.unary.TOSTRING;
 import io.warp10.script.unary.TOTIMESTAMP;
 import io.warp10.script.unary.UNIT;
 import io.warp10.warp.sdk.WarpScriptExtension;
+import processing.core.PApplet;
+
 import org.bouncycastle.crypto.digests.GOST3411Digest;
 import org.bouncycastle.crypto.digests.KeccakDigest;
 import org.bouncycastle.crypto.digests.MD2Digest;
@@ -863,6 +865,8 @@ import io.warp10.script.functions.SLEEP;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -903,7 +907,7 @@ public class WarpScriptLib {
   public static final String TDESCRIBE = "TDESCRIBE";
   public static final String WSAUDIT = "WSAUDIT";
   public static final String WSAUDITMODE = "WSAUDITMODE";
-  
+
   public static final String REF = "REF";
   public static final String COMPILE = "COMPILE";
   public static final String SAFECOMPILE = "SAFECOMPILE";
@@ -2634,7 +2638,6 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new MapperKernelUniform("mapper.kernel.uniform"));
 
     addNamedWarpScriptFunction(new Percentile.Builder("mapper.percentile", false));
-    addNamedWarpScriptFunction(new Percentile.Builder("mapper.percentile.forbid-nulls", true));
 
     //functions.put("mapper.abscissa", new MapperSAX.Builder());
 
@@ -2852,9 +2855,20 @@ public class WarpScriptLib {
 
     //
     // Processing
+    // We need to force Java Version so it looks like x.y.z-aaa while the PApplet class is loaded
     //
 
+    String jversion = WarpConfig.getOriginalFormatJavaVersion();
+
+    if (!jversion.equals(System.getProperty("java.version"))) {
+      String tmp = System.getProperty("java.version");
+      System.setProperty("java.version", jversion);
+      Preconditions.checkArgument(jversion.equals(PApplet.javaVersionName), "Processing was not correctly initialized, consider setting configuration " + Configuration.WARP_JAVA_VERSION + ".");
+      System.setProperty("java.version", tmp);
+    }
+
     addNamedWarpScriptFunction(new Pencode(PENCODE));
+
 
     // Structure
 
@@ -3014,31 +3028,18 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new Max("bucketizer.max", true));
     addNamedWarpScriptFunction(new Mean("bucketizer.mean", false));
     addNamedWarpScriptFunction(new Median("bucketizer.median", false));
-    addNamedWarpScriptFunction(new Median("bucketizer.median.forbid-nulls", true));
     addNamedWarpScriptFunction(new MAD("bucketizer.mad"));
     addNamedWarpScriptFunction(new Or("bucketizer.or", false));
     addNamedWarpScriptFunction(new Sum("bucketizer.sum", true));
     addNamedWarpScriptFunction(new Join.Builder("bucketizer.join", true, false, null));
     addNamedWarpScriptFunction(new Count("bucketizer.count", false));
     addNamedWarpScriptFunction(new Percentile.Builder("bucketizer.percentile", false));
-    addNamedWarpScriptFunction(new Percentile.Builder("bucketizer.percentile.forbid-nulls", true));
-
-    addNamedWarpScriptFunction(new Min("bucketizer.min.forbid-nulls", false));
-    addNamedWarpScriptFunction(new Max("bucketizer.max.forbid-nulls", false));
-    addNamedWarpScriptFunction(new Mean("bucketizer.mean.exclude-nulls", true));
-    addNamedWarpScriptFunction(new Sum("bucketizer.sum.forbid-nulls", false));
-    addNamedWarpScriptFunction(new Join.Builder("bucketizer.join.forbid-nulls", false, false, null));
-    addNamedWarpScriptFunction(new Count("bucketizer.count.exclude-nulls", true));
-    addNamedWarpScriptFunction(new Count("bucketizer.count.include-nulls", false));
-    addNamedWarpScriptFunction(new Count("bucketizer.count.nonnull", true));
     addNamedWarpScriptFunction(new CircularMean.Builder("bucketizer.mean.circular", true));
-    addNamedWarpScriptFunction(new CircularMean.Builder("bucketizer.mean.circular.exclude-nulls", false));
     addNamedWarpScriptFunction(new RMS("bucketizer.rms", false));
     addNamedWarpScriptFunction(new Variance.Builder("bucketizer.var", false));
     addNamedWarpScriptFunction(new Variance.Builder("bucketizer.var.welford", false, true));
     addNamedWarpScriptFunction(new StandardDeviation.Builder("bucketizer.sd", false));
     addNamedWarpScriptFunction(new StandardDeviation.Builder("bucketizer.sd.welford", false, true));
-    addNamedWarpScriptFunction(new StandardDeviation.Builder("bucketizer.sd.forbid-nulls", true));
 
     //
     // Mappers
@@ -3052,7 +3053,6 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new Max(MAPPER_MAX, true));
     addNamedWarpScriptFunction(new Mean("mapper.mean", false));
     addNamedWarpScriptFunction(new Median("mapper.median", false));
-    addNamedWarpScriptFunction(new Median("mapper.median.forbid-nulls", true));
     addNamedWarpScriptFunction(new MAD("mapper.mad"));
     addNamedWarpScriptFunction(new Or("mapper.or", false));
     addNamedWarpScriptFunction(new Highest(MAPPER_HIGHEST));
@@ -3082,18 +3082,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new MapperTanh("mapper.tanh"));
     addNamedWarpScriptFunction(new MapperSigmoid("mapper.sigmoid"));
     addNamedWarpScriptFunction(new MapperProduct("mapper.product"));
-    addNamedWarpScriptFunction(new Count("mapper.count.exclude-nulls", true));
-    addNamedWarpScriptFunction(new Count("mapper.count.include-nulls", false));
-    addNamedWarpScriptFunction(new Count("mapper.count.nonnull", true));
-    addNamedWarpScriptFunction(new Min("mapper.min.forbid-nulls", false));
-    addNamedWarpScriptFunction(new Max("mapper.max.forbid-nulls", false));
-    addNamedWarpScriptFunction(new Mean("mapper.mean.exclude-nulls", true));
-    addNamedWarpScriptFunction(new Sum("mapper.sum.forbid-nulls", false));
-    addNamedWarpScriptFunction(new Join.Builder("mapper.join.forbid-nulls", false, false, null));
-    addNamedWarpScriptFunction(new Variance.Builder("mapper.var.forbid-nulls", true));
-    addNamedWarpScriptFunction(new StandardDeviation.Builder("mapper.sd.forbid-nulls", true));
     addNamedWarpScriptFunction(new CircularMean.Builder("mapper.mean.circular", true));
-    addNamedWarpScriptFunction(new CircularMean.Builder("mapper.mean.circular.exclude-nulls", false));
     addNamedWarpScriptFunction(new MapperMod.Builder("mapper.mod"));
     addNamedWarpScriptFunction(new RMS("mapper.rms", false));
     addNamedWarpScriptFunction(new MapperRegExpMatch.Builder("mapper.regexp.match"));

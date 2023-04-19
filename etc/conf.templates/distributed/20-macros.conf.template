@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2022  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@
 //
 
 // Directory which contains subdirectories with macros
-#warpscript.repository.directory = 
+warpscript.repository.directory = ${warp10.home}/macros
 
 // How often (in ms) should the above directory be rescanned
 // If set to 0 then ondemand will be forced to true and no automatic loading of macros will occur.

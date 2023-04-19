@@ -146,3 +146,11 @@ def withVersion(String dependencyWithoutVersion) {
     }
     throw new Exception("Cannot find " + dependencyWithoutVersion + " in warp10 dependencies.")
 }
+
+//
+// Reproducible builds
+//
+//tasks.withType(AbstractArchiveTask).configureEach {
+//  preserveFileTimestamps = false
+//  reproducibleFileOrder = true
+//}

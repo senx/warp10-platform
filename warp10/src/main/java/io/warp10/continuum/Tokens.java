@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -49,7 +49,9 @@ import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.quasar.token.thrift.data.TokenType;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.script.MemoryWarpScriptStack;
+import io.warp10.script.WarpFleetMacroRepository;
 import io.warp10.script.WarpScriptException;
+import io.warp10.script.ext.token.TOKENDUMP;
 import io.warp10.script.ext.token.TOKENGEN;
 
 public class Tokens {
@@ -142,9 +144,9 @@ public class Tokens {
     } else {
       defaultWriteAttributes = null;
     }
-}
+  }
 
-  private static QuasarTokenFilter getTokenFilter() {
+  static QuasarTokenFilter getTokenFilter() {
     if (null != tokenFilter) {
       return tokenFilter;
     }

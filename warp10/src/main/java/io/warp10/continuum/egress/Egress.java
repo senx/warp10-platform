@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -161,25 +161,25 @@ public class Egress {
       GzipHandler gzip = new GzipHandler();
       EgressExecHandler egressExecHandler = new EgressExecHandler(this.keystore, this.properties, directoryClient, storeClient);
       gzip.setHandler(egressExecHandler);
-      gzip.setMinGzipSize(0);
+      gzip.setMinGzipSize(23);
       gzip.addIncludedMethods("POST");
       handlers.addHandler(gzip);
 
       gzip = new GzipHandler();
       gzip.setHandler(new EgressFetchHandler(this.keystore, this.properties, directoryClient, storeClient));
-      gzip.setMinGzipSize(0);
+      gzip.setMinGzipSize(23);
       gzip.addIncludedMethods("POST");
       handlers.addHandler(gzip);
 
       gzip = new GzipHandler();
       gzip.setHandler(new EgressFindHandler(this.keystore, directoryClient));
-      gzip.setMinGzipSize(0);
+      gzip.setMinGzipSize(23);
       gzip.addIncludedMethods("POST");
       handlers.addHandler(gzip);
 
       gzip = new GzipHandler();
       gzip.setHandler(new EgressSplitsHandler(this.keystore, directoryClient, (FDBStoreClient) storeClient));
-      gzip.setMinGzipSize(0);
+      gzip.setMinGzipSize(23);
       gzip.addIncludedMethods("POST");
       handlers.addHandler(gzip);
 
@@ -195,7 +195,7 @@ public class Egress {
     } else {
       GzipHandler gzip = new GzipHandler();
       gzip.setHandler(new EgressFetchHandler(this.keystore, this.properties, null, storeClient));
-      gzip.setMinGzipSize(0);
+      gzip.setMinGzipSize(23);
       gzip.addIncludedMethods("POST");
       handlers.addHandler(gzip);
     }

@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -55,7 +55,7 @@ public class VALUEHISTOGRAM extends NamedWarpScriptFunction implements WarpScrip
           histograms.add(GTSHelper.valueHistogram((GTSEncoder) o));
         } else {
           stack.push(top);
-          throw new WarpScriptException(getName() + " can only operate on Geo Time Series™ or GTS Encoder instances.");
+          throw new WarpScriptException(getName() + " can only operate on Geo Time Series or GTS Encoder instances.");
         }
       }
       stack.push(histograms);

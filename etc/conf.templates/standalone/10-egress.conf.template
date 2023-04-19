@@ -24,7 +24,7 @@
 // 128/192/256 bits AES key for encrypting GTSSplit instances.
 // Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
 //
-#egress.fetcher.aes = hex:hhhhhh...
+#egress.fetcher.aes = ${fetch.aes.key}
 
 //
 // Maximum age of a valid GTSSplit (in ms)

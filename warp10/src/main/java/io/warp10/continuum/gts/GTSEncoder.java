@@ -38,9 +38,6 @@ import org.bouncycastle.crypto.engines.AESWrapEngine;
 import org.bouncycastle.crypto.paddings.PKCS7Padding;
 import org.bouncycastle.crypto.params.KeyParameter;
 
-import sun.misc.FloatingDecimal;
-import sun.misc.FloatingDecimal.BinaryToASCIIConverter;
-
 /**
  * Utility class used to create Geo Time Series
  */
@@ -855,8 +852,10 @@ public class GTSEncoder implements Cloneable {
    * @param gts
    */
   public synchronized void encode(GeoTimeSerie gts) throws IOException {
+    boolean locations = null != gts.locations;
+    boolean elevations = null != gts.elevations;
     for (int i = 0; i < gts.values; i++) {
-      addValue(gts.ticks[i], null != gts.locations ? gts.locations[i] : GeoTimeSerie.NO_LOCATION, null != gts.elevations ? gts.elevations[i] : GeoTimeSerie.NO_ELEVATION, GTSHelper.valueAtIndex(gts, i));
+      addValue(gts.ticks[i], locations ? gts.locations[i] : GeoTimeSerie.NO_LOCATION, elevations ? gts.elevations[i] : GeoTimeSerie.NO_ELEVATION, GTSHelper.valueAtIndex(gts, i));
     }
   }
 
@@ -867,24 +866,11 @@ public class GTSEncoder implements Cloneable {
    * @param gts
    */
   public synchronized void encodeOptimized(GeoTimeSerie gts) throws IOException {
-    StringBuilder sb = new StringBuilder();
-
-    char[] chars = null;
-
     for (int i = 0; i < gts.values; i++) {
       Object value = GTSHelper.valueAtIndex(gts, i);
 
       if ((value instanceof Double) && Double.isFinite((double) value)) {
-        sb.setLength(0);
-        BinaryToASCIIConverter btoa = FloatingDecimal.getBinaryToASCIIConverter((double) value);
-        btoa.appendTo(sb);
-        if (null == chars || chars.length < sb.length()) {
-          chars = new char[sb.length()];
-        }
-
-        sb.getChars(0, sb.length(), chars, 0);
-
-        value = new BigDecimal(chars, 0, sb.length());
+        value = BigDecimal.valueOf(((Double) value).doubleValue());
       }
       addValue(gts.ticks[i], null != gts.locations ? gts.locations[i] : GeoTimeSerie.NO_LOCATION, null != gts.elevations ? gts.elevations[i] : GeoTimeSerie.NO_ELEVATION, value);
     }
@@ -893,14 +879,7 @@ public class GTSEncoder implements Cloneable {
   public static Object optimizeValue(Object value) {
 
     if ((value instanceof Double) && Double.isFinite((double) value)) {
-      StringBuilder sb = new StringBuilder();
-
-      char[] chars = null;
-
-      BinaryToASCIIConverter btoa = FloatingDecimal.getBinaryToASCIIConverter((double) value);
-      btoa.appendTo(sb);
-
-      value = new BigDecimal(sb.toString());
+      return BigDecimal.valueOf(((Double) value).doubleValue());
     }
 
     return value;

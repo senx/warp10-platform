@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -93,7 +93,7 @@ public class TOENCODER extends NamedWarpScriptFunction implements WarpScriptStac
           encoder.encode((GeoTimeSerie) element);
           // GTS metadata is lost in the process
         } catch (IOException ioe) {
-          throw new WarpScriptException(getName() + " was unable to add Geo Time Series™", ioe);
+          throw new WarpScriptException(getName() + " was unable to add Geo Time Series", ioe);
         }
 
         // Geo Time Series all added to encoder, next.

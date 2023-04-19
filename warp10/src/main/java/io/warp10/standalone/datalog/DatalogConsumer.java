@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -13,12 +13,13 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-package io.warp10;
 
-import sun.misc.FloatConsts;
+package io.warp10.standalone.datalog;
 
-public class FloatUtils {
-  public static boolean isFinite(float f) {
-    return Math.abs(f) <= FloatConsts.MAX_VALUE;
-  }
+import io.warp10.crypto.KeyStore;
+
+public interface DatalogConsumer {
+  public void init(KeyStore ks, String name);
+  public void success(String ref);
+  public void failure(String ref);  
 }
