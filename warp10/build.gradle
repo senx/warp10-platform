@@ -63,7 +63,6 @@ dependencies {
     api 'org.eclipse.jetty.websocket:websocket-client:9.4.51.v20230217'
     // https://mvnrepository.com/artifact/org.apache.curator/curator-x-discovery
     api 'org.apache.curator:curator-x-discovery:5.4.0'
-    //api 'com.fasterxml.jackson.core:jackson-databind:2.10.2'
     api 'com.fasterxml.jackson.core:jackson-databind:2.14.2'
     api 'org.slf4j:slf4j-api:1.7.36'
 
@@ -81,7 +80,6 @@ dependencies {
     //
     // Pyrolite - need to stick with 4.x
     //
-    //api 'net.razorvine:pyrolite:4.10'
     api 'net.razorvine:pyrolite:4.30'
 
     //
