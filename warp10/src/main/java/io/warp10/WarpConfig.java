@@ -309,29 +309,32 @@ public class WarpConfig {
         continue;
       }
 
-      if (tokens.length < 2) {
-        LOG.warn("Empty value for property '" + tokens[0] + "' on line " + lineno + ", ignoring.");
-        continue;
-      }
-
-      // Remove URL encoding if a '%' sign is present in the token
+      // 
+      // x =      // remove the property when previously set.
+      // x = %20  // property value = " "
+      // empty string value is therefore not possible
+      //
+      
       try {
         for (int i = 0; i < tokens.length; i++) {
-          tokens[i] = WarpURLDecoder.decode(tokens[i], StandardCharsets.UTF_8);
           tokens[i] = tokens[i].trim();
+          tokens[i] = WarpURLDecoder.decode(tokens[i], StandardCharsets.UTF_8);
         }
       } catch (IllegalArgumentException iae) {
         linesInError.add(lineno);
         continue;
       }
 
-      //
-      // Ignore empty properties
-      //
-
-      if ("".equals(tokens[1])) {
+      if (tokens.length < 2 || "".equals(tokens[1])) {
+        if (properties.containsKey(tokens[0])) {
+          LOG.warn("Empty value for property '" + tokens[0] + "' on line " + lineno + ", has cleared the previous value of '" + properties.getProperty(tokens[0]) + "'");
+          properties.remove(tokens[0]);
+        } else {
+          LOG.warn("Empty value for property '" + tokens[0] + "' on line " + lineno + ", ignoring.");
+        }
         continue;
       }
+
 
       //
       // Set property
