@@ -309,11 +309,16 @@ public class WarpConfig {
         continue;
       }
 
-      // Remove URL encoding if a '%' sign is present in the token
+      // 
+      // x =      // remove the property when previously set.
+      // x = %20  // property value = " "
+      // empty string value is therefore not possible
+      //
+      
       try {
         for (int i = 0; i < tokens.length; i++) {
-          tokens[i] = WarpURLDecoder.decode(tokens[i], StandardCharsets.UTF_8);
           tokens[i] = tokens[i].trim();
+          tokens[i] = WarpURLDecoder.decode(tokens[i], StandardCharsets.UTF_8);
         }
       } catch (IllegalArgumentException iae) {
         linesInError.add(lineno);
