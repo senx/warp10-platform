@@ -1,5 +1,5 @@
 //
-//   Copyright 2021-2022  SenX S.A.S.
+//   Copyright 2021-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -17,12 +17,12 @@
 package io.warp10.script.ext.http;
 
 import io.warp10.WarpConfig;
+import io.warp10.continuum.store.Constants;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WebAccessController;
-import io.warp10.standalone.StandaloneWebCallService;
 import io.warp10.warp.sdk.Capabilities;
 
 import org.apache.commons.codec.binary.Base64;
@@ -41,8 +41,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
-
-import io.warp10.script.WarpScriptStack;
 
 /**
  * Send an HTTP request to a url
@@ -82,6 +80,7 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
   public static final String CHUNK_MACRO = "chunk.macro";
   public static final String USERNAME = "username";
   public static final String PASSWORD = "password";
+  public static final String CONNECT_TIMEOUT = "timeout";
 
   //
   // Output
@@ -97,7 +96,7 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
   // Control
   //
 
-  private static final WebAccessController webAccessController;
+  private static final WebAccessController defaultWebAccessController;
 
   //
   // Limits
@@ -106,21 +105,19 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
   private static final long baseMaxRequests;
   private static final long baseMaxSize;
   private static final long baseMaxChunkSize;
+  private static final int baseMaxTimeout;
+
+  private static final String DEFAULT_HTTP_HOST_PATTERN = "!.*";
 
   //
   // Parameter extraction
   //
 
   static {
-    String patternConf = WarpConfig.getProperty(HttpWarpScriptExtension.WARPSCRIPT_HTTP_HOST_PATTERNS);
+    String patternConf = WarpConfig.getProperty(HttpWarpScriptExtension.WARPSCRIPT_HTTP_HOST_PATTERNS, DEFAULT_HTTP_HOST_PATTERN);
 
-    // If not defined, use already existing StandaloneWebCallService webAccessController which uses Configuration.WEBCALL_HOST_PATTERNS
-    if (null == patternConf) {
-      webAccessController = StandaloneWebCallService.getWebAccessController();
-    } else {
-      webAccessController = new WebAccessController(patternConf);
-    }
-    
+    defaultWebAccessController = new WebAccessController(patternConf);
+
     // retrieve limits
     String confMaxRequests = WarpConfig.getProperty(HttpWarpScriptExtension.WARPSCRIPT_HTTP_REQUESTS);
     if (null == confMaxRequests) {
@@ -142,6 +139,21 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
     } else {
       baseMaxChunkSize = Long.parseLong(confMaxChunkSize);
     }
+
+    String confMaxTimeout = WarpConfig.getProperty(HttpWarpScriptExtension.WARPSCRIPT_HTTP_TIMEOUT);
+    if (null == confMaxTimeout) {
+      baseMaxTimeout = HttpWarpScriptExtension.DEFAULT_HTTP_TIMEOUT;
+    } else {
+      long l = Long.parseLong(confMaxTimeout);
+      if (l < 0) {
+        throw new RuntimeException("Configuration key " + HttpWarpScriptExtension.WARPSCRIPT_HTTP_TIMEOUT + " must be positive.");
+      }
+      if (l == 0 || l > Integer.MAX_VALUE) {
+        l = Integer.MAX_VALUE;
+      }
+      baseMaxTimeout = (int) l;
+    }
+
   }
 
   public HTTP(String name) {
@@ -161,9 +173,17 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
     //
     // Check authorization
     //
-
-    if (null == Capabilities.get(stack,WarpScriptStack.CAPABILITY_HTTP)) {
+    String httpCap = Capabilities.get(stack, WarpScriptStack.CAPABILITY_HTTP);
+    if (null == httpCap) {
       throw new WarpScriptException(getName() + " requires capability '" + WarpScriptStack.CAPABILITY_HTTP + "'.");
+    }
+
+    //
+    // The http capability may contain the url filter. If not, use the default one.
+    //
+    WebAccessController webAccessController = defaultWebAccessController;
+    if (!httpCap.isEmpty()) {
+      webAccessController = new WebAccessController(httpCap);
     }
 
     //
@@ -253,6 +273,44 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
       chunkMacro = (WarpScriptStack.Macro) o;
     }
 
+    int timeout = baseMaxTimeout;  // Default timeout is the one hardcoded in Warp 10 configuration
+    Object t = params.get(CONNECT_TIMEOUT);
+    if (t != null) {
+      // When user try to change it, it must be less than max(default timeout, capability timeout)
+      if (!(t instanceof Long)) {
+        throw new WarpScriptException(getName() + " expect a positive LONG for " + CONNECT_TIMEOUT + " parameter.");
+      }
+      Long tl = ((Long) t).longValue() / Constants.TIME_UNITS_PER_MS;
+      int ti;
+      if (tl > Integer.MAX_VALUE) {
+        ti = Integer.MAX_VALUE;
+      } else {
+        ti = tl.intValue();
+      }
+      if (ti <= 0) {  // Timeout 0 or a negative value is allowed for "no timeout"
+        ti = Integer.MAX_VALUE;
+      }
+      Long capTimeout = Capabilities.getLong(stack, HttpWarpScriptExtension.CAPABILITY_HTTP_TIMEOUT);
+      if (capTimeout != null) {
+        if (capTimeout < 0) {
+          throw new WarpScriptException("Capability " + HttpWarpScriptExtension.CAPABILITY_HTTP_TIMEOUT + " must be a positive LONG");
+        }
+        if (capTimeout == 0 || capTimeout > Integer.MAX_VALUE) {
+          timeout = Integer.MAX_VALUE;
+        } else {
+          timeout = Math.max(capTimeout.intValue(), timeout);
+        }
+      }
+      if (ti > timeout) {
+        throw new WarpScriptException(CONNECT_TIMEOUT + " is greater than maximum allowed timeout (" + timeout + "ms)");
+      }
+
+      // as timeout is an integer, Integer.MAX_VALUE is 24.8 days
+      // when user specify 'timeout' MAXLONG, and is allowed to do so by configuration or capability, there should be no timeout at all.
+      timeout = (ti == Integer.MAX_VALUE) ? 0 : ti;
+
+    }
+
     //
     // Check URL
     //
@@ -277,7 +335,7 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
     }
 
     if (!webAccessController.checkURL(url)) {
-      throw new WarpScriptException(getName() + " invalid host or scheme in URL.");
+      throw new WarpScriptException(getName() + " URL forbidden by configuration or capability.");
     }
 
     //
@@ -310,7 +368,8 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
 
     try {
       conn = (HttpURLConnection) url.openConnection();
-
+      conn.setConnectTimeout(timeout);
+      conn.setReadTimeout(timeout);
       //
       // Set headers
       //

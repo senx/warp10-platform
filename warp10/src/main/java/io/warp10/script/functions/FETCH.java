@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -39,6 +40,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
+import org.bouncycastle.util.encoders.Hex;
 import org.joda.time.Duration;
 import org.joda.time.Instant;
 import org.joda.time.MutablePeriod;
@@ -46,7 +48,10 @@ import org.joda.time.Period;
 import org.joda.time.ReadWritablePeriod;
 import org.joda.time.format.ISOPeriodFormat;
 
+import com.google.common.primitives.Longs;
+
 import io.warp10.WarpDist;
+import io.warp10.continuum.MetadataUtils;
 import io.warp10.continuum.TimeSource;
 import io.warp10.continuum.Tokens;
 import io.warp10.continuum.egress.EgressFetchHandler;
@@ -55,6 +60,7 @@ import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
+import io.warp10.continuum.gts.MetadataIdComparator;
 import io.warp10.continuum.gts.MetadataSelectorMatcher;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
@@ -130,6 +136,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
   public static final String PARAM_MERGE = "merge";
   public static final String PARAM_GCOUNT = "gcount";
   public static final String PARAM_GSKIP = "gskip";
+  public static final String PARAM_KEEPEMPTY = "keepempty";
 
   public static final String POSTFETCH_HOOK = "postfetch";
 
@@ -323,6 +330,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
     if (params.containsKey(PARAM_METASET)) {
       metaset = (MetaSet) params.get(PARAM_METASET);
 
+      // metaset is sorted by gts id so we do not need to sort it further
       iter = metaset.getMetadatas().iterator();
     } else if (params.containsKey(PARAM_GTS)) {
       List<Metadata> metas = (List<Metadata>) params.get(PARAM_GTS);
@@ -415,6 +423,12 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         m.setLabelsId(GTSHelper.labelsId(this.SIPHASH_LABELS, m.getLabels()));
       }
 
+      //
+      // Sort metadata by id so the enforcement of keepempty works
+      //
+
+      Collections.sort(metadatas, MetadataIdComparator.COMPARATOR);
+
       iter = ((List<Metadata>) params.get(PARAM_GTS)).iterator();
     } else {
       if (params.containsKey(PARAM_SELECTOR_PAIRS)) {
@@ -504,9 +518,13 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       }
     }
 
+    boolean keepempty = Boolean.TRUE.equals(params.get(PARAM_KEEPEMPTY));
+
     metadatas = new ArrayList<Metadata>();
 
     List<Object> series = new ArrayList<Object>();
+    List<Object> batch = new ArrayList<Object>();
+
     AtomicLong fetched = (AtomicLong) stack.getAttribute(WarpScriptStack.ATTRIBUTE_FETCH_COUNT);
     long fetchLimit = (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_FETCH_LIMIT);
     long gtsLimit = (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_GTS_LIMIT);
@@ -662,11 +680,11 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         req.setStep(step);
         req.setTimestep(timestep);
         req.setSample(sample);
-        req.setWriteTimestamp(writeTimestamp);
-        req.setTTL(ttl);
         req.setPreBoundary(preBoundary);
         req.setPostBoundary(postBoundary);
 
+        int nseries = series.size();
+        batch.clear();
 
         try (GTSDecoderIterator gtsiter = gtsStore.fetch(req)) {
           while(gtsiter.hasNext() && !thread.isInterrupted()) {
@@ -719,12 +737,12 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
               if (merge) {
                 if (null == lastEncoder || !lastEncoder.getName().equals(encoder.getName()) || !lastEncoder.getLabels().equals(encoder.getLabels())) {
                   lastEncoder = encoder;
-                  series.add(lastEncoder);
+                  batch.add(lastEncoder);
                 } else {
                   lastEncoder.merge(encoder);
                 }
               } else {
-                series.add(encoder);
+                batch.add(encoder);
               }
 
               if (fetched.addAndGet(encoder.getCount()) > fetchLimit) {
@@ -800,7 +818,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
                 if (null == base || !base.getMetadata().getName().equals(decoderMeta.getName()) || !base.getMetadata().getLabels().equals(decoderMeta.getLabels())) {
                   bases[gtsidx] = new GeoTimeSerie();
                   base = bases[gtsidx];
-                  series.add(base);
+                  batch.add(base);
                   // Copy labels to GTS, producer and owner have already been removed
                   base.setMetadata(decoderMeta);
 
@@ -818,6 +836,8 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
                 // and in this specific case the request will be forwarded to all RS serving regions for a given GTS.
                 // It is therefore necessary to keep track of how many data points were already fetched and
                 // shrink the GTS so we do not return too many.
+                //
+                // TODO(hbs): Even though we migrated to using FoundationDB, this test remains in place for the time being, to be assessed and possibly removed later
                 //
 
                 if (countOnly && lastCount + dpcount >= count) {
@@ -866,6 +886,8 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
             // It is therefore necessary to keep track of how many datapoints were already fetched and
             // shrink the GTS so we do not return too many.
             //
+            // TODO(hbs): Even though we migrated to using FoundationDB, this test remains in place for the time being, to be assessed and possibly removed later
+            //
 
             if (countOnly && lastCount + GTSHelper.nvalues(gts) > count) {
               gts = GTSHelper.shrinkTo(gts, (int) Math.max(count - lastCount, 0));
@@ -907,7 +929,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
               // Otherwise add 'base' to the stack and set it to 'gts'.
               //
               if (!merge || !base.getMetadata().getName().equals(gts.getMetadata().getName()) || !base.getMetadata().getLabels().equals(gts.getMetadata().getLabels())) {
-                series.add(base);
+                batch.add(base);
                 base = gts;
               } else {
                 base = GTSHelper.merge(base, gts);
@@ -936,7 +958,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         //
 
         if (null != base && null == typeattr) {
-          series.add(base);
+          batch.add(base);
         }
 
         //
@@ -944,6 +966,88 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         //
 
         base = null;
+
+        //
+        // Clean up series according to keepempty
+        //
+
+        int j = 0;
+
+        if (!batch.isEmpty()) {
+          for (int i = 0; i < batch.size(); i++) {
+            Object o = batch.get(i);
+            boolean ignore = false;
+            Metadata meta = null;
+
+            if (o instanceof GeoTimeSerie) {
+              GeoTimeSerie g = (GeoTimeSerie) o;
+              meta = g.getMetadata();
+
+              if (!keepempty && 0 == GTSHelper.nvalues(g)) {
+                ignore = true;
+              }
+            } else { // GTSEncoder
+              GTSEncoder e = (GTSEncoder) o;
+              meta = e.getRawMetadata();
+              if (!keepempty && 0 == e.getCount()) {
+                ignore = true;
+              }
+            }
+
+            // Check if there are some Metadata with no data yet
+            if (keepempty) {
+              while(j < metadatas.size() && MetadataUtils.compare(metadatas.get(j), meta) < 0) {
+                if (asEncoders) {
+                  GTSEncoder e = new GTSEncoder(0L);
+                  e.setMetadata(metadatas.get(j));
+                  series.add(e);
+                } else {
+                  GeoTimeSerie g = new GeoTimeSerie();
+                  g.setMetadata(metadatas.get(j));
+                  series.add(g);
+                }
+
+                j++;
+              }
+              j++;
+            }
+
+            if (!ignore) {
+              series.add(o);
+            }
+          }
+
+          // Handle the post batch series
+          if (keepempty) {
+            while(j < metadatas.size()) {
+              if (asEncoders) {
+                GTSEncoder e = new GTSEncoder(0L);
+                e.setMetadata(metadatas.get(j));
+                series.add(e);
+              } else {
+                GeoTimeSerie g = new GeoTimeSerie();
+                g.setMetadata(metadatas.get(j));
+                series.add(g);
+              }
+              j++;
+            }
+          }
+        } else {
+          if (keepempty) {
+            for (Metadata meta: metadatas) {
+              if (asEncoders) {
+                GTSEncoder e = new GTSEncoder(0L);
+                e.setMetadata(meta);
+                series.add(e);
+              } else {
+                GeoTimeSerie g = new GeoTimeSerie();
+                g.setMetadata(meta);
+                series.add(g);
+              }
+            }
+          }
+        }
+
         metadatas.clear();
       }
     } catch (Throwable t) {
@@ -1402,6 +1506,10 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         throw new WarpScriptException(getName() + " Parameter '" + PARAM_GCOUNT + "' must be >= 0.");
       }
       params.put(PARAM_GCOUNT, gcount);
+    }
+
+    if (map.containsKey(PARAM_KEEPEMPTY)) {
+      params.put(PARAM_KEEPEMPTY, Boolean.TRUE.equals(map.get(PARAM_KEEPEMPTY)));
     }
 
     return params;

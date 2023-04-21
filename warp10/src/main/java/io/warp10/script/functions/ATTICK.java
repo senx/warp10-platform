@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,16 +16,14 @@
 
 package io.warp10.script.functions;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.GTSStackFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Extract the value/location/elevation at 'tick' of the GTS on top of the stack
@@ -52,7 +50,7 @@ public class ATTICK extends GTSStackFunction {
     Object o = stack.pop();
 
     if (!(o instanceof Number)) {
-      throw new WarpScriptException(getName() + " expects a tick on top of the stack.");
+      throw new WarpScriptException(getName() + " expects a tick.");
     }
 
     long tick = ((Number) o).longValue();

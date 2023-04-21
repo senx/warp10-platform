@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,17 +16,6 @@
 
 package io.warp10.continuum;
 
-import io.warp10.SmartPattern;
-import io.warp10.continuum.gts.GTSHelper;
-import io.warp10.continuum.sensision.SensisionConstants;
-import io.warp10.continuum.store.Constants;
-import io.warp10.continuum.store.Directory;
-import io.warp10.continuum.store.thrift.data.DirectoryFindRequest;
-import io.warp10.continuum.store.thrift.data.DirectoryStatsRequest;
-import io.warp10.continuum.store.thrift.data.DirectoryStatsResponse;
-import io.warp10.continuum.store.thrift.data.Metadata;
-import io.warp10.crypto.SipHashInline;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -37,34 +26,32 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
 
-import io.warp10.script.HyperLogLogPlus;
-import io.warp10.sensision.Sensision;
-import io.warp10.standalone.StandaloneDirectoryClient;
 import org.apache.commons.io.output.ByteArrayOutputStream;
-
-import com.google.common.primitives.Longs;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.primitives.Longs;
+
+import io.warp10.SmartPattern;
+import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.sensision.SensisionConstants;
+import io.warp10.continuum.store.Constants;
+import io.warp10.continuum.store.Directory;
+import io.warp10.continuum.store.thrift.data.DirectoryStatsRequest;
+import io.warp10.continuum.store.thrift.data.DirectoryStatsResponse;
+import io.warp10.continuum.store.thrift.data.Metadata;
+import io.warp10.crypto.SipHashInline;
+import io.warp10.script.HyperLogLogPlus;
+import io.warp10.sensision.Sensision;
+import io.warp10.standalone.StandaloneDirectoryClient;
+
 public class DirectoryUtil {
 
   private static final Logger LOG = LoggerFactory.getLogger(DirectoryUtil.class);
-
-  /**
-   * Compute the hash of a DirectoryFindRequest for the provided SipHash key
-   *
-   * @param k0 first half of SipHash key
-   * @param k1 second half of SipHash key
-   * @param request DirectoryFindRequest to hash
-   */
-  public static long computeHash(long k0, long k1, DirectoryFindRequest request) {
-    return computeHash(k0, k1, request.getTimestamp(), request.getClassSelector(), request.getLabelsSelectors());
-  }
 
   public static long computeHash(long k0, long k1, DirectoryStatsRequest request) {
     return computeHash(k0, k1, request.getTimestamp(), request.getClassSelector(), request.getLabelsSelectors());
@@ -105,6 +92,7 @@ public class DirectoryUtil {
     // Compute hash
 
     byte[] data = baos.toByteArray();
+    try { baos.close(); } catch (IOException ioe) {}
 
     long hash = SipHashInline.hash24(k0, k1, data, 0, data.length);
 

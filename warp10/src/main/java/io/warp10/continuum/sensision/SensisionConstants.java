@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -19,17 +19,32 @@ package io.warp10.continuum.sensision;
 import io.warp10.sensision.Sensision;
 
 public class SensisionConstants {
-  
+
   static {
     if (null == System.getProperty(Sensision.SENSISION_INSTANCE)) {
       Sensision.setInstance("warp");
     }
   }
-  
+
   //
   // Classes
   //
-  
+
+  /**
+   * Number of times we have reached the maximum number of version attempts
+   */
+  public static final String CLASS_WARP_FDB_MAXFORCEDVERSION = "warp.fdb.maxforcedversion";
+
+  /**
+   * Number of times the read version was forced
+   */
+  public static final String CLASS_WARP_FDB_FORCEDVERSION = "warp.fdb.forcedversion";
+
+  /**
+   * Number of FoundationDB errors, labels are code and component
+   */
+  public static final String CLASS_WARP_FDB_ERRORS = "warp.fdb.errors";
+
   /**
    * Number of datalog requests which were forwarded successfully
    */
@@ -56,7 +71,7 @@ public class SensisionConstants {
   public static final String CLASS_WARP_DATALOG_REQUESTS_RECEIVED = "warp.datalog.requests.received";
 
   /**
-   * Number of errors encountered when fetching data, might be an indication of problem related to hbase
+   * Number of errors encountered when fetching data, might be an indication of problem related to DB access
    */
   public static final String CLASS_WARP_FETCH_ERRORS = "warp.fetch.errors";
 
@@ -71,12 +86,12 @@ public class SensisionConstants {
   public static final String CLASS_WARP_INGRESS_DELETE_ERRORS = "warp.ingress.delete.errors";
 
   /**
-   * Number of TimeSource calibrations  
+   * Number of TimeSource calibrations
    */
   public static final String CLASS_WARP_TIMESOURCE_CALIBRATIONS = "warp.timesource.calibrations";
 
   /**
-   * Number of skipped TimeSource calibrations  
+   * Number of skipped TimeSource calibrations
    */
   public static final String SENSISION_CLASS_WARP_TIMESOURCE_CALIBRATIONS_SKIPPED = "warp.timesource.calibrations.skipped";
 
@@ -84,12 +99,12 @@ public class SensisionConstants {
    * Revision of components
    */
   public static final String SENSISION_CLASS_WARP_REVISION = "warp.revision";
-  
+
   /**
-   * Number of entries in the serialized metadata cache 
+   * Number of entries in the serialized metadata cache
    */
   public static final String CLASS_WARP_DIRECTORY_METADATA_CACHE_SIZE = "warp.directory.metadata.cache.size";
-  
+
   /**
    * Number of hits in the serialized metadata cache
    */
@@ -104,7 +119,7 @@ public class SensisionConstants {
    * Number of collisions detected for labels Id
    */
   public static final String CLASS_WARP_DIRECTORY_LABELS_COLLISIONS = "warp.directory.labels.collisions";
-  
+
   /**
    * Number of GTS metadata managed by Directory.
    */
@@ -119,7 +134,7 @@ public class SensisionConstants {
    * Number of distinct owners known by a Directory
    */
   public static final String SENSISION_CLASS_CONTINUUM_DIRECTORY_OWNERS = "warp.directory.owners";
-  
+
   /**
    * Number of distinct classes per owner known by a Directory
    */
@@ -129,17 +144,17 @@ public class SensisionConstants {
    * Number of times the Thrift directory client cache was changed
    */
   public static final String SENSISION_CLASS_CONTINUUM_DIRECTORY_CLIENT_CACHE_CHANGED = "warp.directory.client.cache.changed";
-  
+
   /**
    * Free memory for directory
    */
   public static final String SENSISION_CLASS_CONTINUUM_DIRECTORY_JVM_FREEMEMORY = "warp.directory.jvm.freememory";
-  
+
   /**
    * Number of calls to the fetch method of the store client
    */
   public static final String SENSISION_CLASS_CONTINUUM_FETCH_COUNT = "warp.fetch.count";
-  
+
   /**
    * Number of value bytes read by the calls to fetch
    */
@@ -209,37 +224,37 @@ public class SensisionConstants {
    * Number of messages sent on the throttling topic
    */
   public static final String CLASS_WARP_INGRESS_KAFKA_THROTTLING_OUT_MESSAGES = "warp.ingress.kafka.throttling.out.messages";
-  
+
   /**
    * Number of bytes sent on the throttling topic
    */
   public static final String CLASS_WARP_INGRESS_KAFKA_THROTTLING_OUT_BYTES = "warp.ingress.kafka.throttling.out.bytes";
-  
+
   /**
    * Number of errors encountered while sending on the throttling topic
    */
   public static final String CLASS_WARP_INGRESS_KAFKA_THROTTLING_ERRORS = "warp.ingress.kafka.throttling.error";
-  
+
   /**
    * Number of messages consumed from the throttling topic
    */
   public static final String CLASS_WARP_INGRESS_KAFKA_THROTTLING_IN_MESSAGES = "warp.ingress.kafka.throttling.in.messages";
-  
+
   /**
    * Number of bytes consumed from the throttling topic
    */
   public static final String CLASS_WARP_INGRESS_KAFKA_THROTTLING_IN_BYTES = "warp.ingress.kafka.throttling.in.bytes";
-    
+
   /**
    * Number of invalid MACs encountered while consuming the throttling topic
    */
   public static final String CLASS_WARP_INGRESS_KAFKA_THROTTLING_IN_INVALIDMACS = "warp.ingress.kafka.throttling.in.invalidmacs";
-  
+
   /**
    * Number of successful throttling estimators fusions
    */
   public static final String CLASS_WARP_INGRESS_THROTLLING_FUSIONS = "warp.ingress.throttling.fusions";
-  
+
   /**
    * Number of failed throttling estimators fusions
    */
@@ -249,17 +264,17 @@ public class SensisionConstants {
    * Number of Metadata cached in 'ingress'
    */
   public static final String SENSISION_CLASS_CONTINUUM_INGRESS_METADATA_CACHED = "warp.ingress.metadata.cached";
-  
+
   /**
    * Number of Kafka messages containing data produced by 'Ingress'
    */
   public static final String SENSISION_CLASS_CONTINUUM_INGRESS_KAFKA_DATA_MESSAGES = "warp.ingress.kafka.data.messages";
-  
+
   /**
    * Number of calls to Kafka send by 'Ingress' for messages containing data
    */
   public static final String SENSISION_CLASS_CONTINUUM_INGRESS_KAFKA_DATA_SEND = "warp.ingress.kafka.data.send";
-  
+
   /**
    * Number of Producer get from the producer pool
    */
@@ -294,7 +309,7 @@ public class SensisionConstants {
    * Number of Kafka delete messages produced by 'Ingress'
    */
   public static final String SENSISION_CLASS_CONTINUUM_INGRESS_KAFKA_DELETE_MESSAGES = "warp.ingress.kafka.delete.messages";
-  
+
   /**
    * Number of calls to Kafka send by 'Ingress' for deletion messages
    */
@@ -304,12 +319,12 @@ public class SensisionConstants {
    * Number of Kafka messages containing data produced by 'Ingress'
    */
   public static final String SENSISION_CLASS_CONTINUUM_INGRESS_KAFKA_META_MESSAGES = "warp.ingress.kafka.meta.messages";
-  
+
   /**
    * Number of calls to Kafka send by 'Ingress' for messages containing metadata
    */
   public static final String SENSISION_CLASS_CONTINUUM_INGRESS_KAFKA_META_SEND = "warp.ingress.kafka.meta.send";
-  
+
   /**
    * Number of messages consumed from the 'metadata' Kafka topic by 'Ingress'
    */
@@ -354,17 +369,17 @@ public class SensisionConstants {
    * Number of times an 'update' request was done using an invalid token
    */
   public static final String SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_INVALIDTOKEN = "warp.ingress.update.invalidtoken";
-  
+
   /**
    * Number of 'update' requests which had gzipped content
    */
   public static final String SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_GZIPPED = "warp.ingress.update.gzipped";
-  
+
   /**
    * Number of parse error encountered in Ingress 'update' requests
    */
   public static final String SENSISION_CLASS_CONTINUUM_INGRESS_UPDATE_PARSEERRORS = "warp.ingress.update.parseerrors";
-    
+
   /**
    * Number of raw readings pushed into Continuum
    */
@@ -389,22 +404,22 @@ public class SensisionConstants {
    * Number of 'meta' requests to the Ingress component
    */
   public static final String SENSISION_CLASS_CONTINUUM_INGRESS_META_REQUESTS = "warp.ingress.meta.requests";
-  
+
   /**
    * Number of times a 'meta' request was done using an invalid token
    */
   public static final String SENSISION_CLASS_CONTINUUM_INGRESS_META_INVALIDTOKEN = "warp.ingress.meta.invalidtoken";
-  
+
   /**
    * Number of 'meta' requests which had gzipped content
    */
   public static final String SENSISION_CLASS_CONTINUUM_INGRESS_META_GZIPPED = "warp.ingress.meta.gzipped";
-  
+
   /**
    * Number of times invalid metadata were sent to the 'meta' endpoint of Ingress
    */
   public static final String SENSISION_CLASS_CONTINUUM_INGRESS_META_INVALID = "warp.ingress.meta.invalid";
-  
+
   /**
    * Number of metadata records sent to the 'meta' endpoint of Ingress
    */
@@ -444,7 +459,7 @@ public class SensisionConstants {
    * Time spent in microseconds in standalone 'delete'
    */
   public static final String SENSISION_CLASS_CONTINUUM_STANDALONE_DELETE_TIME_US = "warp.standalone.delete.time.us";
-      
+
   /**
    * Number of microseconds spent in 'update' in the standalone version of Continuum
    */
@@ -471,7 +486,7 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_CONTINUUM_STANDALONE_STREAM_UPDATE_REQUESTS = "warp.standalone.update.stream.requests";
 
   /*
-   * Number of snapshot requests made to the standalone storage layer 
+   * Number of snapshot requests made to the standalone storage layer
    */
   public static final String SENSISION_CLASS_WARP_STANDALONE_LEVELDB_SNAPSHOT_REQUESTS = "warp.standalone.leveldb.snapshot.requests";
 
@@ -479,7 +494,7 @@ public class SensisionConstants {
    * Time spent with compactions disabled to enable snapshots
    */
   public static final String SENSISION_CLASS_WARP_STANDALONE_LEVELDB_SNAPSHOT_TIME_NS = "warp.standalone.leveldb.snapshot.time.ns";
-  
+
   /**
    * Number of 'update' requests received by the streaming version of continuum
    */
@@ -531,55 +546,60 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_CONTINUUM_STREAM_UPDATE_PARSEERRORS = "warp.update.stream.parseerrors";
 
   /**
-   * Number of HBase Puts created in 'Store'
+   * Number of FDB Sets created in 'Store'
    */
-  public static final String SENSISION_CLASS_CONTINUUM_STORE_HBASE_PUTS = "warp.store.hbase.puts";
+  public static final String SENSISION_CLASS_CONTINUUM_STORE_FDB_SETS = "warp.store.fdb.sets";
 
   /**
-   * Number of HBase Puts committed in 'Store'
+   * Number of FoundationDB sets committed in 'Store'
    */
-  public static final String SENSISION_CLASS_CONTINUUM_STORE_HBASE_PUTS_COMMITTED = "warp.store.hbase.puts.committed";
+  public static final String SENSISION_CLASS_CONTINUUM_STORE_FDB_SETS_COMMITTED = "warp.store.fdb.sets.committed";
 
   /**
-   * Number of GTSDecoders handled by 'Store'  
+   * Number of FoundationDB clearranges committed in 'Store'
+   */
+  public static final String SENSISION_CLASS_CONTINUUM_STORE_FDB_CLEARRANGES_COMMITTED = "warp.store.fdb.clearranges.committed";
+
+  /**
+   * Number of GTSDecoders handled by 'Store'
    */
   public static final String SENSISION_CLASS_CONTINUUM_STORE_GTSDECODERS = "warp.store.gtsdecoders";
-  
+
   /**
    * Number of calls to 'flushCommits' done in 'Store'
    */
-  public static final String SENSISION_CLASS_CONTINUUM_STORE_HBASE_COMMITS = "warp.store.hbase.commits";
+  public static final String SENSISION_CLASS_CONTINUUM_STORE_FDB_COMMITS = "warp.store.fdb.commits";
 
   /**
-   * Time spend writing to HBase in 'Store'
+   * Time spend writing to FoundationDB in 'Store'
    */
-  public static final String SENSISION_CLASS_CONTINUUM_STORE_HBASE_TIME_NANOS = "warp.store.hbase.time.nanos";
-  
+  public static final String SENSISION_CLASS_CONTINUUM_STORE_FDB_TIME_NANOS = "warp.store.fdb.time.nanos";
+
   /**
    * Number of barrier synchronizations
    */
   public static final String SENSISION_CLASS_CONTINUUM_STORE_BARRIER_SYNCS = "warp.store.barrier.syncs";
-  
+
   /**
    * Number of Kafka offset commits done in 'Store'
    */
   public static final String SENSISION_CLASS_CONTINUUM_STORE_KAFKA_COMMITS = "warp.store.kafka.commits";
-  
+
   /**
    * Number of Kafka messages read in 'Store'
    */
   public static final String SENSISION_CLASS_CONTINUUM_STORE_KAFKA_COUNT = "warp.store.kafka.count";
-  
+
   /**
    * Number of Kafka messages bytes read in 'Store'
    */
   public static final String SENSISION_CLASS_CONTINUUM_STORE_KAFKA_BYTES = "warp.store.kafka.bytes";
-  
+
   /**
    * Number of failed MAC verification for Kafka messages read in 'Store'
    */
   public static final String SENSISION_CLASS_CONTINUUM_STORE_KAFKA_FAILEDMACS = "warp.store.kafka.failedmacs";
-  
+
   /**
    * Number of failed decryptions for Kafka messages read in 'Store'
    */
@@ -589,97 +609,42 @@ public class SensisionConstants {
    * Number of aborts experienced in 'Store'
    */
   public static final String SENSISION_CLASS_CONTINUUM_STORE_ABORTS = "warp.store.aborts";
-  
+
   /**
    * Number of times commits were overdue, probably due to a call to htable.batch having hang
    */
   public static final String CLASS_WARP_STORE_KAFKA_COMMITS_OVERDUE = "warp.store.kafka.commits.overdue";
-  
-  /**
-   * Number of times the HBase connection was reset. This is a total number across all Store instances within a JVM.
-   */
-  public static final String CLASS_WARP_STORE_HBASE_CONN_RESETS = "warp.store.hbase.conn.resets";
-  
+
   /**
    * Rate at which we throttle the Kafka consumers. This rate is used by generating a random number and only
    * process an incoming message if that number is <= CLASS_WARP_STORE_THROTTLING_RATE
    */
   public static final String CLASS_WARP_STORE_THROTTLING_RATE = "warp.store.throttling.rate";
-  
-  /**
-   * Time spent in DELETE ops in 'Store'
-   */
-  public static final String SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_TIME_NANOS = "warp.store.hbase.delete.time.nanos";
-  
+
   /**
    * Number of DELETE ops handled by 'Store'
    */
-  public static final String SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_OPS = "warp.store.hbase.delete.ops";
+  public static final String SENSISION_CLASS_CONTINUUM_STORE_FDB_DELETE_OPS = "warp.store.fdb.delete.ops";
 
   /**
-   * Number of regions contacted to handle the DELETE ops by 'Store'
+   * Number of results retrieved from scanners by FDBStoreClient
    */
-  public static final String SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_REGIONS = "warp.store.hbase.delete.regions";
+  public static final String SENSISION_CLASS_CONTINUUM_FDB_CLIENT_RESULTS = "warp.fdb.client.results";
 
   /**
-   * Number of datapoints deleted by 'Store'
+   * Number of GTSDecoder iterators produced by FDBStoreClient
    */
-  public static final String SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_DATAPOINTS = "warp.store.hbase.delete.datapoints";
+  public static final String SENSISION_CLASS_CONTINUUM_FDB_CLIENT_ITERATORS = "warp.fdb.client.iterators";
 
   /**
-   * Number of datapoints deleted by 'Store' per owner and application
+   * Number of scanners retrieved by FDBStoreClient
    */
-  public static final String SENSISION_CLASS_CONTINUUM_STORE_HBASE_DELETE_DATAPOINTS_PEROWNERAPP = "warp.store.hbase.delete.datapoints.perownerapp";
-
-  /**
-   * Number of results retrieved from scanners by HBaseStoreClient
-   */
-  public static final String SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_RESULTS = "warp.hbase.client.results";
-
-  /**
-   * Number of cells retrieved from scanners by HBaseStoreClient
-   */
-  public static final String SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_CELLS = "warp.hbase.client.cells";
-
-  /**
-   * Number of GTSDecoder iterators produced by HBaseStoreClient
-   */
-  public static final String SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_ITERATORS = "warp.hbase.client.iterators";
-
-  /**
-   * Number of GTSDecoder scanners retrieved by HBaseStoreClient
-   */
-  public static final String SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_SCANNERS = "warp.hbase.client.scanners";
-
-  /**
-   * Number of HBase scanners which used a filter (SlicedRowFilter)
-   */
-  public static final String SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_FILTERED_SCANNERS = "warp.hbase.client.scanners.filtered";
-  
-  /**
-   * Number of ranges filtered by the filtered scanners
-   */
-  public static final String SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_FILTERED_SCANNERS_RANGES = "warp.hbase.client.scanners.filtered.ranges";
-  
-  /**
-   * Number of optimized scanners created
-   */
-  public static final String SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_OPTIMIZED_SCANNERS = "warp.hbase.client.scanners.optimized";
-
-  /**
-   * Number of groups identified for optimized scanners
-   */
-  public static final String SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_OPTIMIZED_SCANNERS_GROUPS = "warp.hbase.client.scanners.optimized.groups";
-
-  /**
-   * Number of ranges identified for optimized scanners
-   */
-  public static final String SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_OPTIMIZED_SCANNERS_RANGES = "warp.hbase.client.scanners.optimized.ranges";
+  public static final String SENSISION_CLASS_CONTINUUM_FDB_CLIENT_SCANNERS = "warp.fdb.client.scanners";
 
   /**
    * Number of parallel scanners spawned
    */
-  public static final String SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_PARALLEL_SCANNERS = "warp.hbase.client.scanners.parallel";
+  public static final String SENSISION_CLASS_CONTINUUM_FDB_CLIENT_PARALLEL_SCANNERS = "warp.fdb.client.scanners.parallel";
 
   /**
    * Number of parallel scanners spawned in the standalone version
@@ -694,24 +659,24 @@ public class SensisionConstants {
   /**
    * Total number of nanoseconds spent waiting for a scanner to be scheduled
    */
-  public static final String SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_PARALLEL_SCANNERS_WAITNANOS = "warp.hbase.client.scanners.parallel.waitnanos";
+  public static final String SENSISION_CLASS_CONTINUUM_FDB_CLIENT_PARALLEL_SCANNERS_WAITNANOS = "warp.fdb.client.scanners.parallel.waitnanos";
 
   /**
    * Number of rejections when attempting to schedule parallel scanners in the distributed version
    */
-  public static final String SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_PARALLEL_SCANNERS_REJECTIONS = "warp.hbase.client.scanners.parallel.rejections";
+  public static final String SENSISION_CLASS_CONTINUUM_FDB_CLIENT_PARALLEL_SCANNERS_REJECTIONS = "warp.fdb.client.scanners.parallel.rejections";
 
   /**
    * Number of rejections when attempting to schedule parallel scanners in the standalone version
    */
   public static final String SENSISION_CLASS_CONTINUUM_STANDALONE_CLIENT_PARALLEL_SCANNERS_REJECTIONS = "warp.standalone.client.scanners.parallel.rejections";
-  
+
   /**
    * Number of times a mutex was requested among parallel scanners. A Mutex is requested when consecutive GTSDecoders belong
    * to the same GTS, they must be pushed to the queue as a block. This can happen when the size of a GTSDecoder grows beyond
    * a limit or when a GTS spawns several regions.
    */
-  public static final String SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_PARALLEL_SCANNERS_MUTEX = "warp.hbase.client.scanners.parallel.mutex";
+  public static final String SENSISION_CLASS_CONTINUUM_FDB_CLIENT_PARALLEL_SCANNERS_MUTEX = "warp.fdb.client.scanners.parallel.mutex";
 
   /**
    * Number of times a mutex was requested among parallel scanners in the standalone version. A Mutex is requested when consecutive GTSDecoders belong
@@ -724,26 +689,26 @@ public class SensisionConstants {
    * Number of failed MAC verification for Kafka messages read in 'Directory'
    */
   public static final String SENSISION_CLASS_CONTINUUM_DIRECTORY_KAFKA_FAILEDMACS = "warp.directory.kafka.failedmacs";
-  
+
   /**
    * Number of failed decryptions for Kafka messages read in 'Directory'
    */
   public static final String SENSISION_CLASS_CONTINUUM_DIRECTORY_KAFKA_FAILEDDECRYPTS = "warp.directory.kafka.faileddecrypts";
 
   /**
-   * Number of HBase Puts done in 'Directory'
+   * Number of FDB Puts done in 'Directory'
    */
-  public static final String SENSISION_CLASS_CONTINUUM_DIRECTORY_HBASE_PUTS = "warp.directory.hbase.puts";
+  public static final String SENSISION_CLASS_CONTINUUM_DIRECTORY_FDB_PUTS = "warp.directory.fdb.puts";
 
   /**
-   * Number of HBase Delete done in 'Directory'
+   * Number of FoundationDB Delete done in 'Directory'
    */
-  public static final String SENSISION_CLASS_CONTINUUM_DIRECTORY_HBASE_DELETES = "warp.directory.hbase.deletes";
+  public static final String SENSISION_CLASS_CONTINUUM_DIRECTORY_FDB_DELETES = "warp.directory.fdb.deletes";
 
   /**
    * Number of calls to 'flushCommits' done in 'Directory'
    */
-  public static final String SENSISION_CLASS_CONTINUUM_DIRECTORY_HBASE_COMMITS = "warp.directory.hbase.commits";
+  public static final String SENSISION_CLASS_CONTINUUM_DIRECTORY_FDB_COMMITS = "warp.directory.fdb.commits";
 
   /**
    * Number of barrier synchronizations
@@ -793,7 +758,7 @@ public class SensisionConstants {
    * Number of expired streaming requests
    */
   public static final String SENSISION_CLASS_CONTINUUM_DIRECTORY_STREAMING_EXPIRED = "warp.directory.streaming.expired";
-  
+
   /**
    * Number of successful streaming requests
    */
@@ -808,7 +773,7 @@ public class SensisionConstants {
    * Number of streaming results
    */
   public static final String SENSISION_CLASS_CONTINUUM_DIRECTORY_STREAMING_RESULTS = "warp.directory.streaming.results";
-  
+
   /**
    * Expired stats requests
    */
@@ -868,37 +833,37 @@ public class SensisionConstants {
    * Number of times the WarpScript bootstrap code was loaded
    */
   public static final String SENSISION_CLASS_WARPSCRIPT_BOOTSTRAP_LOADS = "warp.script.bootstrap.loads";
-  
+
   /**
    * Number of WarpScript requests
    */
   public static final String SENSISION_CLASS_WARPSCRIPT_REQUESTS = "warp.script.requests";
-  
+
   /**
    * Total time (us) spent in WarpScript requests
    */
   public static final String SENSISION_CLASS_WARPSCRIPT_TIME_US = "warp.script.time.us";
-  
+
   /**
    * Total number of ops in WarpScript scripts
    */
   public static final String SENSISION_CLASS_WARPSCRIPT_OPS = "warp.script.ops";
-  
+
   /**
    * Total number of errors in WarpScript scripts
    */
-  public static final String SENSISION_CLASS_WARPSCRIPT_ERRORS = "warp.script.errors";  
+  public static final String SENSISION_CLASS_WARPSCRIPT_ERRORS = "warp.script.errors";
 
   /**
    * Free memory reported by the JVM
    */
   public static final String SENSISION_CLASS_WARPSCRIPT_JVM_FREEMEMORY = "warp.script.jvm.freememory";
-  
+
   /**
    * Number of uses of a given WarpScript function
    */
   public static final String SENSISION_CLASS_WARPSCRIPT_FUNCTION_COUNT = "warp.script.function.count";
-  
+
   /**
    * Number of times the stack depth limit was reached
    */
@@ -928,7 +893,7 @@ public class SensisionConstants {
    * Number of current active executions
    */
   public static final String SENSISION_CLASS_WARPSCRIPT_RUN_CURRENT = "warp.script.run.current";
-  
+
   /**
    * Total time spent running a given script
    */
@@ -943,17 +908,17 @@ public class SensisionConstants {
    * Elapsed time per scheduled script
    */
   public static final String SENSISION_CLASS_WARPSCRIPT_RUN_ELAPSED = "warp.script.run.elapsed.ns";
-  
+
   /**
    * Number of ops per scheduled script
    */
   public static final String SENSISION_CLASS_WARPSCRIPT_RUN_OPS = "warp.script.run.ops";
-  
+
   /**
    * Number of datapoints fetched per scheduled script
    */
   public static final String SENSISION_CLASS_WARPSCRIPT_RUN_FETCHED = "warp.script.run.fetched";
-  
+
   /**
    * Number of sessions with macros currently scheduled by Mobius
    */
@@ -978,7 +943,7 @@ public class SensisionConstants {
    * Number of shards dropped by the GC since the launch of the platform instance
    */
   public static final String SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_GC_CHUNKS = "warp.standalone.inmemory.gc.chunks";
-  
+
   /**
    * Number of points currently stored in the memory store
    */
@@ -1008,7 +973,7 @@ public class SensisionConstants {
    * Number of bytes reclaimed by shrinking arrays backing buffers.
    */
   public static final String SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_GC_RECLAIMED = "warp.standalone.inmemory.gc.reclaimed";
-  
+
   /**
    * Number of datapoints garbage collected in the memory store
    */
@@ -1035,10 +1000,10 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_CONTINUUM_ESTIMATOR_RESETS_PER_APP = "warp.estimator.resets.perapp";
 
   /**
-   * Number of invalid hashes detected when 
+   * Number of invalid hashes detected when
    */
   public static final String SENSISION_CLASS_PLASMA_BACKEND_SUBSCRIPTIONS_INVALID_HASHES = "warp.plasma.backend.subscriptions.invalid.hashes";
-  
+
   /**
    * Number of subscriptions (GTS) by backend
    */
@@ -1078,7 +1043,7 @@ public class SensisionConstants {
    * Number of bytes buffered outwards
    */
   public static final String SENSISION_CLASS_PLASMA_BACKEND_KAFKA_OUT_BYTES = "warp.plasma.backend.kafka.out.bytes";
-  
+
   /**
    * Number of send ops by the outward kafka producer
    */
@@ -1088,22 +1053,22 @@ public class SensisionConstants {
    * Number of failed MAC checks
    */
   public static final String SENSISION_CLASS_PLASMA_FRONTEND_KAFKA_INVALIDMACS = "warp.plasma.frontend.kafka.invalidmacs";
-  
+
   /**
    * Number of failed decipherments
    */
   public static final String SENSISION_CLASS_PLASMA_FRONTEND_KAFKA_INVALIDCIPHERS = "warp.plasma.frontend.kafka.invalidciphers";
-  
+
   /**
-   * Number of Kafka messages consumed by Plasma Frontend 
+   * Number of Kafka messages consumed by Plasma Frontend
    */
   public static final String SENSISION_CLASS_PLASMA_FRONTEND_KAFKA_MESSAGES = "warp.plasma.frontend.kafka.messages";
-  
+
   /**
    * Number of bytes consumed by Plasma Frontend
    */
   public static final String SENSISION_CLASS_PLASMA_FRONTEND_KAFKA_BYTES = "warp.plasma.frontend.kafka.bytes";
-  
+
   /**
    * Number of Kafka consuming loop abortions
    */
@@ -1118,12 +1083,12 @@ public class SensisionConstants {
    * Number of barrier synchronizations
    */
   public static final String SENSISION_CLASS_PLASMA_FRONTEND_SYNCS = "warp.plasma.frontend.syncs";
-  
+
   /**
    * Number of GTS subscribed to by Plasma Front End
    */
   public static final String SENSISION_CLASS_PLASMA_FRONTEND_SUBSCRIPTIONS = "warp.plasma.frontend.subscriptions";
-  
+
   /**
    * Number of calls to dispatch
    */
@@ -1138,12 +1103,12 @@ public class SensisionConstants {
    * Time (in microseconds) spent in 'dispatch'
    */
   public static final String SENSISION_CLASS_PLASMA_FRONTEND_DISPATCH_TIME_US = "warp.plasma.frontend.dispatch.time.ns";
-  
+
   /**
    * Number of distinct GTS as estimated by HLL+
    */
   public static final String SENSISION_CLASS_CONTINUUM_GTS_DISTINCT = "warp.gts.distinct";
-  
+
   /**
    * Number of distinct GTS as estimated by HLL+ per application
    */
@@ -1168,7 +1133,7 @@ public class SensisionConstants {
    * Number of times the distinct GTS throttling triggered globally
    */
   public static final String SENSISION_CLASS_CONTINUUM_THROTTLING_GTS_GLOBAL = "warp.throttling.gts.global";
-  
+
   /**
    * MADS per producer
    */
@@ -1223,77 +1188,37 @@ public class SensisionConstants {
    * Number of macros cached from WarpFleet repositories
    */
   public static final String SENSISION_CLASS_WARPFLEET_MACROS_CACHED = "warpfleet.macros.cached";
-  
+
   /**
    * Number of macros loaded from jars and the classpath which are currently cached
    */
   public static final String SENSISION_CLASS_WARPSCRIPT_LIBRARY_CACHED = "warpscript.library.macros";
-  
+
   /**
    * Number of macros known in the repository
    */
   public static final String SENSISION_CLASS_WARPSCRIPT_REPOSITORY_MACROS = "warp.script.repository.macros";
-    
+
   /**
    * Number of jar files known in the repository
    */
   public static final String SENSISION_CLASS_WARPSCRIPT_REPOSITORY_JARS = "warp.script.repository.jars";
-  
-  /**
-   * Number of messages consumed from Kafka
-   */
-  public static final String SENSISION_CLASS_WEBCALL_KAFKA_IN_COUNT = "warp.webcall.kafka.in.count";
-  
-  /**
-   * Number of bytes consumed from Kafka
-   */
-  public static final String SENSISION_CLASS_WEBCALL_KAFKA_IN_BYTES = "warp.webcall.kafka.in.bytes";
-  
-  /**
-   * Number of MAC verification failures
-   */
-  public static final String SENSISION_CLASS_WEBCALL_KAFKA_IN_FAILEDMACS = "warp.webcall.kafka.in.failedmacs";
-  
-  /**
-   * Number of unwrapping failures
-   */
-  public static final String SENSISION_CLASS_WEBCALL_KAFKA_IN_FAILEDDECRYPTS = "warp.webcall.kafka.in.faileddecrypts";
-  
-  /**
-   * Total latency of WebCallRequests handling
-   */
-  public static final String SENSISION_CLASS_WEBCALL_LATENCY_MS = "warp.webcall.latency.ms";
-  
-  /**
-   * Number of offset commits
-   */
-  public static final String SENSISION_CLASS_WEBCALL_KAFKA_IN_COMMITS = "warp.webcall.kafka.in.commits";
-  
-  /**
-   * Number of consuming loop abortions
-   */
-  public static final String SENSISION_CLASS_WEBCALL_IN_ABORTS = "warp.webcall.kafka.in.aborts";
-  
-  /**
-   * Number of barrier synchronizations
-   */
-  public static final String SENSISION_CLASS_WEBCALL_BARRIER_SYNCS = "warp.webcall.barrier.syncs";
 
   /**
    * Kafka Consumer Offset
    */
   public static final String SENSISION_CLASS_WARP_KAFKA_CONSUMER_OFFSET = "warp.kafka.consumer.offset";
-  
+
   /**
    * Number of messages which were more than 1 message ahead of the previously consumed (or committed) message
    */
   public static final String SENSISION_CLASS_WARP_KAFKA_CONSUMER_OFFSET_FORWARD_LEAPS = "warp.kafka.consumer.forward.leaps";
-  
+
   /**
    * Number of messages which were in the past relative to the previously committed message offset
    */
   public static final String SENSISION_CLASS_WARP_KAFKA_CONSUMER_OFFSET_BACKWARD_LEAPS = "warp.kafka.consumer.backward.leaps";
-  
+
   //
   // ScriptRunner
   //
@@ -1302,12 +1227,12 @@ public class SensisionConstants {
    * Number of messages consumed
    */
   public static final String SENSISION_CLASS_WARP_RUNNER_KAFKA_IN_MESSAGES = "warp.runner.kafka.in.messages";
-  
+
   /**
    * Number of bytes consumed
    */
   public static final String SENSISION_CLASS_WARP_RUNNER_KAFKA_IN_BYTES = "warp.runner.kafka.in.bytes";
-  
+
   /**
    * Number of invalid MACs for messages consumed by 'ScriptRunner'
    */
@@ -1317,7 +1242,7 @@ public class SensisionConstants {
    * Number of invalid AES wrappings for messages consumed by 'ScriptRunner'
    */
   public static final String SENSISION_CLASS_WARP_RUNNER_KAFKA_IN_INVALIDCIPHERS = "warp.runner.kafka.in.invalidciphers";
-  
+
   /**
    * Number of execution attempts which were rejected by the ExecutorService
    */
@@ -1329,11 +1254,6 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_WARP_RUNNER_FAILURES = "warp.runner.failures";
 
   /**
-   * Number of regions known by HBaseRegionKeys for the given table
-   */
-  public static final String SENSISION_CLASS_WARP_HBASE_KNOWNREGIONS = "warp.hbase.knownregions";
-  
-  /**
    * Number of Producer get from the producer pool
    */
   public static final String SENSISION_CLASS_CONTINUUM_RUNNER_KAFKA_PRODUCER_POOL_GET = "warp.runner.kafka.producer.pool.get";
@@ -1343,20 +1263,15 @@ public class SensisionConstants {
    */
   public static final String SENSISION_CLASS_CONTINUUM_RUNNER_KAFKA_PRODUCER_WAIT_NANOS = "warp.runner.kafka.producer.wait.nanos";
 
-  /**
-   * Number of tasks currently handled by a region server.
-   */
-  public static final String SENSISION_CLASS_WARP_HBASE_TASKS = "warp.hbase.tasks";
-  
   //
   // Labels
   //
-  
+
   /**
    * Id of the producer for which the metric is collected
    */
   public static final String SENSISION_LABEL_PRODUCER = "producer";
-  
+
   /**
    * Name of application for which the metric is collected
    */
@@ -1371,7 +1286,7 @@ public class SensisionConstants {
    * Name of function for which a WarpScript metric is collected
    */
   public static final String SENSISION_LABEL_FUNCTION = "function";
-  
+
   /**
    * Name of application consuming data
    */
@@ -1384,9 +1299,9 @@ public class SensisionConstants {
 
   /**
    * Thread id
-   */  
+   */
   public static final String SENSISION_LABEL_THREAD = "thread";
-  
+
   /**
    * CDN POP used to serve the request
    */
@@ -1406,12 +1321,12 @@ public class SensisionConstants {
    * Kafka Partition
    */
   public static final String SENSISION_LABEL_PARTITION = "partition";
-  
+
   /**
    * Kafka Group ID
    */
   public static final String SENSISION_LABEL_GROUPID = "groupid";
-  
+
   /**
    * Type of something...
    */
@@ -1421,30 +1336,85 @@ public class SensisionConstants {
    * Id of something
    */
   public static final String SENSISION_LABEL_ID = "id";
-  
+
   /**
    * Component
    */
   public static final String SENSISION_LABEL_COMPONENT = "component";
 
   /**
+   * Code, as in error codes
+   */
+  public static final String SENSISION_LABEL_CODE = "code";
+
+  /**
    * Server (usually RegionServer)
    */
   public static final String SENSISION_LABEL_SERVER = "server";
-  
+
   /**
    * Table
    */
   public static final String SENSISION_LABEL_TABLE = "table";
-  
+
   /**
    * Forwarder
    */
   public static final String SENSISION_LABEL_FORWARDER = "forwarder";
-  
+
   //
   // TTLs (in ms)
   //
-  
+
   public static final long SENSISION_TTL_PERUSER = 24 * 3600L * 1000L;
+
+  /**
+   * Number of Datalog DATA messages ignored due to excluded ids
+   */
+  public static final String SENSISION_CLASS_DATALOG_IGNORED = "datalog.ignored";
+
+  /**
+   * Number of Datalog DATA messages skipped due to sharding macro returning false
+   */
+  public static final String SENSISION_CLASS_DATALOG_SKIPPED = "datalog.skipped";
+
+  /**
+   * Number of incoming Datalog consumer messages
+   */
+  public static final String SENSISION_CLASS_DATALOG_CONSUMER_MESSAGES_IN = "datalog.consumer.messages.in";
+
+  /**
+   * Number of outgoing Datalog consumer messages
+   */
+  public static final String SENSISION_CLASS_DATALOG_CONSUMER_MESSAGES_OUT = "datalog.consumer.messages.out";
+
+  /**
+   * Number of incoming Datalog feeder messages
+   */
+  public static final String SENSISION_CLASS_DATALOG_FEEDER_MESSAGES_IN = "datalog.feeder.messages.in";
+
+  /**
+   * Number of outgoing Datalog feeder messages
+   */
+  public static final String SENSISION_CLASS_DATALOG_FEEDER_MESSAGES_OUT = "datalog.feeder.messages.out";
+
+  /**
+   * Number of successful datalog records applied to the underlying datastore
+   */
+  public static final String SENSISION_CLASS_DATALOG_SUCCESSES = "datalog.successes";
+
+  /**
+   * Number of datalog records which failed to be applied
+   */
+  public static final String SENSISION_CLASS_DATALOG_FAILURES = "datalog.failures";
+
+  /**
+   * Datalog consumer id
+   */
+  public static final String SENSISION_LABEL_CONSUMER = "consumer";
+
+  /**
+   * Datalog feeder id
+   */
+  public static final String SENSISION_LABEL_FEEDER = "feeder";
 }

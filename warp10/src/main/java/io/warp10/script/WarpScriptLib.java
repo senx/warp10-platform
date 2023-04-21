@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2022  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -25,10 +25,24 @@ import io.warp10.continuum.gts.CORRELATE;
 import io.warp10.continuum.gts.DISCORDS;
 import io.warp10.continuum.gts.FFT;
 import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
+import io.warp10.fdb.FDBGET;
+import io.warp10.fdb.FDBSIZE;
+import io.warp10.fdb.FDBSTATUS;
+import io.warp10.fdb.FDBTENANT;
 import io.warp10.continuum.gts.IFFT;
 import io.warp10.continuum.gts.INTERPOLATE;
 import io.warp10.continuum.gts.LOCATIONOFFSET;
 import io.warp10.continuum.gts.ZIP;
+import io.warp10.leveldb.LEVELDBOPEN;
+import io.warp10.leveldb.LEVELDBCLOSE;
+import io.warp10.leveldb.LEVELDBCOMPACT;
+import io.warp10.leveldb.LEVELDBREPAIR;
+import io.warp10.leveldb.LEVELDBSNAPSHOT;
+import io.warp10.leveldb.SSTFIND;
+import io.warp10.leveldb.SSTINFO;
+import io.warp10.leveldb.SSTPURGE;
+import io.warp10.leveldb.SSTREPORT;
+import io.warp10.leveldb.SSTTIMESTAMP;
 import io.warp10.script.aggregator.And;
 import io.warp10.script.aggregator.Argminmax;
 import io.warp10.script.aggregator.CircularMean;
@@ -94,6 +108,8 @@ import io.warp10.script.filter.FilterLastLE;
 import io.warp10.script.filter.FilterLastLT;
 import io.warp10.script.filter.FilterLastNE;
 import io.warp10.script.filter.LatencyFilter;
+import io.warp10.script.functions.WSAUDIT;
+import io.warp10.script.functions.WSAUDITMODE;
 import io.warp10.script.functions.math.GETEXPONENT;
 import io.warp10.script.functions.math.RANDOM;
 import io.warp10.script.functions.math.ROUND;
@@ -118,7 +134,10 @@ import io.warp10.script.mapper.MapperFinite;
 import io.warp10.script.mapper.MapperFloor;
 import io.warp10.script.mapper.MapperGeoApproximate;
 import io.warp10.script.mapper.MapperGeoClearPosition;
+import io.warp10.script.mapper.MapperGeoElevation;
 import io.warp10.script.mapper.MapperGeoFence;
+import io.warp10.script.mapper.MapperGeoLatitude;
+import io.warp10.script.mapper.MapperGeoLongitude;
 import io.warp10.script.mapper.MapperGeoOutside;
 import io.warp10.script.mapper.MapperGeoWithin;
 import io.warp10.script.mapper.MapperHourOfDay;
@@ -284,6 +303,8 @@ import io.warp10.script.unary.TOSTRING;
 import io.warp10.script.unary.TOTIMESTAMP;
 import io.warp10.script.unary.UNIT;
 import io.warp10.warp.sdk.WarpScriptExtension;
+import processing.core.PApplet;
+
 import org.bouncycastle.crypto.digests.GOST3411Digest;
 import org.bouncycastle.crypto.digests.KeccakDigest;
 import org.bouncycastle.crypto.digests.MD2Digest;
@@ -822,7 +843,6 @@ import io.warp10.script.functions.VARINTTO;
 import io.warp10.script.functions.VARS;
 import io.warp10.script.functions.VECTO;
 import io.warp10.script.functions.VECTORTO;
-import io.warp10.script.functions.WEBCALL;
 import io.warp10.script.functions.WFOFF;
 import io.warp10.script.functions.WFON;
 import io.warp10.script.functions.WFADDREPO;
@@ -840,9 +860,12 @@ import io.warp10.script.functions.LOGINIT;
 import io.warp10.script.functions.STDERR;
 import io.warp10.script.functions.STDOUT;
 import io.warp10.script.functions.TDESCRIBE;
+import io.warp10.script.functions.SLEEP;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
 
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -882,6 +905,8 @@ public class WarpScriptLib {
   public static final String STDERR = "STDERR";
   public static final String LOGMSG = "LOGMSG";
   public static final String TDESCRIBE = "TDESCRIBE";
+  public static final String WSAUDIT = "WSAUDIT";
+  public static final String WSAUDITMODE = "WSAUDITMODE";
 
   public static final String REF = "REF";
   public static final String COMPILE = "COMPILE";
@@ -889,6 +914,8 @@ public class WarpScriptLib {
   public static final String COMPILED = "COMPILED";
 
   public static final String EVAL = "EVAL";
+  // e'X'posing EVAL, will never mark macros it produces as secure
+  public static final String XEVAL = "XEVAL";
   public static final String EVALSECURE = "EVALSECURE";
   public static final String MSEC = "MSEC";
   public static final String MRSEC = "MRSEC";
@@ -1401,7 +1428,6 @@ public class WarpScriptLib {
   public static final String METAMATCH = "METAMATCH";
   public static final String METADIFF = "METADIFF";
   public static final String DELETE = "DELETE";
-  public static final String WEBCALL = "WEBCALL";
   public static final String MATCH = "MATCH";
   public static final String MATCHER = "MATCHER";
   public static final String REPLACE = "REPLACE";
@@ -1670,6 +1696,7 @@ public class WarpScriptLib {
   public static final String VARS = "VARS";
   public static final String ASREGS = "ASREGS";
   public static final String ASENCODERS = "ASENCODERS";
+  public static final String SLEEP = "SLEEP";
 
   public static final String TOLIST = "->LIST";
   public static final String TOMAP = "->MAP";
@@ -1787,6 +1814,30 @@ public class WarpScriptLib {
 
   public static final String EQ = "==";
 
+  //
+  // LevelDB
+  //
+
+  public static final String LEVELDBCLOSE = "LEVELDBCLOSE";
+  public static final String LEVELDBOPEN = "LEVELDBOPEN";
+  public static final String LEVELDBREPAIR = "LEVELDBREPAIR";
+  public static final String LEVELDBCOMPACT = "LEVELDBCOMPACT";
+  public static final String LEVELDBSNAPSHOT = "LEVELDBSNAPSHOT";
+  public static final String LEVELDBSNAPSHOTINC = "LEVELDBSNAPSHOTINC";
+  public static final String SSTFIND = "SSTFIND";
+  public static final String SSTINFO = "SSTINFO";
+  public static final String SSTPURGE = "SSTPURGE";
+  public static final String SSTREPORT = "SSTREPORT";
+  public static final String SSTTIMESTAMP = "SSTTIMESTAMP";
+
+  //
+  // FDB
+  //
+
+  public static final String FDBTENANT = "FDBTENANT";
+  public static final String FDBSTATUS = "FDBSTATUS";
+  public static final String FDBSIZE = "FDBSIZE";
+  public static final String FDBGET = "FDBGET";
 
   static {
 
@@ -1897,6 +1948,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new FUNCTIONS(FUNCTIONS));
     addNamedWarpScriptFunction(new MAXJSON(MAXJSON));
     addNamedWarpScriptFunction(new EVAL(EVAL));
+    addNamedWarpScriptFunction(new EVAL(XEVAL, true));
     addNamedWarpScriptFunction(new FUNCREF(FUNCREF));
     addNamedWarpScriptFunction(new NOW(NOW));
     addNamedWarpScriptFunction(new AGO(AGO));
@@ -2378,7 +2430,6 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new METAMATCH(METAMATCH));
     addNamedWarpScriptFunction(new META(METADIFF, true));
     addNamedWarpScriptFunction(new DELETE(DELETE));
-    addNamedWarpScriptFunction(new WEBCALL(WEBCALL));
     addNamedWarpScriptFunction(new MATCH(MATCH));
     addNamedWarpScriptFunction(new MATCHER(MATCHER));
     addNamedWarpScriptFunction(new REPLACE(REPLACE, false));
@@ -2563,6 +2614,10 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new MapperMinuteOfHour.Builder("mapper.minute"));
     addNamedWarpScriptFunction(new MapperSecondOfMinute.Builder("mapper.second"));
 
+    addNamedWarpScriptFunction(new MapperGeoLatitude("mapper.lat"));
+    addNamedWarpScriptFunction(new MapperGeoLongitude("mapper.lon"));
+    addNamedWarpScriptFunction(new MapperGeoElevation("mapper.elev"));
+
     addNamedWarpScriptFunction(new MapperNPDF.Builder("mapper.npdf"));
     addNamedWarpScriptFunction(new MapperDotProduct.Builder("mapper.dotproduct"));
 
@@ -2583,7 +2638,6 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new MapperKernelUniform("mapper.kernel.uniform"));
 
     addNamedWarpScriptFunction(new Percentile.Builder("mapper.percentile", false));
-    addNamedWarpScriptFunction(new Percentile.Builder("mapper.percentile.forbid-nulls", true));
 
     //functions.put("mapper.abscissa", new MapperSAX.Builder());
 
@@ -2801,9 +2855,20 @@ public class WarpScriptLib {
 
     //
     // Processing
+    // We need to force Java Version so it looks like x.y.z-aaa while the PApplet class is loaded
     //
 
+    String jversion = WarpConfig.getOriginalFormatJavaVersion();
+
+    if (!jversion.equals(System.getProperty("java.version"))) {
+      String tmp = System.getProperty("java.version");
+      System.setProperty("java.version", jversion);
+      Preconditions.checkArgument(jversion.equals(PApplet.javaVersionName), "Processing was not correctly initialized, consider setting configuration " + Configuration.WARP_JAVA_VERSION + ".");
+      System.setProperty("java.version", tmp);
+    }
+
     addNamedWarpScriptFunction(new Pencode(PENCODE));
+
 
     // Structure
 
@@ -2963,31 +3028,18 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new Max("bucketizer.max", true));
     addNamedWarpScriptFunction(new Mean("bucketizer.mean", false));
     addNamedWarpScriptFunction(new Median("bucketizer.median", false));
-    addNamedWarpScriptFunction(new Median("bucketizer.median.forbid-nulls", true));
     addNamedWarpScriptFunction(new MAD("bucketizer.mad"));
     addNamedWarpScriptFunction(new Or("bucketizer.or", false));
     addNamedWarpScriptFunction(new Sum("bucketizer.sum", true));
     addNamedWarpScriptFunction(new Join.Builder("bucketizer.join", true, false, null));
     addNamedWarpScriptFunction(new Count("bucketizer.count", false));
     addNamedWarpScriptFunction(new Percentile.Builder("bucketizer.percentile", false));
-    addNamedWarpScriptFunction(new Percentile.Builder("bucketizer.percentile.forbid-nulls", true));
-
-    addNamedWarpScriptFunction(new Min("bucketizer.min.forbid-nulls", false));
-    addNamedWarpScriptFunction(new Max("bucketizer.max.forbid-nulls", false));
-    addNamedWarpScriptFunction(new Mean("bucketizer.mean.exclude-nulls", true));
-    addNamedWarpScriptFunction(new Sum("bucketizer.sum.forbid-nulls", false));
-    addNamedWarpScriptFunction(new Join.Builder("bucketizer.join.forbid-nulls", false, false, null));
-    addNamedWarpScriptFunction(new Count("bucketizer.count.exclude-nulls", true));
-    addNamedWarpScriptFunction(new Count("bucketizer.count.include-nulls", false));
-    addNamedWarpScriptFunction(new Count("bucketizer.count.nonnull", true));
     addNamedWarpScriptFunction(new CircularMean.Builder("bucketizer.mean.circular", true));
-    addNamedWarpScriptFunction(new CircularMean.Builder("bucketizer.mean.circular.exclude-nulls", false));
     addNamedWarpScriptFunction(new RMS("bucketizer.rms", false));
     addNamedWarpScriptFunction(new Variance.Builder("bucketizer.var", false));
     addNamedWarpScriptFunction(new Variance.Builder("bucketizer.var.welford", false, true));
     addNamedWarpScriptFunction(new StandardDeviation.Builder("bucketizer.sd", false));
     addNamedWarpScriptFunction(new StandardDeviation.Builder("bucketizer.sd.welford", false, true));
-    addNamedWarpScriptFunction(new StandardDeviation.Builder("bucketizer.sd.forbid-nulls", true));
 
     //
     // Mappers
@@ -3001,7 +3053,6 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new Max(MAPPER_MAX, true));
     addNamedWarpScriptFunction(new Mean("mapper.mean", false));
     addNamedWarpScriptFunction(new Median("mapper.median", false));
-    addNamedWarpScriptFunction(new Median("mapper.median.forbid-nulls", true));
     addNamedWarpScriptFunction(new MAD("mapper.mad"));
     addNamedWarpScriptFunction(new Or("mapper.or", false));
     addNamedWarpScriptFunction(new Highest(MAPPER_HIGHEST));
@@ -3031,18 +3082,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new MapperTanh("mapper.tanh"));
     addNamedWarpScriptFunction(new MapperSigmoid("mapper.sigmoid"));
     addNamedWarpScriptFunction(new MapperProduct("mapper.product"));
-    addNamedWarpScriptFunction(new Count("mapper.count.exclude-nulls", true));
-    addNamedWarpScriptFunction(new Count("mapper.count.include-nulls", false));
-    addNamedWarpScriptFunction(new Count("mapper.count.nonnull", true));
-    addNamedWarpScriptFunction(new Min("mapper.min.forbid-nulls", false));
-    addNamedWarpScriptFunction(new Max("mapper.max.forbid-nulls", false));
-    addNamedWarpScriptFunction(new Mean("mapper.mean.exclude-nulls", true));
-    addNamedWarpScriptFunction(new Sum("mapper.sum.forbid-nulls", false));
-    addNamedWarpScriptFunction(new Join.Builder("mapper.join.forbid-nulls", false, false, null));
-    addNamedWarpScriptFunction(new Variance.Builder("mapper.var.forbid-nulls", true));
-    addNamedWarpScriptFunction(new StandardDeviation.Builder("mapper.sd.forbid-nulls", true));
     addNamedWarpScriptFunction(new CircularMean.Builder("mapper.mean.circular", true));
-    addNamedWarpScriptFunction(new CircularMean.Builder("mapper.mean.circular.exclude-nulls", false));
     addNamedWarpScriptFunction(new MapperMod.Builder("mapper.mod"));
     addNamedWarpScriptFunction(new RMS("mapper.rms", false));
     addNamedWarpScriptFunction(new MapperRegExpMatch.Builder("mapper.regexp.match"));
@@ -3135,6 +3175,34 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new NOLOG(NOLOG));
     addNamedWarpScriptFunction(new LOGINIT(LOGINIT));
     addNamedWarpScriptFunction(new TDESCRIBE(TDESCRIBE));
+    addNamedWarpScriptFunction(new SLEEP(SLEEP));
+    addNamedWarpScriptFunction(new WSAUDIT(WSAUDIT));
+    addNamedWarpScriptFunction(new WSAUDITMODE(WSAUDITMODE));
+
+    //
+    // LevelDB
+    //
+
+    addNamedWarpScriptFunction(new LEVELDBOPEN(LEVELDBOPEN));
+    addNamedWarpScriptFunction(new LEVELDBCLOSE(LEVELDBCLOSE));
+    addNamedWarpScriptFunction(new LEVELDBREPAIR(LEVELDBREPAIR));
+    addNamedWarpScriptFunction(new LEVELDBCOMPACT(LEVELDBCOMPACT));
+    addNamedWarpScriptFunction(new LEVELDBSNAPSHOT(LEVELDBSNAPSHOT, false));
+    addNamedWarpScriptFunction(new LEVELDBSNAPSHOT(LEVELDBSNAPSHOTINC, true));
+    addNamedWarpScriptFunction(new SSTFIND(SSTFIND));
+    addNamedWarpScriptFunction(new SSTINFO(SSTINFO));
+    addNamedWarpScriptFunction(new SSTPURGE(SSTPURGE));
+    addNamedWarpScriptFunction(new SSTREPORT(SSTREPORT));
+    addNamedWarpScriptFunction(new SSTTIMESTAMP(SSTTIMESTAMP));
+
+    //
+    // FDB
+    //
+
+    addNamedWarpScriptFunction(new FDBTENANT(FDBTENANT));
+    addNamedWarpScriptFunction(new FDBSTATUS(FDBSTATUS));
+    addNamedWarpScriptFunction(new FDBSIZE(FDBSIZE));
+    addNamedWarpScriptFunction(new FDBGET(FDBGET));
 
     /////////////////////////
 

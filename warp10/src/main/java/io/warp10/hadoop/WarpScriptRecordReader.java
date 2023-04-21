@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -101,7 +101,7 @@ public class WarpScriptRecordReader extends RecordReader<Object, Object> {
     try {
       this.executor = inputFormat.getWarpScriptExecutor(conf, isMacro ? macroCode : code, isMacro);
     } catch (WarpScriptException wse) {
-      throw new IOException("Error while instatiating WarpScript executor", wse);
+      throw new IOException("Error while instantiating WarpScript executor", wse);
     }
 
     done = false;
@@ -161,7 +161,7 @@ public class WarpScriptRecordReader extends RecordReader<Object, Object> {
           for (int i = results.size() - 1; i >= 0; i--) {
             Object result = results.get(i);
             if (!(result instanceof List) || 2 != ((List) result).size()) {
-              throw new IOException("Invalid WarpScript™ output, expected a [ key value ] pair, got a " + (null == result ? "null" : result.getClass()));
+              throw new IOException("Invalid WarpScript output, expected a [ key value ] pair, got a " + (null == result ? "null" : result.getClass()));
             }
             List<Object> record = new ArrayList<Object>();
             record.add(WritableUtils.toWritable(((List) result).get(0)));
@@ -198,7 +198,7 @@ public class WarpScriptRecordReader extends RecordReader<Object, Object> {
           for (int i = results.size() - 1; i >= 0; i--) {
             Object result = results.get(i);
             if (!(result instanceof List) || 2 != ((List) result).size()) {
-              throw new IOException("Invalid WarpScript™ output, expected [ key value ] pairs, got a " + (null == result ? "null" : result.getClass()));
+              throw new IOException("Invalid WarpScript output, expected [ key value ] pairs, got a " + (null == result ? "null" : result.getClass()));
             }
             List<Object> record = new ArrayList<Object>();
             record.add(WritableUtils.toWritable(((List) result).get(0)));

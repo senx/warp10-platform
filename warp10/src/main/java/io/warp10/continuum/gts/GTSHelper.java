@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,10 +16,55 @@
 
 package io.warp10.continuum.gts;
 
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.net.URLDecoder;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.CharBuffer;
+import java.nio.charset.CharsetEncoder;
+import java.nio.charset.CoderResult;
+import java.nio.charset.CodingErrorAction;
+import java.nio.charset.StandardCharsets;
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.PriorityQueue;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.math3.fitting.PolynomialCurveFitter;
+import org.apache.commons.math3.fitting.WeightedObservedPoint;
+import org.apache.thrift.TSerializer;
+import org.apache.thrift.protocol.TCompactProtocol;
+import org.bouncycastle.util.encoders.Hex;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.geoxp.GeoXPLib;
 import com.geoxp.GeoXPLib.GeoXPShape;
 import io.warp10.CapacityExtractorOutputStream;
-import io.warp10.DoubleUtils;
 import io.warp10.WarpHexDecoder;
 import io.warp10.WarpURLDecoder;
 import io.warp10.WarpURLEncoder;
@@ -48,15 +93,6 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.functions.MACROMAPPER;
 import io.warp10.script.functions.TOQUATERNION;
-import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.math3.fitting.PolynomialCurveFitter;
-import org.apache.commons.math3.fitting.WeightedObservedPoint;
-import org.apache.thrift.TSerializer;
-import org.apache.thrift.protocol.TCompactProtocol;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import sun.nio.cs.ArrayEncoder;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -2056,12 +2092,12 @@ public class GTSHelper {
     if (srcGts.type != subGts.type) {
       throw new RuntimeException("Cannot copy data, both gts do not have the same type.");
     }
-    
+
     if (null == subGts.ticks || subGts.ticks.length < length) {
       subGts.ticks = new long[length];
     }
     System.arraycopy(srcGts.ticks, srcPos, subGts.ticks, 0, length);
-    
+
     // locations, if any
     if (null != srcGts.locations) {
       if (null == subGts.locations || subGts.locations.length < length) {
@@ -2069,7 +2105,7 @@ public class GTSHelper {
       }
       System.arraycopy(srcGts.locations, srcPos, subGts.locations, 0, length);
     }
-    
+
     // elevations, if any
     if (null != srcGts.elevations) {
       if (null == subGts.elevations || subGts.elevations.length < length) {
@@ -2077,7 +2113,7 @@ public class GTSHelper {
       }
       System.arraycopy(srcGts.elevations, srcPos, subGts.elevations, 0, length);
     }
-    
+
     // value, up to value type
     switch (srcGts.type) {
       case LONG:
@@ -2102,11 +2138,11 @@ public class GTSHelper {
         subGts.booleanValues = srcGts.booleanValues.get(srcPos, srcPos + length);
         break;
     }
-    
+
     // set new length of subGts
     subGts.values = length;
   }
-  
+
   /**
    * Converts a Geo Time Serie into a bucketized version.
    * Bucketizing means aggregating values (with associated location and elevation) that lie
@@ -2123,7 +2159,7 @@ public class GTSHelper {
   public static final GeoTimeSerie bucketize(GeoTimeSerie gts, long bucketspan, int bucketcount, long lastbucket, WarpScriptBucketizerFunction aggregator, long maxbuckets) throws WarpScriptException {
     return bucketize(gts, bucketspan, bucketcount, lastbucket, aggregator, maxbuckets, null);
   }
-  
+
   public static final GeoTimeSerie bucketize(GeoTimeSerie gts, long bucketspan, int bucketcount, long lastbucket, Object aggregator, long maxbuckets, WarpScriptStack stack) throws WarpScriptException {
 
     //
@@ -2334,7 +2370,7 @@ public class GTSHelper {
 
         // next bucket
       }
-      
+
     } else {
       if (!(aggregator instanceof WarpScriptBucketizerFunction)) {
         throw new WarpScriptException("Invalid bucketizer function.");
@@ -2344,7 +2380,7 @@ public class GTSHelper {
       if (aggregator instanceof WarpScriptAggregatorOnListsFunction) {
         // Second case: the aggregator is capable to process an array of List instead of an array of array.
         // It uses a special class for lists that saves a memory allocation.
-        
+
         // build a structure ready to use:
         // - special copy on write List for ticks, values  (view of the original primitive array or BitSet)
         // - decode elevations
@@ -2439,7 +2475,7 @@ public class GTSHelper {
         // - values: array of values being aggregated
         // - bucket span: width (in microseconds) of bucket
         //
-        // WarpScriptBucketizerFunction interface is the historic one, some extension still rely on it, 
+        // WarpScriptBucketizerFunction interface is the historic one, some extension still rely on it,
         // it must be kept as it is even if it is less memory efficient.
         Object[] parms = new Object[8];
         // name and labels can be defined here
@@ -2748,7 +2784,8 @@ public class GTSHelper {
     }
 
     //idx = str.indexOf("/");
-    idx = UnsafeString.indexOf(str, '/', tsoffset);
+
+    idx = str.indexOf('/', tsoffset);
 
     if (-1 == idx){
       throw new ParseException("Missing timestamp separator.", tsoffset);
@@ -2794,8 +2831,7 @@ public class GTSHelper {
     // Advance past the '/'
     idx++;
 
-    //int idx2 = str.indexOf("/", idx);
-    int idx2 = UnsafeString.indexOf(str, '/', idx);
+    int idx2 = str.indexOf('/', idx);
 
     if (-1 == idx2){
       throw new ParseException("Missing location/elevation separator.", idx);
@@ -2808,9 +2844,8 @@ public class GTSHelper {
       String latlon = str.substring(idx, idx2);
       // Advance past the second '/'
       idx = idx2 + 1;
-      //idx2 = latlon.indexOf(":");
-      idx2 = UnsafeString.indexOf(latlon, ':');
 
+      idx2 = latlon.indexOf(':');
       try {
         if (-1 != idx2) {
           location = GeoXPLib.toGeoXPPoint(Double.parseDouble(latlon.substring(0, idx2)), Double.parseDouble(latlon.substring(idx2 + 1)));
@@ -2826,8 +2861,7 @@ public class GTSHelper {
       idx = idx2 + 1;
     }
 
-    //idx2 = str.indexOf(" ", idx);
-    idx2 = UnsafeString.indexOf(str, ' ', idx);
+    idx2 = str.indexOf(' ', idx);
 
     if (-1 == idx2){
       if(0 == tsoffset) {
@@ -2859,8 +2893,7 @@ public class GTSHelper {
     if (tsoffset > 0) {
       idx2 = -1;
     } else {
-      //idx2 = str.indexOf("{", idx);
-      idx2 = UnsafeString.indexOf(str, '{', idx);
+      idx2 = str.indexOf('{', idx);
     }
 
     String name = null;
@@ -2890,8 +2923,7 @@ public class GTSHelper {
       // Advance past the '{'
       idx = idx2 + 1;
 
-      //idx2 = str.indexOf("}", idx);
-      idx2 = UnsafeString.indexOf(str, '}', idx);
+      idx2 = str.indexOf('}', idx);
 
       if (-1 == idx2){
         throw new ParseException("Missing end of labels '}'.", str.length() - 1);
@@ -3005,6 +3037,7 @@ public class GTSHelper {
       throw new ParseException("Value too large for GTS " + (null != encoder ? GTSHelper.buildSelector(encoder.getMetadata(), false) : ""), idx);
     }
 
+
     // Allocate a new Encoder if need be, with a base timestamp of 0L.
     if (null == encoder || !name.equals(encoder.getName()) || !labels.equals(encoder.getMetadata().getLabels())) {
       encoder = new GTSEncoder(0L);
@@ -3031,7 +3064,16 @@ public class GTSHelper {
     }
 
     if (!ignored) {
+      long pessimisticSize = encoder.getPessimisticSize();
       encoder.addValue(timestamp, location, elevation, value);
+
+      //
+      // Do a final check to see if the new data point added more than maxValueSize + 30 bytes (2 header + 8 ts + 8 loc + 8 elev + 4 STRING size) to the encoder
+      //
+
+      if (Long.MAX_VALUE != maxValueSize && encoder.getPessimisticSize() - pessimisticSize > maxValueSize + 30) {
+        throw new ParseException("Value too large for GTS " + GTSHelper.buildSelector(encoder.getMetadata(), false), idx);
+      }
     } else {
       ignoredCount.addAndGet(1);
     }
@@ -3116,7 +3158,7 @@ public class GTSHelper {
           }
         }
 
-        if (!DoubleUtils.isFinite(q[0]) || !DoubleUtils.isFinite(q[1]) || !DoubleUtils.isFinite(q[2]) || !DoubleUtils.isFinite(q[3])) {
+        if (!Double.isFinite(q[0]) || !Double.isFinite(q[1]) || !Double.isFinite(q[2]) || !Double.isFinite(q[3])) {
           throw new ParseException("Quaternion values require finite elements.", 0);
         }
 
@@ -3553,17 +3595,9 @@ public class GTSHelper {
   }
 
   public static final long classId(long k0, long k1, String name) {
-    CharsetEncoder ce = StandardCharsets.UTF_8.newEncoder();
+    byte[] ba = name.getBytes(StandardCharsets.UTF_8);
 
-    ce.onMalformedInput(CodingErrorAction.REPLACE)
-    .onUnmappableCharacter(CodingErrorAction.REPLACE)
-    .reset();
-
-    byte[] ba = new byte[(int) ((double) ce.maxBytesPerChar() * name.length())];
-
-    int blen = ((ArrayEncoder)ce).encode(UnsafeString.getChars(name), UnsafeString.getOffset(name), name.length(), ba);
-
-    return SipHashInline.hash24_palindromic(k0, k1, ba, 0, blen);
+    return SipHashInline.hash24_palindromic(k0, k1, ba, 0, ba.length);
   }
 
   /**
@@ -3670,6 +3704,9 @@ public class GTSHelper {
 
     int idx = 0;
 
+    CharBuffer cb = CharBuffer.allocate(calen);
+    ByteBuffer bb = ByteBuffer.allocate((int) ((double) ce.maxBytesPerChar() * calen));
+
     for (Entry<String, String> entry: labels.entrySet()) {
       String ekey = entry.getKey();
       String eval = entry.getValue();
@@ -3679,24 +3716,36 @@ public class GTSHelper {
 
       if (klen > calen || vlen > calen) {
         calen = Math.max(klen, vlen);
-        ba = new byte[(int) ((double) ce.maxBytesPerChar() * calen)];
+        cb = CharBuffer.allocate(calen);
+        bb = ByteBuffer.allocate((int) ((double) ce.maxBytesPerChar() * calen));
       }
 
       ce.onMalformedInput(CodingErrorAction.REPLACE)
       .onUnmappableCharacter(CodingErrorAction.REPLACE)
       .reset();
 
-      int blen = ((ArrayEncoder)ce).encode(UnsafeString.getChars(ekey), UnsafeString.getOffset(ekey), klen, ba);
+      cb.clear();
+      cb.put(ekey);
+      cb.flip();
+      bb.clear();
 
-      hashes[idx] = SipHashInline.hash24_palindromic(sipkey0, sipkey1, ba, 0, blen);
+      CoderResult res = ce.encode(cb, bb, true);
+      bb.flip();
 
+      hashes[idx] = SipHashInline.hash24_palindromic(sipkey0, sipkey1, bb.array(), 0, bb.limit());
       ce.onMalformedInput(CodingErrorAction.REPLACE)
       .onUnmappableCharacter(CodingErrorAction.REPLACE)
       .reset();
 
-      blen = ((ArrayEncoder)ce).encode(UnsafeString.getChars(eval), UnsafeString.getOffset(eval), vlen, ba);
+      cb.clear();
+      cb.put(eval);
+      cb.flip();
+      bb.clear();
 
-      hashes[idx+1] = SipHashInline.hash24_palindromic(sipkey0, sipkey1, ba, 0, blen);
+      res = ce.encode(cb, bb, true);
+      bb.flip();
+
+      hashes[idx+1] = SipHashInline.hash24_palindromic(sipkey0, sipkey1, bb.array(), 0, bb.limit());
       idx+=2;
     }
 
@@ -3751,7 +3800,10 @@ public class GTSHelper {
       buf[idx++] = (byte) (hash & 0xffL);
     }
 
-    return SipHashInline.hash24_palindromic(sipkey0, sipkey1, buf, 0, buf.length);
+    //return SipHashInline.hash24(sipkey[0], sipkey[1], buf, 0, buf.length);
+    long id = SipHashInline.hash24_palindromic(sipkey0, sipkey1, buf, 0, buf.length);
+    return id;
+    //return SipHashInline.hash24_palindromic(sipkey0, sipkey1, buf, 0, buf.length);
   }
 
   public static final long labelsId_slow(byte[] key, Map<String,String> labels) {
@@ -3857,11 +3909,10 @@ public class GTSHelper {
       return bytes;
     }
 
-    char[] c = UnsafeString.getChars(s);
-
     for (int i = 0; i < 8; i++) {
-      bytes[i * 2] = (byte) ((c[i] >> 8) & 0xFF);
-      bytes[1 + i * 2] = (byte) (c[i] & 0xFF);
+      char c = s.charAt(i);
+      bytes[i * 2] = (byte) ((c >> 8) & 0xFF);
+      bytes[1 + i * 2] = (byte) (c & 0xFF);
     }
 
     return bytes;
@@ -3870,12 +3921,11 @@ public class GTSHelper {
   public static long[] unpackGTSIdLongs(String s) {
     long[] clslbls = new long[2];
 
-    char[] c = UnsafeString.getChars(s);
     for (int i = 0; i < 4; i++) {
       clslbls[0] <<= 16;
-      clslbls[0] |= (c[i] & 0xFFFFL) & 0xFFFFL;
+      clslbls[0] |= (s.charAt(i) & 0xFFFFL) & 0xFFFFL;
       clslbls[1] <<= 16;
-      clslbls[1] |= (c[i + 4] & 0xFFFFL) & 0xFFFFL;
+      clslbls[1] |= (s.charAt(i + 4) & 0xFFFFL) & 0xFFFFL;
     }
 
 
@@ -3887,10 +3937,7 @@ public class GTSHelper {
   }
 
   public static String gtsIdToString(long classId, long labelsId, boolean intern) {
-    String s = new String("01234567");
-
-    // This way we don't create a char array twice...
-    char[] c = UnsafeString.getChars(s);
+    char[] c = new char[8];
 
     long x = classId;
     long y = labelsId;
@@ -3902,11 +3949,13 @@ public class GTSHelper {
       y >>>= 16;
     }
 
+    String s = new String(c);
+
     if (intern) {
-      return s.intern();
-    } else {
-      return s;
+      s = s.intern();
     }
+
+    return s;
   }
 
   public static long[] stringToGTSId(String s) {
@@ -5109,7 +5158,7 @@ public class GTSHelper {
 
         if ((idxa < gtsa.values && curTickA == gtsa.ticks[idxa])
             || (idxb < gtsb.values && curTickB == gtsb.ticks[idxb])) {
-          throw new WarpScriptException("Cannot fill Geo Time Series™ with duplicate timestamps.");
+          throw new WarpScriptException("Cannot fill Geo Time Series with duplicate timestamps.");
         }
         continue;
       }
@@ -5604,6 +5653,18 @@ public class GTSHelper {
     unbucketize(gts);
   }
 
+  public static List<GeoTimeSerie> map(GeoTimeSerie gts, WarpScriptMapperFunction mapper, long prewindow, long postwindow, long occurrences, boolean reversed, int step, boolean overrideTick) throws WarpScriptException {
+    return map(gts, mapper, prewindow, postwindow, occurrences, reversed, step, overrideTick, null);
+  }
+
+  public static List<GeoTimeSerie> map(GeoTimeSerie gts, Object mapper, long prewindow, long postwindow, long occurrences, boolean reversed, int step, boolean overrideTick, WarpScriptStack stack) throws WarpScriptException {
+    return map(gts, mapper, prewindow, postwindow, occurrences, reversed, step, overrideTick, stack, null);
+  }
+
+  public static List<GeoTimeSerie> map(GeoTimeSerie gts, Object mapper, long prewindow, long postwindow, long occurrences, boolean reversed, int step, boolean overrideTick, WarpScriptStack stack,
+                                       List<Long> outputTicks) throws WarpScriptException {
+    return map(gts, mapper, prewindow, postwindow, occurrences, reversed, step, overrideTick, stack, outputTicks, false);
+  }
   /**
    * Apply a mapper on a GeoTimeSerie instance and produce a new
    * GTS instance with the result of the mapper application.
@@ -5620,23 +5681,11 @@ public class GTSHelper {
    *                    sums where the only result that might matter is that of the latest tick
    * @param reversed Compute ticks backwards, starting from most recent one
    * @param step How many ticks to move the sliding window after each mapper application (>=1)
+   * @param outputTicks Sorted list of ticks to use instead of the gts ticks (reverse sorted if <code>reversed</code> is true)
    * @param overrideTick If true, use the tick returned by the mapper instead of the current tick. This may lead to duplicate ticks, need to run DEDUP.
    *
    * @return A new GTS instance with the result of the Mapper.
    */
-  public static List<GeoTimeSerie> map(GeoTimeSerie gts, WarpScriptMapperFunction mapper, long prewindow, long postwindow, long occurrences, boolean reversed, int step, boolean overrideTick) throws WarpScriptException {
-    return map(gts, mapper, prewindow, postwindow, occurrences, reversed, step, overrideTick, null);
-  }
-
-  public static List<GeoTimeSerie> map(GeoTimeSerie gts, Object mapper, long prewindow, long postwindow, long occurrences, boolean reversed, int step, boolean overrideTick, WarpScriptStack stack) throws WarpScriptException {
-    return map(gts, mapper, prewindow, postwindow, occurrences, reversed, step, overrideTick, stack, null);
-  }
-
-  public static List<GeoTimeSerie> map(GeoTimeSerie gts, Object mapper, long prewindow, long postwindow, long occurrences, boolean reversed, int step, boolean overrideTick, WarpScriptStack stack,
-                                       List<Long> outputTicks) throws WarpScriptException {
-    return map(gts, mapper, prewindow, postwindow, occurrences, reversed, step, overrideTick, stack, outputTicks, false);
-  }
-
   public static List<GeoTimeSerie> map(GeoTimeSerie gts, Object mapper, long prewindow, long postwindow, long occurrences, boolean reversed, int step, boolean overrideTick, WarpScriptStack stack,
                                        List<Long> outputTicks, boolean dedup) throws WarpScriptException {
 
@@ -5682,16 +5731,8 @@ public class GTSHelper {
     // Sort ticks
     sort(mapped, reversed);
     // Retrieve ticks if GTS is not bucketized.
-    long[] ticks = isBucketized(gts) ? null : Arrays.copyOf(mapped.ticks, gts.values);
-
-    // Sort outputTicks
-    if (null != outputTicks) {
-      if (reversed) {
-        Collections.sort(outputTicks, Collections.<Long>reverseOrder());
-      } else {
-        Collections.sort(outputTicks);
-      }
-    }
+    final boolean isBucketized = isBucketized(gts);
+    long[] ticks = isBucketized ? null : Arrays.copyOf(mapped.ticks, gts.values);
 
     // Clear clone
     GTSHelper.clear(mapped);
@@ -5705,11 +5746,11 @@ public class GTSHelper {
     // idx is the index of the current output tick,
     // if (!reversed), rightIdx is the index of the tick of the input gts that is the least greater or equal than the current output tick.
     // if (reversed), leftIdx is the index of the tick of the input gts that is the least lesser or equal than the current output tick.
-    // Note that they may not exist if all values are at the left (or right).
+    // Note that they may not exist if all values are at the left (or right), in that case rightIdx (or leftIdx) equals ticks.length
     //
 
     // Number of ticks for which to run the mapper
-    int nticks = null != ticks ? ticks.length : mapped.bucketcount;
+    int nticks = isBucketized ? mapped.bucketcount : ticks.length;
     if (null != outputTicks) {
       nticks = outputTicks.size();
     }
@@ -5739,20 +5780,21 @@ public class GTSHelper {
       if (null == outputTicks) {
 
         if (reversed) {
-          tick = null != ticks ? ticks[idx] : mapped.lastbucket - idx * mapped.bucketspan;
+          tick = isBucketized ? mapped.lastbucket - idx * mapped.bucketspan : ticks[idx];
         } else {
-          tick = null != ticks ? ticks[idx] : mapped.lastbucket - (mapped.bucketcount - 1 - idx) * mapped.bucketspan;
+          tick = isBucketized ? mapped.lastbucket - (mapped.bucketcount - 1 - idx) * mapped.bucketspan : ticks[idx];
         }
       } else {
         tick = outputTicks.get(idx);
 
-        if (null != ticks) { // means input gts is not bucketized
+        if (!isBucketized) {
 
           // calculate leftIdx and rightIdx
           if (reversed) {
             while (leftIdx < ticks.length && ticks[leftIdx] > tick) {
               leftIdx++;
             }
+
           } else {
             while (rightIdx < ticks.length && ticks[rightIdx] < tick) {
               rightIdx++;
@@ -5787,13 +5829,8 @@ public class GTSHelper {
         start = tick + prewindow;
       } else if (prewindow > 0) {
         // window is a number of ticks
-        if (null == ticks) {
-          // GTS is bucketized.
-          if (null == outputTicks || !reversed) {
-            start = prewindow <= mapped.bucketcount ? tick - prewindow * mapped.bucketspan : Long.MIN_VALUE;
-          } else {
-            start = prewindow - 1 <= mapped.bucketcount ? tick - (prewindow - 1) * mapped.bucketspan : Long.MIN_VALUE;
-          }
+        if (isBucketized) {
+          start = prewindow <= mapped.bucketcount ? tick - prewindow * mapped.bucketspan : Long.MIN_VALUE;
         } else {
           // GTS is not bucketized.
           if (null == outputTicks) {
@@ -5803,25 +5840,17 @@ public class GTSHelper {
               start = idx - prewindow >= 0 ? (ticks[idx - (int) prewindow]) : Long.MIN_VALUE;
             }
           } else {
-
-            //
-            // Note that if output ticks are provided,
-            // then if the current output tick matches an input tick,
-            // then if (reversed)
-            // then prewindow counts the current tick
-            // else it is postwindow that counts the current tick
-            //
-
             if (reversed) {
-              start = leftIdx - 1 + prewindow < ticks.length ? (ticks[leftIdx - 1 + (int) prewindow]) : Long.MIN_VALUE;
+              // if the current output tick matches an input tick then there will be one tick more in the sliding window
+              if (leftIdx < ticks.length && ticks[leftIdx] == tick) {
+                start = leftIdx + prewindow < ticks.length ? ticks[leftIdx + (int) prewindow] : Long.MIN_VALUE;
+              } else {
+                start = leftIdx - 1 + prewindow < ticks.length ? ticks[leftIdx - 1 + (int) prewindow] : Long.MIN_VALUE;
+              }
             } else {
-              start = rightIdx - prewindow >= 0 ? (ticks[rightIdx - (int) prewindow]) : Long.MIN_VALUE;
+              start = rightIdx - prewindow >= 0 ? ticks[rightIdx - (int) prewindow] : Long.MIN_VALUE;
             }
           }
-        }
-      } else {
-        if (null != outputTicks && reversed) {
-          start = tick + 1;
         }
       }
 
@@ -5829,13 +5858,8 @@ public class GTSHelper {
         stop = tick - postwindow;
       } else if (postwindow > 0) {
         // window is a number of ticks
-        if (null == ticks) {
-          // GTS is bucketized.
-          if (null == outputTicks || reversed) {
-            stop = postwindow <= mapped.bucketcount ? tick + postwindow * mapped.bucketspan : Long.MAX_VALUE;
-          } else {
-            stop = postwindow - 1 <= mapped.bucketcount ? tick + (postwindow - 1) * mapped.bucketspan : Long.MAX_VALUE;
-          }
+        if (isBucketized) {
+          stop = postwindow <= mapped.bucketcount ? tick + postwindow * mapped.bucketspan : Long.MAX_VALUE;
         } else {
           // GTS is not bucketized.
           if (null == outputTicks) {
@@ -5846,15 +5870,15 @@ public class GTSHelper {
             }
           } else {
             if (reversed) {
-              stop = leftIdx - postwindow >= 0 ? (ticks[leftIdx - (int) postwindow]) : Long.MAX_VALUE;
+              stop = leftIdx - postwindow >= 0 ? ticks[leftIdx - (int) postwindow] : Long.MAX_VALUE;
             } else {
-              stop = rightIdx - 1 + postwindow < ticks.length ? (ticks[rightIdx - 1 + (int) postwindow]) : Long.MAX_VALUE;
+              if (rightIdx < ticks.length && tick == ticks[rightIdx]) {
+                stop = rightIdx + postwindow < ticks.length ? ticks[rightIdx + (int) postwindow] : Long.MAX_VALUE;
+              } else {
+                stop = rightIdx - 1 + postwindow < ticks.length ? ticks[rightIdx - 1 + (int) postwindow] : Long.MAX_VALUE;
+              }
             }
           }
-        }
-      } else {
-        if (!(null == outputTicks) && !reversed) {
-          stop = tick - 1;
         }
       }
 

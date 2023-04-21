@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -17,8 +17,6 @@
 package io.warp10;
 
 import io.warp10.continuum.Configuration;
-import io.warp10.continuum.KafkaWebCallBroker;
-import io.warp10.continuum.KafkaWebCallService;
 import io.warp10.continuum.ThrottlingManager;
 import io.warp10.continuum.egress.Egress;
 import io.warp10.continuum.ingress.Ingress;
@@ -127,23 +125,25 @@ public class WarpDist {
 
   public static void main(String[] args) throws Exception {
 
-    System.out.println();
-    System.out.println(Constants.WARP10_BANNER);
-    System.out.println("  Revision " + Revision.REVISION);
-    System.out.println();
+    if (null == properties) {
+      System.out.println();
+      System.out.println(Constants.WARP10_BANNER);
+      System.out.println("  Revision " + Revision.REVISION);
+      System.out.println();
 
-    System.setProperty("java.awt.headless", "true");
+      System.setProperty("java.awt.headless", "true");
 
-    if (StandardCharsets.UTF_8 != Charset.defaultCharset()) {
-      throw new RuntimeException("Default encoding MUST be UTF-8 but it is " + Charset.defaultCharset() + ". Aborting.");
-    }
+      if (StandardCharsets.UTF_8 != Charset.defaultCharset()) {
+        throw new RuntimeException("Default encoding MUST be UTF-8 but it is " + Charset.defaultCharset() + ". Aborting.");
+      }
 
-    if (args.length > 0) {
-      setProperties(args);
-    } else if (null != System.getProperty(WarpConfig.WARP10_CONFIG)) {
-      setProperties(System.getProperty(WarpConfig.WARP10_CONFIG).split("[, ]+"));
-    } else if (null != System.getenv(WarpConfig.WARP10_CONFIG_ENV)) {
-      setProperties(System.getenv(WarpConfig.WARP10_CONFIG_ENV).split("[, ]+"));
+      if (args.length > 0) {
+        setProperties(args);
+      } else if (null != System.getProperty(WarpConfig.WARP10_CONFIG)) {
+        setProperties(System.getProperty(WarpConfig.WARP10_CONFIG).split("[, ]+"));
+      } else if (null != System.getenv(WarpConfig.WARP10_CONFIG_ENV)) {
+        setProperties(System.getenv(WarpConfig.WARP10_CONFIG_ENV).split("[, ]+"));
+      }
     }
 
     //
@@ -218,8 +218,6 @@ public class WarpDist {
 
     WarpScriptLib.registerExtensions();
 
-    KafkaWebCallService.initKeys(keystore, properties);
-
     //
     // Initialize ThrottlingManager
     //
@@ -250,7 +248,6 @@ public class WarpDist {
       } else if ("store".equals(subprocess)) {
         int nthreads = Integer.valueOf(properties.getProperty(Configuration.STORE_NTHREADS));
         for (int i = 0; i < nthreads; i++) {
-          //Store store = new Store(getKeyStore(), getProperties(), null);
           Store store = new Store(getKeyStore(), getProperties(), null);
         }
         Map<String,String> labels = new HashMap<String, String>();
@@ -261,8 +258,6 @@ public class WarpDist {
         Map<String,String> labels = new HashMap<String, String>();
         labels.put(SensisionConstants.SENSISION_LABEL_COMPONENT, "directory");
         Sensision.set(SensisionConstants.SENSISION_CLASS_WARP_REVISION, labels, Revision.REVISION);
-      //} else if ("index".equals(subprocess)) {
-      //  Index index = new Index(getKeyStore(), getProperties());
       } else if ("plasmaFE".equalsIgnoreCase(subprocess)) {
         PlasmaFrontEnd plasmaFE = new PlasmaFrontEnd(getKeyStore(), getProperties());
         Map<String,String> labels = new HashMap<String, String>();
@@ -272,11 +267,6 @@ public class WarpDist {
         PlasmaBackEnd plasmaBE = new PlasmaBackEnd(getKeyStore(), getProperties());
         Map<String,String> labels = new HashMap<String, String>();
         labels.put(SensisionConstants.SENSISION_LABEL_COMPONENT, "plasmabe");
-        Sensision.set(SensisionConstants.SENSISION_CLASS_WARP_REVISION, labels, Revision.REVISION);
-      } else if ("webcall".equals(subprocess)) {
-        KafkaWebCallBroker webcall = new KafkaWebCallBroker(getKeyStore(), getProperties());
-        Map<String,String> labels = new HashMap<String, String>();
-        labels.put(SensisionConstants.SENSISION_LABEL_COMPONENT, "webcall");
         Sensision.set(SensisionConstants.SENSISION_CLASS_WARP_REVISION, labels, Revision.REVISION);
       } else if ("runner".equals(subprocess)) {
         ScriptRunner runner = new ScriptRunner(getKeyStore(), getProperties());

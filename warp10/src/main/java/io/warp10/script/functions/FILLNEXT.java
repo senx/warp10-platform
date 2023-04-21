@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -50,7 +50,7 @@ public class FILLNEXT extends NamedWarpScriptFunction implements WarpScriptStack
         } else if (params.get(i) instanceof List) {
           for (Object o: (List) params.get(i)) {
             if (!(o instanceof GeoTimeSerie)) {
-              throw new WarpScriptException(getName() + " expects a LIST or a Geo Time Series™ as input.");
+              throw new WarpScriptException(getName() + " expects a LIST or a Geo Time Series as input.");
             }
             series.add((GeoTimeSerie) o);
           }
@@ -66,7 +66,7 @@ public class FILLNEXT extends NamedWarpScriptFunction implements WarpScriptStack
     } else if (top instanceof GeoTimeSerie) {
       stack.push(GTSHelper.fillnext((GeoTimeSerie) top));
     } else {
-      throw new WarpScriptException(getName() + " expects a LIST or a Geo Time Series™ as input.");
+      throw new WarpScriptException(getName() + " expects a LIST or a Geo Time Series as input.");
     }
 
     return stack;

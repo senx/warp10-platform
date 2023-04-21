@@ -1,0 +1,72 @@
+//
+//   Copyright 2023  SenX S.A.S.
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+//
+
+//
+// This is an envelope to generate sensision tokens.
+//
+// 'expiryDate', 'issuance' and, 'ownerAndProducer' are chosen so multiple calls to tokengen with this envelope
+// lead to the same token.
+//
+
+JSONPRETTY
+
+'sensision' 'applicationName' STORE
+[ 2099 12 31 ] TSELEMENTS-> MSTU / 'expiryDate' STORE
+[ 2023 04 14 ] TSELEMENTS-> MSTU / 'issuance' STORE
+
+// Compute owner and producer UUID base on Warp 10 instance name
+IDENT ISNULL <% 'Warp 10' %> <% IDENT %> IFTE
+'UTF-8' ->BYTES MD5 ->HEX
+'(.{8})(.{4})(.{4})(.{4})(.{12})' '$1-$2-$3-$4-$5' REPLACE
+'ownerAndProducer' STORE
+
+//
+// Generate sensision read token
+//
+{
+  'id' 'SensisionReadToken'
+  'type' 'READ'
+  'application' $applicationName
+  'owner'  $ownerAndProducer
+  'issuance' $issuance
+  'expiry' $expiryDate
+  'labels' { }
+  'attributes' {
+    '.cap:sensision.read' ''
+  }
+  'owners' [ $ownerAndProducer ]
+  'producers' [ $ownerAndProducer ]
+  'applications' [ $applicationName ]
+}
+TOKENGEN
+
+//
+// Generate sensision write token
+//
+{
+  'id' 'SensisionWriteToken'
+  'type' 'WRITE'
+  'application' $applicationName
+  'owner'  $ownerAndProducer
+  'producer' $ownerAndProducer
+  'issuance' $issuance
+  'expiry' $expiryDate
+  'labels' { }
+  'attributes' {
+    '.cap:sensision.write' ''
+  }
+}
+TOKENGEN

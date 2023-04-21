@@ -42,7 +42,7 @@ import io.warp10.script.WarpScriptExecutor.StackSemantics;
 
 /**
  * This InputFormat wraps another InputFormat and creates a RecordReader
- * which returns K/V processed by some WarpScript™ code.
+ * which returns K/V processed by some WarpScript code.
  */
 public class WarpScriptInputFormat extends InputFormat<Object, Object> {
 

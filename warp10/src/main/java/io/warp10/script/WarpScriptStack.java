@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -59,7 +59,6 @@ public interface WarpScriptStack {
   public static final int DEFAULT_MAX_DEPTH = 1000;
   public static final long DEFAULT_MAX_LOOP_DURATION = 5000L;
   public static final int DEFAULT_MAX_SYMBOLS = 64;
-  public static final int DEFAULT_MAX_WEBCALLS = 4;
   public static final long DEFAULT_MAX_PIXELS = 1000000L;
   public static final long DEFAULT_MAX_JSON = 20L * 1024L * 1024L; // 20MB
   public static final long DEFAULT_REGISTERS = 256;
@@ -119,15 +118,16 @@ public interface WarpScriptStack {
   public static final String ATTRIBUTE_MACRO_NAME = "macro.name";
 
   /**
-   * Flag indicating whether or not the stack is currently in documentation mode
-   */
-  public static final String ATTRIBUTE_DOCMODE = "docmode";
-
-  /**
    * Flag indicating whether or not the stack is currently in info mode
    */
   public static final String ATTRIBUTE_INFOMODE = "infomode";
 
+  /**
+   * List of parsing errors or unknown function errors generated in WarpScript audit mode.
+   * These errors are stored as WarpScriptAuditStatement with UNKNOWN or WS_EXCEPTION type.
+   */
+  public static final String ATTRIBUTE_PARSING_ERRORS = "wsaudit.errors";
+  
   /**
    * Debug depth of the stack. This is the number
    * of elements to return when an error occurs.
@@ -251,9 +251,10 @@ public interface WarpScriptStack {
   public static final String ATTRIBUTE_HADOOP_PROGRESSABLE = "hadoop.progressable";
 
   /**
-   * Maximum number of WEBCALL invocations per script run
+   * Flag indicating if we are currently executing an XEVAL call, in which
+   * case generated macros should not be flagged secure.
    */
-  public static final String ATTRIBUTE_MAX_WEBCALLS = "stack.maxwebcalls";
+  public static final String ATTRIBUTE_IN_XEVAL = "in.xeval";
 
   /**
    * Flag indicating if we are currently in a secure macro execution
@@ -469,12 +470,25 @@ public interface WarpScriptStack {
               sb.append(((Macro) o).snapshot(hideSecure));
               sb.append(" ");
             } else if (o instanceof WarpScriptStackFunction) {
-              String funcSnapshot = o.toString();
 
               // In the case the snapshot of the function is 'MYFUNC' FUNCREF, instead of adding
               // 'MYFUNC' FUNCREF EVAL to the snapshot, MYFUNC can simply be added.
               // This can be done only if the name of function contains no special character.
               boolean simplified = false;
+
+              if (o instanceof WarpScriptAuditStatement) {
+                if (WarpScriptAuditStatement.STATEMENT_TYPE.FUNCTION_CALL == ((WarpScriptAuditStatement) o).type
+                    && ((WarpScriptAuditStatement) o).statementObject instanceof WarpScriptStackFunction) {
+                  // replace o by the object wrapped into the WarpScriptAuditStatement
+                  o = ((WarpScriptAuditStatement) o).statementObject;
+                } else {
+                  // the other types are handled by WarpScriptAuditStatement directly
+                  sb.append(o.toString());
+                  simplified = true;
+                }
+              }
+
+              String funcSnapshot = o.toString();
 
               if (o instanceof NamedWarpScriptFunction) {
                 NamedWarpScriptFunction namedWarpScriptFunction = (NamedWarpScriptFunction) o;
@@ -554,6 +568,19 @@ public interface WarpScriptStack {
   String CAPABILITY_WFSET = "wfset";
   String CAPABILITY_HTTP = "http";
   String CAPABILITY_TIMEBOX_MAXTIME = "timebox.maxtime";
+  String CAPABILITY_SLEEP_MAXTIME = "sleep.maxtime";
+  String CAPABILITY_LEVELDB = "leveldb";
+  String CAPABILITY_LEVELDB_ADMIN = "leveldb.admin";
+  String CAPABILITY_LEVELDB_CLOSE = "leveldb.close";
+  String CAPABILITY_LEVELDB_COMPACT = "leveldb.compact";
+  String CAPABILITY_LEVELDB_OPEN = "leveldb.open";
+  String CAPABILITY_LEVELDB_REPAIR = "leveldb.repair";
+  String CAPABILITY_LEVELDB_SNAPSHOT = "leveldb.snapshot";
+  String CAPABILITY_LEVELDB_PURGE = "leveldb.purge";
+  String CAPABILITY_LEVELDB_FIND = "leveldb.find";
+  String CAPABILITY_LEVELDB_INFO = "leveldb.info";
+  String CAPABILITY_LEVELDB_REPORT = "leveldb.report";
+  String CAPABILITY_LEVELDB_TIMESTAMP = "leveldb.timestamp";
 
   String CAPABILITY_LIMITS = "limits";
   String CAPABILITY_LIMIT = "limit";
@@ -766,6 +793,14 @@ public interface WarpScriptStack {
   public void exec(String line) throws WarpScriptException;
 
   /**
+   * Execute a series of statements against the stack.
+   *
+   * @param line       String containing a space separated list of statements to execute
+   * @param lineNumber is the WarpScript line number, when known by exec() caller. Default value is -1.
+   */
+  public void exec(String line, long lineNumber) throws WarpScriptException;
+
+  /**
    * Empty the stack
    *
    */
@@ -963,4 +998,11 @@ public interface WarpScriptStack {
    * If macroOpen was not previously called, this function has no effect.
    */
   public void macroClose() throws WarpScriptException;
+  
+  /**
+   * Turn on/off auditMode. In auditMode, Macros contains WarpScriptAuditStatement with line numbers or WarpScript parsing errors.
+   * auditMode exits automatically after closing the first macro level, leaving on stack a macro object.
+   */
+  public void auditMode(boolean auditMode);
+  
 }

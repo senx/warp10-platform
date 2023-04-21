@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2021  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -139,3 +139,8 @@ leveldb.blockcache.gts.threshold = 0
 // Should LevelDB checksums be verified when scanning key space for deletes? Defaults to true.
 //
 #leveldb.delete.verifychecksums = true
+
+//
+// Maximum number of SST files which may be purged by a single call to SSTPURGE. Defaults to 1000.
+//
+#leveldb.maxpurge = 
