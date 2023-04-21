@@ -23,9 +23,9 @@
 
 
 ##
-## This the API version to use for FoundationDB
+## This the API version to use for FoundationDB, either 710 or 720
 ##
-fdb.api.version = 710
+#fdb.api.version = 720
 
 ##
 ## Flag indicating whether or not to use tenant prefixes.

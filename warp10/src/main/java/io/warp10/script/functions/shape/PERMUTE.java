@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2021  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -107,13 +107,13 @@ public class PERMUTE extends NamedWarpScriptFunction implements WarpScriptStackF
 
     for (int i = 0; i < newShape.get(dimension); i++) {
       List<Long> new_indices = new ArrayList(indices);
-      new_indices.add(new Long(i));
+      new_indices.add(Long.valueOf(i));
 
       if (newShape.size() - 1 == dimension) {
         List<Long> permutedIndices = new ArrayList<Long>();
 
         for (int r = 0; r < pattern.size(); r++) {
-          permutedIndices.add(new_indices.get(pattern.lastIndexOf(new Long(r))));
+          permutedIndices.add(new_indices.get(pattern.lastIndexOf(Long.valueOf(r))));
         }
 
         result.add(GET.nestedGet(tensor, permutedIndices));
