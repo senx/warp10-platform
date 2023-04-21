@@ -60,9 +60,12 @@ public class FDBUtils {
       int version = Integer.parseInt(WarpConfig.getProperty(Configuration.FDB_API_VERSION, DEFAULT_FDB_API_VERSION));
       try {
         FDB.selectAPIVersion(version);
-      } catch (Throwable t) {
+      } catch (UnsatisfiedLinkError t) {
         LOG.error("Unable to initialize FoundationDB API version, please ensure the FoundationDB clients package is installed.");
         throw new RuntimeException("Caught exception when initializing FoundationDB API version, please ensure the FoundationDB clients package is installed.");
+      } catch (Throwable t) {
+        LOG.error("Unable to initialize FoundationDB API version, " + t.getMessage());
+        throw new RuntimeException("Caught exception when initializing FoundationDB API version, " + t.getMessage());
       }
     }
   }
