@@ -1,5 +1,5 @@
 //
-//   Copyright 2022  SenX S.A.S.
+//   Copyright 2022-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -168,7 +168,7 @@ public class ReadOnlyConstantList implements List {
    * get will return the element at index + startidx of the underlying array or bitset.
    *
    * @param index cannot be less than 0 or greater than list length
-   * @return
+   * @return element at index + startidx
    */
   @Override
   public Object get(int index) {

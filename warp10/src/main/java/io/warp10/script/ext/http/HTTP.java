@@ -533,7 +533,7 @@ public class HTTP extends NamedWarpScriptFunction implements WarpScriptStackFunc
               System.arraycopy(buf, 0, buf2, 0, buf2.length);
               res.put(CONTENT, buf2);
             }
-            res.put(CHUNK_NUMBER, new Long(chunkNumber));
+            res.put(CHUNK_NUMBER, Long.valueOf(chunkNumber));
 
             Map<String, Object> chunkRes = Collections.unmodifiableMap(res);
             stack.push(chunkRes);
