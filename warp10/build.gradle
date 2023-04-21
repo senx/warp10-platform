@@ -40,10 +40,10 @@ dependencies {
     api 'org.bouncycastle:bcpg-jdk15on:1.70'
 
     // https://mvnrepository.com/artifact/org.foundationdb/fdb-java
-    api 'org.foundationdb:fdb-java:7.1.25'
+    api 'org.foundationdb:fdb-java:7.2.5'
 
-    api 'org.apache.hadoop:hadoop-common:3.3.4'
-    api 'org.apache.hadoop:hadoop-mapreduce-client-core:3.3.4'
+    api 'org.apache.hadoop:hadoop-common:3.3.5'
+    api 'org.apache.hadoop:hadoop-mapreduce-client-core:3.3.5'
 
     //
     // Processing
@@ -56,15 +56,15 @@ dependencies {
     api 'commons-cli:commons-cli:1.5.0'
 
     // For Standalone(Chunked)MemoryStore
-    api('org.apache.hadoop:hadoop-hdfs-client:3.3.4')
+    api('org.apache.hadoop:hadoop-hdfs-client:3.3.5')
 
-    api 'org.eclipse.jetty:jetty-server:9.4.48.v20220622'
-    api 'org.eclipse.jetty.websocket:websocket-server:9.4.48.v20220622'
-    api 'org.eclipse.jetty.websocket:websocket-client:9.4.48.v20220622'
+    api 'org.eclipse.jetty:jetty-server:9.4.51.v20230217'
+    api 'org.eclipse.jetty.websocket:websocket-server:9.4.51.v20230217'
+    api 'org.eclipse.jetty.websocket:websocket-client:9.4.51.v20230217'
     // https://mvnrepository.com/artifact/org.apache.curator/curator-x-discovery
-    api 'org.apache.curator:curator-x-discovery:5.3.0'
-    api 'com.fasterxml.jackson.core:jackson-databind:2.10.2'
-    api 'org.slf4j:slf4j-api:1.7.5'
+    api 'org.apache.curator:curator-x-discovery:5.4.0'
+    api 'com.fasterxml.jackson.core:jackson-databind:2.14.2'
+    api 'org.slf4j:slf4j-api:1.7.36'
 
     constraints {
         api('commons-beanutils:commons-beanutils:1.9.0') {
@@ -80,7 +80,7 @@ dependencies {
     //
     // Pyrolite - need to stick with 4.x
     //
-    api 'net.razorvine:pyrolite:4.10'
+    api 'net.razorvine:pyrolite:4.30'
 
     //
     // LevelDB
@@ -98,13 +98,6 @@ dependencies {
 
     // Use uber version to have access to more native libraries
     api 'org.iq80.leveldb:leveldb:0.12:uber'
-
-    //
-    // Worf
-    //
-    // This jar includes all jansi and some hawtjni classes instead of declaring them as dependencies. Remove/update when possible.
-    // See configurations.all below for jansi.
-    api 'jline:jline:2.14.6'
 
     //
     // Mustache
@@ -125,7 +118,7 @@ dependencies {
     //
     // Java Merge Sort
     //
-    api 'com.fasterxml.util:java-merge-sort:1.0.0'
+    api 'com.fasterxml.util:java-merge-sort:1.1.0'
 
     // @see <a href="http://www.mail-archive.com/dev@kafka.apache.org/msg03829.html>http://www.mail-archive.com/dev@kafka.apache.org/msg03829.html</a>
     if (null != System.getProperty("pulsar")) {
