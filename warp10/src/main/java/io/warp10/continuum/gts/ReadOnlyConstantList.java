@@ -168,7 +168,7 @@ public class ReadOnlyConstantList implements List {
    * get will return the element at index + startidx of the underlying array or bitset.
    *
    * @param index cannot be less than 0 or greater than list length
-   * @return
+   * @return element at index + startidx
    */
   @Override
   public Object get(int index) {

@@ -42,7 +42,7 @@ import org.joda.time.format.ISOPeriodFormat;
  */
 public class DURATION extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  final private static Double STU = new Double(Constants.TIME_UNITS_PER_S);
+  final private static Double STU = Double.valueOf(Constants.TIME_UNITS_PER_S);
 
   final private static Pattern NEGATIVE_ZERO_SECONDS_PATTERN = Pattern.compile(".*-0+$");
 
