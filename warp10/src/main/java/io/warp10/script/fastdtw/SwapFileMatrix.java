@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -149,27 +149,6 @@ class SwapFileMatrix implements CostMatrix {
       } // end try
     } // end if
   } // end get(..)
-
-  // This method closes and deletes the swap file when the object's finalize()
-  // method is called. This method will
-  // ONLY be called by the JVM if the object is garbage collected while the
-  // application is still running.
-  // This method must be called explicitly to guarantee that the swap file is
-  // deleted.
-  protected void finalize() throws Throwable {
-    // Close and Delete the (possibly VERY large) swap file.
-    try {
-      if (!isSwapFileFreed)
-        cellValuesFile.close();
-    } catch (Exception e) {
-      System.err.println("unable to close swap file '"
-          + this.swapFile.getPath() + "' during finialization");
-    } finally {
-      swapFile.delete(); // delete the swap file
-      super.finalize(); // ensure that finalization continues for parent if an
-                        // exception is thrown
-    } // end try
-  } // end finalize()
 
   public int size() {
     return window.size();
