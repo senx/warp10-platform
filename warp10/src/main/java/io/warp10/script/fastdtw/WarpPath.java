@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -64,8 +64,8 @@ public class WarpPath {
       {
         final StringTokenizer st = new StringTokenizer(line, ",", false);
         if (st.countTokens() == 2) {
-          tsIindexes.add(new Integer(st.nextToken()));
-          tsJindexes.add(new Integer(st.nextToken()));
+          tsIindexes.add(Integer.valueOf(st.nextToken()));
+          tsJindexes.add(Integer.valueOf(st.nextToken()));
         } else
           throw new RuntimeException("The Warp Path File '" + inputFile
               + "' has an incorrect format.  There must be\n"
@@ -103,36 +103,36 @@ public class WarpPath {
   }
 
   public void addFirst(int i, int j) {
-    tsIindexes.add(0, new Integer(i));
-    tsJindexes.add(0, new Integer(j));
+    tsIindexes.add(0, Integer.valueOf(i));
+    tsJindexes.add(0, Integer.valueOf(j));
   }
 
   public void addLast(int i, int j) {
-    tsIindexes.add(new Integer(i));
-    tsJindexes.add(new Integer(j));
+    tsIindexes.add(Integer.valueOf(i));
+    tsJindexes.add(Integer.valueOf(j));
   }
 
   public ArrayList getMatchingIndexesForI(int i) {
-    int index = tsIindexes.indexOf(new Integer(i));
+    int index = tsIindexes.indexOf(Integer.valueOf(i));
     if (index < 0)
       throw new RuntimeException("ERROR:  index '" + i + " is not in the "
           + "warp path.");
     final ArrayList matchingJs = new ArrayList();
     while (index < tsIindexes.size()
-        && tsIindexes.get(index).equals(new Integer(i)))
+        && tsIindexes.get(index).equals(Integer.valueOf(i)))
       matchingJs.add(tsJindexes.get(index++));
 
     return matchingJs;
   } // end getMatchingIndexesForI(int i)
 
   public ArrayList getMatchingIndexesForJ(int j) {
-    int index = tsJindexes.indexOf(new Integer(j));
+    int index = tsJindexes.indexOf(Integer.valueOf(j));
     if (index < 0)
       throw new RuntimeException("ERROR:  index '" + j + " is not in the "
           + "warp path.");
     final ArrayList matchingIs = new ArrayList();
     while (index < tsJindexes.size()
-        && tsJindexes.get(index).equals(new Integer(j)))
+        && tsJindexes.get(index).equals(Integer.valueOf(j)))
       matchingIs.add(tsIindexes.get(index++));
 
     return matchingIs;

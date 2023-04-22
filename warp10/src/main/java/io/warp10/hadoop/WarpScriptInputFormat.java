@@ -68,9 +68,9 @@ public class WarpScriptInputFormat extends InputFormat<Object, Object> {
   public static final String WARPSCRIPT_INPUTFORMAT_CLASS = "warpscript.inputformat.class";
 
   /**
-   * WarpScript code fragment to apply, this code will be wrapped in a macro <% ... %>
+   * WarpScript code fragment to apply, this code will be wrapped in a macro &lt;% ... %&gt;
    * If code starts by @ or % then the rest of its content is assumed to be a file path to load.
-   * If code starts by @ the content of the file will be wrapped in <% ... %>
+   * If code starts by @ the content of the file will be wrapped in &lt;% ... %&gt;
    */
   public static final String WARPSCRIPT_INPUTFORMAT_SCRIPT = "warpscript.inputformat.script";
 

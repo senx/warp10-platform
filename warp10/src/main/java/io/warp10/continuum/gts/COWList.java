@@ -1,5 +1,5 @@
 //
-//   Copyright 2022  SenX S.A.S.
+//   Copyright 2022-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -377,7 +377,7 @@ public class COWList implements List {
    * If altered, get will return the element of the underlying ArrayList.
    *
    * @param index cannot be less than 0 or greater than list length
-   * @return
+   * @return element at index + startidx
    */
   @Override
   public Object get(int index) {
