@@ -217,6 +217,16 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
       top = stack.pop();
       Map<String,Object> params = paramsFromMap((Map) top);
 
+      if (params.get(FETCH.PARAM_GSKIP) instanceof Long) {
+        gskip = ((Long) params.get(FETCH.PARAM_GSKIP)).longValue();
+        mustSort = true;
+      }
+
+      if (params.get(FETCH.PARAM_GCOUNT) instanceof Long) {
+        gcount = ((Long) params.get(FETCH.PARAM_GCOUNT)).longValue();
+        mustSort = true;
+      }
+
       if (params.containsKey(FETCH.PARAM_SELECTOR_PAIRS)) {
         List<Pair<Object, Object>> selectors = (List<Pair<Object, Object>>) params.get(FETCH.PARAM_SELECTOR_PAIRS);
         drequest = new DirectoryRequest();
@@ -241,16 +251,6 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
 
       if (params.containsKey(FETCH.PARAM_LABELS_PRIORITY)) {
         order = (List<String>) params.get(FETCH.PARAM_LABELS_PRIORITY);
-      }
-
-      if (params.get(FETCH.PARAM_GSKIP) instanceof Long) {
-        gskip = ((Long) params.get(FETCH.PARAM_GSKIP)).longValue();
-        mustSort = true;
-      }
-
-      if (params.get(FETCH.PARAM_GCOUNT) instanceof Long) {
-        gcount = ((Long) params.get(FETCH.PARAM_GCOUNT)).longValue();
-        mustSort = true;
       }
     } else {
       if (this.metaset) {
@@ -388,7 +388,6 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
     Iterator<Metadata> iter = null;
 
     try {
-
       if (null == drequest) {
         drequest = new DirectoryRequest();
         drequest.setSorted(mustSort);
