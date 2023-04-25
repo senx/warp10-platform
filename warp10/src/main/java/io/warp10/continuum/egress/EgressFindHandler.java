@@ -117,7 +117,7 @@ public class EgressFindHandler extends AbstractHandler {
 
       boolean showUUID = null != req.getParameter(Constants.HTTP_PARAM_SHOWUUID);
 
-      boolean showAttr = null != req.getParameter(Constants.HTTP_PARAM_SHOWATTR));
+      boolean showAttr = null != req.getParameter(Constants.HTTP_PARAM_SHOWATTR);
       boolean sortMeta = null != req.getParameter(Constants.HTTP_PARAM_SORTMETA);
 
       Long activeAfter = null == req.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER) ? null : Long.parseLong(req.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER));
