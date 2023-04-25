@@ -1,9 +1,20 @@
-package io.warp10.continuum.egress;
+//
+//   Copyright 2019-2023  SenX S.A.S.
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+//
 
-import io.warp10.WarpConfig;
-import io.warp10.continuum.gts.GTSDecoder;
-import io.warp10.continuum.gts.GTSEncoder;
-import io.warp10.continuum.store.thrift.data.Metadata;
+package io.warp10.continuum.egress;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintWriter;
@@ -18,10 +29,14 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.io.IOUtils;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonMap;
 import static org.junit.Assert.assertEquals;
+
+import io.warp10.WarpConfig;
+import io.warp10.continuum.gts.GTSDecoder;
+import io.warp10.continuum.gts.GTSEncoder;
+import io.warp10.continuum.store.thrift.data.Metadata;
 
 public class EgressFetchHandlerTest {
 
@@ -49,24 +64,19 @@ public class EgressFetchHandlerTest {
   }
 
   private String jsonDumpWithExpose(boolean expose) throws Exception {
-    Map<String, String> labels = new HashMap<String, String>();
+    Map<String,String> labels = new HashMap<String,String>();
     labels.put("foo", "bar");
     labels.put(".producer", "33000ee4-3bfc-4940-9aef-4fd27975f6f9");
     labels.put(".owner", "6d9bbc0b-2af8-4053-a287-5d6b95405af0");
 
     GTSEncoder gts = new GTSEncoder();
-    gts.getMetadata()
-        .setName("my.class")
-        .setLabels(labels)
-        .setAttributes(singletonMap("foo", "baz"))
-        .setLastActivity(1234);
+    gts.getMetadata().setName("my.class").setLabels(labels).setAttributes(singletonMap("foo", "baz")).setLastActivity(1234);
     gts.addValue(5678, 0, 0, 3.14);
     Iterator<GTSDecoder> iter = singleton(gts.getDecoder()).iterator();
 
     ByteArrayOutputStream buf = new ByteArrayOutputStream();
     try (PrintWriter pw = new PrintWriter(buf)) { // auto flush
-      EgressFetchHandler.jsonDump(pw, iter, 10000, -1, false, false,
-          new AtomicReference<Metadata>(null), new AtomicLong(0), expose);
+      EgressFetchHandler.jsonDump(pw, iter, 10000, -1, false, false, new AtomicReference<Metadata>(null), new AtomicLong(0), expose);
     }
 
     return buf.toString(StandardCharsets.UTF_8.name());
