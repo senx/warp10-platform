@@ -86,8 +86,11 @@ public class EgressFindHandler extends AbstractHandler {
     long gskip = 0L;
     long gcount = Long.MAX_VALUE;
 
+    boolean mustSort = false;
+
     if (null != req.getParameter(Constants.HTTP_PARAM_GSKIP)) {
       gskip = Long.parseLong(req.getParameter(Constants.HTTP_PARAM_GSKIP));
+      mustSort = true;
     }
 
     // 'limit' predates 'gcount', it may be overriden if 'gcount' is set too
@@ -98,6 +101,7 @@ public class EgressFindHandler extends AbstractHandler {
     // 'gcount' overrides 'limit'
     if (null != req.getParameter(Constants.HTTP_PARAM_GCOUNT)) {
       gcount = Long.parseLong(req.getParameter(Constants.HTTP_PARAM_GCOUNT));
+      mustSort = true;
     }
 
     if (null == token) {
@@ -187,6 +191,7 @@ public class EgressFindHandler extends AbstractHandler {
           lblsSels.add(labelsSelector);
 
           DirectoryRequest request = new DirectoryRequest();
+          request.setSorted(mustSort);
           request.setClassSelectors(clsSels);
           request.setLabelsSelectors(lblsSels);
 
