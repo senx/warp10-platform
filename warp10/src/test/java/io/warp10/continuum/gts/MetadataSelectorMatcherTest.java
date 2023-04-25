@@ -1,5 +1,5 @@
 //
-//   Copyright 2020  SenX S.A.S.
+//   Copyright 2020-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,15 +16,24 @@
 
 package io.warp10.continuum.gts;
 
-import io.warp10.continuum.store.thrift.data.Metadata;
-import io.warp10.script.WarpScriptException;
-import org.junit.Assert;
-import org.junit.Test;
-
+import java.io.StringReader;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import io.warp10.WarpConfig;
+import io.warp10.continuum.store.thrift.data.Metadata;
+import io.warp10.script.WarpScriptException;
+
 public class MetadataSelectorMatcherTest {
+
+  @BeforeClass
+  public static void beforeClass() throws Exception {
+    WarpConfig.safeSetProperties(new StringReader("warp.timeunits=us"));
+  }
 
   @Test
   public void testMetaDataMatch() throws WarpScriptException {
@@ -33,11 +42,11 @@ public class MetadataSelectorMatcherTest {
     Metadata test = new Metadata();
     test.setName("temperature");
 
-    Map<String, String> labels = new HashMap<String, String>();
+    Map<String,String> labels = new HashMap<String,String>();
     labels.put("sensor", "23");
     test.setLabels(labels);
 
-    Map<String, String> attributes = new HashMap<String, String>();
+    Map<String,String> attributes = new HashMap<String,String>();
     attributes.put("room", "A");
     test.setAttributes(attributes);
 
@@ -57,11 +66,11 @@ public class MetadataSelectorMatcherTest {
     Metadata testemptyclassname = new Metadata();
     testemptyclassname.setName("");
 
-    labels = new HashMap<String, String>();
+    labels = new HashMap<String,String>();
     labels.put("sensor", "23");
     testemptyclassname.setLabels(labels);
 
-    attributes = new HashMap<String, String>();
+    attributes = new HashMap<String,String>();
     attributes.put("attr", "yes");
     attributes.put("attr2", "afalse detection failure");
     testemptyclassname.setAttributes(attributes);
