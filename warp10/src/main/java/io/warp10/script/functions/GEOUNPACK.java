@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 package io.warp10.script.functions;
 
 import gnu.trove.list.array.TLongArrayList;
+import io.warp10.ThriftUtils;
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSWrapperHelper;
 import io.warp10.continuum.store.thrift.data.GTSWrapper;
@@ -39,41 +40,41 @@ import java.util.TreeSet;
 
 /**
  * Unpack a GeoXPShape
- * 
+ *
  * We relay on GTSWrappers for this, this is kinda weird but hey, it works!
- * 
+ *
  */
 public class GEOUNPACK extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
   public GEOUNPACK(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    
+
     Object o = stack.pop();
-    
+
     byte[] serialized;
-    
+
     if (o instanceof String) {
       serialized = OrderPreservingBase64.decode(o.toString().getBytes(StandardCharsets.US_ASCII));
     } else if (o instanceof byte[]) {
       serialized = (byte[]) o;
     } else {
-      throw new WarpScriptException(getName() + " expects a packed shape on top of the stack.");      
+      throw new WarpScriptException(getName() + " expects a packed shape on top of the stack.");
     }
-    
-    TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
-    
+
+    TDeserializer deserializer = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
+
     GTSWrapper wrapper = new GTSWrapper();
-    
+
     try {
       deserializer.deserialize(wrapper, serialized);
     } catch (TException te) {
       throw new WarpScriptException(te);
     }
-    
+
     GTSDecoder decoder = GTSWrapperHelper.fromGTSWrapperToGTSDecoder(wrapper);
 
     int count = (int) wrapper.getCount();
@@ -178,7 +179,7 @@ public class GEOUNPACK extends NamedWarpScriptFunction implements WarpScriptStac
     }
 
     stack.push(shape);
-    
+
     return stack;
   }
 }

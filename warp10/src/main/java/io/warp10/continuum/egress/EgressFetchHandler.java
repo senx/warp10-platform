@@ -70,6 +70,7 @@ import com.geoxp.GeoXPLib;
 import com.google.common.primitives.Longs;
 
 import io.warp10.BytesUtils;
+import io.warp10.ThriftUtils;
 import io.warp10.ThrowableUtils;
 import io.warp10.WarpURLDecoder;
 import io.warp10.continuum.Configuration;
@@ -766,7 +767,7 @@ public class EgressFetchHandler extends AbstractHandler {
               throw new RuntimeException("Invalid wrapped content.");
             }
 
-            TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
+            TDeserializer deserializer = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
 
             GTSSplit split = new GTSSplit();
 
@@ -821,7 +822,7 @@ public class EgressFetchHandler extends AbstractHandler {
 
         FileWriter writer = new FileWriter(cache);
 
-        TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+        TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
 
         int padidx = 0;
 
@@ -892,7 +893,7 @@ public class EgressFetchHandler extends AbstractHandler {
           private Metadata current = null;
           private boolean done = false;
 
-          private TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
+          private TDeserializer deserializer = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
 
           int padidx = 0;
 
@@ -1265,7 +1266,7 @@ public class EgressFetchHandler extends AbstractHandler {
       // Serialize the wrapper
       //
 
-      TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+      TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
       byte[] data = null;
 
       try {
@@ -2232,7 +2233,7 @@ public class EgressFetchHandler extends AbstractHandler {
 
           GTSWrapper wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(encoder, true);
 
-          TSerializer ser = new TSerializer(new TCompactProtocol.Factory());
+          TSerializer ser = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
           byte[] serialized;
 
           try {

@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -21,8 +21,6 @@ import io.warp10.quasar.filter.QuasarConfiguration;
 import io.warp10.quasar.filter.sensision.QuasarTokenFilterSensisionConstants;
 import io.warp10.sensision.Sensision;
 
-import org.apache.commons.codec.binary.Hex;
-
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -30,6 +28,8 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import org.bouncycastle.util.encoders.Hex;
 
 public class QuasarTokenRevocationListLoader {
 
@@ -131,7 +131,7 @@ public class QuasarTokenRevocationListLoader {
               if ("".equals(line)) {
                 continue;
               }
-              
+
               // Skip comments
               if (line.startsWith("#")) {
                 continue;
@@ -144,7 +144,7 @@ public class QuasarTokenRevocationListLoader {
                 quasarTRL.revokeApplication(appSipHash);
               } else {
                 // token sip hash hex encoded convert it into long
-                byte[] bytes = Hex.decodeHex(line.toCharArray());
+                byte[] bytes = Hex.decode(line);
                 long tokenRevoked = ByteBuffer.wrap(bytes, 0, 8).order(ByteOrder.BIG_ENDIAN).getLong();
                 // add it to the future trl list
                 quasarTRL.revokeToken(tokenRevoked);

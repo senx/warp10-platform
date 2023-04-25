@@ -25,6 +25,8 @@ import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
 
 import com.geoxp.GeoXPLib;
+
+import io.warp10.ThriftUtils;
 import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
@@ -45,11 +47,11 @@ public class TOMVSTRING extends NamedWarpScriptFunction implements WarpScriptSta
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
-    
+
     if (!(top instanceof String) && !(top instanceof byte[]) && !(top instanceof GTSEncoder) && !(top instanceof GeoTimeSerie)) {
       throw new WarpScriptException(getName() + " operates on a Geo Time Series, ENCODER, STRING or byte array.");
     }
-    
+
     if (top instanceof GTSEncoder) {
       GTSWrapper wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper((GTSEncoder) top, false);
       stack.push(wrapperToString(null, wrapper).toString());
@@ -60,10 +62,10 @@ public class TOMVSTRING extends NamedWarpScriptFunction implements WarpScriptSta
       byte[] bytes = (top instanceof byte[]) ? (byte[]) top: OrderPreservingBase64.decode(top.toString().getBytes(StandardCharsets.US_ASCII));
 
       StringBuilder sb = bytesToString(null, bytes);
-      
+
       stack.push(sb.toString());
-    }    
-    
+    }
+
     return stack;
   }
 
@@ -77,9 +79,9 @@ public class TOMVSTRING extends NamedWarpScriptFunction implements WarpScriptSta
     } else {
       sb.append("[! ");
     }
-    
+
     GTSDecoder decoder = GTSWrapperHelper.fromGTSWrapperToGTSDecoder(wrapper);
-    
+
     while(decoder.next()) {
       long ts = decoder.getTimestamp();
       long location = decoder.getLocation();
@@ -87,7 +89,7 @@ public class TOMVSTRING extends NamedWarpScriptFunction implements WarpScriptSta
       Object value = decoder.getBinaryValue();
 
       double[] latlon = null;
-      
+
       if (GeoTimeSerie.NO_LOCATION != location) {
         latlon = GeoXPLib.fromGeoXPPoint(location);
       }
@@ -98,28 +100,28 @@ public class TOMVSTRING extends NamedWarpScriptFunction implements WarpScriptSta
         sb.append(ts);
         sb.append("/");
       }
-      
+
       if (null != latlon) {
         sb.append(latlon[0]);
         sb.append(":");
         sb.append(latlon[1]);
         sb.append("/");
       } else if (GeoTimeSerie.NO_ELEVATION != elevation) {
-        sb.append("/");          
+        sb.append("/");
       }
 
       if (GeoTimeSerie.NO_ELEVATION != elevation) {
         sb.append(elevation);
         sb.append("/");
       }
-      
+
       if (value instanceof byte[]) {
         bytesToString(sb, (byte[]) value);
       } else if (value instanceof String) {
         sb.append("'");
         try {
           sb.append(WarpURLEncoder.encode(value.toString(), StandardCharsets.UTF_8));
-        } catch (UnsupportedEncodingException uee) {        
+        } catch (UnsupportedEncodingException uee) {
         }
         sb.append("'");
       } else if (value instanceof Boolean) {
@@ -138,9 +140,9 @@ public class TOMVSTRING extends NamedWarpScriptFunction implements WarpScriptSta
 
     return sb;
   }
-  
+
   private static StringBuilder bytesToString(StringBuilder sb, byte[] bytes) {
-    TDeserializer deser = new TDeserializer(new TCompactProtocol.Factory());
+    TDeserializer deser = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
     GTSWrapper wrapper = new GTSWrapper();
 
     try {
@@ -154,6 +156,6 @@ public class TOMVSTRING extends NamedWarpScriptFunction implements WarpScriptSta
       sb.append("b64:");
       sb.append(Base64.encodeBase64URLSafeString(bytes));
       return sb;
-    }    
+    }
   }
 }

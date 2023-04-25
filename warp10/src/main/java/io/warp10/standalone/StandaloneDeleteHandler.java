@@ -39,6 +39,7 @@ import org.joda.time.format.ISODateTimeFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.warp10.ThriftUtils;
 import io.warp10.ThrowableUtils;
 import io.warp10.WarpConfig;
 import io.warp10.WarpManager;

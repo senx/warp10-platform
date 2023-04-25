@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -59,6 +59,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 
 import io.warp10.BytesUtils;
+import io.warp10.ThriftUtils;
 import io.warp10.continuum.KafkaOffsetCounters;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.thrift.data.KafkaDataMessage;
@@ -569,7 +570,7 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
         byte[] outAESKey = backend.keystore.getKey(KeyStore.AES_KAFKA_PLASMA_BACKEND_OUT);
 
         // Iterate on the messages
-        TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
+        TDeserializer deserializer = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
 
         // TODO(hbs): allow setting of writeBufferSize
 
@@ -721,7 +722,7 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
         outmsg = new ProducerRecord<byte[], byte[]>(topic, key, value);
       } else {
         if (null == value) {
-          TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+          TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
 
           try {
             value = serializer.serialize(msg);

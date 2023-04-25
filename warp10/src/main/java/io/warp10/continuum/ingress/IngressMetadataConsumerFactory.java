@@ -28,6 +28,7 @@ import org.apache.thrift.protocol.TCompactProtocol;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.warp10.ThriftUtils;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.KafkaOffsetCounters;
 import io.warp10.continuum.KafkaSynchronizedConsumerPool;
@@ -54,7 +55,7 @@ public class IngressMetadataConsumerFactory implements ConsumerFactory {
       @Override
       public void run() {
         // Iterate on the messages
-        TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
+        TDeserializer deserializer = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
 
         KafkaOffsetCounters counters = pool.getCounters();
 

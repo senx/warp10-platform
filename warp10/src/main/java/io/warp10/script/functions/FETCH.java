@@ -50,6 +50,7 @@ import org.joda.time.format.ISOPeriodFormat;
 
 import com.google.common.primitives.Longs;
 
+import io.warp10.ThriftUtils;
 import io.warp10.WarpDist;
 import io.warp10.continuum.MetadataUtils;
 import io.warp10.continuum.TimeSource;
@@ -1125,7 +1126,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       }
 
       metaset = new MetaSet();
-      TDeserializer deser = new TDeserializer(new TCompactProtocol.Factory());
+      TDeserializer deser = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
 
       try {
         deser.deserialize(metaset, (byte[]) ms);

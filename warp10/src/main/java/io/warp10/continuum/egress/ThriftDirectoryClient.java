@@ -61,6 +61,7 @@ import org.apache.curator.x.discovery.ServiceDiscoveryBuilder;
 import org.apache.curator.x.discovery.ServiceInstance;
 import org.apache.curator.x.discovery.details.ServiceCacheListener;
 
+import io.warp10.ThriftUtils;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.DirectoryUtil;
 import io.warp10.continuum.sensision.SensisionConstants;
@@ -364,7 +365,7 @@ public class ThriftDirectoryClient implements ServiceCacheListener, DirectoryCli
 
     List<Future<DirectoryStatsResponse>> responses = new ArrayList<Future<DirectoryStatsResponse>>();
 
-    TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+    TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
 
     byte[] bytes = null;
 

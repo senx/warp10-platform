@@ -19,6 +19,7 @@ sourceSets {
         java {
             srcDir new File(project(':warp10').projectDir, "src/main/java")
             include 'io/warp10/Py4JEntryPoint.*'
+            include 'io/warp10/ThriftUtils.*'
             include 'io/warp10/SortedPathIterator.*'
             include 'io/warp10/SortedPathIterator$*'
             include 'io/warp10/WarpClassLoader.*'

@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package io.warp10.script.functions;
 
+import io.warp10.ThriftUtils;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSWrapperHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
@@ -37,25 +38,25 @@ import com.geoxp.GeoXPLib;
 import com.geoxp.GeoXPLib.GeoXPShape;
 /**
  * Pack a GeoXPShape
- * 
+ *
  * We relay on GTSWrappers for this, this is kinda weird but hey, it works!
- * 
+ *
  */
 public class GEOPACK extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
   public GEOPACK(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    
+
     Object o = stack.pop();
-    
+
     if (!(o instanceof GeoXPShape)) {
       throw new WarpScriptException(getName() + " expects a shape on top of the stack.");
     }
-    
+
     GeoXPShape shape = (GeoXPShape) o;
 
     try {
@@ -63,30 +64,30 @@ public class GEOPACK extends NamedWarpScriptFunction implements WarpScriptStackF
     } catch (WarpScriptException wse) {
       throw new WarpScriptException(getName() + " could not pack the shape.", wse);
     }
-    
+
     return stack;
   }
-  
+
   public static String pack(GeoXPShape shape) throws WarpScriptException {
     long[] cells = GeoXPLib.getCells(shape);
-    
+
     GTSEncoder encoder = new GTSEncoder();
-    
+
     try {
       for (long cell: cells) {
         encoder.addValue(cell, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, true);
-      }      
+      }
     } catch (IOException ioe) {
       throw new WarpScriptException(ioe);
     }
-    
+
     GTSWrapper wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(encoder, true);
-    
-    TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
-    
+
+    TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
+
     try {
       byte[] serialized = serializer.serialize(wrapper);
-      
+
       return new String(OrderPreservingBase64.encode(serialized, 0, serialized.length), StandardCharsets.US_ASCII);
     } catch (TException te) {
       throw new WarpScriptException(te);

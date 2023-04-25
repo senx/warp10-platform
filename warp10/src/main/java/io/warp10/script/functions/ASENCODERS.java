@@ -16,6 +16,7 @@
 
 package io.warp10.script.functions;
 
+import io.warp10.ThriftUtils;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSWrapperHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
@@ -46,7 +47,7 @@ public class ASENCODERS extends ElementOrListStackFunction {
 
       // If raw wrap, convert to GTS
       if (element instanceof byte[]) {
-        TDeserializer deser = new TDeserializer(new TCompactProtocol.Factory());
+        TDeserializer deser = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
 
         try {
           GTSWrapper wrapper = new GTSWrapper();

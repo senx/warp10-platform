@@ -23,6 +23,7 @@ import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
 
+import io.warp10.ThriftUtils;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GTSWrapperHelper;
@@ -36,24 +37,24 @@ import com.geoxp.GeoXPLib;
 
 /**
  * Add a value to a GTS. Expects 6 parameters on the stack
- * 
+ *
  * GTS
  * tick
  * latitude (or NaN)
  * longitude (or NaN)
  * elevation (or NaN)
  * TOP: value
- * 
+ *
  */
 public class ADDVALUE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   private final boolean overwrite;
-  
+
   public ADDVALUE(String name, boolean overwrite) {
     super(name);
     this.overwrite = overwrite;
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
 
@@ -63,10 +64,10 @@ public class ADDVALUE extends NamedWarpScriptFunction implements WarpScriptStack
     long timestamp = 0L;
 
     Object o = stack.pop();
-    
+
     if (o instanceof List) {
       Object[] array = MACROMAPPER.listToObjects((List) o);
-      
+
       timestamp = (long) array[0];
       location = (long) array[1];
       elevation = (long) array[2];
@@ -80,92 +81,92 @@ public class ADDVALUE extends NamedWarpScriptFunction implements WarpScriptStack
           && !(o instanceof GTSEncoder)) {
         throw new WarpScriptException(getName() + " expects a LONG, DOUBLE, STRING, byte array or BOOLEAN value or a Geo Time Series or ENCODER.");
       }
-      
+
       value = o;
-      
+
       o = stack.pop();
-      
+
       if (!(o instanceof Number)) {
         throw new WarpScriptException(getName() + " expects the elevation to be numeric or NaN.");
       }
-           
+
       if (!(o instanceof Double && Double.isNaN((double) o))) {
         elevation = ((Number) o).longValue();
       }
 
       o = stack.pop();
-      
+
       if (!(o instanceof Number)) {
         throw new WarpScriptException(getName() + " expects the longitude to be numeric or NaN.");
       }
-      
+
       double longitude = o instanceof Double ? (double) o : ((Number) o).doubleValue();
 
       o = stack.pop();
-      
+
       if (!(o instanceof Number)) {
         throw new WarpScriptException(getName() + " expects the latitude to be numeric or NaN.");
       }
-      
+
       double latitude = o instanceof Double ? (double) o : ((Number) o).doubleValue();
-      
+
       if (!Double.isNaN(latitude) && !Double.isNaN(longitude)) {
         location = GeoXPLib.toGeoXPPoint(latitude, longitude);
       }
-      
+
       o = stack.pop();
-      
+
       if (!(o instanceof Number)) {
         throw new WarpScriptException(getName() + " expects the tick to be numeric.");
       }
-      
-      timestamp = ((Number) o).longValue();      
+
+      timestamp = ((Number) o).longValue();
     }
-    
+
     o = stack.pop();
-    
+
     if (!(o instanceof GeoTimeSerie) && !(o instanceof GTSEncoder)) {
       throw new WarpScriptException(getName() + " operates on a single Geo Time Series or GTS Encoder.");
     }
-    
+
     //
     // Convert GTS and GTSEncoder values to Wrappers
-    // 
-    
+    //
+
     if (value instanceof GeoTimeSerie) {
-      TSerializer ser = new TSerializer(new TCompactProtocol.Factory());
+      TSerializer ser = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
       try {
         value = ser.serialize(GTSWrapperHelper.fromGTSToGTSWrapper((GeoTimeSerie) value, true, GTSWrapperHelper.DEFAULT_COMP_RATIO_THRESHOLD, Integer.MAX_VALUE, false, false));
       } catch (TException te) {
         throw new WarpScriptException(getName() + " encountered an error while serializing the Geo Time Series.", te);
       }
     } else if (value instanceof GTSEncoder) {
-      TSerializer ser = new TSerializer(new TCompactProtocol.Factory());
+      TSerializer ser = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
       try {
         value = ser.serialize(GTSWrapperHelper.fromGTSEncoderToGTSWrapper((GTSEncoder) value, true, GTSWrapperHelper.DEFAULT_COMP_RATIO_THRESHOLD, Integer.MAX_VALUE, false));
       } catch (TException te) {
         throw new WarpScriptException(getName() + " encountered an error while serializing the GTS Encoder.", te);
       }
     }
-    
+
     if (o instanceof GeoTimeSerie) {
       GeoTimeSerie gts = (GeoTimeSerie) o;
-    
+
       GTSHelper.setValue(gts, timestamp, location, elevation, value, this.overwrite);
-    
+
       stack.push(gts);
     } else {
       GTSEncoder encoder = (GTSEncoder) o;
-      
+
       try {
         encoder.addValue(timestamp, location, elevation, value);
       } catch (IOException ioe) {
         throw new WarpScriptException(getName() + " error adding datapoint to encoder.", ioe);
       }
-      
+
       stack.push(encoder);
     }
-    
+
     return stack;
   }
 }

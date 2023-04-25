@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -36,6 +36,7 @@ import org.apache.thrift.protocol.TCompactProtocol;
 
 import com.google.common.util.concurrent.RateLimiter;
 
+import io.warp10.ThriftUtils;
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GTSWrapperHelper;
@@ -97,7 +98,7 @@ public class Warp10RecordWriter extends RecordWriter<Writable, Writable> {
     // Assume the value is a GTSWrapper
     //
 
-    TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
+    TDeserializer deserializer = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
 
     GTSWrapper gtsWrapper = new GTSWrapper();
 

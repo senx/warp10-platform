@@ -70,6 +70,7 @@ import com.google.common.collect.MapMaker;
 
 import io.warp10.BytesUtils;
 import io.warp10.SmartPattern;
+import io.warp10.ThriftUtils;
 import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.DirectoryUtil;
@@ -291,7 +292,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
             padding = new PKCS7Padding();
           }
 
-          TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
+          TDeserializer deserializer = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
 
           while (!stopMe.get()) {
             try {
@@ -1063,7 +1064,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       }
     }
 
-    TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+    TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
 
     try {
       if (null != this.db || null != this.fdb) {

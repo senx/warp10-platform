@@ -45,6 +45,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.MapMaker;
 
 import io.warp10.CapacityExtractorOutputStream;
+import io.warp10.ThriftUtils;
 import io.warp10.continuum.TimeSource;
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
@@ -496,7 +497,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
 
     writer = SequenceFile.createWriter(conf, optPath, optKey, optVal, optCom);
 
-    TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+    TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
 
     System.out.println("Dumping memory to '" + path + "'.");
 
@@ -577,7 +578,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
     BytesWritable key = new BytesWritable();
     BytesWritable value = new BytesWritable();
 
-    TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
+    TDeserializer deserializer = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
 
     SequenceFile.Reader.Option optPath = SequenceFile.Reader.file(new Path(path));
 
