@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -320,7 +320,7 @@ public class EgressFetchHandler extends AbstractHandler {
       }
 
       boolean showErrors = null != showErrorsParam;
-      boolean dedup = null != dedupParam && "true".equals(dedupParam);
+      boolean dedup = null != dedupParam;
 
       //
       // Handle aliases
@@ -516,11 +516,11 @@ public class EgressFetchHandler extends AbstractHandler {
         }
       }
 
-      boolean showAttr = "true".equals(req.getParameter(Constants.HTTP_PARAM_SHOWATTR));
+      boolean showAttr = null != req.getParameter(Constants.HTTP_PARAM_SHOWATTR);
 
       Long activeAfter = null == req.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER) ? null : Long.parseLong(req.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER));
       Long quietAfter = null == req.getParameter(Constants.HTTP_PARAM_QUIETAFTER) ? null : Long.parseLong(req.getParameter(Constants.HTTP_PARAM_QUIETAFTER));
-      boolean sortMeta = "true".equals(req.getParameter(Constants.HTTP_PARAM_SORTMETA));
+      boolean sortMeta = null != req.getParameter(Constants.HTTP_PARAM_SORTMETA);
 
       //
       // Apply constraints from token attribute
