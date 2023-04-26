@@ -98,13 +98,16 @@ public class EgressSplitsHandler extends AbstractHandler {
 
     long gskip = 0L;
     long gcount = Long.MAX_VALUE;
+    boolean mustSort = false;
 
     if (null != request.getParameter(Constants.HTTP_PARAM_GSKIP)) {
       gskip = Long.parseLong(request.getParameter(Constants.HTTP_PARAM_GSKIP));
+      mustSort = true;
     }
 
     if (null != request.getParameter(Constants.HTTP_PARAM_GCOUNT)) {
       gcount = Long.parseLong(request.getParameter(Constants.HTTP_PARAM_GCOUNT));
+      mustSort = true;
     }
 
     //
@@ -169,6 +172,7 @@ public class EgressSplitsHandler extends AbstractHandler {
     Transaction txn = null;
 
     DirectoryRequest drequest = new DirectoryRequest();
+    drequest.setSorted(mustSort);
     drequest.setClassSelectors(clsSels);
     drequest.setLabelsSelectors(lblsSels);
 

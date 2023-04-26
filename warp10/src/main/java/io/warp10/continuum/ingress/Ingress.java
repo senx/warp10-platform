@@ -1595,13 +1595,16 @@ public class Ingress extends AbstractHandler implements Runnable {
 
       long gskip = 0L;
       long gcount = Long.MAX_VALUE;
+      boolean mustSort = false;
 
       if (null != request.getParameter(Constants.HTTP_PARAM_GSKIP)) {
         gskip = Long.parseLong(request.getParameter(Constants.HTTP_PARAM_GSKIP));
+        mustSort = true;
       }
 
       if (null != request.getParameter(Constants.HTTP_PARAM_GCOUNT)) {
         gcount = Long.parseLong(request.getParameter(Constants.HTTP_PARAM_GCOUNT));
+        mustSort = true;
       }
 
       //
@@ -1676,6 +1679,7 @@ public class Ingress extends AbstractHandler implements Runnable {
         TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
 
         DirectoryRequest drequest = new DirectoryRequest();
+        drequest.setSorted(mustSort);
 
         Long activeAfter = null == request.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER) ? null : Long.parseLong(request.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER));
         Long quietAfter = null == request.getParameter(Constants.HTTP_PARAM_QUIETAFTER) ? null : Long.parseLong(request.getParameter(Constants.HTTP_PARAM_QUIETAFTER));
@@ -1898,6 +1902,7 @@ public class Ingress extends AbstractHandler implements Runnable {
       } else {
 
         DirectoryRequest drequest = new DirectoryRequest();
+        drequest.setSorted(mustSort);
         drequest.setClassSelectors(clsSels);
         drequest.setLabelsSelectors(lblsSels);
 

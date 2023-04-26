@@ -319,13 +319,16 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
 
     long gskip = 0L;
     long gcount = Long.MAX_VALUE;
+    boolean mustSort = false;
 
     if (params.get(PARAM_GSKIP) instanceof Long) {
       gskip = ((Long) params.get(PARAM_GSKIP)).longValue();
+      mustSort = true;
     }
 
     if (params.get(PARAM_GCOUNT) instanceof Long) {
       gcount = ((Long) params.get(PARAM_GCOUNT)).longValue();
+      mustSort = true;
     }
 
     if (params.containsKey(PARAM_METASET)) {
@@ -496,6 +499,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       }
 
       DirectoryRequest drequest = new DirectoryRequest();
+      drequest.setSorted(mustSort);
       drequest.setClassSelectors(clsSels);
       drequest.setLabelsSelectors(lblsSels);
 

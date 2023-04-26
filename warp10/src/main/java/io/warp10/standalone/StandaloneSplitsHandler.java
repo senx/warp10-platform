@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -81,13 +81,18 @@ public class StandaloneSplitsHandler extends AbstractHandler {
 
     long gskip = 0L;
     long gcount = Long.MAX_VALUE;
+    // forcing sorting is not necessary with the current (2023-04-25) implementation of the standalone Directory, but we nevertheless
+    // set 'sorted' in the DirectoryRequest in case we change the Directory implementation in the future.
+    boolean mustSort = false;
 
     if (null != request.getParameter(Constants.HTTP_PARAM_GSKIP)) {
       gskip = Long.parseLong(request.getParameter(Constants.HTTP_PARAM_GSKIP));
+      mustSort = true;
     }
 
     if (null != request.getParameter(Constants.HTTP_PARAM_GCOUNT)) {
       gcount = Long.parseLong(request.getParameter(Constants.HTTP_PARAM_GCOUNT));
+      mustSort = true;
     }
 
     //
@@ -152,6 +157,7 @@ public class StandaloneSplitsHandler extends AbstractHandler {
     //
 
     DirectoryRequest dr = new DirectoryRequest();
+    dr.setSorted(mustSort);
     dr.setClassSelectors(clsSels);
     dr.setLabelsSelectors(lblsSels);
 

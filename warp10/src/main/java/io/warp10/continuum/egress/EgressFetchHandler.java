@@ -191,6 +191,7 @@ public class EgressFetchHandler extends AbstractHandler {
       long gcount = Long.MAX_VALUE;
       long gskip = 0;
       long count = -1;
+      boolean mustSort = false;
       long skip = 0;
       long step = 1L;
       long timestep = 1L;
@@ -383,10 +384,12 @@ public class EgressFetchHandler extends AbstractHandler {
 
       if (null != gcountParam) {
         gcount = Long.parseLong(gcountParam);
+        mustSort = true;
       }
 
       if (null != gskipParam) {
         gskip = Long.parseLong(gskipParam);
+        mustSort = true;
       }
 
       if (null != stepParam) {
@@ -653,6 +656,7 @@ public class EgressFetchHandler extends AbstractHandler {
           lblsSels.add(labelsSelectors);
 
           DirectoryRequest request = new DirectoryRequest();
+          request.setSorted(mustSort);
           request.setClassSelectors(clsSels);
           request.setLabelsSelectors(lblsSels);
 
