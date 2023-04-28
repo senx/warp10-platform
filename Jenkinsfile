@@ -24,7 +24,7 @@ pipeline {
         buildDiscarder(logRotator(numToKeepStr: '3'))
     }
     environment {
-        THRIFT_HOME = '/opt/thrift-0.11.0'
+        THRIFT_HOME = '/opt/thrift-0.17.0'
         GPG_KEY_NAME = "${params.gpgKeyName}"
         NEXUS_HOST = "${params.nexusHost}"
         NEXUS_CREDS = credentials('nexus')
