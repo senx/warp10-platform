@@ -231,7 +231,7 @@ public interface KeyStore {
     String keyspec = props.getProperty(configurationKey, defaultKeyValue);
 
     if (null != keyspec && !"".equals(keyspec.trim())) {
-      byte[] key = keystore.decodeKey(keyspec);
+      byte[] key = CryptoUtils.decodeKey(keystore, keyspec);
 
       // Check the size of the key
       StringBuilder sizesStr = new StringBuilder();
