@@ -66,8 +66,6 @@ sourceSets {
             include 'io/warp10/standalone/AcceleratorConfig.*'
             include 'io/warp10/standalone/AcceleratorConfig$*.*'
             include 'io/warp10/standalone/StandalonePlasmaHandlerInterface.*'
-            include 'io/warp10/fdb/*'
-            include 'io/warp10/leveldb/*'
 
             srcDir new File(project(':warp10').projectDir, "src/generated/thrift/gen-java")
             include 'io/warp10/continuum/thrift/data/**'

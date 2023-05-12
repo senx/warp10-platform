@@ -3183,26 +3183,30 @@ public class WarpScriptLib {
     // LevelDB
     //
 
-    addNamedWarpScriptFunction(new LEVELDBOPEN(LEVELDBOPEN));
-    addNamedWarpScriptFunction(new LEVELDBCLOSE(LEVELDBCLOSE));
-    addNamedWarpScriptFunction(new LEVELDBREPAIR(LEVELDBREPAIR));
-    addNamedWarpScriptFunction(new LEVELDBCOMPACT(LEVELDBCOMPACT));
-    addNamedWarpScriptFunction(new LEVELDBSNAPSHOT(LEVELDBSNAPSHOT, false));
-    addNamedWarpScriptFunction(new LEVELDBSNAPSHOT(LEVELDBSNAPSHOTINC, true));
-    addNamedWarpScriptFunction(new SSTFIND(SSTFIND));
-    addNamedWarpScriptFunction(new SSTINFO(SSTINFO));
-    addNamedWarpScriptFunction(new SSTPURGE(SSTPURGE));
-    addNamedWarpScriptFunction(new SSTREPORT(SSTREPORT));
-    addNamedWarpScriptFunction(new SSTTIMESTAMP(SSTTIMESTAMP));
+    try {
+      addNamedWarpScriptFunction(new LEVELDBOPEN(LEVELDBOPEN));
+      addNamedWarpScriptFunction(new LEVELDBCLOSE(LEVELDBCLOSE));
+      addNamedWarpScriptFunction(new LEVELDBREPAIR(LEVELDBREPAIR));
+      addNamedWarpScriptFunction(new LEVELDBCOMPACT(LEVELDBCOMPACT));
+      addNamedWarpScriptFunction(new LEVELDBSNAPSHOT(LEVELDBSNAPSHOT, false));
+      addNamedWarpScriptFunction(new LEVELDBSNAPSHOT(LEVELDBSNAPSHOTINC, true));
+      addNamedWarpScriptFunction(new SSTFIND(SSTFIND));
+      addNamedWarpScriptFunction(new SSTINFO(SSTINFO));
+      addNamedWarpScriptFunction(new SSTPURGE(SSTPURGE));
+      addNamedWarpScriptFunction(new SSTREPORT(SSTREPORT));
+      addNamedWarpScriptFunction(new SSTTIMESTAMP(SSTTIMESTAMP));
+    } catch (NoClassDefFoundError e) {}
 
     //
     // FDB
     //
 
-    addNamedWarpScriptFunction(new FDBTENANT(FDBTENANT));
-    addNamedWarpScriptFunction(new FDBSTATUS(FDBSTATUS));
-    addNamedWarpScriptFunction(new FDBSIZE(FDBSIZE));
-    addNamedWarpScriptFunction(new FDBGET(FDBGET));
+    try {
+      addNamedWarpScriptFunction(new FDBTENANT(FDBTENANT));
+      addNamedWarpScriptFunction(new FDBSTATUS(FDBSTATUS));
+      addNamedWarpScriptFunction(new FDBSIZE(FDBSIZE));
+      addNamedWarpScriptFunction(new FDBGET(FDBGET));
+    } catch (NoClassDefFoundError e) {}
 
     /////////////////////////
 
