@@ -643,27 +643,28 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
               } else {
                 throw new WarpScriptException("Not inside a multiline.");
               }
-            }
-            inMultiline.set(false);
-
-            String mlcontent = multiline.toString();
-
-            if (null != secureScript) {
-              secureScript.append(" ");
-              secureScript.append("'");
-              try {
-                secureScript.append(WarpURLEncoder.encode(mlcontent, StandardCharsets.UTF_8));
-              } catch (UnsupportedEncodingException uee) {
-              }
-              secureScript.append("'");
             } else {
-              if (macros.isEmpty()) {
-                this.push(mlcontent);
+              inMultiline.set(false);
+
+              String mlcontent = multiline.toString();
+
+              if (null != secureScript) {
+                secureScript.append(" ");
+                secureScript.append("'");
+                try {
+                  secureScript.append(WarpURLEncoder.encode(mlcontent, StandardCharsets.UTF_8));
+                } catch (UnsupportedEncodingException uee) {
+                }
+                secureScript.append("'");
               } else {
-                macros.get(0).add(mlcontent);
+                if (macros.isEmpty()) {
+                  this.push(mlcontent);
+                } else {
+                  macros.get(0).add(mlcontent);
+                }
               }
+              multiline.setLength(0);
             }
-            multiline.setLength(0);
             continue;
           } else if (inMultiline.get()) {
             if (multiline.length() > 0) {
