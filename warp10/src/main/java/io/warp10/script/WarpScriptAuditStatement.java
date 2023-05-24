@@ -37,6 +37,7 @@ public class WarpScriptAuditStatement implements WarpScriptStackFunction {
     WS_EARLY_BINDING, // managed as a simple load for the moment
     WS_LOAD,          // load action is stored as one statement, to store the right statement position
     WS_RUN,           // run action is stored as one statement, to store the right statement position
+    WS_WARNING,       // something legal in WarpScript, but than can be misleading
     UNKNOWN           // syntax error (missing space, [5 is not a function), function call to a REDEF function, or unknown extension.
   }
 

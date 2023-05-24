@@ -657,9 +657,35 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
           checkOps();
 
           // Detect strings, "xx" or 'xx'
+          // If the separator is at the end of the line or
+          // followed by a whitespace then we consider we exited the string, otherwise
+          // it is just part of the string, but we store a warning flag.
           if (line.charAt(pos) == '"' || line.charAt(pos) == '\'') {
+            char sep = line.charAt(pos);
+            boolean warnSepInclusion = false;
             // string start, look for the end
-            end = line.indexOf(line.charAt(pos), pos + 1);
+            end = -1;
+            if (pos != line.length() - 1) { // do not look for string end if it starts at line end
+              int strEnd = pos + 1;
+              while (strEnd < line.length()) {
+                if (line.charAt(strEnd) == sep) {
+                  if (strEnd == line.length() - 1 || line.charAt(strEnd + 1) <= ' ') {
+                    // end of line, or followed by a separator
+                    end = strEnd;
+                    break;
+                  } else {
+                    warnSepInclusion = true; // separator found inside the string. legal, but confusing
+                  }
+                }
+                strEnd++;
+              }
+            }
+            //end = line.indexOf(line.charAt(pos), pos + 1);
+            if (auditMode && warnSepInclusion) {
+              WarpScriptAuditStatement err = new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_WARNING, null, "Separator found inside the string", lineNumber, pos);
+              macros.get(0).add(err);
+              addAuditError(err);
+            }
             if (end == -1) {
               if (auditMode && !(macros.isEmpty() || macros.size() == forcedMacro)) {
                 WarpScriptAuditStatement err = new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_EXCEPTION, null, "Cannot find end of string", lineNumber, pos);
