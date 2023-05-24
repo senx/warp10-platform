@@ -572,13 +572,15 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       // Replace whitespaces in Strings with '%20'
       //
 
-      line = UnsafeString.sanitizeStrings(line);
+      if (!inMultiline.get()) {
+        line = sanitizeComments(line, inComment.get());
+        line = UnsafeString.sanitizeStrings(line);
+      }
 
-      if (-1 != line.indexOf(' ') && !inMultiline.get()) {
-        //statements = line.split(" +");
+      if (!inMultiline.get() && -1 != line.indexOf(' ')) {
         statements = UnsafeString.split(line, ' ');
       } else {
-        // We're either in multiline mode or the line had no whitespace inside
+        // We're either in multiline mode or the line has no whitespace inside
         statements = new String[1];
         if (inMultiline.get()) {
           // If the line only contained the end of multiline indicator with possible wsp on both sides
@@ -1818,5 +1820,45 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     }
     this.push(macros.remove(0));
     forcedMacro = 0;
+  }
+
+  /**
+   * Replace spaces in comment blocks with %20
+   */
+  private static String sanitizeComments(String line, boolean inComment) {
+    int idx = 0;
+
+    StringBuilder sb = new StringBuilder(line.length());
+
+    while(idx < line.length()) {
+      if (inComment) {
+        if (' ' == line.charAt(idx)) { // wsp in comments are converted to %20
+          sb.append("%20");
+        } else {
+          if (idx <= line.length() - 2 && '*' == line.charAt(idx) && '/' == line.charAt(idx + 1)) {
+            // We add a space before the end of comment so they are parsed correctly even if allowLooseComment is set to false
+            // We also add a %20 so constructs like /*"*/ do not lead to incorrect string parsing later
+            sb.append("%20 */");
+            idx += 2;
+            inComment = false;
+            continue;
+          } else {
+            sb.append(line.charAt(idx));
+          }
+        }
+      } else {
+        if (idx <= line.length() - 2 && '/' == line.charAt(idx) && '*' == line.charAt(idx + 1)) {
+          sb.append("/* %20");
+          idx += 2;
+          inComment = true;
+          continue;
+        } else {
+          sb.append(line.charAt(idx));
+        }
+      }
+      idx++;
+    }
+
+    return sb.toString();
   }
 }

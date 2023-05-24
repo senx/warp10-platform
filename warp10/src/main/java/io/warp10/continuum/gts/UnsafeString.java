@@ -272,12 +272,12 @@ public class UnsafeString {
       if (instring && stringsep == ch) {
         // If the separator is at the end of the line or
         // followed by a whitespace then we consider we exited the string, otherwise
-        // it is just part of the string
-        if (idx == str.length() - 1 || ' ' == str.charAt(idx + 1)) {
+        // it is just part of the string, unless there is no further separator on the line
+        if (idx == str.length() - 1 || ' ' == str.charAt(idx + 1) || -1 == str.indexOf(stringsep, idx + 1)) {
           instring = false;
           stringsep = '\0';
         }
-      } else if (!instring) {
+      } else if (!instring && (0 == idx || ' ' == str.charAt(idx - 1))) { // If the previous character is not a whitespace or the beginning of the line, then we do not consider that we enter a string
         if ('\'' == ch) {
           instring = true;
           stringsep = '\'';
