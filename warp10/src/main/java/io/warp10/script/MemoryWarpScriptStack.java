@@ -636,7 +636,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
           if (line.length() - pos > 1 && line.charAt(pos) == '*' && line.charAt(pos + 1) == '/') {
             if (!inComment.get()) {
               if (auditMode && !(macros.isEmpty() || macros.size() == forcedMacro)) {
-                WarpScriptAuditStatement err = new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_EXCEPTION, null, "Not inside a comment.", lineNumber, pos);
+                WarpScriptAuditStatement err = new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_EXCEPTION, null, "Not inside a comment.", lineNumber, pos, pos + 1);
                 macros.get(0).add(err);
                 addAuditError(err);
               } else {
@@ -680,50 +680,38 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
                 strEnd++;
               }
             }
-            //end = line.indexOf(line.charAt(pos), pos + 1);
-            if (auditMode && warnSepInclusion) {
-              WarpScriptAuditStatement err = new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_WARNING, null, "Separator found inside the string", lineNumber, pos);
-              macros.get(0).add(err);
-              addAuditError(err);
-            }
+
             if (end == -1) {
               if (auditMode && !(macros.isEmpty() || macros.size() == forcedMacro)) {
-                WarpScriptAuditStatement err = new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_EXCEPTION, null, "Cannot find end of string", lineNumber, pos);
+                WarpScriptAuditStatement err = new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_EXCEPTION, null, "Cannot find end of string", lineNumber, pos, line.length()-1);
                 macros.get(0).add(err);
                 addAuditError(err);
-                break; // cannot find the end, do not try to parse the end of line.
+                break; // cannot find the end of the string, do not try to parse the end of current line.
               } else {
                 throw new WarpScriptException("Cannot find end of string");
               }
             } else {
-              // the string is valid when it is followed by a separator (or end of line)
-              if (end == line.length() - 1 || (line.charAt(end + 1) <= ' ')) {
-                // this is a valid string, we can decode and push it.
-                String str = line.substring(pos + 1, end);
-                try {
-                  str = WarpURLDecoder.decode(str, StandardCharsets.UTF_8);
-                  if (macros.isEmpty()) {
-                    push(str);
-                  } else {
-                    macros.get(0).add(str);
-                  }
-                } catch (Exception uee) {
-                  // Catch any decode exception, including incomplete (%) patterns
-                  if (auditMode && !(macros.isEmpty() || macros.size() == forcedMacro)) {
-                    WarpScriptAuditStatement err = new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_EXCEPTION, null, uee.getMessage(), lineNumber, pos);
-                    macros.get(0).add(err);
-                    addAuditError(err);
-                  } else {
-                    throw new WarpScriptException(uee);
-                  }
+              if (auditMode && warnSepInclusion) {
+                WarpScriptAuditStatement err = new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_WARNING, null, "Separator found inside the string", lineNumber, pos, end + 1);
+                addAuditError(err);
+              }
+              // this is a valid string, we can decode and push it.
+              String str = line.substring(pos + 1, end);
+              try {
+                str = WarpURLDecoder.decode(str, StandardCharsets.UTF_8);
+                if (macros.isEmpty()) {
+                  push(str);
+                } else {
+                  macros.get(0).add(str);
                 }
-              } else {
+              } catch (Exception uee) {
+                // Catch any decode exception, including incomplete (%) patterns
                 if (auditMode && !(macros.isEmpty() || macros.size() == forcedMacro)) {
-                  WarpScriptAuditStatement err = new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_EXCEPTION, null, "Missing space after string", lineNumber, pos);
+                  WarpScriptAuditStatement err = new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_EXCEPTION, null, uee.getMessage(), lineNumber, pos, end + 1);
                   macros.get(0).add(err);
                   addAuditError(err);
                 } else {
-                  throw new WarpScriptException("Missing space after string");
+                  throw new WarpScriptException(uee);
                 }
               }
             }

@@ -35,7 +35,8 @@ public class WarpScriptAuditStatementSerializer extends StdSerializer<WarpScript
     gen.writeStartObject();
     gen.writeStringField(WarpScriptAuditStatement.KEY_TYPE,st.type.name());
     gen.writeNumberField(WarpScriptAuditStatement.KEY_LINE,st.lineNumber);
-    gen.writeNumberField(WarpScriptAuditStatement.KEY_POSITION,st.positionNumber);
+    gen.writeNumberField(WarpScriptAuditStatement.KEY_POSITION,st.inLinePositionStart);
+    gen.writeNumberField(WarpScriptAuditStatement.KEY_POSITION_END,st.inLinePositionEnd);
     gen.writeStringField(WarpScriptAuditStatement.KEY_STATEMENT,st.statement);
     gen.writeEndObject();
   }
