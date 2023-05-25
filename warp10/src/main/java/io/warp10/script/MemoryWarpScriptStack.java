@@ -565,12 +565,11 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
 
       int start = 0;
 
-      // fast path to process multiline strings or comments blocks
+      //
+      // Fast path to process multiline strings or comments blocks
+      //
       if (inMultiline.get()) {
-        // Do not do try to detect end of multiline when line length >= 100000 (saves trim memory copy in case of a huge line in a multiline)
-        if (line.length() < 100000) {
-          line = line.trim();
-        }
+        line = line.trim();
         // End of multiline        
         if (WarpScriptStack.MULTILINE_END.equals(line)) {
           inMultiline.set(false);
@@ -602,13 +601,15 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       } else if (inComment.get()) {
         int end = line.indexOf(COMMENT_END);
         if (-1 == end) {
-          return; // no end of comment in this line, skip it
+          return; // No end of comment in this line, skip it
         } else {
-          start = end; // skip the beginning of the line, before */
+          start = end; // Skip the beginning of the line, before */
         }
       }
-
+      
+      //
       // Process line character by character, looking at block comments, comments, strings, then process statements.
+      //
       String stmt;
       int end = 0;
       int pos = 0;
@@ -616,15 +617,16 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
         for (pos = start; pos < line.length(); pos++) {
 
           if (line.charAt(pos) <= ' ') {
-            continue; // ignore spaces (or other control char)
+            continue; // Ignore spaces (or other control char)
           }
 
-          // start of comment block /* 
+          //
+          // Start of comment block /*
+          //
           if (line.length() - pos > 1 && line.charAt(pos) == '/' && line.charAt(pos + 1) == '*') {
-            // look at the end of the comment block on the same line
-            end = line.indexOf(COMMENT_END, pos + 2);
+            end = line.indexOf(COMMENT_END, pos + 2); // Look at the end of the comment block on the same line
             if (-1 != end) {
-              pos = end + 2; // skip the comment block
+              pos = end + 2; // Skip the comment block
               continue;
             } else {
               inComment.set(true);
@@ -632,7 +634,9 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             }
           }
 
-          // end of comment block */
+          //
+          // End of comment block */
+          //
           if (line.length() - pos > 1 && line.charAt(pos) == '*' && line.charAt(pos + 1) == '/') {
             if (!inComment.get()) {
               if (auditMode && !(macros.isEmpty() || macros.size() == forcedMacro)) {
@@ -648,9 +652,11 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             continue;
           }
 
-          // line comments , // or # , ignore the remaining characters of the line
+          //
+          // Line comments, // or # 
+          //
           if (!inComment.get() && (line.charAt(pos) == '#' || (pos < line.length() - 1 && line.charAt(pos) == '/' && line.charAt(pos + 1) == '/'))) {
-            break;
+            break; // Ignore the remaining characters of the line
           }
 
           incOps();
@@ -663,18 +669,17 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
           if (line.charAt(pos) == '"' || line.charAt(pos) == '\'') {
             char sep = line.charAt(pos);
             boolean warnSepInclusion = false;
-            // string start, look for the end
             end = -1;
-            if (pos != line.length() - 1) { // do not look for string end if it starts at line end
+            if (pos != line.length() - 1) { // Do not look for string end if it starts at line end
               int strEnd = pos + 1;
               while (strEnd < line.length()) {
                 if (line.charAt(strEnd) == sep) {
                   if (strEnd == line.length() - 1 || line.charAt(strEnd + 1) <= ' ') {
-                    // end of line, or followed by a separator
+                    // End of line, or followed by a separator
                     end = strEnd;
                     break;
                   } else {
-                    warnSepInclusion = true; // separator found inside the string. legal, but confusing
+                    warnSepInclusion = true; // Separator found inside the string. Legal, but may be confusing
                   }
                 }
                 strEnd++;
@@ -686,16 +691,15 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
                 WarpScriptAuditStatement err = new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_EXCEPTION, null, "Cannot find end of string", lineNumber, pos, line.length()-1);
                 macros.get(0).add(err);
                 addAuditError(err);
-                break; // cannot find the end of the string, do not try to parse the end of current line.
+                break; // Cannot find the end of the string, do not try to parse the end of current line.
               } else {
                 throw new WarpScriptException("Cannot find end of string");
               }
-            } else {
+            } else { // This is a valid string, we can decode and push it.
               if (auditMode && warnSepInclusion) {
                 WarpScriptAuditStatement err = new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_WARNING, null, "Separator found inside the string", lineNumber, pos, end + 1);
                 addAuditError(err);
               }
-              // this is a valid string, we can decode and push it.
               String str = line.substring(pos + 1, end);
               try {
                 str = WarpURLDecoder.decode(str, StandardCharsets.UTF_8);
@@ -719,9 +723,11 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             continue;
           }
 
-          // not a comment/multiline, not a string, this is a statement (followed by a space or end of line)
+          //
+          // Not a comment or multiline, not a string, this is a statement (followed by a space or end of line)
+          //
           end = pos;
-          while (end < line.length() && line.charAt(end) > ' ') { // tolerate tabs or other control characters (v2.x tolerate them at start and end, side effect of trim()
+          while (end < line.length() && line.charAt(end) > ' ') { // Tolerate tabs or other control characters (v2.x tolerate them at start and end, side effect of trim()
             end++;
           }
           stmt = line.substring(pos, end);
@@ -740,11 +746,11 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
               inMultiline.set(true);
               multiline = new StringBuilder();
             }
-            break; // nothing more to process, it is either <' on a single line, or a failure.
+            break; // Nothing more to process, it is either <' on a single line, or a failure.
           }
 
           //
-          // the following code is the same as previous parser version
+          // The following code is the same as previous parser version
           //
 
           if (WarpScriptStack.SECURE_SCRIPT_END.equals(stmt)) {
@@ -1008,7 +1014,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       } catch (Exception e) {
         StringBuilder errorMessage = new StringBuilder("Exception at '");
         if (pos < 0) {
-          pos = 0; // should not happen
+          pos = 0; // Should not happen
         }
         if (pos >= line.length()) {
           pos = line.length() - 1;
