@@ -1832,13 +1832,19 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
 
     while(idx < line.length()) {
       if (inComment) {
-        if (' ' == line.charAt(idx)) { // wsp in comments are converted to %20
-          sb.append("%20");
+        if (' ' == line.charAt(idx)) { // wsp in comments are converted to %20 unless they are just after or just before start/end comment
+          if (idx >= 2 && '/' == line.charAt(idx - 2) && '*' == line.charAt(idx - 1)) {
+            sb.append(" ");
+          } else if (idx <= line.length() - 3 && '*' == line.charAt(idx + 1) && '/' == line.charAt(idx + 2)) {
+            sb.append(" ");
+          } else {
+            sb.append("%20");
+          }
         } else {
           if (idx <= line.length() - 2 && '*' == line.charAt(idx) && '/' == line.charAt(idx + 1)) {
             // We add a space before the end of comment so they are parsed correctly even if allowLooseComment is set to false
             // We also add a %20 so constructs like /*"*/ do not lead to incorrect string parsing later
-            sb.append("%20 */");
+            sb.append("*/");
             idx += 2;
             inComment = false;
             continue;
@@ -1848,7 +1854,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
         }
       } else {
         if (idx <= line.length() - 2 && '/' == line.charAt(idx) && '*' == line.charAt(idx + 1)) {
-          sb.append("/* %20");
+          sb.append("/*");
           idx += 2;
           inComment = true;
           continue;
