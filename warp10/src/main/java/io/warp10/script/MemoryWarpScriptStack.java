@@ -624,12 +624,11 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
           // Start of comment block /*
           //
           if (line.length() - pos > 1 && line.charAt(pos) == '/' && line.charAt(pos + 1) == '*') {
+            inComment.set(true);
             end = line.indexOf(COMMENT_END, pos + 2); // Look at the end of the comment block on the same line
             if (-1 != end) {
-              pos = end + 2; // Skip the comment block
-              continue;
+              pos = end; // seek to next comment end, will be evaluated below
             } else {
-              inComment.set(true);
               break; // no need to process the remaining characters on the line
             }
           }
@@ -647,20 +646,38 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
                 throw new WarpScriptException("Not inside a comment.");
               }
             }
-            inComment.set(false);
-            pos = pos + 2;
-            continue;
+            // is it followed by a space, or by end of line ?
+            if (pos == line.length() - 2 || line.charAt(pos + 2) == ' ') {
+              inComment.set(false);
+              pos = pos + 2;
+              continue;
+            } else {
+              //  */x inside a comment is not a valid comment end. look for the next */
+              end = line.indexOf(COMMENT_END, pos + 2);
+              if (-1 == end) {
+                break; // no need to process the remaining characters on the line
+              } else {
+                pos = end - 1; // skip to next */ found (the for loop will increment pos)
+                continue;
+              }
+            }
           }
 
+          if (inComment.get()) { // should never happen
+            continue;
+          }
+          
           //
           // Line comments, // or # 
           //
-          if (!inComment.get() && (line.charAt(pos) == '#' || (pos < line.length() - 1 && line.charAt(pos) == '/' && line.charAt(pos + 1) == '/'))) {
+          if (line.charAt(pos) == '#' || (pos < line.length() - 1 && line.charAt(pos) == '/' && line.charAt(pos + 1) == '/')) {
             break; // Ignore the remaining characters of the line
           }
 
           incOps();
           checkOps();
+          handleSignal();
+          progress();
 
           // Detect strings, "xx" or 'xx'
           // If the separator is at the end of the line or
