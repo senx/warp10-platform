@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -46,9 +46,9 @@ public class OrderPreservingBase64 {
     }
 
     // Order Preserving Base 64 encoding substitutes an ascii character for 6 bits. 3 bytes input will generate 4 characters.
-    // - The ALPHABET lookup table is 64 bits long. Once loaded in L1 cache, cpu will spend time to shift bits during encoding
+    // - The ALPHABET lookup table is 64 bytes long. Once loaded in L1 cache, cpu will spend time to shift bits during encoding
     //   to process data per 6 bits chunks.
-    // - The ALPHABET12 is a 8192 bits lookup table. It will also fit in L1 cache of most modern cpu (32KB since haswell)
+    // - The ALPHABET12 is a 8192 bytes lookup table. It will also fit in L1 cache of most modern cpu (32KB since haswell)
     //   During encoding with ALPHABET12, cpu will do less bit shifting. Encoding per 12bits chunks doubles the speed. (now reaching 30MB/s on kaby lake)
     // Note that a 24 bit lookup table (~33MB) cannot fit in cache. Cache misses defeat the purpose of a lookup table, and encoding
     // will be a lot slower.
@@ -64,7 +64,7 @@ public class OrderPreservingBase64 {
       }
     }
   }
-  
+
   /**
    * Encode byte [ ].
    *
@@ -90,11 +90,11 @@ public class OrderPreservingBase64 {
   public static byte[] encode(byte[] data, int offset, int datalen) {
     int i = 0;
     int o = 0;
-    
+
     int len = 4 * (datalen / 3) + (datalen % 3 != 0 ? 1 + (datalen % 3) : 0);
-    
+
     byte[] encoded = new byte[len];
-    
+
     int idx = 0;
 
     // first, process input per 3 bytes X Y Z
@@ -110,7 +110,7 @@ public class OrderPreservingBase64 {
       encoded[idx++] = ALPHABET12[o];
       encoded[idx++] = ALPHABET12[o + 1];
     }
-    
+
     // then, encode last input bytes
     for (; i < (offset + datalen); i++) {
       switch ((i - offset) % 3) {
@@ -126,7 +126,7 @@ public class OrderPreservingBase64 {
           break;
       }
     }
-    
+
     // fill the last byte of output
     if (idx < encoded.length) {
       switch (datalen % 3) {
@@ -162,7 +162,7 @@ public class OrderPreservingBase64 {
    * @throws IOException the io exception
    */
   public static void encodeToStream(OutputStream out, byte[] data, int offset, int datalen) throws IOException {
-    
+
     int i = 0;
     int o = 0;
 
@@ -489,30 +489,32 @@ public class OrderPreservingBase64 {
 
     int idx = 0;
     byte value = 0;
-
     for (int i = 0; i < len; i++) {
+      byte decodedbyte = TEBAHPLA[data[offset + i]];
+      if (decodedbyte < 0) {
+        throw new IllegalStateException("Invalid OPB64 character '" + (new String(data, offset + i, 1, StandardCharsets.ISO_8859_1)) + "' at offset " + (offset + i) + ".");
+      }
       switch (i % 4) {
         case 0:
-          value = (byte) (TEBAHPLA[data[offset + i]] << 2);
+          value = (byte) (decodedbyte << 2);
           break;
         case 1:
-          value |= (byte) ((TEBAHPLA[data[offset + i]] >> 4) & 0x3);
+          value |= (byte) ((decodedbyte >> 4) & 0x3);
           decoded[idx++] = value;
-          value = (byte) ((TEBAHPLA[data[offset + i]] << 4) & 0xf0);
+          value = (byte) ((decodedbyte << 4) & 0xf0);
           break;
         case 2:
-          value |= (byte) ((TEBAHPLA[data[offset + i]] >> 2) & 0xf);
+          value |= (byte) ((decodedbyte >> 2) & 0xf);
           decoded[idx++] = value;
-          value = (byte) ((TEBAHPLA[data[offset + i]] << 6) & 0xc0);
+          value = (byte) ((decodedbyte << 6) & 0xc0);
           break;
         case 3:
-          value |= TEBAHPLA[data[offset + i]];
+          value |= decodedbyte;
           decoded[idx++] = value;
           break;
       }
     }
 
-    // FIXME(hbs)
     if (idx < decoded.length) {
       decoded[idx++] = value;
     }
