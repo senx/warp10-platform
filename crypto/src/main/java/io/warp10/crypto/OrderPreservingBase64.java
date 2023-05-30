@@ -491,7 +491,7 @@ public class OrderPreservingBase64 {
     byte value = 0;
     for (int i = 0; i < len; i++) {
       byte decodedbyte = TEBAHPLA[data[offset + i]];
-      if ((byte) -1 == decodedbyte) {
+      if (decodedbyte < 0) {
         throw new IllegalStateException("Invalid OPB64 character '" + (new String(data, offset + i, 1, StandardCharsets.ISO_8859_1)) + "' at offset " + (offset + i) + ".");
       }
       switch (i % 4) {
