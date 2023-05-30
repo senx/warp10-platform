@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -79,12 +79,18 @@ public class MINREV extends NamedWarpScriptFunction implements WarpScriptStackFu
       throw new WarpScriptException(getName() + " expects a revision string on top of the stack.");
     }
 
+    stack.push(checkRev(getName(), (String) o));
+
+    return stack;
+  }
+
+  private static boolean checkRev(String name, String rev) throws WarpScriptException {
     // Split revision from "1.2.3-42-abcd" to [1, 2, 3]
-    int[] givenRev = SplitRev((String) o, getName() + " expects the given revision to be of the form 'X', 'X.Y' or 'X.Y.Z'. X, Y and Z are integers.");
-    int[] currentRev = SplitRev(Revision.REVISION, getName() + " expects the revision to be set on the platform to a string of the form 'X.Y.Z'. X, Y and Z are integers.");
+    int[] givenRev = SplitRev(rev, name + " expects the given revision to be of the form 'X', 'X.Y' or 'X.Y.Z'. X, Y and Z are integers.");
+    int[] currentRev = SplitRev(Revision.REVISION, name + " expects the revision to be set on the platform to a string of the form 'X.Y.Z'. X, Y and Z are integers.");
 
     int revComp = 0;
-    
+
     // Compare corresponding elements on both arrays
     for (int revIndex = 0; revIndex < Math.min(givenRev.length, currentRev.length); revIndex++) {
       revComp = Integer.compare(currentRev[revIndex], givenRev[revIndex]);
@@ -99,8 +105,10 @@ public class MINREV extends NamedWarpScriptFunction implements WarpScriptStackFu
       revComp = -1;
     }
 
-    stack.push(0 <= revComp);
+    return 0 <= revComp;
+  }
 
-    return stack;
+  public static boolean checkRev(String rev) throws WarpScriptException {
+    return checkRev("", rev);
   }
 }
