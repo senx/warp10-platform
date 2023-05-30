@@ -49,13 +49,12 @@ public class SHRINK extends ListRecursiveStackFunction {
         if (element instanceof GeoTimeSerie) {
           GeoTimeSerie gts = (GeoTimeSerie) element;
 
-          if (shrinkto < 0) {
-            GTSHelper.sort(gts, true);
-          } else {
-            GTSHelper.sort(gts, false);
-          }
-
           if (GTSHelper.nvalues(gts) > Math.abs(shrinkto)) {
+            if (shrinkto < 0) {
+              GTSHelper.sort(gts, true);
+            } else {
+              GTSHelper.sort(gts, false);
+            }
             GTSHelper.shrinkTo(gts, (int) Math.abs(shrinkto));
           }
           return gts;
