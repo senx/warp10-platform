@@ -425,11 +425,10 @@ public class GTSHelper {
 
         if (4 == gtsidx) { // BINARY
           value = value.toString().getBytes(StandardCharsets.ISO_8859_1);
-        } else if (2 == gtsidx) { // DOUBLE
+        } else if (1 == gtsidx) { // DOUBLE
           // Attempt to optimize the value
           value = GTSEncoder.optimizeValue(value);
         }
-
         enc.addValue(ts, location, elevation, value);
 
         idx[gtsidx]++;
