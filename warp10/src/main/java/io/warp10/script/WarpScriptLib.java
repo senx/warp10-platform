@@ -577,7 +577,7 @@ import io.warp10.script.functions.METAMATCH;
 import io.warp10.script.functions.METASORT;
 import io.warp10.script.functions.MFILTER;
 import io.warp10.script.functions.MINLONG;
-import io.warp10.script.functions.MINREV;
+import io.warp10.script.functions.CHECKREV;
 import io.warp10.script.functions.MMAP;
 import io.warp10.script.functions.MODE;
 import io.warp10.script.functions.MONOTONIC;
@@ -1016,6 +1016,7 @@ public class WarpScriptLib {
   public static final String REV = "REV";
   public static final String REPORT = "REPORT";
   public static final String MINREV = "MINREV";
+  public static final String MAXREV = "MAXREV";
   public static final String UPDATEON = "UPDATEON";
   public static final String UPDATEOFF = "UPDATEOFF";
   public static final String METAON = "METAON";
@@ -1829,7 +1830,8 @@ public class WarpScriptLib {
 
     addNamedWarpScriptFunction(new REV(REV));
     addNamedWarpScriptFunction(new REPORT(REPORT));
-    addNamedWarpScriptFunction(new MINREV(MINREV));
+    addNamedWarpScriptFunction(new CHECKREV(MINREV, true));
+    addNamedWarpScriptFunction(new CHECKREV(MAXREV, false));
 
     addNamedWarpScriptFunction(new MANAGERONOFF(UPDATEON, WarpManager.UPDATE_DISABLED, true));
     addNamedWarpScriptFunction(new MANAGERONOFF(UPDATEOFF, WarpManager.UPDATE_DISABLED, false));
