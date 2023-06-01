@@ -119,7 +119,7 @@ public class FORSTEP extends NamedWarpScriptFunction implements WarpScriptStackF
     
     while (true) {
       if (System.currentTimeMillis() - now > maxtime) {
-        throw new WarpScriptException(getName() + " executed for too long (> " + maxtime + " ms). Consider raising the limit or use capabilities.");
+        throw new WarpScriptException(getName() + " executed for too long (> " + maxtime + " ms). Consider raising the limit or using capabilities.");
       }
       
       if (useDouble) {

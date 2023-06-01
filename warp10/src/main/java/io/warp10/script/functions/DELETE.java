@@ -219,7 +219,7 @@ public class DELETE extends NamedWarpScriptFunction implements WarpScriptStackFu
           String line;
           while (null != (line = br.readLine())) {
             if (gtscount.incrementAndGet() > gtsLimit) {
-              throw new WarpScriptException(getName() + " exceeded limit of " + gtsLimit + " Geo Time Series, current count is " + gtscount.get() + ". Consider raising the limit or use capabilities.");
+              throw new WarpScriptException(getName() + " exceeded limit of " + gtsLimit + " Geo Time Series, current count is " + gtscount.get() + ". Consider raising the limit or using capabilities.");
             }
 
             Metadata meta = MetadataUtils.parseMetadata(line);

@@ -86,7 +86,7 @@ warpscript.maxdepth.hard = 2000
 // Can be modified by LIMIT up to the hard limit below
 //
 warpscript.maxfetch = 1000000
-warpscript.maxfetch.hard = 10000000
+warpscript.maxfetch.hard = 2000000
 
 //
 // Maximum number of GTS which can be retrieved from Directory during a WarpScript execution

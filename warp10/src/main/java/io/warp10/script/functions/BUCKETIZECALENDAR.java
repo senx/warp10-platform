@@ -131,7 +131,7 @@ public class BUCKETIZECALENDAR extends NamedWarpScriptFunction implements WarpSc
 
     long maxbuckets = (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_MAX_BUCKETS);
     if (bucketcount > maxbuckets) {
-      throw new WarpScriptException(getName() + " error: bucket count (" + bucketcount + ") would exceed maximum value of " + maxbuckets + ". Consider raising the limit or use capabilities.");
+      throw new WarpScriptException(getName() + " error: bucket count (" + bucketcount + ") would exceed maximum value of " + maxbuckets + ". Consider raising the limit or using capabilities.");
     }
 
     //
@@ -401,7 +401,7 @@ public class BUCKETIZECALENDAR extends NamedWarpScriptFunction implements WarpSc
       }
 
       if (lastbucketIndex - bucketindex + 1 > maxbuckets) {
-        throw new WarpScriptException("Bucket count (" + (lastbucketIndex - bucketindex + 1) + ") is exceeding maximum value of " + maxbuckets + ". Consider raising the limit or use capabilities.");
+        throw new WarpScriptException("Bucket count (" + (lastbucketIndex - bucketindex + 1) + ") is exceeding maximum value of " + maxbuckets + ". Consider raising the limit or using capabilities.");
       }
 
       //

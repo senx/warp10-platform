@@ -109,7 +109,7 @@ public class FOR extends NamedWarpScriptFunction implements WarpScriptStackFunct
     
     while (true) {
       if (maxtime > 0 && (System.currentTimeMillis() - now > maxtime)) {
-        throw new WarpScriptException(getName() + " executed for too long (> " + maxtime + " ms). Consider raising the limit or use capabilities.");
+        throw new WarpScriptException(getName() + " executed for too long (> " + maxtime + " ms). Consider raising the limit or using capabilities.");
       }
       
       if (useDouble) {
