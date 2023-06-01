@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -219,7 +219,7 @@ public class DELETE extends NamedWarpScriptFunction implements WarpScriptStackFu
           String line;
           while (null != (line = br.readLine())) {
             if (gtscount.incrementAndGet() > gtsLimit) {
-              throw new WarpScriptException(getName() + " exceeded limit of " + gtsLimit + " Geo Time Series, current count is " + gtscount.get());
+              throw new WarpScriptException(getName() + " exceeded limit of " + gtsLimit + " Geo Time Series, current count is " + gtscount.get() + ". Consider raising the limit or using capabilities.");
             }
 
             Metadata meta = MetadataUtils.parseMetadata(line);

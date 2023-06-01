@@ -2251,7 +2251,7 @@ public class GTSHelper {
     }
 
     if (bucketcount < 0 || bucketcount > maxbuckets) {
-      throw new WarpScriptException("Bucket count (" + bucketcount + ") would exceed maximum value of " + maxbuckets);
+      throw new WarpScriptException("Bucket count (" + bucketcount + ") would exceed maximum value of " + maxbuckets + ". Consider raising the limit or using capabilities.");
     }
 
     if (0 == bucketspan) {

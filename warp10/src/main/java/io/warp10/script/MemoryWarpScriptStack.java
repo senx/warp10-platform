@@ -1386,7 +1386,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   public void checkOps() throws WarpScriptException {
     if (this.currentops > this.maxops) {
       Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_OPSCOUNT_EXCEEDED, Sensision.EMPTY_LABELS, 1);
-      throw new WarpScriptException("Operation count (" + this.currentops + ") exceeded maximum of " + this.maxops);
+      throw new WarpScriptException("Operation count (" + this.currentops + ") exceeded maximum of " + this.maxops + ". Consider raising the limit or using capabilities.");
     }
   }
 
@@ -1648,7 +1648,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
 
     if (offset + size + n > this.maxdepth) {
       Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_STACKDEPTH_EXCEEDED, Sensision.EMPTY_LABELS, 1);
-      throw new WarpScriptException("Stack depth would exceed set limit of " + this.maxdepth);
+      throw new WarpScriptException("Stack depth would exceed set limit of " + this.maxdepth + ". Consider raising the limit or using capabilities.");
     }
 
     int newCapacity = Math.min(this.maxdepth, elements.length + (elements.length >> 1) + n);
