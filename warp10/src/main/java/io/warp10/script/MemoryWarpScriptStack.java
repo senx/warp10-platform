@@ -1519,9 +1519,10 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     this.restore(context);
   }
 
-  private long reclevel = 0;
+  private AtomicLong reclevel = new AtomicLong(0L);
+  
   protected void recurseIn() throws WarpScriptException {
-    if (++this.reclevel > this.maxrecurse) {
+    if ( this.reclevel.incrementAndGet() > this.maxrecurse) {
       throw new WarpScriptException("Maximum recursion level reached (" + this.reclevel + ")");
     }
   }
@@ -1537,12 +1538,12 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   //}
 
   protected void recurseOut() {
-    this.reclevel--;
+    this.reclevel.decrementAndGet();
   }
 
   // Current call graph depth
   public long getRecursionLevel() {
-    return this.reclevel;
+    return this.reclevel.get();
   }
 
   // Depth of macros being currently defined
