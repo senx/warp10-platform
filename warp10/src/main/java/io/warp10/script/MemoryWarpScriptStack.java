@@ -646,7 +646,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
                 throw new WarpScriptException("Not inside a comment.");
               }
             }
-            // is it followed by a space, or by end of line ?
+            // is it followed by a space, or by end of line?
             if (pos == line.length() - 2 || line.charAt(pos + 2) == ' ') {
               inComment.set(false);
               pos = pos + 2;
@@ -679,19 +679,29 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
           handleSignal();
           progress();
 
-          // Detect strings, "xx" or 'xx'
-          // If the separator is at the end of the line or
+          //
+          // Trim end of line to comply with string detection of the previous parser
+          // "a"%09a" is a valid single string (separator not followed by a space)
+          // "a" followed by a tabulation then end of line should also be valid (previous parser trimmed the line)
+          //
+          // Then detect strings, "xx" or 'xx' if the separator is at the end of the line or
           // followed by a whitespace then we consider we exited the string, otherwise
           // it is just part of the string, but we store a warning flag.
+          //
+          int trimmedLength = line.length() - 1;
+          while (trimmedLength > 0 && line.charAt(trimmedLength) <= ' ') {
+            trimmedLength--;
+          }
+          trimmedLength++;
           if (line.charAt(pos) == '"' || line.charAt(pos) == '\'') {
             char sep = line.charAt(pos);
             boolean warnSepInclusion = false;
             end = -1;
-            if (pos != line.length() - 1) { // Do not look for string end if it starts at line end
+            if (pos != trimmedLength - 1) { // Do not look for string end if it starts at line end
               int strEnd = pos + 1;
-              while (strEnd < line.length()) {
+              while (strEnd < trimmedLength) {
                 if (line.charAt(strEnd) == sep) {
-                  if (strEnd == line.length() - 1 || line.charAt(strEnd + 1) <= ' ') {
+                  if (strEnd == trimmedLength - 1 || line.charAt(strEnd + 1) == ' ') {
                     // End of line, or followed by a separator
                     end = strEnd;
                     break;
