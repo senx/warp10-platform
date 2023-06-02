@@ -604,6 +604,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       } else if (inComment.get()) {
         int end = line.indexOf(COMMENT_END);
         if (-1 == end) {
+          handleSignal();
+          progress();
           return; // No end of comment in this line, skip it
         } else {
           start = end; // Skip the beginning of the line, before */
