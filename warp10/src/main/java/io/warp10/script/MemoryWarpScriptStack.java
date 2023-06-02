@@ -1520,6 +1520,12 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   }
 
   private long reclevel = 0;
+
+  /**
+   * This object is used to synchronize the recursion level from substacks
+   */
+  protected Object reclevelSync = new Object(); 
+  
   protected void recurseIn() throws WarpScriptException {
     if (++this.reclevel > this.maxrecurse) {
       throw new WarpScriptException("Maximum recursion level reached (" + this.reclevel + ")");
@@ -1620,12 +1626,16 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
 
       @Override
       protected void recurseIn() throws WarpScriptException {
-        parentStack.recurseIn();
+        synchronized (parentStack.reclevelSync) {
+          parentStack.recurseIn();
+        }
       }
 
       @Override
       protected void recurseOut() {
-        parentStack.recurseOut();
+        synchronized (parentStack.reclevelSync) {
+          parentStack.recurseOut();
+        }
       }
     };
 
