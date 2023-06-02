@@ -80,9 +80,6 @@ subprojects {
 
             // force certain versions of dependencies (including transitive)
             //  *append new forced modules:
-            // This is needed to force Guava to 15.0 and not 17.0 as Renjin pulls
-            // HBase does not work with > 15.0
-            force 'com.google.guava:guava:15.0'
         }
     }
 
