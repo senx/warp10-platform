@@ -598,6 +598,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
           }
           multiline.append(rawline);
         }
+        handleSignal();
+        progress();
         return;
       } else if (inComment.get()) {
         int end = line.indexOf(COMMENT_END);
@@ -624,7 +626,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
           //
           // Start of comment block /*
           //
-          if (line.length() - pos > 1 && line.charAt(pos) == '/' && line.charAt(pos + 1) == '*') {
+          if (pos < line.length() - 1 && line.charAt(pos) == '/' && line.charAt(pos + 1) == '*') {
             inComment.set(true);
             end = line.indexOf(COMMENT_END, pos + 2); // Look at the end of the comment block on the same line
             if (-1 != end) {
@@ -637,7 +639,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
           //
           // End of comment block */
           //
-          if (line.length() - pos > 1 && line.charAt(pos) == '*' && line.charAt(pos + 1) == '/') {
+          if (pos < line.length() - 1 && line.charAt(pos) == '*' && line.charAt(pos + 1) == '/') {
             if (!inComment.get()) {
               if (auditMode && !(macros.isEmpty() || macros.size() == forcedMacro)) {
                 WarpScriptAuditStatement err = new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_EXCEPTION, null, "Not inside a comment.", lineNumber, pos, pos + 1);
@@ -694,6 +696,9 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             trimmedLength--;
           }
           trimmedLength++;
+          if (0 == trimmedLength) {
+            break; // empty line
+          }
           if (line.charAt(pos) == '"' || line.charAt(pos) == '\'') {
             char sep = line.charAt(pos);
             boolean warnSepInclusion = false;
