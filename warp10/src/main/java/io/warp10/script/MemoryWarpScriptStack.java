@@ -34,7 +34,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import io.warp10.script.functions.MSGFAIL;
-import org.apache.commons.lang3.StringUtils;
+import io.warp10.script.functions.SNAPSHOT;
 import org.apache.hadoop.util.Progressable;
 
 import io.warp10.WarpConfig;
@@ -564,181 +564,258 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     try {
       recurseIn();
 
-      String[] statements;
-
-      line = line.trim();
+      int start = 0;
 
       //
-      // Replace whitespaces in Strings with '%20'
+      // Fast path to process multiline strings or comments blocks
       //
-
-      line = UnsafeString.sanitizeStrings(line);
-
-      if (-1 != line.indexOf(' ') && !inMultiline.get()) {
-        //statements = line.split(" +");
-        statements = UnsafeString.split(line, ' ');
-      } else {
-        // We're either in multiline mode or the line had no whitespace inside
-        statements = new String[1];
-        if (inMultiline.get()) {
-          // If the line only contained the end of multiline indicator with possible wsp on both sides
-          // then set the statement to that, otherwise set it to the raw line
-          if(WarpScriptStack.MULTILINE_END.equals(line)) {
-            statements[0] = line;
+      if (inMultiline.get()) {
+        line = line.trim();
+        // End of multiline        
+        if (WarpScriptStack.MULTILINE_END.equals(line)) {
+          inMultiline.set(false);
+          String mlcontent = multiline.toString();
+          if (null != secureScript) {
+            secureScript.append(" ");
+            secureScript.append("'");
+            try {
+              secureScript.append(WarpURLEncoder.encode(mlcontent, StandardCharsets.UTF_8));
+            } catch (UnsupportedEncodingException uee) {
+            }
+            secureScript.append("'");
           } else {
-            statements[0] = rawline;
+            if (macros.isEmpty()) {
+              this.push(mlcontent);
+            } else {
+              macros.get(0).add(mlcontent);
+            }
           }
+          multiline.setLength(0);
         } else {
-          statements[0] = line;
+          // Append current line to existing multiline 
+          if (multiline.length() > 0) {
+            multiline.append("\n");
+          }
+          multiline.append(rawline);
+        }
+        handleSignal();
+        progress();
+        return;
+      } else if (inComment.get()) {
+        int end = line.indexOf(COMMENT_END);
+        if (-1 == end) {
+          handleSignal();
+          progress();
+          return; // No end of comment in this line, skip it
+        } else {
+          start = end; // Skip the beginning of the line, before */
         }
       }
-
+      
       //
-      // Report progress
+      // Process line character by character, looking at block comments, comments, strings, then process statements.
       //
+      String stmt;
+      int end = 0;
+      int pos = 0;
+      try {
+        for (pos = start; pos < line.length(); pos++) {
 
-      progress();
-
-      //
-      // Loop over the statements
-      //
-
-      for (int st = 0; st < statements.length; st++) {
-        handleSignal();
-
-        String stmt = statements[st];
-
-        try {
-          //
-          // Skip empty statements if we are not currently building a multiline
-          //
-
-          if (0 == stmt.length() && !inMultiline.get()) {
-            continue;
+          if (line.charAt(pos) <= ' ') {
+            continue; // Ignore spaces (or other control char)
           }
 
           //
-          // Trim statement
+          // Start of comment block /*
           //
-
-          if (!inMultiline.get()) {
-            stmt = stmt.trim();
-          }
-
-          //
-          // End execution on encountering a comment
-          //
-
-          if (stmt.length() > 0 && (stmt.charAt(0) == '#' || (stmt.charAt(0) == '/' && stmt.length() >= 2 && stmt.charAt(1) == '/')) && !inMultiline.get() && !inComment.get()) {
-            // Skip comments and blank lines
-            return;
-          }
-
-          if (WarpScriptStack.MULTILINE_END.equals(stmt)) {
-            if (!inMultiline.get()) {
-              if (auditMode && !(macros.isEmpty() || macros.size() == forcedMacro)) {
-                WarpScriptAuditStatement err = new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_EXCEPTION, null, "Not inside a multiline.", lineNumber, st);
-                macros.get(0).add(err);
-                addAuditError(err);
-              } else {
-                throw new WarpScriptException("Not inside a multiline.");
-              }
-            }
-            inMultiline.set(false);
-
-            String mlcontent = multiline.toString();
-
-            if (null != secureScript) {
-              secureScript.append(" ");
-              secureScript.append("'");
-              try {
-                secureScript.append(WarpURLEncoder.encode(mlcontent, StandardCharsets.UTF_8));
-              } catch (UnsupportedEncodingException uee) {
-              }
-              secureScript.append("'");
+          if (pos < line.length() - 1 && line.charAt(pos) == '/' && line.charAt(pos + 1) == '*') {
+            inComment.set(true);
+            end = line.indexOf(COMMENT_END, pos + 2); // Look at the end of the comment block on the same line
+            if (-1 != end) {
+              pos = end; // seek to next comment end, will be evaluated below
             } else {
-              if (macros.isEmpty()) {
-                this.push(mlcontent);
-              } else {
-                macros.get(0).add(mlcontent);
-              }
+              break; // no need to process the remaining characters on the line
             }
-            multiline.setLength(0);
-            continue;
-          } else if (inMultiline.get()) {
-            if (multiline.length() > 0) {
-              multiline.append("\n");
-            }
-            multiline.append(stmt);
-            continue;
-          } else if (!allowLooseBlockComments && WarpScriptStack.COMMENT_END.equals(stmt)) {
-            // Legacy comments block: Comments block must start with /* and end with */ .
+          }
+
+          //
+          // End of comment block */
+          //
+          if (pos < line.length() - 1 && line.charAt(pos) == '*' && line.charAt(pos + 1) == '/') {
             if (!inComment.get()) {
               if (auditMode && !(macros.isEmpty() || macros.size() == forcedMacro)) {
-                WarpScriptAuditStatement err = new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_EXCEPTION, null, "Not inside a comment.", lineNumber, st);
+                WarpScriptAuditStatement err = new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_EXCEPTION, null, "Not inside a comment.", lineNumber, pos, pos + 1);
                 macros.get(0).add(err);
                 addAuditError(err);
               } else {
                 throw new WarpScriptException("Not inside a comment.");
               }
             }
-            inComment.set(false);
+            // is it followed by a space, or by end of line?
+            if (pos == line.length() - 2 || line.charAt(pos + 2) == ' ') {
+              inComment.set(false);
+              pos = pos + 2;
+              continue;
+            } else {
+              //  */x inside a comment is not a valid comment end. look for the next */
+              end = line.indexOf(COMMENT_END, pos + 2);
+              if (-1 == end) {
+                break; // no need to process the remaining characters on the line
+              } else {
+                pos = end - 1; // skip to next */ found (the for loop will increment pos)
+                continue;
+              }
+            }
+          }
+
+          if (inComment.get()) { // should never happen
             continue;
-          } else if (allowLooseBlockComments && stmt.startsWith(WarpScriptStack.COMMENT_START) && stmt.endsWith(WarpScriptStack.COMMENT_END)) {
-            // Single statement case : /*****foo*****/
-            continue;
-          } else if (allowLooseBlockComments && inComment.get() && stmt.endsWith(WarpScriptStack.COMMENT_END)) {
-            // End of comment, statement may contain characters before : +-+***/
-            inComment.set(false);
-            continue;
-          } else if (inComment.get()) {
-            continue;
-          } else if (!allowLooseBlockComments && WarpScriptStack.COMMENT_START.equals(stmt)) {
-            // Start of comment, statement may contain characters after : /**----
-            inComment.set(true);
-            continue;
-          } else if (allowLooseBlockComments && stmt.startsWith(WarpScriptStack.COMMENT_START)) {
-            // Legacy comments block: Comments block must start with /* and end with */ .
-            inComment.set(true);
-            continue;
-          } else if (WarpScriptStack.MULTILINE_START.equals(stmt)) {
-            if (1 != statements.length) {
+          }
+          
+          //
+          // Line comments, // or # 
+          //
+          if (line.charAt(pos) == '#' || (pos < line.length() - 1 && line.charAt(pos) == '/' && line.charAt(pos + 1) == '/')) {
+            break; // Ignore the remaining characters of the line
+          }
+
+          incOps();
+          checkOps();
+          handleSignal();
+          progress();
+
+          //
+          // Trim end of line to comply with string detection of the previous parser
+          // "a"%09a" is a valid single string (separator not followed by a space)
+          // "a" followed by a tabulation then end of line should also be valid (previous parser trimmed the line)
+          //
+          // Then detect strings, "xx" or 'xx' if the separator is at the end of the line or
+          // followed by a whitespace then we consider we exited the string, otherwise
+          // it is just part of the string, but we store a warning flag.
+          //
+          int trimmedLength = line.length() - 1;
+          while (trimmedLength > 0 && line.charAt(trimmedLength) <= ' ') {
+            trimmedLength--;
+          }
+          trimmedLength++;
+          if (0 == trimmedLength) {
+            break; // empty line
+          }
+          if (line.charAt(pos) == '"' || line.charAt(pos) == '\'') {
+            char sep = line.charAt(pos);
+            boolean warnSepInclusion = false;
+            end = -1;
+            if (pos != trimmedLength - 1) { // Do not look for string end if it starts at line end
+              int strEnd = pos + 1;
+              while (strEnd < trimmedLength) {
+                if (line.charAt(strEnd) == sep) {
+                  if (strEnd == trimmedLength - 1 || line.charAt(strEnd + 1) == ' ') {
+                    // End of trimmed line, or followed by a whitespace
+                    end = strEnd;
+                    break;
+                  } else {
+                    warnSepInclusion = true; // Separator found inside the string. Legal, but may be confusing
+                  }
+                }
+                strEnd++;
+              }
+            }
+
+            if (end == -1) {
               if (auditMode && !(macros.isEmpty() || macros.size() == forcedMacro)) {
-                WarpScriptAuditStatement err = new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_EXCEPTION, null, "Can only start multiline strings by using " + WarpScriptStack.MULTILINE_START + " on a line by itself.", lineNumber, st);
+                WarpScriptAuditStatement err = new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_EXCEPTION, null, "Cannot find end of string", lineNumber, pos, line.length()-1);
+                macros.get(0).add(err);
+                addAuditError(err);
+                break; // Cannot find the end of the string, do not try to parse the end of current line.
+              } else {
+                throw new WarpScriptException("Cannot find end of string");
+              }
+            } else { // This is a valid string, we can decode and push it.
+              if (auditMode && warnSepInclusion) {
+                WarpScriptAuditStatement err = new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_WARNING, null, "Separator found inside the string", lineNumber, pos, end + 1);
+                addAuditError(err);
+              }
+              String str = line.substring(pos + 1, end);
+              try {
+                str = WarpURLDecoder.decode(str, StandardCharsets.UTF_8);
+                if (null != secureScript) {
+                  secureScript.append(" '");
+                  SNAPSHOT.appendProcessedString(secureScript, str);
+                  secureScript.append("'");
+                } else {
+                  if (macros.isEmpty()) {
+                    push(str);
+                  } else {
+                    macros.get(0).add(str);
+                  }
+                }
+              } catch (Exception uee) {
+                // Catch any decode exception, including incomplete (%) patterns
+                if (auditMode && !(macros.isEmpty() || macros.size() == forcedMacro)) {
+                  WarpScriptAuditStatement err = new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_EXCEPTION, null, uee.getMessage(), lineNumber, pos, end + 1);
+                  macros.get(0).add(err);
+                  addAuditError(err);
+                } else {
+                  throw new WarpScriptException(uee);
+                }
+              }
+            }
+            pos = end + 1;
+            continue;
+          }
+
+          //
+          // Not a comment or multiline, not a string, this is a statement (followed by a space or end of line)
+          //
+          end = pos;
+          while (end < line.length() && line.charAt(end) > ' ') { // Tolerate tabs or other control characters (v2.x tolerate them at start and end, side effect of trim()
+            end++;
+          }
+          stmt = line.substring(pos, end);
+
+          
+          if (WarpScriptStack.MULTILINE_START.equals(stmt)) {
+            if (!WarpScriptStack.MULTILINE_START.equals(line.trim())) {
+              if (auditMode && !(macros.isEmpty() || macros.size() == forcedMacro)) {
+                WarpScriptAuditStatement err = new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_EXCEPTION, null, "Can only start multiline strings by using " + WarpScriptStack.MULTILINE_START + " on a line by itself.", lineNumber, pos);
                 macros.get(0).add(err);
                 addAuditError(err);
               } else {
                 throw new WarpScriptException("Can only start multiline strings by using " + WarpScriptStack.MULTILINE_START + " on a line by itself.");
               }
+            } else {
+              inMultiline.set(true);
+              multiline = new StringBuilder();
             }
-            inMultiline.set(true);
-            multiline = new StringBuilder();
-            continue;
+            break; // Nothing more to process, it is either <' on a single line, or a failure.
           }
 
-          incOps();
-          checkOps();
+          //
+          // The following code is the same as previous parser version
+          //
 
           if (WarpScriptStack.SECURE_SCRIPT_END.equals(stmt)) {
             if (null == secureScript) {
               if (auditMode && !(macros.isEmpty() || macros.size() == forcedMacro)) {
-                WarpScriptAuditStatement err = new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_EXCEPTION, null, "Not inside a secure script definition.", lineNumber, st);
+                WarpScriptAuditStatement err = new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_EXCEPTION, null, "Not inside a secure script definition.", lineNumber, pos);
                 macros.get(0).add(err);
                 addAuditError(err);
               } else {
                 throw new WarpScriptException("Not inside a secure script definition.");
               }
             } else {
-              this.push(secureScript.toString());
-              secureScript = null;
-              new SECURE("SECURESCRIPT").apply(this);
+              if (!auditMode) {
+                this.push(secureScript.toString());
+                secureScript = null;
+                new SECURE("SECURESCRIPT").apply(this);
+              }
             }
           } else if (WarpScriptStack.SECURE_SCRIPT_START.equals(stmt)) {
             if (null == secureScript) {
               secureScript = new StringBuilder();
             } else {
               if (auditMode && !(macros.isEmpty() || macros.size() == forcedMacro)) {
-                WarpScriptAuditStatement err = new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_EXCEPTION, null, "Already inside a secure script definition.", lineNumber, st);
+                WarpScriptAuditStatement err = new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_EXCEPTION, null, "Already inside a secure script definition.", lineNumber, pos);
                 macros.get(0).add(err);
                 addAuditError(err);
               } else {
@@ -865,7 +942,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             } else {
               if (auditMode) {
                 macros.get(0).add(new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_LOAD,
-                    stmt.substring(1), stmt, lineNumber, st));
+                    stmt.substring(1), stmt, lineNumber, pos));
               } else {
                 macros.get(0).add(stmt.substring(1));
                 macros.get(0).add(WarpScriptLib.getFunction(WarpScriptLib.LOAD));
@@ -875,8 +952,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             //
             // This is an immediate variable dereference
             //
-            if (auditMode && macros.size() > 1) {
-              macros.get(0).add(new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_EARLY_BINDING, null, stmt.substring(2), lineNumber, st));
+            if (auditMode && macros.size() >= 1) {
+              macros.get(0).add(new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_EARLY_BINDING, null, stmt.substring(2), lineNumber, pos));
             } else {
               Object o = load(stmt.substring(2));
 
@@ -915,7 +992,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
               macros.get(0).add(stmt.substring(1));
               if (auditMode) {
                 macros.get(0).add(new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_LOAD,
-                    stmt.substring(1), stmt, lineNumber, st));
+                    stmt.substring(1), stmt, lineNumber, pos));
               } else {
                 macros.get(0).add(WarpScriptLib.getFunction(WarpScriptLib.RUN));
               }
@@ -927,9 +1004,9 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             if (auditMode && !(macros.isEmpty() || macros.size() == forcedMacro)) {
               try {
                 Object func = findFunction(stmt);
-                macros.get(0).add(new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.FUNCTION_CALL, func, stmt, lineNumber, st));
+                macros.get(0).add(new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.FUNCTION_CALL, func, stmt, lineNumber, pos));
               } catch (WarpScriptException e) {
-                WarpScriptAuditStatement err = new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.UNKNOWN, null, stmt, lineNumber, st);
+                WarpScriptAuditStatement err = new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.UNKNOWN, null, stmt, lineNumber, pos);
                 macros.get(0).add(err);
                 addAuditError(err);
               }
@@ -972,28 +1049,32 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
               }
             }
           }
-        } catch (WarpScriptATCException e) {
-          throw e;
-        } catch (Exception e) {
-          StringBuilder errorMessage = new StringBuilder("Exception at '");
-          boolean nextStatement = false;
-          for (int stc = Math.max(0, st - 3); stc < Math.min(statements.length, st + 4); stc++) {
-            if (nextStatement) {
-              errorMessage.append(" ");
-            } else {
-              nextStatement = true;
-            }
-
-            if (st == stc) {
-              errorMessage.append("=>").append(StringUtils.abbreviateMiddle(statements[stc].trim(), "...", 32)).append("<=");
-            } else {
-              errorMessage.append(StringUtils.abbreviateMiddle(statements[stc], "...", 32));
-            }
-          }
-          errorMessage.append("' in section " + sectionName);
-
-          throw new WarpScriptException(errorMessage.toString(), e);
+          pos = end;
         }
+        progress();
+      } catch (WarpScriptATCException e) {
+        throw e;
+      } catch (Exception e) {
+        StringBuilder errorMessage = new StringBuilder("Exception at '");
+        if (pos < 0) {
+          pos = 0; // Should not happen
+        }
+        if (pos >= line.length()) {
+          pos = line.length() - 1;
+        }
+        if (pos > end) {
+          end = pos;
+        }
+        if (end > line.length()) {
+          end = line.length();
+        }
+        errorMessage.append(line, Math.max(0, pos - 30), pos);
+        errorMessage.append("=>").append(line, pos, end).append("<=");
+        errorMessage.append(line, end, Math.min(end + 30, line.length()));
+
+        errorMessage.append("' in section " + sectionName);
+
+        throw new WarpScriptException(errorMessage.toString(), e);
       }
 
       return;

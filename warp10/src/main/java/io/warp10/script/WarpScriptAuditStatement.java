@@ -29,6 +29,7 @@ public class WarpScriptAuditStatement implements WarpScriptStackFunction {
   public static final String KEY_TYPE = "type";
   public static final String KEY_LINE = "line";
   public static final String KEY_POSITION = "position";
+  public static final String KEY_POSITION_END = "position.end";
   public static final String KEY_STATEMENT = "statement";
 
   public enum STATEMENT_TYPE {
@@ -37,23 +38,34 @@ public class WarpScriptAuditStatement implements WarpScriptStackFunction {
     WS_EARLY_BINDING, // managed as a simple load for the moment
     WS_LOAD,          // load action is stored as one statement, to store the right statement position
     WS_RUN,           // run action is stored as one statement, to store the right statement position
+    WS_WARNING,       // something legal in WarpScript, but than can be misleading
     UNKNOWN           // syntax error (missing space, [5 is not a function), function call to a REDEF function, or unknown extension.
   }
 
   public STATEMENT_TYPE type;
   public String statement;
   public long lineNumber;      // first line is numbered 1
-  public int positionNumber;   // first statement in line is numbered 0
+  public int inLinePositionStart;   // first character of the line is numbered 0
+  public int inLinePositionEnd;     // end of the statement or audit issue 
   public Object statementObject;
 
-  public WarpScriptAuditStatement(STATEMENT_TYPE type, Object statementObject, String statement, Long lineNumber, int statementNumber) {
+  public WarpScriptAuditStatement(STATEMENT_TYPE type, Object statementObject, String statement, Long lineNumber, int start) {
     this.type = type;
     this.statement = statement;
     this.lineNumber = lineNumber;
-    this.positionNumber = statementNumber;
+    this.inLinePositionStart = start;
+    this.inLinePositionEnd = statement == null ? start : start + statement.length();
     this.statementObject = statementObject;
   }
 
+  public WarpScriptAuditStatement(STATEMENT_TYPE type, Object statementObject, String statement, Long lineNumber, int start, int end) {
+    this.type = type;
+    this.statement = statement;
+    this.lineNumber = lineNumber;
+    this.inLinePositionStart = start;
+    this.inLinePositionEnd = end;
+    this.statementObject = statementObject;
+  }
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     switch (type) {
@@ -100,7 +112,7 @@ public class WarpScriptAuditStatement implements WarpScriptStackFunction {
    * @return " (line x, position y)", where x and y are numbers.
    */
   public String formatPosition() {
-    return " (line " + lineNumber + ", position " + positionNumber + ")";
+    return " (line " + lineNumber + ", position " + inLinePositionStart + ")";
   }
 
   /**
@@ -111,7 +123,8 @@ public class WarpScriptAuditStatement implements WarpScriptStackFunction {
     Map m = new LinkedHashMap();
     m.put(KEY_TYPE,type.name());
     m.put(KEY_LINE,lineNumber);
-    m.put(KEY_POSITION,((Integer)positionNumber).longValue()); // WarpScript knows LONG 
+    m.put(KEY_POSITION,((Integer) inLinePositionStart).longValue()); // WarpScript knows LONG 
+    m.put(KEY_POSITION_END,((Integer) inLinePositionEnd).longValue()); // WarpScript knows LONG 
     m.put(KEY_STATEMENT,statement);
     return m;
   } 
