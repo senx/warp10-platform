@@ -34,6 +34,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import io.warp10.script.functions.MSGFAIL;
+import io.warp10.script.functions.SNAPSHOT;
 import org.apache.hadoop.util.Progressable;
 
 import io.warp10.WarpConfig;
@@ -730,10 +731,16 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
               String str = line.substring(pos + 1, end);
               try {
                 str = WarpURLDecoder.decode(str, StandardCharsets.UTF_8);
-                if (macros.isEmpty()) {
-                  push(str);
+                if (null != secureScript) {
+                  secureScript.append(" '");
+                  SNAPSHOT.appendProcessedString(secureScript, str);
+                  secureScript.append("'");
                 } else {
-                  macros.get(0).add(str);
+                  if (macros.isEmpty()) {
+                    push(str);
+                  } else {
+                    macros.get(0).add(str);
+                  }
                 }
               } catch (Exception uee) {
                 // Catch any decode exception, including incomplete (%) patterns
@@ -790,9 +797,11 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
                 throw new WarpScriptException("Not inside a secure script definition.");
               }
             } else {
-              this.push(secureScript.toString());
-              secureScript = null;
-              new SECURE("SECURESCRIPT").apply(this);
+              if (!auditMode) {
+                this.push(secureScript.toString());
+                secureScript = null;
+                new SECURE("SECURESCRIPT").apply(this);
+              }
             }
           } else if (WarpScriptStack.SECURE_SCRIPT_START.equals(stmt)) {
             if (null == secureScript) {
