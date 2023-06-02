@@ -702,7 +702,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
               while (strEnd < trimmedLength) {
                 if (line.charAt(strEnd) == sep) {
                   if (strEnd == trimmedLength - 1 || line.charAt(strEnd + 1) == ' ') {
-                    // End of line, or followed by a separator
+                    // End of trimmed line, or followed by a whitespace
                     end = strEnd;
                     break;
                   } else {
