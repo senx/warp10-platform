@@ -3776,10 +3776,8 @@ public class GTSHelper {
       buf[idx++] = (byte) (hash & 0xffL);
     }
 
-    //return SipHashInline.hash24(sipkey[0], sipkey[1], buf, 0, buf.length);
     long id = SipHashInline.hash24_palindromic(sipkey0, sipkey1, buf, 0, hasheslen);
     return id;
-    //return SipHashInline.hash24_palindromic(sipkey0, sipkey1, buf, 0, buf.length);
   }
 
   public static final long labelsId_slow(byte[] key, Map<String,String> labels) {
