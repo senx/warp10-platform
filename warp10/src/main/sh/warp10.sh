@@ -178,7 +178,6 @@ init() {
 
 warp10.home = ${WARP10_HOME_ESCAPED}" >"${WARP10_CONFIG_DIR}/99-init.conf"
 
-
   ##
   ## Copy the template configuration file
   ##
@@ -210,8 +209,7 @@ postInit() {
 // Cryptographic keys definition
 //
 " >>"${WARP10_CONFIG_DIR}/99-init.conf"
-  ${JAVACMD} -cp "${WARP10_JAR}" -Dfile.encoding=UTF-8 io.warp10.GenerateCryptoKeys ${TEMPLATE} >> "${WARP10_CONFIG_DIR}/99-init.conf"
-
+  ${JAVACMD} -cp "${WARP10_JAR}" -Dfile.encoding=UTF-8 io.warp10.GenerateCryptoKeys ${TEMPLATE} >>"${WARP10_CONFIG_DIR}/99-init.conf"
 
   echo "
 //
@@ -283,19 +281,19 @@ fdb.clusterfile=\${warp10.home}/etc/fdb.cluster" >>"${WARP10_CONFIG_DIR}/99-init
 inmemoryConf() {
   echo "Initializing Warp 10 in-memory configuration"
   init
-  echo "
-backend = memory" >>"${WARP10_CONFIG_DIR}/99-init.conf"
   mv "${WARP10_CONFIG_DIR}/10-fdb.conf" "${WARP10_CONFIG_DIR}/10-fdb.conf.DISABLE"
   mv "${WARP10_CONFIG_DIR}/10-leveldb.conf" "${WARP10_CONFIG_DIR}/10-leveldb.conf.DISABLE"
   getConfigFiles
 
-  echo
-  echo "in.memory.chunked = true" >>"${WARP10_CONFIG_DIR}/99-init.conf"
-  echo "in.memory.chunk.count = 2" >>"${WARP10_CONFIG_DIR}/99-init.conf"
-  echo "in.memory.chunk.length = 86400000000" >>"${WARP10_CONFIG_DIR}/99-init.conf"
-  echo "in.memory.load = ${WARP10_HOME}/memory.dump" >>"${WARP10_CONFIG_DIR}/99-init.conf"
-  echo "in.memory.dump = ${WARP10_HOME}/memory.dump" >>"${WARP10_CONFIG_DIR}/99-init.conf"
-  echo
+  {
+    echo
+    echo "backend = memory"
+    echo "in.memory.chunk.count = 2"
+    echo "in.memory.chunk.length = 86400000000"
+    echo "in.memory.load = ${WARP10_HOME}/memory.dump"
+    echo "in.memory.dump = ${WARP10_HOME}/memory.dump"
+    echo
+  } >>"${WARP10_CONFIG_DIR}/99-init.conf"
 
   postInit
 }
@@ -399,7 +397,7 @@ repair() {
 
 compact() {
   if [ "$#" -ne 4 ]; then
-      die "Usage: $0 compact LEVELDB_HOME STARTKEY(hex) ENDKEY(hex)"
+    die "Usage: $0 compact LEVELDB_HOME STARTKEY(hex) ENDKEY(hex)"
   fi
 
   isWarp10User
