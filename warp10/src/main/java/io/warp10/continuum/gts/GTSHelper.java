@@ -42,8 +42,8 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.PriorityQueue;
 import java.util.Map.Entry;
+import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -58,12 +58,12 @@ import org.apache.commons.math3.fitting.PolynomialCurveFitter;
 import org.apache.commons.math3.fitting.WeightedObservedPoint;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
-import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.geoxp.GeoXPLib;
 import com.geoxp.GeoXPLib.GeoXPShape;
+
 import io.warp10.CapacityExtractorOutputStream;
 import io.warp10.WarpHexDecoder;
 import io.warp10.WarpURLDecoder;
@@ -93,40 +93,6 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.functions.MACROMAPPER;
 import io.warp10.script.functions.TOQUATERNION;
-
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.net.URLDecoder;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.charset.CharsetEncoder;
-import java.nio.charset.CodingErrorAction;
-import java.nio.charset.StandardCharsets;
-import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.BitSet;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.PriorityQueue;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 
 /**
@@ -3687,9 +3653,6 @@ public class GTSHelper {
     //
 
     int calen = 64;
-    byte[] ba = new byte[(int) ((double) ce.maxBytesPerChar() * calen)];
-    //char[] ca = new char[64];
-
 
     //
     // Allocate an array to hold both name and value hashes
@@ -3706,6 +3669,8 @@ public class GTSHelper {
     CharBuffer cb = CharBuffer.allocate(calen);
     ByteBuffer bb = ByteBuffer.allocate((int) ((double) ce.maxBytesPerChar() * calen));
 
+    boolean error = false;
+
     for (Entry<String, String> entry: labels.entrySet()) {
       String ekey = entry.getKey();
       String eval = entry.getValue();
@@ -3713,15 +3678,17 @@ public class GTSHelper {
       int klen = ekey.length();
       int vlen = eval.length();
 
+      //
+      // Grow the buffers if needed
+      //
+
       if (klen > calen || vlen > calen) {
         calen = Math.max(klen, vlen);
         cb = CharBuffer.allocate(calen);
         bb = ByteBuffer.allocate((int) ((double) ce.maxBytesPerChar() * calen));
       }
 
-      ce.onMalformedInput(CodingErrorAction.REPLACE)
-      .onUnmappableCharacter(CodingErrorAction.REPLACE)
-      .reset();
+      ce = ce.reset().onMalformedInput(CodingErrorAction.REPLACE).onUnmappableCharacter(CodingErrorAction.REPLACE);
 
       cb.clear();
       cb.put(ekey);
@@ -3729,12 +3696,13 @@ public class GTSHelper {
       bb.clear();
 
       CoderResult res = ce.encode(cb, bb, true);
+      error = error || !res.isUnderflow();
+      res = ce.flush(bb);
+      error = error || !res.isUnderflow();
       bb.flip();
-
       hashes[idx] = SipHashInline.hash24_palindromic(sipkey0, sipkey1, bb.array(), 0, bb.limit());
-      ce.onMalformedInput(CodingErrorAction.REPLACE)
-      .onUnmappableCharacter(CodingErrorAction.REPLACE)
-      .reset();
+
+      ce = ce.reset().onMalformedInput(CodingErrorAction.REPLACE).onUnmappableCharacter(CodingErrorAction.REPLACE);
 
       cb.clear();
       cb.put(eval);
@@ -3742,10 +3710,16 @@ public class GTSHelper {
       bb.clear();
 
       res = ce.encode(cb, bb, true);
+      error = error || !res.isUnderflow();
+      res = ce.flush(bb);
+      error = error || !res.isUnderflow();
       bb.flip();
-
       hashes[idx+1] = SipHashInline.hash24_palindromic(sipkey0, sipkey1, bb.array(), 0, bb.limit());
       idx+=2;
+    }
+
+    if (error) {
+      throw new RuntimeException("Error computing labels id.");
     }
 
     //
@@ -3784,7 +3758,10 @@ public class GTSHelper {
     // Now compute the SipHash of all the longs in the order we just determined
     //
 
-    byte[] buf = new byte[hashes.length * 8];
+    int hasheslen = hashes.length * 8;
+
+    // If the array backing bb is large enough, use it, otherwise allocate a new array
+    byte[] buf = bb.capacity() >= hasheslen ? bb.array() : new byte[hasheslen];
 
     idx = 0;
 
@@ -3799,10 +3776,8 @@ public class GTSHelper {
       buf[idx++] = (byte) (hash & 0xffL);
     }
 
-    //return SipHashInline.hash24(sipkey[0], sipkey[1], buf, 0, buf.length);
-    long id = SipHashInline.hash24_palindromic(sipkey0, sipkey1, buf, 0, buf.length);
+    long id = SipHashInline.hash24_palindromic(sipkey0, sipkey1, buf, 0, hasheslen);
     return id;
-    //return SipHashInline.hash24_palindromic(sipkey0, sipkey1, buf, 0, buf.length);
   }
 
   public static final long labelsId_slow(byte[] key, Map<String,String> labels) {

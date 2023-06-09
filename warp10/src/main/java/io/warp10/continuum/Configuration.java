@@ -74,6 +74,11 @@ public class Configuration {
   public static final String WARP_DEFAULT_AES_LOGGING = "hex:3cf5cee9eadddba796f2cce0762f308ad9df36f4883841e167dab2889bcf215b";
 
   /**
+   * Set to true to ignore inconsistencies detected when loading GTS.
+   */
+  public static final String WARP_IGNORE_ID_INCONSISTENCIES = "warp.ignore.id.inconsistencies";
+
+  /**
    * Some libraries (like Processing), expect the Java version to be 1.y.z, as this has changed
    * with JDK9+, those libraries may fail to parse the java version. This configuration key
    * can be used to force the "java.version" property to the given value.
