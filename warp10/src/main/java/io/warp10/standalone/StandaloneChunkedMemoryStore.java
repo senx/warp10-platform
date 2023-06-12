@@ -66,7 +66,7 @@ import io.warp10.sensision.Sensision;
  * This class implements an in memory store which handles data expiration
  * using chunks which can be discarded when they no longer belong to the
  * active data period.
- *
+ * <p>
  * Chunks can optionally be dumped to disk when discarded.
  */
 public class StandaloneChunkedMemoryStore extends Thread implements StoreClient {
@@ -75,7 +75,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
 
   private final Map<BigInteger,InMemoryChunkSet> series;
 
-  private List<StandalonePlasmaHandlerInterface> plasmaHandlers = new ArrayList<StandalonePlasmaHandlerInterface>();
+  private final List<StandalonePlasmaHandlerInterface> plasmaHandlers = new ArrayList<StandalonePlasmaHandlerInterface>();
 
   private StandaloneDirectoryClient directoryClient = null;
 
@@ -173,13 +173,15 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
 
       private GTSDecoder decoder = null;
 
-      private CapacityExtractorOutputStream extractor = new CapacityExtractorOutputStream();
+      private final CapacityExtractorOutputStream extractor = new CapacityExtractorOutputStream();
 
       @Override
-      public void close() throws Exception {}
+      public void close() throws Exception {
+      }
 
       @Override
-      public void remove() {}
+      public void remove() {
+      }
 
       @Override
       public GTSDecoder next() {
@@ -198,12 +200,12 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
         // 128 bits
         byte[] bytes = new byte[16];
 
-        while(true) {
+        while (true) {
           if (idx >= metadatas.size()) {
             return false;
           }
 
-          while(idx < metadatas.size()) {
+          while (idx < metadatas.size()) {
             GTSHelper.fillGTSIds(bytes, 0, metadatas.get(idx).getClassId(), metadatas.get(idx).getLabelsId());
 
             BigInteger clslbls = new BigInteger(bytes);
@@ -242,7 +244,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
 
     return iterator;
   }
-  
+
   /**
    * CAUTION, this method assumes that class and labels Id HAVE BEEN
    * computed for 'encoder'
@@ -265,7 +267,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
     // Retrieve the chunk for the current GTS
     //
 
-    InMemoryChunkSet chunkset = null;
+    InMemoryChunkSet chunkset;
 
     synchronized (this.series) {
       chunkset = this.series.get(clslbls);
@@ -276,7 +278,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
 
       if (null == chunkset) {
         chunkset = new InMemoryChunkSet(this.chunkcount, this.chunkspan, this.ephemeral);
-        this.series.put(clslbls,  chunkset);
+        this.series.put(clslbls, chunkset);
       }
     }
 
@@ -306,7 +308,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
     long gcperiod = this.chunkspan;
 
     if (null != properties.getProperty(io.warp10.continuum.Configuration.STANDALONE_MEMORY_GC_PERIOD)) {
-      gcperiod = Long.valueOf(properties.getProperty(io.warp10.continuum.Configuration.STANDALONE_MEMORY_GC_PERIOD));
+      gcperiod = Long.parseLong(properties.getProperty(io.warp10.continuum.Configuration.STANDALONE_MEMORY_GC_PERIOD));
     }
 
     long maxalloc = Long.MAX_VALUE;
@@ -317,7 +319,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
 
     long delayns = 1000000L * Math.min(Long.MAX_VALUE / 1000000L, gcperiod / Constants.TIME_UNITS_PER_MS);
 
-    while(true) {
+    while (true) {
       // Do not reclaim data for ephemeral setups
       if (this.ephemeral) {
         Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_INMEMORY_GTS, Sensision.EMPTY_LABELS, this.series.size());
@@ -327,8 +329,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
 
       LockSupport.parkNanos(delayns);
 
-      List<BigInteger> metadatas = new ArrayList<BigInteger>();
-      metadatas.addAll(this.series.keySet());
+      List<BigInteger> metadatas = new ArrayList<BigInteger>(this.series.keySet());
 
       if (0 == metadatas.size()) {
         continue;
@@ -349,9 +350,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
 
       boolean doreclaim = true;
 
-      for (int idx = 0 ; idx < metadatas.size(); idx++) {
-        BigInteger key = metadatas.get(idx);
-
+      for (BigInteger key: metadatas) {
         InMemoryChunkSet chunkset = this.series.get(key);
 
         if (null == chunkset) {
@@ -433,6 +432,12 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
 
   @Override
   public long delete(WriteToken token, Metadata metadata, long start, long end) throws IOException {
+    // Do nothing if Metadata is null, this is simply a marker to instruct some StoreClient (namely FDB) to
+    // flush their mutations
+    if (null == metadata) {
+      return 0L;
+    }
+
     //
     // Regen classId/labelsId
     //
@@ -449,7 +454,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
 
     InMemoryChunkSet set = null;
 
-    synchronized(this.series) {
+    synchronized (this.series) {
       if (Long.MIN_VALUE == start && Long.MAX_VALUE == end) {
         this.series.remove(clslbls);
       } else {
@@ -489,13 +494,13 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
     BytesWritable value = new BytesWritable();
 
     CompressionCodec Codec = new DefaultCodec();
-    SequenceFile.Writer writer = null;
+
     SequenceFile.Writer.Option optPath = SequenceFile.Writer.file(new Path(path));
     SequenceFile.Writer.Option optKey = SequenceFile.Writer.keyClass(key.getClass());
     SequenceFile.Writer.Option optVal = SequenceFile.Writer.valueClass(value.getClass());
-    SequenceFile.Writer.Option optCom = SequenceFile.Writer.compression(CompressionType.RECORD,  Codec);
+    SequenceFile.Writer.Option optCom = SequenceFile.Writer.compression(CompressionType.RECORD, Codec);
 
-    writer = SequenceFile.createWriter(conf, optPath, optKey, optVal, optCom);
+    SequenceFile.Writer writer = SequenceFile.createWriter(conf, optPath, optKey, optVal, optCom);
 
     TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
 
@@ -591,7 +596,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
 
       System.out.println("Loading '" + path + "' back in memory.");
 
-      while(reader.next(key, value)) {
+      while (reader.next(key, value)) {
         chunks++;
         GTSWrapper wrapper = new GTSWrapper();
         deserializer.deserialize(wrapper, key.copyBytes());
@@ -626,7 +631,9 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
       }
     }
 
-    reader.close();
+    if (reader != null) {
+      reader.close();
+    }
 
     nano = System.nanoTime() - nano;
 
