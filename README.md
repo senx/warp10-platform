@@ -5,42 +5,39 @@
 <p align="center"><a href="https://warp10.io" title="Warp 10 Platform"><img src="https://warp10.io/assets/img/warp10_bySenx_dark.png" alt="Warp 10 Logo" width="50%"></a></p>
 
 # Warp 10
-## Go further and faster in your journey to get value from your data
+## The Most Advanced Time Series Platform
 
-Warp 10 is a modular open source platform designed to collect, store and analyze sensors / time series data and any kind of sequence data in a horizontal and industrial perspective.
+Warp 10 is a modular open source platform shaped for the IoT that collects, stores and allows you to analyze sensor data. [Learn more](https://www.warp10.io/content/01_About)
 
-<p align="center"><a href="https://youtu.be/-5dAB7-dHaQ"><img src="https://warp10.io/assets/img/thumbnail_warp10_video.jpg" alt="Warp 10 simplifies sensor data management and analytics." width="50%"></a></p>
+- **Increase the storage capacity** of your historical data and reduce your storage bill while preserving all analysis capabilities
+- **Deploy a real time database** that scales with your time series needs
+- **Enhance your existing tools** with a ubiquitous analysis environment dedicated to time series data
+- **Streamlining KPIs and data** visualization across your organization
+- **Enable your business applications** to interact easily with your system's data
 
-## Warp 10 simplifies data management and analytics
-Shaped for the Internet of Things (IoT) with a flexible data model, Warp 10 provides a unique and powerful framework to simplify your processes from data collection to analysis and visualization, with the support of geolocated data in its core model (called Geo Time Series).
+## Improve the efficiency of your existing infrastructure
 
-Geo Time Series extend the notion of Time Series by merging the sequence of sensor readings with the sequence of sensor locations. If your data have no location information, Warp 10 will handle them as regular Time Series.
+The Warp 10 Platform integrates into existing datalake infrastructures and provides storage and analytics solutions tailored for time series data which can be leveraged from existing tools.
+![Reference Architecture](https://warp10.io/assets/img/archi/reference_architecture_warp10io-01.png)
 
-Warp 10 offers both a Time Series Database and a powerful analysis environment that can be used together or independently.
+|||
+|-|-|
+|Storage Engine|Securely ingest data coming from devices, supporting high throughput, delayed and out-of-order data with support for a wide variety of protocols such as HTTP, MQTT, or Kafka. [Read more](https://warp10.io/content/01_About/storage)|
+|History Files|Efficiently compact stable data and store the resulting files onto any filesystem or cloud object store while retaining the same access flexibility as data stored in the Warp 10 Storage Engine. [Read more](https://warp10.io/content/01_About/storage)|
+|Analytics Engine|Leverage WarpLib, a library of over 1300 functions designed specifically for time series data manipulation, to increase the efficiency of data teams. [Read more](https://warp10.io/content/01_About/analytics)|
+|Dynamics Dashboards|Create highly dynamic dashboards from your time series data. Discovery is a dashboard as code tool dedicated to Warp 10 technology. Display your data through an entire dashboard. [Read more](https://discovery.warp10.io/)|
+|Business Applications|Enable business applications to benefit from the wealth of knowledge present in time series data by connecting those applications to the analytics and storage engines provided by the Warp 10 platform. [Read more](https://warp10.io/content/01_About/applications)|
 
-## Features
+## Versions
+The Warp 10 platform is available in three versions, **Standalone**, **Standalone+** and **Distributed**.
+All versions provide the same level of functionality except for some minor differences, the complete **WarpScript** language is available in both versions. They differ mainly by the way the Storage Engine is implemented.
 
-The Warp 10 Platform provides a rich set of features to simplify your work on sensor data:
-* **A powerful Analytics Engine** with [WarpLib](https://www.warp10.io/doc/reference), a library dedicated to time series data analysis with more than 1000 functions and extension capabilities to perform data analysis, from the simplest to the most advanced. Use the Analytics Engine integrated in the Warp 10 platform or as an external library in your tools.
-* **Warp 10 Storage Engine**, our collection and storage layer, a Geo Time Series Database
-* **The Edge version**, to implement Warp 10 on any machine technical system or device by adjunction of additional board or box thanks to a wide range of connectors.
-* [**WarpScript**](https://www.warp10.io/content/03_Documentation/04_WarpScript), a language specifically designed for analytics of time series data. It is one of the pillars of the analytics layer of the Warp 10 Platform
-* [**FLoWS**](https://www.warp10.io/content/03_Documentation/04_FLoWS), an alternative to WarpScript for users discovering the Warp 10 Platform. It is meant to be easy to learn, look familiar to users of other programming languages, and enable time series analysis by leveraging the whole of WarpLib.
-* **Plasma and Mobius**, streaming engines allowing to cascade the Warp 10 Platform with Complex Event Processing solutions and to build dynamic dashboards
-* **Runner**, a system for scheduling WarpScript program executions on the server side
-* [**Sensision**](https://github.com/senx/sensision), a framework for exposing metrics and pushing them into Warp 10
-* **Standalone version** running on a [Raspberry Pi](https://blog.senx.io/warp-10-raspberry-bench-for-industrial-iot/) as well as on a beefy server, with no external dependencies
-* Replication and sharding of standalone instances using the **Datalog mechanism**
-* **Distributed version**, based on Hadoop HBase for the most demanding environments
-* Integration with [Pig](https://github.com/senx/warp10-pig), [Spark](https://github.com/senx/warp10-spark2), [Flink](https://github.com/senx/warp10-flink), [NiFi](https://github.com/senx/nifi-warp10-processor), [Kafka Streams](https://github.com/senx/warp10-plugin-kstreams) and [Storm](https://github.com/senx/warp10-storm) for batch and streaming analysis.
-* An easy integration into a **large ecosystem** of existing tools, such as Jupyter, Python, HTTP, Json, NodeRed, R, Zeppelin, Tableau, Pytorch, MQTT, LevelDB, Avro and more.
+|||
+|-|-|
+|Standalone|The Standalone version is designed to be deployed on a single server whose size can range from a Raspberry Pi to a multi CPU box. It uses **LevelDB** as its storage layer or an in-memory datastore for cache setups. All features (storage, analysis) are provided by a single process, hence the name standalone. Multiple Standalone instances can be made to work together to provide High Availability to your deployment. This is provided via a replication mechanism called **Datalog**.
+|Standalone+|Warp 10 with a **FoundationDB** backend. It is a middle ground between the standalone and distributed versions, basically a standalone version but with storage managed by FoundationDB instead of LevelDB.|
+|Distributed|The Distributed version coordinates multiple processes on multiple servers. The Storage layer uses **FoundationDB** for data persistence. Communication between processes is done through Kafka and ZooKeeper. This version is suitable for heavy workloads and giant datasets. Scalability comes with a price, the added complexity of the architecture.|
 
-A collection of tools that complete the Platform and ease your work on time series data:
-* [WarpStudio](https://studio.senx.io/), a web editor, to edit and execute your WarpScript and FLoWS code.
-* [WarpFleet](https://warpfleet.senx.io/), the artifact repository, to share your plugins, extensions and macros.
-* [Sandbox](https://sandbox.senx.io), a hosted environment for test driving Warp 10 without deploying it.
-* [WarpView](https://senx.github.io/warpview/), a collection of charting web components
-* [Discovery](https://warp10.io/content/05_Ecosystem/02_Visualization/02_Discovery/00_Overview), a dynamic dashboarding solution with a unique dashboard as code approach.
 
 ## Getting started
 
@@ -51,6 +48,11 @@ Learn more by browsing the [documentation](https://www.warp10.io/doc/reference).
 
 To test Warp 10 without installing it, try the [free sandbox](https://sandbox.senx.io/) where you can get your hands on in no time.
 
+For quick start:
+```bash
+./warp10.sh init standalone
+./warp10.sh start
+```
 
 
 ## Help & Community
@@ -60,11 +62,9 @@ The team has put lots of efforts into the [documentation](https://www.warp10.io/
 We understand that discovering all the features of the Warp 10 Platform at once can be intimidating, that’s why you have several options to find answers to your questions:
 * Explore the [blog](https://blog.senx.io/) and especially the Tutorials and Thinking in WarpScript categories
 * Explore the [tutorials](https://www.warp10.io/content/04_Tutorials) on [warp10.io](https://www.warp10.io/)
-* Follow us on [Twitter](https://twitter.com/warp10io)
 * Join the [Lounge](https://lounge.warp10.io/), the Warp 10 community on Slack
-* Subscribe to the [Google Group](https://groups.google.com/forum/#!forum/warp10-users)
 * Ask your question on StackOverflow using [warp10](https://stackoverflow.com/search?q=warp10) and [warpscript](https://stackoverflow.com/search?q=warpscript) tags
-* Get informed of the last news of the Platform thanks to the [newsletter](https://senx.us19.list-manage.com/subscribe/post?u=322486758928f239c3698c600&id=bc195bb85c)
+* Get informed of the last news of the platform thanks to [Twitter](https://twitter.com/warp10io) and the [newsletter](https://senx.us19.list-manage.com/subscribe/post?u=322486758928f239c3698c600&id=bc195bb85c)
 
 Our goal is to build a large community of users to move our platform into territories we haven't explored yet and to make Warp 10 and WarpScript the standards for sensor data and the IoT.
 
