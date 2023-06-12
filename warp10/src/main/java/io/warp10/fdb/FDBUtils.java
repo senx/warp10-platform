@@ -53,7 +53,7 @@ public class FDBUtils {
   public static final int MAX_VALUE_SIZE = 100000;
   public static final long MAX_TXN_SIZE = 10000000;
 
-  private static final String DEFAULT_FDB_API_VERSION = Integer.toString(720);
+  private static final String DEFAULT_FDB_API_VERSION = Integer.toString(710);
 
   static {
     if (!Warp.isStandaloneMode() || Constants.BACKEND_FDB.equals(WarpConfig.getProperty(Configuration.BACKEND))) {
