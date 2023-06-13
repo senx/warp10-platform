@@ -2,12 +2,15 @@
 [![Build Status](https://app.travis-ci.com/senx/warp10-platform.svg?branch=master)](https://app.travis-ci.com/senx/warp10-platform)
 [![Tweet](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/intent/tweet?text=Get%20The%20Most%20Advanced%20Time%20Series%20Platform&url=https://warp10.io/download&via=warp10io&hashtags=tsdb,database,timeseries,opensource)
 
-<p align="center"><a href="https://warp10.io" title="Warp 10 Platform"><img src="https://warp10.io/assets/img/warp10_bySenx_dark.png" alt="Warp 10 Logo" width="50%"></a></p>
+<p  style="text-align:center"><a href="https://warp10.io" title="Warp 10 Platform"><img src="https://warp10.io/assets/img/warp10_bySenx_dark.png" alt="Warp 10 Logo" width="50%"></a></p>
 
 # Warp 10
 ## The Most Advanced Time Series Platform
 
-Warp 10 is a modular open source platform shaped for the IoT that collects, stores and allows you to analyze sensor data. [Learn more](https://www.warp10.io/content/01_About)
+Warp 10 is a modular open source platform shaped for the IoT that collects, stores and
+allows you to analyze sensor data. It offers both a Time Series Database and
+a powerful analysis environment that can be used together or independently.
+[Learn more](https://www.warp10.io/content/01_About)
 
 - **Increase the storage capacity** of your historical data and reduce your storage bill while preserving all analysis capabilities
 - **Deploy a real time database** that scales with your time series needs
@@ -20,24 +23,24 @@ Warp 10 is a modular open source platform shaped for the IoT that collects, stor
 The Warp 10 Platform integrates into existing datalake infrastructures and provides storage and analytics solutions tailored for time series data which can be leveraged from existing tools.
 ![Reference Architecture](https://warp10.io/assets/img/archi/reference_architecture_warp10io-01.png)
 
-|||
-|-|-|
-|Storage Engine|Securely ingest data coming from devices, supporting high throughput, delayed and out-of-order data with support for a wide variety of protocols such as HTTP, MQTT, or Kafka. [Read more](https://warp10.io/content/01_About/storage)|
-|History Files|Efficiently compact stable data and store the resulting files onto any filesystem or cloud object store while retaining the same access flexibility as data stored in the Warp 10 Storage Engine. [Read more](https://warp10.io/content/01_About/storage)|
-|Analytics Engine|Leverage WarpLib, a library of over 1300 functions designed specifically for time series data manipulation, to increase the efficiency of data teams. [Read more](https://warp10.io/content/01_About/analytics)|
-|Dynamics Dashboards|Create highly dynamic dashboards from your time series data. Discovery is a dashboard as code tool dedicated to Warp 10 technology. Display your data through an entire dashboard. [Read more](https://discovery.warp10.io/)|
-|Business Applications|Enable business applications to benefit from the wealth of knowledge present in time series data by connecting those applications to the analytics and storage engines provided by the Warp 10 platform. [Read more](https://warp10.io/content/01_About/applications)|
+| Component             | Description                                                                                                                                                                                                                                                                                                                                                                             |
+|-----------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Storage Engine        | Securely ingest data coming from devices, supporting high throughput, delayed and out-of-order data with support for a wide variety of protocols such as HTTP, MQTT, or Kafka. [Read more](https://warp10.io/content/01_About/storage)                                                                                                                                                  |
+| History Files         | Efficiently compact stable data and store the resulting files onto any filesystem or cloud object store while retaining the same access flexibility as data stored in the Warp 10 Storage Engine. [Read more](https://warp10.io/content/01_About/storage)                                                                                                                               |
+| Analytics Engine      | Leverage **WarpLib**, a library of over 1300 functions designed specifically for time series data manipulation. Increase the efficiency of data teams thanks to the [WarpScript](https://www.warp10.io/content/03_Documentation/04_WarpScript) programming language, which uses WarpLib and interacts with a [large ecosystem](https://www.warp10.io/content/05_Ecosystem/00_Overview). |
+| Dynamics Dashboards   | Create highly dynamic dashboards from your time series data. Discovery is a dashboard as code tool dedicated to Warp 10 technology. Display your data through an entire dashboard. [Read more](https://discovery.warp10.io/)                                                                                                                                                            |
+| Business Applications | Enable business applications to benefit from the wealth of knowledge present in time series data by connecting those applications to the analytics and storage engines provided by the Warp 10 platform. [Read more](https://warp10.io/content/01_About/applications)                                                                                                                   |
 
+>The Storage Engine, The Analytics Engine, History Files and Dynamics Dashboards can be used together or separately.
 ## Versions
 The Warp 10 platform is available in three versions, **Standalone**, **Standalone+** and **Distributed**.
 All versions provide the same level of functionality except for some minor differences, the complete **WarpScript** language is available in both versions. They differ mainly by the way the Storage Engine is implemented.
 
-|||
-|-|-|
-|Standalone|The Standalone version is designed to be deployed on a single server whose size can range from a Raspberry Pi to a multi CPU box. It uses **LevelDB** as its storage layer or an in-memory datastore for cache setups. All features (storage, analysis) are provided by a single process, hence the name standalone. Multiple Standalone instances can be made to work together to provide High Availability to your deployment. This is provided via a replication mechanism called **Datalog**.
-|Standalone+|Warp 10 with a **FoundationDB** backend. It is a middle ground between the standalone and distributed versions, basically a standalone version but with storage managed by FoundationDB instead of LevelDB.|
-|Distributed|The Distributed version coordinates multiple processes on multiple servers. The Storage layer uses **FoundationDB** for data persistence. Communication between processes is done through Kafka and ZooKeeper. This version is suitable for heavy workloads and giant datasets. Scalability comes with a price, the added complexity of the architecture.|
-
+| Version     | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+|-------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Standalone  | The Standalone version is designed to be deployed on a single server whose size can range from a Raspberry Pi to a multi CPU box. It uses **LevelDB** as its storage layer or an in-memory datastore for cache setups. All features (storage, analysis) are provided by a single process, hence the name standalone. Multiple Standalone instances can be made to work together to provide High Availability to your deployment. This is provided via a replication mechanism called **Datalog**. |
+| Standalone+ | Warp 10 with a **FoundationDB** backend. It is a middle ground between the standalone and distributed versions, basically a standalone version but with storage managed by FoundationDB instead of LevelDB.                                                                                                                                                                                                                                                                                       |
+| Distributed | The Distributed version coordinates multiple processes on multiple servers. The Storage layer uses **FoundationDB** for data persistence. Communication between processes is done through Kafka and ZooKeeper. This version is suitable for heavy workloads and giant datasets. Scalability comes with a price, the added complexity of the architecture.                                                                                                                                         |
 
 ## Getting started
 
@@ -57,7 +60,8 @@ For quick start:
 
 ## Help & Community
 
-The team has put lots of efforts into the [documentation](https://www.warp10.io/doc/reference) of the Warp 10 Platform, there are still some areas which may need improving, so we count on you to raise the overall quality.
+The team has put lots of efforts into the [documentation](https://www.warp10.io/doc/reference) of the Warp 10 Platform,
+there are still some areas which may need improving, so we count on you to raise the overall quality.
 
 We understand that discovering all the features of the Warp 10 Platform at once can be intimidating, that’s why you have several options to find answers to your questions:
 * Explore the [blog](https://blog.senx.io/) and especially the Tutorials and Thinking in WarpScript categories
