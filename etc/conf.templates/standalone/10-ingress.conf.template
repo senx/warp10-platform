@@ -59,6 +59,13 @@ ingress.websocket.maxmessagesize = 1048576
 #standalone.value.maxsize = 65536
 
 //
+// When using a standalone version with no replication to a FoundationDB based instance
+// the limit of value size can be relaxed by setting this configuration to 'true'
+// to simply emit a warning.
+//
+#warp.relax.value.maxsize = true
+
+//
 // Default maximum age of datapoints pushed to Warp 10, in ms. Any timestamp older than
 // 'now' - this value will be rejected.
 // The maxpast value from the token will have precedence over this one

@@ -53,6 +53,7 @@ import io.warp10.continuum.Tokens;
 import io.warp10.continuum.WarpException;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.ingress.Ingress;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.StoreClient;
@@ -113,7 +114,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
   private final boolean allowDeltaAttributes;
 
   private final IngressPlugin plugin;
-  
+
   private final boolean isFDBStore; // skip FDB tests when not necessary
 
   public StandaloneIngressHandler(KeyStore keystore, StandaloneDirectoryClient directoryClient, StoreClient storeClient) {
@@ -195,7 +196,18 @@ public class StandaloneIngressHandler extends AbstractHandler {
     }
 
     this.maxValueSize = Long.parseLong(WarpConfig.getProperty(Configuration.STANDALONE_VALUE_MAXSIZE, DEFAULT_VALUE_MAXSIZE));
-    
+
+    // Ensure maxValueSize is coherent with FoundationDB max value size (100k)
+    if (this.maxValueSize > FDBUtils.MAX_VALUE_SIZE - Ingress.FDB_VALUE_SIZE_RESERVED) {
+      if (Constants.BACKEND_FDB.equals(WarpConfig.getProperty(Configuration.BACKEND))) {
+        throw new RuntimeException("Value of '"  + Configuration.STANDALONE_VALUE_MAXSIZE + "' cannot exceed FoundationDB's adjusted maximum value size (" + (FDBUtils.MAX_VALUE_SIZE - Ingress.FDB_VALUE_SIZE_RESERVED));
+      } else  if (!"true".equals(WarpConfig.getProperty(Configuration.WARP_RELAX_VALUE_MAXSIZE, "false"))) {
+        throw new RuntimeException("Value of '"  + Configuration.STANDALONE_VALUE_MAXSIZE + "' cannot exceed FoundationDB's adjusted maximum value size (" + (FDBUtils.MAX_VALUE_SIZE - Ingress.FDB_VALUE_SIZE_RESERVED) + ". As the current Warp 10 instance is not using FoundationDB as its backend this limitation may be relaxed by setting '" + Configuration.WARP_RELAX_VALUE_MAXSIZE + "' to 'true'. Doing so may break replication to instances using FoundationDB.");
+      } else {
+        LOG.warn("Value of '"  + Configuration.STANDALONE_VALUE_MAXSIZE + "' exceeds FoundationDB's adjusted maximum value size (" + (FDBUtils.MAX_VALUE_SIZE - Ingress.FDB_VALUE_SIZE_RESERVED) + ". This may break replication to instances using FoundationDB.");
+      }
+    }
+
     this.isFDBStore = Constants.BACKEND_FDB.equals(WarpConfig.getProperty(Configuration.BACKEND));
   }
 
