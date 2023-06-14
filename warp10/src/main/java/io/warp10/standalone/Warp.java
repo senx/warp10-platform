@@ -89,8 +89,6 @@ public class Warp extends WarpDist implements Runnable {
 
   private static WarpDB db;
 
-  private static boolean standaloneMode = false;
-
   private static String backend = null;
 
   private static int port;
@@ -119,7 +117,7 @@ public class Warp extends WarpDist implements Runnable {
 
   public static void main(String[] args) throws Exception {
     // Indicate standalone mode is on
-    standaloneMode = true;
+    WarpConfig.setStandaloneMode(true);
 
     if (null == getProperties()) {
       System.setProperty("java.awt.headless", "true");
@@ -593,10 +591,6 @@ public class Warp extends WarpDist implements Runnable {
       LOG.error(t.getMessage());
       server.stop();
     }
-  }
-
-  public static boolean isStandaloneMode() {
-    return standaloneMode;
   }
 
   public static String getBackend() {

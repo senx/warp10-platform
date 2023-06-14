@@ -72,6 +72,7 @@ import com.google.common.primitives.Longs;
 import io.warp10.BytesUtils;
 import io.warp10.ThriftUtils;
 import io.warp10.ThrowableUtils;
+import io.warp10.WarpConfig;
 import io.warp10.WarpURLDecoder;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.Tokens;
@@ -105,7 +106,6 @@ import io.warp10.script.functions.ADDDURATION;
 import io.warp10.script.functions.FETCH;
 import io.warp10.sensision.Sensision;
 import io.warp10.standalone.AcceleratorConfig;
-import io.warp10.standalone.Warp;
 
 public class EgressFetchHandler extends AbstractHandler {
 
@@ -613,7 +613,7 @@ public class EgressFetchHandler extends AbstractHandler {
         // the directory is not accessed via the network and therefore cannot time out
         //
 
-        cacheGTS = !Warp.isStandaloneMode();
+        cacheGTS = !WarpConfig.isStandaloneMode();
 
         String[] selectors = selector.split("\\s+");
 

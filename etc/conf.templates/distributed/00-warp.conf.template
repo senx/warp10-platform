@@ -166,6 +166,13 @@ warp.trl.dir = ${warp10.home}/etc/trl
 #warp.attributes.maxsize = 8192
 
 //
+// When using a standalone version with no replication to a FoundationDB based instance
+// the limit of metadata size (class + attribtues + labels) can be relaxed by setting this
+// configuration to 'true' to simply emit a warning.
+//
+#warp.relax.metadata.maxsize = true
+
+//
 // Set to true to expose owner and producer labels in Geo Time Series retrieved from the Warp 10 Storage Engine
 //
 #warp10.expose.owner.producer = true

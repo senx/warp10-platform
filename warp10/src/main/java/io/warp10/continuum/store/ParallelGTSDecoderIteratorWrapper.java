@@ -230,7 +230,7 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
   private static final int POOLSIZE;
 
   static {
-    standalone = Warp.isStandaloneMode();
+    standalone = WarpConfig.isStandaloneMode();
     backend = Warp.getBackend();
     FDBBackend = Constants.BACKEND_FDB.equals(backend);
 
