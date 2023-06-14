@@ -87,6 +87,7 @@ getConfigFiles() {
 ##
 ## Retrieve Warp 10 Home.
 ## If WARP10_HOME is not defined, set it to the parent directory
+## also set WARP10_HOME_ESCAPED
 ##
 getWarp10Home() {
   #WARP10_HOME=$(realpath -eL "${WARP10_HOME:-$(dirname "$0")/..}") # Does not work for Alpine}
@@ -98,6 +99,9 @@ getWarp10Home() {
   if [ "/" = "${TMP_HOME}" ]; then
     die "ERROR: Warp 10 should not be installed in the '/' directory."
   fi
+  WARP10_HOME_ESCAPED=$(echo "${WARP10_HOME}" | sed 's/\\/\\\\/g')        # Escape '\'
+  WARP10_HOME_ESCAPED=$(echo "${WARP10_HOME_ESCAPED}" | sed 's/\&/\\&/g') # Escape '&'
+  WARP10_HOME_ESCAPED=$(echo "${WARP10_HOME_ESCAPED}" | sed 's/|/\\|/g')  # Escape '|' (separator for sed)
 }
 
 checkRam() {
@@ -166,10 +170,6 @@ init() {
     die "ERROR: Configuration files already exist - Abort initialization."
   fi
 
-  WARP10_HOME_ESCAPED=$(echo "${WARP10_HOME}" | sed 's/\\/\\\\/g')        # Escape '\'
-  WARP10_HOME_ESCAPED=$(echo "${WARP10_HOME_ESCAPED}" | sed 's/\&/\\&/g') # Escape '&'
-  WARP10_HOME_ESCAPED=$(echo "${WARP10_HOME_ESCAPED}" | sed 's/|/\\|/g')  # Escape '|' (separator for sed)
-
   echo "//
 // This file contains configurations generated during initialization step.
 //
@@ -237,15 +237,7 @@ distConf() {
   postInit
 }
 
-leveldbConf() {
-  echo "Initializing Warp 10 standalone configuration"
-  init
-
-  echo "
-backend = leveldb" >>"${WARP10_CONFIG_DIR}/99-init.conf"
-  mv "${WARP10_CONFIG_DIR}/10-fdb.conf" "${WARP10_CONFIG_DIR}/10-fdb.conf.DISABLE"
-  getConfigFiles
-
+leveldbInit() {
   ##
   ##  Init LevelDB
   ##
@@ -257,7 +249,17 @@ backend = leveldb" >>"${WARP10_CONFIG_DIR}/99-init.conf"
   chmod 700 "${LEVELDB_HOME}"
 
   ${JAVACMD} -cp "${WARP10_JAR}" io.warp10.standalone.WarpInit "${LEVELDB_HOME}" >>"${WARP10_HOME}/logs/warp10.log" 2>&1
+}
 
+leveldbConf() {
+  echo "Initializing Warp 10 standalone configuration"
+  init
+
+  echo "
+backend = leveldb" >>"${WARP10_CONFIG_DIR}/99-init.conf"
+  mv "${WARP10_CONFIG_DIR}/10-fdb.conf" "${WARP10_CONFIG_DIR}/10-fdb.conf.DISABLE"
+  getConfigFiles
+  leveldbInit
   postInit
 }
 
@@ -413,6 +415,20 @@ compact() {
   fi
 }
 
+leveldbinit() {
+  echo "This command initializes an empty leveldb directory"
+  if [ "$#" -ne 2 ]; then
+    die "Usage: $0 leveldbinit LEVELDB_HOME"
+  fi
+  if [ ! -d "$2" ]; then
+    die "LEVELDB_HOME: '$2' does not exist, please create it"
+  fi
+  if [ "$(ls -A "$2")" ]; then
+    die "LEVELDB_HOME: $2 is not empty"
+  fi
+  leveldbInit  
+}
+
 ##
 ## Initialize script
 ##
@@ -512,8 +528,11 @@ repair)
 compact)
   compact "$@"
   ;;
+leveldbinit)
+  leveldbinit "$@"
+  ;;
 *)
-  die "Usage: $0 {init|tokengen|start|stop|restart|status|repair|compact|run}"
+  die "Usage: $0 {init|tokengen|start|stop|restart|status|repair|compact|leveldbinit|run}"
   ;;
 esac
 
