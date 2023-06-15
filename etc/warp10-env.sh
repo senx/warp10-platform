@@ -33,7 +33,7 @@ WARP10_HEAP_MAX=${WARP10_HEAP_MAX:-1023m}
 
 ## JAVA_HOME is automatically detected by warp10.sh
 ## However, on a system with several version of java, you may want to specify the path explicitly.
-## JAVA_HOME/bin/java or JAVA_HOME/jre/bin/java must exist.
+## JAVA_HOME/bin/java or JAVA_HOME/jre/bin/java or JAVA_HOME/jre/sh/java must exist.
 #JAVA_HOME=/opt/java8
 
 ################################################## advanced options ###################################################

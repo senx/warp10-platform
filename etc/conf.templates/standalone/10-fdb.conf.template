@@ -23,9 +23,10 @@
 
 
 ##
-## This the API version to use for FoundationDB, either 710 or 720
+## This the API version to use for FoundationDB, defaults to 710 which is also the minimum
+## Ensure you have the right packages deployed when selecting a version number
 ##
-#fdb.api.version = 720
+#fdb.api.version = 710
 
 ##
 ## Flag indicating whether or not to use tenant prefixes.
