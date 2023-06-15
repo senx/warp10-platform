@@ -52,7 +52,11 @@ getJava() {
       # IBM's JDK on AIX uses strange locations for the executables
       JAVACMD=$JAVA_HOME/jre/sh/java
     else
-      JAVACMD=$JAVA_HOME/bin/java
+      if [ -x "$JAVA_HOME/jre/bin/java" ]; then
+          JAVACMD=$JAVA_HOME/jre/bin/java
+        else  
+          JAVACMD=$JAVA_HOME/bin/java
+      fi
     fi
     if [ ! -x "$JAVACMD" ]; then
       die "ERROR: JAVA_HOME is set to an invalid directory: $JAVA_HOME
@@ -62,7 +66,7 @@ location of your Java installation."
     fi
   else
     JAVACMD=java
-    which java >/dev/null 2>&1 || die "ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH.
+    java -version >/dev/null 2>&1 || die "ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH.
 
 Please set the JAVA_HOME variable in ${WARP10_HOME}/etc/warp10-env.sh to match the
 location of your Java installation."
