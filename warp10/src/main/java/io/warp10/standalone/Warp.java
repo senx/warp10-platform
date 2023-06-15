@@ -571,7 +571,8 @@ public class Warp extends WarpDist implements Runnable {
       port = httpConnector.getLocalPort();
     }
 
-    WarpDist.setInitialized(true);
+    WarpDist.setInitialized();
+
     LOG.info("## Your Warp 10 setup:");
     LOG.info("## - WARP10_HEAP:              " + FileUtils.byteCountToDisplaySize(Runtime.getRuntime().totalMemory()));
     LOG.info("## - WARP10_HEAP_MAX:          " + FileUtils.byteCountToDisplaySize(Runtime.getRuntime().maxMemory()));
