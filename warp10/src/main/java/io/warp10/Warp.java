@@ -26,6 +26,7 @@ import org.apache.hadoop.security.SecurityUtil;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.UserGroupInformation.AuthenticationMethod;
 
+import io.warp10.continuum.MetadataUtils;
 import io.warp10.continuum.store.Constants;
 
 public class Warp extends WarpDist {
@@ -113,6 +114,8 @@ public class Warp extends WarpDist {
       System.out.println();
       System.out.println(Constants.WARP10_BANNER);
       System.out.println("  Revision " + Revision.REVISION);
+
+      MetadataUtils.validateMetadata(null);
 
       if (null != WarpConfig.getProperty(io.warp10.continuum.Configuration.BACKEND)) {
         if (Constants.BACKEND_FDB.equals(WarpConfig.getProperty(io.warp10.continuum.Configuration.BACKEND))) {

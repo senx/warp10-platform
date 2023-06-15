@@ -185,6 +185,10 @@ public class MetadataUtils {
 
     int total = 0;
 
+    if (null != metadata.getName() && metadata.getName().length() > MAX_CLASS_SIZE) {
+      return false;
+    }
+
     if (null != metadata.getLabels()) {
       for (Entry<String,String> entry: metadata.getLabels().entrySet()) {
         total += entry.getKey().length();
