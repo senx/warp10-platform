@@ -237,7 +237,7 @@ distConf() {
   postInit
 }
 
-leveldbInit() {
+leveldbWarpInit() {
   ##
   ##  Init LevelDB
   ##
@@ -248,7 +248,7 @@ leveldbInit() {
   fi
   chmod 700 "${LEVELDB_HOME}"
 
-  ${JAVACMD} -cp "${WARP10_JAR}" io.warp10.standalone.WarpInit "${LEVELDB_HOME}" >>"${WARP10_HOME}/logs/warp10.log" 2>&1
+  ${JAVACMD} -cp "${WARP10_JAR}" io.warp10.leveldb.WarpInit "${LEVELDB_HOME}" >>"${WARP10_HOME}/logs/warp10.log" 2>&1
 }
 
 leveldbConf() {
@@ -257,9 +257,9 @@ leveldbConf() {
 
   echo "
 backend = leveldb" >>"${WARP10_CONFIG_DIR}/99-init.conf"
-  mv "${WARP10_CONFIG_DIR}/10-fdb.conf" "${WARP10_CONFIG_DIR}/10-fdb.conf.DISABLE"
+  mv "${WARP10_CONFIG_DIR}/10-fdb.conf" "${WARP10_CONFIG_DIR}/10-fdb.conf.DISABLE-$(date +"%Y-%m-%d-%H%M%S")"
   getConfigFiles
-  leveldbInit
+  leveldbWarpInit
   postInit
 }
 
@@ -270,7 +270,7 @@ standalonePlusConf() {
   echo "
 backend = fdb
 fdb.clusterfile=\${warp10.home}/etc/fdb.cluster" >>"${WARP10_CONFIG_DIR}/99-init.conf"
-  mv "${WARP10_CONFIG_DIR}/10-leveldb.conf" "${WARP10_CONFIG_DIR}/10-leveldb.conf.DISABLE"
+  mv "${WARP10_CONFIG_DIR}/10-leveldb.conf" "${WARP10_CONFIG_DIR}/10-leveldb.conf.DISABLE-$(date +"%Y-%m-%d-%H%M%S")"
   getConfigFiles
 
   echo
@@ -283,8 +283,8 @@ fdb.clusterfile=\${warp10.home}/etc/fdb.cluster" >>"${WARP10_CONFIG_DIR}/99-init
 inmemoryConf() {
   echo "Initializing Warp 10 in-memory configuration"
   init
-  mv "${WARP10_CONFIG_DIR}/10-fdb.conf" "${WARP10_CONFIG_DIR}/10-fdb.conf.DISABLE"
-  mv "${WARP10_CONFIG_DIR}/10-leveldb.conf" "${WARP10_CONFIG_DIR}/10-leveldb.conf.DISABLE"
+  mv "${WARP10_CONFIG_DIR}/10-fdb.conf" "${WARP10_CONFIG_DIR}/10-fdb.conf.DISABLE-$(date +"%Y-%m-%d-%H%M%S")"
+  mv "${WARP10_CONFIG_DIR}/10-leveldb.conf" "${WARP10_CONFIG_DIR}/10-leveldb.conf.DISABLE-$(date +"%Y-%m-%d-%H%M%S")"
   getConfigFiles
 
   {
@@ -426,7 +426,7 @@ leveldbinit() {
   if [ "$(ls -A "$2")" ]; then
     die "LEVELDB_HOME: $2 is not empty"
   fi
-  leveldbInit  
+  leveldbWarpInit  
 }
 
 ##
@@ -522,17 +522,17 @@ tokengen)
 run)
   run "$@"
   ;;
-repair)
+leveldbrepair)
   repair "$@"
   ;;
-compact)
+leveldbcompact)
   compact "$@"
   ;;
 leveldbinit)
   leveldbinit "$@"
   ;;
 *)
-  die "Usage: $0 {init|tokengen|start|stop|restart|status|repair|compact|leveldbinit|run}"
+  die "Usage: $0 {init|tokengen|start|stop|restart|status|leveldbrepair|leveldbcompact|leveldbinit|run}"
   ;;
 esac
 

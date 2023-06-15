@@ -13,7 +13,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-package io.warp10.standalone;
+package io.warp10.leveldb;
 
 import java.io.File;
 import java.io.IOException;
