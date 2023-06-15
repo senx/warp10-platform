@@ -79,7 +79,7 @@ public class MetadataUtils {
     // key 'warp.relax.metadata.limit' to 'true'
     //
 
-    if (MAX_CLASS_SIZE + MAX_LABELS_SIZE + MAX_ATTRIBUTES_SIZE > (long) (FDBUtils.MAX_VALUE_SIZE - FDB_SIZE_RESERVED)) {
+    if ((long) MAX_CLASS_SIZE + (long) MAX_LABELS_SIZE + (long) MAX_ATTRIBUTES_SIZE > (long) (FDBUtils.MAX_VALUE_SIZE - FDB_SIZE_RESERVED)) {
       if (!WarpConfig.isStandaloneMode() || Constants.BACKEND_FDB.equals(WarpConfig.getProperty(Configuration.BACKEND)) || !"true".equals(WarpConfig.getProperty(Configuration.WARP_RELAX_METADATA_MAXSIZE, "false"))) {
         String msg = "Invalid metadata limits, '" + Configuration.WARP_CLASS_MAXSIZE + "' + '" + Configuration.WARP_LABELS_MAXSIZE + "' + '" + Configuration.WARP_ATTRIBUTES_MAXSIZE + "' should be less than " + (FDBUtils.MAX_VALUE_SIZE - FDB_SIZE_RESERVED) + " to ensure compatibility with FoundationDB based instances.";
         if (WarpConfig.isStandaloneMode() && !Constants.BACKEND_FDB.equals(WarpConfig.getProperty(Configuration.BACKEND))) {
