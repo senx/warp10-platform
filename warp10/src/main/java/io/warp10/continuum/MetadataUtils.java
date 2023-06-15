@@ -65,9 +65,9 @@ public class MetadataUtils {
   static {
     // Add provision for 2 UUIDs and the producer/owner/application label names. Actual application name will count towards the total size
     int internalLabels = 36 + 36 + Constants.PRODUCER_LABEL.length() + Constants.OWNER_LABEL.length() + Constants.APPLICATION_LABEL.length();
-    MAX_CLASS_SIZE =  internalLabels + Integer.parseInt(WarpConfig.getProperty(Configuration.WARP_CLASS_MAXSIZE, "1024"));
-    MAX_LABELS_SIZE =  internalLabels + Integer.parseInt(WarpConfig.getProperty(Configuration.WARP_LABELS_MAXSIZE, "2048"));
-    MAX_ATTRIBUTES_SIZE = Integer.parseInt(WarpConfig.getProperty(Configuration.WARP_ATTRIBUTES_MAXSIZE, "8192"));
+    MAX_CLASS_SIZE =  Math.max(0, Integer.parseInt(WarpConfig.getProperty(Configuration.WARP_CLASS_MAXSIZE, "1024")));
+    MAX_LABELS_SIZE =  internalLabels + Math.max(0, Integer.parseInt(WarpConfig.getProperty(Configuration.WARP_LABELS_MAXSIZE, "2048")));
+    MAX_ATTRIBUTES_SIZE = Math.max(0, Integer.parseInt(WarpConfig.getProperty(Configuration.WARP_ATTRIBUTES_MAXSIZE, "8192")));
     SIZE_THRESHOLD = Math.min(MAX_CLASS_SIZE, Math.min(MAX_LABELS_SIZE - internalLabels, MAX_ATTRIBUTES_SIZE));
 
     //
@@ -79,7 +79,7 @@ public class MetadataUtils {
     // key 'warp.relax.metadata.limit' to 'true'
     //
 
-    if (MAX_CLASS_SIZE + MAX_LABELS_SIZE + MAX_ATTRIBUTES_SIZE > FDBUtils.MAX_VALUE_SIZE - FDB_SIZE_RESERVED) {
+    if (MAX_CLASS_SIZE + MAX_LABELS_SIZE + MAX_ATTRIBUTES_SIZE > (long) (FDBUtils.MAX_VALUE_SIZE - FDB_SIZE_RESERVED)) {
       if (!WarpConfig.isStandaloneMode() || Constants.BACKEND_FDB.equals(WarpConfig.getProperty(Configuration.BACKEND)) || !"true".equals(WarpConfig.getProperty(Configuration.WARP_RELAX_METADATA_MAXSIZE, "false"))) {
         String msg = "Invalid metadata limits, '" + Configuration.WARP_CLASS_MAXSIZE + "' + '" + Configuration.WARP_LABELS_MAXSIZE + "' + '" + Configuration.WARP_ATTRIBUTES_MAXSIZE + "' should be less than " + (FDBUtils.MAX_VALUE_SIZE - FDB_SIZE_RESERVED) + " to ensure compatibility with FoundationDB based instances.";
         if (WarpConfig.isStandaloneMode() && !Constants.BACKEND_FDB.equals(WarpConfig.getProperty(Configuration.BACKEND))) {

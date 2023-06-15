@@ -195,10 +195,10 @@ public class StandaloneIngressHandler extends AbstractHandler {
       this.plugin = null;
     }
 
-    this.maxValueSize = Long.parseLong(WarpConfig.getProperty(Configuration.STANDALONE_VALUE_MAXSIZE, DEFAULT_VALUE_MAXSIZE));
+    this.maxValueSize = Math.max(0, Integer.parseInt(WarpConfig.getProperty(Configuration.STANDALONE_VALUE_MAXSIZE, DEFAULT_VALUE_MAXSIZE)));
 
     // Ensure maxValueSize is coherent with FoundationDB max value size (100k)
-    if (this.maxValueSize > FDBUtils.MAX_VALUE_SIZE - Ingress.FDB_VALUE_SIZE_RESERVED) {
+    if (this.maxValueSize > (long) (FDBUtils.MAX_VALUE_SIZE - Ingress.FDB_VALUE_SIZE_RESERVED)) {
       if (Constants.BACKEND_FDB.equals(WarpConfig.getProperty(Configuration.BACKEND))) {
         throw new RuntimeException("Value of '"  + Configuration.STANDALONE_VALUE_MAXSIZE + "' cannot exceed FoundationDB's adjusted maximum value size (" + (FDBUtils.MAX_VALUE_SIZE - Ingress.FDB_VALUE_SIZE_RESERVED));
       } else  if (!"true".equals(WarpConfig.getProperty(Configuration.WARP_RELAX_VALUE_MAXSIZE, "false"))) {
