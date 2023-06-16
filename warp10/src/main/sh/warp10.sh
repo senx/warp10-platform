@@ -241,7 +241,6 @@ leveldbWarpInit() {
   ##
   ##  Init LevelDB
   ##
-  LEVELDB_HOME="${WARP10_HOME_ESCAPED}/leveldb"
   echo "Initializing LevelDB"
   if ! mkdir -p "${LEVELDB_HOME}/snapshots"; then
     die "ERROR: ${LEVELDB_HOME} creation failed"
@@ -259,6 +258,7 @@ leveldbConf() {
 backend = leveldb" >>"${WARP10_CONFIG_DIR}/99-init.conf"
   mv "${WARP10_CONFIG_DIR}/10-fdb.conf" "${WARP10_CONFIG_DIR}/10-fdb.conf.DISABLE-$DATE"
   getConfigFiles
+  LEVELDB_HOME="${WARP10_HOME_ESCAPED}/leveldb"
   leveldbWarpInit
   postInit
 }
@@ -426,6 +426,7 @@ leveldbinit() {
   if [ "$(ls -A "$2")" ]; then
     die "LEVELDB_HOME: $2 is not empty"
   fi
+  LEVELDB_HOME=$2
   leveldbWarpInit  
 }
 
