@@ -173,7 +173,7 @@ init() {
   echo "//
 // This file contains configurations generated during initialization step.
 //
-// File generated on $(TZ=UTC date +%Y-%m-%dT%H:%M:%SZ)
+// File generated on $DATE
 //
 
 warp10.home = ${WARP10_HOME_ESCAPED}" >"${WARP10_CONFIG_DIR}/99-init.conf"
@@ -257,7 +257,7 @@ leveldbConf() {
 
   echo "
 backend = leveldb" >>"${WARP10_CONFIG_DIR}/99-init.conf"
-  mv "${WARP10_CONFIG_DIR}/10-fdb.conf" "${WARP10_CONFIG_DIR}/10-fdb.conf.DISABLE-$(date +"%Y-%m-%d-%H%M%S")"
+  mv "${WARP10_CONFIG_DIR}/10-fdb.conf" "${WARP10_CONFIG_DIR}/10-fdb.conf.DISABLE-$DATE"
   getConfigFiles
   leveldbWarpInit
   postInit
@@ -270,7 +270,7 @@ standalonePlusConf() {
   echo "
 backend = fdb
 fdb.clusterfile=\${warp10.home}/etc/fdb.cluster" >>"${WARP10_CONFIG_DIR}/99-init.conf"
-  mv "${WARP10_CONFIG_DIR}/10-leveldb.conf" "${WARP10_CONFIG_DIR}/10-leveldb.conf.DISABLE-$(date +"%Y-%m-%d-%H%M%S")"
+  mv "${WARP10_CONFIG_DIR}/10-leveldb.conf" "${WARP10_CONFIG_DIR}/10-leveldb.conf.DISABLE-$DATE"
   getConfigFiles
 
   echo
@@ -283,8 +283,8 @@ fdb.clusterfile=\${warp10.home}/etc/fdb.cluster" >>"${WARP10_CONFIG_DIR}/99-init
 inmemoryConf() {
   echo "Initializing Warp 10 in-memory configuration"
   init
-  mv "${WARP10_CONFIG_DIR}/10-fdb.conf" "${WARP10_CONFIG_DIR}/10-fdb.conf.DISABLE-$(date +"%Y-%m-%d-%H%M%S")"
-  mv "${WARP10_CONFIG_DIR}/10-leveldb.conf" "${WARP10_CONFIG_DIR}/10-leveldb.conf.DISABLE-$(date +"%Y-%m-%d-%H%M%S")"
+  mv "${WARP10_CONFIG_DIR}/10-fdb.conf" "${WARP10_CONFIG_DIR}/10-fdb.conf.DISABLE-$DATE"
+  mv "${WARP10_CONFIG_DIR}/10-leveldb.conf" "${WARP10_CONFIG_DIR}/10-leveldb.conf.DISABLE-$DATE"
   getConfigFiles
 
   {
@@ -421,7 +421,7 @@ leveldbinit() {
     die "Usage: $0 leveldbinit LEVELDB_HOME"
   fi
   if [ ! -d "$2" ]; then
-    die "LEVELDB_HOME: '$2' does not exist, please create it"
+    die "LEVELDB_HOME: '$2' does not exist, please create it first"
   fi
   if [ "$(ls -A "$2")" ]; then
     die "LEVELDB_HOME: $2 is not empty"
@@ -439,6 +439,7 @@ WARP10_REVISION=@VERSION@
 WARP10_JAR=${WARP10_HOME}/bin/warp10-${WARP10_REVISION}.jar
 WARP10_CLASS=io.warp10.Warp
 PID_FILE=${WARP10_HOME}/logs/warp10.pid
+DATE=$(TZ=UTC date +%Y%m%dT%H%M%SZ)
 getConfigFiles
 getJava
 
