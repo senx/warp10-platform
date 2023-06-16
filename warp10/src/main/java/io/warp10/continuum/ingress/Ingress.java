@@ -138,7 +138,7 @@ public class Ingress extends AbstractHandler implements Runnable {
    * Bytes reserved in the value size to accommodate for GTSEncoder encoding.
    * Should be sufficient for clear and encrypted values
    */
-  private static final int FDB_VALUE_SIZE_RESERVED = 100;
+  public static final int FDB_VALUE_SIZE_RESERVED = 100;
 
   /**
    * Set of required parameters, those MUST be set

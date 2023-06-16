@@ -17,6 +17,7 @@
 package io.warp10;
 
 import io.warp10.continuum.Configuration;
+import io.warp10.continuum.MetadataUtils;
 import io.warp10.continuum.ThrottlingManager;
 import io.warp10.continuum.egress.Egress;
 import io.warp10.continuum.ingress.Ingress;
@@ -288,7 +289,7 @@ public class WarpDist {
 
     AbstractWarp10Plugin.registerPlugins();
 
-    setInitialized(true);
+    setInitialized();
 
     //
     // We're done, let's sleep endlessly
@@ -320,8 +321,13 @@ public class WarpDist {
     return (Properties) properties.clone();
   }
 
-  public static synchronized void setInitialized(boolean initialized) {
-    WarpDist.initialized = initialized;
+  public static synchronized void setInitialized() {
+    //
+    // We know Warp 10 is initialized, perform tests which can only happen after initialization
+    //
+
+    MetadataUtils.validateMetadata(null);
+    WarpDist.initialized = true;
   }
 
   public static synchronized boolean isInitialized() {

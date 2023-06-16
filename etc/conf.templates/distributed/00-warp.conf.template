@@ -153,7 +153,7 @@ warp.trl.dir = ${warp10.home}/etc/trl
 //
 // Maximum length of class names - Defaults to 1024
 //
-#warp.class.maxsize = 1014
+#warp.class.maxsize = 1024
 
 //
 // Maximum length of labels (names + values) - Defaults to 2048

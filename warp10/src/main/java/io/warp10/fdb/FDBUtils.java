@@ -34,7 +34,6 @@ import io.warp10.continuum.store.Constants;
 import io.warp10.json.JsonUtils;
 import io.warp10.script.WarpScriptException;
 import io.warp10.sensision.Sensision;
-import io.warp10.standalone.Warp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,7 +55,7 @@ public class FDBUtils {
   private static final String DEFAULT_FDB_API_VERSION = Integer.toString(710);
 
   static {
-    if (!Warp.isStandaloneMode() || Constants.BACKEND_FDB.equals(WarpConfig.getProperty(Configuration.BACKEND))) {
+    if (!WarpConfig.isStandaloneMode() || Constants.BACKEND_FDB.equals(WarpConfig.getProperty(Configuration.BACKEND))) {
       int version = Integer.parseInt(WarpConfig.getProperty(Configuration.FDB_API_VERSION, DEFAULT_FDB_API_VERSION));
       try {
         FDB.selectAPIVersion(version);

@@ -1590,6 +1590,16 @@ public class Configuration {
   public static final String WARPSCRIPT_LABELS_PRIORITY = "warpscript.labels.priority";
 
   /**
+   * Set to 'true' to relax the metadata maxsize limit check in standalone versions
+   */
+  public static final String WARP_RELAX_METADATA_MAXSIZE = "warp.relax.metadata.maxsize";
+
+  /**
+   * Set to 'true' to relax the value maxsize limit check in standalone versions
+   */
+  public static final String WARP_RELAX_VALUE_MAXSIZE = "warp.relax.value.maxsize";
+
+  /**
    * Maximum length of attributes (names + values) - Defaults to 8192
    */
   public static final String WARP_ATTRIBUTES_MAXSIZE = "warp.attributes.maxsize";

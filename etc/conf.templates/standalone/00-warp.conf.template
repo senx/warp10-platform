@@ -243,6 +243,11 @@ warp.token.read.attributes.default = { '.cap:limits' '' }
 # warp.trl.startup.delay = 60000
 
 //
+// Maximum length of class names - Defaults to 1024
+//
+#warp.class.maxsize = 1024
+
+//
 // Maximum length of labels (names + values) - Defaults to 2048
 //
 #warp.labels.maxsize = 2048
@@ -251,6 +256,18 @@ warp.token.read.attributes.default = { '.cap:limits' '' }
 // Maximum length of attributes (names + values) - Defaults to 8192
 //
 #warp.attributes.maxsize = 8192
+
+//
+// Metadata size (class + attributes + labels) has a default upper bound compatible
+// with FoundationDB maximum record size (100k bytes).
+// This limit is checked and Warp 10 will stop if the configured sizes add up to more
+// than this limit.
+// This check can be relaxed to only emit a warning by setting the configuration below
+// to 'true'.
+// Note that doing so may break replication to a FoundationDB backed instance as records
+// exceeding the maximum size may be generated.
+//
+#warp.relax.metadata.maxsize = true
 
 //
 // Set to true to expose owner and producer labels in Geo Time Series retrieved from the Warp 10 Storage Engine 

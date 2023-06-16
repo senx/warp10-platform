@@ -77,6 +77,10 @@ public class WarpConfig {
 
   public static final String THREAD_PROPERTY_TOKEN = ".token";
 
+  private static String backend = null;
+
+  private static Boolean standaloneMode = null;
+
   /**
    * The concept of thread properties is to allocate a per thread map which can contain
    * arbitrary elements keyed by STRINGs and therefore accessible to all methods invoked within
@@ -309,12 +313,12 @@ public class WarpConfig {
         continue;
       }
 
-      // 
+      //
       // x =      // remove the property when previously set.
       // x = %20  // property value = " "
       // empty string value is therefore not possible
       //
-      
+
       try {
         for (int i = 0; i < tokens.length; i++) {
           tokens[i] = tokens[i].trim();
@@ -614,5 +618,16 @@ public class WarpConfig {
       System.err.println(ThrowableUtils.getErrorMessage(t));
       System.exit(-1);
     }
+  }
+
+  public static synchronized void setStandaloneMode(boolean mode) {
+    if (null != standaloneMode) {
+      throw new RuntimeException("Mode already set.");
+    }
+    standaloneMode = mode;
+  }
+
+  public static boolean isStandaloneMode() {
+    return (null != standaloneMode) && standaloneMode;
   }
 }
