@@ -24,14 +24,6 @@
 
 set -eu
 
-##
-## Source warp10-env.sh when the file exists to predefine user variables
-##
-BIN_DIR=$(dirname "$0")
-if [ -f "${BIN_DIR}/../etc/warp10-env.sh" ]; then
-  . "${BIN_DIR}/../etc/warp10-env.sh"
-fi
-
 warn() {
   echo "$*"
 } >&2
@@ -42,6 +34,16 @@ die() {
   echo
   exit 1
 } >&2
+
+##
+## Source warp10-env.sh when the file exists to predefine user variables
+##
+BIN_DIR=$(dirname "$0")
+if [ -f "${BIN_DIR}/../etc/warp10-env.sh" ]; then
+  . "${BIN_DIR}/../etc/warp10-env.sh"
+else 
+  die "Cannot load ${BIN_DIR}/../etc/warp10-env.sh, please check current user permissions."
+fi
 
 ##
 ## Determine the Java command to use to start the JVM.
@@ -91,6 +93,7 @@ getConfigFiles() {
 ##
 ## Retrieve Warp 10 Home.
 ## If WARP10_HOME is not defined, set it to the parent directory
+## also set WARP10_HOME_ESCAPED
 ##
 getWarp10Home() {
   #WARP10_HOME=$(realpath -eL "${WARP10_HOME:-$(dirname "$0")/..}") # Does not work for Alpine}
@@ -102,6 +105,9 @@ getWarp10Home() {
   if [ "/" = "${TMP_HOME}" ]; then
     die "ERROR: Warp 10 should not be installed in the '/' directory."
   fi
+  WARP10_HOME_ESCAPED=$(echo "${WARP10_HOME}" | sed 's/\\/\\\\/g')        # Escape '\'
+  WARP10_HOME_ESCAPED=$(echo "${WARP10_HOME_ESCAPED}" | sed 's/\&/\\&/g') # Escape '&'
+  WARP10_HOME_ESCAPED=$(echo "${WARP10_HOME_ESCAPED}" | sed 's/|/\\|/g')  # Escape '|' (separator for sed)
 }
 
 checkRam() {
@@ -170,14 +176,10 @@ init() {
     die "ERROR: Configuration files already exist - Abort initialization."
   fi
 
-  WARP10_HOME_ESCAPED=$(echo "${WARP10_HOME}" | sed 's/\\/\\\\/g')        # Escape '\'
-  WARP10_HOME_ESCAPED=$(echo "${WARP10_HOME_ESCAPED}" | sed 's/\&/\\&/g') # Escape '&'
-  WARP10_HOME_ESCAPED=$(echo "${WARP10_HOME_ESCAPED}" | sed 's/|/\\|/g')  # Escape '|' (separator for sed)
-
   echo "//
 // This file contains configurations generated during initialization step.
 //
-// File generated on $(TZ=UTC date +%Y-%m-%dT%H:%M:%SZ)
+// File generated on $DATE
 //
 
 warp10.home = ${WARP10_HOME_ESCAPED}" >"${WARP10_CONFIG_DIR}/99-init.conf"
@@ -227,7 +229,7 @@ postInit() {
 " >>"${WARP10_CONFIG_DIR}/99-init.conf"
 
   echo
-  echo "Warp 10 configuration has been generated in${WARP10_CONFIG_DIR}"
+  echo "Warp 10 configuration has been generated in ${WARP10_CONFIG_DIR}"
   echo
   echo "You can now configure the initial and maximum amount of RAM allocated to Warp 10."
   echo "Edit ${WARP10_HOME}/etc/warp10-env.sh and look for WARP10_HEAP and WARP10_HEAP_MAX variables."
@@ -241,27 +243,29 @@ distConf() {
   postInit
 }
 
-leveldbConf() {
-  echo "Initializing Warp 10 standalone configuration"
-  init
-
-  echo "
-backend = leveldb" >>"${WARP10_CONFIG_DIR}/99-init.conf"
-  mv "${WARP10_CONFIG_DIR}/10-fdb.conf" "${WARP10_CONFIG_DIR}/10-fdb.conf.DISABLE"
-  getConfigFiles
-
+leveldbWarpInit() {
   ##
   ##  Init LevelDB
   ##
-  LEVELDB_HOME="${WARP10_HOME_ESCAPED}/leveldb"
   echo "Initializing LevelDB"
   if ! mkdir -p "${LEVELDB_HOME}/snapshots"; then
     die "ERROR: ${LEVELDB_HOME} creation failed"
   fi
   chmod 700 "${LEVELDB_HOME}"
 
-  ${JAVACMD} -cp "${WARP10_JAR}" io.warp10.standalone.WarpInit "${LEVELDB_HOME}" >>"${WARP10_HOME}/logs/warp10.log" 2>&1
+  ${JAVACMD} -cp "${WARP10_JAR}" io.warp10.leveldb.WarpInit "${LEVELDB_HOME}" >>"${WARP10_HOME}/logs/warp10.log" 2>&1
+}
 
+leveldbConf() {
+  echo "Initializing Warp 10 standalone configuration"
+  init
+
+  echo "
+backend = leveldb" >>"${WARP10_CONFIG_DIR}/99-init.conf"
+  mv "${WARP10_CONFIG_DIR}/10-fdb.conf" "${WARP10_CONFIG_DIR}/10-fdb.conf.DISABLE-$DATE"
+  getConfigFiles
+  LEVELDB_HOME="${WARP10_HOME_ESCAPED}/leveldb"
+  leveldbWarpInit
   postInit
 }
 
@@ -272,7 +276,7 @@ standalonePlusConf() {
   echo "
 backend = fdb
 fdb.clusterfile=\${warp10.home}/etc/fdb.cluster" >>"${WARP10_CONFIG_DIR}/99-init.conf"
-  mv "${WARP10_CONFIG_DIR}/10-leveldb.conf" "${WARP10_CONFIG_DIR}/10-leveldb.conf.DISABLE"
+  mv "${WARP10_CONFIG_DIR}/10-leveldb.conf" "${WARP10_CONFIG_DIR}/10-leveldb.conf.DISABLE-$DATE"
   getConfigFiles
 
   echo
@@ -285,8 +289,8 @@ fdb.clusterfile=\${warp10.home}/etc/fdb.cluster" >>"${WARP10_CONFIG_DIR}/99-init
 inmemoryConf() {
   echo "Initializing Warp 10 in-memory configuration"
   init
-  mv "${WARP10_CONFIG_DIR}/10-fdb.conf" "${WARP10_CONFIG_DIR}/10-fdb.conf.DISABLE"
-  mv "${WARP10_CONFIG_DIR}/10-leveldb.conf" "${WARP10_CONFIG_DIR}/10-leveldb.conf.DISABLE"
+  mv "${WARP10_CONFIG_DIR}/10-fdb.conf" "${WARP10_CONFIG_DIR}/10-fdb.conf.DISABLE-$DATE"
+  mv "${WARP10_CONFIG_DIR}/10-leveldb.conf" "${WARP10_CONFIG_DIR}/10-leveldb.conf.DISABLE-$DATE"
   getConfigFiles
 
   {
@@ -417,6 +421,21 @@ compact() {
   fi
 }
 
+leveldbinit() {
+  echo "This command initializes an empty leveldb directory"
+  if [ "$#" -ne 2 ]; then
+    die "Usage: $0 leveldbinit LEVELDB_HOME"
+  fi
+  if [ ! -d "$2" ]; then
+    die "LEVELDB_HOME: '$2' does not exist, please create it first"
+  fi
+  if [ "$(ls -A "$2")" ]; then
+    die "LEVELDB_HOME: $2 is not empty"
+  fi
+  LEVELDB_HOME=$2
+  leveldbWarpInit  
+}
+
 ##
 ## Initialize script
 ##
@@ -427,6 +446,7 @@ WARP10_REVISION=@VERSION@
 WARP10_JAR=${WARP10_HOME}/bin/warp10-${WARP10_REVISION}.jar
 WARP10_CLASS=io.warp10.Warp
 PID_FILE=${WARP10_HOME}/logs/warp10.pid
+DATE=$(TZ=UTC date +%Y%m%dT%H%M%SZ)
 getConfigFiles
 getJava
 
@@ -510,14 +530,17 @@ tokengen)
 run)
   run "$@"
   ;;
-repair)
+leveldbrepair)
   repair "$@"
   ;;
-compact)
+leveldbcompact)
   compact "$@"
   ;;
+leveldbinit)
+  leveldbinit "$@"
+  ;;
 *)
-  die "Usage: $0 {init|tokengen|start|stop|restart|status|repair|compact|run}"
+  die "Usage: $0 {init|tokengen|start|stop|restart|status|leveldbrepair|leveldbcompact|leveldbinit|run}"
   ;;
 esac
 
