@@ -258,9 +258,14 @@ warp.token.read.attributes.default = { '.cap:limits' '' }
 #warp.attributes.maxsize = 8192
 
 //
-// When using a standalone version with no replication to a FoundationDB based instance
-// the limit of metadata size (class + attribtues + labels) can be relaxed by setting this
-// configuration to 'true' to simply emit a warning.
+// Metadata size (class + attributes + labels) has a default upper bound compatible
+// with FoundationDB maximum record size (100k bytes).
+// This limit is checked and Warp 10 will stop if the configured sizes add up to more
+// than this limit.
+// This check can be relaxed to only emit a warning by setting the configuration below
+// to 'true'.
+// Note that doing so may break replication to a FoundationDB backed instance as records
+// exceeding the maximum size may be generated.
 //
 #warp.relax.metadata.maxsize = true
 
