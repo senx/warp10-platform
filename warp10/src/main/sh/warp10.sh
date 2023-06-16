@@ -24,14 +24,6 @@
 
 set -eu
 
-##
-## Source warp10-env.sh when the file exists to predefine user variables
-##
-BIN_DIR=$(dirname "$0")
-if [ -f "${BIN_DIR}/../etc/warp10-env.sh" ]; then
-  . "${BIN_DIR}/../etc/warp10-env.sh"
-fi
-
 warn() {
   echo "$*"
 } >&2
@@ -42,6 +34,16 @@ die() {
   echo
   exit 1
 } >&2
+
+##
+## Source warp10-env.sh when the file exists to predefine user variables
+##
+BIN_DIR=$(dirname "$0")
+if [ -f "${BIN_DIR}/../etc/warp10-env.sh" ]; then
+  . "${BIN_DIR}/../etc/warp10-env.sh"
+else 
+  die "Cannot load ${BIN_DIR}/../etc/warp10-env.sh, please check current user permissions."
+fi
 
 ##
 ## Determine the Java command to use to start the JVM.
@@ -223,7 +225,7 @@ postInit() {
 " >>"${WARP10_CONFIG_DIR}/99-init.conf"
 
   echo
-  echo "Warp 10 configuration has been generated in${WARP10_CONFIG_DIR}"
+  echo "Warp 10 configuration has been generated in ${WARP10_CONFIG_DIR}"
   echo
   echo "You can now configure the initial and maximum amount of RAM allocated to Warp 10."
   echo "Edit ${WARP10_HOME}/etc/warp10-env.sh and look for WARP10_HEAP and WARP10_HEAP_MAX variables."
