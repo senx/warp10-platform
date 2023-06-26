@@ -59,13 +59,49 @@ public class VALUESPLIT  extends GTSStackFunction {
 
     String label = params.get(PARAM_LABEL).toString();
 
+    List<GeoTimeSerie> series = new ArrayList<GeoTimeSerie>();
+
+    //
+    // Handle boolean GTS in a specific way
+    //
+
+    if (GeoTimeSerie.TYPE.BOOLEAN == gts.getType()) {
+      GeoTimeSerie tgts = gts.cloneEmpty(gts.size() / 2);
+      tgts.getMetadata().putToLabels(label, "true");
+      GeoTimeSerie fgts = gts.cloneEmpty(gts.size() / 2);
+      fgts.getMetadata().putToLabels(label, "false");
+
+      for (int i = 0; i < gts.size(); i++) {
+        long tick = GTSHelper.tickAtIndex(gts, i);
+        long location = GTSHelper.locationAtIndex(gts, i);
+        long elevation = GTSHelper.elevationAtIndex(gts, i);
+        Object value = GTSHelper.valueAtIndex(gts, i);
+
+        if (Boolean.TRUE.equals(value)) {
+          GTSHelper.setValue(tgts, tick, location, elevation, value, false);
+        } else {
+          GTSHelper.setValue(fgts, tick, location, elevation, value, false);
+        }
+      }
+
+      GTSHelper.shrink(fgts);
+      GTSHelper.shrink(tgts);
+
+      if (fgts.size() > 0) {
+        series.add(fgts);
+      }
+      if (tgts.size() > 0) {
+        series.add(tgts);
+      }
+      return series;
+    }
+
     //
     // Sort gts by values
     //
 
     GTSHelper.valueSort(gts);
 
-    List<GeoTimeSerie> series = new ArrayList<GeoTimeSerie>();
 
     GeoTimeSerie split = null;
     Object lastvalue = null;
