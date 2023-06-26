@@ -685,6 +685,7 @@ public class GTSHelper {
       long lpivot = 0L;
       double dpivot = 0.0D;
       String spivot = null;
+      Boolean bpivot = null;
 
       TYPE type = gts.getType();
 
@@ -695,8 +696,7 @@ public class GTSHelper {
       } else if (TYPE.STRING == type) {
         spivot = gts.stringValues[low + (high-low)/2];
       } else if (TYPE.BOOLEAN == type) {
-        // Do nothing for booleans
-        return;
+        bpivot = gts.booleanValues.get(low + (high-low)/2);
       }
 
       long pivotTick = gts.ticks[low + (high-low) / 2];
@@ -705,8 +705,6 @@ public class GTSHelper {
       while (i <= j) {
 
         if (TYPE.LONG == type) {
-
-
           if (!reversed) {
             // If the current value from the left list is smaller
             // (or greater if reversed is true) than the pivot
@@ -769,6 +767,27 @@ public class GTSHelper {
               j--;
             }
           }
+        } else if (TYPE.BOOLEAN == type) {
+          if (!reversed) {
+            // If the current value from the left list is smaller
+            // (or greater if reversed is true) than the pivot
+            // element then get the next element from the left list
+            while(booleanCompare(gts.booleanValues.get(i), bpivot) < 0 || (0 == booleanCompare(gts.booleanValues.get(i), bpivot) && gts.ticks[i] < pivotTick)) {
+              i++;
+            }
+            // If the current value from the right list is larger (or lower if reversed is true)
+            // than the pivot element then get the next element from the right list
+            while(booleanCompare(gts.booleanValues.get(j), bpivot) > 0 || (0 == booleanCompare(gts.booleanValues.get(j), bpivot) && gts.ticks[j] > pivotTick)) {
+              j--;
+            }
+          } else {
+            while(booleanCompare(gts.booleanValues.get(i), bpivot) > 0 || (0 == booleanCompare(gts.booleanValues.get(i), bpivot) && gts.ticks[i] > pivotTick)) {
+              i++;
+            }
+            while(booleanCompare(gts.booleanValues.get(j), bpivot) < 0 || (0 == booleanCompare(gts.booleanValues.get(j), bpivot) && gts.ticks[j] < pivotTick)) {
+              j--;
+            }
+          }
         }
 
         // If we have found a values in the left list which is larger then
@@ -828,6 +847,21 @@ public class GTSHelper {
     }
   }
 
+  private static final int booleanCompare(boolean a, boolean b) {
+    if (a) {
+      if (b) {
+        return 0;
+      } else {
+        return 1;
+      }
+    } else {
+      if (b) {
+        return -1;
+      } else {
+        return 0;
+      }
+    }
+  }
   /**
    * Sort GTS according to location, using HHCodes, between two indexes.
    * The ticks with no locations are considered the smallest.
