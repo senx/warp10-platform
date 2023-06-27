@@ -66,33 +66,18 @@ public class VALUESPLIT  extends GTSStackFunction {
     //
 
     if (GeoTimeSerie.TYPE.BOOLEAN == gts.getType()) {
-      GeoTimeSerie tgts = gts.cloneEmpty(gts.size() / 2);
-      tgts.getMetadata().putToLabels(label, "true");
-      GeoTimeSerie fgts = gts.cloneEmpty(gts.size() / 2);
-      fgts.getMetadata().putToLabels(label, "false");
+      series = GTSHelper.booleanGTSSplit(gts, true);
 
-      for (int i = 0; i < gts.size(); i++) {
-        long tick = GTSHelper.tickAtIndex(gts, i);
-        long location = GTSHelper.locationAtIndex(gts, i);
-        long elevation = GTSHelper.elevationAtIndex(gts, i);
-        Object value = GTSHelper.valueAtIndex(gts, i);
+      series.get(0).getMetadata().putToLabels(label, "false");
+      series.get(1).getMetadata().putToLabels(label, "true");
 
-        if (Boolean.TRUE.equals(value)) {
-          GTSHelper.setValue(tgts, tick, location, elevation, value, false);
-        } else {
-          GTSHelper.setValue(fgts, tick, location, elevation, value, false);
-        }
+      if (0 == series.get(1).size()) {
+        series.remove(1);
+      }
+      if (0 == series.get(0).size()) {
+        series.remove(0);
       }
 
-      GTSHelper.shrink(fgts);
-      GTSHelper.shrink(tgts);
-
-      if (fgts.size() > 0) {
-        series.add(fgts);
-      }
-      if (tgts.size() > 0) {
-        series.add(tgts);
-      }
       return series;
     }
 
