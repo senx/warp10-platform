@@ -714,6 +714,10 @@ public class GTSHelper {
           quicksort(series.get(1), 0, series.get(1).values, reversed);
         }
         shrinkTo(gts, 0);
+        if (reversed) {
+          GeoTimeSerie tmp = series.remove(0);
+          series.add(tmp);
+        }
         for (int i = 0; i < 2; i++) {
           GeoTimeSerie g = series.get(i);
           int size = g.values;
