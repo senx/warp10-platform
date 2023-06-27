@@ -707,10 +707,10 @@ public class GTSHelper {
     if (GeoTimeSerie.TYPE.BOOLEAN == gts.getType()) {
       if (0 == low && gts.values - 1 == high) {
         List<GeoTimeSerie> series = booleanGTSSplit(gts, false);
-        if (!series.get(0).sorted || series.get(0).reversed != reversed) {
+        if (!series.get(0).sorted) {
           quicksort(series.get(0), 0, series.get(0).values, reversed);
         }
-        if (!series.get(1).sorted || series.get(1).reversed != reversed) {
+        if (!series.get(1).sorted) {
           quicksort(series.get(1), 0, series.get(1).values, reversed);
         }
         shrinkTo(gts, 0);
@@ -721,8 +721,14 @@ public class GTSHelper {
         for (int i = 0; i < 2; i++) {
           GeoTimeSerie g = series.get(i);
           int size = g.values;
-          for (int j = 0; j < size; j++) {
-            setValue(gts, tickAtIndex(g, j), locationAtIndex(g, j), elevationAtIndex(g, j), valueAtIndex(g, j), false);
+          if (g.reversed == reversed) {
+            for (int j = 0; j < size; j++) {
+              setValue(gts, tickAtIndex(g, j), locationAtIndex(g, j), elevationAtIndex(g, j), valueAtIndex(g, j), false);
+            }
+          } else {
+            for (int j = size - 1; j >= 0; j--) {
+              setValue(gts, tickAtIndex(g, j), locationAtIndex(g, j), elevationAtIndex(g, j), valueAtIndex(g, j), false);
+            }
           }
         }
         return;
