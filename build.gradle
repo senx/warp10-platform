@@ -16,7 +16,6 @@
 
 plugins {
     id 'com.github.johnrengelman.shadow' version '7.0.0'
-    id 'net.nemerosa.versioning' version '2.14.0'
     id 'io.codearte.nexus-staging' version '0.22.0'
     id 'java'
     id 'java-library'
@@ -29,8 +28,7 @@ plugins {
 project.group = 'io.warp10'
 project.description = 'Advanced interpolation functionalities'
 
-// If the current tag is set, then it's a new release. Don't add build number
-project.version = versioning.info.lastTag + ((versioning.info.tag != null) ? '' : '-' + versioning.info.build)
+project.version = getVersionFromGit()
 
 //
 // Repositories for the project dependencies
@@ -260,5 +258,20 @@ if (project.hasProperty('signing.gnupg.keyName')) {
     signing {
         useGpgCmd()
         sign publishing.publications
+    }
+}
+
+def getVersionFromGit() {
+    def nogit = System.getProperty("nogit")
+    if (null != nogit) {
+        // Override version with the property value. To remove the version altogether use '-Dnogit' without value.
+        return nogit
+    } else {
+        def stdout = new ByteArrayOutputStream()
+        exec {
+            commandLine 'git', 'describe', '--tags', '--always'
+            standardOutput = stdout
+        }
+        return stdout.toString().trim()
     }
 }
