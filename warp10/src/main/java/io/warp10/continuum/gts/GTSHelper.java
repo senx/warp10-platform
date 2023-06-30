@@ -665,10 +665,76 @@ public class GTSHelper {
     }
   }
 
+  public static List<GeoTimeSerie> booleanGTSSplit(GeoTimeSerie gts, boolean shrink) {
+    GeoTimeSerie tgts = gts.cloneEmpty(gts.size() / 2);
+    GeoTimeSerie fgts = gts.cloneEmpty(gts.size() / 2);
+
+    for (int i = 0; i < gts.size(); i++) {
+      long tick = GTSHelper.tickAtIndex(gts, i);
+      long location = GTSHelper.locationAtIndex(gts, i);
+      long elevation = GTSHelper.elevationAtIndex(gts, i);
+      Object value = GTSHelper.valueAtIndex(gts, i);
+
+      if (Boolean.TRUE.equals(value)) {
+        GTSHelper.setValue(tgts, tick, location, elevation, value, false);
+      } else {
+        GTSHelper.setValue(fgts, tick, location, elevation, value, false);
+      }
+    }
+
+    if (shrink) {
+      GTSHelper.shrink(fgts);
+      GTSHelper.shrink(tgts);
+    }
+
+    List<GeoTimeSerie> series = new ArrayList<GeoTimeSerie>(2);
+    series.add(fgts);
+    series.add(tgts);
+
+    return series;
+  }
+
   private static final void quicksortByValue(GeoTimeSerie gts, int low, int high, boolean reversed) {
 
     if (0 == gts.values) {
       return;
+    }
+
+    //
+    // Specific code for boolean GTS
+    //
+
+    if (GeoTimeSerie.TYPE.BOOLEAN == gts.getType()) {
+      if (0 == low && gts.values - 1 == high) {
+        List<GeoTimeSerie> series = booleanGTSSplit(gts, false);
+        if (!series.get(0).sorted) {
+          quicksort(series.get(0), 0, series.get(0).values, reversed);
+        }
+        if (!series.get(1).sorted) {
+          quicksort(series.get(1), 0, series.get(1).values, reversed);
+        }
+        shrinkTo(gts, 0);
+        if (reversed) {
+          GeoTimeSerie tmp = series.remove(0);
+          series.add(tmp);
+        }
+        for (int i = 0; i < 2; i++) {
+          GeoTimeSerie g = series.get(i);
+          int size = g.values;
+          if (g.reversed == reversed) {
+            for (int j = 0; j < size; j++) {
+              setValue(gts, tickAtIndex(g, j), locationAtIndex(g, j), elevationAtIndex(g, j), valueAtIndex(g, j), false);
+            }
+          } else {
+            for (int j = size - 1; j >= 0; j--) {
+              setValue(gts, tickAtIndex(g, j), locationAtIndex(g, j), elevationAtIndex(g, j), valueAtIndex(g, j), false);
+            }
+          }
+        }
+        return;
+      } else {
+        throw new RuntimeException("Invalid sorting range for boolean GTS.");
+      }
     }
 
     List<int[]> ranges = new ArrayList<int[]>();
@@ -685,6 +751,7 @@ public class GTSHelper {
       long lpivot = 0L;
       double dpivot = 0.0D;
       String spivot = null;
+      Boolean bpivot = null;
 
       TYPE type = gts.getType();
 
@@ -694,9 +761,6 @@ public class GTSHelper {
         dpivot = gts.doubleValues[low + (high-low)/2];
       } else if (TYPE.STRING == type) {
         spivot = gts.stringValues[low + (high-low)/2];
-      } else if (TYPE.BOOLEAN == type) {
-        // Do nothing for booleans
-        return;
       }
 
       long pivotTick = gts.ticks[low + (high-low) / 2];
@@ -705,8 +769,6 @@ public class GTSHelper {
       while (i <= j) {
 
         if (TYPE.LONG == type) {
-
-
           if (!reversed) {
             // If the current value from the left list is smaller
             // (or greater if reversed is true) than the pivot
@@ -789,10 +851,6 @@ public class GTSHelper {
             String tmpstring = gts.stringValues[i];
             gts.stringValues[i] = gts.stringValues[j];
             gts.stringValues[j] = tmpstring;
-          } else if (TYPE.BOOLEAN == gts.type) {
-            boolean tmpboolean = gts.booleanValues.get(i);
-            gts.booleanValues.set(i, gts.booleanValues.get(j));
-            gts.booleanValues.set(j, tmpboolean);
           }
 
           long tmplong = gts.ticks[i];
