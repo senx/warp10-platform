@@ -1,0 +1,36 @@
+//
+//   Copyright 2022  SenX S.A.S.
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////////////////
+//
+// F o u n d a t i o n D B
+//
+/////////////////////////////////////////////////////////////////////////////////////////
+
+
+##
+## This the API version to use for FoundationDB, defaults to 710 which is also the minimum
+## Ensure you have the right packages deployed when selecting a version number
+##
+#fdb.api.version = 710
+
+##
+## Flag indicating whether or not to use tenant prefixes.
+## When set to true, tokens are expected to have a '.fdbtp' (FoundationDB Tenant Prefix) attribute with an OPB64 encoded key prefix.
+## When set to true, Store and Egress components cannot use a tenant.
+##
+fdb.use.tenant.prefix = false

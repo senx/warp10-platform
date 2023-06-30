@@ -1,5 +1,5 @@
 //
-//   Copyright 2021  SenX S.A.S.
+//   Copyright 2021-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -25,20 +25,6 @@ import java.util.Map;
  * Extension for HTTP function
  */
 public class HttpWarpScriptExtension extends WarpScriptExtension {
-
-  //
-  // Authorization
-  //
-
-  /**
-   * If set to true, HTTP requires the stack to be authenticated
-   */
-  public static final String WARPSCRIPT_HTTP_AUTHENTICATION_REQUIRED = "warpscript.http.authentication.required";
-
-  /**
-   * If set, this capability is inspected
-   */
-  public static final String WARPSCRIPT_HTTP_CAPABILITY = "warpscript.http.capability";
 
   //
   // Web control
@@ -76,7 +62,7 @@ public class HttpWarpScriptExtension extends WarpScriptExtension {
    * Maximum number of calls to HTTP
    */
   public static final String WARPSCRIPT_HTTP_REQUESTS = "warpscript.http.maxrequests";
-  
+
   /**
    * Maximum cumulative size allowed to be downloaded by HTTP
    */
@@ -87,6 +73,16 @@ public class HttpWarpScriptExtension extends WarpScriptExtension {
    */
   public static final String WARPSCRIPT_CHUNK_SIZE = "warpscript.http.maxchunksize";
 
+  /**
+   * Configuration for maximum allowed timeout (in milliseconds)
+   */
+  public static final String WARPSCRIPT_HTTP_TIMEOUT = "warpscript.http.maxtimeout";
+
+  /**
+   * Capability name for maximum allowed timeout (capability value in milliseconds)
+   */
+  public static final String CAPABILITY_HTTP_TIMEOUT = "http.maxtimeout";
+
   //
   // Defaults limits if configuration not present
   //
@@ -94,6 +90,7 @@ public class HttpWarpScriptExtension extends WarpScriptExtension {
   public static final long DEFAULT_HTTP_REQUESTS = 1L;
   public static final long DEFAULT_HTTP_MAXSIZE = 65536L;
   public static final long DEFAULT_HTTP_CHUNK_SIZE = 65536L;
+  public static final int DEFAULT_HTTP_TIMEOUT = 60000; 
 
   //
   // Init extension

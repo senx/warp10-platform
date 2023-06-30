@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@ import io.warp10.continuum.Configuration;
 import io.warp10.continuum.Tokens;
 import io.warp10.continuum.store.Constants;
 import io.warp10.script.WarpFleetMacroRepository;
-import io.warp10.script.WarpScriptJarRepository;
 import io.warp10.script.WarpScriptMacroRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,7 +60,7 @@ public class WarpConfig {
   private static final String WARP10_NOENV = "warp10.noenv";
   private static final String WARP10_NOSYS = "warp10.nosys";
   private static final String WARP10_IGNOREFAILEDEXPANDS  = "warp10.ignorefailedexpands";
-  
+
   /**
    * Name of environment variable used in various submodules to locate the Warp 10 configuration file
    */
@@ -75,7 +74,13 @@ public class WarpConfig {
   private static Properties properties = null;
 
   public static final String THREAD_PROPERTY_SESSION = ".session";
-  
+
+  public static final String THREAD_PROPERTY_TOKEN = ".token";
+
+  private static String backend = null;
+
+  private static Boolean standaloneMode = null;
+
   /**
    * The concept of thread properties is to allocate a per thread map which can contain
    * arbitrary elements keyed by STRINGs and therefore accessible to all methods invoked within
@@ -88,26 +93,26 @@ public class WarpConfig {
    * Those endpoints should set the '.session' thread property at the beginning of a try block with a finally clause
    * calling clearThreadProperties.
    * Of course if the convention above is not respected, property maps might be created without clearing ensured.
-   * 
+   *
    */
-  
+
   @Beta
   private static final ThreadLocal<Map<String,Object>> threadProperties = new ThreadLocal<Map<String,Object>>() {
     protected java.util.Map<String,Object> initialValue() {
       return new HashMap<String,Object>();
     }
   };
-  
+
   @Beta
   public static Object getThreadProperty(String key) {
     return threadProperties.get().get(key);
   }
-  
+
   @Beta
   public static Object setThreadProperty(String key, Object value) {
     return threadProperties.get().put(key, value);
   }
-  
+
   @Beta
   public static Object removeThreadProperty(String key) {
     Map<String,Object> props = threadProperties.get();
@@ -118,9 +123,9 @@ public class WarpConfig {
     if (0 == props.size()) {
       threadProperties.remove();
     }
-    return previous;    
+    return previous;
   }
-  
+
   @Beta
   public static void clearThreadProperties() {
     threadProperties.remove();
@@ -129,7 +134,7 @@ public class WarpConfig {
   public static void safeSetProperties(String... files) throws IOException {
     safeSetProperties(true, files);
   }
-  
+
   public static void safeSetProperties(boolean exitOnError, String... files) throws IOException {
     if (null != properties) {
       return;
@@ -250,12 +255,6 @@ public class WarpConfig {
     WarpScriptMacroRepository.init(properties);
 
     //
-    // Initialize jar repository
-    //
-
-    WarpScriptJarRepository.init(properties);
-
-    //
     // Initialize WarpFleet repository
     //
 
@@ -314,29 +313,32 @@ public class WarpConfig {
         continue;
       }
 
-      if (tokens.length < 2) {
-        LOG.warn("Empty value for property '" + tokens[0] + "' on line " + lineno + ", ignoring.");
-        continue;
-      }
+      //
+      // x =      // remove the property when previously set.
+      // x = %20  // property value = " "
+      // empty string value is therefore not possible
+      //
 
-      // Remove URL encoding if a '%' sign is present in the token
       try {
         for (int i = 0; i < tokens.length; i++) {
-          tokens[i] = WarpURLDecoder.decode(tokens[i], StandardCharsets.UTF_8);
           tokens[i] = tokens[i].trim();
+          tokens[i] = WarpURLDecoder.decode(tokens[i], StandardCharsets.UTF_8);
         }
       } catch (IllegalArgumentException iae) {
         linesInError.add(lineno);
         continue;
       }
 
-      //
-      // Ignore empty properties
-      //
-
-      if ("".equals(tokens[1])) {
+      if (tokens.length < 2 || "".equals(tokens[1])) {
+        if (properties.containsKey(tokens[0])) {
+          LOG.warn("Empty value for property '" + tokens[0] + "' on line " + lineno + ", has cleared the previous value of '" + properties.getProperty(tokens[0]) + "'");
+          properties.remove(tokens[0]);
+        } else {
+          LOG.warn("Empty value for property '" + tokens[0] + "' on line " + lineno + ", ignoring.");
+        }
         continue;
       }
+
 
       //
       // Set property
@@ -360,6 +362,7 @@ public class WarpConfig {
   }
 
   private static void envVarsAndSysPropsOverride() throws IOException {
+
     //
     // Override properties with environment variables
     //
@@ -530,6 +533,53 @@ public class WarpConfig {
     }
   }
 
+  /*
+   * Adapt the java.version system property so we stick to the previous versions format of 1.major.minor
+   * see https://openjdk.java.net/jeps/223
+   */
+  public static String getOriginalFormatJavaVersion() {
+    String jversion = System.getProperty("java.version");
+
+    if (properties.containsKey(Configuration.WARP_JAVA_VERSION)) {
+      jversion = properties.getProperty(Configuration.WARP_JAVA_VERSION);
+    } else {
+      if (jversion.startsWith("1.")) {
+        // Check that we have two colons, if not add ".0"
+        if (-1 == jversion.indexOf(".", 2)) {
+          jversion = jversion + ".0";
+        }
+      } else if (jversion.contains(".")) {
+        // version contains a dot, it's propably of the form
+        // x.y.z-www or x.y.z+www, so check if it has two dots
+        // and then prepend "1."
+        if (-1 != jversion.indexOf(".", jversion.indexOf(".") + 1)) {
+          jversion = "1." + jversion;
+        } else {
+          throw new RuntimeException("Unparseable Java version '" + jversion + "', please consider setting '" + Configuration.WARP_JAVA_VERSION + "' explicitely in your configuration file.");
+        }
+      } else {
+        // If version is of the form x-www or x+www, change it to
+        // 1.x.0-www or 1.x.0+www
+
+        if (jversion.contains("+")) {
+          String extra = jversion.substring(jversion.indexOf("+"));
+          jversion = jversion.substring(0, jversion.indexOf("+"));
+          jversion = "1." + jversion + ".0" + extra;
+        } else if (jversion.contains("-")) {
+          String extra = jversion.substring(jversion.indexOf("-"));
+          jversion = jversion.substring(0, jversion.indexOf("-"));
+          jversion = "1." + jversion + ".0" + extra;
+        } else if ("".equals(jversion.replaceAll("[0-9]+", ""))) {
+          // simple number, e.g. '20'
+          jversion = "1." + jversion + ".0";
+        } else {
+          throw new RuntimeException("Unparseable Java version '" + jversion + "', please consider setting '" + Configuration.WARP_JAVA_VERSION + "' explicitely in your configuration file.");
+        }
+      }
+    }
+    return jversion;
+  }
+
   public static void main(String... args) {
     if (null != properties) {
       System.err.println("Properties already set");
@@ -543,11 +593,11 @@ public class WarpConfig {
     //
     // Copy file arguments up to '.'
     //
-    
+
     List<String> lfiles = new ArrayList<String>();
-    
+
     int keycount = 0;
-    
+
     for (int i = 0; i < args.length; i++) {
       if (".".equals(args[i])) {
         keycount = args.length - i - 1;
@@ -555,12 +605,12 @@ public class WarpConfig {
       }
       lfiles.add(args[i]);
     }
-    
+
     String[] files = lfiles.toArray(new String[lfiles.size()]);
 
     try {
       setProperties(false, files);
-      
+
       for (int i = args.length - keycount; i < args.length; i++) {
         System.out.println("@CONF@ " + args[i] + "=" + getProperty(args[i]));
       }
@@ -568,5 +618,16 @@ public class WarpConfig {
       System.err.println(ThrowableUtils.getErrorMessage(t));
       System.exit(-1);
     }
+  }
+
+  public static synchronized void setStandaloneMode(boolean mode) {
+    if (null != standaloneMode) {
+      throw new RuntimeException("Mode already set.");
+    }
+    standaloneMode = mode;
+  }
+
+  public static boolean isStandaloneMode() {
+    return (null != standaloneMode) && standaloneMode;
   }
 }

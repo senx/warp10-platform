@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -17,9 +17,6 @@
 //
 // Macro Repository
 //
-
-// Secret to use for setting configuration accessible via MACROCONFIG
-#warpscript.macroconfig.secret =
 
 // Directory which contains subdirectories with macros
 warpscript.repository.directory = ${standalone.home}/macros

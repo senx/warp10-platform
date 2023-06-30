@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -20,123 +20,133 @@
 //
 /////////////////////////////////////////////////////////////////////////////////////////
 
-//
-// Set to true to run each script a first time at startup, to false to schedule the
-// first run at the next timestamp which is congruent to 0 modulo the period of the
-// script
-runner.runatstartup = true
+###
+### M A N D A T O R Y   C O N F I G U R A T I O N
+###
 
-//
-// ZooKeeper connect string for the leader election among schedulers
-//
-runner.zk.quorum = 127.0.0.1:2181
-
-//
-// Znode to use for the leader election among schedulers
-//
-runner.zk.znode = /zk/warp/localhost/runner
-
-//
-// String uniquely identifying this instance of ScriptRunner
-//
-runner.id = runner-localhost-1
-
-//
-// Roles of the ScriptRunner instance. Can either be 'standalone' or any combination of 'scheduler' and 'worker'.
-//
+##
+## MANDATORY - Roles of the ScriptRunner instance. Can either be 'standalone' or any combination of 'scheduler' and 'worker'.
+##
 runner.roles = standalone
 
-//
-// Root directory under which scripts to run reside. The scripts MUST have a '.mc2' extension
-// and reside in subdirectories of this root directory whose name is the periodicity (in ms) at
-// which to run them.
-//
-#runner.root = 
+##
+## MANDATORY - String uniquely identifying this instance of ScriptRunner
+##
+runner.id = runner-1
 
-//
-// Number of threads to use for running scripts.
-//
+##
+## MANDATORY (standalone/worker) - WarpScript endpoint to use for executing the scripts
+##
+runner.endpoint = http://127.0.0.1:8881/api/v0/exec
+
+##
+## MANDATORY (standalone/worker) - Number of threads to use for running scripts
+##
 runner.nthreads = 1
 
-//
-// How often (in ms) to scan RUNNER_ROOT for new scripts
-//
+##
+## MANDATORY (standalone/scheduler) - Root directory under which scripts to run reside. The scripts MUST have a '.mc2' extension
+## and reside in subdirectories of this root directory whose name is the periodicity (in ms) at
+## which to run them.
+##
+runner.root = ${warp10.home}/runners
+
+##
+## MANDATORY (standalone/scheduler) - How often (in ms) to scan RUNNER_ROOT for new scripts
+##
 runner.scanperiod = 60000
 
-//
-// warpscript endpoint to use for executing the scripts
-//
-runner.endpoint = http://127.0.0.1:8881/api/v0/exec/warpscript
-
-//
-// 128/192/256 bits AES key for wrapping a runner nonce which can later be extracted using RUNNERNONCE.
-// Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
-//
-#runner.psk = hex:hhhhhh...
-
-//
-// Minimum period at which a script can be scheduled. Any script scheduled
-// more often than that won't be run
-//
+##
+## MANDATORY (standalone/scheduler) - Minimum period at which a script can be scheduled. Any script scheduled
+## more often than that won't be run
+##
 runner.minperiod = 1000
 
-//
-// ZooKeeper connect string for the Kafka cluster
-//
-runner.kafka.zkconnect = 127.0.0.1:2181/zk/kafka/localhost
+##
+## MANDATORY (scheduler) - Comma separated list of Kafka brokers
+##
+runner.kafka.producer.bootstrap.servers = ${kafka.runner.bootstrap.servers}
 
-//
-// List of Kafka brokers
-//
-runner.kafka.brokerlist = 127.0.0.1:9092
-
-//
-// Size of Kafka producer pool
-//
+##
+## MADATORY (scheduler) - Size of Kafka producer pool
+##
 runner.kafka.poolsize = 2
 
-//
-// Topic to use to submit the scripts
-//
-runner.kafka.topic = runner
+##
+## MANDATORY (scheduler) - ZooKeeper connect string for the leader election among schedulers
+##
+runner.zk.quorum = ${zk.quorum}
 
-//
-// Groupid to use when consuming scripts
-//
+##
+## MANDATORY (scheduler) - Znode to use for the leader election among schedulers
+##
+runner.zk.znode = /zk/warp/${warp10.instance}/runner
+
+##
+## MANDATORY (scheduler/worker) - Topic to use to submit the scripts
+##
+runner.kafka.topic = ${kafka.runner.topic}
+
+##
+## MANDATORY (worker) - Comma separated list of Kafka brokers
+##
+runner.kafka.consumer.bootstrap.servers = ${kafka.runner.bootstrap.servers}
+
+##
+## MANDATORY (worker) - Groupid to use when consuming scripts
+##
 runner.kafka.groupid = runner
 
-//
-// Number of threads to spawn to consume scripts
-//
+##
+## MANDATORY (worker) - Number of threads to spawn to consume scripts
+##
 runner.kafka.nthreads = 1
 
-//
-// Commit period for the script topic
-//
+##
+## MANDATORY (worker) - Commit period for the script topic
+##
 runner.kafka.commitperiod = 1000
 
-//
-// 128 bits SipHash key for computing MACs. Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
-//
-runner.kafka.mac = hex:hhhhhh...
+###
+### O P T I O N A L   C O N F I G U R A T I O N
+###
+### Values shown are the default when they exist
+###
 
-//
-// 128/192/256 bits AES key for encrypting scripts in Kafka.
-// Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
-//
-#runner.kafka.aes = hex:hhhhhh...
+##
+## 128/192/256 bits AES key for wrapping a runner nonce which can later be extracted using RUNNERNONCE.
+## Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
+##
+#runner.psk = hex:hhhhhh...
 
-//
-// Kafka client id to use for the producer
-//
+##
+## Set to true to run each script a first time at startup, to false to schedule the
+## first run at the next timestamp which is congruent to 0 modulo the period of the
+## script
+runner.runatstartup = true
+
+##
+## 128 bits SipHash key for computing MACs. Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
+##
+#runner.kafka.mac = ${kafka.runner.mac}
+
+##
+## 128/192/256 bits AES key for encrypting scripts in Kafka.
+## Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
+##
+#runner.kafka.aes = ${kafka.runner.aes}
+
+##
+## Kafka client id to use for the producer
+##
 #runner.kafka.producer.clientid =
 
-//
-// Kafka client id to use for the consumer
-//
+##
+## Kafka client id to use for the consumer
+##
 #runner.kafka.consumer.clientid =
 
-//
-// Name of partition assignment strategy to use
-//
+##
+## Name of partition assignment strategy to use
+##
 #runner.kafka.consumer.partition.assignment.strategy =

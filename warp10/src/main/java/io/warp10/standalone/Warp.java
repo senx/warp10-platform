@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@
 
 package io.warp10.standalone;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.charset.Charset;
@@ -32,6 +31,7 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 
+import org.apache.commons.io.FileUtils;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Server;
@@ -60,7 +60,6 @@ import io.warp10.continuum.egress.EgressFetchHandler;
 import io.warp10.continuum.egress.EgressFindHandler;
 import io.warp10.continuum.egress.EgressInteractiveHandler;
 import io.warp10.continuum.egress.EgressMobiusHandler;
-import io.warp10.continuum.ingress.DatalogForwarder;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.ParallelGTSDecoderIteratorWrapper;
@@ -69,10 +68,14 @@ import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OSSKeyStore;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.crypto.UnsecureKeyStore;
-import io.warp10.quasar.filter.QuasarTokenFilter;
+import io.warp10.fdb.FDBContext;
+import io.warp10.leveldb.WarpDB;
 import io.warp10.script.ScriptRunner;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.sensision.Sensision;
+import io.warp10.standalone.datalog.DatalogConsumer;
+import io.warp10.standalone.datalog.DatalogManager;
+import io.warp10.standalone.datalog.DatalogWorkers;
 import io.warp10.warp.sdk.AbstractWarp10Plugin;
 
 public class Warp extends WarpDist implements Runnable {
@@ -84,11 +87,9 @@ public class Warp extends WarpDist implements Runnable {
   private static final String DEFAULT_HTTP_ACCEPTORS = "2";
   private static final String DEFAULT_HTTP_SELECTORS = "4";
 
-  private static final String NULL = "null";
-
   private static WarpDB db;
 
-  private static boolean standaloneMode = false;
+  private static String backend = null;
 
   private static int port;
 
@@ -116,37 +117,74 @@ public class Warp extends WarpDist implements Runnable {
 
   public static void main(String[] args) throws Exception {
     // Indicate standalone mode is on
-    standaloneMode = true;
+    WarpConfig.setStandaloneMode(true);
 
-    System.setProperty("java.awt.headless", "true");
+    if (null == getProperties()) {
+      System.setProperty("java.awt.headless", "true");
 
-    System.out.println();
-    System.out.println(Constants.WARP10_BANNER);
-    System.out.println("  Revision " + Revision.REVISION);
-    System.out.println();
+      System.out.println();
+      System.out.println(Constants.WARP10_BANNER);
+      System.out.println("  Revision " + Revision.REVISION);
+      System.out.println();
 
-    if (StandardCharsets.UTF_8 != Charset.defaultCharset()) {
-      throw new RuntimeException("Default encoding MUST be UTF-8 but it is " + Charset.defaultCharset() + ". Aborting.");
+      if (StandardCharsets.UTF_8 != Charset.defaultCharset()) {
+        throw new RuntimeException("Default encoding MUST be UTF-8 but it is " + Charset.defaultCharset() + ". Aborting.");
+      }
+
+      setProperties(args);
     }
 
     Map<String, String> labels = new HashMap<String, String>();
     labels.put(SensisionConstants.SENSISION_LABEL_COMPONENT, "standalone");
     Sensision.set(SensisionConstants.SENSISION_CLASS_WARP_REVISION, labels, Revision.REVISION);
 
-    setProperties(args);
-
     Properties properties = getProperties();
 
+    backend = properties.getProperty(Configuration.BACKEND);
+
+    boolean useLevelDB = false;
+    boolean useFDB = false;
+    boolean nullbackend = false;
+    boolean plasmabackend = false;
+    boolean inmemory = false;
+
     boolean analyticsEngineOnly = "true".equals(properties.getProperty(Configuration.ANALYTICS_ENGINE_ONLY));
-    boolean nullbackend = "true".equals(properties.getProperty(NULL)) || analyticsEngineOnly;
 
-    boolean plasmabackend = "true".equals(properties.getProperty(Configuration.PURE_PLASMA));
+    if (analyticsEngineOnly) {
+      nullbackend = true;
+      if (null != backend && !Constants.BACKEND_NULL.equals(backend)) {
+        LOG.warn("Backend specification '" + backend + "' ignored since '" + Configuration.ANALYTICS_ENGINE_ONLY + " is true.");
+      }
+    } else {
+      if (null == backend) {
+        throw new RuntimeException("Backend specification '" + Configuration.BACKEND + "' MUST be set since Warp 10 3.0");
+      }
+      switch(backend) {
+        case Constants.BACKEND_LEVELDB:
+          useLevelDB = true;
+          break;
+        case Constants.BACKEND_FDB:
+          useFDB = true;
+          break;
+        case Constants.BACKEND_NULL:
+          nullbackend = true;
+          break;
+        case Constants.BACKEND_PLASMA:
+          plasmabackend = true;
+          break;
+        case Constants.BACKEND_MEMORY:
+          inmemory = true;
+          break;
+        default:
+          throw new RuntimeException("Missing valid '" + Configuration.BACKEND + "' specification.");
+      }
+    }
 
-    boolean inmemory = "true".equals(properties.getProperty(Configuration.IN_MEMORY));
+
     boolean accelerator = "true".equals(properties.getProperty(Configuration.ACCELERATOR));
 
     if (inmemory && accelerator) {
-      throw new RuntimeException("Accelerator mode cannot be enabled when " + Configuration.IN_MEMORY + " is set to true.");
+      throw new RuntimeException("Accelerator mode cannot be enabled when '" + Configuration.BACKEND + "' is set to '" + Constants.BACKEND_MEMORY + "'.");
     }
 
     boolean enablePlasma = !("true".equals(properties.getProperty(Configuration.WARP_PLASMA_DISABLE)));
@@ -215,54 +253,55 @@ public class Warp extends WarpDist implements Runnable {
     // Initialize levelDB
     //
 
-    Options options = new Options();
+    Options options = null;
 
-    options.createIfMissing("true".equals(properties.getProperty(Configuration.LEVELDB_CREATE_IF_MISSING)));
+    if (useLevelDB) {
+      options = new Options();
+      options.createIfMissing("true".equals(properties.getProperty(Configuration.LEVELDB_CREATE_IF_MISSING)));
 
-    options.errorIfExists("true".equals(properties.getProperty(Configuration.LEVELDB_ERROR_IF_EXISTS)));
+      options.errorIfExists("true".equals(properties.getProperty(Configuration.LEVELDB_ERROR_IF_EXISTS)));
 
-    if (properties.containsKey(Configuration.LEVELDB_MAXOPENFILES)) {
-      int maxOpenFiles = Integer.parseInt(properties.getProperty(Configuration.LEVELDB_MAXOPENFILES));
-      options.maxOpenFiles(maxOpenFiles);
-    }
-
-    if (null != properties.getProperty(Configuration.LEVELDB_CACHE_SIZE)) {
-      options.cacheSize(Long.parseLong(properties.getProperty(Configuration.LEVELDB_CACHE_SIZE)));
-    }
-
-    if (null != properties.getProperty(Configuration.LEVELDB_WRITEBUFFER_SIZE)) {
-      options.writeBufferSize(Integer.parseInt(properties.getProperty(Configuration.LEVELDB_WRITEBUFFER_SIZE)));
-    }
-
-    if (null != properties.getProperty(Configuration.LEVELDB_COMPRESSION_TYPE)) {
-      if ("snappy".equalsIgnoreCase(properties.getProperty(Configuration.LEVELDB_COMPRESSION_TYPE))) {
-        options.compressionType(CompressionType.SNAPPY);
-      } else {
-        options.compressionType(CompressionType.NONE);
+      if (properties.containsKey(Configuration.LEVELDB_MAXOPENFILES)) {
+        int maxOpenFiles = Integer.parseInt(properties.getProperty(Configuration.LEVELDB_MAXOPENFILES));
+        options.maxOpenFiles(maxOpenFiles);
       }
-    }
 
-    if (null != properties.getProperty(Configuration.LEVELDB_BLOCK_SIZE)) {
-      options.blockSize(Integer.parseInt(properties.getProperty(Configuration.LEVELDB_BLOCK_SIZE)));
-    }
+      if (null != properties.getProperty(Configuration.LEVELDB_CACHE_SIZE)) {
+        options.cacheSize(Long.parseLong(properties.getProperty(Configuration.LEVELDB_CACHE_SIZE)));
+      }
 
-    if (null != properties.getProperty(Configuration.LEVELDB_BLOCK_RESTART_INTERVAL)) {
-      options.blockRestartInterval(Integer.parseInt(properties.getProperty(Configuration.LEVELDB_BLOCK_RESTART_INTERVAL)));
-    }
+      if (null != properties.getProperty(Configuration.LEVELDB_WRITEBUFFER_SIZE)) {
+        options.writeBufferSize(Integer.parseInt(properties.getProperty(Configuration.LEVELDB_WRITEBUFFER_SIZE)));
+      }
 
-    if (null != properties.getProperty(Configuration.LEVELDB_VERIFY_CHECKSUMS)) {
-      options.verifyChecksums("true".equals(properties.getProperty(Configuration.LEVELDB_VERIFY_CHECKSUMS)));
-    }
+      if (null != properties.getProperty(Configuration.LEVELDB_COMPRESSION_TYPE)) {
+        if ("snappy".equalsIgnoreCase(properties.getProperty(Configuration.LEVELDB_COMPRESSION_TYPE))) {
+          options.compressionType(CompressionType.SNAPPY);
+        } else {
+          options.compressionType(CompressionType.NONE);
+        }
+      }
 
-    if (null != properties.getProperty(Configuration.LEVELDB_PARANOID_CHECKS)) {
-      options.paranoidChecks("true".equals(properties.getProperty(Configuration.LEVELDB_PARANOID_CHECKS)));
-    }
+      if (null != properties.getProperty(Configuration.LEVELDB_BLOCK_SIZE)) {
+        options.blockSize(Integer.parseInt(properties.getProperty(Configuration.LEVELDB_BLOCK_SIZE)));
+      }
 
-    //
-    // Attempt to load JNI library, fallback to pure java in case of error
-    //
+      if (null != properties.getProperty(Configuration.LEVELDB_BLOCK_RESTART_INTERVAL)) {
+        options.blockRestartInterval(Integer.parseInt(properties.getProperty(Configuration.LEVELDB_BLOCK_RESTART_INTERVAL)));
+      }
 
-    if (!inmemory && !nullbackend && !plasmabackend) {
+      if (null != properties.getProperty(Configuration.LEVELDB_VERIFY_CHECKSUMS)) {
+        options.verifyChecksums("true".equals(properties.getProperty(Configuration.LEVELDB_VERIFY_CHECKSUMS)));
+      }
+
+      if (null != properties.getProperty(Configuration.LEVELDB_PARANOID_CHECKS)) {
+        options.paranoidChecks("true".equals(properties.getProperty(Configuration.LEVELDB_PARANOID_CHECKS)));
+      }
+
+      //
+      // Attempt to load JNI library, fallback to pure java in case of error
+      //
+
       boolean nativedisabled = "true".equals(properties.getProperty(Configuration.LEVELDB_NATIVE_DISABLE));
       boolean javadisabled = "true".equals(properties.getProperty(Configuration.LEVELDB_JAVA_DISABLE));
       String home = properties.getProperty(Configuration.LEVELDB_HOME);
@@ -271,22 +310,6 @@ public class Warp extends WarpDist implements Runnable {
 
     // Register shutdown hook to close the DB.
     Runtime.getRuntime().addShutdownHook(new Thread(new Warp()));
-
-    //
-    // Initialize the backup manager
-    //
-
-    if (null != db) {
-      String triggerPath = properties.getProperty(Configuration.STANDALONE_SNAPSHOT_TRIGGER);
-      String signalPath = properties.getProperty(Configuration.STANDALONE_SNAPSHOT_SIGNAL);
-
-      if (null != triggerPath && null != signalPath) {
-        Thread backupManager = new StandaloneSnapshotManager(triggerPath, signalPath);
-        backupManager.setDaemon(true);
-        backupManager.setName("[Snapshot Manager]");
-        backupManager.start();
-      }
-    }
 
     WarpScriptLib.registerExtensions();
 
@@ -367,30 +390,21 @@ public class Warp extends WarpDist implements Runnable {
     StandaloneDirectoryClient sdc = null;
     StoreClient scc = null;
 
+    DatalogManager dlm = null;
+
+    if (null != properties.getProperty(Configuration.DATALOG_MANAGER)) {
+      Class clazz = Class.forName(properties.getProperty(Configuration.DATALOG_MANAGER));
+      dlm = (DatalogManager) clazz.newInstance();
+    }
+
     if (inmemory) {
       sdc = new StandaloneDirectoryClient(null, keystore);
 
       sdc.setActivityWindow(Long.parseLong(properties.getProperty(Configuration.INGRESS_ACTIVITY_WINDOW, "0")));
 
-      if (null == properties.getProperty(Configuration.IN_MEMORY_CHUNKED)) {
-        throw new RuntimeException("Configuration key '" + Configuration.IN_MEMORY_CHUNKED + "' MUST now explicitly be set to 'true' or 'false' (if you wish to use the now deprecated non chunked memory store).");
-      }
-
-      if (!"false".equals(properties.getProperty(Configuration.IN_MEMORY_CHUNKED))) {
-        scc = new StandaloneChunkedMemoryStore(properties, keystore);
-        ((StandaloneChunkedMemoryStore) scc).setDirectoryClient(sdc);
-        ((StandaloneChunkedMemoryStore) scc).load();
-      } else {
-        scc = new StandaloneMemoryStore(keystore,
-          Long.valueOf(properties.getProperty(Configuration.IN_MEMORY_DEPTH, Long.toString(60 * 60 * 1000 * Constants.TIME_UNITS_PER_MS))),
-          Long.valueOf(properties.getProperty(Configuration.IN_MEMORY_HIGHWATERMARK, "100000")),
-          Long.valueOf(properties.getProperty(Configuration.IN_MEMORY_LOWWATERMARK, "80000")));
-        ((StandaloneMemoryStore) scc).setDirectoryClient(sdc);
-        if ("true".equals(properties.getProperty(Configuration.IN_MEMORY_EPHEMERAL))) {
-          ((StandaloneMemoryStore) scc).setEphemeral(true);
-        }
-        ((StandaloneMemoryStore) scc).load();
-      }
+      scc = new StandaloneChunkedMemoryStore(properties, keystore);
+      ((StandaloneChunkedMemoryStore) scc).setDirectoryClient(sdc);
+      ((StandaloneChunkedMemoryStore) scc).load();
     } else if (plasmabackend) {
       sdc = new StandaloneDirectoryClient(null, keystore);
       scc = new PlasmaStoreClient();
@@ -398,21 +412,45 @@ public class Warp extends WarpDist implements Runnable {
       sdc = new NullDirectoryClient(keystore);
       scc = new NullStoreClient();
     } else {
-      sdc = new StandaloneDirectoryClient(db, keystore);
-      scc = new StandaloneStoreClient(db, keystore, properties);
+      if (useLevelDB) {
+        sdc = new StandaloneDirectoryClient(db, keystore);
+        scc = new StandaloneStoreClient(db, keystore, properties);
+      } else if (useFDB) {
+        FDBContext fdbContext = new FDBContext(properties.getProperty(Configuration.DIRECTORY_FDB_CLUSTERFILE), properties.getProperty(Configuration.DIRECTORY_FDB_TENANT));
+        sdc = new StandaloneDirectoryClient(fdbContext, keystore);
+        scc = new StandaloneFDBStoreClient(keystore, properties);
+      }
 
       if (accelerator) {
         scc = new StandaloneAcceleratedStoreClient(sdc, scc);
       }
     }
 
-    if (null != WarpConfig.getProperty(Configuration.DATALOG_DIR) && null != WarpConfig.getProperty(Configuration.DATALOG_SHARDS)) {
+    if (null != WarpConfig.getProperty(Configuration.DATALOG_SHARDS)) {
       sdc = new StandaloneShardedDirectoryClientWrapper(keystore, sdc);
       scc = new StandaloneShardedStoreClientWrapper(keystore, scc);
     }
 
-    if (ParallelGTSDecoderIteratorWrapper.useParallelScanners()) {
+    // When using FDB, don't rely on Standalone's specific parallel scanner implementation, use the one from FDBStoreClient
+    // otherwise we may end up in an endless loop attempting to schedule workers
+    if (ParallelGTSDecoderIteratorWrapper.useParallelScanners() && !Constants.BACKEND_FDB.equals(backend)) {
       scc = new StandaloneParallelStoreClientWrapper(scc);
+    }
+
+    sdc = DatalogManager.wrap(dlm, sdc);
+    scc = DatalogManager.wrap(dlm, scc);
+
+    if (null != properties.getProperty(Configuration.DATALOG_CONSUMERS)) {
+
+      DatalogWorkers.init(scc,sdc);
+
+      String[] consumers = properties.getProperty(Configuration.DATALOG_CONSUMERS).split(",");
+      for (String consumer: consumers) {
+        consumer = consumer.trim();
+        Class clazz = Class.forName(WarpConfig.getProperty(Configuration.DATALOG_CONSUMER_CLASS_PREFIX +  consumer));
+        DatalogConsumer dc = (DatalogConsumer) clazz.newInstance();
+        dc.init(keystore, consumer);
+      }
     }
 
     if (properties.containsKey(Configuration.RUNNER_ROOT)) {
@@ -428,48 +466,6 @@ public class Warp extends WarpDist implements Runnable {
     }
 
     //
-    // Start the Datalog Forwarders
-    //
-
-    if (!analyticsEngineOnly && properties.containsKey(Configuration.DATALOG_FORWARDERS)) {
-      // Extract the names of the forwarders and start them all, ensuring we only start each one once
-      String[] forwarders = properties.getProperty(Configuration.DATALOG_FORWARDERS).split(",");
-
-      Set<String> names = new HashSet<String>();
-      for (String name: forwarders) {
-        names.add(name.trim());
-      }
-
-      Set<Path> srcDirs = new HashSet<Path>();
-
-      Path datalogdir = new File(properties.getProperty(Configuration.DATALOG_DIR)).toPath().toRealPath();
-
-      for (String name: names) {
-        DatalogForwarder forwarder = new DatalogForwarder(name, keystore, properties);
-
-        Path root = forwarder.getRootDir().toRealPath();
-
-        if (datalogdir.equals(root)) {
-          throw new RuntimeException("Datalog directory '" + datalogdir + "' cannot be used as a forwarder source.");
-        }
-
-        if (!srcDirs.add(root)) {
-          throw new RuntimeException("Duplicate datalog source directory '" + root + "'.");
-        }
-      }
-
-      datalogSrcDirs = Collections.unmodifiableSet(srcDirs);
-
-    } else if (!analyticsEngineOnly && properties.containsKey(Configuration.DATALOG_FORWARDER_SRCDIR) && properties.containsKey(Configuration.DATALOG_FORWARDER_DSTDIR)) {
-      Path datalogdir = new File(properties.getProperty(Configuration.DATALOG_DIR)).toPath().toRealPath();
-      DatalogForwarder forwarder = new DatalogForwarder(keystore, properties);
-      Path root = forwarder.getRootDir().toRealPath();
-      if (datalogdir.equals(root)) {
-        throw new RuntimeException("Datalog directory '" + datalogdir + "' cannot be used as the source directory of a forwarder.");
-      }
-    }
-
-    //
     // Enable the ThrottlingManager (not
     //
 
@@ -480,7 +476,7 @@ public class Warp extends WarpDist implements Runnable {
     GzipHandler gzip = new GzipHandler();
     EgressExecHandler egressExecHandler = new EgressExecHandler(keystore, properties, sdc, scc);
     gzip.setHandler(egressExecHandler);
-    gzip.setMinGzipSize(0);
+    gzip.setMinGzipSize(23);
     gzip.addIncludedMethods("POST");
     handlers.addHandler(gzip);
     setEgress(true);
@@ -489,20 +485,20 @@ public class Warp extends WarpDist implements Runnable {
       gzip = new GzipHandler();
       StandaloneIngressHandler sih = new StandaloneIngressHandler(keystore, sdc, scc);
       gzip.setHandler(sih);
-      gzip.setMinGzipSize(0);
+      gzip.setMinGzipSize(23);
       gzip.addIncludedMethods("POST");
       handlers.addHandler(gzip);
 
       gzip = new GzipHandler();
       gzip.setHandler(new EgressFindHandler(keystore, sdc));
-      gzip.setMinGzipSize(0);
+      gzip.setMinGzipSize(23);
       gzip.addIncludedMethods("POST");
       handlers.addHandler(gzip);
 
       if ("true".equals(properties.getProperty(Configuration.STANDALONE_SPLITS_ENABLE))) {
         gzip = new GzipHandler();
         gzip.setHandler(new StandaloneSplitsHandler(keystore, sdc));
-        gzip.setMinGzipSize(0);
+        gzip.setMinGzipSize(23);
         gzip.addIncludedMethods("POST");
         handlers.addHandler(gzip);
       }
@@ -511,7 +507,7 @@ public class Warp extends WarpDist implements Runnable {
       StandaloneDeleteHandler sdh = new StandaloneDeleteHandler(keystore, sdc, scc);
       sdh.setPlugin(sih.getPlugin());
       gzip.setHandler(sdh);
-      gzip.setMinGzipSize(0);
+      gzip.setMinGzipSize(23);
       gzip.addIncludedMethods("POST");
       handlers.addHandler(gzip);
 
@@ -529,7 +525,7 @@ public class Warp extends WarpDist implements Runnable {
 
       gzip = new GzipHandler();
       gzip.setHandler(new EgressFetchHandler(keystore, properties, sdc, scc));
-      gzip.setMinGzipSize(0);
+      gzip.setMinGzipSize(23);
       gzip.addIncludedMethods("POST");
       handlers.addHandler(gzip);
     }
@@ -575,7 +571,15 @@ public class Warp extends WarpDist implements Runnable {
       port = httpConnector.getLocalPort();
     }
 
-    WarpDist.setInitialized(true);
+    WarpDist.setInitialized();
+
+    LOG.info("## Your Warp 10 setup:");
+    LOG.info("## - WARP10_HEAP:              " + FileUtils.byteCountToDisplaySize(Runtime.getRuntime().totalMemory()));
+    LOG.info("## - WARP10_HEAP_MAX:          " + FileUtils.byteCountToDisplaySize(Runtime.getRuntime().maxMemory()));
+    LOG.info("## - " + Configuration.WARPSCRIPT_MAX_FETCH + ":      " + properties.getProperty(Configuration.WARPSCRIPT_MAX_FETCH));
+    LOG.info("## - " + Configuration.WARPSCRIPT_MAX_FETCH_HARD + ": " + properties.getProperty(Configuration.WARPSCRIPT_MAX_FETCH_HARD));
+    LOG.info("## - " + Configuration.WARPSCRIPT_MAX_OPS + ":        " + properties.getProperty(Configuration.WARPSCRIPT_MAX_OPS));
+    LOG.info("## - " + Configuration.WARPSCRIPT_MAX_OPS_HARD + ":   " + properties.getProperty(Configuration.WARPSCRIPT_MAX_OPS_HARD));
 
     try {
       while (true) {
@@ -590,8 +594,8 @@ public class Warp extends WarpDist implements Runnable {
     }
   }
 
-  public static boolean isStandaloneMode() {
-    return standaloneMode;
+  public static String getBackend() {
+    return backend;
   }
 
   public static int getPort() {

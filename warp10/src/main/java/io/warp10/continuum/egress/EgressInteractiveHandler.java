@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -39,9 +39,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import io.warp10.ThrowableUtils;
-import io.warp10.WarpConfig;
-
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketClose;
@@ -58,6 +55,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.warp10.Revision;
+import io.warp10.ThrowableUtils;
+import io.warp10.WarpConfig;
 import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.BootstrapManager;
 import io.warp10.continuum.Configuration;
@@ -82,26 +81,26 @@ public class EgressInteractiveHandler extends WebSocketHandler.Simple implements
 
   private static final Logger LOG = LoggerFactory.getLogger(EgressInteractiveHandler.class);
   private static final Logger EVENTLOG = LoggerFactory.getLogger("warpscript.events");
-  
+
   private final KeyStore keyStore;
   private final StoreClient storeClient;
   private final DirectoryClient directoryClient;
 
   private final BootstrapManager bootstrapManager;
-  
+
   private final ServerSocket serverSocket;
-  
+
   private final AtomicInteger connections = new AtomicInteger(0);
-  
+
   private int capacity = 1;
-  
+
   @WebSocket
   public static class InteractiveWebSocket {
-    
+
     private EgressInteractiveHandler handler = null;
-    
+
     private InteractiveProcessor processor = null;
-    
+
     @OnWebSocketConnect
     public void onWebSocketConnect(Session session) {
       if (this.handler.capacity <= this.handler.connections.get()) {
@@ -112,33 +111,33 @@ public class EgressInteractiveHandler extends WebSocketHandler.Simple implements
           throw new RuntimeException(ioe);
         }
       }
-      
+
       this.handler.connections.incrementAndGet();
 
       this.processor.init(session);
     }
-    
+
     @OnWebSocketMessage
     public void onWebSocketMessage(Session session, String message) throws Exception {
       message = message + "\n";
       this.processor.pipe(message.getBytes(StandardCharsets.UTF_8));
     }
-    
-    @OnWebSocketClose    
+
+    @OnWebSocketClose
     public void onWebSocketClose(Session session, int statusCode, String reason) {
       try {
         this.processor.getPipe().close();
-      } catch (IOException ioe) {        
+      } catch (IOException ioe) {
       }
     }
 
-    @OnWebSocketError        
+    @OnWebSocketError
     public void onWebSocketError(Session session, Throwable t) {}
 
     public void setProcessor(InteractiveProcessor processor) {
       this.processor = processor;
     }
-    
+
     public void setHandler(EgressInteractiveHandler handler) {
       this.handler = handler;
     }
@@ -150,21 +149,21 @@ public class EgressInteractiveHandler extends WebSocketHandler.Simple implements
     this.keyStore = keyStore;
     this.storeClient = storeClient;
     this.directoryClient = directoryClient;
-    
+
     //
     // Check if we have a 'bootstrap' property
     //
-    
+
     if (properties.containsKey(Configuration.CONFIG_WARPSCRIPT_INTERACTIVE_BOOTSTRAP_PATH)) {
-      
+
       final String path = properties.getProperty(Configuration.CONFIG_WARPSCRIPT_INTERACTIVE_BOOTSTRAP_PATH);
-      
+
       long period = properties.containsKey(Configuration.CONFIG_WARPSCRIPT_INTERACTIVE_BOOTSTRAP_PERIOD) ?  Long.parseLong(properties.getProperty(Configuration.CONFIG_WARPSCRIPT_BOOTSTRAP_PERIOD)) : 0L;
-      this.bootstrapManager = new BootstrapManager(path, period);      
+      this.bootstrapManager = new BootstrapManager(path, period);
     } else {
       this.bootstrapManager = new BootstrapManager();
     }
-    
+
     if (properties.containsKey(Configuration.CONFIG_WARPSCRIPT_INTERACTIVE_CAPACITY)) {
       capacity = Integer.parseInt(properties.getProperty(Configuration.CONFIG_WARPSCRIPT_INTERACTIVE_CAPACITY));
     }
@@ -183,13 +182,13 @@ public class EgressInteractiveHandler extends WebSocketHandler.Simple implements
       this.serverSocket = null;
     }
   }
-  
+
   @Override
   public void run() {
     while (true) {
       try {
         Socket connectionSocket = this.serverSocket.accept();
-        
+
         if (this.capacity <= this.connections.get()) {
           PrintWriter pw = new PrintWriter(new OutputStreamWriter(connectionSocket.getOutputStream()));
           pw.println("// Maximum server capacity is reached (" + this.capacity + ").");
@@ -198,15 +197,15 @@ public class EgressInteractiveHandler extends WebSocketHandler.Simple implements
           connectionSocket.close();
           continue;
         }
-        
+
         this.connections.incrementAndGet();
-        
-        InteractiveProcessor processor = new InteractiveProcessor(this, connectionSocket, null, connectionSocket.getInputStream(), connectionSocket.getOutputStream());      
-      } catch (IOException ioe) {          
+
+        InteractiveProcessor processor = new InteractiveProcessor(this, connectionSocket, null, connectionSocket.getInputStream(), connectionSocket.getOutputStream());
+      } catch (IOException ioe) {
       }
     }
   }
-  
+
   @Override
   public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
     if (Constants.API_ENDPOINT_INTERACTIVE.equals(target)) {
@@ -214,14 +213,14 @@ public class EgressInteractiveHandler extends WebSocketHandler.Simple implements
       super.handle(target, baseRequest, request, response);
     }
   }
-  
+
   @Override
   public void configure(final WebSocketServletFactory factory) {
-    
+
     final EgressInteractiveHandler self = this;
 
     final WebSocketCreator oldcreator = factory.getCreator();
-    
+
     WebSocketCreator creator = new WebSocketCreator() {
       @Override
       public Object createWebSocket(ServletUpgradeRequest req, ServletUpgradeResponse resp) {
@@ -241,7 +240,7 @@ public class EgressInteractiveHandler extends WebSocketHandler.Simple implements
   }
 
   public static class InteractiveProcessor extends Thread {
-    
+
     private final EgressInteractiveHandler rel;
     private final Socket socket;
     private final InputStream in;
@@ -249,15 +248,15 @@ public class EgressInteractiveHandler extends WebSocketHandler.Simple implements
     private Session session;
     private final PrintWriter pw;
     private PipedOutputStream pipedOut = null;
-    
+
     private MemoryWarpScriptStack stack;
-    
+
     private final LinkedBlockingQueue<byte[]> pipeQueue = new LinkedBlockingQueue<byte[]>(2);
-    
+
     public InteractiveProcessor(EgressInteractiveHandler rel, Socket socket, Session session, InputStream in, OutputStream out) throws IOException {
       this.rel = rel;
       this.socket = socket;
-      
+
       if (null != in && null != out) {
         this.in = in;
         this.out = out;
@@ -265,7 +264,7 @@ public class EgressInteractiveHandler extends WebSocketHandler.Simple implements
         this.pipedOut = new PipedOutputStream();
         this.in = new PipedInputStream(this.pipedOut);
         this.out = null;
-        
+
         // Start the queue runner thread
         Thread queueRunner = new Thread() {
           @Override
@@ -275,7 +274,7 @@ public class EgressInteractiveHandler extends WebSocketHandler.Simple implements
                 byte[] data = pipeQueue.take();
                 pipedOut.write(data);
                 pipedOut.flush();
-              } catch (Exception e) {                
+              } catch (Exception e) {
               }
             }
           }
@@ -283,26 +282,26 @@ public class EgressInteractiveHandler extends WebSocketHandler.Simple implements
         queueRunner.setDaemon(true);
         queueRunner.start();
       }
-      
+
       this.session = session;
-      
+
       if (null != this.out) {
         this.pw = new PrintWriter(this.out);
       } else {
         this.pw = null;
       }
-      
+
       // Delay start until we have a session when using WebSocket
       if (null != socket) {
         this.start();
       }
     }
-    
+
     public void init(Session session) {
       this.session = session;
       this.start();
     }
-    
+
     /**
      * Offer data to the pipe, this will be put
      * into a queue and dequeues by a stable Thread
@@ -312,21 +311,21 @@ public class EgressInteractiveHandler extends WebSocketHandler.Simple implements
     public void pipe(byte[] data) throws InterruptedException {
       this.pipeQueue.put(data);
     }
-    
+
     public PipedOutputStream getPipe() {
       return this.pipedOut;
     }
-    
+
     public String getBanner() {
       StringBuilder sb = new StringBuilder();
-      
+
       sb.append("//");
       sb.append("\n"); sb.append("//");
-      sb.append("\n"); sb.append("//  ___       __                           ____________"); 
+      sb.append("\n"); sb.append("//  ___       __                           ____________");
       sb.append("\n"); sb.append("//  __ |     / /_____ _______________      __<  /_  __ \\");
       sb.append("\n"); sb.append("//  __ | /| / /_  __ `/_  ___/__  __ \\     __  /_  / / /");
-      sb.append("\n"); sb.append("//  __ |/ |/ / / /_/ /_  /   __  /_/ /     _  / / /_/ /"); 
-      sb.append("\n"); sb.append("//  ____/|__/  \\__,_/ /_/    _  .___/      /_/  \\____/");  
+      sb.append("\n"); sb.append("//  __ |/ |/ / / /_/ /_  /   __  /_/ /     _  / / /_/ /");
+      sb.append("\n"); sb.append("//  ____/|__/  \\__,_/ /_/    _  .___/      /_/  \\____/");
       sb.append("\n"); sb.append("//                           /_/");
       sb.append("\n"); sb.append("//");
 
@@ -335,53 +334,53 @@ public class EgressInteractiveHandler extends WebSocketHandler.Simple implements
       sb.append(Revision.REVISION);
       sb.append("// ");
       sb.append("\n");
-      
+
       return sb.toString();
     }
 
     public String getPrompt() {
       StringBuilder sb = new StringBuilder();
-      
+
       sb.append("WS");
-      
+
       if (stack.isInSecureScript()) {
         sb.append("S");
       }
-      
+
       if (stack.isInComment()) {
         sb.append("#");
       }
-      
+
       if (stack.isInMultiline()) {
         sb.append("'");
       }
-      
+
       if (stack.getMacroDepth() > 0) {
         sb.append("%");
         sb.append(stack.getMacroDepth());
       }
-      
+
       if (stack.depth() > 0) {
         sb.append("<");
         sb.append(stack.depth());
       }
-      
+
       sb.append("> ");
-      
+
       return sb.toString();
     }
-    
+
     private static class PrintWriterWrapper extends PrintWriter {
-      
+
       private final PrintWriter writer;
       private final Session session;
-      
+
       public PrintWriterWrapper(PrintWriter writer, Session session) {
         super(System.out);
         this.writer = writer;
         this.session = session;
       }
-      
+
       @Override
       public void print(String s) {
         if (null != this.writer) {
@@ -395,17 +394,17 @@ public class EgressInteractiveHandler extends WebSocketHandler.Simple implements
       public void println(String s) {
         print(s + "\n");
       }
-      
+
       @Override
       public void print(Object obj) {
         print(obj.toString());
       }
-      
+
       @Override
       public void println(Object x) {
         println(x.toString());
       }
-      
+
       @Override
       public void print(int i) {
         print(Integer.toString(i));
@@ -415,7 +414,7 @@ public class EgressInteractiveHandler extends WebSocketHandler.Simple implements
       public void println(int i) {
         println(Integer.toString(i));
       }
-      
+
       @Override
       public void flush() {
         if (null != this.writer) {
@@ -423,30 +422,30 @@ public class EgressInteractiveHandler extends WebSocketHandler.Simple implements
         }
       }
     }
-    
+
     @Override
-    public void run() {      
+    public void run() {
       try {
         BufferedReader in = new BufferedReader(new InputStreamReader(this.in));
         PrintWriter out = new PrintWriterWrapper(null != this.out ? new PrintWriter(this.out) : null, session);
 
         out.print(getBanner());
-        
+
         this.stack = new MemoryWarpScriptStack(this.rel.storeClient, this.rel.directoryClient);
         this.stack.setAttribute(WarpScriptStack.ATTRIBUTE_NAME, "[EgressInteractiveHandler " + Thread.currentThread().getName() + "]");
 
         WarpConfig.setThreadProperty(WarpConfig.THREAD_PROPERTY_SESSION, UUID.randomUUID().toString());
-        
+
         //
         // Store PrintWriter
         //
-        
+
         stack.setAttribute(WarpScriptStack.ATTRIBUTE_INTERACTIVE_WRITER, out);
-        
+
         String uuid = UUID.randomUUID().toString();
-        
+
         StackContext context = this.rel.bootstrapManager.getBootstrapContext();
-        
+
         try {
           if (null != context) {
             stack.push(context);
@@ -465,29 +464,29 @@ public class EgressInteractiveHandler extends WebSocketHandler.Simple implements
           if (null != this.socket) {
             this.socket.close();
           }
-          
+
           if (null != this.session) {
             this.session.disconnect();
           }
           return;
         }
-                
+
 
         List<Long> times = new ArrayList<Long>(1);
-        
+
         long seqno = 0;
-        
+
         while(true) {
-          
+
           // Output prompt
-          
+
           out.print(getPrompt());
           out.flush();
-          
+
           String line = in.readLine();
-          
+
           seqno++;
-                    
+
           if (null == line) {
             if (null != this.socket) {
               this.socket.close();
@@ -499,22 +498,22 @@ public class EgressInteractiveHandler extends WebSocketHandler.Simple implements
           }
 
           Throwable t = null;
-          
+
           long nano = System.nanoTime();
           long time = 0L;
-          
+
           try {
             stack.exec(line);
-            
+
             time = System.nanoTime() - nano;
-            
+
             if (stack.depth() > 0 && null != stack.getAttribute(WarpScriptStack.ATTRIBUTE_INTERACTIVE_ECHO)) {
               WarpScriptStackFunction npeek = (WarpScriptStackFunction) WarpScriptLib.getFunction("NPEEK");
               stack.push(stack.getAttribute(WarpScriptStack.ATTRIBUTE_INTERACTIVE_ECHO));
               out.println(" ");
               npeek.apply(stack);
               out.println(" ");
-            }            
+            }
           } catch (WarpScriptStopException ese) {
             continue;
           } catch (Throwable te) {
@@ -524,34 +523,30 @@ public class EgressInteractiveHandler extends WebSocketHandler.Simple implements
           } finally {
             times.clear();
             times.add(System.nanoTime() - nano);
-            
+
             LoggingEvent event = LogUtil.setLoggingEventAttribute(null, LogUtil.WARPSCRIPT_SCRIPT, line);
             event = LogUtil.setLoggingEventAttribute(event, LogUtil.WARPSCRIPT_TIMES, times);
             event = LogUtil.setLoggingEventAttribute(event, LogUtil.WARPSCRIPT_UUID, uuid);
-            event = LogUtil.setLoggingEventAttribute(event, LogUtil.WARPSCRIPT_SEQNO, seqno);            
-            
-            if (stack.isAuthenticated()) {
-              event = LogUtil.setLoggingEventAttribute(event, WarpScriptStack.ATTRIBUTE_TOKEN, stack.getAttribute(WarpScriptStack.ATTRIBUTE_TOKEN).toString());        
-            }
-            
+            event = LogUtil.setLoggingEventAttribute(event, LogUtil.WARPSCRIPT_SEQNO, seqno);
+
             if (null != t) {
               event = LogUtil.setLoggingEventStackTrace(event, LogUtil.STACK_TRACE, t);
             }
-            
+
             String msg = LogUtil.serializeLoggingEvent(this.rel.keyStore, event);
-            
+
             if (null != t) {
               EVENTLOG.error(msg);
             } else {
               EVENTLOG.info(msg);
             }
-            
+
             if (Boolean.TRUE.equals(stack.getAttribute(WarpScriptStack.ATTRIBUTE_INTERACTIVE_TIME))) {
               out.print("// TIME ");
               out.println(time + " ns");
             }
           }
-        }        
+        }
       } catch (IOException ioe) {
         return;
       } finally {
@@ -565,7 +560,7 @@ public class EgressInteractiveHandler extends WebSocketHandler.Simple implements
           if (null != this.session) {
             this.session.disconnect();
           }
-        } catch (IOException ioe) {          
+        } catch (IOException ioe) {
         }
       }
     }

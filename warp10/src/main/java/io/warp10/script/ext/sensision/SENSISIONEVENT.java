@@ -38,7 +38,7 @@ public class SENSISIONEVENT extends NamedWarpScriptFunction implements WarpScrip
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
 
-    if (SensisionWarpScriptExtension.useCapability() && null == Capabilities.get(stack, SensisionWarpScriptExtension.WRITE_CAPABILITY)) {
+    if (null == Capabilities.get(stack, SensisionWarpScriptExtension.WRITE_CAPABILITY)) {
       throw new WarpScriptException(getName() + " missing capability '" + SensisionWarpScriptExtension.WRITE_CAPABILITY +"'");
     }
 

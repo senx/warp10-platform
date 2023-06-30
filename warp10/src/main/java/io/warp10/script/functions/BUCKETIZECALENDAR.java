@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2022  SenX S.A.S.
+//   Copyright 2020-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -131,7 +131,7 @@ public class BUCKETIZECALENDAR extends NamedWarpScriptFunction implements WarpSc
 
     long maxbuckets = (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_MAX_BUCKETS);
     if (bucketcount > maxbuckets) {
-      throw new WarpScriptException(getName() + " error: bucket count (" + bucketcount + ") would exceed maximum value of " + maxbuckets);
+      throw new WarpScriptException(getName() + " error: bucket count (" + bucketcount + ") would exceed maximum value of " + maxbuckets + ". Consider raising the limit or using capabilities.");
     }
 
     //
@@ -178,35 +178,37 @@ public class BUCKETIZECALENDAR extends NamedWarpScriptFunction implements WarpSc
     }
 
     //
-    // Compute bucketindex of lastbucket and compute bucketoffset
+    // Compute lastbucketindex and compute bucketoffset
     //
 
     long flag = 0; // always equal to epoch modulo period
-    long bucketoffset;
+    long bucketoffset = 0;
     long lastbucketIndex;
 
     //
-    // Starting from Epoch, we make a hint and land the flag close to lastbucket
+    // We suppose for now that bucketoffset is zero, and try to land flag as the first tick that is not in the last bucket
+    // Then, we will obtain bucketoffset as the difference between flag - 1 and lastbucket
     //
 
-    long lastbucketIndexHint = lastbucket / averageSpan;
+    // starting from Epoch, we make a hint and land the flag close to lastbucket
+    long lastbucketIndexHint = lastbucket / averageSpan; // this is also a hint of the number of entire periods since Epoch
     if (lastbucket > 0) {
-      flag = addNonNegativePeriod(flag, bucketperiod, dtz, lastbucketIndexHint + 1);
+      flag = addNonNegativePeriod(0, bucketperiod, DateTimeZone.UTC, lastbucketIndexHint + 1); // if all periods had same span, flag would already be correct
       lastbucketIndex = lastbucketIndexHint;
 
     } else {
-      flag = addNonNegativePeriod(flag, bucketperiod, dtz, lastbucketIndexHint);
+      flag = addNonNegativePeriod(0, bucketperiod, DateTimeZone.UTC, lastbucketIndexHint); // lastbucketIndexHint is negative
       lastbucketIndex = lastbucketIndexHint - 1;
     }
 
     //
-    // We move the flag left and right on the time axis to make sure lastbucket is its leftmost bucketend
+    // If we landed too far, we try to get closer by using another hint on the number of steps left
     //
 
     while (flag > lastbucket) {
       long N = - ((flag - lastbucket) / averageSpan - 1);
       if (N < -1) {
-        flag = addNonNegativePeriod(flag, bucketperiod, dtz, N);
+        flag = addNonNegativePeriod(0, bucketperiod, DateTimeZone.UTC,lastbucketIndex + N + 1);
         lastbucketIndex = lastbucketIndex + N;
       } else {
         break;
@@ -216,20 +218,24 @@ public class BUCKETIZECALENDAR extends NamedWarpScriptFunction implements WarpSc
     while (flag <= lastbucket) {
       long N = (lastbucket - flag) / averageSpan - 1;
       if (N > 1) {
-        flag = addNonNegativePeriod(flag, bucketperiod, dtz, N);
+        flag = addNonNegativePeriod(0, bucketperiod, DateTimeZone.UTC, lastbucketIndex + N + 1);
         lastbucketIndex = lastbucketIndex + N;
       } else {
         break;
       }
     }
 
+    //
+    // We close up step by step
+    //
+
     while (flag > lastbucket) {
-      flag = addNonNegativePeriod(flag, bucketperiod, dtz, -1);
+      flag = addNonNegativePeriod(0, bucketperiod, DateTimeZone.UTC, lastbucketIndex);
       lastbucketIndex--;
     }
 
     while (flag <= lastbucket) {
-      flag = addNonNegativePeriod(flag, bucketperiod, dtz, 1);
+      flag = addNonNegativePeriod(0, bucketperiod, DateTimeZone.UTC, lastbucketIndex + 2);
       lastbucketIndex++;
     }
 
@@ -335,7 +341,7 @@ public class BUCKETIZECALENDAR extends NamedWarpScriptFunction implements WarpSc
 
     long lastTick = GTSHelper.lasttick(gts);
     long firstTick = GTSHelper.firsttick(gts);
-    int hint = Math.min(gts.size(), (int) (1.05 * (lastTick - firstTick) / addNonNegativePeriod(0, bucketperiod, dtz, 1)));
+    int hint = Math.min(gts.size(), (int) (1.05 * (lastTick - firstTick) / addNonNegativePeriod(0, bucketperiod, DateTimeZone.UTC, 1)));
 
     GeoTimeSerie durationBucketized = gts.cloneEmpty(hint);
 
@@ -383,8 +389,7 @@ public class BUCKETIZECALENDAR extends NamedWarpScriptFunction implements WarpSc
 
       // update bucketstart and bucketindex
       while (tick < bucketstart) {
-        bucketstart = addNonNegativePeriod(bucketstart, bucketperiod, dtz, -1);
-        bucketindex--;
+        bucketstart = addNonNegativePeriod(lastbucket, bucketperiod, dtz, --bucketindex - lastbucketIndex - 1) + 1;
       }
 
       //
@@ -396,7 +401,7 @@ public class BUCKETIZECALENDAR extends NamedWarpScriptFunction implements WarpSc
       }
 
       if (lastbucketIndex - bucketindex + 1 > maxbuckets) {
-        throw new WarpScriptException("Bucket count (" + (lastbucketIndex - bucketindex + 1) + ") is exceeding maximum value of " + maxbuckets);
+        throw new WarpScriptException("Bucket count (" + (lastbucketIndex - bucketindex + 1) + ") is exceeding maximum value of " + maxbuckets + ". Consider raising the limit or using capabilities.");
       }
 
       //

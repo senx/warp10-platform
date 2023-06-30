@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -32,22 +32,6 @@ import java.nio.ByteOrder;
  * @see <a href="https://github.com/nahi/siphash-java-inline">https://github.com/nahi/siphash-java-inline</a>
  */
 public class SipHashInline {
-
-  private static final sun.misc.Unsafe UNSAFE;
-
-  static {
-    sun.misc.Unsafe unsafe = null;
-    try {
-      java.lang.reflect.Field field = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
-      field.setAccessible(true);
-      unsafe = (sun.misc.Unsafe) field.get(null);
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
-    UNSAFE = unsafe;
-  }
-
-  private static final long base = UNSAFE.arrayBaseOffset(new byte[0].getClass());
 
   /**
    * Hash 24 long.
@@ -130,22 +114,11 @@ public class SipHashInline {
     // processing 8 bytes blocks in data
     while (i < last) {
       // pack a block to long, as LE 8 bytes
-      /*
-      m = (data[!reversed ? offset + i++ : offset + (len - 1) - i++] & 0xffL)
-          | (data[!reversed ? offset + i++ : offset + (len - 1) - i++] & 0xffL) << 8
-          | (data[!reversed ? offset + i++ : offset + (len - 1) - i++] & 0xffL) << 16
-          | (data[!reversed ? offset + i++ : offset + (len - 1) - i++] & 0xffL) << 24
-          | (data[!reversed ? offset + i++ : offset + (len - 1) - i++] & 0xffL) << 32
-          | (data[!reversed ? offset + i++ : offset + (len - 1) - i++] & 0xffL) << 40
-          | (data[!reversed ? offset + i++ : offset + (len - 1) - i++] & 0xffL) << 48
-          | (data[!reversed ? offset + i++ : offset + (len - 1) - i++] & 0xffL) << 56;
-      */
 
       if (!reversed) {
-        m = UNSAFE.getLong(data, base + offset + i);
-        //m = Long.reverseBytes(m);
+        m = getLong(data, offset + i);
       } else {
-        m = UNSAFE.getLong(data, base + offset + len - 1 - (i + 7));
+        m = getLong(data, offset + len - 1 - (i + 7));
         m = Long.reverseBytes(m);
       }
 
@@ -380,26 +353,8 @@ public class SipHashInline {
 
     if (last > 0) {
       while (idx < len8) {
-        /*
-        m = (data[offset + idx] & 0xffL);
-        idx++;
-        m |= (data[offset + idx] & 0xffL) << 8;
-        idx++;
-        m |= (data[offset + idx] & 0xffL) << 16;
-        idx++;
-        m |= (data[offset + idx] & 0xffL) << 24;
-        idx++;
-        m |= (data[offset + idx] & 0xffL) << 32;
-        idx++;
-        m |= (data[offset + idx] & 0xffL) << 40;
-        idx++;
-        m |= (data[offset + idx] & 0xffL) << 48;
-        idx++;
-        m |= (data[offset + idx] & 0xffL) << 56;
-        idx++;        
-        */
+        m = getLong(data, offset + idx);
 
-        m = UNSAFE.getLong(data, base + offset + idx);
         idx += 8;
 
         // MSGROUND {
@@ -482,7 +437,7 @@ public class SipHashInline {
         v2 = (v2 << 32) | v2 >>> 32;
         // }
         v0 ^= m;
-        // }      
+        // }
       }
 
       {
@@ -591,26 +546,7 @@ public class SipHashInline {
       }
 
       while (idx < last) {
-        /*
-        m = (data[offset2 - idx] & 0xffL);
-        idx++;
-        m |= (data[offset2 - idx] & 0xffL) << 8;
-        idx++;
-        m |= (data[offset2 - idx] & 0xffL) << 16;
-        idx++;
-        m |= (data[offset2 - idx] & 0xffL) << 24;
-        idx++;
-        m |= (data[offset2 - idx] & 0xffL) << 32;
-        idx++;
-        m |= (data[offset2 - idx] & 0xffL) << 40;
-        idx++;
-        m |= (data[offset2 - idx] & 0xffL) << 48;
-        idx++;
-        m |= (data[offset2 - idx] & 0xffL) << 56;
-        idx++;        
-        */
-
-        m = Long.reverseBytes(UNSAFE.getLong(data, base + offset2 - (idx + 7)));
+        m = Long.reverseBytes(getLong(data, offset2 - (idx + 7)));
         idx += 8;
 
         // MSGROUND {
@@ -885,5 +821,27 @@ public class SipHashInline {
     sipkey[1] = bb.getLong();
 
     return sipkey;
+  }
+
+  private static long getLong(byte[] data, int offset) {
+    long l = 0L;
+
+    l = data[offset + 7] & 0xFFL;
+    l <<= 8;
+    l |= data[offset + 6] & 0xFFL;
+    l <<= 8;
+    l |= data[offset + 5] & 0xFFL;
+    l <<= 8;
+    l |= data[offset + 4] & 0xFFL;
+    l <<= 8;
+    l |= data[offset + 3] & 0xFFL;
+    l <<= 8;
+    l |= data[offset + 2] & 0xFFL;
+    l <<= 8;
+    l |= data[offset + 1] & 0xFFL;
+    l <<= 8;
+    l |= data[offset] & 0xFFL;
+
+    return l;
   }
 }

@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -20,193 +20,143 @@
 //
 /////////////////////////////////////////////////////////////////////////////////////////
 
-//
-// Should the egress exec handler expose its store/directory clients?
-//
-egress.clients.expose = false
+###
+### M A N D A T O R Y   C O N F I G U R A T I O N
+###
 
-//
-// Comma separated list of Egress related HBase configuration keys. Each key will
-// be set in the HBase configuration by assigning the value defined in the Warp 10 config
-// under the key 'egress.<HBASE_CONFIGURATION_KEY>'. Each listed HBase configuration key
-// MUST have a value defined in the 'egress.' prefixed configuration parameter.
-//
-#egress.hbase.config = 
+##
+## Path to the FoundationDB cluster file. This file needs to be readable AND writable by the
+## user running the Egress instance.
+##
+egress.fdb.clusterfile = ${fdb.clusterfile}
 
-//
-// Port onto which the egress server should listen
-//
-egress.port = 8881
-
-//
-// TCP Backlog applied to the egress server listener
-//
-#egress.tcp.backlog =
-
-//
-// Host onto which the egress server should listen
-//
+##
+## MANDATORY - Host onto which the egress server should listen
+##
 egress.host = 127.0.0.1
 
-//
-// Number of threads in Jetty's Thread Pool - defaults to 200
-//
-#egress.jetty.threadpool = 200
-  
-//
-// Maximum size of Jetty ThreadPool queue size (unbounded by default)
-//
-#egress.jetty.maxqueuesize = 
+##
+## MANDATORY - Port onto which the egress server should listen
+##
+egress.port = 8881
 
-//
-// Number of acceptors
-//
+##
+## MANDATORY - Number of acceptors
+##
 egress.acceptors = 2
 
-//
-// Number of selectors
-//
+##
+## MANDATORY - Number of selectors
+##
 egress.selectors = 8
 
-//
-// Idle timeout
-//
+##
+## MANDATORY - Idle timeout (in ms)
+##
 egress.idle.timeout = 300000
 
-//
-// ZooKeeper server list
-//
-egress.zk.quorum = 127.0.0.1:2181
+##
+## MANDATORY - ZooKeeper server list, to discover Directory services
+##
+egress.zk.quorum = ${zk.quorum}
 
-//
-// 128/192/256 bits AES key for encrypting data in HBase.
-// Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
-//
-#egress.hbase.data.aes = hex:hhhhhh...
-
-//
-// Columns family under which data should be stored
-//
-egress.hbase.data.colfam = v
-
-//
-// HBase table where data should be stored
-//
-egress.hbase.data.table = continuum
-
-//
-// ZooKeeper Quorum for locating HBase
-//
-egress.hbase.data.zkconnect = 127.0.0.1:2181
-
-//
-// Parent znode under which HBase znodes will be created
-//
-egress.hbase.data.znode = /zk/hbase/localhost
-
-//
-// Threshold in number of GTS above which block caching will be disabled
-//
-egress.hbase.data.blockcache.gts.threshold = 1024
-
-//
-// Number of GTS to batch when retrieving datapoints (to mitigate responseTooSlow errors)
-//
+##
+## Number of GTS to batch when retrieving datapoints
+##
 egress.fetch.batchsize = 10000
 
-//
-// Boolean indicating whether or not to use the HBase filter when retrieving rows.
-//
-egress.hbase.filter = true
+###
+### O P T I O N A L   C O N F I G U R A T I O N
+###
+### Values shown are the default when they exist
+###
 
-//
-// 128/192/256 bits AES key for encrypting GTSSplit instances.
-// Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
-//
+##
+## Optional FoundationDB tenant to use.
+## The tenant MUST exist.
+##
+#egress.fdb.tenant =
+
+##
+## Size of FoundationDB Database shared pool used to retrieve data, defaults to 1
+## Note that the Database objects in this pool are not accessed in an exclusive way, so the
+## poolsize does not directly control the level of concurrency for accesses to FoundationDB
+##
+#egress.fdb.poolsize = 1
+
+##
+## Number of threads to use for scheduling parallel scanners. Use 0 to disable parallel scanners
+##
+#egress.fdb.parallelscanners.poolsize = 0
+
+##
+## Maximum number of parallel scanners per fetch request. Use 0 to disable parallel scanners.
+##
+#egress.fdb.parallelscanners.maxinflightperrequest = 0
+
+##
+## Minimum number of GTS to assign to a parallel scanner. If the number of GTS to fetch is below this limit, no
+## parallel scanners will be spawned. Defaults to 4.
+##
+#egress.fdb.parallelscanners.min.gts.perscanner = 4
+ 
+##
+## Maximum number of parallel scanners to use when fetching datapoints for a batch of GTS (see EGRESS_FETCH_BATCHSIZE).
+## Defaults to 16.
+##
+#egress.fdb.parallelscanners.max.parallel.scanners = 16
+
+##
+## Number of threads in Jetty's Thread Pool - defaults to 200
+##
+#egress.jetty.threadpool = 200
+  
+##
+## Maximum size of Jetty ThreadPool queue size (unbounded by default)
+##
+#egress.jetty.maxqueuesize = 
+
+##
+## TCP Backlog applied to the egress server listener
+##
+#egress.tcp.backlog = 0
+
+##
+## 128/192/256 bits AES key for encrypting data in FoundationDB.
+## Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
+##
+#egress.fdb.data.aes = ${fdb.data.aes}
+
+##
+## Should the egress exec handler expose its store/directory clients?
+##
+#egress.clients.expose = false
+
+##
+## 128/192/256 bits AES key for encrypting GTSSplit instances.
+## Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
+##
 #egress.fetcher.aes = hex:hhhhhh...
 
-//
-// Maximum age of a valid GTSSplit (in ms)
-//
+##
+## Maximum age of a valid GTSSplit (in ms)
+##
 #egress.fetcher.maxsplitage = 
 
-//
-// Custom value of 'hbase.client.ipc.pool.size' for the Egress HBase pool
-//
-#egress.hbase.client.ipc.pool.size = 
-
-//
-// Custom scanner lease period
-//
-#egress.hbase.client.scanner.timeout.period = 
-
-//
-// GTS count threshold above which the filter will be used
-// Defaults to 16.
-//
-#egress.hbase.filter.threshold = 
-
-//
-// Custom value for RPC timeout
-//
-#egress.hbase.rpc.timeout = 
-
-//
-// ZooKeeper port for HBase client
-//
-#egress.hbase.zookeeper.property.clientPort = 
-
-//
-// Custom value of 'hbase.client.max.perserver.tasks', defaults to 2
-//
-#egress.hbase.client.max.perserver.tasks =
-
-//
-// Custom value of 'hbase.client.max.perregion.tasks', defaults to 1
-//
-#egress.hbase.client.max.perregion.tasks =
-  
-//
-// Custom value of 'hbase.client.max.total.tasks', defaults to 100
-//
-#egress.hbase.client.max.total.tasks =
-   
-//
-// Number of threads to use for scheduling parallel scanners. Use 0 to disable parallel scanners
-//
-#egress.hbase.parallelscanners.poolsize =
-
-//
-// Maximum number of parallel scanners per fetch request. Use 0 to disable parallel scanners.
-//
-#egress.hbase.parallelscanners.maxinflightperrequest =
-
-//
-// Minimum number of GTS to assign to a parallel scanner. If the number of GTS to fetch is below this limit, no
-// parallel scanners will be spawned. Defaults to 4.
-//
-#egress.hbase.parallelscanners.min.gts.perscanner =
-  
-//
-// Maximum number of parallel scanners to use when fetching datapoints for a batch of GTS (see EGRESS_FETCH_BATCHSIZE).
-// Defaults to 16. 
-//
-#egress.hbase.parallelscanners.max.parallel.scanners =
-
-//
-// Maximum execution time of requests to the /exec endpoint (in ms).
-// This value may be overriden by specifying a token with the capability specified in
-// warpscript.timebox.maxtime.capname set to a limit in ms and passing this token in
-// the X-Warp10-Capabilities header.
-// By default the maximum execution time is not bounded.
-//
+##
+## Maximum execution time of requests to the /exec endpoint (in ms).
+## This value may be overriden by specifying a token with the capability specified in
+## warpscript.timebox.maxtime.capname set to a limit in ms and passing this token in
+## the X-Warp10-Capabilities header.
+## By default the maximum execution time is not bounded.
+##
 #egress.maxtime = 1000
 
-//
-// Maximum validity of runner nonces (in ms). Runner scripts are submitted to the /exec endpoint
-// with the header X-Warp10-Runner-Nonce set to a nonce containing the time of execution in ns since
-// the epoch. If the nonce is correct and less than this many ms in the past, the time boxing is
-// waived for the execution.
-// The default value if 1000 ms
-//
+##
+## Maximum validity of runner nonces (in ms). Runner scripts are submitted to the /exec endpoint
+## with the header X-Warp10-Runner-Nonce set to a nonce containing the time of execution in ns since
+## the epoch. If the nonce is correct and less than this many ms in the past, the time boxing is
+## waived for the execution.
+## The default value if 1000 ms
+##
 #egress.runner.nonce.validity = 1000

@@ -1,6 +1,6 @@
 #!/usr/bin/env groovy
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ pipeline {
         buildDiscarder(logRotator(numToKeepStr: '3'))
     }
     environment {
-        THRIFT_HOME = '/opt/thrift-0.11.0'
+        THRIFT_HOME = '/opt/thrift-0.17.0'
         GPG_KEY_NAME = "${params.gpgKeyName}"
         NEXUS_HOST = "${params.nexusHost}"
         NEXUS_CREDS = credentials('nexus')

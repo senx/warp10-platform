@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,11 +16,26 @@
 
 package io.warp10.continuum;
 
+import java.util.Map.Entry;
+import java.util.Properties;
+
 public class Configuration {
 
-  public static final String OSS_MASTER_KEY = "oss.master.key";
+  //
+  // FoundationDB
+  //
 
-  public static final String WARP10_REPORT_SECRET = "warp10.report.secret";
+  /**
+   * API Version to use, defaults to 710
+   */
+  public static final String FDB_API_VERSION = "fdb.api.version";
+
+  /**
+   * If set to true then tokens MUST contain a tenant prefix and Store and Egress CANNOT specify their own tenant.
+   */
+  public static final String FDB_USE_TENANT_PREFIX = "fdb.use.tenant.prefix";
+
+  public static final String OSS_MASTER_KEY = "oss.master.key";
 
   public static final String WARP_COMPONENTS = "warp.components";
 
@@ -28,6 +43,23 @@ public class Configuration {
    * Comma separated list of attributes which will invalidate the tokens they appear in
    */
   public static final String WARP_TOKEN_BANNED_ATTRIBUTES = "warp.token.banned.attributes";
+
+  /**
+   * WarpScript map defining the default attributes to allocate to read tokens. Existing attributes will not
+   * be overriden if they exist
+   */
+  public static final String WARP_TOKEN_READ_ATTRIBUTES_DEFAULT = "warp.token.read.attributes.default";
+
+  /**
+   * WarpScript map defining the default attributes to allocate to write tokens. Existing attributes will not
+   * be overriden if they exist
+   */
+  public static final String WARP_TOKEN_WRITE_ATTRIBUTES_DEFAULT = "warp.token.write.attributes.default";
+
+  /**
+   * Name of macro used to filter tokens
+   */
+  public static final String WARP_TOKEN_FILTER_MACRO = "warp.token.filter.macro";
 
   public static final String WARP_TOKEN_FILE = "warp.token.file";
 
@@ -40,6 +72,18 @@ public class Configuration {
   public static final String WARP_AES_METASETS = "warp.aes.metasets";
   public static final String WARP_AES_LOGGING = "warp.aes.logging";
   public static final String WARP_DEFAULT_AES_LOGGING = "hex:3cf5cee9eadddba796f2cce0762f308ad9df36f4883841e167dab2889bcf215b";
+
+  /**
+   * Set to true to ignore inconsistencies detected when loading GTS.
+   */
+  public static final String WARP_IGNORE_ID_INCONSISTENCIES = "warp.ignore.id.inconsistencies";
+
+  /**
+   * Some libraries (like Processing), expect the Java version to be 1.y.z, as this has changed
+   * with JDK9+, those libraries may fail to parse the java version. This configuration key
+   * can be used to force the "java.version" property to the given value.
+   */
+  public static final String WARP_JAVA_VERSION = "warp.java.version";
 
   /**
    * Set to 'true' to only run the analytics engine, i.e. not backend database
@@ -98,11 +142,6 @@ public class Configuration {
   public static final String MAX_ENCODER_SIZE = "max.encoder.size";
 
   /**
-   * How often (in ms) should we refetch the region start/end keys
-   */
-  public static final String WARP_HBASE_REGIONKEYS_UPDATEPERIOD = "warp.hbase.regionkeys.updateperiod";
-
-  /**
    * WarpScript code used to resolve font URLs, can be a macro call or any other valid WarpScript excerpt
    * The code is passed the URL to check and should return the updated URL. NOOP will accept all URLs.
    */
@@ -115,14 +154,9 @@ public class Configuration {
 
   /**
    * Maximum time to allocate for timeboxed executions
+   * It can be overridden with timebox.maxtime capability
    */
   public static final String CONFIG_WARPSCRIPT_TIMEBOX_MAXTIME = "warpscript.timebox.maxtime";
-
-  /**
-   * Capability name used for extending timebox maxtime, if set. The associated value is expressed as a number
-   * of milliseconds or an ISO8601 duration (PT....).
-   */
-  public static final String CONFIG_WARPSCRIPT_TIMEBOX_MAXTIME_CAPNAME = "warpscript.timebox.maxtime.capname";
 
   /**
    * Comma separated list of WarpScriptExtension classes to instantiate to modify
@@ -134,6 +168,11 @@ public class Configuration {
    * Prefix for properties which define WarpScript extensions
    */
   public static final String CONFIG_WARPSCRIPT_EXTENSION_PREFIX = "warpscript.extension.";
+
+  /**
+   * Optional WarpScript map with default capabilities
+   */
+  public static final String CONFIG_WARP_CAPABILITIES_DEFAULT = "warp.capabilities.default";
 
   /**
    * Prefix for properties which define WarpScript extension namespaces.
@@ -169,7 +208,6 @@ public class Configuration {
   public static final String WARPSCRIPT_MAX_LOOP_DURATION = "warpscript.maxloop";
   public static final String WARPSCRIPT_MAX_RECURSION = "warpscript.maxrecursion";
   public static final String WARPSCRIPT_MAX_SYMBOLS = "warpscript.maxsymbols";
-  public static final String WARPSCRIPT_MAX_WEBCALLS = "warpscript.maxwebcalls";
   public static final String WARPSCRIPT_MAX_PIXELS = "warpscript.maxpixels";
   public static final String WARPSCRIPT_MAX_JSON = "warpscript.maxjson";
 
@@ -195,71 +233,6 @@ public class Configuration {
    * Flag to enable REXEC
    */
   public static final String WARPSCRIPT_REXEC_ENABLE = "warpscript.rexec.enable";
-
-  public static final String WEBCALL_USER_AGENT = "webcall.user.agent";
-
-  /**
-   * List of patterns to include/exclude for hosts in WebCall calls
-   *
-   * Typical value is .*,!^127.0.0.1$,!^localhost$,!^192.168.*,!^10.*,!^172.(16|17|18|19|20|21|22|23|24|25|26|27|28|29|39|31)\..*
-   *
-   */
-  public static final String WEBCALL_HOST_PATTERNS = "webcall.host.patterns";
-
-  /**
-   * ZK Quorum to use for reaching the Kafka cluster to consume WebCall requests
-   */
-  public static final String WEBCALL_KAFKA_ZKCONNECT = "webcall.kafka.zkconnect";
-
-  /**
-   * List of Kafka brokers to use for sending WebCall requests
-   */
-  public static final String WEBCALL_KAFKA_BROKERLIST = "webcall.kafka.brokerlist";
-
-  /**
-   * Topic to use for WebCall requests
-   */
-  public static final String WEBCALL_KAFKA_TOPIC = "webcall.kafka.topic";
-
-  /**
-   * AES key to use for encrypting WebCall requests
-   */
-  public static final String WEBCALL_KAFKA_AES = "webcall.kafka.aes";
-
-  /**
-   * SipHash key to use for computing WebCall requests HMACs
-   */
-  public static final String WEBCALL_KAFKA_MAC = "webcall.kafka.mac";
-
-  /**
-   * Kafka client id to use when consuming WebCall requests
-   */
-  public static final String WEBCALL_KAFKA_CONSUMER_CLIENTID = "webcall.kafka.consumer.clientid";
-
-  /**
-   * Name of partition assignment strategy to use
-   */
-  public static final String WEBCALL_KAFKA_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY = "webcall.kafka.consumer.partition.assignment.strategy";
-
-  /**
-   * Kafka client id to use when producing WebCall requests
-   */
-  public static final String WEBCALL_KAFKA_PRODUCER_CLIENTID = "webcall.kafka.producer.clientid";
-
-  /**
-   * How many threads to spawn
-   */
-  public static final String WEBCALL_NTHREADS = "webcall.nthreads";
-
-  /**
-   * Groupid to use when consuming Kafka
-   */
-  public static final String WEBCALL_KAFKA_GROUPID = "webcall.kafka.groupid";
-
-  /**
-   * How often to commit the Kafka offsets
-   */
-  public static final String WEBCALL_KAFKA_COMMITPERIOD = "webcall.kafka.commitperiod";
 
   /**
    * Number of continuum time units per millisecond
@@ -346,12 +319,6 @@ public class Configuration {
   public static final String CONFIG_FETCH_PSK = "fetch.psk";
 
   /**
-   * Comma separated list of Directory related HBase configuration keys to extract from the Warp 10 configuration.
-   * The listed keys will be extracted from 'directory.' prefixed configuration keys.
-   */
-  public static final String DIRECTORY_HBASE_CONFIG = "directory.hbase.config";
-
-  /**
    * Maximum number of classes for which to report detailed stats in 'stats'
    */
   public static final String DIRECTORY_STATS_CLASS_MAXCARDINALITY = "directory.stats.class.maxcardinality";
@@ -362,24 +329,14 @@ public class Configuration {
   public static final String DIRECTORY_STATS_LABELS_MAXCARDINALITY = "directory.stats.labels.maxcardinality";
 
   /**
-   * Maximum size of Thrift frame for directory service
+   * Comma separated list of Kafka broker host:port for Kafka ('metadata' topic)
    */
-  public static final String DIRECTORY_FRAME_MAXLEN = "directory.frame.maxlen";
+  public static final String DIRECTORY_KAFKA_METADATA_CONSUMER_BOOTSTRAP_SERVERS = "directory.kafka.metadata.consumer.bootstrap.servers";
 
   /**
-   * Maximum number of Metadata to return in find responses
+   * Prefix for Directory Kafka Metadata Consumer configuration keys
    */
-  public static final String DIRECTORY_FIND_MAXRESULTS = "directory.find.maxresults";
-
-  /**
-   * Hard limit on number of find results. After this limit, the find request will fail.
-   */
-  public static final String DIRECTORY_FIND_MAXRESULTS_HARD = "directory.find.maxresults.hard";
-
-  /**
-   * Zookeeper ZK connect string for Kafka ('metadata' topic)
-   */
-  public static final String DIRECTORY_KAFKA_METADATA_ZKCONNECT = "directory.kafka.metadata.zkconnect";
+  public static final String DIRECTORY_KAFKA_METADATA_CONSUMER_CONF_PREFIX = "directory.kafka.metadata.consumer.conf.prefix";
 
   /**
    * Actual 'metadata' topic
@@ -397,9 +354,9 @@ public class Configuration {
   public static final String DIRECTORY_KAFKA_METADATA_AES = "directory.kafka.metadata.aes";
 
   /**
-   * Key to use for encrypting metadata in HBase (128/192/256 bits in hex or OSS reference)
+   * Key to use for encrypting metadata in FoundationDB (128/192/256 bits in hex or OSS reference)
    */
-  public static final String DIRECTORY_HBASE_METADATA_AES = "directory.hbase.metadata.aes";
+  public static final String DIRECTORY_FDB_METADATA_AES = "directory.fdb.metadata.aes";
 
   /**
    * Kafka group id with which to consume the metadata topic
@@ -425,36 +382,6 @@ public class Configuration {
    * Delay between synchronization for offset commit
    */
   public static final String DIRECTORY_KAFKA_METADATA_COMMITPERIOD = "directory.kafka.metadata.commitperiod";
-
-  /**
-   * Maximum byte size we allow the pending Puts list to grow to
-   */
-  public static final String DIRECTORY_HBASE_METADATA_MAXPENDINGPUTSSIZE = "directory.hbase.metadata.pendingputs.size";
-
-  /**
-   * ZooKeeper Quorum for locating HBase
-   */
-  public static final String DIRECTORY_HBASE_METADATA_ZKCONNECT = "directory.hbase.metadata.zkconnect";
-
-  /**
-   * ZooKeeper port for HBase client
-   */
-  public static final String DIRECTORY_HBASE_ZOOKEEPER_PROPERTY_CLIENTPORT = "directory.hbase.zookeeper.property.clientPort";
-
-  /**
-   * HBase table where metadata should be stored
-   */
-  public static final String DIRECTORY_HBASE_METADATA_TABLE = "directory.hbase.metadata.table";
-
-  /**
-   * Columns family under which metadata should be stored
-   */
-  public static final String DIRECTORY_HBASE_METADATA_COLFAM = "directory.hbase.metadata.colfam";
-
-  /**
-   * Parent znode under which HBase znodes will be created
-   */
-  public static final String DIRECTORY_HBASE_METADATA_ZNODE = "directory.hbase.metadata.znode";
 
   /**
    * ZooKeeper server list for registering
@@ -557,17 +484,17 @@ public class Configuration {
   public static final String DIRECTORY_INIT_NTHREADS = "directory.init.nthreads";
 
   /**
-   * Boolean indicating whether or not we should initialized Directory by reading HBase
+   * Boolean indicating whether or not we should initialized Directory by reading FoundationDB
    */
   public static final String DIRECTORY_INIT = "directory.init";
 
   /**
-   * Boolean indicating whether or not we should store in HBase metadata we get from Kafka
+   * Boolean indicating whether or not we should store in FoundationDB metadata we get from Kafka
    */
   public static final String DIRECTORY_STORE = "directory.store";
 
   /**
-   * Boolean indicating whether or not we should do deletions in HBase
+   * Boolean indicating whether or not we should do deletions in FoundationDB
    */
   public static final String DIRECTORY_DELETE = "directory.delete";
 
@@ -587,19 +514,35 @@ public class Configuration {
   public static final String DIRECTORY_PLUGIN_SOURCEATTR = "directory.plugin.sourceattr";
 
   /**
-   * Boolean indicating whether or not we should use the HBase filter when initializing
-   */
-  public static final String DIRECTORY_HBASE_FILTER = "directory.hbase.filter";
-
-  /**
    * Size of metadata cache in number of entries
    */
   public static final String DIRECTORY_METADATA_CACHE_SIZE = "directory.metadata.cache.size";
 
   /**
-   * Activity window (in ms) to consider when deciding to store a Metadata we already know into HBase
+   * Activity window (in ms) to consider when deciding to store a Metadata we already know
    */
   public static final String DIRECTORY_ACTIVITY_WINDOW = "directory.activity.window";
+
+  /**
+   * Path to the FoundationDB cluster file to use for Directory data
+   */
+  public static final String DIRECTORY_FDB_CLUSTERFILE = "directory.fdb.clusterfile";
+
+  /**
+   * Maximum number of retries for FoundationDB transactions
+   */
+  public static final String DIRECTORY_FDB_RETRYLIMIT = "directory.fdb.retrylimit";
+
+  /**
+   * FoundationDB tenant to use for Directory data
+   */
+  public static final String DIRECTORY_FDB_TENANT = "directory.fdb.tenant";
+
+  /**
+   * Maximum size of pending mutations, going above will trigger a FoundationDB transaction commit.
+   * MUST be less than the maximum FoundationDB transaction size limit (10,000,000 bytes)
+   */
+  public static final String DIRECTORY_FDB_METADATA_PENDINGMUTATIONS_MAXSIZE = "directory.fdb.metadata.pendingmutations.maxsize";
 
   //
   // I N G R E S S
@@ -610,20 +553,6 @@ public class Configuration {
    * Class name of ingress plugin to use
    */
   public static final String INGRESS_PLUGIN_CLASS = "ingress.plugin.class";
-
-  /**
-   * Default datapoint cell TTL (in ms) to enforce. If this is not set, then the TTL will be that
-   * of the columns family. A value of -1 disables the use of cell TTLs.
-   * This can be overridden by the '.ttl' WriteToken attribute.
-   */
-  public static final String INGRESS_HBASE_CELLTTL = "ingress.hbase.cellttl";
-
-  /**
-   * Flag indicating whether to use the DataPoint TimeStamp instead of the write timestamp
-   * for the data stored in HBase.
-   * This can be overridden by the '.dpts' WriteToken attribute.
-   */
-  public static final String INGRESS_HBASE_DPTS = "ingress.hbase.dpts";
 
   /**
    * Default maximum age of datapoints pushed to Warp 10, in ms. Any timestamp older than
@@ -788,19 +717,24 @@ public class Configuration {
   public static final String INGRESS_WEBSOCKET_MAXMESSAGESIZE = "ingress.websocket.maxmessagesize";
 
   /**
-   * ZooKeeper server list
+   * Comma separated list of Kafka broker host:port for the metadata kafka cluster
    */
-  public static final String INGRESS_ZK_QUORUM = "ingress.zk.quorum";
+  public static final String INGRESS_KAFKA_METADATA_CONSUMER_BOOTSTRAP_SERVERS = "ingress.kafka.metadata.consumer.bootstrap.servers";
 
   /**
-   * ZK Connect String for the metadata kafka cluster
+   * Prefix for Ingress Kafka Consumer configuration keys
    */
-  public static final String INGRESS_KAFKA_META_ZKCONNECT = "ingress.kafka.metadata.zkconnect";
+  public static final String INGRESS_KAFKA_META_CONSUMER_CONF_PREFIX = "ingress.kafka.metadata.consumer.conf.prefix";
 
   /**
    * Kafka broker list for the 'meta' topic
    */
-  public static final String INGRESS_KAFKA_META_BROKERLIST = "ingress.kafka.metadata.brokerlist";
+  public static final String INGRESS_KAFKA_METADATA_PRODUCER_BOOTSTRAP_SERVERS = "ingress.kafka.metadata.producer.bootstrap.servers";
+
+  /**
+   * Prefix for Ingress Metadata Kafka Producer configuration keys
+   */
+  public static final String INGRESS_KAFKA_META_PRODUCER_CONF_PREFIX = "ingress.kafka.metadata.producer.conf.prefix";
 
   /**
    * Kafka client id for producing on the 'meta' topic
@@ -855,7 +789,12 @@ public class Configuration {
   /**
    * Kafka broker list for the 'data' topic
    */
-  public static final String INGRESS_KAFKA_DATA_BROKERLIST = "ingress.kafka.data.brokerlist";
+  public static final String INGRESS_KAFKA_DATA_PRODUCER_BOOTSTRAP_SERVERS = "ingress.kafka.data.producer.bootstrap.servers";
+
+  /**
+   * Prefix for Ingress Data Kafka Producer configuration keys
+   */
+  public static final String INGRESS_KAFKA_DATA_PRODUCER_CONF_PREFIX = "ingress.kafka.data.producer.conf.prefix";
 
   /**
    * Kafka client id for producing on the 'data' topic
@@ -907,7 +846,12 @@ public class Configuration {
   /**
    * Kafka broker list for the throttling topic
    */
-  public static final String INGRESS_KAFKA_THROTTLING_BROKERLIST = "ingress.kafka.throttling.brokerlist";
+  public static final String INGRESS_KAFKA_THROTTLING_PRODUCER_BOOTSTRAP_SERVERS = "ingress.kafka.throttling.producer.bootstrap.servers";
+
+  /**
+   * Prefix for Ingress Throttling Kafka Producer configuration keys
+   */
+  public static final String INGRESS_KAFKA_THROTTLING_PRODUCER_CONF_PREFIX = "ingress.kafka.throttling.producer.conf.prefix";
 
   /**
    * Optional client id to use when producing messages in the throttling topic
@@ -925,9 +869,14 @@ public class Configuration {
   public static final String INGRESS_KAFKA_THROTTLING_TOPIC = "ingress.kafka.throttling.topic";
 
   /**
-   * ZK connect string for the throttling kafka cluster
+   * Comma separated list of Kafka broker host:port for the throttling kafka cluster
    */
-  public static final String INGRESS_KAFKA_THROTTLING_ZKCONNECT = "ingress.kafka.throttling.zkconnect";
+  public static final String INGRESS_KAFKA_THROTTLING_CONSUMER_BOOTSTRAP_SERVERS = "ingress.kafka.throttling.consumer.bootstrap.servers";
+
+  /**
+   * Prefix for Ingress Throttling Kafka Consumer configuration keys
+   */
+  public static final String INGRESS_KAFKA_THROTTLING_CONSUMER_CONF_PREFIX = "ingress.kafka.throttling.consumer.conf.prefix";
 
   /**
    * Client id to use when consuming the throttling topic
@@ -951,13 +900,22 @@ public class Configuration {
   /////////////////////////////////////////////////////////////////////////////////////////
 
   /**
-   * Comma separated list of Store related HBase configuration keys to extract from the Warp 10 configuration.
-   * The listed keys will be extracted from 'store.' prefixed configuration keys.
+   * Path to the FoundationDB cluster file to use for Store data
    */
-  public static final String STORE_HBASE_CONFIG = "store.hbase.config";
+  public static final String STORE_FDB_CLUSTERFILE = "store.fdb.clusterfile";
 
   /**
-   * Path to the throttling file. This file contains a single line with a double value in [0.0,1.0]
+   * Maximum number of retries for FoundationDB transactions
+   */
+  public static final String STORE_FDB_RETRYLIMIT = "store.fdb.retrylimit";
+
+  /**
+   * FoundationDB tenant to use for Store data
+   */
+  public static final String STORE_FDB_TENANT = "store.fdb.tenant";
+
+  /**
+   * Path to the throttling file. This file contains a single line with a double value representing the number of mutations per second to push to FDB
    */
   public static final String STORE_THROTTLING_FILE = "store.throttling.file";
 
@@ -967,24 +925,29 @@ public class Configuration {
   public static final String STORE_THROTTLING_PERIOD = "store.throttling.period";
 
   /**
-   * How much to wait when the consumption was throttled, in ns (nanoseconds), defaults to 10 ms (milliseconds)
+   * Key for encrypting data in FoundationDB
    */
-  public static final String STORE_THROTTLING_DELAY = "store.throttling.delay";
+  public static final String STORE_FDB_DATA_AES = "store.fdb.data.aes";
 
   /**
-   * Key for encrypting data in HBase
+   * Flag indicating whether or not Store should skip writes. Used solely for benchmarking purposes.
    */
-  public static final String STORE_HBASE_DATA_AES = "store.hbase.data.aes";
+  public static final String STORE_SKIP_WRITE = "store.skip.write";
 
   /**
-   * Zookeeper ZK connect string for Kafka ('data' topic)
+   * Comma separated list of Kafka broker host:port for Kafka ('data' topic)
    */
-  public static final String STORE_KAFKA_DATA_ZKCONNECT = "store.kafka.data.zkconnect";
+  public static final String STORE_KAFKA_DATA_CONSUMER_BOOTSTRAP_SERVERS = "store.kafka.data.consumer.bootstrap.servers";
+
+  /**
+   * Prefix for Store Kafka Consumer configuration keys
+   */
+  public static final String STORE_KAFKA_DATA_CONSUMER_CONF_PREFIX = "store.kafka.data.consumer.conf.prefix";
 
   /**
    * Kafka broker list for the 'data' topic
    */
-  public static final String STORE_KAFKA_DATA_BROKERLIST = "store.kafka.data.brokerlist";
+  public static final String STORE_KAFKA_DATA_PRODUCER_BOOTSTRAP_SERVERS = "store.kafka.data.producer.bootstrap.servers";
 
   /**
    * Kafka client.id for producing on the 'data' topic
@@ -1039,85 +1002,17 @@ public class Configuration {
   /**
    * Maximum size we allow the Puts list to grow to
    */
-  public static final String STORE_HBASE_DATA_MAXPENDINGPUTSSIZE = "store.hbase.data.maxpendingputssize";
+  public static final String STORE_FDB_DATA_PENDINGMUTATIONS_MAXSIZE = "store.fdb.data.pendingmutations.maxsize";
 
   /**
-   * How many threads to spawn for consuming
+   * How many threads (StoreConsumer) to spawn for consuming and flushing to FoundationDB
    */
   public static final String STORE_NTHREADS = "store.nthreads";
 
   /**
-   * Number of threads for consuming Kafka in each one of the 'store.nthreads' hbase threads. Defaults to 1
+   * Number of threads for consuming Kafka in each one of the 'store.nthreads' StoreConsumer threads. Defaults to 1
    */
   public static final String STORE_NTHREADS_KAFKA = "store.nthreads.kafka";
-
-  /**
-   * Number of threads in the pool used to process deletes. One such pool is created for each of 'store.nthreads'. Defaults to
-   * 0 meaning no pool is used.
-   */
-  public static final String STORE_NTHREADS_DELETE = "store.nthreads.delete";
-
-  /**
-   * ZooKeeper connect string for HBase
-   */
-  public static final String STORE_HBASE_DATA_ZKCONNECT = "store.hbase.data.zkconnect";
-
-  /**
-   * ZooKeeper port for HBase client
-   */
-  public static final String STORE_HBASE_ZOOKEEPER_PROPERTY_CLIENTPORT = "store.hbase.zookeeper.property.clientPort";
-
-  /**
-   * HBase table where data should be stored
-   */
-  public static final String STORE_HBASE_DATA_TABLE = "store.hbase.data.table";
-
-  /**
-   * Columns family under which data should be stored
-   */
-  public static final String STORE_HBASE_DATA_COLFAM = "store.hbase.data.colfam";
-
-  /**
-   * Parent znode under which HBase znodes will be created
-   */
-  public static final String STORE_HBASE_DATA_ZNODE = "store.hbase.data.znode";
-
-  /**
-   * Custom value of 'hbase.hconnection.threads.max' for the Store HBase pool
-   */
-  public static final String STORE_HBASE_HCONNECTION_THREADS_MAX = "store.hbase.hconnection.threads.max";
-
-  /**
-   * Custom value of 'hbase.client.ipc.pool.size' for the Store HBase pool
-   */
-  public static final String STORE_HBASE_CLIENT_IPC_POOL_SIZE = "store.hbase.client.ipc.pool.size";
-
-  /**
-   * Custom value of 'hbase.hconnection.threads.core' for the Store HBase pool (MUST be <= STORE_HBASE_HCONNECTION_THREADS_MAX)
-   */
-  public static final String STORE_HBASE_HCONNECTION_THREADS_CORE = "store.hbase.hconnection.threads.core";
-
-  /**
-   * Custom value of 'hbase.rpc.timeout' (in ms) for Store HBase client, this is especially important to adapt when
-   * large deletes are possible.
-   * This value SHOULD be larger than the 'hbase.client.operation.timeout'.
-   */
-  public static final String STORE_HBASE_RPC_TIMEOUT = "store.hbase.rpc.timeout";
-
-  /**
-   * Timeout (in ms) for client operations (bulk delete, region listing, ..) in the Store HBase client. Defaults to 1200000 ms.
-   */
-  public static final String STORE_HBASE_CLIENT_OPERATION_TIMEOUT = "store.hbase.client.operation.timeout";
-
-  /**
-   * Number of times to retry RPCs in the Store HBase client. HBase default is 31.
-   */
-  public static final String STORE_HBASE_CLIENT_RETRIES_NUMBER = "store.hbase.client.retries.number";
-
-  /**
-   * Pause (in ms) between retries for the Store HBase client. HBase default is 100ms
-   */
-  public static final String STORE_HBASE_CLIENT_PAUSE = "store.hbase.client.pause";
 
   //
   // P L A S M A
@@ -1135,9 +1030,14 @@ public class Configuration {
   public static final String PLASMA_FRONTEND_JETTY_MAXQUEUESIZE = "plasma.frontend.jetty.maxqueuesize";
 
   /**
-   * ZooKeeper connect string for Kafka consumer
+   * Comma separated list of Kafka broker host:port for Kafka consumer
    */
-  public static final String PLASMA_FRONTEND_KAFKA_ZKCONNECT = "plasma.frontend.kafka.zkconnect";
+  public static final String PLASMA_FRONTEND_KAFKA_CONSUMER_BOOTSTRAP_SERVERS = "plasma.frontend.kafka.consumer.bootstrap.servers";
+
+  /**
+   * Prefix for Plasma FrontEnd Kafka Consumer configuration keys
+   */
+  public static final String PLASMA_FRONTEND_KAFKA_CONSUMER_CONF_PREFIX = "plasma.frontend.kafka.consumer.conf.prefix";
 
   /**
    * Kafka topic to consume. This topic is dedicated to this Plasma frontend.
@@ -1177,12 +1077,12 @@ public class Configuration {
   /**
    * ZooKeeper connect String for subscription
    */
-  public static final String PLASMA_FRONTEND_ZKCONNECT = "plasma.frontend.zkconnect";
+  public static final String PLASMA_FRONTEND_ZK_QUORUM = "plasma.frontend.zk.quorum";
 
   /**
    * ZooKeeper root znode for subscrptions
    */
-  public static final String PLASMA_FRONTEND_ZNODE = "plasma.frontend.znode";
+  public static final String PLASMA_FRONTEND_ZK_ZNODE = "plasma.frontend.zk.znode";
 
   /**
    * Maximum size of each znode (in bytes)
@@ -1222,7 +1122,7 @@ public class Configuration {
   /**
    * Idle timeout
    */
-  public static final String PLASMA_FRONTEND_IDLE_TIMEOUT = "plasma.frontend.idle.timout";
+  public static final String PLASMA_FRONTEND_IDLE_TIMEOUT = "plasma.frontend.idle.timeout";
 
   /**
    * SipHash key for computing MACs of Kafka messages
@@ -1232,9 +1132,14 @@ public class Configuration {
   public static final String PLASMA_FRONTEND_SUBSCRIBE_DELAY = "plasma.frontend.subscribe.delay";
 
   /**
-   * Zookeeper ZK connect string for Kafka ('in' topic)
+   * Comma separated list of Kafka broker host:port for Kafka ('in' topic)
    */
-  public static final String PLASMA_BACKEND_KAFKA_IN_ZKCONNECT = "plasma.backend.kafka.in.zkconnect";
+  public static final String PLASMA_BACKEND_KAFKA_IN_CONSUMER_BOOTSTRAP_SERVERS = "plasma.backend.kafka.in.consumer.bootstrap.servers";
+
+  /**
+   * Prefix for Plasma Backend Kafka Consumer configuration keys
+   */
+  public static final String PLASMA_BACKEND_KAFKA_IN_CONF_PREFIX = "plasma.backend.kafka.in.conf.prefix";
 
   /**
    * Actual 'in' topic
@@ -1279,7 +1184,12 @@ public class Configuration {
   /**
    * Kafka broker list for the 'out' topic
    */
-  public static final String PLASMA_BACKEND_KAFKA_OUT_BROKERLIST = "plasma.backend.kafka.out.brokerlist";
+  public static final String PLASMA_BACKEND_KAFKA_OUT_PRODUCER_BOOTSTRAP_SERVERS = "plasma.backend.kafka.out.producer.bootstrap.servers";
+
+  /**
+   * Prefix for Plasma BackEnd Kafka Producer configuration keys
+   */
+  public static final String PLASMA_BACKEND_KAFKA_OUT_PRODUCER_CONF_PREFIX = "plasma.backend.kafka.out.producer.conf.prefix";
 
   /**
    * Kafka client id for producing on the 'out' topic
@@ -1304,12 +1214,12 @@ public class Configuration {
   /**
    * ZooKeeper Quorum for the ZK ensemble to use for retrieving subscriptions
    */
-  public static final String PLASMA_BACKEND_SUBSCRIPTIONS_ZKCONNECT = "plasma.backend.subscriptions.zkconnect";
+  public static final String PLASMA_BACKEND_SUBSCRIPTIONS_ZK_QUORUM = "plasma.backend.subscriptions.zk.quorum";
 
   /**
    * Parent znode under which subscription znodes will be created
    */
-  public static final String PLASMA_BACKEND_SUBSCRIPTIONS_ZNODE = "plasma.backend.subscriptions.znode";
+  public static final String PLASMA_BACKEND_SUBSCRIPTIONS_ZK_ZNODE = "plasma.backend.subscriptions.zk.znode";
 
 
   //
@@ -1372,14 +1282,24 @@ public class Configuration {
   public static final String RUNNER_MINPERIOD = "runner.minperiod";
 
   /**
-   * ZooKeeper connect string for the Kafka cluster
+   * Comma separated list of Kafka broker host:port for the Kafka cluster
    */
-  public static final String RUNNER_KAFKA_ZKCONNECT = "runner.kafka.zkconnect";
+  public static final String RUNNER_KAFKA_CONSUMER_BOOTSTRAP_SERVERS = "runner.kafka.consumer.bootstrap.servers";
+
+  /**
+   * Prefix for Runner Kafka Consumer configuration keys
+   */
+  public static final String RUNNER_KAFKA_CONSUMER_CONF_PREFIX = "runner.kafka.consumer.conf.prefix";
 
   /**
    * List of Kafka brokers
    */
-  public static final String RUNNER_KAFKA_BROKERLIST = "runner.kafka.brokerlist";
+  public static final String RUNNER_KAFKA_PRODUCER_BOOTSTRAP_SERVERS = "runner.kafka.producer.bootstrap.servers";
+
+  /**
+   * Prefix for Runner Kafka Producer configuration keys
+   */
+  public static final String RUNNER_KAFKA_PRODUCER_CONF_PREFIX = "runner.kafka.producer.conf.prefix";
 
   /**
    * Kafka client id for producing on the runner topic
@@ -1464,6 +1384,11 @@ public class Configuration {
    * The default value is 1.0 (all writes are synchronous)
    */
   public static final String LEVELDB_DATA_SYNCRATE = "leveldb.data.syncrate";
+
+  /**
+   * Maximum number of SST files that can be removed during a single call to SSTPURGE
+   */
+  public static final String LEVELDB_MAXPURGE_KEY = "leveldb.maxpurge";
 
   /**
    * Rate of synchronous writes for the directory writes.
@@ -1614,37 +1539,6 @@ public class Configuration {
   public static final String STANDALONE_VALUE_MAXSIZE = "standalone.value.maxsize";
 
   /**
-   * Path to a file to use for triggering compaction suspension to take snapshots
-   */
-  public static final String STANDALONE_SNAPSHOT_TRIGGER = "standalone.snapshot.trigger";
-
-  /**
-   * Path to a file to use for signaling that compactions are suspended
-   */
-  public static final String STANDALONE_SNAPSHOT_SIGNAL = "standalone.snapshot.signal";
-
-  /**
-   * Set to 'true' to ignore timestamp limits (maxpast/maxfuture) when receiving data via datalog.
-   */
-  public static final String DATALOG_IGNORE_TIMESTAMPLIMITS = "datalog.ignore.timestamplimits";
-
-  /**
-   * Directory where data requests should be logged. This directory should be in 700 to protect sensitive token infos.
-   */
-  public static final String DATALOG_DIR = "datalog.dir";
-
-  /**
-   * Set to true to call fsync when closing datalog files
-   */
-  public static final String DATALOG_SYNC = "datalog.sync";
-
-  /**
-   * Id of this datalog node. The id will be used in the file name and will be passed down to child nodes via
-   * a header.
-   */
-  public static final String DATALOG_ID = "datalog.id";
-
-  /**
    * Comma separated list of shards this Warp 10 instance should store. The format of each
    * shard is MODULUS:REMAINDER
    */
@@ -1656,103 +1550,32 @@ public class Configuration {
   public static final String DATALOG_SHARDKEY_SHIFT = "datalog.shardkey.shift";
 
   /**
-   * Set to true or false to log the sharding key in the datalog request files
+   * Datalog Manager Fully Qualified Class Name
    */
-  public static final String DATALOG_LOGSHARDKEY = "datalog.logshardkey";
+  public static final String DATALOG_MANAGER = "datalog.manager";
 
   /**
-   * Pre-shared AES key to wrap datalog.id and datalog.timestamp header values
+   * Comma separated list of consumer names
    */
-  public static final String DATALOG_PSK = "datalog.psk";
+  public static final String DATALOG_CONSUMERS = "datalog.consumers";
 
   /**
-   * Flag indicating whether or not to log forwarded requests.
+   * Class name of consumer.
    */
-  public static final String DATALOG_LOGFORWARDED = "datalog.logforwarded";
+  public static final String DATALOG_CONSUMER_CLASS_PREFIX = "datalog.consumer.class.";
 
   /**
-   * Configuration key to modify the datalog header
+   * Flag indicating whether register events should be transmitted systematically (true)
+   * or simply when the local Directory actually stored the Metadata (false, the default).
+   * This will prevent architectures with multiple endpoints to miss Metadata creations when
+   * the feeds lag behind.
    */
-  public static final String HTTP_HEADER_DATALOG = "http.header.datalog";
+  public static final String DATALOG_REGISTER_ALL = "datalog.register.all";
 
   /**
-   * Comma separated list of forwarders. Configuration for each forwarder will be suffixed with
-   * '.name' except for datalog.psk which is common to all forwarders
+   * Maximum length of class names - Defaults to 1024
    */
-  public static final String DATALOG_FORWARDERS = "datalog.forwarders";
-
-  /**
-   * Comma separated list of ids which should be ignored by the forwarder. This is to prevent loops from
-   * forming.
-   */
-  public static final String DATALOG_FORWARDER_IGNORED = "datalog.forwarder.ignored";
-
-  /**
-   * Directory from which to read the datalog files to forward
-   */
-  public static final String DATALOG_FORWARDER_SRCDIR = "datalog.forwarder.srcdir";
-
-  /**
-   * Directory where successfully forwarded files will be moved
-   */
-  public static final String DATALOG_FORWARDER_DSTDIR = "datalog.forwarder.dstdir";
-
-  /**
-   * Flag used to indicate that forwarded requests should be deleted instead of moved.
-   */
-  public static final String DATALOG_FORWARDER_DELETEFORWARDED = "datalog.forwarder.deleteforwarded";
-
-  /**
-   * Flag used to indicate that ignored requests should be deleted instead of moved.
-   */
-  public static final String DATALOG_FORWARDER_DELETEIGNORED = "datalog.forwarder.deleteignored";
-
-  /**
-   * Delay between directory scans (in ms)
-   */
-  public static final String DATALOG_FORWARDER_PERIOD = "datalog.forwarder.period";
-
-  /**
-   * Set to 'true' to compress forwarded update/meta requests
-   */
-  public static final String DATALOG_FORWARDER_COMPRESS = "datalog.forwarder.compress";
-
-  /**
-   * Set to 'true' to act as a regular client when forwarding actions. Otherwise the datalog request will be forwarded.
-   * This MUST be set to 'true' when forwarding to a distributed version of Warp 10.
-   */
-  public static final String DATALOG_FORWARDER_ACTASCLIENT = "datalog.forwarder.actasclient";
-
-  /**
-   * Number of threads to spawn to handle datalog actions
-   */
-  public static final String DATALOG_FORWARDER_NTHREADS = "datalog.forwarder.nthreads";
-
-  /**
-   * Endpoint to use when forwarding UPDATE actions
-   */
-  public static final String DATALOG_FORWARDER_ENDPOINT_UPDATE = "datalog.forwarder.endpoint.update";
-
-  /**
-   * Endpoint to use when forwarding DELETE actions
-   */
-  public static final String DATALOG_FORWARDER_ENDPOINT_DELETE = "datalog.forwarder.endpoint.delete";
-
-  /**
-   * Endpoint to use when forwarding META actions
-   */
-  public static final String DATALOG_FORWARDER_ENDPOINT_META = "datalog.forwarder.endpoint.meta";
-
-  /**
-   * Comma separated list of shards to forward, each shard being specified as MODULUS:REMAINDER
-   */
-  public static final String DATALOG_FORWARDER_SHARDS = "datalog.forwarder.shards";
-
-  /**
-   * Number of bits to right shift the shard key. If this is >= 24, then only the class id will be
-   * considered for sharding.
-   */
-  public static final String DATALOG_FORWARDER_SHARDKEY_SHIFT = "datalog.forwarder.shardkey.shift";
+  public static final String WARP_CLASS_MAXSIZE = "warp.class.maxsize";
 
   /**
    * Maximum length of labels (names + values) - Defaults to 2048
@@ -1765,6 +1588,16 @@ public class Configuration {
    * Defaults to .producer,.app,.owner
    */
   public static final String WARPSCRIPT_LABELS_PRIORITY = "warpscript.labels.priority";
+
+  /**
+   * Set to 'true' to relax the metadata maxsize limit check in standalone versions
+   */
+  public static final String WARP_RELAX_METADATA_MAXSIZE = "warp.relax.metadata.maxsize";
+
+  /**
+   * Set to 'true' to relax the value maxsize limit check in standalone versions
+   */
+  public static final String WARP_RELAX_VALUE_MAXSIZE = "warp.relax.value.maxsize";
 
   /**
    * Maximum length of attributes (names + values) - Defaults to 8192
@@ -1799,11 +1632,6 @@ public class Configuration {
   public static final String INGRESS_DELETE_ACTIVITY_SUPPORT = "ingress.delete.activity.support";
 
   /**
-   * Manager secret, must be set to use the managing functions
-   */
-  public static final String WARP10_MANAGER_SECRET = "warp10.manager.secret";
-
-  /**
    * Set to a message indicating the reason why deletes are disabled, they are enabled if this is not set
    */
   public static final String WARP_DELETE_DISABLED = "warp.delete.disabled";
@@ -1832,6 +1660,11 @@ public class Configuration {
    * Set to 'true' to disable stream updates
    */
   public static final String WARP_STREAMUPDATE_DISABLE = "warp.streamupdate.disable";
+
+  /**
+   * Storage backend to use.
+   */
+  public static final String BACKEND = "backend";
 
   /**
    * Set to 'true' to have an in-memory cache ahead of the persistent store.
@@ -1907,32 +1740,6 @@ public class Configuration {
   public static final String ACCELERATOR_GC_MAXALLOC = "accelerator.gc.maxalloc";
 
   /**
-   * Set to 'true' to indicate the instance will use memory only for storage. This type of instance is non persistent.
-   */
-  public static final String IN_MEMORY = "in.memory";
-
-  /**
-   * Set to 'true' to use a chunked memory store.
-   */
-  public static final String IN_MEMORY_CHUNKED = "in.memory.chunked";
-
-  /**
-   * Depth of timestamps to retain (in ms)
-   */
-  public static final String IN_MEMORY_DEPTH = "in.memory.depth";
-
-  /**
-   * High water mark in bytes. When memory goes above this threshold, attempts to remove expired datapoints will be
-   * done until consumed memory goes below the low water mark (see below) or no more expired datapoints can be found.
-   */
-  public static final String IN_MEMORY_HIGHWATERMARK = "in.memory.highwatermark";
-
-  /**
-   * Low water mark in bytes for garbage collection (see above)
-   */
-  public static final String IN_MEMORY_LOWWATERMARK = "in.memory.lowwatermark";
-
-  /**
    * If set to true, then only the last recorded value of a GTS is kept
    */
   public static final String IN_MEMORY_EPHEMERAL = "in.memory.ephemeral";
@@ -1972,14 +1779,24 @@ public class Configuration {
    */
   public static final String STANDALONE_MEMORY_GC_MAXALLOC = "in.memory.gc.maxalloc";
 
-  /**
-   * Set to 'true' to only forward data to Plasma. Not data storage will take place.
-   */
-  public static final String PURE_PLASMA = "pureplasma";
-
   //
   // E G R E S S
   //
+
+  /**
+   * Path to the FoundationDB cluster file to use for Egress data
+   */
+  public static final String EGRESS_FDB_CLUSTERFILE = "egress.fdb.clusterfile";
+
+  /**
+   * FoundationDB tenant to use for Egress data
+   */
+  public static final String EGRESS_FDB_TENANT = "egress.fdb.tenant";
+
+  /**
+   * Size of pooled FoundationDB databases instances
+   */
+  public static final String EGRESS_FDB_POOLSIZE = "egress.fdb.poolsize";
 
   /**
    * Maximum allowed execution time per script execution (in ms). Can be modified
@@ -2009,12 +1826,6 @@ public class Configuration {
    * getExposedStoreClient static methods of EgressExecHandler.
    */
   public static final String EGRESS_CLIENTS_EXPOSE = "egress.clients.expose";
-
-  /**
-   * Comma separated list of Egress related HBase configuration keys to extract from the Warp 10 configuration.
-   * The listed keys will be extracted from 'egress.' prefixed configuration keys.
-   */
-  public static final String EGRESS_HBASE_CONFIG = "egress.hbase.config";
 
   /**
    * Port onto which the egress server should listen
@@ -2047,11 +1858,6 @@ public class Configuration {
   public static final String EGRESS_IDLE_TIMEOUT = "egress.idle.timeout";
 
   /**
-   * ZooKeeper server list
-   */
-  public static final String EGRESS_ZK_QUORUM = "egress.zk.quorum";
-
-  /**
    * Key to use for encrypting GTSSplit instances
    */
   public static final String EGRESS_FETCHER_AES = "egress.fetcher.aes";
@@ -2062,56 +1868,26 @@ public class Configuration {
   public static final String EGRESS_FETCHER_MAXSPLITAGE = "egress.fetcher.maxsplitage";
 
   /**
-   * Custom value of 'hbase.client.ipc.pool.size' for the Egress HBase pool
-   */
-  public static final String EGRESS_HBASE_CLIENT_IPC_POOL_SIZE = "egress.hbase.client.ipc.pool.size";
-
-  /**
-   * Custom scanner lease period
-   */
-  public static final String EGRESS_HBASE_CLIENT_SCANNER_TIMEOUT_PERIOD = "egress.hbase.client.scanner.timeout.period";
-
-  /**
-   * Custom value of 'hbase.client.max.perserver.tasks', defaults to 2
-   */
-  public static final String EGRESS_HBASE_CLIENT_MAX_PERSERVER_TASKS = "egress.hbase.client.max.perserver.tasks";
-
-  /**
-   * Custom value of 'hbase.client.max.perregion.tasks', defaults to 1
-   */
-  public static final String EGRESS_HBASE_CLIENT_MAX_PERREGION_TASKS = "egress.hbase.client.max.perregion.tasks";
-
-  /**
-   * Custom value of 'hbase.client.max.total.tasks', defaults to 100
-   */
-  public static final String EGRESS_HBASE_CLIENT_MAX_TOTAL_TASKS = "egress.hbase.client.max.total.tasks";
-
-  /**
-   * Custom value for RPC timeout
-   */
-  public static final String EGRESS_HBASE_RPC_TIMEOUT = "egress.hbase.rpc.timeout";
-
-  /**
    * Number of threads to use for scheduling parallel scanners. Use 0 to disable parallel scanners
    */
-  public static final String EGRESS_HBASE_PARALLELSCANNERS_POOLSIZE = "egress.hbase.parallelscanners.poolsize";
+  public static final String EGRESS_FDB_PARALLELSCANNERS_POOLSIZE = "egress.fdb.parallelscanners.poolsize";
 
   /**
    * Maximum number of parallel scanners per fetch request. Use 0 to disable parallel scanners.
    */
-  public static final String EGRESS_HBASE_PARALLELSCANNERS_MAXINFLIGHTPERREQUEST = "egress.hbase.parallelscanners.maxinflightperrequest";
+  public static final String EGRESS_FDB_PARALLELSCANNERS_MAXINFLIGHTPERREQUEST = "egress.fdb.parallelscanners.maxinflightperrequest";
 
   /**
    * Minimum number of GTS to assign to a parallel scanner. If the number of GTS to fetch is below this limit, no
    * parallel scanners will be spawned. Defaults to 4.
    */
-  public static final String EGRESS_HBASE_PARALLELSCANNERS_MIN_GTS_PERSCANNER = "egress.hbase.parallelscanners.min.gts.perscanner";
+  public static final String EGRESS_FDB_PARALLELSCANNERS_MIN_GTS_PERSCANNER = "egress.fdb.parallelscanners.min.gts.perscanner";
 
   /**
    * Maximum number of parallel scanners to use when fetching datapoints for a batch of GTS (see EGRESS_FETCH_BATCHSIZE).
    * Defaults to 16.
    */
-  public static final String EGRESS_HBASE_PARALLELSCANNERS_MAX_PARALLEL_SCANNERS = "egress.hbase.parallelscanners.max.parallel.scanners";
+  public static final String EGRESS_FDB_PARALLELSCANNERS_MAX_PARALLEL_SCANNERS = "egress.fdb.parallelscanners.max.parallel.scanners";
 
   /**
    * Number of threads to use for scheduling parallel scanners in the standalone version. Use 0 to disable parallel scanners
@@ -2136,56 +1912,14 @@ public class Configuration {
   public static final String STANDALONE_PARALLELSCANNERS_MAX_PARALLEL_SCANNERS = "standalone.parallelscanners.max.parallel.scanners";
 
   /**
-   * Geo Time Series count threshold above which block caching will be disabled for HBase scanners.
-   * The goal is to limit the cache pollution when scanning large chunks of data.
-   * Note that this limit is per fetch call to the backend, which means that in the case of parallel scanners it is for each parallel fetch attempt.
+   * Key to use for encrypting data in FDB (128/192/256 bits in hex or OSS reference)
    */
-  public static final String EGRESS_HBASE_DATA_BLOCKCACHE_GTS_THRESHOLD = "egress.hbase.data.blockcache.gts.threshold";
-
-  /**
-   * Key to use for encrypting data in HBase (128/192/256 bits in hex or OSS reference)
-   */
-  public static final String EGRESS_HBASE_DATA_AES = "egress.hbase.data.aes";
-
-  /**
-   * Columns family under which data should be stored
-   */
-  public static final String EGRESS_HBASE_DATA_COLFAM = "egress.hbase.data.colfam";
-
-  /**
-   * HBase table where data should be stored
-   */
-  public static final String EGRESS_HBASE_DATA_TABLE = "egress.hbase.data.table";
-
-  /**
-   * ZooKeeper Quorum for locating HBase
-   */
-  public static final String EGRESS_HBASE_DATA_ZKCONNECT = "egress.hbase.data.zkconnect";
-
-  /**
-   * ZooKeeper port for HBase client
-   */
-  public static final String EGRESS_HBASE_ZOOKEEPER_PROPERTY_CLIENTPORT = "egress.hbase.zookeeper.property.clientPort";
-
-  /**
-   * Parent znode under which HBase znodes will be created
-   */
-  public static final String EGRESS_HBASE_DATA_ZNODE = "egress.hbase.data.znode";
+  public static final String EGRESS_FDB_DATA_AES = "egress.fdb.data.aes";
 
   /**
    * Number of GTS to batch when retrieving datapoints (to mitigate responseTooSlow errors)
    */
   public static final String EGRESS_FETCH_BATCHSIZE = "egress.fetch.batchsize";
-
-  /**
-   * Boolean indicating whether or not to use the HBase filter when retrieving rows.
-   */
-  public static final String EGRESS_HBASE_FILTER = "egress.hbase.filter";
-
-  /**
-   * GTS count threshold above which the filter will be used.
-   */
-  public static final String EGRESS_HBASE_FILTER_THRESHOLD = "egress.hbase.filter.threshold";
 
   //
   // T H R O T T L I N G    M A N A G E R
@@ -2231,14 +1965,6 @@ public class Configuration {
    */
   public static final String THROTTLING_MANAGER_MAXWAIT_DEFAULT = "throttling.manager.maxwait.default";
 
-  //
-  // Jar Repository
-  //
-
-  public static final String JARS_DIRECTORY = "warpscript.jars.directory";
-  public static final String JARS_REFRESH = "warpscript.jars.refresh";
-  public static final String JARS_FROMCLASSPATH = "warpscript.jars.fromclasspath";
-
   /**
    * Size of macro cache for the macros loaded from the classpath
    */
@@ -2269,11 +1995,6 @@ public class Configuration {
    * Maximum amount of time each attempt to access a process will wait (in ms). Defaults to 10000 ms.
    */
   public static final String WARPSCRIPT_CALL_MAXWAIT = "warpscript.call.maxwait";
-
-  /**
-   * Secret to use for setting configuration accessible via MACROCONFIG
-   */
-  public static final String CONFIG_MACROCONFIG_SECRET = "warpscript.macroconfig.secret";
 
   /**
    * Macro Repository root directory
@@ -2312,7 +2033,7 @@ public class Configuration {
   public static final String REPOSITORY_ONDEMAND = "warpscript.repository.ondemand";
 
   /**
-   * Comma separated list of configured WarpFleet™ repositories
+   * Comma separated list of configured WarpFleet repositories
    */
   public static final String WARPFLEET_MACROS_REPOS = "warpfleet.macros.repos";
 
@@ -2320,11 +2041,6 @@ public class Configuration {
    * Default value for warpfleet.macros.repos if it is not set
    */
   public static final String WARPFLEET_MACROS_REPOS_DEFAULT = "https://warpfleet.senx.io/macros";
-
-  /**
-   * Configure this property to 'true' to disable the function WF.GETREPOS. This is useful when some of your repo URLs have sensitive information.
-   */
-  public static final String WARPFLEET_GETREPOS_DISABLE = "warpfleet.getrepos.disable";
 
   /**
    * Maximum number of cached macros in the cache
@@ -2371,11 +2087,6 @@ public class Configuration {
    * Name of WarpFleet repository macro. This macro consumes a URL and emits a boolean.
    */
   public static final String WARPFLEET_MACROS_VALIDATOR = "warpfleet.macros.validator";
-
-  /**
-   * Header containing the request UUID when calling the endpoint
-   */
-  public static final String HTTP_HEADER_WEBCALL_UUIDX = "http.header.webcall.uuid";
 
   /**
    * Configuration key to modify the capabilities header
@@ -2522,6 +2233,29 @@ public class Configuration {
   // Prefixes for the SSL configs
   //
 
+  /**
+   * Extract properties which have a given prefix an return a Properties instance
+   * with those properties from which the prefix was removed.
+   *
+   * @param properties Properties to inspect
+   * @param prefix Prefix to detect
+   * @return the subset of properties which had the given prefix (removed)
+   */
+  public static Properties extractPrefixed(Properties properties, String prefix) {
+    Properties extract = new Properties();
+
+    if (null != prefix) {
+      for (Entry<Object, Object> entry: properties.entrySet()) {
+        String key = entry.getKey().toString();
+        if (key.startsWith(prefix)) {
+          extract.put(key.substring(prefix.length()), entry.getValue());
+        }
+      }
+    }
+
+    return extract;
+  }
+
   public static final String STANDALONE_PREFIX = "standalone";
   public static final String EGRESS_PREFIX = "egress";
   public static final String INGRESS_PREFIX = "ingress";
@@ -2541,4 +2275,9 @@ public class Configuration {
    * Set to 'true' to return Writable instances as is in WarpScriptInputFormat
    */
   public static final String CONFIG_WARPSCRIPT_HADOOP_RAWWRITABLES = "warpscript.hadoop.rawwritables";
+
+  /**
+   * Flag (true/false) indicating whether or not to use capabilities for controlling access to debug functions. Defaults to true.
+   */
+  public static final String CONFIG_DEBUG_CAPABILITY = "debug.capability";
 }

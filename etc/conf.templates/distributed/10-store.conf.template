@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -20,181 +20,129 @@
 //
 /////////////////////////////////////////////////////////////////////////////////////////
 
-//
-// Comma separated list of Store related HBase configuration keys. Each key will
-// be set in the HBase configuration by assigning the value defined in the Warp 10 config
-// under the key 'store.<HBASE_CONFIGURATION_KEY>'. Each listed HBase configuration key
-// MUST have a value defined in the 'store.' prefixed configuration parameter.
-//
-#store.hbase.config = 
+###
+### M A N D A T O R Y   C O N F I G U R A T I O N
+###
 
-//
-// Throttling file path
-//
-#store.throttling.file =
+##
+## MANDATORY - Path to the FoundationDB cluster file. This file needs to be readable AND writable by the
+## user running the Store instance.
+##
+store.fdb.clusterfile = ${fdb.clusterfile}
 
-//
-// How often to reread the throttling file (in ms, defaults to 60000).
-//
-#store.throttling.period = 
+##
+## MANDATORY - Maximum byte size of the pending mutations list before it is flushed to FoundationDB.
+## This value cannot exceed 9500000 bytes.
+##
+store.fdb.data.pendingmutations.maxsize = 5000000
 
-//
-// How much to wait when the consumption was throttled, in ns (nanoseconds), defaults to 10 ms (milliseconds)
-//
-#store.throttling.delay =
-
-//
-// 128/192/256 bits AES key for encrypting data in HBase.
-// Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
-//
-#store.hbase.data.aes = hex:hhhhhh...
-
-//
-// Zookeeper ZK connect string for Kafka ('data' topic)
-//  
-store.kafka.data.zkconnect = 127.0.0.1:2181/zk/kafka/localhost
-
-//
-// Kafka broker list for the 'data' topic
-//
-store.kafka.data.brokerlist = 127.0.0.1:9092
-
-//
-// Actual 'data' topic
-//
-store.kafka.data.topic = data
-
-//
-// 128 bits SipHash key for computing MACs. Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
-//
-store.kafka.data.mac = hex:hhhhhh...
-
-//
-// 128/192/256 bits AES key for encrypting data in Kafka.
-// Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
-//
-#store.kafka.data.aes = hex:hhhhhh...
-
-//
-// Kafka group id with which to consume the data topic
-//
-store.kafka.data.groupid = store.data
-
-//
-// Delay between synchronization for offset commit
-//
-store.kafka.data.commitperiod = 1000
-
-//
-// Maximum time (in ms) between offset synchronization - MUST be set to a value above that of store.kafka.data.commitperiod
-// This parameter is there to detect calls to HBase which hang, which can happen when a RegionServer dies during a call to 'batch'.
-// The value of this parameter must be set to a value longer than the longest running call to HBase's 'batch' or 'delete', otherwise
-// the valid operations might not finish.
-// Consider it as the time it takes to detect HBase failures. Values of 60000 to 120000 seem good starting points.
-//
-store.kafka.data.intercommits.maxtime = 120000
-
-//
-// Maximum size we allow the Puts list to grow to
-//
-store.hbase.data.maxpendingputssize = 1000000
-
-//
-// How many threads to spawn for consuming
-// Each of these threads will commit data to HBase
-//
+##
+## MANDATORY - How many threads to spawn for consuming
+## Each of these threads will commit data to FoundationDB
+##
 store.nthreads = 2
 
-//
-// How many threads under each of 'store.nthreads' should consume Kafka.
-// Defaults to 1 if unset.
-//
-store.nthreads.kafka = 1
+##
+## MANDATORY - Comma separated list of Kafka brokers for the data cluster
+##
+store.kafka.data.consumer.bootstrap.servers = ${kafka.data.bootstrap.servers}
 
-//
-// Number of threads in the pool used to process deletes. One such pool is created for each of 'store.nthreads'.
-// Defaults to 0 meaning no pool is used.
-//
-store.nthreads.delete = 0
+##
+## MANDATORY - Actual 'data' topic
+##
+store.kafka.data.topic = ${kafka.data.topic}
 
-//
-// ZooKeeper connect string for HBase
-//
-store.hbase.data.zkconnect = 127.0.0.1:2181
+##
+## MANDATORY - Kafka group id with which to consume the data topic
+##
+store.kafka.data.groupid = store.data
 
-//
-// HBase table where data should be stored
-//
-store.hbase.data.table = continuum
+##
+## MANDATORY - Delay (in ms) between synchronizations for offset commit
+##
+store.kafka.data.commitperiod = 1000
 
-//
-// Columns family under which data should be stored
-//
-store.hbase.data.colfam = v
+##
+## MANDATORY - Maximum time (in ms) between offset synchronizations - MUST be set to a value above that of store.kafka.data.commitperiod
+## This parameter is there to detect calls to FoundationDB which hang.
+## The value of this parameter must be set to a value longer than the longest running call to FoundationDB commit, otherwise
+## valid operations might not finish.
+## Consider it as the time it takes to detect FoundationDB failures. Values of 60000 to 120000 seem good starting points.
+##
+store.kafka.data.intercommits.maxtime = 120000
 
-//
-// Parent znode under which HBase znodes will be created
-//
-store.hbase.data.znode = /zk/hbase/localhost
+###
+### O P T I O N A L   C O N F I G U R A T I O N
+###
+### Values shown are the default when they exist
+###
 
-//
-// Custom value of 'hbase.hconnection.threads.max' for the Store HBase pool
-//
-store.hbase.hconnection.threads.max = 4
+##
+## Optional FoundationDB tenant to use.
+## The tenant MUST exist.
+##
+#store.fdb.tenant =
 
-//
-// Custom value of 'hbase.hconnection.threads.core' for the Store HBase pool (MUST be <= STORE_HBASE_HCONNECTION_THREADS_MAX)
-//
-store.hbase.hconnection.threads.core = 4
+##
+## Number of retries for FoundationDB transactions (defaults to 4)
+##
+#store.fdb.retrylimit = 4
 
-//
-// Custom value of 'hbase.rpc.timeout' (in ms) for Store HBase client, this is especially important to adapt when
-// large deletes are possible.
-// This value SHOULD be larger than the 'hbase.client.operation.timeout'.
-//
-#store.hbase.rpc.timeout =
+##
+## 128/192/256 bits AES key for encrypting data in FoundationDB.
+## Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
+##
+#store.fdb.data.aes = ${fdb.data.aes}
 
-//
-// Timeout (in ms) for client operations (bulk delete, region listing, ..) in the Store HBase client. Defaults to 1200000 ms.
-//
-#store.hbase.client.operation.timeout =
+##
+## How many threads under each of 'store.nthreads' should consume Kafka.
+## Defaults to 1 if unset.
+##
+#store.nthreads.kafka = 1
 
-//
-// Number of times to retry RPCs in the Store HBase client. HBase default is 31.
-//
-#store.hbase.client.retries.number =
+##
+## Throttling file path. This file contains a single line with a double number between 0.0 and 1.0 wich is interpreted as a rate
+## When processing messages, a random number is generated for each one, if the value is >= the rate, then the processing thread waits for store.throttling.delay nanoseconds
+##
+#store.throttling.file =
 
-//
-// Pause (in ms) between retries for the Store HBase client. HBase default is 100ms
-//
-#store.hbase.client.pause =
+##
+## How much to wait when the consumption was throttled, in ns (nanoseconds), defaults to 10 ms (milliseconds)
+##
+#store.throttling.delay = 10000000
 
-//
-// Kafka client id to use for the data producer
-//
+##
+## How often (in ms) to reread the throttling file (in ms, defaults to 60000).
+##
+#store.throttling.period = 60000
+
+##
+## 128 bits SipHash key for computing MACs. Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
+##
+#store.kafka.data.mac = ${kafka.data.mac}
+
+##
+## 128/192/256 bits AES key for encrypting data in Kafka.
+## Valid formats are hex:..., base64:... or, when using OSS, wrapped:....
+##
+#store.kafka.data.aes = ${kafka.data.aes}
+
+##
+## Prefix used to specify cusom Kafka configuration properties
+##
+#store.kafka.data.consumer.conf.prefix =
+
+##
+## Kafka client id to use for the data producer
+##
 #store.kafka.data.producer.clientid =
 
-//
-// Client id to use to consume the data topic
-//
-#store.kafka.data.consumer.clientid = 
-
-//
-// A prefix prepended to the Kafka ConsumerId
-//
+##
+## A prefix prepended to the Kafka ConsumerId
+##
 #store.kafka.data.consumerid.prefix =
 
-//
-// Custom value of 'hbase.client.ipc.pool.size' for the Store HBase pool
-//
-#store.hbase.client.ipc.pool.size = 
-
-//
-// ZooKeeper port for HBase client
-//
-#store.hbase.zookeeper.property.clientPort = 
-
-//
-// Name of partition assignment strategy to use
-//
+##
+## Name of partition assignment strategy to use
+##
 #store.kafka.data.consumer.partition.assignment.strategy = 

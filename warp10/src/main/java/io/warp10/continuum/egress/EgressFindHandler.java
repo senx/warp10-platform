@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,23 +16,6 @@
 
 package io.warp10.continuum.egress;
 
-import io.warp10.json.JsonUtils;
-import io.warp10.ThrowableUtils;
-import io.warp10.continuum.Configuration;
-import io.warp10.continuum.Tokens;
-import io.warp10.continuum.gts.GTSHelper;
-import io.warp10.continuum.sensision.SensisionConstants;
-import io.warp10.continuum.store.Constants;
-import io.warp10.continuum.store.DirectoryClient;
-import io.warp10.continuum.store.MetadataIterator;
-import io.warp10.continuum.store.thrift.data.DirectoryRequest;
-import io.warp10.continuum.store.thrift.data.Metadata;
-import io.warp10.crypto.KeyStore;
-import io.warp10.quasar.token.thrift.data.ReadToken;
-import io.warp10.script.WarpScriptException;
-import io.warp10.script.functions.PARSESELECTOR;
-import io.warp10.sensision.Sensision;
-
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -44,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
-import java.util.regex.Pattern;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -54,6 +36,23 @@ import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.warp10.ThrowableUtils;
+import io.warp10.continuum.Configuration;
+import io.warp10.continuum.Tokens;
+import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.sensision.SensisionConstants;
+import io.warp10.continuum.store.Constants;
+import io.warp10.continuum.store.DirectoryClient;
+import io.warp10.continuum.store.MetadataIterator;
+import io.warp10.continuum.store.thrift.data.DirectoryRequest;
+import io.warp10.continuum.store.thrift.data.Metadata;
+import io.warp10.crypto.KeyStore;
+import io.warp10.json.JsonUtils;
+import io.warp10.quasar.token.thrift.data.ReadToken;
+import io.warp10.script.WarpScriptException;
+import io.warp10.script.functions.PARSESELECTOR;
+import io.warp10.sensision.Sensision;
 
 public class EgressFindHandler extends AbstractHandler {
 
@@ -87,8 +86,11 @@ public class EgressFindHandler extends AbstractHandler {
     long gskip = 0L;
     long gcount = Long.MAX_VALUE;
 
+    boolean mustSort = false;
+
     if (null != req.getParameter(Constants.HTTP_PARAM_GSKIP)) {
       gskip = Long.parseLong(req.getParameter(Constants.HTTP_PARAM_GSKIP));
+      mustSort = true;
     }
 
     // 'limit' predates 'gcount', it may be overriden if 'gcount' is set too
@@ -99,6 +101,7 @@ public class EgressFindHandler extends AbstractHandler {
     // 'gcount' overrides 'limit'
     if (null != req.getParameter(Constants.HTTP_PARAM_GCOUNT)) {
       gcount = Long.parseLong(req.getParameter(Constants.HTTP_PARAM_GCOUNT));
+      mustSort = true;
     }
 
     if (null == token) {
@@ -116,10 +119,10 @@ public class EgressFindHandler extends AbstractHandler {
 
       boolean showErrors = null != req.getParameter(Constants.HTTP_PARAM_SHOW_ERRORS);
 
-      boolean showUUID = "true".equals(req.getParameter(Constants.HTTP_PARAM_SHOWUUID));
+      boolean showUUID = null != req.getParameter(Constants.HTTP_PARAM_SHOWUUID);
 
-      boolean showAttr = !("false".equals(req.getParameter(Constants.HTTP_PARAM_SHOWATTR)));
-      boolean sortMeta = "true".equals(req.getParameter(Constants.HTTP_PARAM_SORTMETA));
+      boolean showAttr = null != req.getParameter(Constants.HTTP_PARAM_SHOWATTR);
+      boolean sortMeta = null != req.getParameter(Constants.HTTP_PARAM_SORTMETA);
 
       Long activeAfter = null == req.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER) ? null : Long.parseLong(req.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER));
       Long quietAfter = null == req.getParameter(Constants.HTTP_PARAM_QUIETAFTER) ? null : Long.parseLong(req.getParameter(Constants.HTTP_PARAM_QUIETAFTER));
@@ -188,6 +191,7 @@ public class EgressFindHandler extends AbstractHandler {
           lblsSels.add(labelsSelector);
 
           DirectoryRequest request = new DirectoryRequest();
+          request.setSorted(mustSort);
           request.setClassSelectors(clsSels);
           request.setLabelsSelectors(lblsSels);
 

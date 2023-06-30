@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -119,7 +119,7 @@ public class FORSTEP extends NamedWarpScriptFunction implements WarpScriptStackF
     
     while (true) {
       if (System.currentTimeMillis() - now > maxtime) {
-        throw new WarpScriptException(getName() + " executed for too long (> " + maxtime + " ms).");
+        throw new WarpScriptException(getName() + " executed for too long (> " + maxtime + " ms). Consider raising the limit or using capabilities.");
       }
       
       if (useDouble) {

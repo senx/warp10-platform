@@ -1,5 +1,5 @@
 //
-//   Copyright 2021  SenX S.A.S.
+//   Copyright 2021-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,13 +16,10 @@
 
 package io.warp10.continuum.gts;
 
-import io.warp10.WarpConfig;
-import io.warp10.script.aggregator.Sum;
 import org.junit.Assert;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.io.StringReader;
+import io.warp10.script.aggregator.Sum;
 
 public class SubSerieTest {
 
@@ -33,7 +30,7 @@ public class SubSerieTest {
 
     GeoTimeSerie subgts;
     subgts = GTSHelper.subSerie(gts, Long.MAX_VALUE, Long.MIN_VALUE, false);
-    Assert.assertTrue(0 == subgts.values);
+    Assert.assertEquals(0, subgts.values);
 
     for (int i = 0; i < n; i++) {
       GTSHelper.setValue(gts, i, i, i, i, false);
@@ -42,17 +39,17 @@ public class SubSerieTest {
     for (int i = 0; i < n; i++) {
       // Make start after stop
       subgts = GTSHelper.subSerie(gts, i + 1, i - 1, false);
-      Assert.assertTrue(0 == subgts.values);
+      Assert.assertEquals(0, subgts.values);
     }
 
     subgts = GTSHelper.subSerie(gts, Long.MIN_VALUE, -1, false);
-    Assert.assertTrue(0 == subgts.values);
+    Assert.assertEquals(0, subgts.values);
     subgts = GTSHelper.subSerie(gts, n + 1, Long.MAX_VALUE, false);
-    Assert.assertTrue(0 == subgts.values);
+    Assert.assertEquals(0, subgts.values);
 
     // Test possible overflow
     subgts = GTSHelper.subSerie(gts, Long.MAX_VALUE, Long.MIN_VALUE, false);
-    Assert.assertTrue(0 == subgts.values);
+    Assert.assertEquals(0, subgts.values);
   }
 
   @Test
@@ -69,20 +66,20 @@ public class SubSerieTest {
     // No dups, so overwrite does not change anything
     for (boolean overwrite: new boolean[]{true, false}) {
       subgts = GTSHelper.subSerie(gts, -1, 1, overwrite);
-      Assert.assertTrue(2 == subgts.values);
+      Assert.assertEquals(2, subgts.values);
       subgts = GTSHelper.subSerie(gts, n - 2, n, overwrite);
-      Assert.assertTrue(2 == subgts.values);
+      Assert.assertEquals(2, subgts.values);
 
       for (int i = 1; i < n - 1; i++) {
         subgts = GTSHelper.subSerie(gts, i - 1, i + 1, overwrite);
-        Assert.assertTrue(3 == subgts.values);
+        Assert.assertEquals(3, subgts.values);
       }
 
       for (int i = 0; i < n; i++) {
         subgts = GTSHelper.subSerie(gts, 0, i, overwrite);
-        Assert.assertTrue((i + 1) == subgts.values);
+        Assert.assertEquals((i + 1), subgts.values);
         subgts = GTSHelper.subSerie(gts, i, n, overwrite);
-        Assert.assertTrue((n - i) == subgts.values);
+        Assert.assertEquals((n - i), subgts.values);
       }
     }
   }
@@ -110,15 +107,15 @@ public class SubSerieTest {
     GeoTimeSerie subgts;
 
     subgts = GTSHelper.subSerie(gts, -1, 1, false);
-    Assert.assertTrue(6 == subgts.values);
+    Assert.assertEquals(6, subgts.values);
     subgts = GTSHelper.subSerie(gts, n - 2, n, false);
-    Assert.assertTrue(6 == subgts.values);
+    Assert.assertEquals(6, subgts.values);
 
     for (int i = 1; i < n - 1; i++) {
       subgts = GTSHelper.subSerie(gts, i, i, false);
-      Assert.assertTrue(3 == subgts.values);
+      Assert.assertEquals(3, subgts.values);
       subgts = GTSHelper.subSerie(gts, i - 1, i + 1, false);
-      Assert.assertTrue(9 == subgts.values);
+      Assert.assertEquals(9, subgts.values);
     }
 
     //
@@ -126,15 +123,15 @@ public class SubSerieTest {
     //
 
     subgts = GTSHelper.subSerie(gts, -1, 1, true);
-    Assert.assertTrue(2 == subgts.values);
+    Assert.assertEquals(2, subgts.values);
     subgts = GTSHelper.subSerie(gts, n - 2, n, true);
-    Assert.assertTrue(2 == subgts.values);
+    Assert.assertEquals(2, subgts.values);
 
     for (int i = 1; i < n - 1; i++) {
       subgts = GTSHelper.subSerie(gts, i, i, true);
-      Assert.assertTrue(1 == subgts.values);
+      Assert.assertEquals(1, subgts.values);
       subgts = GTSHelper.subSerie(gts, i - 1, i + 1, true);
-      Assert.assertTrue(3 == subgts.values);
+      Assert.assertEquals(3, subgts.values);
     }
   }
 
@@ -153,20 +150,20 @@ public class SubSerieTest {
     // No dups, so overwrite does not change anything
     for (boolean overwrite: new boolean[]{true, false}) {
       subgts = GTSHelper.subSerie(gts, -1, 1, overwrite);
-      Assert.assertTrue(1 == subgts.values);
+      Assert.assertEquals(1, subgts.values);
       subgts = GTSHelper.subSerie(gts, n - 2, n, overwrite);
-      Assert.assertTrue(1 == subgts.values);
+      Assert.assertEquals(1, subgts.values);
 
       for (int i = 1; i < n - 1; i++) {
         subgts = GTSHelper.subSerie(gts, i - 1, i + 1, overwrite);
-        Assert.assertTrue(((0 == i % 2) ? 1 : 2) == subgts.values);
+        Assert.assertEquals(((0 == i % 2) ? 1 : 2), subgts.values);
       }
 
       for (int i = 0; i < n; i++) {
         subgts = GTSHelper.subSerie(gts, 0, i, overwrite);
-        Assert.assertTrue((i / 2 + 1) == subgts.values);
+        Assert.assertEquals((i / 2 + 1), subgts.values);
         subgts = GTSHelper.subSerie(gts, i, n, overwrite);
-        Assert.assertTrue(((n - i) / 2) == subgts.values);
+        Assert.assertEquals(((n - i) / 2), subgts.values);
       }
     }
   }
@@ -184,11 +181,11 @@ public class SubSerieTest {
     // No dups, so overwrite does not change anything
     for (boolean overwrite: new boolean[]{true, false}) {
       subgts = GTSHelper.subSerie(gts, Long.MIN_VALUE, Long.MIN_VALUE, overwrite);
-      Assert.assertTrue(1 == subgts.values);
+      Assert.assertEquals(1, subgts.values);
       subgts = GTSHelper.subSerie(gts, Long.MAX_VALUE, Long.MAX_VALUE, overwrite);
-      Assert.assertTrue(1 == subgts.values);
+      Assert.assertEquals(1, subgts.values);
       subgts = GTSHelper.subSerie(gts, Long.MIN_VALUE, Long.MAX_VALUE, overwrite);
-      Assert.assertTrue(3 == subgts.values);
+      Assert.assertEquals(3, subgts.values);
     }
 
     // Add duplicates
@@ -196,11 +193,11 @@ public class SubSerieTest {
     GTSHelper.setValue(gts, Long.MIN_VALUE, Long.MIN_VALUE, Long.MIN_VALUE, Long.MIN_VALUE, false);
 
     subgts = GTSHelper.subSerie(gts, Long.MIN_VALUE, Long.MIN_VALUE, false);
-    Assert.assertTrue(2 == subgts.values);
+    Assert.assertEquals(2, subgts.values);
     subgts = GTSHelper.subSerie(gts, Long.MAX_VALUE, Long.MAX_VALUE, false);
-    Assert.assertTrue(2 == subgts.values);
+    Assert.assertEquals(2, subgts.values);
     subgts = GTSHelper.subSerie(gts, Long.MIN_VALUE, Long.MAX_VALUE, false);
-    Assert.assertTrue(5 == subgts.values);
+    Assert.assertEquals(5, subgts.values);
   }
 
   @Test
@@ -219,20 +216,20 @@ public class SubSerieTest {
     // No dups, so overwrite does not change anything
     for (boolean overwrite: new boolean[]{true, false}) {
       subgts = GTSHelper.subSerie(gts, -1, 1, overwrite);
-      Assert.assertTrue(2 == subgts.values);
+      Assert.assertEquals(2, subgts.values);
       subgts = GTSHelper.subSerie(gts, n - 2, n, overwrite);
-      Assert.assertTrue(2 == subgts.values);
+      Assert.assertEquals(2, subgts.values);
 
       for (int i = 1; i < n - 1; i++) {
         subgts = GTSHelper.subSerie(gts, i - 1, i + 1, overwrite);
-        Assert.assertTrue(3 == subgts.values);
+        Assert.assertEquals(3, subgts.values);
       }
 
       for (int i = 0; i < n; i++) {
         subgts = GTSHelper.subSerie(gts, 0, i, overwrite);
-        Assert.assertTrue((i + 1) == subgts.values);
+        Assert.assertEquals((i + 1), subgts.values);
         subgts = GTSHelper.subSerie(gts, i, n, overwrite);
-        Assert.assertTrue((n - i) == subgts.values);
+        Assert.assertEquals((n - i), subgts.values);
       }
     }
   }
@@ -254,20 +251,20 @@ public class SubSerieTest {
     // No dups, so overwrite does not change anything
     for (boolean overwrite: new boolean[]{true, false}) {
       subgts = GTSHelper.subSerie(gts, -1, 1, overwrite);
-      Assert.assertTrue(1 == subgts.values);
+      Assert.assertEquals(1, subgts.values);
       subgts = GTSHelper.subSerie(gts, n - 2, n, overwrite);
-      Assert.assertTrue(1 == subgts.values);
+      Assert.assertEquals(1, subgts.values);
 
       for (int i = 1; i < n - 1; i++) {
         subgts = GTSHelper.subSerie(gts, i - 1, i + 1, overwrite);
-        Assert.assertTrue(((0 == i % 2) ? 1 : 2) == subgts.values);
+        Assert.assertEquals(((0 == i % 2) ? 1 : 2), subgts.values);
       }
 
       for (int i = 0; i < n; i++) {
         subgts = GTSHelper.subSerie(gts, 0, i, overwrite);
-        Assert.assertTrue((i / 2 + 1) == subgts.values);
+        Assert.assertEquals((i / 2 + 1), subgts.values);
         subgts = GTSHelper.subSerie(gts, i, n, overwrite);
-        Assert.assertTrue(((n - i) / 2) == subgts.values);
+        Assert.assertEquals(((n - i) / 2), subgts.values);
       }
     }
   }
@@ -295,18 +292,18 @@ public class SubSerieTest {
     }
 
     subgts = GTSHelper.subSerie(gts, -1, 1, false);
-    Assert.assertTrue(3 == subgts.values);
+    Assert.assertEquals(3, subgts.values);
     subgts = GTSHelper.subSerie(gts, n - 5, n - 3, false);
-    Assert.assertTrue(3 == subgts.values);
+    Assert.assertEquals(3, subgts.values);
 
     for (int i = 1; i < n - 4; i++) {
       subgts = GTSHelper.subSerie(gts, i - 1, i + 1, false);
       if (i % 4 == 0) {
-        Assert.assertTrue(5 == subgts.values);
+        Assert.assertEquals(5, subgts.values);
       } else if (i % 2 == 0) {
-        Assert.assertTrue(4 == subgts.values);
+        Assert.assertEquals(4, subgts.values);
       } else {
-        Assert.assertTrue(3 == subgts.values);
+        Assert.assertEquals(3, subgts.values);
       }
     }
   }

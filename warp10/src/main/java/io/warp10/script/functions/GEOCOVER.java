@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -108,7 +108,7 @@ public class GEOCOVER extends ElementOrListStackFunction {
             }
           }
         } else {
-          throw new WarpScriptException(getName() + " can only operate on Geo Time Series™ or GTS Encoders.");
+          throw new WarpScriptException(getName() + " can only operate on Geo Time Series or GTS Encoders.");
         }
         
         GeoXPShape shape = GeoXPLib.fromCells(cells);

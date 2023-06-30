@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2019-2020  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,12 +16,13 @@
 
 package io.warp10.continuum;
 
-import io.warp10.crypto.SipHashInline;
-
+import java.util.Map;
 import java.util.Random;
 
-import kafka.producer.Partitioner;
-import kafka.utils.VerifiableProperties;
+import org.apache.kafka.clients.producer.Partitioner;
+import org.apache.kafka.common.Cluster;
+
+import io.warp10.crypto.SipHashInline;
 
 public class KafkaPartitioner implements Partitioner {
   
@@ -29,13 +30,12 @@ public class KafkaPartitioner implements Partitioner {
   private static final long SIPHASH_KEY_LSB = 0x95037E0C0DB5B059L;
   
   private Random random = new Random();
-  
-  public KafkaPartitioner(VerifiableProperties props) {
-  }
-  
+    
   @Override
-  public int partition(Object key, int numPartitions) {
-    if (null == key || 0 == ((byte[]) key).length) {
+  public int partition(String topic, Object key, byte[] keyBytes, Object value, byte[] valueBytes, Cluster cluster) {
+    int numPartitions = cluster.partitionCountForTopic(topic);
+
+    if (null == key || 0 == ((byte[]) keyBytes).length) {
       return random.nextInt(numPartitions);
     } else {
       byte[] bytes = (byte[]) key;
@@ -45,4 +45,10 @@ public class KafkaPartitioner implements Partitioner {
       return (int) ((k & 0x7FFFFFFFL) % numPartitions);
     }
   }
+  
+  @Override
+  public void configure(Map<String, ?> configs) {}
+
+  @Override
+  public void close() {}
 }

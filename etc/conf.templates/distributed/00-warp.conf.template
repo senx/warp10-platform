@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -37,6 +37,16 @@ warp.timeunits = us
 
 
 //
+// Some libraries (like Processing), expect the Java version to be 1.y.z, as this has changed
+// with JDK9+, those libraries may fail to parse the java version. This configuration key
+// can be used to force the "java.version" property to the given value if a third party extension 
+// fails to parse the Java version correctly.
+// If you do not use additional extensions or plugins, setting this key is not necessary as Warp 10
+// already takes care of this issue for its direct dependencies.
+//
+#warp.java.version = 1.11.0
+
+//
 // Comma separated list of headers to return in Access-Control-Allow-Headers on top of the token header.
 // This applies to all HTTP endpoints.
 //
@@ -51,14 +61,9 @@ max.encoder.size = 100000
 
 //
 // Comma separated list of components to run in distributed mode
-// Valid values are 'ingress', 'directory', 'store', 'egress', 'fetcher', 'plasmaFE', 'plasmaBE', 'runner', 'webcall'
+// Valid values are 'ingress', 'directory', 'store', 'egress', 'fetcher', 'plasmaFE', 'plasmaBE', 'runner'
 //
-warp.components =
-
-//
-// How often (in ms) should we refetch the region start/end keys
-//
-#warp.hbase.regionkeys.updateperiod = 
+warp.components = ${components}
 
 //
 // String returned by the IDENT function
@@ -104,6 +109,18 @@ warp.components =
 #warp.token.banned.attributes =
 
 //
+// WarpScript map defining the default attributes to allocate to read tokens. Existing attributes will not
+// be overriden if they exist
+//
+warp.token.read.attributes.default = { '.cap:limits' '' }
+
+//
+// WarpScript map defining the default attributes to allocate to write tokens. Existing attributes will not
+// be overriden if they exist
+//
+#warp.token.write.attributes.default = { '.start' 'PT1h' }
+
+//
 // Token file
 //
 #warp.token.file =
@@ -116,7 +133,7 @@ warp.components =
 //
 // root directory where trl files are stored.
 //
-# warp.trl.dir =
+warp.trl.dir = ${warp10.home}/etc/trl
 
 //
 // Period (in ms) between two scans of the trl directory
@@ -132,6 +149,11 @@ warp.components =
 //
 //
 # warp.trl.startup.delay = 60000
+
+//
+// Maximum length of class names - Defaults to 1024
+//
+#warp.class.maxsize = 1024
 
 //
 // Maximum length of labels (names + values) - Defaults to 2048

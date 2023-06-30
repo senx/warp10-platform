@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -39,13 +39,12 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
   private static final String PARAM_MAPPER = "mapper";
   private static final String PARAM_PREWINDOW = "pre";
   private static final String PARAM_POSTWINDOW = "post";
-  @Deprecated
-  // Use PARAM_OCCURRENCES which fixes typo.
-  private static final String PARAM_OCCURENCES = "occurences";
   private static final String PARAM_OCCURRENCES = "occurrences";
   private static final String PARAM_STEP = "step";
   private static final String PARAM_OVERRIDE = "override";
-  private static final String PARAM_OUTPUTTICKS = "ticks";
+
+  private static final String DEPRECATED_PARAM_OCCURENCES = "occurences";
+  private static final String DEPRECATED_PARAM_TICKS = "ticks";
 
   public MAP(String name) {
     super(name);
@@ -69,10 +68,6 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
 
     List<Object> params = (List<Object>) top;
 
-    if (5 > params.size()) {
-      throw new WarpScriptException(getName() + " needs a list of at least 5 parameters as input.");
-    }
-
     int nseries = 0;
 
     for (Object param: params) {
@@ -86,12 +81,20 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
       throw new WarpScriptException(getName() + " expects Geo Time Series or lists thereof as first parameters.");
     }
 
-    if (!(params.get(nseries) instanceof WarpScriptMapperFunction) && !(params.get(nseries) instanceof Macro)) {
+    if (nseries == params.size() || !(params.get(nseries) instanceof WarpScriptMapperFunction) && !(params.get(nseries) instanceof Macro)) {
       throw new WarpScriptException(getName() + " expects a mapper function or a macro after Geo Time Series.");
     }
 
-    if (!(params.get(nseries + 1) instanceof Long) || !(params.get(nseries + 2) instanceof Long) || !(params.get(nseries + 3) instanceof Long)) {
-      throw new WarpScriptException(getName() + " expects prewindow, postwindow and occurrences as 3 parameters following the mapper function.");
+    for (int i = params.size(); i <= nseries + 3; i++) {
+      params.add(0L);
+    }
+
+    if (!(params.get(nseries + 1) instanceof Long) || !(params.get(nseries + 2) instanceof Long)) {
+      throw new WarpScriptException(getName() + " expects prewindow and postwindow as 2 parameters following the mapper function.");
+    }
+
+    if (!(params.get(nseries + 3) instanceof Long) && !(params.get(nseries + 3) instanceof List)) {
+      throw new WarpScriptException(getName() + " expects occurrences (LONG or LIST of LONG) as the parameter following the postwindow parameter.");
     }
 
     int step = 1;
@@ -138,6 +141,14 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
   }
 
   private Object applyWithParamsFromMap(WarpScriptStack stack, Map params) throws WarpScriptException {
+    if (params.containsKey(DEPRECATED_PARAM_OCCURENCES)) {
+      throw new WarpScriptException(getName() + " was given a deprecated parameter with a typo: " + DEPRECATED_PARAM_OCCURENCES + ". Use instead parameter " + PARAM_OCCURRENCES);
+    }
+
+    if (params.containsKey(DEPRECATED_PARAM_TICKS)) {
+      throw new WarpScriptException(getName() + " was given a deprecated parameter: " + DEPRECATED_PARAM_TICKS + ". Consider using " + PARAM_OCCURRENCES + " instead (behaviour is slightly different - see documentation)");
+    }
+
     //
     // Get and check parameters
     //
@@ -169,24 +180,62 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
       throw new WarpScriptException(getName() + " expects the " + PARAM_POSTWINDOW + " parameter to be a LONG.");
     }
 
-    // Backward compatibility, accept deprecated PARAM_OCCURENCES parameter.
-    Object occurencesParam = params.get(PARAM_OCCURENCES);
-    if (occurencesParam instanceof Long) {
-      occurrences = ((Long) occurencesParam).longValue();
-    } else if (params.containsKey(PARAM_OCCURENCES)) {
-      throw new WarpScriptException(getName() + " expects the " + PARAM_OCCURENCES + " parameter to be a LONG.");
-    }
+    List<Long> outputTicks = null;
+    boolean reversed = false;
 
     Object occurrencesParam = params.get(PARAM_OCCURRENCES);
     if (occurrencesParam instanceof Long) {
       occurrences = ((Long) occurrencesParam).longValue();
-    } else if (params.containsKey(PARAM_OCCURRENCES)) {
-      throw new WarpScriptException(getName() + " expects the " + PARAM_OCCURRENCES + " parameter to be a LONG.");
-    }
 
-    // Make sure Math.abs(occurrences) will return a positive value.
-    if (Long.MIN_VALUE == occurrences) {
-      occurrences = Long.MIN_VALUE + 1;
+      // Make sure Math.abs(occurrences) will return a positive value.
+      if (Long.MIN_VALUE == occurrences) {
+        occurrences = Long.MIN_VALUE + 1;
+      }
+
+      reversed = occurrences < 0;
+
+    } else if (occurrencesParam instanceof List) {
+      outputTicks = (List) occurrencesParam;
+
+      for (Object tick: outputTicks) {
+        if (!(tick instanceof Long)) {
+          throw new WarpScriptException(getName() + " expects the " + PARAM_OCCURRENCES + " parameter to be a LONG or a sorted LIST of LONG.");
+        }
+      }
+
+      // check that the list is sorted and find its order
+      // In case of a concurrent execution, sorting outputTicks here would lead to a ConcurrentModificationException
+      if (outputTicks.size() > 1) {
+
+        // we check if it is sorted and increasing
+        int i = 1;
+        long lastElt = outputTicks.get(0);
+        long elt;
+        while (i < outputTicks.size() && !reversed) {
+          elt = outputTicks.get(i);
+          reversed = elt < lastElt;
+          lastElt = elt;
+          i++;
+        }
+
+        // we check if it is sorted and decreasing
+        if (reversed) {
+          i = 1;
+          lastElt = outputTicks.get(0);
+          while (i < outputTicks.size() && reversed) {
+            elt = outputTicks.get(i);
+            reversed = elt <= lastElt;
+            lastElt = elt;
+            i++;
+          }
+
+          if (!reversed) {
+            throw new WarpScriptException(getName() + " expects the " + PARAM_OCCURRENCES + " parameter to be a LONG or a sorted LIST of LONG.");
+          }
+        }
+      }
+    } else if (params.containsKey(PARAM_OCCURRENCES)) {
+      throw new WarpScriptException(getName() + " expects the " + PARAM_OCCURRENCES + " parameter to be a LONG or a sorted LIST of LONG.");
     }
 
     Object stepParam = params.get(PARAM_STEP);
@@ -202,19 +251,6 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
       overrideTick = ((Boolean) overrideParam).booleanValue();
     } else if (params.containsKey(PARAM_OVERRIDE)) {
       throw new WarpScriptException(getName() + " expects the " + PARAM_OVERRIDE + " parameter to be a BOOLEAN.");
-    }
-
-    Object outputTicks = params.get(PARAM_OUTPUTTICKS);
-    // Make sure outputTicks is a List<Long>
-    if (null != outputTicks) {
-      if (!(outputTicks instanceof List)) {
-        throw new WarpScriptException(getName() + " expects '" + PARAM_OUTPUTTICKS + "' to be list of LONG values.");
-      }
-      for (Object tick: (List) outputTicks) {
-        if (!(tick instanceof Long)) {
-          throw new WarpScriptException(getName() + " expects '" + PARAM_OUTPUTTICKS + "' to be list of LONG values.");
-        }
-      }
     }
 
     //
@@ -265,7 +301,7 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
     for (GeoTimeSerie gts: series) {
       List<GeoTimeSerie> res;
       try {
-        res = GTSHelper.map(gts, mapper, prewindow, postwindow, Math.abs(occurrences), occurrences < 0, step, overrideTick, mapper instanceof Macro ? stack : null, (List<Long>) outputTicks);
+        res = GTSHelper.map(gts, mapper, prewindow, postwindow, Math.abs(occurrences), reversed, step, overrideTick, mapper instanceof Macro ? stack : null, (List<Long>) outputTicks);
       } catch (WarpScriptATCException wsatce) {
         // Do not handle WarpScriptATCException (STOP in MACROMAPPER for instance)
         throw wsatce;

@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package io.warp10.script.functions;
 
+import io.warp10.ThriftUtils;
 import io.warp10.WarpConfig;
 import io.warp10.WarpDist;
 import io.warp10.WarpURLDecoder;
@@ -211,14 +212,26 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
 
     long gskip = 0L;
     long gcount = Long.MAX_VALUE;
+    boolean mustSort = false;
 
     if (mapparams) {
       top = stack.pop();
       Map<String,Object> params = paramsFromMap((Map) top);
 
+      if (params.get(FETCH.PARAM_GSKIP) instanceof Long) {
+        gskip = ((Long) params.get(FETCH.PARAM_GSKIP)).longValue();
+        mustSort = true;
+      }
+
+      if (params.get(FETCH.PARAM_GCOUNT) instanceof Long) {
+        gcount = ((Long) params.get(FETCH.PARAM_GCOUNT)).longValue();
+        mustSort = true;
+      }
+
       if (params.containsKey(FETCH.PARAM_SELECTOR_PAIRS)) {
         List<Pair<Object, Object>> selectors = (List<Pair<Object, Object>>) params.get(FETCH.PARAM_SELECTOR_PAIRS);
         drequest = new DirectoryRequest();
+        drequest.setSorted(mustSort);
         for (int i = 0; i < selectors.size(); i++) {
           String csel = (String) selectors.get(i).getLeft();
           Map<String,String> lsel = (Map<String,String>) selectors.get(i).getRight();
@@ -239,14 +252,6 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
 
       if (params.containsKey(FETCH.PARAM_LABELS_PRIORITY)) {
         order = (List<String>) params.get(FETCH.PARAM_LABELS_PRIORITY);
-      }
-
-      if (params.get(FETCH.PARAM_GSKIP) instanceof Long) {
-        gskip = ((Long) params.get(FETCH.PARAM_GSKIP)).longValue();
-      }
-
-      if (params.get(FETCH.PARAM_GCOUNT) instanceof Long) {
-        gcount = ((Long) params.get(FETCH.PARAM_GCOUNT)).longValue();
       }
     } else {
       if (this.metaset) {
@@ -384,9 +389,9 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
     Iterator<Metadata> iter = null;
 
     try {
-
       if (null == drequest) {
         drequest = new DirectoryRequest();
+        drequest.setSorted(mustSort);
         drequest.setClassSelectors(clsSels);
         drequest.setLabelsSelectors(lblsSels);
       } else {
@@ -492,7 +497,7 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
         }
 
         if (gtscount.incrementAndGet() > gtsLimit) {
-          throw new WarpScriptException(getName() + " exceeded limit of " + gtsLimit + " Geo Time Series, current count is " + gtscount.get());
+          throw new WarpScriptException(getName() + " exceeded limit of " + gtsLimit + " Geo Time Series, current count is " + gtscount.get() + ". Consider raising the limit or using capabilities.");
         }
 
         stack.handleSignal();
@@ -557,7 +562,7 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
         // Encode the MetaSet
         //
 
-        TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+        TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
 
         try {
           byte[] serialized = serializer.serialize(set);

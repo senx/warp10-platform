@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package io.warp10.script.functions;
 
+import io.warp10.ThriftUtils;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSWrapperHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
@@ -46,7 +47,7 @@ public class ASENCODERS extends ElementOrListStackFunction {
 
       // If raw wrap, convert to GTS
       if (element instanceof byte[]) {
-        TDeserializer deser = new TDeserializer(new TCompactProtocol.Factory());
+        TDeserializer deser = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
 
         try {
           GTSWrapper wrapper = new GTSWrapper();
@@ -72,13 +73,13 @@ public class ASENCODERS extends ElementOrListStackFunction {
 
           return encoder;
         } catch (IOException ioe) {
-          throw new WarpScriptException(getName() + " cannot convert Encoder to Geo Time Series™.", ioe);
+          throw new WarpScriptException(getName() + " cannot convert Encoder to Geo Time Series.", ioe);
         }
       } else if (element instanceof GTSEncoder) {
         // Nothing to do, return instance.
         return element;
       } else {
-        throw new WarpScriptException(getName() + " expects a Geo Time Series™ or a list thereof on top on the stack.");
+        throw new WarpScriptException(getName() + " expects a Geo Time Series or a list thereof on top on the stack.");
       }
     }
   };

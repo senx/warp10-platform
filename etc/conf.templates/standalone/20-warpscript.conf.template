@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2020  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -27,9 +27,8 @@
 #processing.font.resolver = NOOP
 
 // Maximum time that TIMEBOX can wait for an execution (in ms), defaults to 30s
+// This value can be overridden with the timebox.maxtime capability (with capability value in ms)
 #warpscript.timebox.maxtime=30000
-// Capability name for extending the previous value per warpscript
-#warpscript.timebox.maxtime.capname=
 
 // Path of the 'bootstrap' WarpScript code for the interactive mode
 #warpscript.interactive.bootstrap.path =
@@ -56,23 +55,10 @@
 warpscript.def.unshadow = false
 
 //
-// Jar Repository - for Warp10 UDF only
-//
-
-// The path to a directory containing jar files from which UDFs can be loaded
-warpscript.jars.directory = ${standalone.home}/jars
-
-// How often (in ms) should Warp 10 rescan the above directory
-warpscript.jars.refresh = 60000
-
-// Set to 'true' to allow loading the UDFs from the classpath when no directory is explicitely defined
-warpscript.jars.fromclasspath = true 
-
-//
 // Default maximum number of operations a single WarpScript execution can do
 //
-warpscript.maxops = 1000
-warpscript.maxops.hard = 20000
+warpscript.maxops = 100000
+warpscript.maxops.hard = 2000000
 
 //
 // Maximum number of buckets which can result of a call to BUCKETIZE
@@ -99,8 +85,8 @@ warpscript.maxdepth.hard = 2000
 // Maximum number of datapoint which can be fetched during a WarpScript execution
 // Can be modified by LIMIT up to the hard limit below
 //
-warpscript.maxfetch = 100000
-warpscript.maxfetch.hard = 1000000
+warpscript.maxfetch = 1000000
+warpscript.maxfetch.hard = 2000000
 
 //
 // Maximum number of GTS which can be retrieved from Directory during a WarpScript execution
@@ -141,11 +127,6 @@ warpscript.maxjson = 20971520
 warpscript.maxjson.hard = 209715200
 
 //
-// WEBCALL limit per WarpScript
-//
-warpscript.maxwebcalls = 4
-
-//
 // CALL root directory property
 //
 warpscript.call.directory = ${standalone.home}/calls
@@ -182,6 +163,7 @@ warpscript.delete.endpoint = http://${standalone.host}:${standalone.port}/api/v0
 
 //
 // Maximum amount of time each attempt to access a process will wait (in ms). Defaults to 10000 ms.
+// This value can also be overridden with call.maxwait capability.
 //
 #warpscript.call.maxwait = 10000
 
@@ -211,34 +193,25 @@ warpscript.runner.bootstrap.path = ${standalone.home}/etc/bootstrap/runner.mc2
 warpscript.runner.bootstrap.period = 120000
 
 //
-// URLFETCH extension
-//
-
-// Maximum number of URLFETCH calls, 64 by default for soft and hard
-#warpscript.urlfetch.limit =
-#warpscript.urlfetch.limit.hard =
-// Maximum downloaded bytes by URLFETCH, 1000000 by default for soft and hard
-#warpscript.urlfetch.maxsize =
-#warpscript.urlfetch.maxsize.hard =
-// List of patterns to include/exclude for hosts, works the same way as webcall.host.patterns. Defaults to the value of webcall.host.patterns.
-#warpscript.urlfetch.host.patterns =
-
-//
 // HTTP extension
 //
 
-// If set to true, HTTP requires the stack to be authenticated
-#warpscript.http.authentication.required =
-// If set, the capability <warpscript.http.capability> is checked to grant access to HTTP function
-#warpscript.http.capability =
+// To use HTTP, you must have a token with "http" capability (value can be empty). 
+
 // Maximum number of HTTP calls, 1 by default, can be raised with capability http.requests
 #warpscript.http.maxrequests =
 // Maximum downloaded bytes by HTTP, 65536 by default, can be raised with capability http.size
 #warpscript.http.maxsize =
 // Maximum chunk size allowed when dowloading per chunk using HTTP, 65536 by default, can be raised with capability http.chunksize
 #warpscript.http.maxchunksize =
-// List of patterns to include/exclude for hosts, works the same way as webcall.host.patterns. Defaults to the value of webcall.host.patterns.
-#warpscript.http.host.patterns =
+// Maximum timeout for HTTP calls in milliseconds, 60000 ms by default, can be raised with capability http.timeout
+#warpscript.http.maxtimeout = 60000
+//
+// List of patterns to include/exclude for hosts in HTTP calls
+// Typical value is .*,!^127.0.0.1$,!^localhost$,!^192.168.*,!^10.*,!^172.(16|17|18|19|20|21|22|23|24|25|26|27|28|29|39|31)\..*
+// Defaults to !.*
+//
+#warpscript.http.host.patterns = !.*
 
 //
 // allow C style block comments. /**** valid block comment ****/
@@ -251,3 +224,8 @@ warpscript.comments.loose = true
 // Defaults to .producer,.app,.owner
 //
 #warpscript.labels.priority =
+
+//
+// Default capabilities
+//
+#warp.capabilities.default = { 'limits' '' }

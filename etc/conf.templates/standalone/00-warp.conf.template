@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -20,8 +20,29 @@
 //
 /////////////////////////////////////////////////////////////////////////////////////////
 
+//  
+// Some libraries (like Processing), expect the Java version to be 1.y.z, as this has changed
+// with JDK9+, those libraries may fail to parse the java version. This configuration key
+// can be used to force the "java.version" property to the given value if a third party extension
+// fails to parse the Java version correctly.
+// If you do not use additional extensions or plugins, setting this key is not necessary as Warp 10
+// already takes care of this issue for its direct dependencies.
 //
-// Set to true to only run the Warp 10™ Analytics Engine
+#warp.java.version = 1.11.0
+
+//
+// Storage backend to use. Possible values are:
+//
+// leveldb
+// fdb
+// memory
+// plasma
+// null
+
+backend = leveldb
+
+//
+// Set to true to only run the Warp 10 Analytics Engine
 //
 #analytics.engine.only = true
 
@@ -72,7 +93,7 @@
 //
 // Directory of Warp10 standalone install
 //
-standalone.home = /opt/warp10-@VERSION@
+standalone.home = ${warp10.home}
 
 //
 // Time units of the platform
@@ -128,16 +149,6 @@ standalone.selectors = 4
 standalone.max.encoder.size = 100000
 
 //
-// Path to a file to use for triggering compaction suspension to take snapshots
-//
-standalone.snapshot.trigger = ${leveldb.home}/snapshot.trigger
-
-//
-// Path to a file to use for signaling that compactions are suspended
-//
-standalone.snapshot.signal = ${leveldb.home}/snapshot.signal
-
-//
 // Set to true to disable the delete endpoint.
 //
 standalone.delete.disable = false
@@ -156,11 +167,6 @@ standalone.delete.disable = false
 // Max message size for the Plasma Frontend Websocket
 //
 plasma.frontend.websocket.maxmessagesize = 1048576
-
-//
-// Set to 'true' to only forward data to Plasma. Not data storage will take place.
-//
-#pureplasma =
 
 //
 // Number of threads to use for scheduling parallel scanners. Use 0 to disable parallel scanners
@@ -195,6 +201,18 @@ plasma.frontend.websocket.maxmessagesize = 1048576
 #warp.token.banned.attributes =
 
 //
+// WarpScript map defining the default attributes to allocate to read tokens. Existing attributes will not
+// be overriden if they exist
+//
+warp.token.read.attributes.default = { '.cap:limits' '' }
+
+//  
+// WarpScript map defining the default attributes to allocate to write tokens. Existing attributes will not
+// be overriden if they exist
+//
+#warp.token.write.attributes.default = { '.start' 'PT1h' }
+
+//
 // Token file
 //
 #warp.token.file =
@@ -225,6 +243,11 @@ plasma.frontend.websocket.maxmessagesize = 1048576
 # warp.trl.startup.delay = 60000
 
 //
+// Maximum length of class names - Defaults to 1024
+//
+#warp.class.maxsize = 1024
+
+//
 // Maximum length of labels (names + values) - Defaults to 2048
 //
 #warp.labels.maxsize = 2048
@@ -233,6 +256,18 @@ plasma.frontend.websocket.maxmessagesize = 1048576
 // Maximum length of attributes (names + values) - Defaults to 8192
 //
 #warp.attributes.maxsize = 8192
+
+//
+// Metadata size (class + attributes + labels) has a default upper bound compatible
+// with FoundationDB maximum record size (100k bytes).
+// This limit is checked and Warp 10 will stop if the configured sizes add up to more
+// than this limit.
+// This check can be relaxed to only emit a warning by setting the configuration below
+// to 'true'.
+// Note that doing so may break replication to a FoundationDB backed instance as records
+// exceeding the maximum size may be generated.
+//
+#warp.relax.metadata.maxsize = true
 
 //
 // Set to true to expose owner and producer labels in Geo Time Series retrieved from the Warp 10 Storage Engine 

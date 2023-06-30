@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
+
 package io.warp10.continuum.store;
 
 import java.io.IOException;
@@ -33,8 +34,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 
 import io.warp10.CustomThreadFactory;
-import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.Connection;
 
 import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
@@ -43,12 +42,15 @@ import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.thrift.data.FetchRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.KeyStore;
+import io.warp10.fdb.FDBPool;
 import io.warp10.sensision.Sensision;
 import io.warp10.standalone.Warp;
 
 public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
 
   private static final boolean standalone;
+  private static final String backend;
+  private static final boolean FDBBackend;
 
   //
   // Have a semaphore which gets picked up by a thread having
@@ -90,10 +92,10 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
 
       long waitnanos = System.nanoTime() - this.creation;
 
-      if (standalone) {
+      if (standalone && !FDBBackend) {
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_CLIENT_PARALLEL_SCANNERS_WAITNANOS, Sensision.EMPTY_LABELS, waitnanos);
       } else {
-        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_PARALLEL_SCANNERS_WAITNANOS, Sensision.EMPTY_LABELS, waitnanos);
+        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FDB_CLIENT_PARALLEL_SCANNERS_WAITNANOS, Sensision.EMPTY_LABELS, waitnanos);
       }
 
       GTSDecoder lastdecoder = null;
@@ -108,10 +110,10 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
         this.thread = Thread.currentThread();
         name = this.thread.getName();
         this.thread.setName("GTSDecoderIteratorRunnable");
-        if (standalone) {
+        if (standalone && !FDBBackend) {
           Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_CLIENT_PARALLEL_SCANNERS, Sensision.EMPTY_LABELS, 1);
         } else {
-          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_PARALLEL_SCANNERS, Sensision.EMPTY_LABELS, 1);
+          Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FDB_CLIENT_PARALLEL_SCANNERS, Sensision.EMPTY_LABELS, 1);
         }
 
         // Increment inflight BEFORE decrementing pending
@@ -163,10 +165,10 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
             if (0 == held) {
               this.sem.acquire(POOLSIZE);
               held = POOLSIZE;
-              if (standalone) {
+              if (standalone && !FDBBackend) {
                 Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_CLIENT_PARALLEL_SCANNERS_MUTEX, Sensision.EMPTY_LABELS, 1);
               } else {
-                Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_PARALLEL_SCANNERS_MUTEX, Sensision.EMPTY_LABELS, 1);
+                Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FDB_CLIENT_PARALLEL_SCANNERS_MUTEX, Sensision.EMPTY_LABELS, 1);
               }
             }
 
@@ -228,20 +230,22 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
   private static final int POOLSIZE;
 
   static {
-    standalone = Warp.isStandaloneMode();
+    standalone = WarpConfig.isStandaloneMode();
+    backend = Warp.getBackend();
+    FDBBackend = Constants.BACKEND_FDB.equals(backend);
 
-    if (standalone) {
+    if (standalone && !FDBBackend) {
       MAX_INFLIGHT = Integer.parseInt(WarpConfig.getProperty(Configuration.STANDALONE_PARALLELSCANNERS_MAXINFLIGHTPERREQUEST, "0"));
       POOLSIZE = Integer.parseInt(WarpConfig.getProperty(Configuration.STANDALONE_PARALLELSCANNERS_POOLSIZE, "0"));
 
       MIN_GTS_PERSCANNER = Integer.parseInt(WarpConfig.getProperty(Configuration.STANDALONE_PARALLELSCANNERS_MIN_GTS_PERSCANNER, "4"));
       MAX_PARALLEL_SCANNERS = Integer.parseInt(WarpConfig.getProperty(Configuration.STANDALONE_PARALLELSCANNERS_MAX_PARALLEL_SCANNERS, "16"));
     } else {
-      MAX_INFLIGHT = Integer.parseInt(WarpConfig.getProperty(Configuration.EGRESS_HBASE_PARALLELSCANNERS_MAXINFLIGHTPERREQUEST, "0"));
-      POOLSIZE = Integer.parseInt(WarpConfig.getProperty(Configuration.EGRESS_HBASE_PARALLELSCANNERS_POOLSIZE, "0"));
+      MAX_INFLIGHT = Integer.parseInt(WarpConfig.getProperty(Configuration.EGRESS_FDB_PARALLELSCANNERS_MAXINFLIGHTPERREQUEST, "0"));
+      POOLSIZE = Integer.parseInt(WarpConfig.getProperty(Configuration.EGRESS_FDB_PARALLELSCANNERS_POOLSIZE, "0"));
 
-      MIN_GTS_PERSCANNER = Integer.parseInt(WarpConfig.getProperty(Configuration.EGRESS_HBASE_PARALLELSCANNERS_MIN_GTS_PERSCANNER, "4"));
-      MAX_PARALLEL_SCANNERS = Integer.parseInt(WarpConfig.getProperty(Configuration.EGRESS_HBASE_PARALLELSCANNERS_MAX_PARALLEL_SCANNERS, "16"));
+      MIN_GTS_PERSCANNER = Integer.parseInt(WarpConfig.getProperty(Configuration.EGRESS_FDB_PARALLELSCANNERS_MIN_GTS_PERSCANNER, "4"));
+      MAX_PARALLEL_SCANNERS = Integer.parseInt(WarpConfig.getProperty(Configuration.EGRESS_FDB_PARALLELSCANNERS_MAX_PARALLEL_SCANNERS, "16"));
     }
 
     if (MAX_INFLIGHT> 0 && POOLSIZE > 0) {
@@ -279,8 +283,8 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
   private static final int MIN_GTS_PERSCANNER;
   private static final int MAX_PARALLEL_SCANNERS;
 
-  public ParallelGTSDecoderIteratorWrapper(FetchRequest req, boolean optimized, KeyStore keystore, Connection conn, TableName tableName, byte[] colfam, boolean useBlockCache) throws IOException {
-    if (standalone) {
+  public ParallelGTSDecoderIteratorWrapper(boolean fdbUseTenantPrefix, FetchRequest req, FDBPool pool, KeyStore keystore) throws IOException {
+    if (standalone && !FDBBackend) {
       throw new IOException("Incompatible parallel scanner instantiated.");
     }
 
@@ -322,11 +326,7 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
         req.setMetadatas(lm);
         freq.setMetadatas(metas);
 
-        if (optimized) {
-          iterator = new OptimizedSlicedRowFilterGTSDecoderIterator(freq, conn, tableName, colfam, keystore, useBlockCache);
-        } else {
-          iterator = new MultiScanGTSDecoderIterator(freq, conn, tableName, colfam, keystore, useBlockCache);
-        }
+        iterator = new MultiScanGTSDecoderIterator(fdbUseTenantPrefix, freq, pool, keystore);
 
         GTSDecoderIteratorRunnable runnable = new GTSDecoderIteratorRunnable(iterator, queue, sem, this.pending, this.inflight, this.errorFlag, this.errorThrowable);
         runnables.add(runnable);
@@ -345,11 +345,7 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
       req.setMetadatas(lm);
       freq.setMetadatas(metas);
 
-      if (optimized) {
-        iterator = new OptimizedSlicedRowFilterGTSDecoderIterator(freq, conn, tableName, colfam, keystore, useBlockCache);
-      } else {
-        iterator = new MultiScanGTSDecoderIterator(freq, conn, tableName, colfam, keystore, useBlockCache);
-      }
+      iterator = new MultiScanGTSDecoderIterator(fdbUseTenantPrefix, freq, pool, keystore);
 
       GTSDecoderIteratorRunnable runnable = new GTSDecoderIteratorRunnable(iterator, queue, sem, this.pending, this.inflight, this.errorFlag, this.errorThrowable);
       runnables.add(runnable);
@@ -368,7 +364,7 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
     //ReadToken token, long now, long then, long count, long skip, long step, long timestep, double sample, List<Metadata> metadatas, long preBoundary, long postBoundary
     List<Metadata> metadatas = req.getMetadatas();
 
-    if (!standalone) {
+    if (!standalone || FDBBackend) {
       throw new IOException("Incompatible parallel scanner instantiated.");
     }
 
@@ -406,9 +402,6 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
         FetchRequest freq = new FetchRequest(req);
         // Restore Metadatas
         req.setMetadatas(lm);
-        // For standalone writeTimestamp and TTL are forced to false
-        freq.setWriteTimestamp(false);
-        freq.setTTL(false);
         freq.setMetadatas(metas);
         iterator = client.fetch(freq);
 
@@ -427,7 +420,6 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
       FetchRequest freq = new FetchRequest(req);
       // Restore Metadatas
       req.setMetadatas(lm);
-      freq.setWriteTimestamp(false);
       freq.setMetadatas(metas);
       iterator = client.fetch(freq);
 
@@ -463,7 +455,7 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
 
     while(!this.errorFlag.get() && this.queue.isEmpty() && !(0 == this.pending.get() &&  0 == this.inflight.get())) {
       schedule();
-      LockSupport.parkNanos(50000L);
+      LockSupport.parkNanos(500000L);
     }
 
     if (this.errorFlag.get()) {
@@ -515,10 +507,10 @@ public class ParallelGTSDecoderIteratorWrapper extends GTSDecoderIterator {
       idx++;
     } catch (RejectedExecutionException ree) {
       // WARN(hbs): the exception caught here is a singleton for the Executor (see initialization of the executor)
-      if (standalone) {
+      if (standalone && !FDBBackend) {
         Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STANDALONE_CLIENT_PARALLEL_SCANNERS_REJECTIONS, Sensision.EMPTY_LABELS, 1);
       } else {
-        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_HBASE_CLIENT_PARALLEL_SCANNERS_REJECTIONS, Sensision.EMPTY_LABELS, 1);
+        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FDB_CLIENT_PARALLEL_SCANNERS_REJECTIONS, Sensision.EMPTY_LABELS, 1);
       }
     }
   }

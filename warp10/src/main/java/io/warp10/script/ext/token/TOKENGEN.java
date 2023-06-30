@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2021  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -25,6 +25,8 @@ import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.warp.sdk.Capabilities;
+
 import org.apache.thrift.TBase;
 import org.apache.thrift.TException;
 
@@ -93,13 +95,14 @@ public class TOKENGEN extends NamedWarpScriptFunction implements WarpScriptStack
 
     // First, check if SipHash and AES keys are explicitly defined. In that case, no need for secret.
     Object top = stack.pop();
+
     if (top instanceof byte[]) {
       tokenSipHashKey = (byte[]) top;
 
       top = stack.pop();
 
       if (!(top instanceof byte[])) {
-        throw new WarpScriptException(getName() + " expects a BYTES AES Key if a BYTES SipHash is given.");
+        throw new WarpScriptException(getName() + " expects a BYTES AES Key if a BYTES SipHash key is provided.");
       }
 
       tokenAESKey = (byte[]) top;
@@ -109,23 +112,11 @@ public class TOKENGEN extends NamedWarpScriptFunction implements WarpScriptStack
 
     if (null == tokenAESKey) { // in that case we have also null == tokenSipHashKey
       // SipHash and AES keys are not explicitly defined, so we fall back to those of the keystore.
-      // Check the secret if needed before the fallback.
+      // Check the capability before the fallback.
       if (warpKeystore) {
-        String secret = TokenWarpScriptExtension.TOKEN_SECRET;
-
-        if (null == secret) {
-          throw new WarpScriptException(getName() + " expects a token secret to be set in the configuration.");
+        if (null == Capabilities.get(stack, TokenWarpScriptExtension.CAPABILITY_TOKENGEN)) {
+          throw new WarpScriptException(getName() + " missing capability.");
         }
-
-        if (!(top instanceof String)) {
-          throw new WarpScriptException(getName() + " expects a STRING token secret.");
-        }
-
-        if (!secret.equals(top)) {
-          throw new WarpScriptException(getName() + " invalid token secret.");
-        }
-
-        top = stack.pop();
       }
 
       // Fallback to keystore keys.
@@ -189,17 +180,21 @@ public class TOKENGEN extends NamedWarpScriptFunction implements WarpScriptStack
 
       if (null != params.get(KEY_TTL)) {
         long ttl = ((Number) params.get(KEY_TTL)).longValue();
-        if (ttl > Long.MAX_VALUE - rtoken.getIssuanceTimestamp()) {
+        try {
+          rtoken.setExpiryTimestamp(Math.addExact(ttl, rtoken.getIssuanceTimestamp()));
+        } catch (ArithmeticException ae) {
           rtoken.setExpiryTimestamp(Long.MAX_VALUE);
-        } else {
-          rtoken.setExpiryTimestamp(rtoken.getIssuanceTimestamp() + ttl);
         }
       } else if (null != params.get(KEY_EXPIRY)) {
         rtoken.setExpiryTimestamp(((Number) params.get(KEY_EXPIRY)).longValue());
       } else if (0L == defaultTtl) {
         throw new WarpScriptException(name + " missing '" + KEY_TTL + "' or '" + KEY_EXPIRY + "'.");
       } else {
-        rtoken.setExpiryTimestamp(rtoken.getIssuanceTimestamp() + defaultTtl);
+        try {
+          rtoken.setExpiryTimestamp(Math.addExact(defaultTtl, rtoken.getIssuanceTimestamp()));
+        } catch (ArithmeticException ae) {
+          rtoken.setExpiryTimestamp(Long.MAX_VALUE);
+        }
       }
 
       if (null != params.get(KEY_OWNERS)) {
@@ -286,17 +281,21 @@ public class TOKENGEN extends NamedWarpScriptFunction implements WarpScriptStack
 
       if (null != params.get(KEY_TTL)) {
         long ttl = ((Number) params.get(KEY_TTL)).longValue();
-        if (ttl > Long.MAX_VALUE - wtoken.getIssuanceTimestamp()) {
+        try {
+          wtoken.setExpiryTimestamp(Math.addExact(ttl, wtoken.getIssuanceTimestamp()));
+        } catch (ArithmeticException ae) {
           wtoken.setExpiryTimestamp(Long.MAX_VALUE);
-        } else {
-          wtoken.setExpiryTimestamp(wtoken.getIssuanceTimestamp() + ttl);
         }
       } else if (null != params.get(KEY_EXPIRY)) {
         wtoken.setExpiryTimestamp(((Number) params.get(KEY_EXPIRY)).longValue());
       } else if (0L == defaultTtl) {
         throw new WarpScriptException(name + " missing '" + KEY_TTL + "' or '" + KEY_EXPIRY + "'.");
       } else {
-        wtoken.setExpiryTimestamp(wtoken.getIssuanceTimestamp() + defaultTtl);
+        try {
+          wtoken.setExpiryTimestamp(Math.addExact(defaultTtl, wtoken.getIssuanceTimestamp()));
+        } catch (ArithmeticException ae) {
+          wtoken.setExpiryTimestamp(Long.MAX_VALUE);
+        }
       }
 
       if (null != params.get(KEY_OWNER)) {

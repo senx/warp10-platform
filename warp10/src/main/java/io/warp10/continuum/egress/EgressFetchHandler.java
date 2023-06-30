@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -29,6 +29,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -51,7 +52,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.codec.binary.Hex;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
@@ -69,7 +69,10 @@ import org.slf4j.LoggerFactory;
 import com.geoxp.GeoXPLib;
 import com.google.common.primitives.Longs;
 
+import io.warp10.BytesUtils;
+import io.warp10.ThriftUtils;
 import io.warp10.ThrowableUtils;
+import io.warp10.WarpConfig;
 import io.warp10.WarpURLDecoder;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.Tokens;
@@ -103,7 +106,6 @@ import io.warp10.script.functions.ADDDURATION;
 import io.warp10.script.functions.FETCH;
 import io.warp10.sensision.Sensision;
 import io.warp10.standalone.AcceleratorConfig;
-import io.warp10.standalone.Warp;
 
 public class EgressFetchHandler extends AbstractHandler {
 
@@ -189,6 +191,7 @@ public class EgressFetchHandler extends AbstractHandler {
       long gcount = Long.MAX_VALUE;
       long gskip = 0;
       long count = -1;
+      boolean mustSort = false;
       long skip = 0;
       long step = 1L;
       long timestep = 1L;
@@ -212,6 +215,7 @@ public class EgressFetchHandler extends AbstractHandler {
       String sampleParam = null;
       String preBoundaryParam = null;
       String postBoundaryParam = null;
+      Map<String,String> attrParams = new HashMap<String,String>();
 
       if (splitFetch) {
         //
@@ -231,6 +235,14 @@ public class EgressFetchHandler extends AbstractHandler {
         sampleParam = req.getHeader(Warp10InputFormat.HTTP_HEADER_SAMPLE);
         preBoundaryParam = req.getHeader(Warp10InputFormat.HTTP_HEADER_PREBOUNDARY);
         postBoundaryParam = req.getHeader(Warp10InputFormat.HTTP_HEADER_POSTBOUNDARY);
+
+        Enumeration<String> names = req.getHeaderNames();
+        while(names.hasMoreElements()) {
+          String name = names.nextElement();
+          if (name.startsWith(Warp10InputFormat.HTTP_HEADER_ATTR_PREFIX)) {
+            attrParams.put(name.substring(Warp10InputFormat.HTTP_HEADER_ATTR_PREFIX.length()), req.getHeader(name));
+          }
+        }
       } else {
         startParam = req.getParameter(Constants.HTTP_PARAM_START);
         stopParam = req.getParameter(Constants.HTTP_PARAM_STOP);
@@ -248,6 +260,14 @@ public class EgressFetchHandler extends AbstractHandler {
         sampleParam = req.getParameter(Constants.HTTP_PARAM_SAMPLE);
         preBoundaryParam = req.getParameter(Constants.HTTP_PARAM_PREBOUNDARY);
         postBoundaryParam = req.getParameter(Constants.HTTP_PARAM_POSTBOUNDARY);
+
+        Enumeration<String> names = req.getParameterNames();
+        while(names.hasMoreElements()) {
+          String name = names.nextElement();
+          if (name.startsWith(Constants.HTTP_PARAM_ATTR_PREFIX)) {
+            attrParams.put(name.substring(Constants.HTTP_PARAM_ATTR_PREFIX.length()), req.getParameter(name));
+          }
+        }
       }
 
       boolean nocache = AcceleratorConfig.getDefaultReadNocache();
@@ -302,7 +322,7 @@ public class EgressFetchHandler extends AbstractHandler {
       }
 
       boolean showErrors = null != showErrorsParam;
-      boolean dedup = null != dedupParam && "true".equals(dedupParam);
+      boolean dedup = null != dedupParam;
 
       //
       // Handle aliases
@@ -364,10 +384,12 @@ public class EgressFetchHandler extends AbstractHandler {
 
       if (null != gcountParam) {
         gcount = Long.parseLong(gcountParam);
+        mustSort = true;
       }
 
       if (null != gskipParam) {
         gskip = Long.parseLong(gskipParam);
+        mustSort = true;
       }
 
       if (null != stepParam) {
@@ -498,11 +520,11 @@ public class EgressFetchHandler extends AbstractHandler {
         }
       }
 
-      boolean showAttr = "true".equals(req.getParameter(Constants.HTTP_PARAM_SHOWATTR));
+      boolean showAttr = null != req.getParameter(Constants.HTTP_PARAM_SHOWATTR);
 
       Long activeAfter = null == req.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER) ? null : Long.parseLong(req.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER));
       Long quietAfter = null == req.getParameter(Constants.HTTP_PARAM_QUIETAFTER) ? null : Long.parseLong(req.getParameter(Constants.HTTP_PARAM_QUIETAFTER));
-      boolean sortMeta = "true".equals(req.getParameter(Constants.HTTP_PARAM_SORTMETA));
+      boolean sortMeta = null != req.getParameter(Constants.HTTP_PARAM_SORTMETA);
 
       //
       // Apply constraints from token attribute
@@ -591,7 +613,7 @@ public class EgressFetchHandler extends AbstractHandler {
         // the directory is not accessed via the network and therefore cannot time out
         //
 
-        cacheGTS = !Warp.isStandaloneMode();
+        cacheGTS = !WarpConfig.isStandaloneMode();
 
         String[] selectors = selector.split("\\s+");
 
@@ -634,6 +656,7 @@ public class EgressFetchHandler extends AbstractHandler {
           lblsSels.add(labelsSelectors);
 
           DirectoryRequest request = new DirectoryRequest();
+          request.setSorted(mustSort);
           request.setClassSelectors(clsSels);
           request.setLabelsSelectors(lblsSels);
 
@@ -748,7 +771,7 @@ public class EgressFetchHandler extends AbstractHandler {
               throw new RuntimeException("Invalid wrapped content.");
             }
 
-            TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
+            TDeserializer deserializer = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
 
             GTSSplit split = new GTSSplit();
 
@@ -803,7 +826,7 @@ public class EgressFetchHandler extends AbstractHandler {
 
         FileWriter writer = new FileWriter(cache);
 
-        TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+        TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
 
         int padidx = 0;
 
@@ -874,7 +897,7 @@ public class EgressFetchHandler extends AbstractHandler {
           private Metadata current = null;
           private boolean done = false;
 
-          private TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
+          private TDeserializer deserializer = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
 
           int padidx = 0;
 
@@ -979,11 +1002,12 @@ public class EgressFetchHandler extends AbstractHandler {
             freq.setStep(step);
             freq.setTimestep(timestep);
             freq.setSample(sample);
-            // We force writeTimestamp and TTL to false since they cannot be specified in the /fetch URL
-            freq.setWriteTimestamp(false);
-            freq.setTTL(false);
             freq.setPreBoundary(preBoundary);
             freq.setPostBoundary(postBoundary);
+
+            for (Entry<String,String> attr: attrParams.entrySet()) {
+              freq.putToAttributes(attr.getKey(), attr.getValue());
+            }
 
             try(GTSDecoderIterator iterrsc = storeClient.fetch(freq)) {
               GTSDecoderIterator iter = iterrsc;
@@ -1246,7 +1270,7 @@ public class EgressFetchHandler extends AbstractHandler {
       // Serialize the wrapper
       //
 
-      TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+      TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
       byte[] data = null;
 
       try {
@@ -1458,7 +1482,7 @@ public class EgressFetchHandler extends AbstractHandler {
                 dup = false;
               }
             } else if (newValue instanceof byte[]) {
-              if (!(value instanceof byte[]) || 0 != Bytes.compareTo((byte[]) newValue, (byte[]) value)) {
+              if (!(value instanceof byte[]) || 0 != BytesUtils.compareTo((byte[]) newValue, (byte[]) value)) {
                 dup = false;
               }
             }
@@ -1881,7 +1905,7 @@ public class EgressFetchHandler extends AbstractHandler {
                 dup = false;
               }
             } else if (newValue instanceof byte[]) {
-              if (!(value instanceof byte[]) || 0 != Bytes.compareTo((byte[]) value, (byte[]) newValue)) {
+              if (!(value instanceof byte[]) || 0 != BytesUtils.compareTo((byte[]) value, (byte[]) newValue)) {
                 dup = false;
               }
             } else if (newValue instanceof Boolean) {
@@ -2213,7 +2237,7 @@ public class EgressFetchHandler extends AbstractHandler {
 
           GTSWrapper wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(encoder, true);
 
-          TSerializer ser = new TSerializer(new TCompactProtocol.Factory());
+          TSerializer ser = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
           byte[] serialized;
 
           try {

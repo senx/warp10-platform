@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -33,15 +33,17 @@ public class RunTests {
       stack.setAttribute(WarpScriptStack.ATTRIBUTE_MAX_OPS, Long.MAX_VALUE);
       
       BufferedReader br = new BufferedReader(new FileReader(arg));
-      
-      while(true) {
+
+      long lineno = 0;
+
+      while (true) {
         String line = br.readLine();
-        
+        lineno++;
         if (null == line) {
           break;
         }
-        
-        stack.exec(line);
+
+        stack.exec(line, lineno);
       }
       
       br.close();          

@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -42,7 +42,7 @@ import org.joda.time.format.ISOPeriodFormat;
  */
 public class DURATION extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  final private static Double STU = new Double(Constants.TIME_UNITS_PER_S);
+  final private static Double STU = Double.valueOf(Constants.TIME_UNITS_PER_S);
 
   final private static Pattern NEGATIVE_ZERO_SECONDS_PATTERN = Pattern.compile(".*-0+$");
 

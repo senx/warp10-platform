@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2020  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -29,11 +29,12 @@ import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.SipHashInline;
 import io.warp10.quasar.token.thrift.data.WriteToken;
+import io.warp10.standalone.datalog.DatalogHelper;
 
 public class StandaloneShardedStoreClientWrapper implements StoreClient {
   private final long[] modulus;
   private final long[] remainder;
-  
+
   /**
    * Number of bits to shift the shard key right.
    * If this is 24, then only the class Id will be considered
@@ -44,32 +45,28 @@ public class StandaloneShardedStoreClientWrapper implements StoreClient {
 
   private final long[] classKeyLongs;
   private final long[] labelsKeyLongs;
-  
+
   public StandaloneShardedStoreClientWrapper(KeyStore keystore, StoreClient client) {
-    
+
     byte[] classKey = keystore.getKey(KeyStore.SIPHASH_CLASS);
     this.classKeyLongs = SipHashInline.getKey(classKey);
-    
+
     byte[] labelsKey = keystore.getKey(KeyStore.SIPHASH_LABELS);
     this.labelsKeyLongs = SipHashInline.getKey(labelsKey);
 
     this.client = client;
-    
+
     // Check if we have a limit on the shards we should store
     if (null != WarpConfig.getProperty(Configuration.DATALOG_SHARDS)) {
-      this.shardkeyshift = Long.parseLong(WarpConfig.getProperty(Configuration.DATALOG_SHARDKEY_SHIFT, "0"));
-      
-      if (this.shardkeyshift >= 48 || this.shardkeyshift < 0) {
-        throw new RuntimeException("Invalid shard key shifting.");
-      }
-      
+      this.shardkeyshift = Long.parseLong(WarpConfig.getProperty(Configuration.DATALOG_SHARDKEY_SHIFT, "48"));
+
       String[] shards = WarpConfig.getProperty(Configuration.DATALOG_SHARDS).split(",");
-      
+
       this.modulus = new long[shards.length];
       this.remainder = new long[shards.length];
-        
+
       int idx = 0;
-        
+
       for (String shard: shards) {
         String[] tokens = shard.trim().split(":");
         if (2 != tokens.length) {
@@ -77,11 +74,11 @@ public class StandaloneShardedStoreClientWrapper implements StoreClient {
         }
         this.modulus[idx] = Long.parseLong(tokens[0]);
         this.remainder[idx] = Long.parseLong(tokens[1]);
-          
+
         if (this.modulus[idx] < 1 || this.remainder[idx] >= this.modulus[idx] || this.remainder[idx] < 0) {
           throw new RuntimeException("Invalid shard specification " + shard);
         }
-        
+
         idx++;
       }
     } else {
@@ -90,22 +87,22 @@ public class StandaloneShardedStoreClientWrapper implements StoreClient {
       this.shardkeyshift = 0;
     }
   }
-  
+
   @Override
   public void addPlasmaHandler(StandalonePlasmaHandlerInterface handler) {
     this.client.addPlasmaHandler(handler);
   }
-  
+
   @Override
   public long delete(WriteToken token, Metadata metadata, long start, long end) throws IOException {
     return this.client.delete(token, metadata, start, end);
   }
-  
+
   @Override
   public GTSDecoderIterator fetch(FetchRequest req) throws IOException {
     return this.client.fetch(req);
   }
-  
+
   @Override
   public void store(GTSEncoder encoder) throws IOException {
     // No shards, store unconditionnaly
@@ -113,25 +110,23 @@ public class StandaloneShardedStoreClientWrapper implements StoreClient {
       this.client.store(encoder);
       return;
     }
-    
+
     //
     // Determine if the encoder is for a shard we handle
     //
-    
+
     // Extract shardkey 128BITS
-    // Shard key is 48 bits, 24 upper from the class Id and 24 lower from the labels Id
-    long shardkey =  (GTSHelper.classId(classKeyLongs, encoder.getMetadata().getName()) & 0xFFFFFF000000L) | (GTSHelper.labelsId(labelsKeyLongs, encoder.getMetadata().getLabels()) & 0xFFFFFFL);
-    shardkey >>>= this.shardkeyshift;
+    long shardkey = DatalogHelper.getShardId(GTSHelper.classId(classKeyLongs, encoder.getMetadata().getName()), GTSHelper.labelsId(labelsKeyLongs, encoder.getMetadata().getLabels()), shardkeyshift);
 
     boolean skip = true;
-    
+
     for (int i = 0; i < this.modulus.length; i++) {
       if (shardkey % this.modulus[i] == this.remainder[i]) {
         skip = false;
         break;
       }
     }
-    
+
     if (!skip) {
       this.client.store(encoder);
     }

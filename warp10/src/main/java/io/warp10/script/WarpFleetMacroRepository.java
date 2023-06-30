@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2022  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -45,7 +45,6 @@ import io.warp10.continuum.store.Constants;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.binary.ADD;
 import io.warp10.script.binary.SUB;
-import io.warp10.script.ext.warpfleet.WarpFleetWarpScriptExtension;
 import io.warp10.script.functions.DROP;
 import io.warp10.script.functions.HUMANDURATION;
 import io.warp10.script.functions.MSGFAIL;
@@ -121,7 +120,7 @@ public class WarpFleetMacroRepository {
   private static int connectTimeout = DEFAULT_CONNECT_TIMEOUT;
 
   /**
-   * Default list of WarpFleet™ repositories
+   * Default list of WarpFleet repositories
    */
   private static final List<String> DEFAULT_REPOS = new ArrayList<String>();
 
@@ -374,7 +373,7 @@ public class WarpFleetMacroRepository {
 
     if (null == macro && unknownTtl > 0) {
       macro = new Macro();
-      macro.add("[" + System.currentTimeMillis() + "] Macro '" + name + "' was not found in any of the WarpFleet™ repositories, result cached for ");
+      macro.add("[" + System.currentTimeMillis() + "] Macro '" + name + "' was not found in any of the WarpFleet repositories, result cached for ");
       long expiry_ts = System.currentTimeMillis() + unknownTtl;
       macro.add(expiry_ts * Constants.TIME_UNITS_PER_MS);
       macro.add(NOW_FUNC);
@@ -466,8 +465,6 @@ public class WarpFleetMacroRepository {
       validator.add(new DROP(""));
       validator.add(false);
     }
-
-    WarpScriptLib.register(new WarpFleetWarpScriptExtension());
 
     initialized.set(true);
   }

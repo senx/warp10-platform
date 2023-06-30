@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -28,6 +28,8 @@ import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.thrift.data.Metadata;
+import io.warp10.crypto.OrderPreservingBase64;
+import io.warp10.fdb.FDBUtils;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.sensision.Sensision;
 import io.warp10.standalone.StandaloneIngressHandler;
@@ -38,6 +40,7 @@ import java.io.StringReader;
 import java.math.BigInteger;
 import java.text.ParseException;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.UUID;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -61,48 +64,48 @@ import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
 
 /**
  * WebSocket handler which handles streaming updates
- * 
+ *
  * WARNING: since we push GTSEncoders only after we reached a threshold of we've changed GTS, plasma consumers
  *          will only see updates once the GTSEncoder has been transmitted to the StoreClient
  */
 public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
-    
+
   private final Ingress ingress;
-  
+
   @WebSocket(maxTextMessageSize=1024 * 1024, maxBinaryMessageSize=1024 * 1024)
   public static class StandaloneStreamUpdateWebSocket {
-    
+
     private IngressStreamUpdateHandler handler;
-    
+
     private boolean deltaAttributes = false;
-        
+
     private boolean errormsg = false;
-    
+
     private long seqno = 0L;
-    
+
     private long maxsize;
-    
+
     private WriteToken wtoken;
     private Boolean ignoor = null;
     private boolean expose = false;
 
     private Map<String,String> kafkaDataMessageAttributes = null;
-    
+
     private Long maxpastdelta = null;
     private Long maxfuturedelta = null;
 
     private Map<String,String> sensisionLabels = new HashMap<String,String>();
-    
+
     private Map<String,String> extraLabels = null;
-    
+
     @OnWebSocketConnect
     public void onWebSocketConnect(Session session) {
       Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STREAM_UPDATE_REQUESTS, sensisionLabels, 1);
     }
-    
+
     @OnWebSocketMessage
     public void onWebSocketMessage(Session session, String message) throws Exception {
-      
+
       try {
         if (null != WarpManager.getAttribute(WarpManager.UPDATE_DISABLED)) {
           throw new IOException(String.valueOf(WarpManager.getAttribute(WarpManager.UPDATE_DISABLED)));
@@ -111,18 +114,18 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
         //
         // Split message on whitespace boundary
         //
-        
+
         String[] tokens = null;
-        
+
         if (message.startsWith("TOKEN") || message.startsWith("CLEARTOKEN") || message.startsWith("NOOP") || message.startsWith("ONERROR")) {
           tokens = message.split("\\s+");
           tokens[0] = tokens[0].trim();
         }
-        
+
         if (null != tokens && "TOKEN".equals(tokens[0])) {
-          
+
           setToken(tokens[1]);
-          
+
           session.getRemote().sendString("OK " + (seqno++) + " TOKEN");
         } else if (null != tokens && "CLEARTOKEN".equals(tokens[0])) {
           // Clear the current token
@@ -149,24 +152,24 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
           //
           // Anything else is considered a measurement
           //
-          
+
           long nano = System.nanoTime();
-          
+
           //
           // Loop on all lines
           //
-          
+
           int count = 0;
-          
+
           long now = TimeSource.getTime();
           long nowms = System.currentTimeMillis();
 
           //
           // Extract time limits
           //
-          
+
           Long maxpast = null;
-          
+
           if (null != this.handler.ingress.maxpastDefault) {
             try {
               maxpast = Math.subtractExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, this.handler.ingress.maxpastDefault));
@@ -175,7 +178,7 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
             }
           }
           Long maxfuture = null;
-          
+
           if (null != this.handler.ingress.maxfutureDefault) {
             try {
               maxfuture = Math.addExact(now, Math.multiplyExact(Constants.TIME_UNITS_PER_MS, this.handler.ingress.maxfutureDefault));
@@ -221,50 +224,50 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
 
           try {
             WarpConfig.setThreadProperty(WarpConfig.THREAD_PROPERTY_SESSION, UUID.randomUUID().toString());
-            
+
             GTSEncoder lastencoder = null;
             GTSEncoder encoder = null;
 
             BufferedReader br = new BufferedReader(new StringReader(message));
-            
+
             boolean lastHadAttributes = false;
-            
+
             AtomicLong ignoredCount = null;
-            
+
             if ((this.handler.ingress.ignoreOutOfRange && !Boolean.FALSE.equals(this.ignoor)) || Boolean.TRUE.equals(this.ignoor)) {
               ignoredCount = new AtomicLong(0L);
             }
-            
+
             do {
-              
+
               if (this.handler.ingress.parseAttributes) {
                 lastHadAttributes = lastHadAttributes || hadAttributes.get();
                 hadAttributes.set(false);
               }
-              
+
               String line = br.readLine();
-              
+
               if (null == line) {
                 break;
               }
-          
+
               //
               // Check if we encountered an 'UPDATE xxx' line
               //
-              
+
               if (line.startsWith("UPDATE ")) {
                 String[] subtokens = line.split("\\s+");
                 setToken(subtokens[1]);
                 continue;
               }
-              
+
               if (null == this.wtoken) {
                 throw new IOException("Missing token.");
               }
 
               try {
                 encoder = GTSHelper.parse(lastencoder, line, extraLabels, now, this.maxsize, hadAttributes, maxpast, maxfuture, ignoredCount, this.deltaAttributes);
-                
+
                 if (null != this.handler.ingress.plugin) {
                   if (!this.handler.ingress.plugin.update(this.handler.ingress, wtoken, line, encoder)) {
                     hadAttributes.set(false);
@@ -279,29 +282,29 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
               //
               // Force PRODUCER/OWNER
               //
-              
-              if (encoder != lastencoder || lastencoder.size() > StandaloneIngressHandler.ENCODER_SIZE_THRESHOLD) {
-                
+
+              if (encoder != lastencoder || lastencoder.size() > StandaloneIngressHandler.ENCODER_SIZE_THRESHOLD || FDBUtils.hasCriticalTransactionSize(lastencoder, this.maxsize)) {
+
                 //
                 // Check throttling
                 //
-                
+
                 if (null != lastencoder && lastencoder.size() > 0) {
                   String producer = extraLabels.get(Constants.PRODUCER_LABEL);
                   String owner = extraLabels.get(Constants.OWNER_LABEL);
                   String application = extraLabels.get(Constants.APPLICATION_LABEL);
                   ThrottlingManager.checkMADS(lastencoder.getMetadata(), producer, owner, application, lastencoder.getClassId(), lastencoder.getLabelsId(), expose);
-                  ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount(), expose);                  
+                  ThrottlingManager.checkDDP(lastencoder.getMetadata(), producer, owner, application, (int) lastencoder.getCount(), expose);
                 }
 
                 //
                 // Build metadata object to push
                 //
-                
+
                 if (encoder != lastencoder) {
                   encoder.setClassId(GTSHelper.classId(this.handler.ingress.classKey, encoder.getMetadata().getName()));
                   encoder.setLabelsId(GTSHelper.labelsId(this.handler.ingress.labelsKey, encoder.getMetadata().getLabels()));
-                  
+
                   byte[] bytes = new byte[16];
                   GTSHelper.fillGTSIds(bytes, 0, encoder.getClassId(), encoder.getLabelsId());
                   BigInteger metadataCacheKey = new BigInteger(bytes);
@@ -311,14 +314,14 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
                     pushMeta = true;
                   } else if (this.handler.ingress.activityTracking && this.handler.ingress.updateActivity) {
                     Long lastActivity = this.handler.ingress.metadataCache.get(metadataCacheKey);
-                      
+
                     if (null == lastActivity) {
                       pushMeta = true;
                     } else if (nowms - lastActivity > this.handler.ingress.activityWindow) {
                       pushMeta = true;
                     }
                   }
-                  
+
                   if (pushMeta) {
                     Metadata metadata = new Metadata(encoder.getMetadata());
                     metadata.setSource(Configuration.INGRESS_METADATA_SOURCE);
@@ -329,7 +332,7 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
                     synchronized(this.handler.ingress.metadataCache) {
                       this.handler.ingress.metadataCache.put(metadataCacheKey, (this.handler.ingress.activityTracking && this.handler.ingress.updateActivity) ? nowms : null);
                     }
-                  }                  
+                  }
                 }
 
                 if (null != lastencoder) {
@@ -337,13 +340,13 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
                   lastencoder.setLabelsId(GTSHelper.labelsId(this.handler.ingress.labelsKey, lastencoder.getLabels()));
                   this.handler.ingress.pushDataMessage(lastencoder, kafkaDataMessageAttributes);
                   count += lastencoder.getCount();
-                  
+
                   if (this.handler.ingress.parseAttributes && lastHadAttributes) {
                     // We need to push lastencoder's metadata update as they were updated since the last
                     // metadata update message sent
                     Metadata meta = new Metadata(lastencoder.getMetadata());
                     if (this.deltaAttributes) {
-                      meta.setSource(Configuration.INGRESS_METADATA_UPDATE_DELTA_ENDPOINT);                      
+                      meta.setSource(Configuration.INGRESS_METADATA_UPDATE_DELTA_ENDPOINT);
                     } else {
                       meta.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
                     }
@@ -351,12 +354,12 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
                     lastHadAttributes = false;
                   }
                 }
-                
+
                 if (encoder != lastencoder) {
                   // This is the case when we just parsed either the first input line or one for a different
                   // GTS than the previous one.
 
-                  lastencoder = encoder;                  
+                  lastencoder = encoder;
                 } else {
                   // This is the case when lastencoder and encoder are identical, but lastencoder was too big and needed
                   // to be flushed
@@ -371,17 +374,17 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
                   lastencoder.setMetadata(metadata);
                 }
               }
-              
-            } while (true); 
-            
+
+            } while (true);
+
             br.close();
-            
+
             if (null != lastencoder && lastencoder.size() > 0) {
-              
+
               //
               // Check throttling
               //
-              
+
               String producer = extraLabels.get(Constants.PRODUCER_LABEL);
               String owner = extraLabels.get(Constants.OWNER_LABEL);
               String application = extraLabels.get(Constants.APPLICATION_LABEL);
@@ -392,7 +395,7 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
               lastencoder.setLabelsId(GTSHelper.labelsId(this.handler.ingress.labelsKey, lastencoder.getLabels()));
               this.handler.ingress.pushDataMessage(lastencoder, kafkaDataMessageAttributes);
               count += lastencoder.getCount();
-              
+
               if (this.handler.ingress.parseAttributes && lastHadAttributes) {
                 // Push a metadata UPDATE message so attributes are stored
                 // Build metadata object to push
@@ -401,28 +404,28 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
                 if (this.deltaAttributes) {
                   meta.setSource(Configuration.INGRESS_METADATA_UPDATE_DELTA_ENDPOINT);
                 } else {
-                  meta.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);                  
+                  meta.setSource(Configuration.INGRESS_METADATA_UPDATE_ENDPOINT);
                 }
                 this.handler.ingress.pushMetadataMessage(meta);
               }
-            }                  
+            }
           } finally {
             WarpConfig.clearThreadProperties();
-            
+
             this.handler.ingress.pushMetadataMessage(null);
             this.handler.ingress.pushDataMessage(null, this.kafkaDataMessageAttributes);
-            
+
             if (null != this.handler.ingress.plugin) {
               this.handler.ingress.plugin.flush(this.handler.ingress);
             }
             nano = System.nanoTime() - nano;
-            Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STREAM_UPDATE_DATAPOINTS_RAW, sensisionLabels, count);          
+            Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STREAM_UPDATE_DATAPOINTS_RAW, sensisionLabels, count);
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STREAM_UPDATE_MESSAGES, sensisionLabels, 1);
-            Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STREAM_UPDATE_TIME_US, sensisionLabels, nano / 1000);  
+            Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STREAM_UPDATE_TIME_US, sensisionLabels, nano / 1000);
             Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_STREAM_UPDATE_DATAPOINTS_GLOBAL, Sensision.EMPTY_LABELS, count);
           }
           session.getRemote().sendString("OK " + (seqno++) + " UPDATE " + count + " " + nano);
-        }        
+        }
       } catch (Throwable t) {
         if (this.errormsg) {
           String msg = "ERROR " + ThrowableUtils.getErrorMessage(t);
@@ -430,34 +433,34 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
         } else {
           session.close(HttpServletResponse.SC_BAD_REQUEST, ThrowableUtils.getErrorMessage(t));
         }
-      }      
+      }
     }
-    
-    @OnWebSocketClose    
+
+    @OnWebSocketClose
     public void onWebSocketClose(Session session, int statusCode, String reason) {
     }
-    
+
     public void setHandler(IngressStreamUpdateHandler handler) {
       this.handler = handler;
     }
-    
+
     private void setToken(String token) throws IOException {
       //
       // TOKEN <TOKEN>
       //
-      
+
       //
       // Extract token
       //
-      
+
       WriteToken wtoken = null;
-      
+
       try {
-        wtoken = Tokens.extractWriteToken(token);          
+        wtoken = Tokens.extractWriteToken(token);
       } catch (Exception e) {
         wtoken = null;
       }
-      
+
       if (null == wtoken) {
         throw new IOException("Invalid token.");
       }
@@ -465,9 +468,9 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
       if (wtoken.getAttributesSize() > 0 && wtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_NOUPDATE)) {
         throw new IOException("Token cannot be used for updating data.");
       }
-      
+
       this.maxsize = this.handler.ingress.maxValueSize;
-      
+
       if (wtoken.getAttributesSize() > 0 && null != wtoken.getAttributes().get(Constants.TOKEN_ATTR_MAXSIZE)) {
         this.maxsize = Long.parseLong(wtoken.getAttributes().get(Constants.TOKEN_ATTR_MAXSIZE));
         if (this.maxsize > (this.handler.ingress.DATA_MESSAGES_THRESHOLD / 2) - 64) {
@@ -477,13 +480,13 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
 
       this.maxpastdelta = null;
       this.maxfuturedelta = null;
-      
+
       Boolean ignoor = null;
-      
+
       if (wtoken.getAttributesSize() > 0) {
-        
+
         expose = wtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_EXPOSE);
-        
+
         if (wtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_IGNOOR)) {
           String v = wtoken.getAttributes().get(Constants.TOKEN_ATTR_IGNOOR).toLowerCase();
           if ("true".equals(v) || "t".equals(v)) {
@@ -492,7 +495,7 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
             ignoor = Boolean.FALSE;
           }
         }
-        
+
         String deltastr = wtoken.getAttributes().get(Constants.TOKEN_ATTR_MAXPAST);
 
         if (null != deltastr) {
@@ -502,40 +505,40 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
           }
           maxpastdelta = delta;
         }
-        
+
         deltastr = wtoken.getAttributes().get(Constants.TOKEN_ATTR_MAXFUTURE);
-        
+
         if (null != deltastr) {
           long delta = Long.parseLong(deltastr);
           if (delta < 0) {
             throw new IOException("Invalid '" + Constants.TOKEN_ATTR_MAXFUTURE + "' token attribute, MUST be positive.");
           }
           maxfuturedelta = delta;
-        }          
+        }
       }
 
       String application = wtoken.getAppName();
       String producer = Tokens.getUUID(wtoken.getProducerId());
       String owner = Tokens.getUUID(wtoken.getOwnerId());
-        
+
       this.sensisionLabels.clear();
       this.sensisionLabels.put(SensisionConstants.SENSISION_LABEL_PRODUCER, producer);
 
       if (null == producer || null == owner) {
         throw new IOException("Invalid token.");
       }
-        
+
       //
       // Build extra labels
       //
-        
+
       this.extraLabels = new HashMap<String,String>();
-      
+
       // Add labels from the WriteToken if they exist
       if (wtoken.getLabelsSize() > 0) {
         extraLabels.putAll(wtoken.getLabels());
       }
-      
+
       // Force internal labels
       this.extraLabels.put(Constants.PRODUCER_LABEL, producer);
       this.extraLabels.put(Constants.OWNER_LABEL, owner);
@@ -545,48 +548,37 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
         sensisionLabels.put(SensisionConstants.SENSISION_LABEL_APPLICATION, application);
       }
 
-      if (wtoken.getAttributesSize() > 0) {
-        //
-        // Extract KafkaDataMessage attributes
-        //
-        
-        kafkaDataMessageAttributes = null;
-        
-        if (-1 != this.handler.ingress.ttl || this.handler.ingress.useDatapointTs) {
-          kafkaDataMessageAttributes = new HashMap<String,String>();
-          if (-1 != this.handler.ingress.ttl) {
-            kafkaDataMessageAttributes.put(Constants.STORE_ATTR_TTL, Long.toString(this.handler.ingress.ttl));
-          }
-          if (this.handler.ingress.useDatapointTs) {
-            kafkaDataMessageAttributes.put(Constants.STORE_ATTR_USEDATAPOINTTS, "t");
-          }
-        }
+      //
+      // Extract KafkaDataMessage attributes
+      //
 
-        if (wtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_TTL)
-            || wtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_DPTS)) {
-          if (null == kafkaDataMessageAttributes) {
-            kafkaDataMessageAttributes = new HashMap<String,String>();
-          }
-          if (wtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_TTL)) {
-            kafkaDataMessageAttributes.put(Constants.STORE_ATTR_TTL, wtoken.getAttributes().get(Constants.TOKEN_ATTR_TTL));
-          }
-          if (wtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_DPTS)) {
-            kafkaDataMessageAttributes.put(Constants.STORE_ATTR_USEDATAPOINTTS, wtoken.getAttributes().get(Constants.TOKEN_ATTR_DPTS));
-          }
-        }       
+      kafkaDataMessageAttributes = null;
+
+      if (this.handler.ingress.FDBUseTenantPrefix) {
+        if (0 == wtoken.getAttributesSize() || !wtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_FDB_TENANT_PREFIX)) {
+          throw new IOException("Invalid token, missing tenant prefix.");
+        }
+        kafkaDataMessageAttributes = new LinkedHashMap<String,String>();
+        String encodedPrefix = wtoken.getAttributes().get(Constants.TOKEN_ATTR_FDB_TENANT_PREFIX);
+        if (8 != OrderPreservingBase64.decode(encodedPrefix).length) {
+          throw new IOException("Invalid tenant prefix, length should be 8 bytes.");
+        }
+        kafkaDataMessageAttributes.put(Constants.STORE_ATTR_FDB_TENANT_PREFIX, encodedPrefix);
+      } else if (wtoken.getAttributesSize() > 0 && wtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_FDB_TENANT_PREFIX)) {
+        throw new IOException("Invalid token, tenant prefix not supported.");
       }
-      
+
       this.ignoor = ignoor;
-      this.wtoken = wtoken;      
+      this.wtoken = wtoken;
     }
   }
-  
+
   public IngressStreamUpdateHandler(Ingress ingress) {
     super(StandaloneStreamUpdateWebSocket.class);
 
     this.ingress = ingress;
-  }      
-    
+  }
+
   @Override
   public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
     if (Constants.API_ENDPOINT_PLASMA_UPDATE.equals(target)) {
@@ -594,16 +586,16 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
       super.handle(target, baseRequest, request, response);
     }
   }
-  
+
   @Override
   public void configure(final WebSocketServletFactory factory) {
-    
+
     final IngressStreamUpdateHandler self = this;
 
     final WebSocketCreator oldcreator = factory.getCreator();
 
     WebSocketCreator creator = new WebSocketCreator() {
-            
+
       @Override
       public Object createWebSocket(ServletUpgradeRequest req, ServletUpgradeResponse resp) {
         StandaloneStreamUpdateWebSocket ws = (StandaloneStreamUpdateWebSocket) oldcreator.createWebSocket(req, resp);
@@ -613,7 +605,7 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
     };
 
     factory.setCreator(creator);
-    
+
     //
     // Update the maxMessageSize if need be
     //
@@ -622,5 +614,5 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
       factory.getPolicy().setMaxBinaryMessageSize((int) Long.parseLong(this.ingress.properties.getProperty(Configuration.INGRESS_WEBSOCKET_MAXMESSAGESIZE)));
     }
     super.configure(factory);
-  }    
+  }
 }

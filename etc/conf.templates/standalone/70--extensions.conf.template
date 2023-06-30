@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2022  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -31,12 +31,6 @@
 // CEVAL, SYNC
 #warpscript.extension.concurrent = io.warp10.script.ext.concurrent.ConcurrentWarpScriptExtension
 
-// LOGMSG, NOLOG, STDERR, STDOUT, TDESCRIBE
-#warpscript.extension.debug = io.warp10.script.ext.debug.DebugWarpScriptExtension
-
-// HLOCATE
-#warpscript.extension.hbase = io.warp10.script.ext.debug.HBaseWarpScriptExtension
-
 // FUNCTIONS
 #warpscript.extension.inventory = io.warp10.script.ext.inventory.InventoryWarpScriptExtension
 
@@ -59,25 +53,20 @@
 
 // SENSISIONEVENT, SENSISIONGET, SENSISIONSET, SENSISIONUPDATE
 #warpscript.extension.sensision = io.warp10.script.ext.sensision.SensisionWarpScriptExtension
-// Enable support for capabilities. When set to 'true', capabilities 'sensision.read' and 'sensision.write' can be
+// Capabilities 'sensision.read' (empty value) and 'sensision.write' (empty value) must be
 // set in tokens to allow the use of functions which read or alter Sensision metrics
-#sensision.capability = true
 
 // MUTEX, SHMLOAD, SHMSTORE
 #warpscript.extension.shm = io.warp10.script.ext.shm.SharedMemoryWarpScriptExtension
 // SHM ttl in ms, default = 1 hour
 #shm.ttl = 3600000
+// Maximum time (in ms) to wait for a mutex. Use 0 (the default) to wait indefinitely.
+// This value can be modified via the capability mutex.maxwait
+#mutex.maxwait = 5000
 
-// TOKENDUMP, TOKENGEN, TOKENSECRET
+
+// TOKENDUMP, TOKENGEN
 #warpscript.extension.token = io.warp10.script.ext.token.TokenWarpScriptExtension
-// If you use OSS to handle this secret
-#warp.key.token.secret = wrapped:hex:......
-// If you use a plain string token. Used instead of the previous configuration key if set and not commented
-#token.secret = ....
-
-// URLFETCH, MAXURLFETCHCOUNT, MAXURLFETCHSIZE
-#warpscript.extension.urlfetch = io.warp10.script.ext.urlfetch.UrlFetchWarpScriptExtension
-// see also warpscript.urlfetch.* configurations in 20-warpscript.conf
 
 // HTTP
 #warpscript.extension.http = io.warp10.script.ext.http.HttpWarpScriptExtension
@@ -86,9 +75,8 @@
 // DEVAL
 #warpscript.extension.sharding = io.warp10.script.ext.sharding.ShardingWarpScriptExtension
 
-// WSPS WSINFO WSKILL STACKPSSECRET
+// WSPS WSINFO WSKILL
 #warpscript.extension.stackps = io.warp10.script.ext.stackps.StackPSWarpScriptExtension
-#stackps.secret = ....
 
 //
 // Specific namespace under which to load an extension. The specified namespace will be used as a prefix for all functions of the extension.

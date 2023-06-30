@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2021  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -27,6 +27,8 @@ import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
 
 import com.geoxp.GeoXPLib;
+
+import io.warp10.ThriftUtils;
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
@@ -39,31 +41,31 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.ElementOrListStackFunction.ElementStackFunction;
 
 public class MVEXTRACT extends ElementOrListStackFunction implements ElementStackFunction {
-  
+
   public static enum ELEMENT {
     TICK,
     LOCATION,
     LATLON,
     ELEVATION,
-    VALUE 
+    VALUE
   }
-  
+
   private final ELEMENT elementType;
-  
+
   public MVEXTRACT(String name, ELEMENT element) {
     super(name);
     this.elementType = element;
   }
-  
+
   @Override
   public ElementStackFunction generateFunction(WarpScriptStack stack) throws WarpScriptException {
     return this;
   }
-  
+
   @Override
   public Object applyOnElement(Object element) throws WarpScriptException {
     if (!(element instanceof GTSEncoder) && !(element instanceof GeoTimeSerie)) {
-      throw new WarpScriptException(getName() + " can only be applied on Geo Time Series™ or GTS Encoders.");
+      throw new WarpScriptException(getName() + " can only be applied on Geo Time Series or GTS Encoders.");
     }
 
     try {
@@ -72,42 +74,42 @@ public class MVEXTRACT extends ElementOrListStackFunction implements ElementStac
       throw new WarpScriptException(getName() + " failed.", wse);
     }
   }
-  
+
   private List<Object> mvextract(Object element) throws WarpScriptException {
     List<Object> values = new ArrayList<Object>();
 
     GTSDecoder decoder = null;
     GeoTimeSerie gts = null;
     int nvalues = 0;
-    
+
     if (element instanceof GTSEncoder) {
       decoder = ((GTSEncoder) element).getDecoder();
     } else {
       gts = (GeoTimeSerie) element;
       nvalues = GTSHelper.nvalues(gts);
     }
-    
+
     int idx = -1;
-        
-    TDeserializer deser = new TDeserializer(new TCompactProtocol.Factory());
+
+    TDeserializer deser = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
     GTSWrapper wrapper = new GTSWrapper();
 
     while(true) {
-      
+
       boolean done = !(null == decoder ? ++idx < nvalues : decoder.next());
 
       if (done) {
         break;
       }
-      
+
       Object value = null;
-      
+
       if (null != decoder) {
         value = decoder.getBinaryValue();
       } else {
         value = GTSHelper.valueAtIndex(gts, idx);
       }
-      
+
       if (value instanceof Number || value instanceof Boolean) {
         values.add(elt(decoder, gts, idx, value));
       } else if (value instanceof byte[]) {
@@ -153,10 +155,10 @@ public class MVEXTRACT extends ElementOrListStackFunction implements ElementStac
         }
       }
     }
-    
+
     return values;
   }
-  
+
   private Object elt(GTSDecoder decoder, GeoTimeSerie gts, int idx, Object value) {
     switch (this.elementType) {
       case VALUE:
@@ -185,6 +187,6 @@ public class MVEXTRACT extends ElementOrListStackFunction implements ElementStac
         return null != decoder ? decoder.getLocation() : GTSHelper.locationAtIndex(gts, idx);
       default:
         throw new RuntimeException("Invalid element type.");
-    }    
+    }
   }
 }

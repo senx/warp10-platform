@@ -1,5 +1,5 @@
 //
-//   Copyright 2021  SenX S.A.S.
+//   Copyright 2021-2022  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package io.warp10.script.mapper;
 
+import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptMapperFunction;
@@ -79,6 +80,10 @@ public class MapperRegExpReplace extends NamedWarpScriptFunction implements Warp
     long[] elevations = (long[]) args[5];
     Object[] values = (Object[]) args[6];
 
+    if (0 == values.length) {
+      return new Object[] {0L, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, null};
+    }
+    
     if (values.length > 1) {
       throw new WarpScriptException(getName() + " can only be applied to a single value.");
     }

@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -42,7 +42,7 @@ import io.warp10.script.WarpScriptExecutor.StackSemantics;
 
 /**
  * This InputFormat wraps another InputFormat and creates a RecordReader
- * which returns K/V processed by some WarpScript™ code.
+ * which returns K/V processed by some WarpScript code.
  */
 public class WarpScriptInputFormat extends InputFormat<Object, Object> {
 
@@ -68,9 +68,9 @@ public class WarpScriptInputFormat extends InputFormat<Object, Object> {
   public static final String WARPSCRIPT_INPUTFORMAT_CLASS = "warpscript.inputformat.class";
 
   /**
-   * WarpScript code fragment to apply, this code will be wrapped in a macro <% ... %>
+   * WarpScript code fragment to apply, this code will be wrapped in a macro &lt;% ... %&gt;
    * If code starts by @ or % then the rest of its content is assumed to be a file path to load.
-   * If code starts by @ the content of the file will be wrapped in <% ... %>
+   * If code starts by @ the content of the file will be wrapped in &lt;% ... %&gt;
    */
   public static final String WARPSCRIPT_INPUTFORMAT_SCRIPT = "warpscript.inputformat.script";
 

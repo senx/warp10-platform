@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import io.warp10.quasar.encoder.QuasarTokenDecoder;
 import io.warp10.quasar.filter.exception.QuasarNoToken;
 import io.warp10.quasar.filter.exception.QuasarTokenException;
 import io.warp10.quasar.filter.exception.QuasarTokenExpired;
+import io.warp10.quasar.filter.exception.QuasarTokenInvalid;
 import io.warp10.quasar.filter.sensision.QuasarTokenFilterSensisionConstants;
 import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.quasar.token.thrift.data.WriteToken;
@@ -103,6 +104,8 @@ public class QuasarTokenFilter {
       quasarTokenRevoked.isRegisteredAppAuthorized(appId);
 
       return token;
+    } catch(IllegalStateException ise) {
+      throw new QuasarTokenInvalid(ise);
     } catch(QuasarTokenException qexp) {
       labels.put("error", qexp.label);
       throw  qexp;
@@ -153,6 +156,8 @@ public class QuasarTokenFilter {
       quasarTokenRevoked.isRegisteredAppAuthorized(appId);
 
       return token;
+    } catch(IllegalStateException ise) {
+      throw new QuasarTokenInvalid(ise);
     } catch(QuasarTokenException qexp) {
       labels.put("error", qexp.label);
       throw  qexp;
@@ -181,11 +186,11 @@ public class QuasarTokenFilter {
     return key;
   }
 
-  private long getTokenSipHash(byte[] nolookupToken) {
+  public long getTokenSipHash(byte[] nolookupToken) {
     return SipHashInline.hash24_palindromic(tokenSipHashKeyK0, tokenSipHashKeyK1, nolookupToken, 0, nolookupToken.length);
   }
 
-  private void checkTokenExpired(long issuanceTimestamp, long expiryTimestamp, long clientId) throws QuasarTokenExpired {
+  public void checkTokenExpired(long issuanceTimestamp, long expiryTimestamp, long clientId) throws QuasarTokenExpired {
     // check the token expiration
     if (isExpired(issuanceTimestamp, expiryTimestamp, clientId)) {
       throw new QuasarTokenExpired("Token Expired.");
@@ -207,5 +212,13 @@ public class QuasarTokenFilter {
 
     // the token is valid
     return false;
+  }
+
+  public QuasarTokenDecoder getTokenDecoder() {
+    return this.quasarTokenDecoder;
+  }
+
+  public QuasarTokensRevoked getTokensRevoked() {
+    return this.quasarTokenRevoked;
   }
 }

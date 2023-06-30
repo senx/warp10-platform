@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,23 +16,8 @@
 
 package io.warp10.continuum.egress;
 
-import io.warp10.continuum.Tokens;
-import io.warp10.continuum.store.Constants;
-import io.warp10.continuum.store.DirectoryClient;
-import io.warp10.continuum.store.MetadataIterator;
-import io.warp10.continuum.store.thrift.data.DirectoryRequest;
-import io.warp10.continuum.store.thrift.data.GTSSplit;
-import io.warp10.continuum.store.thrift.data.Metadata;
-import io.warp10.crypto.CryptoUtils;
-import io.warp10.crypto.KeyStore;
-import io.warp10.crypto.OrderPreservingBase64;
-import io.warp10.quasar.token.thrift.data.ReadToken;
-import io.warp10.script.WarpScriptException;
-import io.warp10.script.functions.PARSESELECTOR;
-
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -43,13 +28,33 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.hadoop.hbase.HRegionLocation;
-import org.apache.hadoop.hbase.client.RegionLocator;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
+
+import com.apple.foundationdb.Database;
+import com.apple.foundationdb.FDBException;
+import com.apple.foundationdb.LocalityUtil;
+import com.apple.foundationdb.Transaction;
+
+import io.warp10.continuum.Tokens;
+import io.warp10.continuum.store.Constants;
+import io.warp10.continuum.store.DirectoryClient;
+import io.warp10.continuum.store.MetadataIterator;
+import io.warp10.continuum.store.thrift.data.DirectoryRequest;
+import io.warp10.continuum.store.thrift.data.GTSSplit;
+import io.warp10.continuum.store.thrift.data.Metadata;
+import io.warp10.crypto.CryptoUtils;
+import io.warp10.crypto.KeyStore;
+import io.warp10.crypto.OrderPreservingBase64;
+import io.warp10.fdb.FDBPool;
+import io.warp10.fdb.FDBStoreClient;
+import io.warp10.fdb.FDBUtils;
+import io.warp10.quasar.token.thrift.data.ReadToken;
+import io.warp10.script.WarpScriptException;
+import io.warp10.script.functions.PARSESELECTOR;
 
 /**
  * This handler will generate splits from a selector and a token, those
@@ -57,13 +62,15 @@ import org.eclipse.jetty.server.handler.AbstractHandler;
  */
 public class EgressSplitsHandler extends AbstractHandler {
 
+  public static final String DUMMY_SERVER = "dummy";
+
   private final DirectoryClient directoryClient;
 
-  private final HBaseStoreClient storeClient;
+  private final FDBStoreClient storeClient;
 
   private final byte[] fetcherKey;
 
-  public EgressSplitsHandler(KeyStore keystore, DirectoryClient directoryClient, HBaseStoreClient storeClient) {
+  public EgressSplitsHandler(KeyStore keystore, DirectoryClient directoryClient, FDBStoreClient storeClient) {
     this.directoryClient = directoryClient;
     this.storeClient = storeClient;
 
@@ -91,13 +98,16 @@ public class EgressSplitsHandler extends AbstractHandler {
 
     long gskip = 0L;
     long gcount = Long.MAX_VALUE;
+    boolean mustSort = false;
 
     if (null != request.getParameter(Constants.HTTP_PARAM_GSKIP)) {
       gskip = Long.parseLong(request.getParameter(Constants.HTTP_PARAM_GSKIP));
+      mustSort = true;
     }
 
     if (null != request.getParameter(Constants.HTTP_PARAM_GCOUNT)) {
       gcount = Long.parseLong(request.getParameter(Constants.HTTP_PARAM_GCOUNT));
+      mustSort = true;
     }
 
     //
@@ -156,13 +166,13 @@ public class EgressSplitsHandler extends AbstractHandler {
     // Determine the list of fetchers we can use
     //
 
-    //
-    // Retrieve HRegionLocation for each GTS by considering the most recent timestamp
-    //
+    FDBPool fdbPool = this.storeClient.getPool();
+    Database db = fdbPool.getDatabase();
 
-    RegionLocator locator = this.storeClient.getRegionLocator();
+    Transaction txn = null;
 
     DirectoryRequest drequest = new DirectoryRequest();
+    drequest.setSorted(mustSort);
     drequest.setClassSelectors(clsSels);
     drequest.setLabelsSelectors(lblsSels);
 
@@ -181,8 +191,8 @@ public class EgressSplitsHandler extends AbstractHandler {
       // 128bits
       //
 
-      byte[] row = new byte[Constants.HBASE_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
-      System.arraycopy(Constants.HBASE_RAW_DATA_KEY_PREFIX, 0, row, 0, Constants.HBASE_RAW_DATA_KEY_PREFIX.length);
+      byte[] row = new byte[Constants.FDB_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
+      System.arraycopy(Constants.FDB_RAW_DATA_KEY_PREFIX, 0, row, 0, Constants.FDB_RAW_DATA_KEY_PREFIX.length);
 
       PrintWriter pw = response.getWriter();
 
@@ -208,7 +218,7 @@ public class EgressSplitsHandler extends AbstractHandler {
         long classId = metadata.getClassId();
         long labelsId = metadata.getLabelsId();
 
-        int offset = Constants.HBASE_RAW_DATA_KEY_PREFIX.length;
+        int offset = Constants.FDB_RAW_DATA_KEY_PREFIX.length;
 
         // Add classId
         for (int i = 7; i >= 0; i--) {
@@ -239,7 +249,46 @@ public class EgressSplitsHandler extends AbstractHandler {
           Arrays.fill(row, offset, row.length, (byte) 0x00);
         }
 
-        HRegionLocation loc = locator.getRegionLocation(row);
+
+        boolean retry = true;
+
+        String[] addresses = null;
+
+        while (retry) {
+          retry = false;
+          try {
+            if (null == txn) {
+              txn = db.createTransaction();
+            }
+            addresses = LocalityUtil.getAddressesForKey(txn, row).get();
+          } catch (Throwable t) {
+            FDBUtils.errorMetrics("egress", t.getCause());
+            if (null != txn) {
+              try {
+                txn.close();
+              } catch (Throwable tt) {
+              } finally {
+                txn = null;
+              }
+            }
+            if (t.getCause() instanceof FDBException) {
+              if (1007 == ((FDBException) t.getCause()).getCode()) {
+                // Transaction is too old, issue a new one
+                retry = true;
+                txn = null;
+              } else if (1033 == ((FDBException) t.getCause()).getCode()) {
+                // locality_information_unavailable
+                // Issue a dummy server
+                addresses = new String[1];
+                addresses[0] = DUMMY_SERVER;
+              } else {
+                throw new IOException("Error while fetching splits.", t);
+              }
+            } else {
+              throw new IOException("Error while fetching splits", t);
+            }
+          }
+        }
 
         //
         // Build Split
@@ -269,16 +318,21 @@ public class EgressSplitsHandler extends AbstractHandler {
           data = CryptoUtils.wrap(fetcherKey, data);
         }
 
-        pw.print(InetAddress.getByName(loc.getHostname()).getHostAddress());
+        pw.print(addresses[0]); // Server address
         pw.print(" ");
-        pw.print(loc.getRegionInfo().getEncodedName());
+        pw.print(addresses[0]); // Region name, we use the server address
         pw.print(" ");
         pw.println(new String(OrderPreservingBase64.encode(data), StandardCharsets.US_ASCII));
       }
     } catch (Exception e) {
       throw new IOException(e);
     } finally {
-      locator.close();
+      if (null != txn) {
+        try {
+          txn.close();
+        } catch (Throwable t) {
+        }
+      }
     }
   }
 }

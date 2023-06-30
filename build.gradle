@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -66,8 +66,7 @@ subprojects {
     // Repositories for dependency resolution for all subprojects
     //
     repositories {
-        mavenCentral()
-        //mavenLocal()
+      mavenCentral()
     }
 
     //
@@ -81,9 +80,6 @@ subprojects {
 
             // force certain versions of dependencies (including transitive)
             //  *append new forced modules:
-            // This is needed to force Guava to 15.0 and not 17.0 as Renjin pulls
-            // HBase does not work with > 15.0
-            force 'com.google.guava:guava:15.0'
         }
     }
 
@@ -96,7 +92,6 @@ subprojects {
         } else {
             options.compilerArgs << '-g'
         }
-
         //options.debug = false;
         //options.optimize = false;
         //options.debugOptions.debugLevel = ''
@@ -104,7 +99,12 @@ subprojects {
 
     // Disable crazy-strict fail-fast javadoc checks
     javadoc.options.addStringOption('Xdoclint:none', '-quiet')
-
+    if(JavaVersion.current() > JavaVersion.VERSION_1_8) {
+        javadoc.options.addMultilineStringsOption("-add-exports").setValue([
+                'java.desktop/com.sun.imageio.plugins.png=ALL-UNNAMED',
+                'java.base/sun.net.www.protocol.file=ALL-UNNAMED'
+        ])
+    }
     // Adds sourceJar and javadocJar task
     java {
         withSourcesJar()
@@ -151,7 +151,7 @@ subprojects {
                 def file = relativePath(it)
                 exec {
                     executable = (null != System.getenv('THRIFT_HOME')) ? System.getenv('THRIFT_HOME') + '/bin/thrift' : 'thrift'
-                    args = ['--gen', 'java:private-members', '-I', '.', '-o', thriftOutputDir, file]
+                    args = ['--gen', 'java:private-members,generated_annotations=suppress', '-I', '.', '-o', thriftOutputDir, file]
                 }
             }
         }
