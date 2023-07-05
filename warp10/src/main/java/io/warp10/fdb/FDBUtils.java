@@ -145,27 +145,46 @@ public class FDBUtils {
   }
 
   public static Map<String,Object> getTenantInfo(Database db, String tenant) {
-    Transaction txn = db.createTransaction();
-    txn.options().setRawAccess();
-    txn.options().setAccessSystemKeys();
+    Transaction txn = null;
 
+
+    int attempts = 2;
     Map<String,Object> map = new LinkedHashMap<String,Object>();
 
-    // Retrieve the system key for the given tenant
-    try {
-      byte[] tenantMap = txn.get(getTenantSystemKey(tenant)).get();
-      if (null != tenantMap) {
-        Object json = JsonUtils.jsonToObject(new String(tenantMap, StandardCharsets.UTF_8));
+    while (attempts > 0) {
+      // Retrieve the system key for the given tenant
+      try {
+        txn = db.createTransaction();
+        txn.options().setRawAccess();
+        txn.options().setAccessSystemKeys();
 
-        map.put(KEY_ID, ((Number) ((Map) json).get(KEY_ID)).longValue());
-        map.put(KEY_PREFIX, ((String) ((Map) json).get(KEY_PREFIX)).getBytes(StandardCharsets.ISO_8859_1));
+        byte[] tenantMap = txn.get(getTenantSystemKey(tenant)).get();
+        if (null != tenantMap) {
+          Object json = JsonUtils.jsonToObject(new String(tenantMap, StandardCharsets.UTF_8));
+
+          map.put(KEY_ID, ((Number) ((Map) json).get(KEY_ID)).longValue());
+          map.put(KEY_PREFIX, ((String) ((Map) json).get(KEY_PREFIX)).getBytes(StandardCharsets.ISO_8859_1));
+        }
+
+        return map;
+      } catch (Throwable t) {
+        FDBUtils.errorMetrics("tenantInfo", t.getCause());
+
+        if (t.getCause() instanceof FDBException) {
+          FDBException fdbe = (FDBException) t.getCause();
+          if (fdbe.getCode() == 1039) {
+            attempts--;
+            continue;
+          }
+        }
+
+        throw new RuntimeException("Error while fetching FoundationDB tenant.", t);
+      } finally {
+        try { txn.close(); } catch (Throwable t) {}
       }
-    } catch (Throwable t) {
-    } finally {
-      try { txn.close(); } catch (Throwable t) {}
     }
 
-    return map;
+    throw new RuntimeException("I got lost while fetching FoundationDB tenant.");
   }
 
   public static Map<Object,Object> getStatus(FDBContext context) throws WarpScriptException {
