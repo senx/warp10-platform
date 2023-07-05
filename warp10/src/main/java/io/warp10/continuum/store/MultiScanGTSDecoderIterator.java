@@ -142,187 +142,189 @@ public class MultiScanGTSDecoderIterator extends GTSDecoderIterator {
    */
   @Override
   public boolean hasNext() {
-    //
-    // If scanner has not been nullified, it means there are more results, except if nvalues is 0
-    // in which case it means we've read enough data
-    //
+    while (true) {
+      //
+      // If scanner has not been nullified, it means there are more results, except if nvalues is 0
+      // in which case it means we've read enough data
+      //
 
-    boolean scanHasMore = ((null == scanner) || nvalues <= 0) ? false : scanner.hasNext();
+      boolean scanHasMore = ((null == scanner) || nvalues <= 0) ? false : scanner.hasNext();
 
-    // Adjust scanHasMore for pre/post boundaries
-    if (postBoundaryScan && 0 == postBoundaryCount) {
-      scanHasMore = false;
-    } else if (preBoundaryScan && 0 == preBoundaryCount) {
-      scanHasMore = false;
-    }
+      // Adjust scanHasMore for pre/post boundaries
+      if (postBoundaryScan && 0 == postBoundaryCount) {
+        scanHasMore = false;
+      } else if (preBoundaryScan && 0 == preBoundaryCount) {
+        scanHasMore = false;
+      }
 
-    if (scanHasMore) {
-      return true;
-    }
+      if (scanHasMore) {
+        return true;
+      }
 
-    //
-    // If scanner is not null close it as it does not have any more results
-    //
+      //
+      // If scanner is not null close it as it does not have any more results
+      //
 
-    if (null != scanner) {
-      this.scanner.close();
-      this.scanner = null;
+      if (null != scanner) {
+        this.scanner.close();
+        this.scanner = null;
 
-      if (postBoundaryScan) {
-        // We were scanning the post boundary, the next scan will be for the core zone
-        postBoundaryScan = false;
-      } else if (preBoundaryScan) {
-        // We were scanning the pre boundary, the next scan will be for the post boundary of the next GTS
-        preBoundaryScan = false;
-        postBoundaryScan = 0 != this.postBoundary;
-        postBoundaryCount = this.postBoundary;
-        idx++;
-      } else {
-        // We were scanning the core zone, now we will scan the pre boundary
-        preBoundaryScan = 0 != this.preBoundary;
-        preBoundaryCount = this.preBoundary;
-
-        // If there is no pre boundary to scan, advance the metadata index
-        if (!preBoundaryScan) {
+        if (postBoundaryScan) {
+          // We were scanning the post boundary, the next scan will be for the core zone
+          postBoundaryScan = false;
+        } else if (preBoundaryScan) {
+          // We were scanning the pre boundary, the next scan will be for the post boundary of the next GTS
+          preBoundaryScan = false;
           postBoundaryScan = 0 != this.postBoundary;
           postBoundaryCount = this.postBoundary;
           idx++;
-        }
-      }
-    } else {
-      // Reset the type of scan we do
-      postBoundaryScan = 0 != this.postBoundary;
-      preBoundaryScan = false;
-      postBoundaryCount = this.postBoundary;
-    }
-
-    //
-    // If there are no more metadatas then there won't be any more data
-    //
-
-    if (idx >= metadatas.size()) {
-      return false;
-    }
-
-    //
-    // Scanner is either exhausted or had not yet been initialized, do so now
-    // Evolution of idx is performed above when closing the scanner
-
-    Metadata metadata = metadatas.get(idx);
-
-    //
-    // Build start / end key
-    //
-    // CAUTION, the following code might seem wrong, but remember, timestamp
-    // are reversed so the most recent (end) appears first (startkey)
-    // 128bits
-
-    byte[] startkey = new byte[Constants.FDB_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
-    // endkey has a trailing 0x00 so we include the actual end key
-    byte[] endkey = new byte[startkey.length + 1];
-
-    ByteBuffer bb = ByteBuffer.wrap(startkey).order(ByteOrder.BIG_ENDIAN);
-    bb.put(Constants.FDB_RAW_DATA_KEY_PREFIX);
-    bb.putLong(metadata.getClassId());
-    bb.putLong(metadata.getLabelsId());
-
-    long modulus = now - (now % Constants.DEFAULT_MODULUS);
-
-    bb.putLong(Long.MAX_VALUE - modulus);
-
-    bb = ByteBuffer.wrap(endkey).order(ByteOrder.BIG_ENDIAN);
-    bb.put(Constants.FDB_RAW_DATA_KEY_PREFIX);
-    bb.putLong(metadata.getClassId());
-    bb.putLong(metadata.getLabelsId());
-
-    boolean endAtMinlong = Long.MIN_VALUE == then;
-
-    bb.putLong(Long.MAX_VALUE - then);
-
-    //
-    // Reset number of values retrieved since we just skipped to a new GTS.
-    // If 'timespan' is negative this is the opposite of the number of values to retrieve
-    // otherwise use Long.MAX_VALUE
-    //
-
-    nvalues = count >= 0 ? count : Long.MAX_VALUE;
-    toskip = skip;
-    steps = 0L;
-    nextTimestamp = Long.MAX_VALUE;
-
-    FDBScan scan = new FDBScan();
-
-    StreamingMode mode = StreamingMode.ITERATOR;
-
-    try {
-      scan.setTenantPrefix(this.tenantPrefix);
-
-      if (postBoundaryScan) {
-        scan.setReverse(true);
-        // Set the lowest (start) key to the prefix of the current start key without timestamp,
-        // this is the GTS id + prefix
-        scan.setStartKey(Arrays.copyOf(startkey, startkey.length - 8));
-        // the end key is the start of the range
-        scan.setEndKey(startkey);
-      } else if (preBoundaryScan) {
-        if (endAtMinlong) {
-          // If the end timestamp is minlong, we will not have a preBoundaryScan, so set
-          // dummy scan range
-          scan.setStartKey(endkey);
-          scan.setEndKey(endkey);
         } else {
-          // Start right after the end of the time range ('endkey' has an extra byte at 0x00 so we can use that)
-          scan.setStartKey(endkey);
-          byte[] k = Arrays.copyOf(endkey, endkey.length);
-          // Set the reversed time stamp to 0xFFFFFFFFFFFFFFFFL plus a 0x0 byte (endkey has 1 extra byte)
-          Arrays.fill(k, endkey.length - 8 - 1, k.length - 1, (byte) 0xFF);
-          scan.setEndKey(k);
+          // We were scanning the core zone, now we will scan the pre boundary
+          preBoundaryScan = 0 != this.preBoundary;
+          preBoundaryCount = this.preBoundary;
+
+          // If there is no pre boundary to scan, advance the metadata index
+          if (!preBoundaryScan) {
+            postBoundaryScan = 0 != this.postBoundary;
+            postBoundaryCount = this.postBoundary;
+            idx++;
+          }
         }
       } else {
-        scan.setStartKey(startkey);
-        scan.setEndKey(endkey);
+        // Reset the type of scan we do
+        postBoundaryScan = 0 != this.postBoundary;
+        preBoundaryScan = false;
+        postBoundaryCount = this.postBoundary;
       }
-    } catch (IOException ioe) {
-      throw new RuntimeException("Encountered an error while setting the scan.", ioe);
-    }
 
-    if (postBoundaryScan) {
-      if (postBoundary < 100) {
-        mode = StreamingMode.SMALL;
-      }
-    } else if (preBoundaryScan) {
-      if (preBoundary < 100) {
-        mode = StreamingMode.SMALL;
-      }
-    } else {
-      if (count >= 0 && count + skip < 100) {
-        mode = StreamingMode.SMALL;
-      }
-    }
-
-    try {
-      this.scanner = scan.getScanner(pool.getContext(), pool.getDatabase(), mode, persistentTransaction);
-      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FDB_CLIENT_SCANNERS, Sensision.EMPTY_LABELS, 1);
-    } catch (IOException ioe) {
-      ioe.printStackTrace();
       //
-      // If we caught an exception, we skip to the next metadata
-      // FIXME(hbs): log exception somehow
+      // If there are no more metadatas then there won't be any more data
       //
-      this.scanner = null;
-      idx++;
-      return hasNext();
-    }
 
-    //
-    // If the current scanner has no more entries, call hasNext recursively so it takes
-    // care of all the dirty details.
-    //
+      if (idx >= metadatas.size()) {
+        return false;
+      }
 
-    if (this.scanner.hasNext()) {
-      return true;
-    } else {
-      return hasNext();
+      //
+      // Scanner is either exhausted or had not yet been initialized, do so now
+      // Evolution of idx is performed above when closing the scanner
+
+      Metadata metadata = metadatas.get(idx);
+
+      //
+      // Build start / end key
+      //
+      // CAUTION, the following code might seem wrong, but remember, timestamp
+      // are reversed so the most recent (end) appears first (startkey)
+      // 128bits
+
+      byte[] startkey = new byte[Constants.FDB_RAW_DATA_KEY_PREFIX.length + 8 + 8 + 8];
+      // endkey has a trailing 0x00 so we include the actual end key
+      byte[] endkey = new byte[startkey.length + 1];
+
+      ByteBuffer bb = ByteBuffer.wrap(startkey).order(ByteOrder.BIG_ENDIAN);
+      bb.put(Constants.FDB_RAW_DATA_KEY_PREFIX);
+      bb.putLong(metadata.getClassId());
+      bb.putLong(metadata.getLabelsId());
+
+      long modulus = now - (now % Constants.DEFAULT_MODULUS);
+
+      bb.putLong(Long.MAX_VALUE - modulus);
+
+      bb = ByteBuffer.wrap(endkey).order(ByteOrder.BIG_ENDIAN);
+      bb.put(Constants.FDB_RAW_DATA_KEY_PREFIX);
+      bb.putLong(metadata.getClassId());
+      bb.putLong(metadata.getLabelsId());
+
+      boolean endAtMinlong = Long.MIN_VALUE == then;
+
+      bb.putLong(Long.MAX_VALUE - then);
+
+      //
+      // Reset number of values retrieved since we just skipped to a new GTS.
+      // If 'timespan' is negative this is the opposite of the number of values to retrieve
+      // otherwise use Long.MAX_VALUE
+      //
+
+      nvalues = count >= 0 ? count : Long.MAX_VALUE;
+      toskip = skip;
+      steps = 0L;
+      nextTimestamp = Long.MAX_VALUE;
+
+      FDBScan scan = new FDBScan();
+
+      StreamingMode mode = StreamingMode.ITERATOR;
+
+      try {
+        scan.setTenantPrefix(this.tenantPrefix);
+
+        if (postBoundaryScan) {
+          scan.setReverse(true);
+          // Set the lowest (start) key to the prefix of the current start key without timestamp,
+          // this is the GTS id + prefix
+          scan.setStartKey(Arrays.copyOf(startkey, startkey.length - 8));
+          // the end key is the start of the range
+          scan.setEndKey(startkey);
+        } else if (preBoundaryScan) {
+          if (endAtMinlong) {
+            // If the end timestamp is minlong, we will not have a preBoundaryScan, so set
+            // dummy scan range
+            scan.setStartKey(endkey);
+            scan.setEndKey(endkey);
+          } else {
+            // Start right after the end of the time range ('endkey' has an extra byte at 0x00 so we can use that)
+            scan.setStartKey(endkey);
+            byte[] k = Arrays.copyOf(endkey, endkey.length);
+            // Set the reversed time stamp to 0xFFFFFFFFFFFFFFFFL plus a 0x0 byte (endkey has 1 extra byte)
+            Arrays.fill(k, endkey.length - 8 - 1, k.length - 1, (byte) 0xFF);
+            scan.setEndKey(k);
+          }
+        } else {
+          scan.setStartKey(startkey);
+          scan.setEndKey(endkey);
+        }
+      } catch (IOException ioe) {
+        throw new RuntimeException("Encountered an error while setting the scan.", ioe);
+      }
+
+      if (postBoundaryScan) {
+        if (postBoundary < 100) {
+          mode = StreamingMode.SMALL;
+        }
+      } else if (preBoundaryScan) {
+        if (preBoundary < 100) {
+          mode = StreamingMode.SMALL;
+        }
+      } else {
+        if (count >= 0 && count + skip < 100) {
+          mode = StreamingMode.SMALL;
+        }
+      }
+
+      try {
+        this.scanner = scan.getScanner(pool.getContext(), pool.getDatabase(), mode, persistentTransaction);
+        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_FDB_CLIENT_SCANNERS, Sensision.EMPTY_LABELS, 1);
+      } catch (IOException ioe) {
+        ioe.printStackTrace();
+        //
+        // If we caught an exception, we skip to the next metadata
+        // FIXME(hbs): log exception somehow
+        //
+        this.scanner = null;
+        idx++;
+        continue;
+      }
+
+      //
+      // If the current scanner has no more entries, call hasNext recursively so it takes
+      // care of all the dirty details.
+      //
+
+      if (this.scanner.hasNext()) {
+        return true;
+      } else {
+        continue;
+      }
     }
   }
 
