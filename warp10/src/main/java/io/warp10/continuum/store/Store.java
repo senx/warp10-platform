@@ -805,7 +805,9 @@ public class Store extends Thread {
                 retry = false;
                 txn = db.createTransaction();
                 // Allow RAW access because we may manually force a tenant key prefix without actually setting a tenant
-                txn.options().setRawAccess();
+                if (store.fdbContext.hasTenant() || store.FDBUseTenantPrefix) {
+                  txn.options().setRawAccess();
+                }
                 int sets = 0;
                 int clearranges = 0;
 

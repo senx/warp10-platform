@@ -1372,7 +1372,9 @@ public class Directory extends AbstractHandler implements Runnable {
                 retry = false;
                 txn = db.createTransaction();
                 // Allow RAW access because we may manually force a tenant key prefix without actually setting a tenant
-                txn.options().setRawAccess();
+                if (fdbContext.hasTenant()) {
+                  txn.options().setRawAccess();
+                }
 
                 for (FDBMutation mutation: mutations) {
                   mutation.apply(txn);

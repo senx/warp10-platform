@@ -873,7 +873,9 @@ public class StandaloneDirectoryClient implements DirectoryClient {
           retry = false;
           txn = this.fdb.createTransaction();
           // Allow RAW access because we may manually force a tenant key prefix without actually setting a tenant
-          txn.options().setRawAccess();
+          if (fdbContext.hasTenant()) {
+            txn.options().setRawAccess();
+          }
 
           FDBMutation delete = new FDBClear(this.fdbContext.getTenantPrefix(), bytes);
           delete.apply(txn);
@@ -973,7 +975,9 @@ public class StandaloneDirectoryClient implements DirectoryClient {
               if (!mutations.isEmpty()) {
                 txn = this.fdb.createTransaction();
                 // Allow RAW access because we may manually force a tenant key prefix without actually setting a tenant
-                txn.options().setRawAccess();
+                if (fdbContext.hasTenant()) {
+                  txn.options().setRawAccess();
+                }
 
                 for (FDBMutation mutation: mutations) {
                   mutation.apply(txn);

@@ -83,6 +83,10 @@ public class FDBContext {
     return this.tenantPrefix;
   }
 
+  public boolean hasTenant() {
+    return null != this.tenantPrefix;
+  }
+
   public byte[] getTenantName() {
     return this.tenantName;
   }
