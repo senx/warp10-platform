@@ -2338,6 +2338,11 @@ public class GTSHelper {
       } else if (i < 0) {
         // just before the insertion point
         i = -i - 1 - 1;
+      } else {
+        // binary search is not deterministic in case of multiple same timestamps (non dedup gts). Must find the last one.
+        while ((i + 1) < gts.values && gts.ticks[i + 1] == lastbucket) {
+          i++;
+        }
       }
     }
 
