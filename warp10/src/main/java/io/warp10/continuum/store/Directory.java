@@ -57,6 +57,12 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
+import org.apache.curator.retry.RetryNTimes;
+import org.apache.curator.x.discovery.ServiceDiscovery;
+import org.apache.curator.x.discovery.ServiceDiscoveryBuilder;
+import org.apache.curator.x.discovery.ServiceInstance;
+import org.apache.curator.x.discovery.ServiceInstanceBuilder;
+import org.apache.curator.x.discovery.ServiceType;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -83,18 +89,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.apple.foundationdb.Database;
-import com.apple.foundationdb.FDB;
 import com.apple.foundationdb.FDBException;
 import com.apple.foundationdb.StreamingMode;
 import com.apple.foundationdb.Transaction;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.MapMaker;
-import org.apache.curator.retry.RetryNTimes;
-import org.apache.curator.x.discovery.ServiceDiscovery;
-import org.apache.curator.x.discovery.ServiceDiscoveryBuilder;
-import org.apache.curator.x.discovery.ServiceInstance;
-import org.apache.curator.x.discovery.ServiceInstanceBuilder;
-import org.apache.curator.x.discovery.ServiceType;
 
 import io.warp10.SmartPattern;
 import io.warp10.ThriftUtils;
@@ -109,7 +108,6 @@ import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.DirectoryStatsRequest;
 import io.warp10.continuum.store.thrift.data.DirectoryStatsResponse;
-import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.continuum.thrift.data.LoggingEvent;
 import io.warp10.crypto.CryptoUtils;
@@ -284,6 +282,7 @@ public class Directory extends AbstractHandler implements Runnable {
 
   private final ReentrantLock metadatasLock = new ReentrantLock(true);
 
+  private RuntimeException initializationError = null;
   private final AtomicBoolean cachePopulated = new AtomicBoolean(false);
   private final AtomicBoolean fullyInitialized = new AtomicBoolean(false);
 
@@ -762,7 +761,17 @@ public class Directory extends AbstractHandler implements Runnable {
 
               done = true;
             } catch (Throwable t) {
+              FDBUtils.errorMetrics("directory", t.getCause());
               if (t.getCause() instanceof FDBException) {
+                FDBException fdbe = (FDBException) t.getCause();
+                int code = fdbe.getCode();
+                // Tenant related errors are not recoverable
+                if (2130 == code || 2131 == code) {
+                  self.initializationError = new RuntimeException("Error while accessing FoundationDB.", t);
+                  done = true;
+                  self.cachePopulated.set(true);
+                  throw self.initializationError;
+                }
                 try {
                   db.close();
                 } catch (Exception e) {}
@@ -862,8 +871,12 @@ public class Directory extends AbstractHandler implements Runnable {
         // Wait until directory is fully initialized
         //
 
-        while(!self.fullyInitialized.get()) {
+        while(!self.fullyInitialized.get() && null == self.initializationError) {
           LockSupport.parkNanos(1000000000L);
+        }
+
+        if (null != self.initializationError) {
+          return;
         }
 
         Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_CLASSES, Sensision.EMPTY_LABELS, classNames.size());
@@ -1062,8 +1075,12 @@ public class Directory extends AbstractHandler implements Runnable {
     // Wait for initialization to be done
     //
 
-    while(!this.fullyInitialized.get()) {
+    while(!this.fullyInitialized.get() && null == initializationError) {
       LockSupport.parkNanos(1000000000L);
+    }
+
+    if (null != initializationError) {
+      throw initializationError;
     }
 
     try {
@@ -1104,6 +1121,10 @@ public class Directory extends AbstractHandler implements Runnable {
     while(!this.cachePopulated.get()) {
       Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_JVM_FREEMEMORY, Sensision.EMPTY_LABELS, Runtime.getRuntime().freeMemory());
       LockSupport.parkNanos(1000000000L);
+    }
+
+    if (null != initializationError) {
+      throw initializationError;
     }
 
     //
