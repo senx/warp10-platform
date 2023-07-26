@@ -26,9 +26,8 @@ import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.zookeeper.Transaction;
-
 import com.apple.foundationdb.StreamingMode;
+import com.apple.foundationdb.Transaction;
 
 import io.warp10.continuum.Tokens;
 import io.warp10.continuum.gts.GTSDecoder;
