@@ -101,7 +101,11 @@ public class FDBSIZE extends NamedWarpScriptFunction implements WarpScriptStackF
 
     FDBContext context = pool.getContext();
 
-    stack.push(FDBUtils.getEstimatedRangeSizeBytes(context, from, to));
+    try {
+      stack.push(FDBUtils.getEstimatedRangeSizeBytes(context, from, to));
+    } catch (Throwable t) {
+      throw new WarpScriptException(getName() + " error while retrieving range size.", t);
+    }
 
     return stack;
   }
