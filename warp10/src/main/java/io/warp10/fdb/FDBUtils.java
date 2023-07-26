@@ -225,19 +225,41 @@ public class FDBUtils {
 
   public static long getEstimatedRangeSizeBytes(FDBContext context, byte[] from, byte[] to) {
     Database db = context.getDatabase();
-    Transaction txn = db.createTransaction();
+    Transaction txn = null;
+
     long size = 0L;
+    long attempts = 2;
 
     try {
-      txn.options().setRawAccess();
-      size = txn.getEstimatedRangeSizeBytes(from, to).get().longValue();
-    } catch (Throwable t) {
+      while (attempts > 0) {
+        // Retrieve the system key for the given tenant
+        try {
+          txn = db.createTransaction();
+          // setRawAccess is called unconditionally because we do not know if a tenant was set or not for the key range
+          txn.options().setRawAccess();
+          size = txn.getEstimatedRangeSizeBytes(from, to).get().longValue();
+          return size;
+        } catch (Throwable t) {
+          FDBUtils.errorMetrics("rangeSize", t.getCause());
+
+          if (t.getCause() instanceof FDBException) {
+            FDBException fdbe = (FDBException) t.getCause();
+            if (fdbe.getCode() == 1039) {
+              attempts--;
+              continue;
+            }
+          }
+
+          throw new RuntimeException("Error while fetching range size.", t);
+        } finally {
+          try { txn.close(); } catch (Throwable t) {}
+        }
+      }
     } finally {
-      try { txn.close(); } catch (Throwable t) {}
       try { db.close(); } catch (Throwable t) {}
     }
 
-    return size;
+    throw new RuntimeException("I got lost while fetching range size!");
   }
 
   /**
