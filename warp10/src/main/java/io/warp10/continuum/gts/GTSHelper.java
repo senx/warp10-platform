@@ -2328,7 +2328,7 @@ public class GTSHelper {
 
     // find array index of last bucket, if needed
     int i;
-    if (lastbucket > lasttick) {
+    if (lastbucket >= lasttick) {
       i = gts.size() - 1;
     } else {
       i = Arrays.binarySearch(gts.ticks, 0, gts.values, lastbucket);
