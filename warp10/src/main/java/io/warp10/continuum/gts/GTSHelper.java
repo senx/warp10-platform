@@ -2328,7 +2328,7 @@ public class GTSHelper {
 
     // find array index of last bucket, if needed
     int i;
-    if (lastbucket > lasttick) {
+    if (lastbucket >= lasttick) {
       i = gts.size() - 1;
     } else {
       i = Arrays.binarySearch(gts.ticks, 0, gts.values, lastbucket);
@@ -2338,6 +2338,11 @@ public class GTSHelper {
       } else if (i < 0) {
         // just before the insertion point
         i = -i - 1 - 1;
+      } else {
+        // binary search is not deterministic in case of multiple same timestamps (non dedup gts). Must find the last one.
+        while ((i + 1) < gts.values && gts.ticks[i + 1] == lastbucket) {
+          i++;
+        }
       }
     }
 
