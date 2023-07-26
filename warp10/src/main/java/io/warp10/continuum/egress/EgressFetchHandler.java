@@ -601,6 +601,7 @@ public class EgressFetchHandler extends AbstractHandler {
       List<Iterator<Metadata>> iterators = new ArrayList<Iterator<Metadata>>();
 
       boolean cacheGTS = false;
+      boolean doGskipGcount = true;
 
       if (!splitFetch) {
         if (null == selector) {
@@ -813,6 +814,9 @@ public class EgressFetchHandler extends AbstractHandler {
       }
 
       if (cacheGTS) {
+        // We perform gskip/gcount enforcement here so don't do it again later
+        doGskipGcount = false;
+
         //
         // Loop over the iterators, storing the read metadata to a temporary file encrypted on disk
         // Data is encrypted using a onetime pad
@@ -984,14 +988,34 @@ public class EgressFetchHandler extends AbstractHandler {
       }
 
       for (Iterator<Metadata> itermeta: iterators) {
+        if (doGskipGcount && gcount <= 0) {
+          break;
+        }
+
         while(itermeta.hasNext()) {
-          metas.add(itermeta.next());
+          if (doGskipGcount) {
+            if (gcount <= 0) {
+              break;
+            }
+
+            Metadata metadata = itermeta.next();
+
+            if (gskip > 0) {
+              gskip--;
+              continue;
+            }
+
+            gcount--;
+            metas.add(metadata);
+          } else {
+            metas.add(itermeta.next());
+          }
 
           //
           // Access the data store every 'FETCH_BATCHSIZE' GTS or at the end of each iterator
           //
 
-          if (metas.size() > FETCH_BATCHSIZE || !itermeta.hasNext()) {
+          if (metas.size() > FETCH_BATCHSIZE || !itermeta.hasNext() || (doGskipGcount && gcount <= 0)) {
             FetchRequest freq = new FetchRequest();
             freq.setToken(rtoken.get());
             freq.setMetadatas(metas);
