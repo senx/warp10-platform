@@ -122,6 +122,7 @@ public class FDBUtils {
 
   public static byte[] getKey(Database db, byte[] key) {
     Transaction txn = db.createTransaction();
+    // setRawAccess is called unconditionally because we do not know if a tenant was set or not
     txn.options().setRawAccess();
     txn.options().setAccessSystemKeys();
 
@@ -146,7 +147,6 @@ public class FDBUtils {
 
   public static Map<String,Object> getTenantInfo(Database db, String tenant) {
     Transaction txn = null;
-
 
     int attempts = 2;
     Map<String,Object> map = new LinkedHashMap<String,Object>();
@@ -198,6 +198,7 @@ public class FDBUtils {
       while(attempts > 0) {
         try {
           txn = db.createTransaction();
+          // setRawAccess is called unconditionally because we are accessing a system key without tenant
           txn.options().setRawAccess();
           txn.options().setAccessSystemKeys();
 

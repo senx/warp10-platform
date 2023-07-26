@@ -247,7 +247,9 @@ public class StandaloneFDBStoreClient extends FDBStoreClient {
           retry = false;
           txn = this.fdb.createTransaction();
           // Allow RAW access because we may manually force a tenant key prefix without actually setting a tenant
-          txn.options().setRawAccess();
+          if (fdbContext.hasTenant() || FDBUseTenantPrefix) {
+            txn.options().setRawAccess();
+          }
           int sets = 0;
           int clearranges = 0;
 
