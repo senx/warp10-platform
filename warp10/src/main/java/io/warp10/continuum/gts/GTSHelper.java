@@ -4784,6 +4784,69 @@ public class GTSHelper {
   }
 
   /**
+   * Find empty buckets in a bucketized gts
+   * @param gts
+   * @return list of empty buckets
+   */
+  public static List<Long> emptyBuckets(GeoTimeSerie gts) {
+
+    List res = new ArrayList<Long>();
+
+    //
+    // If gts is not bucketized, return empty list
+    //
+
+    if (!isBucketized(gts) || gts.bucketcount == 0) {
+      return res;
+    }
+
+    long bucketOffset = gts.lastbucket % gts.bucketspan;
+    long[] ticks = gts.ticks;
+
+    //
+    // Sort tick array to save searching for current bucket at each iteration
+    //
+
+    if (!gts.sorted || gts.reversed) {
+      ticks = ticks.clone();
+      Arrays.sort(ticks);
+    }
+
+    //
+    // Initialize loop on last tick
+    //
+
+    int tickId = ticks.length - 1;
+
+    //
+    // Loop through ticks backward and check if a bucket is jumped
+    //
+
+    for (int i = 0; i < gts.bucketcount; i++) {
+
+      // We skip ticks that are inserted on non-bucket timestamps
+      while (gts.lastbucket - i * gts.bucketspan < ticks[tickId] && tickId > 0) {
+        tickId--;
+      }
+
+      if (gts.lastbucket - i * gts.bucketspan < ticks[tickId]) {
+        // this means tickID = 0 and buckets are missing at the beginning of the GTS
+        for (int j = i; j < gts.bucketcount; j++) {
+          res.add(gts.lastbucket - j * gts.bucketspan);
+        }
+        break;
+      }
+
+      if (gts.lastbucket - i * gts.bucketspan > ticks[tickId]) {
+        // a bucket has been jumped
+        res.add(gts.lastbucket - i * gts.bucketspan);
+      }
+    }
+
+    return res;
+  }
+
+  /**
    * Fill missing values/locations/elevations in a bucketized GTS with the previously
    * encountered one.
    *
