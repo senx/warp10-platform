@@ -4808,7 +4808,7 @@ public class GTSHelper {
     //
 
     if (!gts.sorted || gts.reversed) {
-      ticks = ticks.clone();
+      ticks = Arrays.copyOf(ticks, gts.size());
       Arrays.sort(ticks);
     }
 
@@ -4816,7 +4816,7 @@ public class GTSHelper {
     // Initialize loop on last tick
     //
 
-    int tickId = ticks.length - 1;
+    int tickId = gts.size() - 1;
 
     //
     // Loop through ticks backward and check if a bucket is jumped
