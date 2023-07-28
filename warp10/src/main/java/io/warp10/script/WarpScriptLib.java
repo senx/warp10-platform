@@ -414,6 +414,7 @@ import io.warp10.script.functions.ECVERIFY;
 import io.warp10.script.functions.ELAPSED;
 import io.warp10.script.functions.ELEVATIONS;
 import io.warp10.script.functions.EMPTY;
+import io.warp10.script.functions.EMPTYBUCKETS;
 import io.warp10.script.functions.EMPTYLIST;
 import io.warp10.script.functions.EMPTYMAP;
 import io.warp10.script.functions.EMPTYSET;
@@ -1326,6 +1327,7 @@ public class WarpScriptLib {
   public static final String NORMALIZE = "NORMALIZE";
   public static final String ISONORMALIZE = "ISONORMALIZE";
   public static final String ZSCORE = "ZSCORE";
+  public static final String EMPTYBUCKETS = "EMPTYBUCKETS";
   public static final String FILL = "FILL";
   public static final String FILLPREVIOUS = "FILLPREVIOUS";
   public static final String FILLNEXT = "FILLNEXT";
@@ -2327,6 +2329,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new NORMALIZE(NORMALIZE));
     addNamedWarpScriptFunction(new ISONORMALIZE(ISONORMALIZE));
     addNamedWarpScriptFunction(new ZSCORE(ZSCORE));
+    addNamedWarpScriptFunction(new EMPTYBUCKETS(EMPTYBUCKETS));
     addNamedWarpScriptFunction(new FILL(FILL));
     addNamedWarpScriptFunction(new FILLPREVIOUS(FILLPREVIOUS));
     addNamedWarpScriptFunction(new FILLNEXT(FILLNEXT));
