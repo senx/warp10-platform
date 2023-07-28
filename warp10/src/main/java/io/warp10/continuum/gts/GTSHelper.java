@@ -4796,7 +4796,7 @@ public class GTSHelper {
     // If gts is not bucketized, return empty list
     //
 
-    if (!isBucketized(gts) || gts.bucketcount == 0) {
+    if (!isBucketized(gts) || gts.bucketcount == 0 || gts.size() == 0) {
       return res;
     }
 
