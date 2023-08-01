@@ -99,11 +99,11 @@ public class MacroFilterAuthenticationPlugin extends AbstractWarp10Plugin implem
     }
 
     try {
-      if (null == MACRO) {
+      if (null == MACRO || null == token || "".equals(token)) {
         return null;
       }
 
-      return (WriteToken) extractToken(token, true);
+      return (WriteToken) extractToken(token, false);
     } finally {
       reentrant.remove();
     }
@@ -185,6 +185,11 @@ public class MacroFilterAuthenticationPlugin extends AbstractWarp10Plugin implem
     stack.push(map);
     stack.run(MACRO);
     map = (Map<String,Object>) stack.pop();
+
+    if (null == map) {
+      return null;
+    }
+
     return TOKENGEN.tokenFromMap(map, "", Long.MAX_VALUE);
   }
 
