@@ -99,7 +99,7 @@ public class MacroFilterAuthenticationPlugin extends AbstractWarp10Plugin implem
     }
 
     try {
-      if (null == MACRO) {
+      if (null == MACRO || null == token || "".equals(token)) {
         return null;
       }
 
