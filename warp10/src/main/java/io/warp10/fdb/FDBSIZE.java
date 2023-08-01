@@ -71,7 +71,7 @@ public class FDBSIZE extends NamedWarpScriptFunction implements WarpScriptStackF
         Matcher m = Pattern.compile(regexp).matcher(tenant);
 
         if (!m.matches()) {
-          throw new WarpScriptException(getName() + " capability '" + FDBUtils.CAPABILITY_TENANT + "' does not allow you to access this tenant.");
+          throw new WarpScriptException(getName() + " capability '" + FDBUtils.CAPABILITY_TENANT + "' does not allow you to access tenant '" + tenant + "'.");
         }
       }
 
@@ -81,7 +81,7 @@ public class FDBSIZE extends NamedWarpScriptFunction implements WarpScriptStackF
         from = (byte[]) tenantInfo.get(FDBUtils.KEY_PREFIX);
         to = FDBUtils.getNextKey(from);
       } else {
-        throw new WarpScriptException(getName() + " unknown tenant.");
+        throw new WarpScriptException(getName() + " unknown tenant '" + tenant + "'.");
       }
     } else {
       if (!(top instanceof byte[])) {
