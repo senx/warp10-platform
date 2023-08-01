@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2022  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -282,9 +282,9 @@ ingress.cache.dump.path = ${warp10.datadir}/cache.metadata
 
 ##
 ## Offset reset strategy when consuming the metadata topic
-## 'smallest' should be used unless in very specific recovery situations.
+## 'earliest' should be used unless in very specific recovery situations.
 ##
-#ingress.kafka.metadata.consumer.auto.offset.reset = smallest
+#ingress.kafka.metadata.consumer.auto.offset.reset = earliest
 
 ##
 ## Set to true to allow the /delete endpoint to only delete metadata
