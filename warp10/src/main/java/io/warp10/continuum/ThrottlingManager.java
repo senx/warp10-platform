@@ -866,6 +866,11 @@ public class ThrottlingManager {
 
                   double rlimit = Double.parseDouble(rate);
 
+                  // If rate is not a positive number, set it to 1.0E-9
+                  if (rlimit <= 0.0 || !Double.isFinite(rlimit)) {
+                    rlimit = 0.000000001D;
+                  }
+
                   if (isProducer) {
                     producerRateLimiters.put(entity, RateLimiter.create(Math.max(MINIMUM_RATE_LIMIT, rlimit)));
                     labels.put(SensisionConstants.SENSISION_LABEL_PRODUCER, entity);
