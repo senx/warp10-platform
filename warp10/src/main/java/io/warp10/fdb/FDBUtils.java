@@ -178,7 +178,7 @@ public class FDBUtils {
           }
         }
 
-        throw new RuntimeException("Error while fetching FoundationDB tenant.", t);
+        throw new RuntimeException("Error while fetching FoundationDB tenant '" + tenant + "'.", t);
       } finally {
         try { txn.close(); } catch (Throwable t) {}
       }
