@@ -17,9 +17,9 @@
 package io.warp10.fdb;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Map;
 
-import org.bouncycastle.util.Arrays;
 
 import com.apple.foundationdb.Database;
 
