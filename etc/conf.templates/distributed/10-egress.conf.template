@@ -78,6 +78,14 @@ egress.fetch.batchsize = 10000
 #egress.fdb.tenant =
 
 ##
+## Optional FoundationDB tenant prefix to use
+## Format is either OPB64 or hex:<HEXA>
+##
+#egress.fdb.tenant.prefix =
+
+
+
+##
 ## Size of FoundationDB Database shared pool used to retrieve data, defaults to 1
 ## Note that the Database objects in this pool are not accessed in an exclusive way, so the
 ## poolsize does not directly control the level of concurrency for accesses to FoundationDB
