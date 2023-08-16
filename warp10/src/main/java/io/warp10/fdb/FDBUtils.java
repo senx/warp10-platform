@@ -73,7 +73,7 @@ public class FDBUtils {
     return FDB.instance();
   }
 
-  public static FDBContext getContext(String clusterFile, String tenant) {
+  public static FDBContext getContext(String clusterFile, Object tenant) {
     return new FDBContext(clusterFile, tenant);
   }
 

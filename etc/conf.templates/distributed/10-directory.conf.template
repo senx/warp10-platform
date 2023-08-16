@@ -171,6 +171,12 @@ directory.fdb.metadata.aes = ${fdb.metadata.aes}
 #directory.fdb.tenant =
 
 ##
+## Optional FoundationDB tenant prefix to use
+## Format is either OPB64 or hex:<HEXA>
+##
+#directory.fdb.tenant.prefix =
+
+##
 ## Number of retries for FoundationDB transactions (defaults to 4)
 ##
 #directory.fdb.retrylimit = 4

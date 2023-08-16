@@ -1658,6 +1658,31 @@ public class Ingress extends AbstractHandler implements Runnable {
       StringBuilder sb = new StringBuilder();
 
       boolean expose = writeToken.getAttributesSize() > 0 && writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_EXPOSE);
+
+      //
+      // Extract KafkaDataMessage attributes
+      //
+
+      Map<String,String> kafkaDeleteMessageAttributes = null;
+
+      if (writeToken.getAttributesSize() > 0) {
+        if (writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_FDB_TENANT_PREFIX)) {
+          if (!FDBUseTenantPrefix) {
+            throw new IOException("Invalid token, tenant prefix not supported.");
+          }
+          kafkaDeleteMessageAttributes = new LinkedHashMap<String,String>();
+          String encodedPrefix = writeToken.getAttributes().get(Constants.TOKEN_ATTR_FDB_TENANT_PREFIX);
+          if (8 != OrderPreservingBase64.decode(encodedPrefix).length) {
+            throw new IOException("Invalid tenant prefix, length should be 8 bytes.");
+          }
+          kafkaDeleteMessageAttributes.put(Constants.STORE_ATTR_FDB_TENANT_PREFIX, encodedPrefix);
+        } else if (FDBUseTenantPrefix) {
+          throw new IOException("Invalid token, missing tenant prefix.");
+        }
+      } else if (FDBUseTenantPrefix) {
+        throw new IOException("Invalid token, missing tenant prefix.");
+      }
+
       //
       // Shuffle only if not in dryrun mode
       //
@@ -1860,7 +1885,7 @@ public class Ingress extends AbstractHandler implements Runnable {
             }
 
             if (!metaonly) {
-              pushDeleteMessage(start, end, minage, metadata);
+              pushDeleteMessage(kafkaDeleteMessageAttributes, start, end, minage, metadata);
             }
 
             if (Long.MAX_VALUE == end && Long.MIN_VALUE == start && 0 == minage) {
@@ -1929,7 +1954,7 @@ public class Ingress extends AbstractHandler implements Runnable {
               }
 
               if (!metaonly) {
-                pushDeleteMessage(start, end, minage, metadata);
+                pushDeleteMessage(kafkaDeleteMessageAttributes, start, end, minage, metadata);
               }
 
               if (Long.MAX_VALUE == end && Long.MIN_VALUE == start && 0 == minage) {
@@ -1989,7 +2014,7 @@ public class Ingress extends AbstractHandler implements Runnable {
       // Flush delete messages
       if (!dryrun) {
         if (!metaonly) {
-          pushDeleteMessage(0L,0L,0L,null);
+          pushDeleteMessage(null, 0L,0L,0L,null);
         }
         if (completeDeletion) {
           pushMetadataMessage(null, null);
@@ -2347,7 +2372,7 @@ public class Ingress extends AbstractHandler implements Runnable {
    * @param end End timestamp for deletion
    * @param metadata Metadata of the GTS to delete
    */
-  private void pushDeleteMessage(long start, long end, long minage, Metadata metadata) throws IOException {
+  private void pushDeleteMessage(Map<String,String> attributes, long start, long end, long minage, Metadata metadata) throws IOException {
     if (null != metadata) {
       KafkaDataMessage msg = new KafkaDataMessage();
       msg.setType(KafkaDataMessageType.DELETE);
@@ -2361,6 +2386,9 @@ public class Ingress extends AbstractHandler implements Runnable {
         msg.setMetadata(metadata);
       }
 
+      if (null != attributes && !attributes.isEmpty()) {
+        msg.setAttributes(new HashMap<String,String>(attributes));
+      }
       sendDataMessage(msg);
     } else {
       sendDataMessage(null);

@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2022  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -76,6 +76,14 @@ egress.fetch.batchsize = 10000
 ## The tenant MUST exist.
 ##
 #egress.fdb.tenant =
+
+##
+## Optional FoundationDB tenant prefix to use
+## Format is either OPB64 or hex:<HEXA>
+##
+#egress.fdb.tenant.prefix =
+
+
 
 ##
 ## Size of FoundationDB Database shared pool used to retrieve data, defaults to 1

@@ -21,6 +21,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
+import org.bouncycastle.util.encoders.Hex;
+
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.MetadataIdComparator;
@@ -31,6 +33,7 @@ import io.warp10.continuum.store.StoreClient;
 import io.warp10.continuum.store.thrift.data.FetchRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.KeyStore;
+import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.standalone.StandalonePlasmaHandlerInterface;
 
@@ -47,11 +50,25 @@ public class FDBStoreClient implements StoreClient {
     this.keystore = keystore;
     this.FDBUseTenantPrefix = "true".equals(properties.getProperty(Configuration.FDB_USE_TENANT_PREFIX));
 
-    if (FDBUseTenantPrefix && null != properties.getProperty(Configuration.EGRESS_FDB_TENANT)) {
-      throw new RuntimeException("Cannot set '" + Configuration.EGRESS_FDB_TENANT + "' when '" + Configuration.FDB_USE_TENANT_PREFIX + "' is true.");
+    if (FDBUseTenantPrefix && (null != properties.getProperty(Configuration.EGRESS_FDB_TENANT) || null != properties.getProperty(Configuration.EGRESS_FDB_TENANT_PREFIX))) {
+      throw new RuntimeException("Cannot set '" + Configuration.EGRESS_FDB_TENANT + "' or '" + Configuration.EGRESS_FDB_TENANT_PREFIX + "' when '" + Configuration.FDB_USE_TENANT_PREFIX + "' is true.");
     }
 
-    FDBContext context = FDBUtils.getContext(properties.getProperty(Configuration.EGRESS_FDB_CLUSTERFILE), properties.getProperty(Configuration.EGRESS_FDB_TENANT));
+    Object tenant = properties.getProperty(Configuration.EGRESS_FDB_TENANT);
+
+    if (null != properties.getProperty(Configuration.EGRESS_FDB_TENANT_PREFIX)) {
+      if (null != tenant) {
+        throw new IOException("Invalid configuration, only one of '" + Configuration.EGRESS_FDB_TENANT_PREFIX + "' and '" + Configuration.EGRESS_FDB_TENANT + "' can be set.");
+      }
+      String prefix = properties.getProperty(Configuration.EGRESS_FDB_TENANT_PREFIX);
+      if (prefix.startsWith("hex:")) {
+        tenant = Hex.decode(prefix.substring(4));
+      } else {
+        tenant = OrderPreservingBase64.decode(prefix, 0, prefix.length());
+      }
+    }
+
+    FDBContext context = FDBUtils.getContext(properties.getProperty(Configuration.EGRESS_FDB_CLUSTERFILE), tenant);
     int maxsize = Integer.parseInt(properties.getProperty(Configuration.EGRESS_FDB_POOLSIZE, EGRESS_FDB_POOLSIZE_DEFAULT));
     this.pool = new FDBPool(context, maxsize);
   }

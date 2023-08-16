@@ -49,6 +49,12 @@ directory.fdb.clusterfile = ${fdb.clusterfile}
 #directory.fdb.tenant =
 
 ##
+## Optional FoundationDB tenant prefix to use
+## Format is either OPB64 or hex:<HEXA>
+##
+#directory.fdb.tenant.prefix =
+
+##
 ## Store/Egress
 ##
 
@@ -63,6 +69,13 @@ egress.fdb.clusterfile = ${store.fdb.clusterfile}
 
 #store.fdb.tenant =
 #egress.fdb.tenant = ${store.fdb.tenant}
+
+##
+## Optional FoundationDB tenant prefix to use
+## Format is either OPB64 or hex:<HEXA>
+##
+#store.fdb.tenant.prefix =
+#egress.fdb.tenant.prefix = ${store.fdb.tenant.prefix}
 
 ##
 ## Maximum number of attempts when committing a transaction to FDB

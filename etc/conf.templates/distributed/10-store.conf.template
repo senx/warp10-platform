@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2022  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -84,6 +84,12 @@ store.kafka.data.intercommits.maxtime = 120000
 #store.fdb.tenant =
 
 ##
+## Optional FoundationDB tenant prefix to use
+## Format is either OPB64 or hex:<HEXA>
+##
+#store.fdb.tenant.prefix =
+
+##
 ## Number of retries for FoundationDB transactions (defaults to 4)
 ##
 #store.fdb.retrylimit = 4
@@ -146,3 +152,10 @@ store.kafka.data.intercommits.maxtime = 120000
 ## Name of partition assignment strategy to use
 ##
 #store.kafka.data.consumer.partition.assignment.strategy = 
+
+##
+## If set to true messages with no tenant prefix set when one is mandated (fdb.use.tenant.prefix set to true) or with one when none is mandated will simply be ignored.
+## Otherwise those messages lead to Store being stuck on the processing of those messages.
+## Only set this to true if you know your Kafka data topic contains incorrect messages.
+##
+fdb.ignore.tenant.prefix.issues = false
