@@ -40,7 +40,7 @@ dependencies {
     api 'org.bouncycastle:bcpg-jdk15on:1.70'
 
     // https://mvnrepository.com/artifact/org.foundationdb/fdb-java
-    api 'org.foundationdb:fdb-java:7.1.33'
+    api 'org.foundationdb:fdb-java:7.1.37'
 
     api 'org.apache.hadoop:hadoop-common:3.3.5'
     api 'org.apache.hadoop:hadoop-mapreduce-client-core:3.3.5'
