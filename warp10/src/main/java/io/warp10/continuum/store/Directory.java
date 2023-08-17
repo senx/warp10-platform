@@ -583,7 +583,7 @@ public class Directory extends AbstractHandler implements Runnable {
                 // If classId/labelsId are incoherent, skip metadata
                 if (classId != hbClassId || labelsId != hbLabelsId) {
                   LOG.warn("Incoherent class/labels Id (" + classId + "/" + hbClassId + " " + labelsId + "/" + hbLabelsId + ") for " + metadata);
-                  Sensision.update(SensisionConstants.CLASS_DIRECTORY_INCOHERENT_IDS, Sensision.EMPTY_LABELS, 1);
+                  Sensision.update(SensisionConstants.CLASS_DIRECTORY_INCOHERENT_IDS_FDB, Sensision.EMPTY_LABELS, 1);
                   rejected.addAndGet(1);
                   continue;
                 }
@@ -1560,6 +1560,8 @@ public class Directory extends AbstractHandler implements Runnable {
             //long labelsId = Longs.fromByteArray(labelsBytes);
 
             // 128bits
+
+            // The value contains the classId/labelsId followed by the value
             byte[] metadataBytes = Arrays.copyOfRange(data, 16, data.length);
             TDeserializer deserializer = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
             Metadata metadata = new Metadata();
@@ -1592,6 +1594,14 @@ public class Directory extends AbstractHandler implements Runnable {
             int rem = ((int) ((labelsId >>> 56) & 0xffL)) % directory.modulus;
 
             if (directory.remainder != rem) {
+              continue;
+            }
+
+            ByteBuffer xbb = ByteBuffer.wrap(data);
+            xbb.order(ByteOrder.BIG_ENDIAN);
+
+            if (classId != xbb.getLong() || labelsId != xbb.getLong()) {
+              Sensision.update(SensisionConstants.CLASS_DIRECTORY_INCOHERENT_IDS_KAFKA, Sensision.EMPTY_LABELS, 1);
               continue;
             }
 
