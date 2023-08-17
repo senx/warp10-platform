@@ -76,6 +76,7 @@ import org.bouncycastle.crypto.InvalidCipherTextException;
 import org.bouncycastle.crypto.engines.AESWrapEngine;
 import org.bouncycastle.crypto.paddings.PKCS7Padding;
 import org.bouncycastle.crypto.params.KeyParameter;
+import org.bouncycastle.util.encoders.Hex;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.HttpConfiguration;
 import org.eclipse.jetty.server.HttpConnectionFactory;
@@ -97,6 +98,7 @@ import com.google.common.collect.MapMaker;
 
 import io.warp10.SmartPattern;
 import io.warp10.ThriftUtils;
+import io.warp10.continuum.Configuration;
 import io.warp10.continuum.DirectoryUtil;
 import io.warp10.continuum.JettyUtil;
 import io.warp10.continuum.KafkaOffsetCounters;
@@ -382,7 +384,21 @@ public class Directory extends AbstractHandler implements Runnable {
       Preconditions.checkNotNull(properties.getProperty(required), "Missing configuration parameter '%s'.", required);
     }
 
-    this.fdbContext = FDBUtils.getContext(props.getProperty(io.warp10.continuum.Configuration.DIRECTORY_FDB_CLUSTERFILE), props.getProperty(io.warp10.continuum.Configuration.DIRECTORY_FDB_TENANT));
+    Object tenant = properties.getProperty(Configuration.DIRECTORY_FDB_TENANT);
+
+    if (null != properties.getProperty(Configuration.DIRECTORY_FDB_TENANT_PREFIX)) {
+      if (null != tenant) {
+        throw new IOException("Invalid configuration, only one of '" + Configuration.DIRECTORY_FDB_TENANT_PREFIX + "' and '" + Configuration.DIRECTORY_FDB_TENANT + "' can be set.");
+      }
+      String prefix = properties.getProperty(Configuration.DIRECTORY_FDB_TENANT_PREFIX);
+      if (prefix.startsWith("hex:")) {
+        tenant = Hex.decode(prefix.substring(4));
+      } else {
+        tenant = OrderPreservingBase64.decode(prefix, 0, prefix.length());
+      }
+    }
+
+    this.fdbContext = FDBUtils.getContext(props.getProperty(io.warp10.continuum.Configuration.DIRECTORY_FDB_CLUSTERFILE), tenant);
     this.fdbRetryLimit = Long.parseLong(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_FDB_RETRYLIMIT, DEFAULT_FDB_RETRYLIMIT));
 
     this.db = fdbContext.getDatabase();
