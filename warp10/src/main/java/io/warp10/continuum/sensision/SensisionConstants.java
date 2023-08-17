@@ -101,6 +101,11 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_WARP_REVISION = "warp.revision";
 
   /**
+   * Number of incoherent ids detected at startup, may be an indication of
+   */
+  public static final String CLASS_DIRECTORY_INCOHERENT_IDS = "warp.directory.incoherent.ids";
+
+  /**
    * Number of entries in the serialized metadata cache
    */
   public static final String CLASS_WARP_DIRECTORY_METADATA_CACHE_SIZE = "warp.directory.metadata.cache.size";
