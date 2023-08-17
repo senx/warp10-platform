@@ -505,6 +505,8 @@ public class Directory extends AbstractHandler implements Runnable {
 
       final LinkedBlockingQueue<FDBKeyValue> kvQ = new LinkedBlockingQueue<FDBKeyValue>(initThreads.length * 8192);
 
+      AtomicLong rejected = new AtomicLong(0);
+
       for (int i = 0; i < initThreads.length; i++) {
         stopMarkers[i] = new AtomicBoolean(false);
         final AtomicBoolean stopMe = stopMarkers[i];
@@ -582,6 +584,7 @@ public class Directory extends AbstractHandler implements Runnable {
                 if (classId != hbClassId || labelsId != hbLabelsId) {
                   LOG.warn("Incoherent class/labels Id (" + classId + "/" + hbClassId + " " + labelsId + "/" + hbLabelsId + ") for " + metadata);
                   Sensision.update(SensisionConstants.CLASS_DIRECTORY_INCOHERENT_IDS, Sensision.EMPTY_LABELS, 1);
+                  rejected.addAndGet(1);
                   continue;
                 }
 
@@ -852,7 +855,7 @@ public class Directory extends AbstractHandler implements Runnable {
 
           nano = System.nanoTime() - nano;
 
-          LOG.info("Loaded " + count + " GTS in " + (nano / 1000000.0D) + " ms");
+          LOG.info("Loaded " + count + " GTS in " + (nano / 1000000.0D) + " ms, rejected " + rejected.get());
         }
       });
 
