@@ -32,6 +32,7 @@ import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import com.google.common.base.Preconditions;
 
 import io.warp10.SSLUtils;
+import io.warp10.WarpDist;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.JettyUtil;
 import io.warp10.continuum.store.DirectoryClient;
@@ -42,7 +43,7 @@ import io.warp10.fdb.FDBStoreClient;
 /**
  * This is the class which ingests metrics.
  */
-public class Egress {
+public class Egress implements Runnable {
 
   private static final String DEFAULT_THREADPOOL_SIZE = "200";
 
@@ -204,15 +205,35 @@ public class Egress {
 
     JettyUtil.setSendServerVersion(server, false);
 
+    Thread t = new Thread(this);
+    t.setDaemon(true);
+    t.setName("[Continuum Egress]");
+    t.start();
+  }
+
+  @Override
+  public void run() {
+    //
+    // Wait until we are initialized to start server so authentication plugins are loaded
+    //
+
+    while(!WarpDist.isInitialized()) {
+      try {
+        Thread.sleep(1000L);
+      } catch (Throwable t) {
+      }
+    }
+
     try {
       server.start();
     } catch (Exception e) {
-      throw new RuntimeException(e);
+      WarpDist.abort(e);
+      return;
     }
   }
 
   /**
-   * Extract Ingress related keys and populate the KeyStore with them.
+   * Extract Egress related keys and populate the KeyStore with them.
    *
    * @param props Properties from which to extract the key specs
    */
