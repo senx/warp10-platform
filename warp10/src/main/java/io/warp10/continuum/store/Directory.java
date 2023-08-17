@@ -564,7 +564,7 @@ public class Directory extends AbstractHandler implements Runnable {
 
                 // If classId/labelsId are incoherent, skip metadata
                 if (classId != hbClassId || labelsId != hbLabelsId) {
-                  LOG.warn("Incoherent class/labels Id for " + metadata);
+                  LOG.warn("Incoherent class/labels Id (" + classId + "/" + hbClassId + " " + labelsId + "/" + hbLabelsId + ") for " + metadata);
                   Sensision.update(SensisionConstants.CLASS_DIRECTORY_INCOHERENT_IDS, Sensision.EMPTY_LABELS, 1);
                   continue;
                 }
