@@ -442,8 +442,8 @@ leveldbinit() {
 getWarp10Home
 
 WARP10_CONFIG_DIR=${WARP10_HOME}/etc/conf.d
-WARP10_REVISION=@VERSION@
-WARP10_JAR=${WARP10_HOME}/bin/warp10-${WARP10_REVISION}.jar
+WARP10_REVISION=${WARP10_REVISION:-@VERSION@}
+WARP10_JAR=${WARP10_JAR:-${WARP10_HOME}/bin/warp10-${WARP10_REVISION}.jar}
 WARP10_CLASS=io.warp10.Warp
 PID_FILE=${WARP10_HOME}/logs/warp10.pid
 DATE=$(TZ=UTC date +%Y%m%dT%H%M%SZ)
@@ -470,7 +470,7 @@ fi
 ## Classpath
 ## The lib directory is dedicated to user libraries (extensions, plugins...)
 ##
-WARP10_CP=${WARP10_HOME}/etc:${WARP10_JAR}:${WARP10_HOME}/lib/*
+WARP10_CP=${WARP10_CP:-${WARP10_HOME}/etc:${WARP10_JAR}:${WARP10_HOME}/lib/*}
 
 SENSISION_EVENTS_DIR=/var/run/sensision/metrics
 
