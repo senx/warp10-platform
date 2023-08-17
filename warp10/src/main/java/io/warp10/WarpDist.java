@@ -16,6 +16,19 @@
 
 package io.warp10;
 
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
+
+import com.google.common.base.Preconditions;
+
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.MetadataUtils;
 import io.warp10.continuum.ThrottlingManager;
@@ -36,18 +49,6 @@ import io.warp10.script.ScriptRunner;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.sensision.Sensision;
 import io.warp10.warp.sdk.AbstractWarp10Plugin;
-
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Map.Entry;
-
-import com.google.common.base.Preconditions;
 
 /**
  * Main class for launching components of the Continuum geo time series storage system
@@ -86,6 +87,8 @@ public class WarpDist {
    * Do we run an 'egress' service. Used in WarpScript MacroRepository to bail out if not
    */
   private static boolean hasEgress = false;
+
+  private static AtomicReference<Throwable> abort = new AtomicReference<Throwable>(null);
 
   public static void setProperties(Properties props) {
     if (null != properties) {
@@ -296,15 +299,20 @@ public class WarpDist {
     //
 
     try {
-      while (true) {
+      while (null == abort.get()) {
         try {
           Thread.sleep(60000L);
         } catch (InterruptedException ie) {
         }
       }
+      throw (Throwable) abort.get();
     } catch (Throwable t) {
       System.err.println(t.getMessage());
     }
+  }
+
+  public static void abort(Throwable t) {
+    abort.set(t);
   }
 
   public static KeyStore getKeyStore() {

@@ -88,6 +88,7 @@ import io.warp10.SSLUtils;
 import io.warp10.ThriftUtils;
 import io.warp10.ThrowableUtils;
 import io.warp10.WarpConfig;
+import io.warp10.WarpDist;
 import io.warp10.WarpManager;
 import io.warp10.WarpURLDecoder;
 import io.warp10.continuum.Configuration;
@@ -295,6 +296,8 @@ public class Ingress extends AbstractHandler implements Runnable {
   final boolean ignoreOutOfRange;
 
   final boolean allowDeltaAttributes;
+
+  private final Server server;
 
   public Ingress(KeyStore keystore, Properties props) {
 
@@ -609,7 +612,7 @@ public class Ingress extends AbstractHandler implements Runnable {
 
     QueuedThreadPool queuedThreadPool = new QueuedThreadPool(maxThreads, 8, 60000, queue);
     queuedThreadPool.setName("Warp Ingress Jetty Thread");
-    Server server = new Server(queuedThreadPool);
+    server = new Server(queuedThreadPool);
 
     List<Connector> connectors = new ArrayList<Connector>();
 
@@ -658,25 +661,32 @@ public class Ingress extends AbstractHandler implements Runnable {
 
     JettyUtil.setSendServerVersion(server, false);
 
-    try {
-      server.start();
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-
     Thread t = new Thread(this);
     t.setDaemon(true);
-    t.setName("Continuum Ingress");
+    t.setName("[Continuum Ingress]");
     t.start();
   }
 
   @Override
   public void run() {
+
     //
-    // Register in ZK and watch parent znode.
-    // If the Ingress count exceeds the licensed number,
-    // exit if we are the first of the list.
+    // Wait until we are initialized to start server so authentication plugins are loaded
     //
+
+    while(!WarpDist.isInitialized()) {
+      try {
+        Thread.sleep(1000L);
+      } catch (Throwable t) {
+      }
+    }
+
+    try {
+      server.start();
+    } catch (Exception e) {
+      WarpDist.abort(e);
+      return;
+    }
 
     while(true) {
       try {
