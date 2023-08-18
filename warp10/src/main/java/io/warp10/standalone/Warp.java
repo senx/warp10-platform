@@ -32,6 +32,7 @@ import java.util.Properties;
 import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
+import org.bouncycastle.util.encoders.Hex;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Server;
@@ -416,7 +417,21 @@ public class Warp extends WarpDist implements Runnable {
         sdc = new StandaloneDirectoryClient(db, keystore);
         scc = new StandaloneStoreClient(db, keystore, properties);
       } else if (useFDB) {
-        FDBContext fdbContext = new FDBContext(properties.getProperty(Configuration.DIRECTORY_FDB_CLUSTERFILE), properties.getProperty(Configuration.DIRECTORY_FDB_TENANT));
+        Object tenant = properties.getProperty(Configuration.DIRECTORY_FDB_TENANT);
+
+        if (null != properties.getProperty(Configuration.DIRECTORY_FDB_TENANT_PREFIX)) {
+          if (null != tenant) {
+            throw new IOException("Invalid configuration, only one of '" + Configuration.DIRECTORY_FDB_TENANT_PREFIX + "' and '" + Configuration.DIRECTORY_FDB_TENANT + "' can be set.");
+          }
+          String prefix = properties.getProperty(Configuration.DIRECTORY_FDB_TENANT_PREFIX);
+          if (prefix.startsWith("hex:")) {
+            tenant = Hex.decode(prefix.substring(4));
+          } else {
+            tenant = OrderPreservingBase64.decode(prefix, 0, prefix.length());
+          }
+        }
+
+        FDBContext fdbContext = new FDBContext(properties.getProperty(Configuration.DIRECTORY_FDB_CLUSTERFILE), tenant);
         sdc = new StandaloneDirectoryClient(fdbContext, keystore);
         scc = new StandaloneFDBStoreClient(keystore, properties);
       }
