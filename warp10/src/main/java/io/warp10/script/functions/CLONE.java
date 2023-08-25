@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -30,14 +30,23 @@ import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStack.Macro;
 
 /**
  * Clone (deep copy) the GTS on top of the stack or performs a shallow copy of collections
  */
 public class CLONE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
+  private final boolean keepDupOnStack;
+
   public CLONE(String name) {
     super(name);
+    this.keepDupOnStack = true;
+  }
+
+  public CLONE(String name, boolean keepDupOnStack) {
+    super(name);
+    this.keepDupOnStack = keepDupOnStack;
   }
   
   @Override
@@ -60,13 +69,17 @@ public class CLONE extends NamedWarpScriptFunction implements WarpScriptStackFun
       stack.push(new HashSet<Object>((Set<Object>) o));
     } else if (o instanceof GTSEncoder) {
       stack.push(((GTSEncoder) o).clone());
+    } else if (o instanceof Macro) {
+      stack.push(((Macro) o).cloneRecursive((int) stack.getAttribute(WarpScriptStack.ATTRIBUTE_RECURSION_MAXDEPTH)));
     } else {
-      throw new WarpScriptException(getName() + " operates on List, Map, Set, Vector, Geo Time Series or GTS Encoder.");
+      throw new WarpScriptException(getName() + " operates on List, Map, Set, Vector, Macro, Geo Time Series or GTS Encoder.");
     }
     
     // Push the original element back onto the stack
-    stack.push(o);
-    stack.swap();
+    if (this.keepDupOnStack) {
+      stack.push(o);
+      stack.swap();
+    }
     
     return stack;
   }

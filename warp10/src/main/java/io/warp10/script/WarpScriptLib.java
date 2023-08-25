@@ -1478,6 +1478,7 @@ public class WarpScriptLib {
   public static final String ATTICK = "ATTICK";
   public static final String ATBUCKET = "ATBUCKET";
   public static final String CLONE = "CLONE";
+  public static final String CLONENODUP = "CLONENODUP";
   public static final String DURATION = "DURATION";
   public static final String HUMANDURATION = "HUMANDURATION";
   public static final String ISODURATION = "ISODURATION";
@@ -2502,6 +2503,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new ATBUCKET(ATBUCKET));
 
     addNamedWarpScriptFunction(new CLONE(CLONE));
+    addNamedWarpScriptFunction(new CLONE(CLONENODUP,false));
     addNamedWarpScriptFunction(new DURATION(DURATION));
     addNamedWarpScriptFunction(new HUMANDURATION(HUMANDURATION));
     addNamedWarpScriptFunction(new ISODURATION(ISODURATION));

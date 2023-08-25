@@ -380,6 +380,25 @@ public interface WarpScriptStack {
       size += n;
     }
 
+    public Macro cloneRecursive(int maxRecursion) throws WarpScriptException {
+      return cloneRecursive(maxRecursion, 0);
+    }
+
+    private Macro cloneRecursive(int maxRecursion, int currentRecursionLevel) throws WarpScriptException {
+      Macro m = new Macro();
+      m.addAll(this);
+      m.setSecure(this.isSecure());
+      if (currentRecursionLevel > maxRecursion) {
+        throw new WarpScriptException("Maximum recursion level reached during macro cloning");
+      }
+      for (int i = 0; i < m.statements.length; i++) {
+        if (m.statements[i] instanceof Macro) {
+          m.statements[i] = ((Macro) statements[i]).cloneRecursive(maxRecursion, currentRecursionLevel + 1);
+        }
+      }
+      return m;
+    }
+    
     public void setSecure(boolean secure) {
       this.secure = secure;
     }
