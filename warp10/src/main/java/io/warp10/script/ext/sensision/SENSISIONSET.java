@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -60,7 +60,13 @@ public class SENSISIONSET extends NamedWarpScriptFunction implements WarpScriptS
       ttl = ((Number) args.get(3)).longValue();
     }
 
-    Sensision.set(cls, labels, value, ttl);
+    if (null == value) {
+      Sensision.clear(cls, labels);
+    } else if (null == ttl) {
+      Sensision.set(cls, labels, value);
+    } else {
+      Sensision.set(cls, labels, value, ttl);
+    }
 
     return stack;
   }
