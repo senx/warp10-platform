@@ -15,7 +15,7 @@
 #
 
 [Unit]
-Description=Warp 10 Standalone
+Description=Warp 10
 Documentation=https://www.warp10.io
 # If Warp 10 depends on other disks, wait for them to be mounted. Use `systemctl list-units -t mount` to find unit
 #After=data.mount 
