@@ -376,14 +376,14 @@ tokengen() {
   if [ "$#" -ne 2 ]; then
     die "Usage: $0 tokengen envelope.mc2"
   fi
-  ${JAVACMD} -cp "${WARP10_CP}" -Dlog4j.configuration=file:"${LOG4J_CONF}" -Dfile.encoding=UTF-8 io.warp10.TokenGen ${CONFIG_FILES} "$2"
+  ${JAVACMD} ${JAVA_OPTS} -cp "${WARP10_CP}" -Dlog4j.configuration=file:"${LOG4J_CONF}" -Dfile.encoding=UTF-8 io.warp10.TokenGen ${CONFIG_FILES} "$2"
 }
 
 run() {
   if [ "$#" -ne 2 ]; then
     die "Usage: $0 run script.mc2"
   fi
-  ${JAVACMD} -cp "${WARP10_CP}" -Dlog4j.configuration=file:"${LOG4J_CONF}" -Dfile.encoding=UTF-8 -Dwarp10.config="${CONFIG_FILES}" io.warp10.WarpRun "$2"
+  ${JAVACMD} ${JAVA_OPTS} -cp "${WARP10_CP}" -Dlog4j.configuration=file:"${LOG4J_CONF}" -Dfile.encoding=UTF-8 -Dwarp10.config="${CONFIG_FILES}" io.warp10.WarpRun "$2"
 }
 
 repair() {
