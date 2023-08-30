@@ -42,8 +42,8 @@ dependencies {
     // https://mvnrepository.com/artifact/org.foundationdb/fdb-java
     api 'org.foundationdb:fdb-java:7.1.37'
 
-    api 'org.apache.hadoop:hadoop-common:3.3.5'
-    api 'org.apache.hadoop:hadoop-mapreduce-client-core:3.3.5'
+    api 'org.apache.hadoop:hadoop-common:3.3.6'
+    api 'org.apache.hadoop:hadoop-mapreduce-client-core:3.3.6'
 
     //
     // Processing
@@ -56,7 +56,7 @@ dependencies {
     api 'commons-cli:commons-cli:1.5.0'
 
     // For Standalone(Chunked)MemoryStore
-    api('org.apache.hadoop:hadoop-hdfs-client:3.3.5')
+    api('org.apache.hadoop:hadoop-hdfs-client:3.3.6')
 
     api 'org.eclipse.jetty:jetty-server:9.4.51.v20230217'
     api 'org.eclipse.jetty.websocket:websocket-server:9.4.51.v20230217'
