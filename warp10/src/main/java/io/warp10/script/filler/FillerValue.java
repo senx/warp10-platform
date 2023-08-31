@@ -87,7 +87,7 @@ public class FillerValue extends NamedWarpScriptFunction implements WarpScriptFi
   public Object[] apply(Object[] args) throws WarpScriptException {
     
     Object[] results = new Object[4];
-    Object[] other = (Object[]) args[2];
+    Object[] other = (Object[]) args[1];
     long tick = ((Number) other[0]).longValue();
 
     results[0] = tick;
