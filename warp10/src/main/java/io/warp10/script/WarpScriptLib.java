@@ -81,6 +81,7 @@ import io.warp10.script.filler.FillerInterpolate;
 import io.warp10.script.filler.FillerNext;
 import io.warp10.script.filler.FillerPrevious;
 import io.warp10.script.filler.FillerTrend;
+import io.warp10.script.filler.FillerValue;
 import io.warp10.script.filter.FilterAny;
 import io.warp10.script.filter.FilterByClass;
 import io.warp10.script.filter.FilterByLabels;
@@ -2664,6 +2665,7 @@ public class WarpScriptLib {
     // Fillers
     //
 
+    addNamedWarpScriptFunction(new FillerValue.Builder("filler.value"));
     addNamedWarpScriptFunction(new FillerNext("filler.next"));
     addNamedWarpScriptFunction(new FillerPrevious("filler.previous"));
     addNamedWarpScriptFunction(new FillerInterpolate("filler.interpolate"));
