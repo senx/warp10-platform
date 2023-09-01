@@ -52,7 +52,19 @@ public class FillerValue extends NamedWarpScriptFunction implements WarpScriptFi
       if (o instanceof List) {
         List datapoint = (List) o;
         if (datapoint.size() != 4) {
-          throw new WarpScriptException(getName() + " expects a LIST of 4 parameters: latitude longitude elevation value.");
+          throw new WarpScriptException(getName() + " expects a LIST of 4 parameters: latitude longitude elevation value");
+        }
+
+        if (!(datapoint.get(0) instanceof Number)) {
+          throw new WarpScriptException(getName() + " expects the latititude to be a NUMBER");
+        }
+
+        if (!(datapoint.get(1) instanceof Number)) {
+          throw new WarpScriptException(getName() + " expects the longitude to be a NUMBER");
+        }
+
+        if (!(datapoint.get(2) instanceof Long)) {
+          throw new WarpScriptException(getName() + " expects the elevation to be a LONG or NAN");
         }
 
         double lat = ((Number) datapoint.get(0)).doubleValue();
@@ -77,8 +89,12 @@ public class FillerValue extends NamedWarpScriptFunction implements WarpScriptFi
     }
   }
 
-  public FillerValue(String name, long latlon, long elev, Object value) {
+  public FillerValue(String name, long latlon, long elev, Object value) throws WarpScriptException {
     super(name);
+
+    if (!(value instanceof Long) && !(value instanceof Double) && !(value instanceof Boolean) && !(value instanceof String) && !(value instanceof byte[])) {
+      throw new WarpScriptException(getName() + " expects the value to be either a LONG, a DOUBLE, a BOOLEAN, a STRING or a BYTEARRAY");
+    }
 
     this.latlon = latlon;
     this.elev = elev;
