@@ -21,8 +21,10 @@ import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptFillerFunction;
+import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.functions.SNAPSHOT;
 
 import java.util.List;
 
@@ -106,6 +108,31 @@ public class FillerValue extends NamedWarpScriptFunction implements WarpScriptFi
   @Override
   public int getPreWindow() {
     return 0;
+  }
+
+  @Override
+  public String toString() {
+    double[] tuple = GeoXPLib.fromGeoXPPoint(latlon);
+    double lat = tuple[0];
+    double lon = tuple[1];
+
+    StringBuilder sb = new StringBuilder();
+    try {
+      sb.append(WarpScriptLib.LIST_START);
+      sb.append(" ");
+      SNAPSHOT.addElement(sb, lat);
+      SNAPSHOT.addElement(sb, lon);
+      SNAPSHOT.addElement(sb, elev);
+      SNAPSHOT.addElement(sb, value);
+      sb.append(WarpScriptLib.LIST_END);
+    } catch (WarpScriptException wse) {
+      sb.append(WarpScriptStack.COMMENT_START);
+      sb.append(" Error while snapshoting function" + getName());
+      sb.append(WarpScriptStack.COMMENT_END);
+    }
+    sb.append(" ");
+    sb.append(getName());
+    return sb.toString();
   }
 
 }
