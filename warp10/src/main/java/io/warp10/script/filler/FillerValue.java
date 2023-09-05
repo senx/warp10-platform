@@ -28,7 +28,7 @@ import io.warp10.script.functions.SNAPSHOT;
 
 import java.util.List;
 
-public class FillerValue extends NamedWarpScriptFunction implements WarpScriptFillerFunction {
+public class FillerValue extends NamedWarpScriptFunction implements WarpScriptFillerFunction, SNAPSHOT.Snapshotable {
 
   private long latlon;
   private long elev;
@@ -129,7 +129,7 @@ public class FillerValue extends NamedWarpScriptFunction implements WarpScriptFi
   }
 
   @Override
-  public String toString() {
+  public String snapshot() {
     double[] tuple = GeoXPLib.fromGeoXPPoint(latlon);
     double lat = tuple[0];
     double lon = tuple[1];
@@ -146,6 +146,7 @@ public class FillerValue extends NamedWarpScriptFunction implements WarpScriptFi
     } catch (WarpScriptException wse) {
       sb.append(WarpScriptStack.COMMENT_START);
       sb.append(" Error while snapshoting function" + getName());
+      sb.append(" ");
       sb.append(WarpScriptStack.COMMENT_END);
     }
     sb.append(" ");
@@ -153,4 +154,8 @@ public class FillerValue extends NamedWarpScriptFunction implements WarpScriptFi
     return sb.toString();
   }
 
+  @Override
+  public String toString() {
+    return snapshot();
+  }
 }
