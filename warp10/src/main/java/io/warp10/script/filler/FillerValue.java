@@ -56,7 +56,7 @@ public class FillerValue extends NamedWarpScriptFunction implements WarpScriptFi
         }
 
         if (!(datapoint.get(0) instanceof Number)) {
-          throw new WarpScriptException(getName() + " expects the latititude to be a NUMBER");
+          throw new WarpScriptException(getName() + " expects the latitude to be a NUMBER");
         }
 
         if (!(datapoint.get(1) instanceof Number)) {
@@ -64,7 +64,9 @@ public class FillerValue extends NamedWarpScriptFunction implements WarpScriptFi
         }
 
         if (!(datapoint.get(2) instanceof Long)) {
-          throw new WarpScriptException(getName() + " expects the elevation to be a LONG or NAN");
+          if (!(datapoint.get(2) instanceof Double) || !((Double) datapoint.get(2)).isNaN()) {
+            throw new WarpScriptException(getName() + " expects the elevation to be a LONG or NAN");
+          }
         }
 
         double lat = ((Number) datapoint.get(0)).doubleValue();
