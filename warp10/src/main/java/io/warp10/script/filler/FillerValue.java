@@ -145,7 +145,7 @@ public class FillerValue extends NamedWarpScriptFunction implements WarpScriptFi
       sb.append(WarpScriptLib.LIST_END);
     } catch (WarpScriptException wse) {
       sb.append(WarpScriptStack.COMMENT_START);
-      sb.append(" Error while snapshoting function" + getName());
+      sb.append(" Error while snapshoting function " + getName());
       sb.append(" ");
       sb.append(WarpScriptStack.COMMENT_END);
     }
