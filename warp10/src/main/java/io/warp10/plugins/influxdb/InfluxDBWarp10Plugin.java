@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@ import org.eclipse.jetty.util.BlockingArrayQueue;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
 public class InfluxDBWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
-  
+
   private static final String CONF_INFLUXDB_PORT = "influxdb.port";
   private static final String CONF_INFLUXDB_HOST = "influxdb.host";
   private static final String CONF_INFLUXDB_IDLE_TIMEOUT = "influxdb.idle.timeout";
@@ -42,6 +42,7 @@ public class InfluxDBWarp10Plugin extends AbstractWarp10Plugin implements Runnab
   private static final String CONF_INFLUXDB_SELECTORS = "influxdb.selectors";
   private static final String CONF_INFLUXDB_WARP10_ENDPOINT = "influxdb.warp10.endpoint";
   private static final String CONF_INFLUXDB_DEFAULT_TOKEN = "influxdb.default.token";
+  private static final String CONF_INFLUXDB_MEASUREMENT_LABEL = "influxdb.measurement.label";
 
   private int port;
   private String host;
@@ -51,31 +52,32 @@ public class InfluxDBWarp10Plugin extends AbstractWarp10Plugin implements Runnab
   private int selectors;
   private URL url;
   private String token;
-  
+  private String measurementlabel;
+
   private BlockingQueue<Runnable> queue;
-  
+
   @Override
   public void run() {
     QueuedThreadPool queuedThreadPool = new QueuedThreadPool(maxThreads, 8, idleTimeout, queue);
-    queuedThreadPool.setName("Warp InfluxDB plugin Jetty Thread");
+    queuedThreadPool.setName("Warp InfluxDB plugin Jett Thread");
     Server server = new Server(queuedThreadPool);
     ServerConnector connector = new ServerConnector(server, acceptors, selectors);
     connector.setIdleTimeout(idleTimeout);
     connector.setPort(port);
     connector.setHost(host);
     connector.setName("Continuum Ingress");
-    
+
     server.setConnectors(new Connector[] { connector });
 
     HandlerList handlers = new HandlerList();
-    
+
     Handler cors = new CORSHandler();
     handlers.addHandler(cors);
 
-    handlers.addHandler(new InfluxDBHandler(url, token));
-    
+    handlers.addHandler(new InfluxDBHandler(url, token, measurementlabel));
+
     server.setHandler(handlers);
-    
+
     JettyUtil.setSendServerVersion(server, false);
 
     try {
@@ -84,7 +86,7 @@ public class InfluxDBWarp10Plugin extends AbstractWarp10Plugin implements Runnab
       throw new RuntimeException(e);
     }
   }
-  
+
   @Override
   public void init(Properties properties) {
     this.acceptors = Integer.parseInt(properties.getProperty(CONF_INFLUXDB_ACCEPTORS, "4"));
@@ -94,18 +96,19 @@ public class InfluxDBWarp10Plugin extends AbstractWarp10Plugin implements Runnab
     this.port = Integer.parseInt(properties.getProperty(CONF_INFLUXDB_PORT, "8086"));
     this.host = properties.getProperty(CONF_INFLUXDB_HOST, "127.0.0.1");
     this.token = properties.getProperty(CONF_INFLUXDB_DEFAULT_TOKEN);
-    
+    this.measurementlabel = properties.getProperty(CONF_INFLUXDB_MEASUREMENT_LABEL);
+
     try {
       this.url = new URL(properties.getProperty(CONF_INFLUXDB_WARP10_ENDPOINT));
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
-    
+
     if (properties.containsKey(CONF_INFLUXDB_JETTY_MAXQUEUESIZE)) {
       int queuesize = Integer.parseInt(properties.getProperty(CONF_INFLUXDB_JETTY_MAXQUEUESIZE));
       queue = new BlockingArrayQueue<Runnable>(queuesize);
     }
-    
+
     Thread t = new Thread(this);
     t.setDaemon(true);
     t.setName("[InfluxDBWarp10Plugin " + host + ":" + port + "]");

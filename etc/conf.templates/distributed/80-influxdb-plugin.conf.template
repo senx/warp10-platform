@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -17,22 +17,34 @@
 //
 // InfluxDB Plugin
 //
+
 // Port the InfluxDB plugin will listen on
 #influxdb.port = 18086
+
 // IP the InfluxDB plugin will listen on  (defaults to 127.0.0.1)
 #influxdb.host = 127.0.0.1
+
 // Timeout (in ms) when expecting a HTTP request (defaults to 30000 ms)
 #influxdb.idle.timeout = 30000
+
 // Number of threads Jetty should use (defaults to 1 + acceptors + acceptors * selectors which is the minimum)
 #influxdb.jetty.threadpool = 11
+
 // Size of the queue to use for the Jetty thread pool. By default no queue is used
 #influxdb.jetty.maxqueuesize = 8
+
 // Number of Jetty acceptors to use (defaults to 2)
 #influxdb.acceptors = 2
+
 // Number of Jetty selectors to use (defaults to 4)
 #influxdb.selectors = 4
+
 // Warp 10 instance update endpoint to push the data to
 #influxdb.warp10.endpoint = http://ip:port/api/v0/update
+
 // Default token to be used to update the data to the specified Warp 10 instance. By default uses the password in the request as token.
 #influxdb.default.token =
 
+// Label to use for storing the measurement. If unset, the measurement is prepended to the field name, separated with a dot unless
+// the X-InfluxDB-Measurement-Label request header is set in which case the specified name is used for the label.
+influxdb.measurement.label = .measurement

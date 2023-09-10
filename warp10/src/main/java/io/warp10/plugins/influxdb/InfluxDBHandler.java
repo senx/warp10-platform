@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -49,10 +49,14 @@ public class InfluxDBHandler extends AbstractHandler {
 
   private final URL url;
   private final String token;
+  private final String measurementlabel;
 
-  public InfluxDBHandler(URL url, String token) {
+  private static final String HEADER_INFLUXDB_MEASUREMENT_LABEL = "X-InfluxDB-Measurement-Label";
+
+  public InfluxDBHandler(URL url, String token, String measurementlabel) {
     this.url = url;
     this.token = token;
+    this.measurementlabel = measurementlabel;
   }
 
   @Override
@@ -111,6 +115,17 @@ public class InfluxDBHandler extends AbstractHandler {
       throw new IOException("Missing password and no default token.");
     }
 
+    //
+    // By default we use the measurement label from the configuration.
+    // If not set, we allow the request to specify one using a header
+    //
+
+    String mlabel = measurementlabel;
+
+    if (null == mlabel) {
+      mlabel = request.getHeader(HEADER_INFLUXDB_MEASUREMENT_LABEL);
+    }
+
     HttpURLConnection conn = null;
 
     try {
@@ -145,7 +160,7 @@ public class InfluxDBHandler extends AbstractHandler {
           break;
         }
         try {
-          parse(pw, line, nsPerTimeUnit);
+          parse(pw, line, nsPerTimeUnit, mlabel);
         } catch (Throwable t) {
           LOG.error("Error while parsing '" + line + "'.", t);
           throw t;
@@ -166,7 +181,7 @@ public class InfluxDBHandler extends AbstractHandler {
     }
   }
 
-  private static void parse(PrintWriter pw, String line, long nsPerTimeUnit) throws IOException {
+  private static void parse(PrintWriter pw, String line, long nsPerTimeUnit, String mlabel) throws IOException {
 
     line = line.trim();
 
@@ -219,6 +234,15 @@ public class InfluxDBHandler extends AbstractHandler {
     String measurement = measurementtags.substring(0, comma);
     String labels = measurementtags.substring(comma + 1);
 
+    boolean measurementaslabel = false;
+
+    if (null != mlabel) {
+      if (labels.length() > 0) {
+        labels = labels + ",";
+      }
+      labels = labels + mlabel + "=" + measurement;
+    }
+
     StringBuilder sb = new StringBuilder();
 
     for (String field: fields) {
@@ -229,8 +253,10 @@ public class InfluxDBHandler extends AbstractHandler {
 
       sb.append(timestamp);
       sb.append("// ");
-      sb.append(measurement);
-      sb.append(".");
+      if (null == mlabel) {
+        sb.append(measurement);
+        sb.append(".");
+      }
       sb.append(name);
       sb.append("{");
       sb.append(labels);
