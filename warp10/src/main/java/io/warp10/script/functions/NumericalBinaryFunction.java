@@ -221,8 +221,6 @@ public class NumericalBinaryFunction extends NamedWarpScriptFunction implements 
       // A GTS on top, whether the function expects a single operand under or not depends on applyInList.
       if (applyInList) {
         // Apply operator only on the elements of the list op(...op(op(op(v[0], v[1]), v[2]), v[3]), ... v[n])
-
-
         int n = gts.size();
 
         if (null != opD && (null == opL || GeoTimeSerie.TYPE.DOUBLE == type)) {
