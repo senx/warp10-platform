@@ -149,7 +149,7 @@ public class NumericalBinaryFunction extends NamedWarpScriptFunction implements 
 
         GeoTimeSerie result = gts.cloneEmpty(gts.size());
 
-        if (null != opD && (null == opL || op0 instanceof Double || type == GeoTimeSerie.TYPE.DOUBLE || op0 instanceof BigDecimal)) {
+        if (null != leftGTSopD && (null == leftGTSopL || op0 instanceof Double || type == GeoTimeSerie.TYPE.DOUBLE || op0 instanceof BigDecimal)) {
           GTSOpsHelper.applyUnaryOp(result, gts, leftGTSopD, op0);
         } else {
           GTSOpsHelper.applyUnaryOp(result, gts, leftGTSopL, op0);
@@ -262,7 +262,7 @@ public class NumericalBinaryFunction extends NamedWarpScriptFunction implements 
 
         GeoTimeSerie result = gts.cloneEmpty(gts.size());
 
-        if (null != opD && (null == opL || op1 instanceof Double || type == GeoTimeSerie.TYPE.DOUBLE || op1 instanceof BigDecimal)) {
+        if (null != rightGTSopD && (null == rightGTSopL || op1 instanceof Double || type == GeoTimeSerie.TYPE.DOUBLE || op1 instanceof BigDecimal)) {
           GTSOpsHelper.applyUnaryOp(result, gts, rightGTSopD, op1);
         } else {
           GTSOpsHelper.applyUnaryOp(result, gts, rightGTSopL, op1);
