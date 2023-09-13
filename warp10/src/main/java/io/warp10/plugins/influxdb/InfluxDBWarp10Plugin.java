@@ -43,6 +43,11 @@ public class InfluxDBWarp10Plugin extends AbstractWarp10Plugin implements Runnab
   private static final String CONF_INFLUXDB_WARP10_ENDPOINT = "influxdb.warp10.endpoint";
   private static final String CONF_INFLUXDB_DEFAULT_TOKEN = "influxdb.default.token";
   private static final String CONF_INFLUXDB_MEASUREMENT_LABEL = "influxdb.measurement.label";
+  private static final String CONF_INFLUXDB_FLUSH_THRESHOLD = "influxdb.flush.threshold";
+  private static final String CONF_INFLUXDB_CACHE_SIZE = "influxdb.cache.size";
+
+  private static final String DEFAULT_FLUSH_THRESHOLD = Long.toString(100000L);
+  private static final String DEFAULT_CACHE_SIZE = Long.toString(10000L);
 
   private int port;
   private String host;
@@ -53,6 +58,8 @@ public class InfluxDBWarp10Plugin extends AbstractWarp10Plugin implements Runnab
   private URL url;
   private String token;
   private String measurementlabel;
+  private long threshold;
+  private int cachesize;
 
   private BlockingQueue<Runnable> queue;
 
@@ -74,7 +81,7 @@ public class InfluxDBWarp10Plugin extends AbstractWarp10Plugin implements Runnab
     Handler cors = new CORSHandler();
     handlers.addHandler(cors);
 
-    handlers.addHandler(new InfluxDBHandler(url, token, measurementlabel));
+    handlers.addHandler(new InfluxDBHandler(url, token, measurementlabel, threshold, cachesize));
 
     server.setHandler(handlers);
 
@@ -97,6 +104,8 @@ public class InfluxDBWarp10Plugin extends AbstractWarp10Plugin implements Runnab
     this.host = properties.getProperty(CONF_INFLUXDB_HOST, "127.0.0.1");
     this.token = properties.getProperty(CONF_INFLUXDB_DEFAULT_TOKEN);
     this.measurementlabel = properties.getProperty(CONF_INFLUXDB_MEASUREMENT_LABEL);
+    this.threshold = Long.parseLong(properties.getProperty(CONF_INFLUXDB_FLUSH_THRESHOLD, DEFAULT_FLUSH_THRESHOLD));
+    this.cachesize = Integer.parseInt(properties.getProperty(CONF_INFLUXDB_CACHE_SIZE, DEFAULT_CACHE_SIZE));
 
     try {
       this.url = new URL(properties.getProperty(CONF_INFLUXDB_WARP10_ENDPOINT));
