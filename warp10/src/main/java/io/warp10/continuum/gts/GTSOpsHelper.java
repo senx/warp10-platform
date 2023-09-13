@@ -50,8 +50,9 @@ public class GTSOpsHelper {
    * @param result The resulting GTS, for each tick of gts, result[tick]=op(gts[tick]).
    * @param gts The GTS from where to take the values from.
    * @param op The operator to apply to the values.
+   * @param param1 The parameter for the application of the operator.
    */
-  public static void applyUnaryOp1(GeoTimeSerie result, GeoTimeSerie gts, GTSUnaryOp1 op, Object param1) {
+  public static void applyUnaryOp(GeoTimeSerie result, GeoTimeSerie gts, GTSUnaryOp1 op, Object param1) {
     int n = GTSHelper.nvalues(gts);
 
     for (int i = 0; i < n; i++) {
