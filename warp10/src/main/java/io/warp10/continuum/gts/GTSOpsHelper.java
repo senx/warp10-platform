@@ -22,6 +22,10 @@ public class GTSOpsHelper {
     public Object op(GeoTimeSerie gts, int idx);
   }
 
+  public static interface GTSUnaryOp1 {
+    public Object op(GeoTimeSerie gts, int idx, Object param1);
+  }
+
   public static interface GTSBinaryOp {
     public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb);
   }
@@ -37,6 +41,21 @@ public class GTSOpsHelper {
 
     for (int i = 0; i < n; i++) {
       Object value = op.op(gts, i);
+      GTSHelper.setValue(result, GTSHelper.tickAtIndex(gts, i), GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i), value, false);
+    }
+  }
+
+  /**
+   * Apply a 1-parameter unary operator to the values of a GTS, resulting in another GTS. Location and elevation info are copied to the result GTS.
+   * @param result The resulting GTS, for each tick of gts, result[tick]=op(gts[tick]).
+   * @param gts The GTS from where to take the values from.
+   * @param op The operator to apply to the values.
+   */
+  public static void applyUnaryOp1(GeoTimeSerie result, GeoTimeSerie gts, GTSUnaryOp1 op, Object param1) {
+    int n = GTSHelper.nvalues(gts);
+
+    for (int i = 0; i < n; i++) {
+      Object value = op.op(gts, i, param1);
       GTSHelper.setValue(result, GTSHelper.tickAtIndex(gts, i), GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i), value, false);
     }
   }
