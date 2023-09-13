@@ -24,6 +24,7 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
 import java.math.BigDecimal;
+import java.util.function.DoubleToLongFunction;
 import java.util.function.DoubleUnaryOperator;
 import java.util.function.LongUnaryOperator;
 
@@ -83,6 +84,48 @@ public class NumericalUnaryFunction extends ListRecursiveStackFunction {
               }
             };
           }
+
+          // Apply the operator on all the values of gts, storing the result in result.
+          GTSOpsHelper.applyUnaryOp(result, gts, op);
+
+          return result;
+        } else {
+          return UNHANDLED;
+        }
+      }
+    };
+  }
+
+  public NumericalUnaryFunction(String name, DoubleToLongFunction opDL) {
+    super(name);
+
+    func = new ElementStackFunction() {
+      @Override
+      public Object applyOnElement(Object element) throws WarpScriptException {
+        if (element instanceof Number) {
+          return opDL.applyAsLong(((Number) element).doubleValue());
+        } else if (element instanceof GeoTimeSerie) {
+          GeoTimeSerie gts = (GeoTimeSerie) element;
+
+          GeoTimeSerie.TYPE type = gts.getType();
+
+          // Only numerical and empty GTSs are allowed.
+          if (GeoTimeSerie.TYPE.LONG != type && GeoTimeSerie.TYPE.DOUBLE != type && GeoTimeSerie.TYPE.UNDEFINED != type) {
+            throw new WarpScriptException(getName() + " can only operate on LONG, DOUBLE or empty GTSs.");
+          }
+
+          GeoTimeSerie result = gts.cloneEmpty(gts.size());
+
+          GTSOpsHelper.GTSUnaryOp op;
+
+          // Initialize the operator.
+          // Consider all values as doubles because only the double operator is defined or the GTS is of type DOUBLE.
+          op = new GTSOpsHelper.GTSUnaryOp() {
+            @Override
+            public Object op(GeoTimeSerie gts, int idx) {
+              return opDL.applyAsLong(((Number) GTSHelper.valueAtIndex(gts, idx)).doubleValue());
+            }
+          };
 
           // Apply the operator on all the values of gts, storing the result in result.
           GTSOpsHelper.applyUnaryOp(result, gts, op);
