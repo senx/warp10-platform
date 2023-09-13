@@ -39,9 +39,26 @@ import java.util.function.LongUnaryOperator;
 public class NumericalUnaryFunction extends ListRecursiveStackFunction {
 
   final ListRecursiveStackFunction.ElementStackFunction func;
+  final GTSOpsHelper.GTSUnaryOp GTSopL;
+  final GTSOpsHelper.GTSUnaryOp GTSopD;
+  final GTSOpsHelper.GTSUnaryOp GTSopDL;
 
   public NumericalUnaryFunction(String name, LongUnaryOperator opL, DoubleUnaryOperator opD) {
     super(name);
+
+    GTSopL = null == opL ? null : new GTSOpsHelper.GTSUnaryOp() {
+      @Override
+      public Object op(GeoTimeSerie gts, int idx) {
+        return opL.applyAsLong(((Number) GTSHelper.valueAtIndex(gts, idx)).longValue());
+      }
+    };
+    GTSopD = null == opD ? null : new GTSOpsHelper.GTSUnaryOp() {
+      @Override
+      public Object op(GeoTimeSerie gts, int idx) {
+        return opD.applyAsDouble(((Number) GTSHelper.valueAtIndex(gts, idx)).doubleValue());
+      }
+    };
+    GTSopDL = null;
 
     func = new ElementStackFunction() {
       @Override
@@ -64,29 +81,16 @@ public class NumericalUnaryFunction extends ListRecursiveStackFunction {
 
           GeoTimeSerie result = gts.cloneEmpty(gts.size());
 
-          GTSOpsHelper.GTSUnaryOp op;
-
-          // Initialize the operator depending on which ones are defined and the GTS type.
-          if (null != opD && (null == opL || gts.getType() == GeoTimeSerie.TYPE.DOUBLE)) {
+          // Choose the operator depending on which ones are defined and the GTS type.
+          if (null != GTSopD && (null == GTSopL || gts.getType() == GeoTimeSerie.TYPE.DOUBLE)) {
             // Consider all values as doubles because only the double operator is defined or the GTS is of type DOUBLE.
-            op = new GTSOpsHelper.GTSUnaryOp() {
-              @Override
-              public Object op(GeoTimeSerie gts, int idx) {
-                return opD.applyAsDouble(((Number) GTSHelper.valueAtIndex(gts, idx)).doubleValue());
-              }
-            };
+            // Apply the operator on all the values of gts, storing the result in result.
+            GTSOpsHelper.applyUnaryOp(result, gts, GTSopD);
           } else {
             // Consider all values as longs because either the double operator is not defined or the GTS is of LONG type.
-            op = new GTSOpsHelper.GTSUnaryOp() {
-              @Override
-              public Object op(GeoTimeSerie gts, int idx) {
-                return opL.applyAsLong(((Number) GTSHelper.valueAtIndex(gts, idx)).longValue());
-              }
-            };
+            // Apply the operator on all the values of gts, storing the result in result.
+            GTSOpsHelper.applyUnaryOp(result, gts, GTSopL);
           }
-
-          // Apply the operator on all the values of gts, storing the result in result.
-          GTSOpsHelper.applyUnaryOp(result, gts, op);
 
           return result;
         } else {
@@ -98,6 +102,15 @@ public class NumericalUnaryFunction extends ListRecursiveStackFunction {
 
   public NumericalUnaryFunction(String name, DoubleToLongFunction opDL) {
     super(name);
+
+    GTSopL = null;
+    GTSopD = null;
+    GTSopDL = new GTSOpsHelper.GTSUnaryOp() {
+      @Override
+      public Object op(GeoTimeSerie gts, int idx) {
+        return opDL.applyAsLong(((Number) GTSHelper.valueAtIndex(gts, idx)).doubleValue());
+      }
+    };
 
     func = new ElementStackFunction() {
       @Override
@@ -116,19 +129,8 @@ public class NumericalUnaryFunction extends ListRecursiveStackFunction {
 
           GeoTimeSerie result = gts.cloneEmpty(gts.size());
 
-          GTSOpsHelper.GTSUnaryOp op;
-
-          // Initialize the operator.
-          // Consider all values as doubles because only the double operator is defined or the GTS is of type DOUBLE.
-          op = new GTSOpsHelper.GTSUnaryOp() {
-            @Override
-            public Object op(GeoTimeSerie gts, int idx) {
-              return opDL.applyAsLong(((Number) GTSHelper.valueAtIndex(gts, idx)).doubleValue());
-            }
-          };
-
           // Apply the operator on all the values of gts, storing the result in result.
-          GTSOpsHelper.applyUnaryOp(result, gts, op);
+          GTSOpsHelper.applyUnaryOp(result, gts, GTSopDL);
 
           return result;
         } else {
