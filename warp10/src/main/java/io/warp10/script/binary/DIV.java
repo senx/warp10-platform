@@ -34,26 +34,23 @@ public class DIV extends NamedWarpScriptFunction implements WarpScriptStackFunct
 
   private final String typeCheckErrorMsg;
 
-  private final GTSOpsHelper.GTSBinaryOp GTSopL;
-  private final GTSOpsHelper.GTSBinaryOp GTSopD;
+  private final GTSOpsHelper.GTSBinaryOp GTSopL = new GTSOpsHelper.GTSBinaryOp() {
+    @Override
+    public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
+      return ((Number) GTSHelper.valueAtIndex(gtsa, idxa)).longValue() / ((Number) GTSHelper.valueAtIndex(gtsb, idxb)).longValue();
+    }
+  };
+
+  private final GTSOpsHelper.GTSBinaryOp GTSopD = new GTSOpsHelper.GTSBinaryOp() {
+    @Override
+    public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
+      return ((Number) GTSHelper.valueAtIndex(gtsa, idxa)).doubleValue() / ((Number) GTSHelper.valueAtIndex(gtsb, idxb)).doubleValue();
+    }
+  };
 
   public DIV(String name) {
     super(name);
     typeCheckErrorMsg = getName() + " can only operate on numeric values, vectors and numeric Geo Time Series.";
-
-    GTSopL = new GTSOpsHelper.GTSBinaryOp() {
-      @Override
-      public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
-        return ((Number) GTSHelper.valueAtIndex(gtsa, idxa)).longValue() / ((Number) GTSHelper.valueAtIndex(gtsb, idxb)).longValue();
-      }
-    };
-
-    GTSopD = new GTSOpsHelper.GTSBinaryOp() {
-      @Override
-      public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
-        return ((Number) GTSHelper.valueAtIndex(gtsa, idxa)).doubleValue() / ((Number) GTSHelper.valueAtIndex(gtsb, idxb)).doubleValue();
-      }
-    };
   }
 
   @Override

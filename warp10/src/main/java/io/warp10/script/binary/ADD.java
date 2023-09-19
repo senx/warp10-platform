@@ -41,33 +41,29 @@ import org.apache.commons.lang3.ArrayUtils;
  */
 public class ADD extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  private final GTSOpsHelper.GTSBinaryOp GTSopS;
-  private final GTSOpsHelper.GTSBinaryOp GTSopL;
-  private final GTSOpsHelper.GTSBinaryOp GTSopD;
+  private final GTSOpsHelper.GTSBinaryOp GTSopS = new GTSBinaryOp() {
+    @Override
+    public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
+      return GTSHelper.valueAtIndex(gtsa, idxa).toString() + GTSHelper.valueAtIndex(gtsb, idxb).toString();
+    }
+  };
+
+  private final GTSOpsHelper.GTSBinaryOp GTSopL = new GTSBinaryOp() {
+    @Override
+    public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
+      return ((Number) GTSHelper.valueAtIndex(gtsa, idxa)).longValue() + ((Number) GTSHelper.valueAtIndex(gtsb, idxb)).longValue();
+    }
+  };
+
+  private final GTSOpsHelper.GTSBinaryOp GTSopD = new GTSBinaryOp() {
+    @Override
+    public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
+      return ((Number) GTSHelper.valueAtIndex(gtsa, idxa)).doubleValue() + ((Number) GTSHelper.valueAtIndex(gtsb, idxb)).doubleValue();
+    }
+  };
 
   public ADD(String name) {
     super(name);
-
-    GTSopS = new GTSBinaryOp() {
-      @Override
-      public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
-        return GTSHelper.valueAtIndex(gtsa, idxa).toString() + GTSHelper.valueAtIndex(gtsb, idxb).toString();
-      }
-    };
-
-    GTSopL = new GTSBinaryOp() {
-      @Override
-      public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
-        return ((Number) GTSHelper.valueAtIndex(gtsa, idxa)).longValue() + ((Number) GTSHelper.valueAtIndex(gtsb, idxb)).longValue();
-      }
-    };
-
-    GTSopD = new GTSBinaryOp() {
-      @Override
-      public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
-        return ((Number) GTSHelper.valueAtIndex(gtsa, idxa)).doubleValue() + ((Number) GTSHelper.valueAtIndex(gtsb, idxb)).doubleValue();
-      }
-    };
   }
   
   @Override
