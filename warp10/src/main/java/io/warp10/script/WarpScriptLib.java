@@ -2798,7 +2798,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new NumericalUnaryFunction(SIGNUM, null, Math::signum));
     addNamedWarpScriptFunction(new NumericalUnaryFunction(FLOOR, null, Math::floor));
     addNamedWarpScriptFunction(new NumericalUnaryFunction(CEIL, null, Math::ceil));
-    addNamedWarpScriptFunction(new NumericalUnaryFunction(ROUND, Math::round));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(ROUND, x -> x, null, Math::round));
 
     addNamedWarpScriptFunction(new NumericalUnaryFunction(RINT, null, Math::rint));
     addNamedWarpScriptFunction(new NumericalUnaryFunction(ULP, null, Math::ulp));
