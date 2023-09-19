@@ -35,8 +35,8 @@ public class MUL extends NamedWarpScriptFunction implements WarpScriptStackFunct
 
   private final String typeCheckErrorMsg;
 
-  final GTSOpsHelper.GTSBinaryOp GTSopL;
-  final GTSOpsHelper.GTSBinaryOp GTSopD;
+  private final GTSOpsHelper.GTSBinaryOp GTSopL;
+  private final GTSOpsHelper.GTSBinaryOp GTSopD;
 
   public MUL(String name) {
     super(name);

@@ -41,9 +41,9 @@ import org.apache.commons.lang3.ArrayUtils;
  */
 public class ADD extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  final GTSOpsHelper.GTSBinaryOp GTSopS;
-  final GTSOpsHelper.GTSBinaryOp GTSopL;
-  final GTSOpsHelper.GTSBinaryOp GTSopD;
+  private final GTSOpsHelper.GTSBinaryOp GTSopS;
+  private final GTSOpsHelper.GTSBinaryOp GTSopL;
+  private final GTSOpsHelper.GTSBinaryOp GTSopD;
 
   public ADD(String name) {
     super(name);
