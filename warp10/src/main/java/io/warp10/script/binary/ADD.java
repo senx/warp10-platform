@@ -41,8 +41,33 @@ import org.apache.commons.lang3.ArrayUtils;
  */
 public class ADD extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
+  final GTSOpsHelper.GTSBinaryOp GTSopS;
+  final GTSOpsHelper.GTSBinaryOp GTSopL;
+  final GTSOpsHelper.GTSBinaryOp GTSopD;
+
   public ADD(String name) {
     super(name);
+
+    GTSopS = new GTSBinaryOp() {
+      @Override
+      public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
+        return GTSHelper.valueAtIndex(gtsa, idxa).toString() + GTSHelper.valueAtIndex(gtsb, idxb).toString();
+      }
+    };
+
+    GTSopL = new GTSBinaryOp() {
+      @Override
+      public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
+        return ((Number) GTSHelper.valueAtIndex(gtsa, idxa)).longValue() + ((Number) GTSHelper.valueAtIndex(gtsb, idxb)).longValue();
+      }
+    };
+
+    GTSopD = new GTSBinaryOp() {
+      @Override
+      public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
+        return ((Number) GTSHelper.valueAtIndex(gtsa, idxa)).doubleValue() + ((Number) GTSHelper.valueAtIndex(gtsb, idxb)).doubleValue();
+      }
+    };
   }
   
   @Override
@@ -93,7 +118,7 @@ public class ADD extends NamedWarpScriptFunction implements WarpScriptStackFunct
       //
       // Determine the type of the result GTS
       //
-      
+
       TYPE type = TYPE.UNDEFINED;
       
       if (TYPE.BOOLEAN == gts1.getType() || TYPE.BOOLEAN == gts2.getType()) {
@@ -110,40 +135,21 @@ public class ADD extends NamedWarpScriptFunction implements WarpScriptStackFunct
       
       result.setType(type);
 
-      GTSBinaryOp op = null;
-      
       switch (type) {
         case STRING:
-          op = new GTSBinaryOp() {
-            @Override
-            public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
-              return GTSHelper.valueAtIndex(gtsa, idxa).toString() + GTSHelper.valueAtIndex(gtsb, idxb).toString();
-            }
-          };
+          GTSOpsHelper.applyBinaryOp(result, gts1, gts2, GTSopS);
           break;
         case LONG:
-          op = new GTSBinaryOp() {
-            @Override
-            public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
-              return ((Number) GTSHelper.valueAtIndex(gtsa, idxa)).longValue() + ((Number) GTSHelper.valueAtIndex(gtsb, idxb)).longValue();
-            }
-          };
+          GTSOpsHelper.applyBinaryOp(result, gts1, gts2, GTSopL);
           break;
         case DOUBLE:
-          op = new GTSBinaryOp() {
-            @Override
-            public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
-              return ((Number) GTSHelper.valueAtIndex(gtsa, idxa)).doubleValue() + ((Number) GTSHelper.valueAtIndex(gtsb, idxb)).doubleValue();
-            }
-          };
+          GTSOpsHelper.applyBinaryOp(result, gts1, gts2, GTSopD);
           break;
         default:
           // Leave op to null.
           // Both GTSs are empty, thus applyBinaryOp will only apply its bucketization logic to the result.
       }
 
-      GTSOpsHelper.applyBinaryOp(result, gts1, gts2, op);
-      
       // If result is empty, set type and sizehint to default.
       if (0 == result.size()) {
         result = result.cloneEmpty();
