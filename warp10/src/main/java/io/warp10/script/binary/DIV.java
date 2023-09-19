@@ -1,5 +1,5 @@
 //
-//   Copyright 2022  SenX S.A.S.
+//   Copyright 2022-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -34,9 +34,26 @@ public class DIV extends NamedWarpScriptFunction implements WarpScriptStackFunct
 
   private final String typeCheckErrorMsg;
 
+  final GTSOpsHelper.GTSBinaryOp GTSopL;
+  final GTSOpsHelper.GTSBinaryOp GTSopD;
+
   public DIV(String name) {
     super(name);
     typeCheckErrorMsg = getName() + " can only operate on numeric values, vectors and numeric Geo Time Series.";
+
+    GTSopL = new GTSOpsHelper.GTSBinaryOp() {
+      @Override
+      public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
+        return ((Number) GTSHelper.valueAtIndex(gtsa, idxa)).longValue() / ((Number) GTSHelper.valueAtIndex(gtsb, idxb)).longValue();
+      }
+    };
+
+    GTSopD = new GTSOpsHelper.GTSBinaryOp() {
+      @Override
+      public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
+        return ((Number) GTSHelper.valueAtIndex(gtsa, idxa)).doubleValue() / ((Number) GTSHelper.valueAtIndex(gtsb, idxb)).doubleValue();
+      }
+    };
   }
 
   @Override
@@ -63,27 +80,14 @@ public class DIV extends NamedWarpScriptFunction implements WarpScriptStackFunct
       }
 
       // The result type is LONG if both inputs are LONG.
-      GTSOpsHelper.GTSBinaryOp op = null;
       GeoTimeSerie result = new GeoTimeSerie(Math.max(GTSHelper.nvalues(gts1), GTSHelper.nvalues(gts2)));
       if (gts1.getType() == TYPE.LONG && gts2.getType() == TYPE.LONG) { // both long => long division
         result.setType(TYPE.LONG);
-        op = new GTSOpsHelper.GTSBinaryOp() {
-          @Override
-          public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
-            return ((Number) GTSHelper.valueAtIndex(gtsa, idxa)).longValue() / ((Number) GTSHelper.valueAtIndex(gtsb, idxb)).longValue();
-          }
-        };
+        GTSOpsHelper.applyBinaryOp(result, gts1, gts2, GTSopL);
       } else {
         result.setType(TYPE.DOUBLE);
-        op = new GTSOpsHelper.GTSBinaryOp() {
-          @Override
-          public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
-            return ((Number) GTSHelper.valueAtIndex(gtsa, idxa)).doubleValue() / ((Number) GTSHelper.valueAtIndex(gtsb, idxb)).doubleValue();
-          }
-        };
+        GTSOpsHelper.applyBinaryOp(result, gts1, gts2, GTSopD);
       }
-
-      GTSOpsHelper.applyBinaryOp(result, gts1, gts2, op);
 
       // If result is empty, set type and sizehint to default.
       if (0 == result.size()) {
