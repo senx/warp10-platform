@@ -57,11 +57,11 @@ public class NumericalBinaryFunction extends NamedWarpScriptFunction implements 
   final DoubleBinaryOperator opD;
   final boolean applyInList;
 
-  final GTSOpsHelper.GTSUnaryOp1 leftGTSopL;
-  final GTSOpsHelper.GTSUnaryOp1 leftGTSopD;
+  final GTSOpsHelper.GTSMixedOp leftGTSopL;
+  final GTSOpsHelper.GTSMixedOp leftGTSopD;
 
-  final GTSOpsHelper.GTSUnaryOp1 rightGTSopL;
-  final GTSOpsHelper.GTSUnaryOp1 rightGTSopD;
+  final GTSOpsHelper.GTSMixedOp rightGTSopL;
+  final GTSOpsHelper.GTSMixedOp rightGTSopD;
 
   private final String unhandledErrorMessage;
 
@@ -77,28 +77,28 @@ public class NumericalBinaryFunction extends NamedWarpScriptFunction implements 
       unhandledErrorMessage = name + " can only operate on 2 numerical values, or a numerical value and a list of numerical values, or a numerical value and a GTS of numerical values.";
     }
 
-    leftGTSopL = null == opL ? null : new GTSOpsHelper.GTSUnaryOp1() {
+    leftGTSopL = null == opL ? null : new GTSOpsHelper.GTSMixedOp() {
       @Override
       public Object op(GeoTimeSerie gts, int idx, Object op0) {
         return opL.applyAsLong(((Number) GTSHelper.valueAtIndex(gts, idx)).longValue(), ((Number) op0).longValue());
       }
     };
 
-    leftGTSopD = null == opD ? null : new GTSOpsHelper.GTSUnaryOp1() {
+    leftGTSopD = null == opD ? null : new GTSOpsHelper.GTSMixedOp() {
       @Override
       public Object op(GeoTimeSerie gts, int idx, Object op0) {
         return opD.applyAsDouble(((Number) GTSHelper.valueAtIndex(gts, idx)).doubleValue(), ((Number) op0).doubleValue());
       }
     };
 
-    rightGTSopL = null == opL ? null : new GTSOpsHelper.GTSUnaryOp1() {
+    rightGTSopL = null == opL ? null : new GTSOpsHelper.GTSMixedOp() {
       @Override
       public Object op(GeoTimeSerie gts, int idx, Object op1) {
         return opL.applyAsLong(((Number) op1).longValue(), ((Number) GTSHelper.valueAtIndex(gts, idx)).longValue());
       }
     };
 
-    rightGTSopD = null == opD ? null : new GTSOpsHelper.GTSUnaryOp1() {
+    rightGTSopD = null == opD ? null : new GTSOpsHelper.GTSMixedOp() {
       @Override
       public Object op(GeoTimeSerie gts, int idx, Object op1) {
         return opD.applyAsDouble(((Number) op1).doubleValue(), ((Number) GTSHelper.valueAtIndex(gts, idx)).doubleValue());

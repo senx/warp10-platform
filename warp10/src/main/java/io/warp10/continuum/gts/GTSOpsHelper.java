@@ -22,8 +22,8 @@ public class GTSOpsHelper {
     public Object op(GeoTimeSerie gts, int idx);
   }
 
-  public static interface GTSUnaryOp1 {
-    public Object op(GeoTimeSerie gts, int idx, Object param1);
+  public static interface GTSMixedOp {
+    public Object op(GeoTimeSerie gts, int idx, Object param);
   }
 
   public static interface GTSBinaryOp {
@@ -52,7 +52,7 @@ public class GTSOpsHelper {
    * @param op The operator to apply to the values.
    * @param param1 The parameter for the application of the operator.
    */
-  public static void applyUnaryOp(GeoTimeSerie result, GeoTimeSerie gts, GTSUnaryOp1 op, Object param1) {
+  public static void applyUnaryOp(GeoTimeSerie result, GeoTimeSerie gts, GTSMixedOp op, Object param1) {
     int n = GTSHelper.nvalues(gts);
 
     for (int i = 0; i < n; i++) {
