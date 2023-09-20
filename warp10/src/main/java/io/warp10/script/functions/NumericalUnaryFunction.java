@@ -94,21 +94,32 @@ public class NumericalUnaryFunction extends ListRecursiveStackFunction {
             throw new WarpScriptException(getName() + " can only operate on LONG, DOUBLE or empty GTSs.");
           }
 
-          GeoTimeSerie result = gts.cloneEmpty(gts.size());
+          GeoTimeSerie result = null;
 
           // Choose the operator depending on which ones are defined and the GTS type.
           if (null != GTSopD && (null == GTSopL || gts.getType() == GeoTimeSerie.TYPE.DOUBLE)) {
             // Consider all values as doubles because only the double operator is defined or the GTS is of type DOUBLE.
-            // Apply the operator on all the values of gts, storing the result in result.
-            GTSOpsHelper.applyUnaryOp(result, gts, GTSopD);
+            if (LongUnaryOperator.identity() == GTSopD) {
+              result = gts.clone();
+            } else {
+              // Apply the operator on all the values of gts, storing the result in result.
+              result = gts.cloneEmpty(gts.size());
+              GTSOpsHelper.applyUnaryOp(result, gts, GTSopD);
+            }
           } else if (null != GTSopDL && (null == GTSopL || gts.getType() == GeoTimeSerie.TYPE.DOUBLE)) {
             // Consider all values as doubles because only the double operator is defined or the GTS is of type DOUBLE.
             // Apply the operator on all the values of gts, storing the result in result.
+            result = gts.cloneEmpty(gts.size());
             GTSOpsHelper.applyUnaryOp(result, gts, GTSopDL);
           } else {
             // Consider all values as longs because either the double operator is not defined or the GTS is of LONG type.
-            // Apply the operator on all the values of gts, storing the result in result.
-            GTSOpsHelper.applyUnaryOp(result, gts, GTSopL);
+            if (LongUnaryOperator.identity() == GTSopL) {
+              result = gts.clone();
+            } else {
+              // Apply the operator on all the values of gts, storing the result in result.
+              result = gts.cloneEmpty(gts.size());
+              GTSOpsHelper.applyUnaryOp(result, gts, GTSopL);
+            }
           }
 
           return result;
