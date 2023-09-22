@@ -54,13 +54,13 @@ public class NumericalUnaryFunction extends ListRecursiveStackFunction {
       throw new RuntimeException("Incoherent instantiation parameters for numerical function: " + name);
     }
 
-    GTSopL = null == opL ? null : new GTSOpsHelper.GTSUnaryOp() {
+    GTSopL = null == opL || LongUnaryOperator.identity() == opL ? null : new GTSOpsHelper.GTSUnaryOp() {
       @Override
       public Object op(GeoTimeSerie gts, int idx) {
         return opL.applyAsLong(((Number) GTSHelper.valueAtIndex(gts, idx)).longValue());
       }
     };
-    GTSopD = null == opD ? null : new GTSOpsHelper.GTSUnaryOp() {
+    GTSopD = null == opD || LongUnaryOperator.identity() == opD ? null : new GTSOpsHelper.GTSUnaryOp() {
       @Override
       public Object op(GeoTimeSerie gts, int idx) {
         return opD.applyAsDouble(((Number) GTSHelper.valueAtIndex(gts, idx)).doubleValue());
@@ -97,23 +97,23 @@ public class NumericalUnaryFunction extends ListRecursiveStackFunction {
           GeoTimeSerie result = null;
 
           // Choose the operator depending on which ones are defined and the GTS type.
-          if (null != GTSopD && (null == GTSopL || gts.getType() == GeoTimeSerie.TYPE.DOUBLE)) {
+          if (null != opD && (null == opL || gts.getType() == GeoTimeSerie.TYPE.DOUBLE)) {
             // Consider all values as doubles because only the double operator is defined or the GTS is of type DOUBLE.
-            if (LongUnaryOperator.identity() == opD) {
+            if (LongUnaryOperator.identity() == opD) { // only case where GTSopD is null and opD is not
               result = gts.clone();
             } else {
               // Apply the operator on all the values of gts, storing the result in result.
               result = gts.cloneEmpty(gts.size());
               GTSOpsHelper.applyUnaryOp(result, gts, GTSopD);
             }
-          } else if (null != GTSopDL && (null == GTSopL || gts.getType() == GeoTimeSerie.TYPE.DOUBLE)) {
+          } else if (null != opDL && (null == opL || gts.getType() == GeoTimeSerie.TYPE.DOUBLE)) {
             // Consider all values as doubles because only the double operator is defined or the GTS is of type DOUBLE.
             // Apply the operator on all the values of gts, storing the result in result.
             result = gts.cloneEmpty(gts.size());
             GTSOpsHelper.applyUnaryOp(result, gts, GTSopDL);
           } else {
             // Consider all values as longs because either the double operator is not defined or the GTS is of LONG type.
-            if (LongUnaryOperator.identity() == opL) {
+            if (LongUnaryOperator.identity() == opL) { // // only case where GTSopL is null and opL is not
               result = gts.clone();
             } else {
               // Apply the operator on all the values of gts, storing the result in result.
