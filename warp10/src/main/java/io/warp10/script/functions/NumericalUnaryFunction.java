@@ -113,7 +113,7 @@ public class NumericalUnaryFunction extends ListRecursiveStackFunction {
             GTSOpsHelper.applyUnaryOp(result, gts, GTSopDL);
           } else {
             // Consider all values as longs because either the double operator is not defined or the GTS is of LONG type.
-            if (LongUnaryOperator.identity() == opL) { // // only case where GTSopL is null and opL is not
+            if (LongUnaryOperator.identity() == opL) { // only case where GTSopL is null and opL is not
               result = gts.clone();
             } else {
               // Apply the operator on all the values of gts, storing the result in result.
