@@ -1,5 +1,5 @@
 //
-//   Copyright 2022  SenX S.A.S.
+//   Copyright 2022 - 2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -29,6 +29,12 @@ import org.apache.commons.math3.exception.NumberIsTooSmallException;
 import org.apache.commons.math3.util.MathArrays;
 
 /**
+ *
+ * Source: org.apache.commons.math3.analysis.interpolation.BicubicInterpolator:3.6.1
+ *
+ * The interpolation obtained in the source version is not defined on the bounds of the ranges.
+ * Here we define it on both bounds for both axis.
+ *
  * Generates a {@link BicubicInterpolatingFunction bicubic interpolating
  * function}.
  * <p>
@@ -78,9 +84,11 @@ public class BicubicInterpolatorSmallGrid
         nI = i + 1;
         pI = i - 1;
       } else if (i == 0) {
+        // not a valid point in source version
         nI = 1;
         pI = 0;
       } else {
+        // not a valid point in source version
         nI = xLen - 1; // i == xLen-1
         pI = xLen - 2;
       }
@@ -95,9 +103,11 @@ public class BicubicInterpolatorSmallGrid
           nJ = j + 1;
           pJ = j - 1;
         } else if (j == 0) {
+          // not a valid point in source version
           nJ = 1;
           pJ = 0;
         } else {
+          // not a valid point in source version
           nJ = yLen - 1; // j == yLen-1
           pJ = yLen - 2;
         }
