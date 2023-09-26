@@ -17,7 +17,6 @@
 //   with local slope at the cube edges computed with current point and next point (instead of 0)
 //   This make the algorithm usable even with a very small input grid.
 
-
 package io.warp10.ext.interpolation;
 
 import org.apache.commons.math3.analysis.interpolation.BicubicInterpolatingFunction;
