@@ -33,7 +33,7 @@ import java.util.List;
 /**
  * Function that implements 1D interpolator
  */
-public class InterpolatorLinear extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class InterpolatorUnivariate extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
   public enum TYPE {
     LINEAR, SPLINE, AKIMA
@@ -128,7 +128,7 @@ public class InterpolatorLinear extends NamedWarpScriptFunction implements WarpS
     }
   }
 
-  public InterpolatorLinear(String name, TYPE type) {
+  public InterpolatorUnivariate(String name, TYPE type) {
     super(name);
     this.type=type;
   }

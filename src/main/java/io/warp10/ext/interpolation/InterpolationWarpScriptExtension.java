@@ -47,9 +47,9 @@ public class InterpolationWarpScriptExtension extends WarpScriptExtension {
     functions.put(INTERPOLATOR_ND_SMICROSPHERE, new InterpolatorMicrosphere(INTERPOLATOR_ND_SMICROSPHERE, true));
     functions.put(INTERPOLATOR_2D_BICUBIC, new InterpolatorBicubic(INTERPOLATOR_2D_BICUBIC));
     functions.put(INTERPOLATOR_3D_TRICUBIC, new InterpolatorTricubic(INTERPOLATOR_3D_TRICUBIC));
-    functions.put(INTERPOLATOR_1D_LINEAR, new InterpolatorLinear(INTERPOLATOR_1D_LINEAR, InterpolatorLinear.TYPE.LINEAR));
-    functions.put(INTERPOLATOR_1D_SPLINE, new InterpolatorLinear(INTERPOLATOR_1D_SPLINE, InterpolatorLinear.TYPE.SPLINE));
-    functions.put(INTERPOLATOR_1D_AKIMA, new InterpolatorLinear(INTERPOLATOR_1D_AKIMA, InterpolatorLinear.TYPE.AKIMA));
+    functions.put(INTERPOLATOR_1D_LINEAR, new InterpolatorUnivariate(INTERPOLATOR_1D_LINEAR, InterpolatorUnivariate.TYPE.LINEAR));
+    functions.put(INTERPOLATOR_1D_SPLINE, new InterpolatorUnivariate(INTERPOLATOR_1D_SPLINE, InterpolatorUnivariate.TYPE.SPLINE));
+    functions.put(INTERPOLATOR_1D_AKIMA, new InterpolatorUnivariate(INTERPOLATOR_1D_AKIMA, InterpolatorUnivariate.TYPE.AKIMA));
   }
 
   //
