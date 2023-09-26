@@ -31,7 +31,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Function that implements the bicubic spline interpolation
+ * Function that implements 1D interpolator
  */
 public class InterpolatorLinear extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
