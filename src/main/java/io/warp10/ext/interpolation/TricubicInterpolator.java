@@ -31,8 +31,9 @@ import org.apache.commons.math3.util.MathArrays;
  *
  * Source: org.apache.commons.math3.analysis.interpolation.TricubicInterpolator:3.6.1
  *
- * The interpolation obtained in the source version is not defined on the bounds of the ranges.
- * Here we define it on both bounds for each axis.
+ * The interpolation obtained in the source version is not defined on the boundaries of the ranges.
+ * Here we define it on both boundaries for each axis.
+ * The difference is that we do not override isValidPoint() method when returning interpolating function.
  *
  * Generates a tricubic interpolating function.
  *
@@ -47,8 +48,8 @@ public class TricubicInterpolator
                                                    final double[] yval,
                                                    final double[] zval,
                                                    final double[][][] fval)
-      throws NoDataException, NumberIsTooSmallException,
-      DimensionMismatchException, NonMonotonicSequenceException {
+    throws NoDataException, NumberIsTooSmallException,
+    DimensionMismatchException, NonMonotonicSequenceException {
     if (xval.length == 0 || yval.length == 0 || zval.length == 0 || fval.length == 0) {
       throw new NoDataException();
     }
@@ -73,47 +74,26 @@ public class TricubicInterpolator
     final double[][][] d2FdYdZ = new double[xLen][yLen][zLen];
     final double[][][] d3FdXdYdZ = new double[xLen][yLen][zLen];
 
-    for (int i = 0; i < xLen; i++) {
+    for (int i = 1; i < xLen - 1; i++) {
       if (yval.length != fval[i].length) {
         throw new DimensionMismatchException(yval.length, fval[i].length);
       }
-      int nI, pI;
-      if (i > 0 && i < xLen - 1) {
-        nI = i + 1;
-        pI = i - 1;
-      } else if (i == 0) {
-        // not a valid point in source version
-        nI = 1;
-        pI = 0;
-      } else {
-        // not a valid point in source version
-        nI = xLen - 1; // i == xLen-1
-        pI = xLen - 2;
-      }
+
+      final int nI = i + 1;
+      final int pI = i - 1;
 
       final double nX = xval[nI];
       final double pX = xval[pI];
 
       final double deltaX = nX - pX;
 
-      for (int j = 0; j < yLen; j++) {
+      for (int j = 1; j < yLen - 1; j++) {
         if (zval.length != fval[i][j].length) {
           throw new DimensionMismatchException(zval.length, fval[i][j].length);
         }
 
-        int nJ, pJ;
-        if (j > 0 && j < yLen - 1) {
-          nJ = j + 1;
-          pJ = j - 1;
-        } else if (j == 0) {
-          // not a valid point in source version
-          nJ = 1;
-          pJ = 0;
-        } else {
-          // not a valid point in source version
-          nJ = yLen - 1; // j == yLen-1
-          pJ = yLen - 2;
-        }
+        final int nJ = j + 1;
+        final int pJ = j - 1;
 
         final double nY = yval[nJ];
         final double pY = yval[pJ];
@@ -121,20 +101,9 @@ public class TricubicInterpolator
         final double deltaY = nY - pY;
         final double deltaXY = deltaX * deltaY;
 
-        for (int k = 0; k < zLen; k++) {
-          int nK, pK;
-          if (k > 0 && k < zLen - 1) {
-            nK = k + 1;
-            pK = k - 1;
-          } else if (k == 0) {
-            // not a valid point in source version
-            nK = 1;
-            pK = 0;
-          } else {
-            // not a valid point in source version
-            nK = zLen - 1; // k == zLen-1
-            pK = zLen - 2;
-          }
+        for (int k = 1; k < zLen - 1; k++) {
+          final int nK = k + 1;
+          final int pK = k - 1;
 
           final double nZ = zval[nK];
           final double pZ = zval[pK];
@@ -155,17 +124,14 @@ public class TricubicInterpolator
           final double deltaXYZ = deltaXY * deltaZ;
 
           d3FdXdYdZ[i][j][k] = (fval[nI][nJ][nK] - fval[nI][pJ][nK] -
-              fval[pI][nJ][nK] + fval[pI][pJ][nK] -
-              fval[nI][nJ][pK] + fval[nI][pJ][pK] +
-              fval[pI][nJ][pK] - fval[pI][pJ][pK]) / deltaXYZ;
+            fval[pI][nJ][nK] + fval[pI][pJ][nK] -
+            fval[nI][nJ][pK] + fval[nI][pJ][pK] +
+            fval[pI][nJ][pK] - fval[pI][pJ][pK]) / deltaXYZ;
         }
       }
     }
 
     // Create the interpolating function.
-    return new TricubicInterpolatingFunction(xval, yval, zval, fval,
-        dFdX, dFdY, dFdZ,
-        d2FdXdY, d2FdXdZ, d2FdYdZ,
-        d3FdXdYdZ);
+    return new TricubicInterpolatingFunction(xval, yval, zval, fval, dFdX, dFdY, dFdZ, d2FdXdY, d2FdXdZ, d2FdYdZ, d3FdXdYdZ);
   }
 }
