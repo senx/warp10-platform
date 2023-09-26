@@ -32,12 +32,11 @@ public class InterpolationWarpScriptExtension extends WarpScriptExtension {
 
   public static final String INTERPOLATOR_ND_MICROSPHERE = "INTERPOLATOR.ND.MICROSPHERE";
   public static final String INTERPOLATOR_ND_SMICROSPHERE = "INTERPOLATOR.ND.SMICROSPHERE"; // seeded
-  public static final String INTERPOLATOR_2_D_BICUBIC = "INTERPOLATOR.2D.BICUBIC";
-  public static final String INTERPOLATOR_3_D_TRICUBIC = "INTERPOLATOR.3D.TRICUBIC";
-  public static final String INTERPOLATOR_1_D_LINEAR = "INTERPOLATOR.1D.LINEAR";
-  public static final String INTERPOLATOR_1_D_SPLINE = "INTERPOLATOR.1D.SPLINE";
-  public static final String INTERPOLATOR_1_D_AKIMA = "INTERPOLATOR.1D.AKIMA";
-
+  public static final String INTERPOLATOR_2D_BICUBIC = "INTERPOLATOR.2D.BICUBIC";
+  public static final String INTERPOLATOR_3D_TRICUBIC = "INTERPOLATOR.3D.TRICUBIC";
+  public static final String INTERPOLATOR_1D_LINEAR = "INTERPOLATOR.1D.LINEAR";
+  public static final String INTERPOLATOR_1D_SPLINE = "INTERPOLATOR.1D.SPLINE";
+  public static final String INTERPOLATOR_1D_AKIMA = "INTERPOLATOR.1D.AKIMA";
 
   private static final Map<String, Object> functions;
 
@@ -46,11 +45,11 @@ public class InterpolationWarpScriptExtension extends WarpScriptExtension {
 
     functions.put(INTERPOLATOR_ND_MICROSPHERE, new InterpolatorMicrosphere(INTERPOLATOR_ND_MICROSPHERE, false));
     functions.put(INTERPOLATOR_ND_SMICROSPHERE, new InterpolatorMicrosphere(INTERPOLATOR_ND_SMICROSPHERE, true));
-    functions.put(INTERPOLATOR_2_D_BICUBIC, new InterpolatorBicubic(INTERPOLATOR_2_D_BICUBIC));
-    functions.put(INTERPOLATOR_3_D_TRICUBIC, new InterpolatorTricubic(INTERPOLATOR_3_D_TRICUBIC));
-    functions.put(INTERPOLATOR_1_D_LINEAR, new InterpolatorLinear(INTERPOLATOR_1_D_LINEAR, InterpolatorLinear.TYPE.LINEAR));
-    functions.put(INTERPOLATOR_1_D_SPLINE, new InterpolatorLinear(INTERPOLATOR_1_D_SPLINE, InterpolatorLinear.TYPE.SPLINE));
-    functions.put(INTERPOLATOR_1_D_AKIMA, new InterpolatorLinear(INTERPOLATOR_1_D_AKIMA, InterpolatorLinear.TYPE.AKIMA));
+    functions.put(INTERPOLATOR_2D_BICUBIC, new InterpolatorBicubic(INTERPOLATOR_2D_BICUBIC));
+    functions.put(INTERPOLATOR_3D_TRICUBIC, new InterpolatorTricubic(INTERPOLATOR_3D_TRICUBIC));
+    functions.put(INTERPOLATOR_1D_LINEAR, new InterpolatorLinear(INTERPOLATOR_1D_LINEAR, InterpolatorLinear.TYPE.LINEAR));
+    functions.put(INTERPOLATOR_1D_SPLINE, new InterpolatorLinear(INTERPOLATOR_1D_SPLINE, InterpolatorLinear.TYPE.SPLINE));
+    functions.put(INTERPOLATOR_1D_AKIMA, new InterpolatorLinear(INTERPOLATOR_1D_AKIMA, InterpolatorLinear.TYPE.AKIMA));
   }
 
   //
