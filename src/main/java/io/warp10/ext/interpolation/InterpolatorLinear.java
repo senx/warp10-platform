@@ -1,5 +1,5 @@
 //
-//   Copyright 2022  SenX S.A.S.
+//   Copyright 2022 - 2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -35,8 +35,8 @@ import java.util.List;
  */
 public class InterpolatorLinear extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  public static enum TYPE {
-    LINEAR,SPLINE, AKIMA
+  public enum TYPE {
+    LINEAR, SPLINE, AKIMA
   };
   
   private TYPE type;
