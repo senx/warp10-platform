@@ -257,7 +257,7 @@ public class InterpolatorTricubic extends NamedWarpScriptFunction implements War
       }
     }
 
-    TricubicInterpolatingFunction function = (new TricubicInterpolatorSmallGrid()).interpolate(xval, yval, zval, fval);
+    TricubicInterpolatingFunction function = (new TricubicInterpolator()).interpolate(xval, yval, zval, fval);
     TRICUBE warpscriptFunction = new TRICUBE(function, getName());
     stack.push(warpscriptFunction);
 

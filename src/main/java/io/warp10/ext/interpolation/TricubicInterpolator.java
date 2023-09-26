@@ -32,7 +32,7 @@ import org.apache.commons.math3.util.MathArrays;
  *
  * @since 3.4
  */
-public class TricubicInterpolatorSmallGrid
+public class TricubicInterpolator
     implements TrivariateGridInterpolator {
   /**
    * {@inheritDoc}
