@@ -37,7 +37,7 @@ public class InterpolatorUnivariate extends NamedWarpScriptFunction implements W
 
   public enum TYPE {
     LINEAR, SPLINE, AKIMA
-  };
+  }
   
   private TYPE type;
   
