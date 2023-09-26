@@ -88,9 +88,9 @@ public class InterpolatorTricubic extends NamedWarpScriptFunction implements War
       if (3 != values.length) {
         throw new WarpScriptException(getName() + " expects 3 components but got " + values.length);
       }
-      
+
       if (null == values[0] || null == values[1] || null == values[2]) {
-        return new Object[] {Long.MAX_VALUE, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, null};
+        return new Object[] {tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, null};
       }
 
       double x = ((Number) values[0]).doubleValue();
