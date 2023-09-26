@@ -28,6 +28,12 @@ import org.apache.commons.math3.exception.NumberIsTooSmallException;
 import org.apache.commons.math3.util.MathArrays;
 
 /**
+ *
+ * Source: org.apache.commons.math3.analysis.interpolation.TricubicInterpolator:3.6.1
+ *
+ * The interpolation obtained in the source version is not defined on the bounds of the ranges.
+ * Here we define it on both bounds for each axis.
+ *
  * Generates a tricubic interpolating function.
  *
  * @since 3.4
@@ -76,9 +82,11 @@ public class TricubicInterpolator
         nI = i + 1;
         pI = i - 1;
       } else if (i == 0) {
+        // not a valid point in source version
         nI = 1;
         pI = 0;
       } else {
+        // not a valid point in source version
         nI = xLen - 1; // i == xLen-1
         pI = xLen - 2;
       }
@@ -98,9 +106,11 @@ public class TricubicInterpolator
           nJ = j + 1;
           pJ = j - 1;
         } else if (j == 0) {
+          // not a valid point in source version
           nJ = 1;
           pJ = 0;
         } else {
+          // not a valid point in source version
           nJ = yLen - 1; // j == yLen-1
           pJ = yLen - 2;
         }
@@ -117,9 +127,11 @@ public class TricubicInterpolator
             nK = k + 1;
             pK = k - 1;
           } else if (k == 0) {
+            // not a valid point in source version
             nK = 1;
             pK = 0;
           } else {
+            // not a valid point in source version
             nK = zLen - 1; // k == zLen-1
             pK = zLen - 2;
           }
