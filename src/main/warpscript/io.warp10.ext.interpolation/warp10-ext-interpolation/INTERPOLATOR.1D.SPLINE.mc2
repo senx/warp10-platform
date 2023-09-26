@@ -33,7 +33,7 @@
     ]
 
     'params' {
-      'function' 'The fitted bivariate interpolating function(LIST<DOUBLE>): DOUBLE'
+      'function' 'The fitted interpolating function(DOUBLE): DOUBLE'
       'fval' 'The values of the interpolation points: fval[i] = f(xval[i])'
       'xval' 'All the x-coordinates of the interpolation points, sorted in increasing order'
     }
