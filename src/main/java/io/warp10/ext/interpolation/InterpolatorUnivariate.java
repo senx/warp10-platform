@@ -41,14 +41,14 @@ public class InterpolatorUnivariate extends NamedWarpScriptFunction implements W
   
   private TYPE type;
   
-  private static class LINEAR extends NamedWarpScriptFunction implements WarpScriptStackFunction, WarpScriptMapperFunction {
+  private static class INTERPOLATOR extends NamedWarpScriptFunction implements WarpScriptStackFunction, WarpScriptMapperFunction {
 
     private final PolynomialSplineFunction func;
     private final String generatedFrom;
     private ArrayList xval;
     private ArrayList fval;
 
-    private LINEAR(PolynomialSplineFunction function, String interpolatorName, ArrayList xval, ArrayList fval) {
+    private INTERPOLATOR(PolynomialSplineFunction function, String interpolatorName, ArrayList xval, ArrayList fval) {
       super(interpolatorName);
       func = function;
       this.xval = xval;
@@ -185,7 +185,7 @@ public class InterpolatorUnivariate extends NamedWarpScriptFunction implements W
     }
 
     // clone the inputs for snapshot. 
-    LINEAR warpscriptFunction = new LINEAR(function, getName(), new ArrayList<Number>(o1), new ArrayList<Number>(o2));
+    INTERPOLATOR warpscriptFunction = new INTERPOLATOR(function, getName(), new ArrayList<Number>(o1), new ArrayList<Number>(o2));
     stack.push(warpscriptFunction);
 
     return stack;
