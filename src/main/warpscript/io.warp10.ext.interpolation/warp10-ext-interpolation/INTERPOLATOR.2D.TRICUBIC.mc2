@@ -21,7 +21,7 @@
     'deprecated' ''
     'deleted' ''
     'version' 'all'
-    'tags' [ 'extensions' ]
+    'tags' [ 'extensions' 'interpolator' ]
     'desc'
 <'
   Function that implements the tricubic spline interpolation, as proposed in

@@ -21,7 +21,7 @@
     'deprecated' ''
     'deleted' ''
     'version' 'all'
-    'tags' [ 'extensions' ]
+    'tags' [ 'extensions' 'interpolator' ]
     'desc' 
 <'
   Fit an interpolating micro-sphere to create a multivariate function.
