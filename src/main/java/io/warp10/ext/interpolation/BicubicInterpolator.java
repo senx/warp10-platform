@@ -31,8 +31,9 @@ import org.apache.commons.math3.util.MathArrays;
  *
  * Source: org.apache.commons.math3.analysis.interpolation.BicubicInterpolator:3.6.1
  *
- * The interpolation obtained in the source version is not defined on the bounds of the ranges.
- * Here we define it on both bounds for both axis.
+ * The interpolation obtained in the source version is not defined on the boundaries of the ranges.
+ * Here we define it on both boundaries for both axis.
+ * The difference is that we do not override isValidPoint() method when returning interpolating function.
  *
  * Generates a {@link BicubicInterpolatingFunction bicubic interpolating
  * function}.
@@ -58,8 +59,8 @@ public class BicubicInterpolator
   public BicubicInterpolatingFunction interpolate(final double[] xval,
                                                   final double[] yval,
                                                   final double[][] fval)
-      throws NoDataException, DimensionMismatchException,
-      NonMonotonicSequenceException, NumberIsTooSmallException {
+    throws NoDataException, DimensionMismatchException,
+    NonMonotonicSequenceException, NumberIsTooSmallException {
     if (xval.length == 0 || yval.length == 0 || fval.length == 0) {
       throw new NoDataException();
     }
@@ -77,39 +78,18 @@ public class BicubicInterpolator
     final double[][] dFdX = new double[xLen][yLen];
     final double[][] dFdY = new double[xLen][yLen];
     final double[][] d2FdXdY = new double[xLen][yLen];
-    for (int i = 0; i < xLen; i++) {
-      int nI, pI;
-      if (i > 0 && i < xLen - 1) {
-        nI = i + 1;
-        pI = i - 1;
-      } else if (i == 0) {
-        // not a valid point in source version
-        nI = 1;
-        pI = 0;
-      } else {
-        // not a valid point in source version
-        nI = xLen - 1; // i == xLen-1
-        pI = xLen - 2;
-      }
+    for (int i = 1; i < xLen - 1; i++) {
+      final int nI = i + 1;
+      final int pI = i - 1;
+
       final double nX = xval[nI];
       final double pX = xval[pI];
 
       final double deltaX = nX - pX;
 
-      for (int j = 0; j < yLen; j++) {
-        int nJ, pJ;
-        if (j > 0 && j < yLen - 1) {
-          nJ = j + 1;
-          pJ = j - 1;
-        } else if (j == 0) {
-          // not a valid point in source version
-          nJ = 1;
-          pJ = 0;
-        } else {
-          // not a valid point in source version
-          nJ = yLen - 1; // j == yLen-1
-          pJ = yLen - 2;
-        }
+      for (int j = 1; j < yLen - 1; j++) {
+        final int nJ = j + 1;
+        final int pJ = j - 1;
 
         final double nY = yval[nJ];
         final double pY = yval[pJ];
