@@ -1,5 +1,5 @@
 //
-//   Copyright 2022  SenX S.A.S.
+//   Copyright 2022 -2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@
 //   This class is a variant of org.apache.commons.math3.analysis.interpolation.TricubicInterpolator
 //   with local slope at the cube edges computed with current point and next point (instead of 0)
 //   This make the algorithm usable even with a very small input grid.
-
 
 package io.warp10.ext.interpolation;
 
@@ -84,7 +83,6 @@ public class TricubicInterpolatorSmallGrid
         pI = xLen - 2;
       }
 
-
       final double nX = xval[nI];
       final double pX = xval[pI];
 
@@ -106,7 +104,6 @@ public class TricubicInterpolatorSmallGrid
           nJ = yLen - 1; // j == yLen-1
           pJ = yLen - 2;
         }
-
 
         final double nY = yval[nJ];
         final double pY = yval[pJ];
