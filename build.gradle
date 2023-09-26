@@ -56,6 +56,7 @@ dependencies {
 
   // Use JUnit test framework.
   testImplementation 'junit:junit:4.13'
+  testImplementation group: 'io.warp10', name: 'warp10', version: '3.+'
 
   // Compile time only dependencies, not used at runtime, or provided by other dependencies.
   compileOnly group: 'io.warp10', name: 'warpscript', version: '3.+'
