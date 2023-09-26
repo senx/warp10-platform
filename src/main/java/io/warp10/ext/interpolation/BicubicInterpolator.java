@@ -51,7 +51,7 @@ import org.apache.commons.math3.util.MathArrays;
  *
  * @since 3.4
  */
-public class BicubicInterpolatorSmallGrid
+public class BicubicInterpolator
     implements BivariateGridInterpolator {
   /**
    * {@inheritDoc}

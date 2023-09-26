@@ -1,5 +1,5 @@
 //
-//   Copyright 2022  SenX S.A.S.
+//   Copyright 2022 - 2023 SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -207,7 +207,7 @@ public class InterpolatorBicubic extends NamedWarpScriptFunction implements Warp
       }
     }
 
-    BicubicInterpolatingFunction function = (new BicubicInterpolatorSmallGrid()).interpolate(xval, yval, fval);
+    BicubicInterpolatingFunction function = (new BicubicInterpolator()).interpolate(xval, yval, fval);
     BICUBE warpscriptFunction = new BICUBE(function, getName());
     stack.push(warpscriptFunction);
 
