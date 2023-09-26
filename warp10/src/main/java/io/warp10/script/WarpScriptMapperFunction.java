@@ -17,5 +17,11 @@
 package io.warp10.script;
 
 
+import io.warp10.continuum.gts.GeoTimeSerie;
+
+import java.util.Map;
+
 public interface WarpScriptMapperFunction extends WarpScriptAggregatorFunction {
+
+  default void preComputationHook(GeoTimeSerie gts, Map params) throws WarpScriptException {}
 }

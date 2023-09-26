@@ -301,6 +301,7 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
     for (GeoTimeSerie gts: series) {
       List<GeoTimeSerie> res;
       try {
+        ((WarpScriptMapperFunction) mapper).preComputationHook(gts, params);
         res = GTSHelper.map(gts, mapper, prewindow, postwindow, Math.abs(occurrences), reversed, step, overrideTick, mapper instanceof Macro ? stack : null, (List<Long>) outputTicks);
       } catch (WarpScriptATCException wsatce) {
         // Do not handle WarpScriptATCException (STOP in MACROMAPPER for instance)
