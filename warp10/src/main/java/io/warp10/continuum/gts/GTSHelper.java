@@ -5757,10 +5757,10 @@ public class GTSHelper {
     GeoTimeSerie mapped = gts.clone();
 
     //
-    // Do nothing if there are no values and gts was not bucketized
+    // Do nothing if there are no values and gts was not bucketized and outputTicks is null
     //
 
-    if (0 == mapped.values && !isBucketized(mapped)) {
+    if (0 == mapped.values && !isBucketized(mapped) && null == outputTicks) {
       results.add(mapped);
       return results;
     }
@@ -5769,7 +5769,16 @@ public class GTSHelper {
     sort(mapped, reversed);
     // Retrieve ticks if GTS is not bucketized.
     final boolean isBucketized = isBucketized(gts);
-    long[] ticks = isBucketized ? null : Arrays.copyOf(mapped.ticks, gts.values);
+
+    long[] ticks = null;
+    if (!isBucketized) {
+      if (0 == mapped.values) {
+        ticks = new long[] {};
+
+      } else {
+        ticks = Arrays.copyOf(mapped.ticks, gts.values);
+      }
+    }
 
     // Clear clone
     GTSHelper.clear(mapped);
