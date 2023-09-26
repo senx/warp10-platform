@@ -68,7 +68,7 @@
       'points' 'The arguments for the interpolation points. points[i][j] is the j-th component of interpolation point i'
     }
 
-    'related' [ 'PRNG' 'MICROSPHEREFIT' 'BICUBICFIT' 'TRICUBICFIT' 'POLYFIT' ] REVERSE
+    'related' [ 'PRNG' 'INTERPOLATOR.ND.MICROSPHERE' 'INTERPOLATOR.2D.BICUBICFIT' 'INTERPOLATOR.3D.TRICUBICFIT' 'INTERPOLATOR.1D.AKIMA' 'INTERPOLATOR.1D.SPLINE' 'INTERPOLATOR.1D.LINEAR' ] REVERSE
 
     'examples' [ ]
     'conf' [ ]
