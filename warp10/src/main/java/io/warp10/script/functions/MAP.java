@@ -20,6 +20,7 @@ import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptATCException;
+import io.warp10.script.WarpScriptFunctionWithHook;
 import io.warp10.script.WarpScriptMapperFunction;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStackFunction;
@@ -301,7 +302,9 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
     for (GeoTimeSerie gts: series) {
       List<GeoTimeSerie> res;
       try {
-        ((WarpScriptMapperFunction) mapper).preComputationHook(gts, params);
+        if (mapper instanceof WarpScriptFunctionWithHook) {
+          ((WarpScriptFunctionWithHook) mapper).preComputationHook(gts, params);
+        }
         res = GTSHelper.map(gts, mapper, prewindow, postwindow, Math.abs(occurrences), reversed, step, overrideTick, mapper instanceof Macro ? stack : null, (List<Long>) outputTicks);
       } catch (WarpScriptATCException wsatce) {
         // Do not handle WarpScriptATCException (STOP in MACROMAPPER for instance)
