@@ -431,7 +431,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       // Sort metadata by id so the enforcement of keepempty works
       //
 
-      Collections.sort(metadatas, MetadataIdComparator.COMPARATOR);
+      Collections.sort(metas, MetadataIdComparator.COMPARATOR);
 
       iter = ((List<Metadata>) params.get(PARAM_GTS)).iterator();
     } else {
