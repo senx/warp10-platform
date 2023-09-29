@@ -23,5 +23,5 @@ import java.util.Map;
 
 public interface WarpScriptFunctionWithHook {
 
-  public void preComputationHook(GeoTimeSerie gts, Map params) throws WarpScriptException;
+  public Object preComputationHook(GeoTimeSerie gts, Map params) throws WarpScriptException;
 }
