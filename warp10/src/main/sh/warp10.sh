@@ -269,6 +269,20 @@ backend = leveldb" >>"${WARP10_CONFIG_DIR}/99-init.conf"
   postInit
 }
 
+leveldbConf() {
+  echo "Initializing Warp 10 archive configuration"
+  init
+
+  echo "
+backend = archive" >>"${WARP10_CONFIG_DIR}/99-init.conf"
+  mv "${WARP10_CONFIG_DIR}/10-fdb.conf" "${WARP10_CONFIG_DIR}/10-fdb.conf.DISABLE-$DATE"
+  getConfigFiles
+  LEVELDB_HOME="${WARP10_HOME_ESCAPED}/leveldb"
+  leveldbWarpInit
+  postInit
+}
+
+
 standalonePlusConf() {
   echo "Initializing Warp 10 standalone+ configuration"
   init
@@ -505,8 +519,11 @@ init)
   in-memory)
     inmemoryConf
     ;;
+  archive)
+    archiveConf
+    ;;
   *)
-    die "Usage: $0 init <distributed|standalone|standalone+|in-memory>"
+    die "Usage: $0 init <distributed|standalone|standalone+|in-memory|archive>"
     ;;
   esac
   ;;
