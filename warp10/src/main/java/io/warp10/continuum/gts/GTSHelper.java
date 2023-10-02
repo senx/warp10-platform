@@ -65,6 +65,7 @@ import com.geoxp.GeoXPLib;
 import com.geoxp.GeoXPLib.GeoXPShape;
 
 import io.warp10.CapacityExtractorOutputStream;
+import io.warp10.ThriftUtils;
 import io.warp10.WarpHexDecoder;
 import io.warp10.WarpURLDecoder;
 import io.warp10.WarpURLEncoder;
@@ -3452,7 +3453,7 @@ public class GTSHelper {
         // space
         GTSWrapper wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(encoder, comp, GTSWrapperHelper.DEFAULT_COMP_RATIO_THRESHOLD, Integer.MAX_VALUE, false);
 
-        TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+        TSerializer serializer = ThriftUtils.getTSerializer();
 
         byte[] ser = serializer.serialize(wrapper);
 

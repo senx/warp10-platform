@@ -26,6 +26,7 @@ import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
 
+import io.warp10.ThriftUtils;
 import io.warp10.WarpConfig;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.store.thrift.data.DatalogRecord;
@@ -103,7 +104,7 @@ public class DatalogHelper {
 
   public static byte[] serialize(TBase record) throws IOException {
     try {
-      TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+      TSerializer serializer = ThriftUtils.getTSerializer();
       return serializer.serialize(record);
     } catch (TException te) {
       throw new IOException("Error serializing record.", te);
@@ -116,7 +117,7 @@ public class DatalogHelper {
 
   public static void deserialize(byte[] bytes, int offset, int len, TBase msg) throws IOException {
     try {
-      TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
+      TDeserializer deserializer = ThriftUtils.getTDeserializer();
       deserializer.deserialize(msg, bytes, offset, len);
     } catch (TException te) {
       throw new IOException("Error deserializing record.", te);
@@ -125,7 +126,7 @@ public class DatalogHelper {
 
   public static DatalogRecord getRecord(byte[] bytes, int offset, int length) throws IOException {
     try {
-      TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
+      TDeserializer deserializer = ThriftUtils.getTDeserializer();
       DatalogRecord record = new DatalogRecord();
       deserializer.deserialize(record, bytes, offset, length);
       return record;

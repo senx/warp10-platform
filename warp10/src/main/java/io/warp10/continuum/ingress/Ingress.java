@@ -1129,7 +1129,7 @@ public class Ingress extends AbstractHandler implements Runnable {
                 metadata.setLastActivity(nowms);
               }
 
-              TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
+              TSerializer serializer = ThriftUtils.getTSerializer();
               try {
                 pushMetadataMessage(bytes, serializer.serialize(metadata));
 
@@ -1711,7 +1711,7 @@ public class Ingress extends AbstractHandler implements Runnable {
 
         FileWriter writer = new FileWriter(cache);
 
-        TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
+        TSerializer serializer = ThriftUtils.getTSerializer();
 
         DirectoryRequest drequest = new DirectoryRequest();
         drequest.setSorted(mustSort);
@@ -1821,7 +1821,7 @@ public class Ingress extends AbstractHandler implements Runnable {
           private Metadata current = null;
           private boolean done = false;
 
-          private TDeserializer deserializer = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
+          private TDeserializer deserializer = ThriftUtils.getTDeserializer();
 
           @Override
           public boolean hasNext() {
@@ -2069,7 +2069,7 @@ public class Ingress extends AbstractHandler implements Runnable {
     metadata.setClassId(GTSHelper.classId(this.classKey, metadata.getName()));
     metadata.setLabelsId(GTSHelper.labelsId(this.labelsKey, metadata.getLabels()));
 
-    TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
+    TSerializer serializer = ThriftUtils.getTSerializer();
     try {
       byte[] bytes = new byte[16];
       GTSHelper.fillGTSIds(bytes, 0, metadata.getClassId(), metadata.getLabelsId());
@@ -2227,7 +2227,7 @@ public class Ingress extends AbstractHandler implements Runnable {
       //bb.putLong(encoder.getClassId());
       //bb.putLong(encoder.getLabelsId());
 
-      TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
+      TSerializer serializer = ThriftUtils.getTSerializer();
 
       byte[] msgbytes = null;
 

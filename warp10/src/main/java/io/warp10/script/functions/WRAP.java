@@ -96,7 +96,7 @@ public class WRAP extends ElementOrListStackFunction {
           wrapper.unsetCount();
         }
 
-        TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
+        TSerializer serializer = ThriftUtils.getTSerializer();
 
         try {
           byte[] bytes = serializer.serialize(wrapper);

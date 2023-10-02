@@ -91,7 +91,7 @@ public class MVEXTRACT extends ElementOrListStackFunction implements ElementStac
 
     int idx = -1;
 
-    TDeserializer deser = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
+    TDeserializer deser = ThriftUtils.getTDeserializer();
     GTSWrapper wrapper = new GTSWrapper();
 
     while(true) {

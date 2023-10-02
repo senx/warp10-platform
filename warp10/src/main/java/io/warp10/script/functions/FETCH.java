@@ -1130,7 +1130,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       }
 
       metaset = new MetaSet();
-      TDeserializer deser = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
+      TDeserializer deser = ThriftUtils.getTDeserializer();
 
       try {
         deser.deserialize(metaset, (byte[]) ms);

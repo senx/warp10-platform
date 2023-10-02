@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
 
+import io.warp10.ThriftUtils;
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
@@ -41,63 +42,63 @@ import io.warp10.script.WarpScriptStackFunction;
  * Converts an encoder into a map of encoders, one per type
  */
 public class TOENCODERS extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   public TOENCODERS(String name) {
     super(name);
-  }  
+  }
 
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
-    
+
     if (!(top instanceof String) && !(top instanceof byte[]) && !(top instanceof GTSEncoder)) {
       throw new WarpScriptException(getName() + " operates on a string, byte array or encoder.");
     }
-    
+
     Map<String,GTSEncoder> encoders = new HashMap<String,GTSEncoder>();
-    
+
     GTSDecoder decoder;
-    
+
     if (top instanceof GTSEncoder) {
       decoder = ((GTSEncoder) top).getUnsafeDecoder(false);
     } else {
       try {
         byte[] bytes = top instanceof String ? OrderPreservingBase64.decode(top.toString().getBytes(StandardCharsets.US_ASCII)) : (byte[]) top;
-        
-        TDeserializer deser = new TDeserializer(new TCompactProtocol.Factory());
-        
+
+        TDeserializer deser = ThriftUtils.getTDeserializer();
+
         GTSWrapper wrapper = new GTSWrapper();
-        
+
         deser.deserialize(wrapper, bytes);
 
-        decoder = GTSWrapperHelper.fromGTSWrapperToGTSDecoder(wrapper);        
+        decoder = GTSWrapperHelper.fromGTSWrapperToGTSDecoder(wrapper);
       } catch (TException te) {
         throw new WarpScriptException(getName() + " failed to unwrap encoder.", te);
-      }            
+      }
     }
 
     GTSEncoder enc;
-    
+
     try {
       while(decoder.next()) {
         Object value = decoder.getBinaryValue();
-        
+
         String type = "DOUBLE";
-        
+
         if (value instanceof String) {
           type = "STRING";
         } else if (value instanceof Boolean) {
           type = "BOOLEAN";
         } else if (value instanceof Long) {
           type = "LONG";
-        } else if (value instanceof Double || value instanceof BigDecimal) { 
+        } else if (value instanceof Double || value instanceof BigDecimal) {
           type = "DOUBLE";
         } else if (value instanceof byte[]) {
           type = "BINARY";
         }
-        
+
         enc = encoders.get(type);
-        
+
         if (null == enc) {
           enc = new GTSEncoder(0L);
           enc.setMetadata(decoder.getMetadata());
@@ -105,13 +106,13 @@ public class TOENCODERS extends NamedWarpScriptFunction implements WarpScriptSta
         }
 
         enc.addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), value);
-      }      
+      }
     } catch (Exception e) {
       throw new WarpScriptException(getName() + " encountered an exception during conversion.", e);
     }
-        
+
     stack.push(encoders);
 
     return stack;
-  }  
+  }
 }

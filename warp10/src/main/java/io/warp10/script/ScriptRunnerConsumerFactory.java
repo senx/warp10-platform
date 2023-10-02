@@ -70,7 +70,7 @@ public class ScriptRunnerConsumerFactory implements ConsumerFactory {
       public void run() {
 
         // Iterate on the messages
-        TDeserializer deserializer = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
+        TDeserializer deserializer = ThriftUtils.getTDeserializer();
 
         KafkaOffsetCounters counters = pool.getCounters();
 
