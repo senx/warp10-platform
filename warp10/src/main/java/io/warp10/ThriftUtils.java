@@ -26,7 +26,7 @@ import org.apache.thrift.transport.TTransport;
 
 public class ThriftUtils {
   public static TSerializer getTSerializer() {
-    return getTSerializer(getTProtocolFactory());
+    return getTSerializer(getTCompactProtocolFactory());
   }
 
   public static TSerializer getTSerializer(TProtocolFactory factory) {
@@ -38,7 +38,7 @@ public class ThriftUtils {
   }
 
   public static TDeserializer getTDeserializer() {
-    return getTDeserializer(getTProtocolFactory());
+    return getTDeserializer(getTCompactProtocolFactory());
   }
 
   public static TDeserializer getTDeserializer(TProtocolFactory factory) {
@@ -49,7 +49,7 @@ public class ThriftUtils {
     }
   }
 
-  private static TProtocolFactory getTProtocolFactory() {
+  private static TProtocolFactory getTCompactProtocolFactory() {
     TCompactProtocol.Factory factory = new TCompactProtocol.Factory() {
       @Override
       public TProtocol getProtocol(TTransport trans) {
