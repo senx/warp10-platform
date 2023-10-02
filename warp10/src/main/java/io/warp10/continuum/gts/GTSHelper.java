@@ -583,8 +583,20 @@ public class GTSHelper {
 
     ranges.add(new int[] { low, high });
 
+    int idx = 0;
+    int size = ranges.size();
+
     while(!ranges.isEmpty()) {
-      int[] range = ranges.remove(0);
+      int[] range = ranges.get(idx++);
+
+      // Adjust the size of the ranges list from time to time to
+      // reduce memory footprint in case ranges get added
+      if (ranges.size() - size > 10000 && idx > 10000) {
+        ranges = new ArrayList<int[]>(ranges.subList(idx, ranges.size()));
+        size = ranges.size();
+        idx = 0;
+      }
+
       low = range[0];
       high = range[1];
 
@@ -741,8 +753,20 @@ public class GTSHelper {
 
     ranges.add(new int[] { low, high });
 
+    int idx = 0;
+    int size = ranges.size();
+
     while(!ranges.isEmpty()) {
-      int[] range = ranges.remove(0);
+      int[] range = ranges.get(idx++);
+
+      // Adjust the size of the ranges list from time to time to
+      // reduce memory footprint in case ranges get added
+      if (ranges.size() - size > 10000 && idx > 10000) {
+        ranges = new ArrayList<int[]>(ranges.subList(idx, ranges.size()));
+        size = ranges.size();
+        idx = 0;
+      }
+
       low = range[0];
       high = range[1];
 
@@ -909,8 +933,20 @@ public class GTSHelper {
 
     ranges.add(new int[] { low, high });
 
+    int size = ranges.size();
+    int idx = 0;
+
     while(!ranges.isEmpty()) {
-      int[] range = ranges.remove(0);
+      int[] range = ranges.get(idx++);
+
+      // Adjust the size of the ranges list from time to time to
+      // reduce memory footprint in case ranges get added
+      if (ranges.size() - size > 10000 && idx > 10000) {
+        ranges = new ArrayList<int[]>(ranges.subList(idx, ranges.size()));
+        size = ranges.size();
+        idx = 0;
+      }
+
       low = range[0];
       high = range[1];
 
