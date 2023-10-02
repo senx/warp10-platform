@@ -586,7 +586,7 @@ public class GTSHelper {
     int idx = 0;
     int size = ranges.size();
 
-    while(!ranges.isEmpty()) {
+    while(idx < ranges.size()) {
       int[] range = ranges.get(idx++);
 
       // Adjust the size of the ranges list from time to time to
@@ -756,7 +756,7 @@ public class GTSHelper {
     int idx = 0;
     int size = ranges.size();
 
-    while(!ranges.isEmpty()) {
+    while(idx < ranges.size()) {
       int[] range = ranges.get(idx++);
 
       // Adjust the size of the ranges list from time to time to
@@ -936,7 +936,7 @@ public class GTSHelper {
     int size = ranges.size();
     int idx = 0;
 
-    while(!ranges.isEmpty()) {
+    while(idx < ranges.size()) {
       int[] range = ranges.get(idx++);
 
       // Adjust the size of the ranges list from time to time to
