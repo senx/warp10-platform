@@ -1122,8 +1122,21 @@ public class GTSHelper {
     int low;
     int high;
 
-    while (!ranges.isEmpty()) {
-      int[] range = ranges.remove(0);
+    int idx = 0;
+
+    long size = ranges.size();
+
+    while (idx < ranges.size()) {
+      int[] range = ranges.get(idx++);
+
+      // Adjust the size of the ranges list from time to time to
+      // reduce memory footprint in case ranges get added
+      if (ranges.size() - size > 10000 && idx > 10000) {
+        ranges = new ArrayList<int[]>(ranges.subList(idx, ranges.size()));
+        size = ranges.size();
+        idx = 0;
+      }
+
       low = range[0];
       high = range[1];
 
