@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -44,9 +44,11 @@ public class LOGEVENTTO extends NamedWarpScriptFunction implements WarpScriptSta
     }
     
     LoggingEvent event = LogUtil.unwrapLog(aeskey, top.toString());
-
-    stack.push(event.getAttributes());
-    
+    if (event != null) {
+      stack.push(event.getAttributes());
+    } else {
+      throw new WarpScriptException(this.getName() + " cannot decode the input.");
+    }
     return stack;
   }
 }
