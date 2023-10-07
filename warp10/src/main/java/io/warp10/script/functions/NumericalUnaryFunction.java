@@ -1,5 +1,5 @@
 //
-//   Copyright 2020  SenX S.A.S.
+//   Copyright 2020-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
 import java.math.BigDecimal;
+import java.util.function.DoubleToLongFunction;
 import java.util.function.DoubleUnaryOperator;
 import java.util.function.LongUnaryOperator;
 
@@ -40,7 +41,15 @@ public class NumericalUnaryFunction extends ListRecursiveStackFunction {
   final ListRecursiveStackFunction.ElementStackFunction func;
 
   public NumericalUnaryFunction(String name, LongUnaryOperator opL, DoubleUnaryOperator opD) {
+    this(name, opL, opD, null);
+  }
+
+  public NumericalUnaryFunction(String name, LongUnaryOperator opL, DoubleUnaryOperator opD, DoubleToLongFunction opDL) {
     super(name);
+
+    if (null != opD && null != opDL) {
+      throw new RuntimeException("Incoherent instantiation parameters for numerical function: " + name);
+    }
 
     func = new ElementStackFunction() {
       @Override
@@ -48,6 +57,8 @@ public class NumericalUnaryFunction extends ListRecursiveStackFunction {
         if (element instanceof Number) {
           if (null != opD && (null == opL || element instanceof Double || element instanceof BigDecimal)) {
             return opD.applyAsDouble(((Number) element).doubleValue());
+          } else if (null != opDL && (null == opL || element instanceof Double || element instanceof BigDecimal)) {
+            return opDL.applyAsLong(((Number) element).doubleValue());
           } else {
             return opL.applyAsLong(((Number) element).longValue());
           }
@@ -72,6 +83,14 @@ public class NumericalUnaryFunction extends ListRecursiveStackFunction {
               @Override
               public Object op(GeoTimeSerie gts, int idx) {
                 return opD.applyAsDouble(((Number) GTSHelper.valueAtIndex(gts, idx)).doubleValue());
+              }
+            };
+          } else if (null != opDL && (null == opL || gts.getType() == GeoTimeSerie.TYPE.DOUBLE)) {
+            // Consider all values as doubles because only the double operator is defined or the GTS is of type DOUBLE.
+            op = new GTSOpsHelper.GTSUnaryOp() {
+              @Override
+              public Object op(GeoTimeSerie gts, int idx) {
+                return opDL.applyAsLong(((Number) GTSHelper.valueAtIndex(gts, idx)).doubleValue());
               }
             };
           } else {
