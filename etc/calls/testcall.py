@@ -14,7 +14,7 @@ print(1)
 
 #
 # An example of Warpscript to test this script: 
-# [ NOW ISO8601 ] ->PICKLE ->B64URL 'testcall.py' CALL B64-> PICKLE->
+# [ NOW ISO8601 ] ->PICKLE ->B64 'testcall.py' CALL B64-> PICKLE->
 #
 
 #
@@ -31,8 +31,8 @@ while True:
     line = sys.stdin.readline()
     line = line.strip()
     # Remove Base64 encoding
-    pickledB64Arguments = base64.b64decode(urllib.parse.unquote(line))
-    args = pickle.loads(pickledB64Arguments)    
+    pickledArguments = base64.b64decode(line)
+    args = pickle.loads(pickledArguments)    
 
     #
     # Do our stuff
