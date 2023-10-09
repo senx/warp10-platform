@@ -1,8 +1,8 @@
-#!/usr/bin/python -u 
+#!/usr/bin/env -S python3 -u 
 
-import cPickle
+import pickle
 import sys
-import urllib
+import urllib.parse
 import base64
 
 #
@@ -10,10 +10,11 @@ import base64
 # The absolute maximum is set in the configuration file via 'warpscript.call.maxcapacity'
 #
 
-print 10
+print(1)
 
 #
-# An example of Warpscript to trigger this script: NOW ISO8601 ->PICKLE ->B64URL 'testcall.py' CALL
+# An example of Warpscript to test this script: 
+# [ NOW ISO8601 ] ->PICKLE ->B64URL 'testcall.py' CALL B64-> PICKLE->
 #
 
 #
@@ -29,24 +30,26 @@ while True:
     #
     line = sys.stdin.readline()
     line = line.strip()
-    line = urllib.unquote(line.decode('utf-8'))
     # Remove Base64 encoding
-    mystr = base64.b64decode(line)
-    args = cPickle.loads(mystr)
+    pickledB64Arguments = base64.b64decode(urllib.parse.unquote(line))
+    args = pickle.loads(pickledB64Arguments)    
 
     #
     # Do our stuff
     #
-    output = 'output'
+    out = {}
+    out['arguments'] = args
+    out['my answer'] = "hello world"
 
     #
     # Output result (URL encoded UTF-8).
     #
-    print urllib.quote(output.encode('utf-8'))
+    print(base64.b64encode(pickle.dumps(out)).decode('ascii'))
+
   except Exception as err:
     #
     # If returning a content starting with ' ' (not URL encoded), then
     # the rest of the line is interpreted as a URL encoded UTF-8 of an error message
     # and will propagate the error to the calling WarpScript
     #
-    print ' ' + urllib.quote(repr(err).encode('utf-8'))
+    print(' ' + urllib.parse.quote(repr(err).encode('utf-8')))
