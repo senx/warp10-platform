@@ -863,6 +863,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
+import java.util.function.LongUnaryOperator;
 
 /**
  * Library of functions used to manipulate Geo Time Series
@@ -2798,7 +2799,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new NumericalUnaryFunction(SIGNUM, null, Math::signum));
     addNamedWarpScriptFunction(new NumericalUnaryFunction(FLOOR, null, Math::floor));
     addNamedWarpScriptFunction(new NumericalUnaryFunction(CEIL, null, Math::ceil));
-    addNamedWarpScriptFunction(new NumericalUnaryFunction(ROUND, x -> x, null, Math::round));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(ROUND, LongUnaryOperator.identity(), null, Math::round));
 
     addNamedWarpScriptFunction(new NumericalUnaryFunction(RINT, null, Math::rint));
     addNamedWarpScriptFunction(new NumericalUnaryFunction(ULP, null, Math::ulp));
