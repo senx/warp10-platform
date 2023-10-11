@@ -659,7 +659,9 @@ import io.warp10.script.functions.LOGINIT;
 import io.warp10.script.functions.STDERR;
 import io.warp10.script.functions.STDOUT;
 import io.warp10.script.functions.TDESCRIBE;
-import io.warp10.script.functions.SLEEP;import io.warp10.script.mapper.MapperAbs;
+import io.warp10.script.functions.SLEEP;
+
+import io.warp10.script.mapper.MapperAbs;
 import io.warp10.script.mapper.MapperAdd;
 import io.warp10.script.mapper.MapperCeil;
 import io.warp10.script.mapper.MapperCompareTo;
