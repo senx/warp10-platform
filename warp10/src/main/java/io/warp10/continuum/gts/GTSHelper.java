@@ -583,8 +583,20 @@ public class GTSHelper {
 
     ranges.add(new int[] { low, high });
 
-    while(!ranges.isEmpty()) {
-      int[] range = ranges.remove(0);
+    int idx = 0;
+    int size = ranges.size();
+
+    while(idx < ranges.size()) {
+      int[] range = ranges.get(idx++);
+
+      // Adjust the size of the ranges list from time to time to
+      // reduce memory footprint in case ranges get added
+      if (ranges.size() - size > 10000 && idx > 10000) {
+        ranges = new ArrayList<int[]>(ranges.subList(idx, ranges.size()));
+        size = ranges.size();
+        idx = 0;
+      }
+
       low = range[0];
       high = range[1];
 
@@ -741,8 +753,20 @@ public class GTSHelper {
 
     ranges.add(new int[] { low, high });
 
-    while(!ranges.isEmpty()) {
-      int[] range = ranges.remove(0);
+    int idx = 0;
+    int size = ranges.size();
+
+    while(idx < ranges.size()) {
+      int[] range = ranges.get(idx++);
+
+      // Adjust the size of the ranges list from time to time to
+      // reduce memory footprint in case ranges get added
+      if (ranges.size() - size > 10000 && idx > 10000) {
+        ranges = new ArrayList<int[]>(ranges.subList(idx, ranges.size()));
+        size = ranges.size();
+        idx = 0;
+      }
+
       low = range[0];
       high = range[1];
 
@@ -909,8 +933,20 @@ public class GTSHelper {
 
     ranges.add(new int[] { low, high });
 
-    while(!ranges.isEmpty()) {
-      int[] range = ranges.remove(0);
+    int size = ranges.size();
+    int idx = 0;
+
+    while(idx < ranges.size()) {
+      int[] range = ranges.get(idx++);
+
+      // Adjust the size of the ranges list from time to time to
+      // reduce memory footprint in case ranges get added
+      if (ranges.size() - size > 10000 && idx > 10000) {
+        ranges = new ArrayList<int[]>(ranges.subList(idx, ranges.size()));
+        size = ranges.size();
+        idx = 0;
+      }
+
       low = range[0];
       high = range[1];
 
@@ -1122,8 +1158,21 @@ public class GTSHelper {
     int low;
     int high;
 
-    while (!ranges.isEmpty()) {
-      int[] range = ranges.remove(0);
+    int idx = 0;
+
+    long size = ranges.size();
+
+    while (idx < ranges.size()) {
+      int[] range = ranges.get(idx++);
+
+      // Adjust the size of the ranges list from time to time to
+      // reduce memory footprint in case ranges get added
+      if (ranges.size() - size > 10000 && idx > 10000) {
+        ranges = new ArrayList<int[]>(ranges.subList(idx, ranges.size()));
+        size = ranges.size();
+        idx = 0;
+      }
+
       low = range[0];
       high = range[1];
 
@@ -5757,10 +5806,10 @@ public class GTSHelper {
     GeoTimeSerie mapped = gts.clone();
 
     //
-    // Do nothing if there are no values and gts was not bucketized
+    // Do nothing if there are no values and gts was not bucketized and outputTicks is null
     //
 
-    if (0 == mapped.values && !isBucketized(mapped)) {
+    if (0 == mapped.values && !isBucketized(mapped) && null == outputTicks) {
       results.add(mapped);
       return results;
     }
@@ -5769,7 +5818,16 @@ public class GTSHelper {
     sort(mapped, reversed);
     // Retrieve ticks if GTS is not bucketized.
     final boolean isBucketized = isBucketized(gts);
-    long[] ticks = isBucketized ? null : Arrays.copyOf(mapped.ticks, gts.values);
+
+    long[] ticks = null;
+    if (!isBucketized) {
+      if (0 == mapped.values) {
+        ticks = new long[] {};
+
+      } else {
+        ticks = Arrays.copyOf(mapped.ticks, gts.values);
+      }
+    }
 
     // Clear clone
     GTSHelper.clear(mapped);

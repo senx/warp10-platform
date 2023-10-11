@@ -55,7 +55,7 @@ public class QuasarTokenRevocationListLoader {
   private Map<String, String> labels = new HashMap<String, String>();
 
 
-  public static QuasarTokenRevocationListLoader getInstance(Properties config, byte[] appSipHashKey) {
+  public static synchronized QuasarTokenRevocationListLoader getInstance(Properties config, byte[] appSipHashKey) {
     if (singleton.compareAndSet(false, true)) {
       ByteBuffer bb = ByteBuffer.wrap(appSipHashKey);
       bb.order(ByteOrder.BIG_ENDIAN);
