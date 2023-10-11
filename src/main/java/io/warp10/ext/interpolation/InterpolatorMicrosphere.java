@@ -1,5 +1,5 @@
 //
-//   Copyright 2022  SenX S.A.S.
+//   Copyright 2022 - 2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -42,7 +42,7 @@ import java.util.Random;
  * Fit an interpolating micro sphere as described in http://www.dudziak.com/microsphere.pdf
  * Used for multivariate interpolation
  */
-public class MICROSPHEREFIT extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class InterpolatorMicrosphere extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
   public static final String ELEMENTS = "elements";
   public static final String MAXDARKFRACTION = "max.dark.fraction";
@@ -164,7 +164,7 @@ public class MICROSPHEREFIT extends NamedWarpScriptFunction implements WarpScrip
   }
 
   final private boolean seeded;
-  public MICROSPHEREFIT(String name, boolean seeded) {
+  public InterpolatorMicrosphere(String name, boolean seeded) {
     super(name);
     this.seeded = seeded;
   }

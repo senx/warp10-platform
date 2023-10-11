@@ -1,5 +1,5 @@
 //
-//   Copyright 2022  SenX S.A.S.
+//   Copyright 2022 - 2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,16 +16,18 @@
 
 <%
   {
-    'name' 'MICROSPHEREFIT'
+    'name' 'INTERPOLATOR.ND.SMICROSPHERE'
     'since' '2.0.0'
     'deprecated' ''
     'deleted' ''
     'version' 'all'
-    'tags' [ 'extensions' ]
+    'tags' [ 'extensions' 'interpolator' ]
     'desc' 
 <'
   Fit an interpolating micro-sphere to create a multivariate function.
   The multivariate function is pushed onto the stack and can be used as a WarpScript function or as a reducer.
+
+  The initialization for the fit is deterministic. The stack random number generator must have been seeded using PRNG.
 
   see http://www.dudziak.com/microsphere.pdf
 '>
@@ -66,7 +68,7 @@
       'points' 'The arguments for the interpolation points. points[i][j] is the j-th component of interpolation point i'
     }
 
-    'related' [ 'SMICROSPHEREFIT' 'BICUBICFIT' 'TRICUBICFIT' 'POLYFIT' ] REVERSE
+    'related' [ 'PRNG' 'INTERPOLATOR.ND.MICROSPHERE' 'INTERPOLATOR.2D.BICUBICFIT' 'INTERPOLATOR.3D.TRICUBICFIT' 'INTERPOLATOR.1D.AKIMA' 'INTERPOLATOR.1D.SPLINE' 'INTERPOLATOR.1D.LINEAR' ] REVERSE
 
     'examples' [ ]
     'conf' [ ]

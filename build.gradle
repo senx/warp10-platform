@@ -1,5 +1,5 @@
 //
-//   Copyright 2019 - 2021  SenX S.A.S.
+//   Copyright 2019 - 2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -54,9 +54,10 @@ dependencies {
 
   // Use JUnit test framework.
   testImplementation 'junit:junit:4.13'
+  testImplementation group: 'io.warp10', name: 'warp10', version: '3.+'
 
   // Compile time only dependencies, not used at runtime, or provided by other dependencies.
-  compileOnly group: 'io.warp10', name: 'warpscript', version: '2.10.1'
+  compileOnly group: 'io.warp10', name: 'warpscript', version: '3.+'
 }
 
 sourceSets {

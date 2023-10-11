@@ -1,5 +1,5 @@
 //
-//   Copyright 2022  SenX S.A.S.
+//   Copyright 2022 - 2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,34 +16,30 @@
 
 <%
   {
-    'name' 'TRICUBICFIT'
+    'name' 'INTERPOLATOR.2D.BICUBIC'
     'since' '2.0.0'
     'deprecated' ''
     'deleted' ''
     'version' 'all'
-    'tags' [ 'extensions' ]
+    'tags' [ 'extensions' 'interpolator' ]
     'desc'
 <'
-  Function that implements the tricubic spline interpolation, as proposed in
-  Tricubic interpolation in three dimensions, F. Lekien and J. Marsden, Int. J. Numer. Meth. Eng 2005; 63:455-471
-  Sample points need to be located on knots of a 3D grid.
-
-  The trivariate function is pushed onto the stack and can be used as a WarpScript function or as a reducer.
+  Function that implements the bicubic spline interpolation. Sample points need to be located on knots of a 2D grid.
+  The bivariate function is pushed onto the stack and can be used as a WarpScript function or as a reducer.
 '>
 
     'sig' [
-      [ [ 'xval:LIST<DOUBLE>' 'yval:LIST<DOUBLE>' 'zval:LIST<DOUBLE>' 'fval:LIST<LIST<LIST<DOUBLE>>>' ] REVERSE [ 'function:FUNCTION' ] ]
+      [ [ 'xval:LIST<DOUBLE>' 'yval:LIST<DOUBLE>' 'fval:LIST<LIST<DOUBLE>>' ] REVERSE [ 'function:FUNCTION' ] ]
     ]
 
     'params' {
-      'function' 'The fitted trivariate interpolating function(LIST<DOUBLE>): DOUBLE'
-      'fval' 'The values of the interpolation points on all the grid knots: fval[i][j][k] = f(xval[i], yval[j], zval[k]).'
-      'zval' 'All the z-coordinates of the interpolation points, sorted in increasing order'
+      'function' 'The fitted bivariate interpolating function(LIST<DOUBLE>): DOUBLE'
+      'fval' 'The values of the interpolation points on all the grid knots: fval[i][j] = f(xval[i], yval[j])'
       'yval' 'All the y-coordinates of the interpolation points, sorted in increasing order'
       'xval' 'All the x-coordinates of the interpolation points, sorted in increasing order'
     }
 
-    'related' [ 'BICUBICFIT' 'MICROSPHEREFIT' 'POLYFIT' ] REVERSE
+    'related' [ 'INTERPOLATOR.ND.SMICROSPHERE' 'INTERPOLATOR.ND.MICROSPHERE' 'INTERPOLATOR.3D.TRICUBICFIT' 'INTERPOLATOR.1D.AKIMA' 'INTERPOLATOR.1D.SPLINE' 'INTERPOLATOR.1D.LINEAR' ] REVERSE
 
     'examples' [ ]
     'conf' [ ]

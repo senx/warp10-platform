@@ -1,5 +1,5 @@
 //
-//   Copyright 2022  SenX S.A.S.
+//   Copyright 2022 - 2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package io.warp10.ext.interpolation;
 
+import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptLib;
@@ -24,7 +25,7 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.commons.math3.analysis.interpolation.TricubicInterpolatingFunction;
-import org.apache.commons.math3.analysis.interpolation.TricubicInterpolator;
+import org.apache.commons.math3.exception.OutOfRangeException;
 
 import java.util.List;
 
@@ -32,7 +33,7 @@ import java.util.List;
  * Function that implements the tricubic spline interpolation, as proposed in
  * Tricubic interpolation in three dimensions, F. Lekien and J. Marsden, Int. J. Numer. Meth. Eng 2005; 63:455-471
  */
-public class TRICUBICFIT extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class InterpolatorTricubic extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
   private static class TRICUBE extends NamedWarpScriptFunction implements WarpScriptStackFunction, WarpScriptReducerFunction {
 
@@ -46,10 +47,14 @@ public class TRICUBICFIT extends NamedWarpScriptFunction implements WarpScriptSt
     }
 
     private double value(double x, double y, double z) {
-      if (!func.isValidPoint(x,y,z)) {
-        return Double.NaN;
-      } else {
-        return func.value(x,y,z);
+      try {
+        if (!func.isValidPoint(x, y, z)) {
+          return Double.NaN;
+        } else {
+          return func.value(x, y, z);
+        }
+      } catch (OutOfRangeException e) {
+        return Double.NaN; // It can happen, even with the isValidPoint check.
       }
     }
 
@@ -68,7 +73,7 @@ public class TRICUBICFIT extends NamedWarpScriptFunction implements WarpScriptSt
       double x = ((Number) l.get(0)).doubleValue();
       double y = ((Number) l.get(1)).doubleValue();
       double z = ((Number) l.get(2)).doubleValue();
-      stack.push(value(x,y,z));
+      stack.push(value(x, y, z));
 
       return stack;
     }
@@ -81,15 +86,19 @@ public class TRICUBICFIT extends NamedWarpScriptFunction implements WarpScriptSt
       Object[] values = (Object[]) args[6];
 
       if (3 != values.length) {
-        throw new WarpScriptException(getName() + " expects 3 components but only got " + values.length);
+        throw new WarpScriptException(getName() + " expects 3 components but got " + values.length);
+      }
+
+      if (null == values[0] || null == values[1] || null == values[2]) {
+        return new Object[] {tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, null};
       }
 
       double x = ((Number) values[0]).doubleValue();
       double y = ((Number) values[1]).doubleValue();
       double z = ((Number) values[2]).doubleValue();
-      double res = value(x,y,z);
+      double res = value(x, y, z);
 
-      return new Object[] { tick, locations[0], elevations[0], res };
+      return new Object[] {tick, locations[0], elevations[0], res};
     }
 
     @Override
@@ -156,7 +165,7 @@ public class TRICUBICFIT extends NamedWarpScriptFunction implements WarpScriptSt
     }
   }
 
-  public TRICUBICFIT(String name) {
+  public InterpolatorTricubic(String name) {
     super(name);
   }
 

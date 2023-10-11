@@ -1,5 +1,5 @@
 //
-//   Copyright 2022  SenX S.A.S.
+//   Copyright 2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,30 +16,29 @@
 
 <%
   {
-    'name' 'BICUBICFIT'
+    'name' 'INTERPOLATOR.1D.SPLINE'
     'since' '2.0.0'
     'deprecated' ''
     'deleted' ''
     'version' 'all'
-    'tags' [ 'extensions' ]
+    'tags' [ 'extensions' 'interpolator' ]
     'desc'
 <'
-  Function that implements the bicubic spline interpolation. Sample points need to be located on knots of a 2D grid.
-  The bivariate function is pushed onto the stack and can be used as a WarpScript function or as a reducer.
+  Function that implements polynomial spline interpolation between sample points. Sample points sequence must be monotonic.
+  The interpolating function is pushed onto the stack and can be used as a WarpScript function or as a single-value mapper (using the data point's value as input).
 '>
 
     'sig' [
-      [ [ 'xval:LIST<DOUBLE>' 'yval:LIST<DOUBLE>' 'fval:LIST<LIST<DOUBLE>>' ] REVERSE [ 'function:FUNCTION' ] ]
+      [ [ 'xval:LIST<DOUBLE>' 'fval:LIST<DOUBLE>' ] REVERSE [ 'function:FUNCTION' ] ]
     ]
 
     'params' {
-      'function' 'The fitted bivariate interpolating function(LIST<DOUBLE>): DOUBLE'
-      'fval' 'The values of the interpolation points on all the grid knots: fval[i][j] = f(xval[i], yval[j])'
-      'yval' 'All the y-coordinates of the interpolation points, sorted in increasing order'
+      'function' 'The fitted interpolating function(DOUBLE): DOUBLE'
+      'fval' 'The values of the interpolation points: fval[i] = f(xval[i])'
       'xval' 'All the x-coordinates of the interpolation points, sorted in increasing order'
     }
 
-    'related' [ 'TRICUBICFIT' 'MICROSPHEREFIT' 'POLYFIT' ] REVERSE
+    'related' [ 'INTERPOLATOR.ND.SMICROSPHERE' 'INTERPOLATOR.ND.MICROSPHERE' 'INTERPOLATOR.3D.TRICUBICFIT' 'INTERPOLATOR.1D.AKIMA' 'INTERPOLATOR.1D.LINEAR' ] REVERSE
 
     'examples' [ ]
     'conf' [ ]

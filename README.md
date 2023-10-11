@@ -3,10 +3,13 @@
 Advanced interpolation functionalities
 
 Functions added to WarpLib
-* BICUBICFIT (2-dimensional)
-* TRICUBICFIT (3-dimensional)
-* MICROSPHEREFIT (N-dimensional)
-* SMICROSPHEREFIT (N-dimensional)
+* INTERPOLATOR.1D.LINEAR
+* INTERPOLATOR.1D.SPLINE
+* INTERPOLATOR.1D.AKIMA
+* INTERPOLATOR.2D.BICUBIC
+* INTERPOLATOR.3D.TRICUBIC
+* INTERPOLATOR.ND.MICROSPHERE
+* INTERPOLATOR.ND.SMICROSPHERE (seeded)
 
 Configurations
 * interpolation.microsphere.max.elements

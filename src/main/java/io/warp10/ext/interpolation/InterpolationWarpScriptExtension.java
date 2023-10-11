@@ -1,5 +1,5 @@
 //
-//   Copyright 2022  SenX S.A.S.
+//   Copyright 2022 - 2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -30,15 +30,26 @@ public class InterpolationWarpScriptExtension extends WarpScriptExtension {
   // Functions
   //
 
-  private static final Map<String,Object> functions;
-  
+  public static final String INTERPOLATOR_ND_MICROSPHERE = "INTERPOLATOR.ND.MICROSPHERE";
+  public static final String INTERPOLATOR_ND_SMICROSPHERE = "INTERPOLATOR.ND.SMICROSPHERE"; // seeded
+  public static final String INTERPOLATOR_2D_BICUBIC = "INTERPOLATOR.2D.BICUBIC";
+  public static final String INTERPOLATOR_3D_TRICUBIC = "INTERPOLATOR.3D.TRICUBIC";
+  public static final String INTERPOLATOR_1D_LINEAR = "INTERPOLATOR.1D.LINEAR";
+  public static final String INTERPOLATOR_1D_SPLINE = "INTERPOLATOR.1D.SPLINE";
+  public static final String INTERPOLATOR_1D_AKIMA = "INTERPOLATOR.1D.AKIMA";
+
+  private static final Map<String, Object> functions;
+
   static {
-    functions = new HashMap<String,Object>();
-    
-    functions.put("MICROSPHEREFIT", new MICROSPHEREFIT("MICROSPHEREFIT", false));
-    functions.put("SMICROSPHEREFIT", new MICROSPHEREFIT("SMICROSPHEREFIT", true));
-    functions.put("BICUBICFIT", new BICUBICFIT("BICUBICFIT"));
-    functions.put("TRICUBICFIT", new TRICUBICFIT("TRICUBICFIT"));
+    functions = new HashMap<String, Object>();
+
+    functions.put(INTERPOLATOR_ND_MICROSPHERE, new InterpolatorMicrosphere(INTERPOLATOR_ND_MICROSPHERE, false));
+    functions.put(INTERPOLATOR_ND_SMICROSPHERE, new InterpolatorMicrosphere(INTERPOLATOR_ND_SMICROSPHERE, true));
+    functions.put(INTERPOLATOR_2D_BICUBIC, new InterpolatorBicubic(INTERPOLATOR_2D_BICUBIC));
+    functions.put(INTERPOLATOR_3D_TRICUBIC, new InterpolatorTricubic(INTERPOLATOR_3D_TRICUBIC));
+    functions.put(INTERPOLATOR_1D_LINEAR, new InterpolatorUnivariate(INTERPOLATOR_1D_LINEAR, InterpolatorUnivariate.TYPE.LINEAR));
+    functions.put(INTERPOLATOR_1D_SPLINE, new InterpolatorUnivariate(INTERPOLATOR_1D_SPLINE, InterpolatorUnivariate.TYPE.SPLINE));
+    functions.put(INTERPOLATOR_1D_AKIMA, new InterpolatorUnivariate(INTERPOLATOR_1D_AKIMA, InterpolatorUnivariate.TYPE.AKIMA));
   }
 
   //

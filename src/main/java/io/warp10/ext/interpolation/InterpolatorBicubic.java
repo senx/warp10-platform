@@ -1,5 +1,5 @@
 //
-//   Copyright 2022  SenX S.A.S.
+//   Copyright 2022 - 2023 SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -22,16 +22,15 @@ import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptReducerFunction;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
-import org.apache.commons.math3.analysis.interpolation.BicubicInterpolatingFunction;
-import org.apache.commons.math3.analysis.interpolation.BicubicInterpolator;
 import org.apache.commons.lang3.reflect.FieldUtils;
+import org.apache.commons.math3.analysis.interpolation.BicubicInterpolatingFunction;
 
 import java.util.List;
 
 /**
  * Function that implements the bicubic spline interpolation
  */
-public class BICUBICFIT extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class InterpolatorBicubic extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
   private static class BICUBE extends NamedWarpScriptFunction implements WarpScriptStackFunction, WarpScriptReducerFunction {
 
@@ -45,10 +44,10 @@ public class BICUBICFIT extends NamedWarpScriptFunction implements WarpScriptSta
     }
 
     private double value(double x, double y) {
-      if (!func.isValidPoint(x,y)) {
-         return Double.NaN;
+      if (!func.isValidPoint(x, y)) {
+        return Double.NaN;
       } else {
-        return func.value(x,y);
+        return func.value(x, y);
       }
     }
 
@@ -66,7 +65,7 @@ public class BICUBICFIT extends NamedWarpScriptFunction implements WarpScriptSta
 
       double x = ((Number) l.get(0)).doubleValue();
       double y = ((Number) l.get(1)).doubleValue();
-      stack.push(value(x,y));
+      stack.push(value(x, y));
 
       return stack;
     }
@@ -84,9 +83,9 @@ public class BICUBICFIT extends NamedWarpScriptFunction implements WarpScriptSta
 
       double x = ((Number) values[0]).doubleValue();
       double y = ((Number) values[1]).doubleValue();
-      double res = value(x,y);
+      double res = value(x, y);
 
-      return new Object[] { tick, locations[0], elevations[0], res };
+      return new Object[] {tick, locations[0], elevations[0], res};
     }
 
     @Override
@@ -140,7 +139,7 @@ public class BICUBICFIT extends NamedWarpScriptFunction implements WarpScriptSta
     }
   }
 
-  public BICUBICFIT(String name) {
+  public InterpolatorBicubic(String name) {
     super(name);
   }
 
