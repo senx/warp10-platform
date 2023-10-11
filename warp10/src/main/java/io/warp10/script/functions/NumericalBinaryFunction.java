@@ -1,5 +1,5 @@
 //
-//   Copyright 2020  SenX S.A.S.
+//   Copyright 2020-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -57,6 +57,12 @@ public class NumericalBinaryFunction extends NamedWarpScriptFunction implements 
   final DoubleBinaryOperator opD;
   final boolean applyInList;
 
+  final GTSOpsHelper.GTSMixedOp leftGTSopL;
+  final GTSOpsHelper.GTSMixedOp leftGTSopD;
+
+  final GTSOpsHelper.GTSMixedOp rightGTSopL;
+  final GTSOpsHelper.GTSMixedOp rightGTSopD;
+
   private final String unhandledErrorMessage;
 
   public NumericalBinaryFunction(String name, LongBinaryOperator longBinOp, DoubleBinaryOperator doubleBinOp, boolean applyOnSingleList) {
@@ -70,6 +76,34 @@ public class NumericalBinaryFunction extends NamedWarpScriptFunction implements 
     } else {
       unhandledErrorMessage = name + " can only operate on 2 numerical values, or a numerical value and a list of numerical values, or a numerical value and a GTS of numerical values.";
     }
+
+    leftGTSopL = null == opL ? null : new GTSOpsHelper.GTSMixedOp() {
+      @Override
+      public Object op(GeoTimeSerie gts, int idx, Object op0) {
+        return opL.applyAsLong(((Number) GTSHelper.valueAtIndex(gts, idx)).longValue(), ((Number) op0).longValue());
+      }
+    };
+
+    leftGTSopD = null == opD ? null : new GTSOpsHelper.GTSMixedOp() {
+      @Override
+      public Object op(GeoTimeSerie gts, int idx, Object op0) {
+        return opD.applyAsDouble(((Number) GTSHelper.valueAtIndex(gts, idx)).doubleValue(), ((Number) op0).doubleValue());
+      }
+    };
+
+    rightGTSopL = null == opL ? null : new GTSOpsHelper.GTSMixedOp() {
+      @Override
+      public Object op(GeoTimeSerie gts, int idx, Object op1) {
+        return opL.applyAsLong(((Number) op1).longValue(), ((Number) GTSHelper.valueAtIndex(gts, idx)).longValue());
+      }
+    };
+
+    rightGTSopD = null == opD ? null : new GTSOpsHelper.GTSMixedOp() {
+      @Override
+      public Object op(GeoTimeSerie gts, int idx, Object op1) {
+        return opD.applyAsDouble(((Number) op1).doubleValue(), ((Number) GTSHelper.valueAtIndex(gts, idx)).doubleValue());
+      }
+    };
   }
 
   @Override
@@ -115,25 +149,11 @@ public class NumericalBinaryFunction extends NamedWarpScriptFunction implements 
 
         GeoTimeSerie result = gts.cloneEmpty(gts.size());
 
-        GTSOpsHelper.GTSUnaryOp op;
-
-        if (null != opD && (null == opL || op0 instanceof Double || type == GeoTimeSerie.TYPE.DOUBLE || op0 instanceof BigDecimal)) {
-          op = new GTSOpsHelper.GTSUnaryOp() {
-            @Override
-            public Object op(GeoTimeSerie gts, int idx) {
-              return opD.applyAsDouble(((Number) GTSHelper.valueAtIndex(gts, idx)).doubleValue(), ((Number) op0).doubleValue());
-            }
-          };
+        if (null != leftGTSopD && (null == leftGTSopL || op0 instanceof Double || type == GeoTimeSerie.TYPE.DOUBLE || op0 instanceof BigDecimal)) {
+          GTSOpsHelper.applyUnaryOp(result, gts, leftGTSopD, op0);
         } else {
-          op = new GTSOpsHelper.GTSUnaryOp() {
-            @Override
-            public Object op(GeoTimeSerie gts, int idx) {
-              return opL.applyAsLong(((Number) GTSHelper.valueAtIndex(gts, idx)).longValue(), ((Number) op0).longValue());
-            }
-          };
+          GTSOpsHelper.applyUnaryOp(result, gts, leftGTSopL, op0);
         }
-
-        GTSOpsHelper.applyUnaryOp(result, gts, op);
 
         stack.push(result);
       } else {
@@ -201,8 +221,6 @@ public class NumericalBinaryFunction extends NamedWarpScriptFunction implements 
       // A GTS on top, whether the function expects a single operand under or not depends on applyInList.
       if (applyInList) {
         // Apply operator only on the elements of the list op(...op(op(op(v[0], v[1]), v[2]), v[3]), ... v[n])
-
-
         int n = gts.size();
 
         if (null != opD && (null == opL || GeoTimeSerie.TYPE.DOUBLE == type)) {
@@ -244,25 +262,11 @@ public class NumericalBinaryFunction extends NamedWarpScriptFunction implements 
 
         GeoTimeSerie result = gts.cloneEmpty(gts.size());
 
-        GTSOpsHelper.GTSUnaryOp op;
-
-        if (null != opD && (null == opL || op1 instanceof Double || type == GeoTimeSerie.TYPE.DOUBLE || op1 instanceof BigDecimal)) {
-          op = new GTSOpsHelper.GTSUnaryOp() {
-            @Override
-            public Object op(GeoTimeSerie gts, int idx) {
-              return opD.applyAsDouble(((Number) op1).doubleValue(), ((Number) GTSHelper.valueAtIndex(gts, idx)).doubleValue());
-            }
-          };
+        if (null != rightGTSopD && (null == rightGTSopL || op1 instanceof Double || type == GeoTimeSerie.TYPE.DOUBLE || op1 instanceof BigDecimal)) {
+          GTSOpsHelper.applyUnaryOp(result, gts, rightGTSopD, op1);
         } else {
-          op = new GTSOpsHelper.GTSUnaryOp() {
-            @Override
-            public Object op(GeoTimeSerie gts, int idx) {
-              return opL.applyAsLong(((Number) op1).longValue(), ((Number) GTSHelper.valueAtIndex(gts, idx)).longValue());
-            }
-          };
+          GTSOpsHelper.applyUnaryOp(result, gts, rightGTSopL, op1);
         }
-
-        GTSOpsHelper.applyUnaryOp(result, gts, op);
 
         stack.push(result);
       }
