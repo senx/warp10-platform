@@ -60,7 +60,7 @@ public class NumericalUnaryFunction extends ListRecursiveStackFunction {
         return opL.applyAsLong(((Number) GTSHelper.valueAtIndex(gts, idx)).longValue());
       }
     };
-    GTSopD = null == opD || LongUnaryOperator.identity() == opD ? null : new GTSOpsHelper.GTSUnaryOp() {
+    GTSopD = null == opD || DoubleUnaryOperator.identity() == opD ? null : new GTSOpsHelper.GTSUnaryOp() {
       @Override
       public Object op(GeoTimeSerie gts, int idx) {
         return opD.applyAsDouble(((Number) GTSHelper.valueAtIndex(gts, idx)).doubleValue());
@@ -99,7 +99,7 @@ public class NumericalUnaryFunction extends ListRecursiveStackFunction {
           // Choose the operator depending on which ones are defined and the GTS type.
           if (null != opD && (null == opL || gts.getType() == GeoTimeSerie.TYPE.DOUBLE)) {
             // Consider all values as doubles because only the double operator is defined or the GTS is of type DOUBLE.
-            if (LongUnaryOperator.identity() == opD) { // only case where GTSopD is null and opD is not
+            if (DoubleUnaryOperator.identity() == opD) { // only case where GTSopD is null and opD is not
               result = gts.clone();
             } else {
               // Apply the operator on all the values of gts, storing the result in result.
