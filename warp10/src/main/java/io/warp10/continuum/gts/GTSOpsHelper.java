@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -22,6 +22,10 @@ public class GTSOpsHelper {
     public Object op(GeoTimeSerie gts, int idx);
   }
 
+  public static interface GTSMixedOp {
+    public Object op(GeoTimeSerie gts, int idx, Object param);
+  }
+
   public static interface GTSBinaryOp {
     public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb);
   }
@@ -37,6 +41,22 @@ public class GTSOpsHelper {
 
     for (int i = 0; i < n; i++) {
       Object value = op.op(gts, i);
+      GTSHelper.setValue(result, GTSHelper.tickAtIndex(gts, i), GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i), value, false);
+    }
+  }
+
+  /**
+   * Apply a 1-parameter unary operator to the values of a GTS, resulting in another GTS. Location and elevation info are copied to the result GTS.
+   * @param result The resulting GTS, for each tick of gts, result[tick]=op(gts[tick]).
+   * @param gts The GTS from where to take the values from.
+   * @param op The operator to apply to the values.
+   * @param param1 The parameter for the application of the operator.
+   */
+  public static void applyUnaryOp(GeoTimeSerie result, GeoTimeSerie gts, GTSMixedOp op, Object param1) {
+    int n = GTSHelper.nvalues(gts);
+
+    for (int i = 0; i < n; i++) {
+      Object value = op.op(gts, i, param1);
       GTSHelper.setValue(result, GTSHelper.tickAtIndex(gts, i), GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i), value, false);
     }
   }
