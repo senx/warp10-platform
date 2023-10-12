@@ -17,6 +17,7 @@
 package io.warp10.script.functions;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
@@ -33,11 +34,27 @@ public class BDTO extends NamedWarpScriptFunction implements WarpScriptStackFunc
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object o = stack.pop();
 
+    boolean tobytes = false;
+
+    if (o instanceof Boolean) {
+      tobytes = Boolean.TRUE.equals(o);
+      o = stack.pop();
+    }
+
     if (!(o instanceof BigDecimal)) {
       throw new WarpScriptException(getName() + " operates on a BIGDECIMAL.");
     }
 
-    stack.push(((BigDecimal) o).toPlainString());
+    if (tobytes) {
+      try {
+        BigInteger bi = ((BigDecimal) o).toBigIntegerExact();
+        stack.push(bi.toByteArray());
+      } catch (ArithmeticException ae) {
+        throw new WarpScriptException(getName() + " cannot convert a BIGDECIMAL to BYTES if its scale is not 0.");
+      }
+    } else {
+      stack.push(((BigDecimal) o).toPlainString());
+    }
 
     return stack;
   }

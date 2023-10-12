@@ -24,6 +24,7 @@ import io.warp10.script.WarpScriptStack;
 import com.google.common.io.BaseEncoding;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 
 /**
@@ -56,8 +57,11 @@ public class TOBD extends NamedWarpScriptFunction implements WarpScriptStackFunc
       bd = BigDecimal.valueOf(((Long) o).longValue());
     } else if (o instanceof Double) {
       bd = BigDecimal.valueOf(((Double) o).doubleValue());
+    } else if (o instanceof byte[]) {
+      BigInteger bi = new BigInteger((byte[]) o);
+      bd = new BigDecimal(bi);
     } else {
-      throw new WarpScriptException(name + " can only be applied to a STRING, LONG or DOUBLE argument.");
+      throw new WarpScriptException(name + " can only be applied to a STRING, BYTES, LONG or DOUBLE argument.");
     }
 
     return bd;
