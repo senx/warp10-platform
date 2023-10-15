@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,12 +82,32 @@ public class StandaloneFDBStoreClient extends FDBStoreClient {
       throw new IOException("Invalid configuration, '" + Configuration.STORE_FDB_CLUSTERFILE + "' and '" + Configuration.EGRESS_FDB_CLUSTERFILE + "' must be set to the same value.");
     }
 
-    // Check that tenants are also identical
+    // Check that tenants and tenant prefixes are also identical
     if (!String.valueOf(properties.getProperty(Configuration.STORE_FDB_TENANT)).equals(String.valueOf(properties.getProperty(Configuration.EGRESS_FDB_TENANT)))) {
       throw new IOException("Invalid configuration, '" + Configuration.STORE_FDB_TENANT + "' and '" + Configuration.EGRESS_FDB_TENANT + "' must have identical values.");
     }
 
-    this.fdbContext = FDBUtils.getContext(properties.getProperty(Configuration.STORE_FDB_CLUSTERFILE), properties.getProperty(Configuration.STORE_FDB_TENANT));
+    if (!String.valueOf(properties.getProperty(Configuration.STORE_FDB_TENANT_PREFIX)).equals(String.valueOf(properties.getProperty(Configuration.EGRESS_FDB_TENANT_PREFIX)))) {
+      throw new IOException("Invalid configuration, '" + Configuration.STORE_FDB_TENANT_PREFIX + "' and '" + Configuration.EGRESS_FDB_TENANT_PREFIX + "' must have identical values.");
+    }
+
+    Object tenant = (String) properties.getProperty(Configuration.STORE_FDB_TENANT);
+
+    if (null != properties.getProperty(Configuration.STORE_FDB_TENANT_PREFIX)) {
+      if (null != tenant) {
+        throw new IOException("Invalid configuration, only one of '" + Configuration.STORE_FDB_TENANT_PREFIX + "' and '" + Configuration.STORE_FDB_TENANT + "' can be set.");
+      }
+      String prefix = properties.getProperty(Configuration.STORE_FDB_TENANT_PREFIX);
+
+      if (prefix.startsWith("hex:")) {
+        tenant = Hex.decode(prefix.substring(4));
+      } else {
+        tenant = OrderPreservingBase64.decode(prefix, 0, prefix.length());
+      }
+    }
+
+    this.fdbContext = FDBUtils.getContext(properties.getProperty(Configuration.STORE_FDB_CLUSTERFILE), tenant);
+
     // TODO(hbs): implement a pool for writing?
     this.fdb = fdbContext.getDatabase();
     this.fdbMaxTransactionSize = (long) Math.min(FDBUtils.MAX_TXN_SIZE * 0.95, Long.parseLong(properties.getProperty(Configuration.STORE_FDB_DATA_PENDINGMUTATIONS_MAXSIZE, Constants.DEFAULT_FDB_DATA_PENDINGMUTATIONS_MAXSIZE)));
@@ -247,7 +268,9 @@ public class StandaloneFDBStoreClient extends FDBStoreClient {
           retry = false;
           txn = this.fdb.createTransaction();
           // Allow RAW access because we may manually force a tenant key prefix without actually setting a tenant
-          txn.options().setRawAccess();
+          if (fdbContext.hasTenant() || FDBUseTenantPrefix) {
+            txn.options().setRawAccess();
+          }
           int sets = 0;
           int clearranges = 0;
 

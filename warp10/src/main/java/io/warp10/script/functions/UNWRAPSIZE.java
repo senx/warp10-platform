@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package io.warp10.script.functions;
 
+import io.warp10.ThriftUtils;
 import io.warp10.continuum.store.thrift.data.GTSWrapper;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.script.NamedWarpScriptFunction;
@@ -35,7 +36,7 @@ import org.apache.thrift.protocol.TCompactProtocol;
  * Extract the size of a GTS from GTSWrapper
  */
 public class UNWRAPSIZE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   public UNWRAPSIZE(String name) {
     super(name);
   }
@@ -43,13 +44,13 @@ public class UNWRAPSIZE extends NamedWarpScriptFunction implements WarpScriptSta
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
-    
+
     if (!(top instanceof String) && !(top instanceof byte[]) && !(top instanceof List)) {
       throw new WarpScriptException(getName() + " operates on a string or byte array or a list thereof.");
     }
-    
+
     List<Object> inputs = new ArrayList<Object>();
-    
+
     if (top instanceof String || top instanceof byte[]) {
       inputs.add(top);
     } else {
@@ -60,31 +61,31 @@ public class UNWRAPSIZE extends NamedWarpScriptFunction implements WarpScriptSta
         inputs.add(o);
       }
     }
-    
+
     List<Object> outputs = new ArrayList<Object>();
-    
+
     for (Object s: inputs) {
       byte[] bytes = s instanceof String ? OrderPreservingBase64.decode(s.toString().getBytes(StandardCharsets.US_ASCII)) : (byte[]) s;
-      
-      TDeserializer deser = new TDeserializer(new TCompactProtocol.Factory());
-      
+
+      TDeserializer deser = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
+
       try {
         GTSWrapper wrapper = new GTSWrapper();
-        
+
         deser.deserialize(wrapper, bytes);
 
         outputs.add(wrapper.getCount());
       } catch (TException te) {
         throw new WarpScriptException(getName() + " failed to unwrap GTS.", te);
-      }      
+      }
     }
-    
+
     if (!(top instanceof List)) {
-      stack.push(outputs.get(0));      
+      stack.push(outputs.get(0));
     } else {
       stack.push(outputs);
     }
-    
+
     return stack;
-  }  
+  }
 }

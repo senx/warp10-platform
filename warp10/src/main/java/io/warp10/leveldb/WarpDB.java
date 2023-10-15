@@ -44,6 +44,7 @@ import org.slf4j.LoggerFactory;
 
 import io.warp10.continuum.store.Constants;
 import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptLib;
 
 public class WarpDB extends Thread implements DB {
 
@@ -78,6 +79,25 @@ public class WarpDB extends Thread implements DB {
   }
 
   private final LinkedBlockingQueue<WarpDBCommand> commandQ = new LinkedBlockingQueue<WarpDBCommand>(16);
+
+  static {
+    //
+    // LevelDB related functions
+    //
+
+    WarpScriptLib.addNamedWarpScriptFunction(new LEVELDBOPEN(WarpScriptLib.LEVELDBOPEN));
+    WarpScriptLib.addNamedWarpScriptFunction(new LEVELDBCLOSE(WarpScriptLib.LEVELDBCLOSE));
+    WarpScriptLib.addNamedWarpScriptFunction(new LEVELDBREPAIR(WarpScriptLib.LEVELDBREPAIR));
+    WarpScriptLib.addNamedWarpScriptFunction(new LEVELDBCOMPACT(WarpScriptLib.LEVELDBCOMPACT));
+    WarpScriptLib.addNamedWarpScriptFunction(new LEVELDBSNAPSHOT(WarpScriptLib.LEVELDBSNAPSHOT, false));
+    WarpScriptLib.addNamedWarpScriptFunction(new LEVELDBSNAPSHOT(WarpScriptLib.LEVELDBSNAPSHOTINC, true));
+    WarpScriptLib.addNamedWarpScriptFunction(new SSTFIND(WarpScriptLib.SSTFIND));
+    WarpScriptLib.addNamedWarpScriptFunction(new SSTINFO(WarpScriptLib.SSTINFO));
+    WarpScriptLib.addNamedWarpScriptFunction(new SSTPURGE(WarpScriptLib.SSTPURGE));
+    WarpScriptLib.addNamedWarpScriptFunction(new SSTREPORT(WarpScriptLib.SSTREPORT));
+    WarpScriptLib.addNamedWarpScriptFunction(new SSTTIMESTAMP(WarpScriptLib.SSTTIMESTAMP));
+
+  }
 
   private static final class WarpIterator implements DBIterator {
 
@@ -154,7 +174,7 @@ public class WarpDB extends Thread implements DB {
     this.setDaemon(true);
     this.start();
 
-    this.open(nativedisabled, javadisabled, home, options);    
+    this.open(nativedisabled, javadisabled, home, options);
   }
 
   private synchronized void open(boolean nativedisabled, boolean javadisabled, String home, Options options) throws IOException {

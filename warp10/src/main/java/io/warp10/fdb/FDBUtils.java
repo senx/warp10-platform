@@ -34,7 +34,6 @@ import io.warp10.continuum.store.Constants;
 import io.warp10.json.JsonUtils;
 import io.warp10.script.WarpScriptException;
 import io.warp10.sensision.Sensision;
-import io.warp10.standalone.Warp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,10 +52,10 @@ public class FDBUtils {
   public static final int MAX_VALUE_SIZE = 100000;
   public static final long MAX_TXN_SIZE = 10000000;
 
-  private static final String DEFAULT_FDB_API_VERSION = Integer.toString(720);
+  private static final String DEFAULT_FDB_API_VERSION = Integer.toString(710);
 
   static {
-    if (!Warp.isStandaloneMode() || Constants.BACKEND_FDB.equals(WarpConfig.getProperty(Configuration.BACKEND))) {
+    if (!WarpConfig.isStandaloneMode() || Constants.BACKEND_FDB.equals(WarpConfig.getProperty(Configuration.BACKEND))) {
       int version = Integer.parseInt(WarpConfig.getProperty(Configuration.FDB_API_VERSION, DEFAULT_FDB_API_VERSION));
       try {
         FDB.selectAPIVersion(version);
@@ -74,7 +73,7 @@ public class FDBUtils {
     return FDB.instance();
   }
 
-  public static FDBContext getContext(String clusterFile, String tenant) {
+  public static FDBContext getContext(String clusterFile, Object tenant) {
     return new FDBContext(clusterFile, tenant);
   }
 
@@ -123,6 +122,7 @@ public class FDBUtils {
 
   public static byte[] getKey(Database db, byte[] key) {
     Transaction txn = db.createTransaction();
+    // setRawAccess is called unconditionally because we do not know if a tenant was set or not
     txn.options().setRawAccess();
     txn.options().setAccessSystemKeys();
 
@@ -146,27 +146,45 @@ public class FDBUtils {
   }
 
   public static Map<String,Object> getTenantInfo(Database db, String tenant) {
-    Transaction txn = db.createTransaction();
-    txn.options().setRawAccess();
-    txn.options().setAccessSystemKeys();
+    Transaction txn = null;
 
+    int attempts = 2;
     Map<String,Object> map = new LinkedHashMap<String,Object>();
 
-    // Retrieve the system key for the given tenant
-    try {
-      byte[] tenantMap = txn.get(getTenantSystemKey(tenant)).get();
-      if (null != tenantMap) {
-        Object json = JsonUtils.jsonToObject(new String(tenantMap, StandardCharsets.UTF_8));
+    while (attempts > 0) {
+      // Retrieve the system key for the given tenant
+      try {
+        txn = db.createTransaction();
+        txn.options().setRawAccess();
+        txn.options().setAccessSystemKeys();
 
-        map.put(KEY_ID, ((Number) ((Map) json).get(KEY_ID)).longValue());
-        map.put(KEY_PREFIX, ((String) ((Map) json).get(KEY_PREFIX)).getBytes(StandardCharsets.ISO_8859_1));
+        byte[] tenantMap = txn.get(getTenantSystemKey(tenant)).get();
+        if (null != tenantMap) {
+          Object json = JsonUtils.jsonToObject(new String(tenantMap, StandardCharsets.UTF_8));
+
+          map.put(KEY_ID, ((Number) ((Map) json).get(KEY_ID)).longValue());
+          map.put(KEY_PREFIX, ((String) ((Map) json).get(KEY_PREFIX)).getBytes(StandardCharsets.ISO_8859_1));
+        }
+
+        return map;
+      } catch (Throwable t) {
+        FDBUtils.errorMetrics("tenantInfo", t.getCause());
+
+        if (t.getCause() instanceof FDBException) {
+          FDBException fdbe = (FDBException) t.getCause();
+          if (fdbe.getCode() == 1039) {
+            attempts--;
+            continue;
+          }
+        }
+
+        throw new RuntimeException("Error while fetching FoundationDB tenant '" + tenant + "'.", t);
+      } finally {
+        try { txn.close(); } catch (Throwable t) {}
       }
-    } catch (Throwable t) {
-    } finally {
-      try { txn.close(); } catch (Throwable t) {}
     }
 
-    return map;
+    throw new RuntimeException("I got lost while fetching FoundationDB tenant.");
   }
 
   public static Map<Object,Object> getStatus(FDBContext context) throws WarpScriptException {
@@ -180,6 +198,7 @@ public class FDBUtils {
       while(attempts > 0) {
         try {
           txn = db.createTransaction();
+          // setRawAccess is called unconditionally because we are accessing a system key without tenant
           txn.options().setRawAccess();
           txn.options().setAccessSystemKeys();
 
@@ -226,19 +245,41 @@ public class FDBUtils {
 
   public static long getEstimatedRangeSizeBytes(FDBContext context, byte[] from, byte[] to) {
     Database db = context.getDatabase();
-    Transaction txn = db.createTransaction();
+    Transaction txn = null;
+
     long size = 0L;
+    long attempts = 2;
 
     try {
-      txn.options().setRawAccess();
-      size = txn.getEstimatedRangeSizeBytes(from, to).get().longValue();
-    } catch (Throwable t) {
+      while (attempts > 0) {
+        // Retrieve the system key for the given tenant
+        try {
+          txn = db.createTransaction();
+          // setRawAccess is called unconditionally because we do not know if a tenant was set or not for the key range
+          txn.options().setRawAccess();
+          size = txn.getEstimatedRangeSizeBytes(from, to).get().longValue();
+          return size;
+        } catch (Throwable t) {
+          FDBUtils.errorMetrics("rangeSize", t.getCause());
+
+          if (t.getCause() instanceof FDBException) {
+            FDBException fdbe = (FDBException) t.getCause();
+            if (fdbe.getCode() == 1039) {
+              attempts--;
+              continue;
+            }
+          }
+
+          throw new RuntimeException("Error while fetching range size.", t);
+        } finally {
+          try { txn.close(); } catch (Throwable t) {}
+        }
+      }
     } finally {
-      try { txn.close(); } catch (Throwable t) {}
       try { db.close(); } catch (Throwable t) {}
     }
 
-    return size;
+    throw new RuntimeException("I got lost while fetching range size!");
   }
 
   /**

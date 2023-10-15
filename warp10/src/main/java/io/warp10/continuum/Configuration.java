@@ -35,6 +35,12 @@ public class Configuration {
    */
   public static final String FDB_USE_TENANT_PREFIX = "fdb.use.tenant.prefix";
 
+  /**
+   * If set to true messages with no tenant prefix set when one is mandated or with one when none is mandated will simply be ignored.
+   * Otherwise those messages lead to Store being stuck on the processing of those messages.
+   */
+  public static final String FDB_IGNORE_TENANT_PREFIX_ISSUES = "fdb.ignore.tenant.prefix.issues";
+
   public static final String OSS_MASTER_KEY = "oss.master.key";
 
   public static final String WARP_COMPONENTS = "warp.components";
@@ -72,6 +78,11 @@ public class Configuration {
   public static final String WARP_AES_METASETS = "warp.aes.metasets";
   public static final String WARP_AES_LOGGING = "warp.aes.logging";
   public static final String WARP_DEFAULT_AES_LOGGING = "hex:3cf5cee9eadddba796f2cce0762f308ad9df36f4883841e167dab2889bcf215b";
+
+  /**
+   * Set to true to ignore inconsistencies detected when loading GTS.
+   */
+  public static final String WARP_IGNORE_ID_INCONSISTENCIES = "warp.ignore.id.inconsistencies";
 
   /**
    * Some libraries (like Processing), expect the Java version to be 1.y.z, as this has changed
@@ -534,6 +545,11 @@ public class Configuration {
   public static final String DIRECTORY_FDB_TENANT = "directory.fdb.tenant";
 
   /**
+   * FoundationDB tenant prefix to use for Directory data
+   */
+  public static final String DIRECTORY_FDB_TENANT_PREFIX = "directory.fdb.tenant.prefix";
+
+  /**
    * Maximum size of pending mutations, going above will trigger a FoundationDB transaction commit.
    * MUST be less than the maximum FoundationDB transaction size limit (10,000,000 bytes)
    */
@@ -908,6 +924,11 @@ public class Configuration {
    * FoundationDB tenant to use for Store data
    */
   public static final String STORE_FDB_TENANT = "store.fdb.tenant";
+
+  /**
+   * FoundationDB tenant prefix to use for Store data
+   */
+  public static final String STORE_FDB_TENANT_PREFIX = "store.fdb.tenant.prefix";
 
   /**
    * Path to the throttling file. This file contains a single line with a double value representing the number of mutations per second to push to FDB
@@ -1585,6 +1606,16 @@ public class Configuration {
   public static final String WARPSCRIPT_LABELS_PRIORITY = "warpscript.labels.priority";
 
   /**
+   * Set to 'true' to relax the metadata maxsize limit check in standalone versions
+   */
+  public static final String WARP_RELAX_METADATA_MAXSIZE = "warp.relax.metadata.maxsize";
+
+  /**
+   * Set to 'true' to relax the value maxsize limit check in standalone versions
+   */
+  public static final String WARP_RELAX_VALUE_MAXSIZE = "warp.relax.value.maxsize";
+
+  /**
    * Maximum length of attributes (names + values) - Defaults to 8192
    */
   public static final String WARP_ATTRIBUTES_MAXSIZE = "warp.attributes.maxsize";
@@ -1777,6 +1808,11 @@ public class Configuration {
    * FoundationDB tenant to use for Egress data
    */
   public static final String EGRESS_FDB_TENANT = "egress.fdb.tenant";
+
+  /**
+   * FoundationDB tenant prefix to use for Egress data
+   */
+  public static final String EGRESS_FDB_TENANT_PREFIX = "egress.fdb.tenant.prefix";
 
   /**
    * Size of pooled FoundationDB databases instances

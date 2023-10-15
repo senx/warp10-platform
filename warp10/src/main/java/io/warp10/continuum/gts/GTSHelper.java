@@ -42,8 +42,8 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.PriorityQueue;
 import java.util.Map.Entry;
+import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -58,12 +58,12 @@ import org.apache.commons.math3.fitting.PolynomialCurveFitter;
 import org.apache.commons.math3.fitting.WeightedObservedPoint;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
-import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.geoxp.GeoXPLib;
 import com.geoxp.GeoXPLib.GeoXPShape;
+
 import io.warp10.CapacityExtractorOutputStream;
 import io.warp10.WarpHexDecoder;
 import io.warp10.WarpURLDecoder;
@@ -93,40 +93,6 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.functions.MACROMAPPER;
 import io.warp10.script.functions.TOQUATERNION;
-
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.net.URLDecoder;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.charset.CharsetEncoder;
-import java.nio.charset.CodingErrorAction;
-import java.nio.charset.StandardCharsets;
-import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.BitSet;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.PriorityQueue;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 
 /**
@@ -425,11 +391,10 @@ public class GTSHelper {
 
         if (4 == gtsidx) { // BINARY
           value = value.toString().getBytes(StandardCharsets.ISO_8859_1);
-        } else if (2 == gtsidx) { // DOUBLE
+        } else if (1 == gtsidx) { // DOUBLE
           // Attempt to optimize the value
           value = GTSEncoder.optimizeValue(value);
         }
-
         enc.addValue(ts, location, elevation, value);
 
         idx[gtsidx]++;
@@ -618,8 +583,20 @@ public class GTSHelper {
 
     ranges.add(new int[] { low, high });
 
-    while(!ranges.isEmpty()) {
-      int[] range = ranges.remove(0);
+    int idx = 0;
+    int size = ranges.size();
+
+    while(idx < ranges.size()) {
+      int[] range = ranges.get(idx++);
+
+      // Adjust the size of the ranges list from time to time to
+      // reduce memory footprint in case ranges get added
+      if (ranges.size() - size > 10000 && idx > 10000) {
+        ranges = new ArrayList<int[]>(ranges.subList(idx, ranges.size()));
+        size = ranges.size();
+        idx = 0;
+      }
+
       low = range[0];
       high = range[1];
 
@@ -700,18 +677,96 @@ public class GTSHelper {
     }
   }
 
+  public static List<GeoTimeSerie> booleanGTSSplit(GeoTimeSerie gts, boolean shrink) {
+    GeoTimeSerie tgts = gts.cloneEmpty(gts.size() / 2);
+    GeoTimeSerie fgts = gts.cloneEmpty(gts.size() / 2);
+
+    for (int i = 0; i < gts.size(); i++) {
+      long tick = GTSHelper.tickAtIndex(gts, i);
+      long location = GTSHelper.locationAtIndex(gts, i);
+      long elevation = GTSHelper.elevationAtIndex(gts, i);
+      Object value = GTSHelper.valueAtIndex(gts, i);
+
+      if (Boolean.TRUE.equals(value)) {
+        GTSHelper.setValue(tgts, tick, location, elevation, value, false);
+      } else {
+        GTSHelper.setValue(fgts, tick, location, elevation, value, false);
+      }
+    }
+
+    if (shrink) {
+      GTSHelper.shrink(fgts);
+      GTSHelper.shrink(tgts);
+    }
+
+    List<GeoTimeSerie> series = new ArrayList<GeoTimeSerie>(2);
+    series.add(fgts);
+    series.add(tgts);
+
+    return series;
+  }
+
   private static final void quicksortByValue(GeoTimeSerie gts, int low, int high, boolean reversed) {
 
     if (0 == gts.values) {
       return;
     }
 
+    //
+    // Specific code for boolean GTS
+    //
+
+    if (GeoTimeSerie.TYPE.BOOLEAN == gts.getType()) {
+      if (0 == low && gts.values - 1 == high) {
+        List<GeoTimeSerie> series = booleanGTSSplit(gts, false);
+        if (!series.get(0).sorted) {
+          quicksort(series.get(0), 0, series.get(0).values, reversed);
+        }
+        if (!series.get(1).sorted) {
+          quicksort(series.get(1), 0, series.get(1).values, reversed);
+        }
+        shrinkTo(gts, 0);
+        if (reversed) {
+          GeoTimeSerie tmp = series.remove(0);
+          series.add(tmp);
+        }
+        for (int i = 0; i < 2; i++) {
+          GeoTimeSerie g = series.get(i);
+          int size = g.values;
+          if (g.reversed == reversed) {
+            for (int j = 0; j < size; j++) {
+              setValue(gts, tickAtIndex(g, j), locationAtIndex(g, j), elevationAtIndex(g, j), valueAtIndex(g, j), false);
+            }
+          } else {
+            for (int j = size - 1; j >= 0; j--) {
+              setValue(gts, tickAtIndex(g, j), locationAtIndex(g, j), elevationAtIndex(g, j), valueAtIndex(g, j), false);
+            }
+          }
+        }
+        return;
+      } else {
+        throw new RuntimeException("Invalid sorting range for boolean GTS.");
+      }
+    }
+
     List<int[]> ranges = new ArrayList<int[]>();
 
     ranges.add(new int[] { low, high });
 
-    while(!ranges.isEmpty()) {
-      int[] range = ranges.remove(0);
+    int idx = 0;
+    int size = ranges.size();
+
+    while(idx < ranges.size()) {
+      int[] range = ranges.get(idx++);
+
+      // Adjust the size of the ranges list from time to time to
+      // reduce memory footprint in case ranges get added
+      if (ranges.size() - size > 10000 && idx > 10000) {
+        ranges = new ArrayList<int[]>(ranges.subList(idx, ranges.size()));
+        size = ranges.size();
+        idx = 0;
+      }
+
       low = range[0];
       high = range[1];
 
@@ -720,6 +775,7 @@ public class GTSHelper {
       long lpivot = 0L;
       double dpivot = 0.0D;
       String spivot = null;
+      Boolean bpivot = null;
 
       TYPE type = gts.getType();
 
@@ -729,9 +785,6 @@ public class GTSHelper {
         dpivot = gts.doubleValues[low + (high-low)/2];
       } else if (TYPE.STRING == type) {
         spivot = gts.stringValues[low + (high-low)/2];
-      } else if (TYPE.BOOLEAN == type) {
-        // Do nothing for booleans
-        return;
       }
 
       long pivotTick = gts.ticks[low + (high-low) / 2];
@@ -740,8 +793,6 @@ public class GTSHelper {
       while (i <= j) {
 
         if (TYPE.LONG == type) {
-
-
           if (!reversed) {
             // If the current value from the left list is smaller
             // (or greater if reversed is true) than the pivot
@@ -824,10 +875,6 @@ public class GTSHelper {
             String tmpstring = gts.stringValues[i];
             gts.stringValues[i] = gts.stringValues[j];
             gts.stringValues[j] = tmpstring;
-          } else if (TYPE.BOOLEAN == gts.type) {
-            boolean tmpboolean = gts.booleanValues.get(i);
-            gts.booleanValues.set(i, gts.booleanValues.get(j));
-            gts.booleanValues.set(j, tmpboolean);
           }
 
           long tmplong = gts.ticks[i];
@@ -886,8 +933,20 @@ public class GTSHelper {
 
     ranges.add(new int[] { low, high });
 
-    while(!ranges.isEmpty()) {
-      int[] range = ranges.remove(0);
+    int size = ranges.size();
+    int idx = 0;
+
+    while(idx < ranges.size()) {
+      int[] range = ranges.get(idx++);
+
+      // Adjust the size of the ranges list from time to time to
+      // reduce memory footprint in case ranges get added
+      if (ranges.size() - size > 10000 && idx > 10000) {
+        ranges = new ArrayList<int[]>(ranges.subList(idx, ranges.size()));
+        size = ranges.size();
+        idx = 0;
+      }
+
       low = range[0];
       high = range[1];
 
@@ -1099,8 +1158,21 @@ public class GTSHelper {
     int low;
     int high;
 
-    while (!ranges.isEmpty()) {
-      int[] range = ranges.remove(0);
+    int idx = 0;
+
+    long size = ranges.size();
+
+    while (idx < ranges.size()) {
+      int[] range = ranges.get(idx++);
+
+      // Adjust the size of the ranges list from time to time to
+      // reduce memory footprint in case ranges get added
+      if (ranges.size() - size > 10000 && idx > 10000) {
+        ranges = new ArrayList<int[]>(ranges.subList(idx, ranges.size()));
+        size = ranges.size();
+        idx = 0;
+      }
+
       low = range[0];
       high = range[1];
 
@@ -2252,7 +2324,7 @@ public class GTSHelper {
     }
 
     if (bucketcount < 0 || bucketcount > maxbuckets) {
-      throw new WarpScriptException("Bucket count (" + bucketcount + ") would exceed maximum value of " + maxbuckets);
+      throw new WarpScriptException("Bucket count (" + bucketcount + ") would exceed maximum value of " + maxbuckets + ". Consider raising the limit or using capabilities.");
     }
 
     if (0 == bucketspan) {
@@ -2305,7 +2377,7 @@ public class GTSHelper {
 
     // find array index of last bucket, if needed
     int i;
-    if (lastbucket > lasttick) {
+    if (lastbucket >= lasttick) {
       i = gts.size() - 1;
     } else {
       i = Arrays.binarySearch(gts.ticks, 0, gts.values, lastbucket);
@@ -2315,6 +2387,11 @@ public class GTSHelper {
       } else if (i < 0) {
         // just before the insertion point
         i = -i - 1 - 1;
+      } else {
+        // binary search is not deterministic in case of multiple same timestamps (non dedup gts). Must find the last one.
+        while ((i + 1) < gts.values && gts.ticks[i + 1] == lastbucket) {
+          i++;
+        }
       }
     }
 
@@ -3688,9 +3765,6 @@ public class GTSHelper {
     //
 
     int calen = 64;
-    byte[] ba = new byte[(int) ((double) ce.maxBytesPerChar() * calen)];
-    //char[] ca = new char[64];
-
 
     //
     // Allocate an array to hold both name and value hashes
@@ -3707,6 +3781,8 @@ public class GTSHelper {
     CharBuffer cb = CharBuffer.allocate(calen);
     ByteBuffer bb = ByteBuffer.allocate((int) ((double) ce.maxBytesPerChar() * calen));
 
+    boolean error = false;
+
     for (Entry<String, String> entry: labels.entrySet()) {
       String ekey = entry.getKey();
       String eval = entry.getValue();
@@ -3714,15 +3790,17 @@ public class GTSHelper {
       int klen = ekey.length();
       int vlen = eval.length();
 
+      //
+      // Grow the buffers if needed
+      //
+
       if (klen > calen || vlen > calen) {
         calen = Math.max(klen, vlen);
         cb = CharBuffer.allocate(calen);
         bb = ByteBuffer.allocate((int) ((double) ce.maxBytesPerChar() * calen));
       }
 
-      ce.onMalformedInput(CodingErrorAction.REPLACE)
-      .onUnmappableCharacter(CodingErrorAction.REPLACE)
-      .reset();
+      ce = ce.reset().onMalformedInput(CodingErrorAction.REPLACE).onUnmappableCharacter(CodingErrorAction.REPLACE);
 
       cb.clear();
       cb.put(ekey);
@@ -3730,12 +3808,13 @@ public class GTSHelper {
       bb.clear();
 
       CoderResult res = ce.encode(cb, bb, true);
+      error = error || !res.isUnderflow();
+      res = ce.flush(bb);
+      error = error || !res.isUnderflow();
       bb.flip();
-
       hashes[idx] = SipHashInline.hash24_palindromic(sipkey0, sipkey1, bb.array(), 0, bb.limit());
-      ce.onMalformedInput(CodingErrorAction.REPLACE)
-      .onUnmappableCharacter(CodingErrorAction.REPLACE)
-      .reset();
+
+      ce = ce.reset().onMalformedInput(CodingErrorAction.REPLACE).onUnmappableCharacter(CodingErrorAction.REPLACE);
 
       cb.clear();
       cb.put(eval);
@@ -3743,10 +3822,16 @@ public class GTSHelper {
       bb.clear();
 
       res = ce.encode(cb, bb, true);
+      error = error || !res.isUnderflow();
+      res = ce.flush(bb);
+      error = error || !res.isUnderflow();
       bb.flip();
-
       hashes[idx+1] = SipHashInline.hash24_palindromic(sipkey0, sipkey1, bb.array(), 0, bb.limit());
       idx+=2;
+    }
+
+    if (error) {
+      throw new RuntimeException("Error computing labels id.");
     }
 
     //
@@ -3785,7 +3870,10 @@ public class GTSHelper {
     // Now compute the SipHash of all the longs in the order we just determined
     //
 
-    byte[] buf = new byte[hashes.length * 8];
+    int hasheslen = hashes.length * 8;
+
+    // If the array backing bb is large enough, use it, otherwise allocate a new array
+    byte[] buf = bb.capacity() >= hasheslen ? bb.array() : new byte[hasheslen];
 
     idx = 0;
 
@@ -3800,10 +3888,8 @@ public class GTSHelper {
       buf[idx++] = (byte) (hash & 0xffL);
     }
 
-    //return SipHashInline.hash24(sipkey[0], sipkey[1], buf, 0, buf.length);
-    long id = SipHashInline.hash24_palindromic(sipkey0, sipkey1, buf, 0, buf.length);
+    long id = SipHashInline.hash24_palindromic(sipkey0, sipkey1, buf, 0, hasheslen);
     return id;
-    //return SipHashInline.hash24_palindromic(sipkey0, sipkey1, buf, 0, buf.length);
   }
 
   public static final long labelsId_slow(byte[] key, Map<String,String> labels) {
@@ -5720,10 +5806,10 @@ public class GTSHelper {
     GeoTimeSerie mapped = gts.clone();
 
     //
-    // Do nothing if there are no values and gts was not bucketized
+    // Do nothing if there are no values and gts was not bucketized and outputTicks is null
     //
 
-    if (0 == mapped.values && !isBucketized(mapped)) {
+    if (0 == mapped.values && !isBucketized(mapped) && null == outputTicks) {
       results.add(mapped);
       return results;
     }
@@ -5732,7 +5818,16 @@ public class GTSHelper {
     sort(mapped, reversed);
     // Retrieve ticks if GTS is not bucketized.
     final boolean isBucketized = isBucketized(gts);
-    long[] ticks = isBucketized ? null : Arrays.copyOf(mapped.ticks, gts.values);
+
+    long[] ticks = null;
+    if (!isBucketized) {
+      if (0 == mapped.values) {
+        ticks = new long[] {};
+
+      } else {
+        ticks = Arrays.copyOf(mapped.ticks, gts.values);
+      }
+    }
 
     // Clear clone
     GTSHelper.clear(mapped);

@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -70,7 +70,9 @@ import com.geoxp.GeoXPLib;
 import com.google.common.primitives.Longs;
 
 import io.warp10.BytesUtils;
+import io.warp10.ThriftUtils;
 import io.warp10.ThrowableUtils;
+import io.warp10.WarpConfig;
 import io.warp10.WarpURLDecoder;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.Tokens;
@@ -104,7 +106,6 @@ import io.warp10.script.functions.ADDDURATION;
 import io.warp10.script.functions.FETCH;
 import io.warp10.sensision.Sensision;
 import io.warp10.standalone.AcceleratorConfig;
-import io.warp10.standalone.Warp;
 
 public class EgressFetchHandler extends AbstractHandler {
 
@@ -190,6 +191,7 @@ public class EgressFetchHandler extends AbstractHandler {
       long gcount = Long.MAX_VALUE;
       long gskip = 0;
       long count = -1;
+      boolean mustSort = false;
       long skip = 0;
       long step = 1L;
       long timestep = 1L;
@@ -320,7 +322,7 @@ public class EgressFetchHandler extends AbstractHandler {
       }
 
       boolean showErrors = null != showErrorsParam;
-      boolean dedup = null != dedupParam && "true".equals(dedupParam);
+      boolean dedup = null != dedupParam;
 
       //
       // Handle aliases
@@ -382,10 +384,12 @@ public class EgressFetchHandler extends AbstractHandler {
 
       if (null != gcountParam) {
         gcount = Long.parseLong(gcountParam);
+        mustSort = true;
       }
 
       if (null != gskipParam) {
         gskip = Long.parseLong(gskipParam);
+        mustSort = true;
       }
 
       if (null != stepParam) {
@@ -516,11 +520,11 @@ public class EgressFetchHandler extends AbstractHandler {
         }
       }
 
-      boolean showAttr = "true".equals(req.getParameter(Constants.HTTP_PARAM_SHOWATTR));
+      boolean showAttr = null != req.getParameter(Constants.HTTP_PARAM_SHOWATTR);
 
       Long activeAfter = null == req.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER) ? null : Long.parseLong(req.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER));
       Long quietAfter = null == req.getParameter(Constants.HTTP_PARAM_QUIETAFTER) ? null : Long.parseLong(req.getParameter(Constants.HTTP_PARAM_QUIETAFTER));
-      boolean sortMeta = "true".equals(req.getParameter(Constants.HTTP_PARAM_SORTMETA));
+      boolean sortMeta = null != req.getParameter(Constants.HTTP_PARAM_SORTMETA);
 
       //
       // Apply constraints from token attribute
@@ -597,6 +601,7 @@ public class EgressFetchHandler extends AbstractHandler {
       List<Iterator<Metadata>> iterators = new ArrayList<Iterator<Metadata>>();
 
       boolean cacheGTS = false;
+      boolean doGskipGcount = true;
 
       if (!splitFetch) {
         if (null == selector) {
@@ -609,7 +614,7 @@ public class EgressFetchHandler extends AbstractHandler {
         // the directory is not accessed via the network and therefore cannot time out
         //
 
-        cacheGTS = !Warp.isStandaloneMode();
+        cacheGTS = !WarpConfig.isStandaloneMode();
 
         String[] selectors = selector.split("\\s+");
 
@@ -652,6 +657,7 @@ public class EgressFetchHandler extends AbstractHandler {
           lblsSels.add(labelsSelectors);
 
           DirectoryRequest request = new DirectoryRequest();
+          request.setSorted(mustSort);
           request.setClassSelectors(clsSels);
           request.setLabelsSelectors(lblsSels);
 
@@ -766,7 +772,7 @@ public class EgressFetchHandler extends AbstractHandler {
               throw new RuntimeException("Invalid wrapped content.");
             }
 
-            TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
+            TDeserializer deserializer = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
 
             GTSSplit split = new GTSSplit();
 
@@ -808,6 +814,9 @@ public class EgressFetchHandler extends AbstractHandler {
       }
 
       if (cacheGTS) {
+        // We perform gskip/gcount enforcement here so don't do it again later
+        doGskipGcount = false;
+
         //
         // Loop over the iterators, storing the read metadata to a temporary file encrypted on disk
         // Data is encrypted using a onetime pad
@@ -821,7 +830,7 @@ public class EgressFetchHandler extends AbstractHandler {
 
         FileWriter writer = new FileWriter(cache);
 
-        TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+        TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
 
         int padidx = 0;
 
@@ -892,7 +901,7 @@ public class EgressFetchHandler extends AbstractHandler {
           private Metadata current = null;
           private boolean done = false;
 
-          private TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
+          private TDeserializer deserializer = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
 
           int padidx = 0;
 
@@ -979,14 +988,34 @@ public class EgressFetchHandler extends AbstractHandler {
       }
 
       for (Iterator<Metadata> itermeta: iterators) {
+        if (doGskipGcount && gcount <= 0) {
+          break;
+        }
+
         while(itermeta.hasNext()) {
-          metas.add(itermeta.next());
+          if (doGskipGcount) {
+            if (gcount <= 0) {
+              break;
+            }
+
+            Metadata metadata = itermeta.next();
+
+            if (gskip > 0) {
+              gskip--;
+              continue;
+            }
+
+            gcount--;
+            metas.add(metadata);
+          } else {
+            metas.add(itermeta.next());
+          }
 
           //
           // Access the data store every 'FETCH_BATCHSIZE' GTS or at the end of each iterator
           //
 
-          if (metas.size() > FETCH_BATCHSIZE || !itermeta.hasNext()) {
+          if (metas.size() > FETCH_BATCHSIZE || !itermeta.hasNext() || (doGskipGcount && gcount <= 0)) {
             FetchRequest freq = new FetchRequest();
             freq.setToken(rtoken.get());
             freq.setMetadatas(metas);
@@ -1265,7 +1294,7 @@ public class EgressFetchHandler extends AbstractHandler {
       // Serialize the wrapper
       //
 
-      TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+      TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
       byte[] data = null;
 
       try {
@@ -2232,7 +2261,7 @@ public class EgressFetchHandler extends AbstractHandler {
 
           GTSWrapper wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(encoder, true);
 
-          TSerializer ser = new TSerializer(new TCompactProtocol.Factory());
+          TSerializer ser = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
           byte[] serialized;
 
           try {

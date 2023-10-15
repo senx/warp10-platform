@@ -32,6 +32,7 @@ import java.util.Properties;
 import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
+import org.bouncycastle.util.encoders.Hex;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Server;
@@ -89,8 +90,6 @@ public class Warp extends WarpDist implements Runnable {
 
   private static WarpDB db;
 
-  private static boolean standaloneMode = false;
-
   private static String backend = null;
 
   private static int port;
@@ -119,7 +118,7 @@ public class Warp extends WarpDist implements Runnable {
 
   public static void main(String[] args) throws Exception {
     // Indicate standalone mode is on
-    standaloneMode = true;
+    WarpConfig.setStandaloneMode(true);
 
     if (null == getProperties()) {
       System.setProperty("java.awt.headless", "true");
@@ -418,7 +417,21 @@ public class Warp extends WarpDist implements Runnable {
         sdc = new StandaloneDirectoryClient(db, keystore);
         scc = new StandaloneStoreClient(db, keystore, properties);
       } else if (useFDB) {
-        FDBContext fdbContext = new FDBContext(properties.getProperty(Configuration.DIRECTORY_FDB_CLUSTERFILE), properties.getProperty(Configuration.DIRECTORY_FDB_TENANT));
+        Object tenant = properties.getProperty(Configuration.DIRECTORY_FDB_TENANT);
+
+        if (null != properties.getProperty(Configuration.DIRECTORY_FDB_TENANT_PREFIX)) {
+          if (null != tenant) {
+            throw new IOException("Invalid configuration, only one of '" + Configuration.DIRECTORY_FDB_TENANT_PREFIX + "' and '" + Configuration.DIRECTORY_FDB_TENANT + "' can be set.");
+          }
+          String prefix = properties.getProperty(Configuration.DIRECTORY_FDB_TENANT_PREFIX);
+          if (prefix.startsWith("hex:")) {
+            tenant = Hex.decode(prefix.substring(4));
+          } else {
+            tenant = OrderPreservingBase64.decode(prefix, 0, prefix.length());
+          }
+        }
+
+        FDBContext fdbContext = new FDBContext(properties.getProperty(Configuration.DIRECTORY_FDB_CLUSTERFILE), tenant);
         sdc = new StandaloneDirectoryClient(fdbContext, keystore);
         scc = new StandaloneFDBStoreClient(keystore, properties);
       }
@@ -573,7 +586,8 @@ public class Warp extends WarpDist implements Runnable {
       port = httpConnector.getLocalPort();
     }
 
-    WarpDist.setInitialized(true);
+    WarpDist.setInitialized();
+
     LOG.info("## Your Warp 10 setup:");
     LOG.info("## - WARP10_HEAP:              " + FileUtils.byteCountToDisplaySize(Runtime.getRuntime().totalMemory()));
     LOG.info("## - WARP10_HEAP_MAX:          " + FileUtils.byteCountToDisplaySize(Runtime.getRuntime().maxMemory()));
@@ -593,10 +607,6 @@ public class Warp extends WarpDist implements Runnable {
       LOG.error(t.getMessage());
       server.stop();
     }
-  }
-
-  public static boolean isStandaloneMode() {
-    return standaloneMode;
   }
 
   public static String getBackend() {

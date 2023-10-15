@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -85,8 +85,10 @@ import com.google.common.base.Preconditions;
 import com.google.common.primitives.Longs;
 
 import io.warp10.SSLUtils;
+import io.warp10.ThriftUtils;
 import io.warp10.ThrowableUtils;
 import io.warp10.WarpConfig;
+import io.warp10.WarpDist;
 import io.warp10.WarpManager;
 import io.warp10.WarpURLDecoder;
 import io.warp10.continuum.Configuration;
@@ -137,7 +139,7 @@ public class Ingress extends AbstractHandler implements Runnable {
    * Bytes reserved in the value size to accommodate for GTSEncoder encoding.
    * Should be sufficient for clear and encrypted values
    */
-  private static final int FDB_VALUE_SIZE_RESERVED = 100;
+  public static final int FDB_VALUE_SIZE_RESERVED = 100;
 
   /**
    * Set of required parameters, those MUST be set
@@ -294,6 +296,8 @@ public class Ingress extends AbstractHandler implements Runnable {
   final boolean ignoreOutOfRange;
 
   final boolean allowDeltaAttributes;
+
+  private final Server server;
 
   public Ingress(KeyStore keystore, Properties props) {
 
@@ -608,7 +612,7 @@ public class Ingress extends AbstractHandler implements Runnable {
 
     QueuedThreadPool queuedThreadPool = new QueuedThreadPool(maxThreads, 8, 60000, queue);
     queuedThreadPool.setName("Warp Ingress Jetty Thread");
-    Server server = new Server(queuedThreadPool);
+    server = new Server(queuedThreadPool);
 
     List<Connector> connectors = new ArrayList<Connector>();
 
@@ -657,25 +661,32 @@ public class Ingress extends AbstractHandler implements Runnable {
 
     JettyUtil.setSendServerVersion(server, false);
 
-    try {
-      server.start();
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-
     Thread t = new Thread(this);
     t.setDaemon(true);
-    t.setName("Continuum Ingress");
+    t.setName("[Continuum Ingress]");
     t.start();
   }
 
   @Override
   public void run() {
+
     //
-    // Register in ZK and watch parent znode.
-    // If the Ingress count exceeds the licensed number,
-    // exit if we are the first of the list.
+    // Wait until we are initialized to start server so authentication plugins are loaded
     //
+
+    while(!WarpDist.isInitialized()) {
+      try {
+        Thread.sleep(1000L);
+      } catch (Throwable t) {
+      }
+    }
+
+    try {
+      server.start();
+    } catch (Exception e) {
+      WarpDist.abort(e);
+      return;
+    }
 
     while(true) {
       try {
@@ -1118,7 +1129,7 @@ public class Ingress extends AbstractHandler implements Runnable {
                 metadata.setLastActivity(nowms);
               }
 
-              TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+              TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
               try {
                 pushMetadataMessage(bytes, serializer.serialize(metadata));
 
@@ -1594,13 +1605,16 @@ public class Ingress extends AbstractHandler implements Runnable {
 
       long gskip = 0L;
       long gcount = Long.MAX_VALUE;
+      boolean mustSort = false;
 
       if (null != request.getParameter(Constants.HTTP_PARAM_GSKIP)) {
         gskip = Long.parseLong(request.getParameter(Constants.HTTP_PARAM_GSKIP));
+        mustSort = true;
       }
 
       if (null != request.getParameter(Constants.HTTP_PARAM_GCOUNT)) {
         gcount = Long.parseLong(request.getParameter(Constants.HTTP_PARAM_GCOUNT));
+        mustSort = true;
       }
 
       //
@@ -1654,6 +1668,31 @@ public class Ingress extends AbstractHandler implements Runnable {
       StringBuilder sb = new StringBuilder();
 
       boolean expose = writeToken.getAttributesSize() > 0 && writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_EXPOSE);
+
+      //
+      // Extract KafkaDataMessage attributes
+      //
+
+      Map<String,String> kafkaDeleteMessageAttributes = null;
+
+      if (writeToken.getAttributesSize() > 0) {
+        if (writeToken.getAttributes().containsKey(Constants.TOKEN_ATTR_FDB_TENANT_PREFIX)) {
+          if (!FDBUseTenantPrefix) {
+            throw new IOException("Invalid token, tenant prefix not supported.");
+          }
+          kafkaDeleteMessageAttributes = new LinkedHashMap<String,String>();
+          String encodedPrefix = writeToken.getAttributes().get(Constants.TOKEN_ATTR_FDB_TENANT_PREFIX);
+          if (8 != OrderPreservingBase64.decode(encodedPrefix).length) {
+            throw new IOException("Invalid tenant prefix, length should be 8 bytes.");
+          }
+          kafkaDeleteMessageAttributes.put(Constants.STORE_ATTR_FDB_TENANT_PREFIX, encodedPrefix);
+        } else if (FDBUseTenantPrefix) {
+          throw new IOException("Invalid token, missing tenant prefix.");
+        }
+      } else if (FDBUseTenantPrefix) {
+        throw new IOException("Invalid token, missing tenant prefix.");
+      }
+
       //
       // Shuffle only if not in dryrun mode
       //
@@ -1672,9 +1711,10 @@ public class Ingress extends AbstractHandler implements Runnable {
 
         FileWriter writer = new FileWriter(cache);
 
-        TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+        TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
 
         DirectoryRequest drequest = new DirectoryRequest();
+        drequest.setSorted(mustSort);
 
         Long activeAfter = null == request.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER) ? null : Long.parseLong(request.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER));
         Long quietAfter = null == request.getParameter(Constants.HTTP_PARAM_QUIETAFTER) ? null : Long.parseLong(request.getParameter(Constants.HTTP_PARAM_QUIETAFTER));
@@ -1781,7 +1821,7 @@ public class Ingress extends AbstractHandler implements Runnable {
           private Metadata current = null;
           private boolean done = false;
 
-          private TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
+          private TDeserializer deserializer = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
 
           @Override
           public boolean hasNext() {
@@ -1855,7 +1895,7 @@ public class Ingress extends AbstractHandler implements Runnable {
             }
 
             if (!metaonly) {
-              pushDeleteMessage(start, end, minage, metadata);
+              pushDeleteMessage(kafkaDeleteMessageAttributes, start, end, minage, metadata);
             }
 
             if (Long.MAX_VALUE == end && Long.MIN_VALUE == start && 0 == minage) {
@@ -1897,6 +1937,7 @@ public class Ingress extends AbstractHandler implements Runnable {
       } else {
 
         DirectoryRequest drequest = new DirectoryRequest();
+        drequest.setSorted(mustSort);
         drequest.setClassSelectors(clsSels);
         drequest.setLabelsSelectors(lblsSels);
 
@@ -1923,7 +1964,7 @@ public class Ingress extends AbstractHandler implements Runnable {
               }
 
               if (!metaonly) {
-                pushDeleteMessage(start, end, minage, metadata);
+                pushDeleteMessage(kafkaDeleteMessageAttributes, start, end, minage, metadata);
               }
 
               if (Long.MAX_VALUE == end && Long.MIN_VALUE == start && 0 == minage) {
@@ -1983,7 +2024,7 @@ public class Ingress extends AbstractHandler implements Runnable {
       // Flush delete messages
       if (!dryrun) {
         if (!metaonly) {
-          pushDeleteMessage(0L,0L,0L,null);
+          pushDeleteMessage(null, 0L,0L,0L,null);
         }
         if (completeDeletion) {
           pushMetadataMessage(null, null);
@@ -1991,9 +2032,9 @@ public class Ingress extends AbstractHandler implements Runnable {
         if (null != this.plugin) {
           this.plugin.flush(this);
         }
+        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_DELETE_REQUESTS, sensisionLabels, 1);
+        Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_DELETE_GTS, sensisionLabels, gts);
       }
-      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_DELETE_REQUESTS, sensisionLabels, 1);
-      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_INGRESS_DELETE_GTS, sensisionLabels, gts);
     }
 
     response.setStatus(HttpServletResponse.SC_OK);
@@ -2028,7 +2069,7 @@ public class Ingress extends AbstractHandler implements Runnable {
     metadata.setClassId(GTSHelper.classId(this.classKey, metadata.getName()));
     metadata.setLabelsId(GTSHelper.labelsId(this.labelsKey, metadata.getLabels()));
 
-    TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+    TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
     try {
       byte[] bytes = new byte[16];
       GTSHelper.fillGTSIds(bytes, 0, metadata.getClassId(), metadata.getLabelsId());
@@ -2186,7 +2227,7 @@ public class Ingress extends AbstractHandler implements Runnable {
       //bb.putLong(encoder.getClassId());
       //bb.putLong(encoder.getLabelsId());
 
-      TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+      TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
 
       byte[] msgbytes = null;
 
@@ -2341,7 +2382,7 @@ public class Ingress extends AbstractHandler implements Runnable {
    * @param end End timestamp for deletion
    * @param metadata Metadata of the GTS to delete
    */
-  private void pushDeleteMessage(long start, long end, long minage, Metadata metadata) throws IOException {
+  private void pushDeleteMessage(Map<String,String> attributes, long start, long end, long minage, Metadata metadata) throws IOException {
     if (null != metadata) {
       KafkaDataMessage msg = new KafkaDataMessage();
       msg.setType(KafkaDataMessageType.DELETE);
@@ -2355,6 +2396,9 @@ public class Ingress extends AbstractHandler implements Runnable {
         msg.setMetadata(metadata);
       }
 
+      if (null != attributes && !attributes.isEmpty()) {
+        msg.setAttributes(new HashMap<String,String>(attributes));
+      }
       sendDataMessage(msg);
     } else {
       sendDataMessage(null);

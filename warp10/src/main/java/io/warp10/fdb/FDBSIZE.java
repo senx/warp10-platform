@@ -71,7 +71,7 @@ public class FDBSIZE extends NamedWarpScriptFunction implements WarpScriptStackF
         Matcher m = Pattern.compile(regexp).matcher(tenant);
 
         if (!m.matches()) {
-          throw new WarpScriptException(getName() + " capability '" + FDBUtils.CAPABILITY_TENANT + "' does not allow you to access this tenant.");
+          throw new WarpScriptException(getName() + " capability '" + FDBUtils.CAPABILITY_TENANT + "' does not allow you to access tenant '" + tenant + "'.");
         }
       }
 
@@ -81,7 +81,7 @@ public class FDBSIZE extends NamedWarpScriptFunction implements WarpScriptStackF
         from = (byte[]) tenantInfo.get(FDBUtils.KEY_PREFIX);
         to = FDBUtils.getNextKey(from);
       } else {
-        throw new WarpScriptException(getName() + " unknown tenant.");
+        throw new WarpScriptException(getName() + " unknown tenant '" + tenant + "'.");
       }
     } else {
       if (!(top instanceof byte[])) {
@@ -101,7 +101,11 @@ public class FDBSIZE extends NamedWarpScriptFunction implements WarpScriptStackF
 
     FDBContext context = pool.getContext();
 
-    stack.push(FDBUtils.getEstimatedRangeSizeBytes(context, from, to));
+    try {
+      stack.push(FDBUtils.getEstimatedRangeSizeBytes(context, from, to));
+    } catch (Throwable t) {
+      throw new WarpScriptException(getName() + " error while retrieving range size.", t);
+    }
 
     return stack;
   }

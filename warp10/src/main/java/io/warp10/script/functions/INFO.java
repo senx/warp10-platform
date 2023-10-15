@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -29,30 +29,42 @@ import io.warp10.script.WarpScriptStopException;
  * if the stack is currently in documentation mode
  */
 public class INFO extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   public INFO(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
-    
+
     if (!(top instanceof Map)) {
       throw new WarpScriptException(getName() + " expects an info map on top of the stack.");
     }
-    
+
     if (Boolean.TRUE.equals(stack.getAttribute(WarpScriptStack.ATTRIBUTE_INFOMODE))) {
       // Push the documentation back on the stack
-      // Perform a SNAPSHOT and an EVAL so we clone the info map
-      StringBuilder sb = new StringBuilder();
-      SNAPSHOT.addElement(sb, top);
-      stack.execMulti(sb.toString());
+      // Perform a SNAPSHOT and an XEVAL so we clone the info map, preserving the macros
+      // it may contain
+
+      boolean xevalSet = Boolean.TRUE.equals(stack.getAttribute(WarpScriptStack.ATTRIBUTE_IN_XEVAL));
+
+      try {
+        stack.setAttribute(WarpScriptStack.ATTRIBUTE_IN_XEVAL, true);
+        StringBuilder sb = new StringBuilder();
+        SNAPSHOT.addElement(sb, top);
+        stack.execMulti(sb.toString());
+      } finally {
+        // Clear the XEVAL attribute if it was not set prior to this call.
+        if (!xevalSet) {
+          stack.setAttribute(WarpScriptStack.ATTRIBUTE_IN_XEVAL, null);
+        }
+      }
 
       // Stop the script
       throw new WarpScriptStopException("");
     }
-    
+
     return stack;
   }
 }

@@ -31,6 +31,7 @@ import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
 
+import io.warp10.ThriftUtils;
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
@@ -43,37 +44,37 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
 public class MVSPLIT extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   private final boolean bytick;
-  
+
   public MVSPLIT(String name, boolean bytick) {
     super(name);
     this.bytick = bytick;
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    
+
     Object top = stack.pop();
-    
+
     Map<Object,Object> renamingMap = new HashMap<Object,Object>();
-    
+
     if (top instanceof Map) {
       renamingMap = (Map<Object,Object>) top;
       top = stack.pop();
     }
-    
+
     Set<Long> ticks = new HashSet<Long>();
     List<Pair<Long, Long>> ranges = new ArrayList<Pair<Long,Long>>();
-    
+
     boolean check = false;
     boolean includeZero = false;
     long maxindex = Long.MIN_VALUE;
-    
+
     if (top instanceof List) {
-      
+
       boolean gtslist = true;
-      
+
       // Check of it is a list of GTS or GTSEncoders
       for (Object elt: (List) top) {
         if (!(elt instanceof GeoTimeSerie) && !(elt instanceof GTSEncoder)) {
@@ -81,7 +82,7 @@ public class MVSPLIT extends NamedWarpScriptFunction implements WarpScriptStackF
           break;
         }
       }
-      
+
       if (!gtslist) {
         for (Object elt: (List) top) {
           if (elt instanceof Long) {
@@ -101,13 +102,13 @@ public class MVSPLIT extends NamedWarpScriptFunction implements WarpScriptStackF
               throw new WarpScriptException(getName() + " expects ticks or ranges of ticks (LONGs).");
             }
             Pair<Long,Long> range = Pair.of((Long) ((List) elt).get(0), (Long) ((List) elt).get(1));
-            
+
             if (range.getLeft() > range.getRight()) {
               range = Pair.of(range.getRight(), range.getLeft());
             }
-            
+
             ranges.add(range);
-            
+
             if (range.getRight() > maxindex) {
               maxindex = range.getRight();
             }
@@ -116,15 +117,15 @@ public class MVSPLIT extends NamedWarpScriptFunction implements WarpScriptStackF
           }
         }
         check = true;
-        top = stack.pop();        
+        top = stack.pop();
       }
     } else {
       includeZero = true;
     }
-    
+
     List<Object> inputs = null;
     boolean listinput = false;
-    
+
     if (top instanceof GTSEncoder || top instanceof GeoTimeSerie) {
       inputs = new ArrayList<Object>(1);
       inputs.add(top);
@@ -134,17 +135,17 @@ public class MVSPLIT extends NamedWarpScriptFunction implements WarpScriptStackF
     } else {
       throw new WarpScriptException(getName() + " operates on Geo Time Series or ENCODER or a list thereof.");
     }
-    
-    TDeserializer deser = new TDeserializer(new TCompactProtocol.Factory());
+
+    TDeserializer deser = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
     GTSWrapper wrapper = new GTSWrapper();
 
     Map<Long,GTSEncoder> encoders = new HashMap<Long, GTSEncoder>();
 
     List<List<GTSEncoder>> outputs = new ArrayList<List<GTSEncoder>>(inputs.size());
-    
+
     for (Object input: inputs) {
       boolean isencoder = false;
-      
+
       GTSDecoder decoder = null;
       GeoTimeSerie gts = null;
 
@@ -157,11 +158,11 @@ public class MVSPLIT extends NamedWarpScriptFunction implements WarpScriptStackF
       } else {
         throw new WarpScriptException(getName() + " operates on Geo Time Series or ENCODER or a list thereof.");
       }
-      
+
       encoders.clear();
-      
+
       int idx = 0;
-            
+
       try {
         // Iterate over the datapoints of the input GTS or encoder
         int nvalues = !isencoder ? GTSHelper.nvalues(gts) : 0;
@@ -170,20 +171,20 @@ public class MVSPLIT extends NamedWarpScriptFunction implements WarpScriptStackF
           long location;
           long elevation;
           Object value;
-          
+
           if (isencoder) {
             ts = decoder.getTimestamp();
             location = decoder.getLocation();
             elevation = decoder.getElevation();
             value = decoder.getBinaryValue();
-            
+
             // If the value is a byte array or STRING, attempt to deserialize it
             if (value instanceof byte[]) {
               try {
                 wrapper.clear();
                 deser.deserialize(wrapper, (byte[]) value);
                 value = wrapper;
-              } catch (TException te) {            
+              } catch (TException te) {
               }
             } else if (value instanceof String) {
               try {
@@ -191,15 +192,15 @@ public class MVSPLIT extends NamedWarpScriptFunction implements WarpScriptStackF
                 wrapper.clear();
                 deser.deserialize(wrapper, bytes);
                 value = wrapper;
-              } catch (TException te) {   
-              }          
+              } catch (TException te) {
+              }
             }
           } else {
             ts = GTSHelper.tickAtIndex(gts, idx);
             location = GTSHelper.locationAtIndex(gts, idx);
             elevation = GTSHelper.elevationAtIndex(gts, idx);
             value = GTSHelper.valueAtIndex(gts, idx);
-            
+
             // Check if a STRING is a wrapper
             if (value instanceof String) {
               try {
@@ -207,26 +208,26 @@ public class MVSPLIT extends NamedWarpScriptFunction implements WarpScriptStackF
                 wrapper.clear();
                 deser.deserialize(wrapper, bytes);
                 value = wrapper;
-              } catch (TException te) {   
-              }          
+              } catch (TException te) {
+              }
             }
           }
 
           if (value instanceof GTSWrapper) {
             GTSDecoder deco = GTSWrapperHelper.fromGTSWrapperToGTSDecoder(wrapper);
-            
+
             long index = 0;
-            
+
             while(deco.next()) {
               long dts = deco.getTimestamp();
               long dlocation = deco.getLocation();
               long delevation = deco.getElevation();
               Object dvalue = deco.getBinaryValue();
-              
+
               if (bytick) {
                 index = dts;
               }
-              
+
               boolean skip = false;
 
               // Check if we should include the element
@@ -244,22 +245,22 @@ public class MVSPLIT extends NamedWarpScriptFunction implements WarpScriptStackF
                   }
                 }
               }
-              
-              if (!skip) {              
+
+              if (!skip) {
                 GTSEncoder encoder = encoders.get(index);
                 if (null == encoder) {
                   encoder = new GTSEncoder(0L);
                   encoder.setMetadata(null != decoder ? decoder.getMetadata() : gts.getMetadata());
-                  encoders.put(index, encoder);              
+                  encoders.put(index, encoder);
                 }
                 encoder.addValue(ts,
                   GeoTimeSerie.NO_LOCATION != dlocation ? dlocation : location,
                   GeoTimeSerie.NO_ELEVATION != delevation ? delevation : elevation,
                   dvalue);
               }
-              
+
               index++;
-              
+
               // Early exit if we are past the last index we were interested in
               if (!bytick && check && index > maxindex) {
                 break;
@@ -272,26 +273,26 @@ public class MVSPLIT extends NamedWarpScriptFunction implements WarpScriptStackF
               encoder = new GTSEncoder(0L);
               encoder.setMetadata(null != decoder ? decoder.getMetadata() : gts.getMetadata());
               encoders.put(0L, encoder);
-            }        
+            }
             encoder.addValue(ts, location, elevation, value);
           }
-          
+
           idx++;
-        }      
+        }
       } catch (IOException ioe) {
         throw new WarpScriptException(getName() + " encountered an error while splitting input.", ioe);
       }
-      
+
       // Now rename the encoders
       GeoTimeSerie g = new GeoTimeSerie();
       for (Entry<Long,GTSEncoder> entry: encoders.entrySet()) {
         Object name = renamingMap.get(entry.getKey());
-        
+
         // If there was no name with the Long as the key, try with the String representation
         if (null == name) {
           name = renamingMap.get(entry.getKey().toString());
         }
-        
+
         if (null == name) {
           entry.getValue().setName(entry.getValue().getName() + ":" + entry.getKey());
         } else {
@@ -299,19 +300,19 @@ public class MVSPLIT extends NamedWarpScriptFunction implements WarpScriptStackF
           GTSHelper.rename(g, name.toString());
         }
       }
-      
+
       // Now build a list of extracted encoders
       List<GTSEncoder> results = new ArrayList<GTSEncoder>(encoders.size());
       results.addAll(encoders.values());
       outputs.add(results);
-    }  
-    
+    }
+
     if (listinput) {
       stack.push(outputs);
     } else {
       stack.push(outputs.get(0));
     }
-    
+
     return stack;
   }
 

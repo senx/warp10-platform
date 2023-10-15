@@ -55,7 +55,7 @@ public class SENSISIONDUMP extends NamedWarpScriptFunction implements WarpScript
     PrintWriter pw = new PrintWriter(sw);
 
     try {
-      Sensision.dump(pw, useMetricsTimestamps);
+      Sensision.dump(pw, useMetricsTimestamps, false);
       pw.flush();
 
       stack.push(sw.toString());

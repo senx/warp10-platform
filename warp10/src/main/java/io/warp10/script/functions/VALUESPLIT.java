@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,26 +16,26 @@
 
 package io.warp10.script.functions;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.GTSStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 /**
  * Split a GTS into N distinct GTS, one for each distinct value
- * 
+ *
  * @param name Name of label to use for storing the value
  */
 public class VALUESPLIT  extends GTSStackFunction {
-  
+
   private static final String PARAM_LABEL = "label";
-  
+
   public VALUESPLIT(String name) {
     super(name);
   }
@@ -43,50 +43,71 @@ public class VALUESPLIT  extends GTSStackFunction {
   @Override
   protected Map<String, Object> retrieveParameters(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
-    
+
     if (!(top instanceof String)) {
       throw new WarpScriptException(getName() + " expects a label name on top of the stack.");
     }
-    
+
     Map<String,Object> params = new HashMap<String, Object>();
     params.put(PARAM_LABEL, top.toString());
-    
+
     return params;
   }
 
   @Override
   protected Object gtsOp(Map<String, Object> params, GeoTimeSerie gts) throws WarpScriptException {
-    
+
     String label = params.get(PARAM_LABEL).toString();
-    
+
+    List<GeoTimeSerie> series = new ArrayList<GeoTimeSerie>();
+
+    //
+    // Handle boolean GTS in a specific way
+    //
+
+    if (GeoTimeSerie.TYPE.BOOLEAN == gts.getType()) {
+      series = GTSHelper.booleanGTSSplit(gts, true);
+
+      series.get(0).getMetadata().putToLabels(label, "false");
+      series.get(1).getMetadata().putToLabels(label, "true");
+
+      if (0 == series.get(1).size()) {
+        series.remove(1);
+      }
+      if (0 == series.get(0).size()) {
+        series.remove(0);
+      }
+
+      return series;
+    }
+
     //
     // Sort gts by values
     //
-    
+
     GTSHelper.valueSort(gts);
-    
-    List<GeoTimeSerie> series = new ArrayList<GeoTimeSerie>();
-    
+
+
     GeoTimeSerie split = null;
     Object lastvalue = null;
-    
+
     for (int i = 0; i < gts.size(); i++) {
       long tick = GTSHelper.tickAtIndex(gts, i);
       long location = GTSHelper.locationAtIndex(gts, i);
       long elevation = GTSHelper.elevationAtIndex(gts, i);
       Object value = GTSHelper.valueAtIndex(gts, i);
-      
+
       if (!value.equals(lastvalue)) {
         split = gts.cloneEmpty();
         split.getMetadata().putToLabels(label, value.toString());
         series.add(split);
       }
-      
-      GTSHelper.setValue(split, tick, location, elevation, Boolean.TRUE, false);
-      
+
+      GTSHelper.setValue(split, tick, location, elevation, value, false);
+
       lastvalue = value;
     }
-    
+
     return series;
   }
 }

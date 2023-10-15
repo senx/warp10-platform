@@ -50,6 +50,7 @@ import org.joda.time.format.ISOPeriodFormat;
 
 import com.google.common.primitives.Longs;
 
+import io.warp10.ThriftUtils;
 import io.warp10.WarpDist;
 import io.warp10.continuum.MetadataUtils;
 import io.warp10.continuum.TimeSource;
@@ -318,13 +319,16 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
 
     long gskip = 0L;
     long gcount = Long.MAX_VALUE;
+    boolean mustSort = false;
 
     if (params.get(PARAM_GSKIP) instanceof Long) {
       gskip = ((Long) params.get(PARAM_GSKIP)).longValue();
+      mustSort = true;
     }
 
     if (params.get(PARAM_GCOUNT) instanceof Long) {
       gcount = ((Long) params.get(PARAM_GCOUNT)).longValue();
+      mustSort = true;
     }
 
     if (params.containsKey(PARAM_METASET)) {
@@ -427,7 +431,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       // Sort metadata by id so the enforcement of keepempty works
       //
 
-      Collections.sort(metadatas, MetadataIdComparator.COMPARATOR);
+      Collections.sort(metas, MetadataIdComparator.COMPARATOR);
 
       iter = ((List<Metadata>) params.get(PARAM_GTS)).iterator();
     } else {
@@ -495,6 +499,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       }
 
       DirectoryRequest drequest = new DirectoryRequest();
+      drequest.setSorted(mustSort);
       drequest.setClassSelectors(clsSels);
       drequest.setLabelsSelectors(lblsSels);
 
@@ -567,7 +572,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         metadatas.add(m);
 
         if (gtscount.incrementAndGet() > gtsLimit) {
-          throw new WarpScriptException(getName() + " exceeded limit of " + gtsLimit + " Geo Time Series, current count is " + gtscount);
+          throw new WarpScriptException(getName() + " exceeded limit of " + gtsLimit + " Geo Time Series, current count is " + gtscount + ". Consider raising the limit or using capabilities.");
         }
 
         stack.handleSignal();
@@ -749,7 +754,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
                 Map<String,String> sensisionLabels = new HashMap<String, String>();
                 sensisionLabels.put(SensisionConstants.SENSISION_LABEL_CONSUMERID, Tokens.getUUID(rtoken.getBilledId()));
                 Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_FETCHCOUNT_EXCEEDED, sensisionLabels, 1);
-                throw new WarpScriptException(getName() + " exceeded limit of " + fetchLimit + " datapoints, current count is " + fetched.get());
+                throw new WarpScriptException(getName() + " exceeded limit of " + fetchLimit + " datapoints, current count is " + fetched.get() + ". Consider raising the limit or using capabilities.");
               }
 
               continue;
@@ -852,7 +857,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
                 Map<String,String> sensisionLabels = new HashMap<String, String>();
                 sensisionLabels.put(SensisionConstants.SENSISION_LABEL_CONSUMERID, Tokens.getUUID(rtoken.getBilledId()));
                 Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_FETCHCOUNT_EXCEEDED, sensisionLabels, 1);
-                throw new WarpScriptException(getName() + " exceeded limit of " + fetchLimit + " datapoints, current count is " + fetched.get());
+                throw new WarpScriptException(getName() + " exceeded limit of " + fetchLimit + " datapoints, current count is " + fetched.get() + ". Consider raising the limit or using capabilities.");
               }
 
               stack.handleSignal();
@@ -940,7 +945,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
               Map<String,String> sensisionLabels = new HashMap<String, String>();
               sensisionLabels.put(SensisionConstants.SENSISION_LABEL_CONSUMERID, Tokens.getUUID(rtoken.getBilledId()));
               Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_FETCHCOUNT_EXCEEDED, sensisionLabels, 1);
-              throw new WarpScriptException(getName() + " exceeded limit of " + fetchLimit + " datapoints, current count is " + fetched.get());
+              throw new WarpScriptException(getName() + " exceeded limit of " + fetchLimit + " datapoints, current count is " + fetched.get() + ". Consider raising the limit or using capabilities.");
               //break;
             }
 
@@ -1125,7 +1130,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       }
 
       metaset = new MetaSet();
-      TDeserializer deser = new TDeserializer(new TCompactProtocol.Factory());
+      TDeserializer deser = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
 
       try {
         deser.deserialize(metaset, (byte[]) ms);

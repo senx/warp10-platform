@@ -1,5 +1,5 @@
 //
-//   Copyright 2022  SenX S.A.S.
+//   Copyright 2022-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -17,15 +17,30 @@
 package io.warp10.fdb;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Map;
 
+
 import com.apple.foundationdb.Database;
+
+import io.warp10.script.WarpScriptLib;
 
 public class FDBContext {
 
   private final String clusterFile;
   private final byte[] tenantPrefix;
   private final byte[] tenantName;
+
+  static {
+    //
+    // FDB related functions
+    //
+
+    WarpScriptLib.addNamedWarpScriptFunction(new FDBTENANT(WarpScriptLib.FDBTENANT));
+    WarpScriptLib.addNamedWarpScriptFunction(new FDBSTATUS(WarpScriptLib.FDBSTATUS));
+    WarpScriptLib.addNamedWarpScriptFunction(new FDBSIZE(WarpScriptLib.FDBSIZE));
+    WarpScriptLib.addNamedWarpScriptFunction(new FDBGET(WarpScriptLib.FDBGET));
+  }
 
   /**
    * Field to keep track of the last seen read version. Used by FDBKVScanner to retry
@@ -35,20 +50,20 @@ public class FDBContext {
   private long lastSeenReadVersion = Long.MIN_VALUE;
 
   // TODO(hbs): support creating context from tenant key prefix (for 6.x compatibility)?
-  public FDBContext(String clusterFile, String tenant) {
+  public FDBContext(String clusterFile, Object tenant) {
     this.clusterFile = clusterFile;
 
-    if (null != tenant && !"".equals(tenant.trim())) {
+    if (null != tenant && tenant instanceof String && !"".equals(((String) tenant).trim())) {
       Database db = null;
 
       try {
         db = FDBUtils.getFDB().open(clusterFile);
-        Map<String,Object> map = FDBUtils.getTenantInfo(db, tenant);
+        Map<String,Object> map = FDBUtils.getTenantInfo(db, (String) tenant);
         if (map.isEmpty()) {
           throw new RuntimeException("Unknown FoundationDB tenant '" + tenant + "'.");
         }
         this.tenantPrefix = (byte[]) map.get(FDBUtils.KEY_PREFIX);
-        this.tenantName = tenant.getBytes(StandardCharsets.UTF_8);
+        this.tenantName = ((String) tenant).getBytes(StandardCharsets.UTF_8);
       } catch (Throwable t) {
         throw t;
       } finally {
@@ -56,6 +71,12 @@ public class FDBContext {
           try { db.close(); } catch (Throwable t) {}
         }
       }
+    } else if (null != tenant && tenant instanceof byte[]) {
+      if (8 != ((byte[]) tenant).length) {
+        throw new RuntimeException("Invalid tenant prefix length, MUST be of length 8.");
+      }
+      this.tenantPrefix = Arrays.copyOf((byte[]) tenant, ((byte[]) tenant).length);
+      this.tenantName = new byte[0];
     } else {
       this.tenantPrefix = null;
       this.tenantName = null;
@@ -68,6 +89,10 @@ public class FDBContext {
 
   public byte[] getTenantPrefix() {
     return this.tenantPrefix;
+  }
+
+  public boolean hasTenant() {
+    return null != this.tenantPrefix;
   }
 
   public byte[] getTenantName() {

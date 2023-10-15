@@ -30,7 +30,7 @@ dependencies {
     //
     api project(':crypto')
     api project(':token')
-    api 'io.warp10:sensision:1.0.24'
+    api 'io.warp10:sensision:1.0.26'
 
     api 'joda-time:joda-time:2.2'
     api 'org.apache.commons:commons-lang3:3.12.0'
@@ -40,10 +40,10 @@ dependencies {
     api 'org.bouncycastle:bcpg-jdk15on:1.70'
 
     // https://mvnrepository.com/artifact/org.foundationdb/fdb-java
-    api 'org.foundationdb:fdb-java:7.2.5'
+    api 'org.foundationdb:fdb-java:7.1.37'
 
-    api 'org.apache.hadoop:hadoop-common:3.3.5'
-    api 'org.apache.hadoop:hadoop-mapreduce-client-core:3.3.5'
+    api 'org.apache.hadoop:hadoop-common:3.3.6'
+    api 'org.apache.hadoop:hadoop-mapreduce-client-core:3.3.6'
 
     //
     // Processing
@@ -56,7 +56,7 @@ dependencies {
     api 'commons-cli:commons-cli:1.5.0'
 
     // For Standalone(Chunked)MemoryStore
-    api('org.apache.hadoop:hadoop-hdfs-client:3.3.5')
+    api('org.apache.hadoop:hadoop-hdfs-client:3.3.6')
 
     api 'org.eclipse.jetty:jetty-server:9.4.51.v20230217'
     api 'org.eclipse.jetty.websocket:websocket-server:9.4.51.v20230217'
@@ -122,11 +122,9 @@ dependencies {
 
     // @see <a href="http://www.mail-archive.com/dev@kafka.apache.org/msg03829.html>http://www.mail-archive.com/dev@kafka.apache.org/msg03829.html</a>
     if (null != System.getProperty("pulsar")) {
-      println '#### Building Warp 10 for Pulsar ###'
       // https://mvnrepository.com/artifact/org.apache.pulsar/pulsar-client-kafka
       api group: 'org.apache.pulsar', name: 'pulsar-client-kafka', version: '2.8.0'
     } else {
-      println '#### Building Warp 10 for Kafka ###'
       // https://mvnrepository.com/artifact/org.apache.kafka/kafka-clients
       api group: 'org.apache.kafka', name: 'kafka-clients', version: '3.4.0'
     }

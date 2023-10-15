@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2020  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -57,6 +57,13 @@ ingress.websocket.maxmessagesize = 1048576
 // Make sure this is less than 'max.encoder.size'
 //
 #standalone.value.maxsize = 65536
+
+//
+// When using a standalone version with no replication to a FoundationDB based instance
+// the limit of value size can be relaxed by setting this configuration to 'true'
+// to simply emit a warning.
+//
+#warp.relax.value.maxsize = true
 
 //
 // Default maximum age of datapoints pushed to Warp 10, in ms. Any timestamp older than

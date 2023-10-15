@@ -22,6 +22,7 @@ import java.util.List;
 
 import com.geoxp.GeoXPLib;
 
+import io.warp10.ThriftUtils;
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSWrapperHelper;
@@ -40,23 +41,23 @@ import org.apache.thrift.protocol.TCompactProtocol;
  * Builds an encoder from a list of tick,lat,lon,elev,value or GTSs.
  */
 public class TOENCODER extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   public TOENCODER(String name) {
     super(name);
-  }  
+  }
 
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
-    
+
     if (!(top instanceof List)) {
       throw new WarpScriptException(getName() + " expects a list on top of the stack.");
     }
-    
+
     List<Object> elements = (List<Object>) top;
-    
+
     GTSEncoder encoder = new GTSEncoder(0L);
-    
+
     for (Object element: elements) {
       // If we encounter a GTS, a wrap or raw wrap, add all of it to the encoder
 
@@ -67,7 +68,7 @@ public class TOENCODER extends NamedWarpScriptFunction implements WarpScriptStac
 
       // If raw wrap, convert to GTS
       if (element instanceof byte[]) {
-        TDeserializer deser = new TDeserializer(new TCompactProtocol.Factory());
+        TDeserializer deser = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
 
         try {
           GTSWrapper wrapper = new GTSWrapper();
@@ -104,23 +105,23 @@ public class TOENCODER extends NamedWarpScriptFunction implements WarpScriptStac
       if (!(element instanceof List)) {
         throw new WarpScriptException(getName() + " encountered an invalid element.");
       }
-      
+
       List<Object> elt = (List<Object>) element;
-      
+
       if (elt.size() < 2 || elt.size() > 5) {
         throw new WarpScriptException(getName() + " encountered an invalid element.");
       }
-      
+
       Object tick = elt.get(0);
-      
+
       if (!(tick instanceof Long)) {
         throw new WarpScriptException(getName() + " encountered an invalid timestamp.");
       }
-      
+
       Object value = null;
       long location = GeoTimeSerie.NO_LOCATION;
       long elevation = GeoTimeSerie.NO_ELEVATION;
-      
+
       if (2 == elt.size()) { // tick,value
         value = elt.get(1);
       } else if (3 == elt.size()) { // tick,elevation,value
@@ -164,16 +165,16 @@ public class TOENCODER extends NamedWarpScriptFunction implements WarpScriptStac
         }
         value = elt.get(4);
       }
-      
+
       try {
         encoder.addValue((long) tick, location, elevation, value);
       } catch (IOException ioe) {
         throw new WarpScriptException(getName() + " was unable to add value.", ioe);
       }
     }
-    
+
     stack.push(encoder);
 
     return stack;
-  }  
+  }
 }

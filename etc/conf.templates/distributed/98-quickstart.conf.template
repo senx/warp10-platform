@@ -45,7 +45,7 @@ kafka.data.aes = ${aes.key}
 kafka.throttling.bootstrap.servers = ${kafka.bootstrap.servers}
 kafka.throttling.topic = throttling
 
-kafka.runner.bootsreap.servers = ${kafka.bootstrap.servers}
+kafka.runner.bootstrap.servers = ${kafka.bootstrap.servers}
 kafka.runner.topic = runner
 kafka.runner.mac = ${mac.key}
 kafka.runner.aes = ${aes.key}

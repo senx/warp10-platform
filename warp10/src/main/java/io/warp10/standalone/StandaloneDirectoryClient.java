@@ -70,6 +70,7 @@ import com.google.common.collect.MapMaker;
 
 import io.warp10.BytesUtils;
 import io.warp10.SmartPattern;
+import io.warp10.ThriftUtils;
 import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.DirectoryUtil;
@@ -270,6 +271,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     Thread[] initThreads = new Thread[this.initNThreads];
     final AtomicBoolean[] stopMarkers = new AtomicBoolean[this.initNThreads];
     final LinkedBlockingQueue<Entry<byte[],byte[]>> resultQ = new LinkedBlockingQueue<Entry<byte[],byte[]>>(initThreads.length * 8192);
+    final AtomicLong incoherent = new AtomicLong(0L);
 
     for (int i = 0; i < initThreads.length; i++) {
       stopMarkers[i] = new AtomicBoolean(false);
@@ -291,7 +293,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
             padding = new PKCS7Padding();
           }
 
-          TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
+          TDeserializer deserializer = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
 
           while (!stopMe.get()) {
             try {
@@ -344,7 +346,8 @@ public class StandaloneDirectoryClient implements DirectoryClient {
 
               // If classId/labelsId are incoherent, skip metadata
               if (classId != hbClassId || labelsId != hbLabelsId) {
-                LOG.error("Incoherent class/labels Id for " + metadata);
+                LOG.error("Inconsistent class/labels Id (store/computed) [" + Long.toHexString(hbClassId) + ":" + Long.toHexString(hbLabelsId) + " / " +  Long.toHexString(classId) + ":" + Long.toHexString(labelsId) + "] for " + metadata);
+                incoherent.incrementAndGet();
                 continue;
               }
 
@@ -464,6 +467,15 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       nano = System.nanoTime() - nano;
 
       LOG.info("Loaded " + count + " GTS in " + (nano / 1000000.0D) + " ms");
+
+      if (0L != incoherent.get()) {
+        if ("true".equals(WarpConfig.getProperty(Configuration.WARP_IGNORE_ID_INCONSISTENCIES))) {
+          LOG.warn("There were " + incoherent + " inconsistencies detected during loading of GTS, value of '" + Configuration.WARP_HASH_CLASS + "' and/or '" + Configuration.WARP_HASH_LABELS + "' may have changed since GTS were stored, ignoring those GTS.");
+        } else {
+          LOG.error("There were " + incoherent + " inconsistencies detected during loading of GTS, value of '" + Configuration.WARP_HASH_CLASS + "' and/or '" + Configuration.WARP_HASH_LABELS + "' may have changed since GTS were stored, aborting.");
+          throw new RuntimeException("Inconsistent GTS ids detected, please verify '" + Configuration.WARP_HASH_CLASS + "' and/or '" + Configuration.WARP_HASH_LABELS + "' or set '" + Configuration.WARP_IGNORE_ID_INCONSISTENCIES + "' to 'true' to ignore those errors.");
+        }
+      }
     } finally {
       Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_GTS, Sensision.EMPTY_LABELS, count);
       try {
@@ -743,7 +755,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
         } else {
           // Check that we do not have a collision
           if (!metadatasForClassname.get(labelsId).getLabels().equals(metadata.getLabels())) {
-            LOG.warn("LabelsId collision under class '" + metadata.getName() + "' " + metadata.getLabels() + " and " + metadatas.get(metadata.getName()).get(labelsId).getLabels());
+            LOG.warn("LabelsId collision under class '" + metadata.getName() + "' for labelsId " + Long.toHexString(labelsId) + " " + metadata + " and " + metadatas.get(metadata.getName()).get(labelsId));
             Sensision.update(SensisionConstants.CLASS_WARP_DIRECTORY_LABELS_COLLISIONS, Sensision.EMPTY_LABELS, 1);
           }
 
@@ -861,7 +873,9 @@ public class StandaloneDirectoryClient implements DirectoryClient {
           retry = false;
           txn = this.fdb.createTransaction();
           // Allow RAW access because we may manually force a tenant key prefix without actually setting a tenant
-          txn.options().setRawAccess();
+          if (fdbContext.hasTenant()) {
+            txn.options().setRawAccess();
+          }
 
           FDBMutation delete = new FDBClear(this.fdbContext.getTenantPrefix(), bytes);
           delete.apply(txn);
@@ -961,7 +975,9 @@ public class StandaloneDirectoryClient implements DirectoryClient {
               if (!mutations.isEmpty()) {
                 txn = this.fdb.createTransaction();
                 // Allow RAW access because we may manually force a tenant key prefix without actually setting a tenant
-                txn.options().setRawAccess();
+                if (fdbContext.hasTenant()) {
+                  txn.options().setRawAccess();
+                }
 
                 for (FDBMutation mutation: mutations) {
                   mutation.apply(txn);
@@ -1063,7 +1079,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       }
     }
 
-    TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+    TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
 
     try {
       if (null != this.db || null != this.fdb) {

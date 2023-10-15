@@ -23,6 +23,7 @@ import io.warp10.quasar.encoder.QuasarTokenDecoder;
 import io.warp10.quasar.filter.exception.QuasarNoToken;
 import io.warp10.quasar.filter.exception.QuasarTokenException;
 import io.warp10.quasar.filter.exception.QuasarTokenExpired;
+import io.warp10.quasar.filter.exception.QuasarTokenInvalid;
 import io.warp10.quasar.filter.sensision.QuasarTokenFilterSensisionConstants;
 import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.quasar.token.thrift.data.WriteToken;
@@ -103,6 +104,8 @@ public class QuasarTokenFilter {
       quasarTokenRevoked.isRegisteredAppAuthorized(appId);
 
       return token;
+    } catch(IllegalStateException ise) {
+      throw new QuasarTokenInvalid(ise);
     } catch(QuasarTokenException qexp) {
       labels.put("error", qexp.label);
       throw  qexp;
@@ -153,6 +156,8 @@ public class QuasarTokenFilter {
       quasarTokenRevoked.isRegisteredAppAuthorized(appId);
 
       return token;
+    } catch(IllegalStateException ise) {
+      throw new QuasarTokenInvalid(ise);
     } catch(QuasarTokenException qexp) {
       labels.put("error", qexp.label);
       throw  qexp;

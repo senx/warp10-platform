@@ -57,6 +57,12 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
+import org.apache.curator.retry.RetryNTimes;
+import org.apache.curator.x.discovery.ServiceDiscovery;
+import org.apache.curator.x.discovery.ServiceDiscoveryBuilder;
+import org.apache.curator.x.discovery.ServiceInstance;
+import org.apache.curator.x.discovery.ServiceInstanceBuilder;
+import org.apache.curator.x.discovery.ServiceType;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -70,6 +76,7 @@ import org.bouncycastle.crypto.InvalidCipherTextException;
 import org.bouncycastle.crypto.engines.AESWrapEngine;
 import org.bouncycastle.crypto.paddings.PKCS7Padding;
 import org.bouncycastle.crypto.params.KeyParameter;
+import org.bouncycastle.util.encoders.Hex;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.HttpConfiguration;
 import org.eclipse.jetty.server.HttpConnectionFactory;
@@ -83,20 +90,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.apple.foundationdb.Database;
-import com.apple.foundationdb.FDB;
 import com.apple.foundationdb.FDBException;
 import com.apple.foundationdb.StreamingMode;
 import com.apple.foundationdb.Transaction;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.MapMaker;
-import org.apache.curator.retry.RetryNTimes;
-import org.apache.curator.x.discovery.ServiceDiscovery;
-import org.apache.curator.x.discovery.ServiceDiscoveryBuilder;
-import org.apache.curator.x.discovery.ServiceInstance;
-import org.apache.curator.x.discovery.ServiceInstanceBuilder;
-import org.apache.curator.x.discovery.ServiceType;
 
 import io.warp10.SmartPattern;
+import io.warp10.ThriftUtils;
+import io.warp10.continuum.Configuration;
 import io.warp10.continuum.DirectoryUtil;
 import io.warp10.continuum.JettyUtil;
 import io.warp10.continuum.KafkaOffsetCounters;
@@ -108,7 +110,6 @@ import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.DirectoryStatsRequest;
 import io.warp10.continuum.store.thrift.data.DirectoryStatsResponse;
-import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.continuum.thrift.data.LoggingEvent;
 import io.warp10.crypto.CryptoUtils;
@@ -283,6 +284,7 @@ public class Directory extends AbstractHandler implements Runnable {
 
   private final ReentrantLock metadatasLock = new ReentrantLock(true);
 
+  private RuntimeException initializationError = null;
   private final AtomicBoolean cachePopulated = new AtomicBoolean(false);
   private final AtomicBoolean fullyInitialized = new AtomicBoolean(false);
 
@@ -382,7 +384,21 @@ public class Directory extends AbstractHandler implements Runnable {
       Preconditions.checkNotNull(properties.getProperty(required), "Missing configuration parameter '%s'.", required);
     }
 
-    this.fdbContext = FDBUtils.getContext(props.getProperty(io.warp10.continuum.Configuration.DIRECTORY_FDB_CLUSTERFILE), props.getProperty(io.warp10.continuum.Configuration.DIRECTORY_FDB_TENANT));
+    Object tenant = properties.getProperty(Configuration.DIRECTORY_FDB_TENANT);
+
+    if (null != properties.getProperty(Configuration.DIRECTORY_FDB_TENANT_PREFIX)) {
+      if (null != tenant) {
+        throw new IOException("Invalid configuration, only one of '" + Configuration.DIRECTORY_FDB_TENANT_PREFIX + "' and '" + Configuration.DIRECTORY_FDB_TENANT + "' can be set.");
+      }
+      String prefix = properties.getProperty(Configuration.DIRECTORY_FDB_TENANT_PREFIX);
+      if (prefix.startsWith("hex:")) {
+        tenant = Hex.decode(prefix.substring(4));
+      } else {
+        tenant = OrderPreservingBase64.decode(prefix, 0, prefix.length());
+      }
+    }
+
+    this.fdbContext = FDBUtils.getContext(props.getProperty(io.warp10.continuum.Configuration.DIRECTORY_FDB_CLUSTERFILE), tenant);
     this.fdbRetryLimit = Long.parseLong(properties.getProperty(io.warp10.continuum.Configuration.DIRECTORY_FDB_RETRYLIMIT, DEFAULT_FDB_RETRYLIMIT));
 
     this.db = fdbContext.getDatabase();
@@ -489,6 +505,8 @@ public class Directory extends AbstractHandler implements Runnable {
 
       final LinkedBlockingQueue<FDBKeyValue> kvQ = new LinkedBlockingQueue<FDBKeyValue>(initThreads.length * 8192);
 
+      AtomicLong rejected = new AtomicLong(0);
+
       for (int i = 0; i < initThreads.length; i++) {
         stopMarkers[i] = new AtomicBoolean(false);
         final AtomicBoolean stopMe = stopMarkers[i];
@@ -504,7 +522,7 @@ public class Directory extends AbstractHandler implements Runnable {
 
             PKCS7Padding padding = new PKCS7Padding();
 
-            TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
+            TDeserializer deserializer = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
 
             while (!stopMe.get()) {
               try {
@@ -564,7 +582,9 @@ public class Directory extends AbstractHandler implements Runnable {
 
                 // If classId/labelsId are incoherent, skip metadata
                 if (classId != hbClassId || labelsId != hbLabelsId) {
-                  LOG.warn("Incoherent class/labels Id for " + metadata);
+                  LOG.warn("Incoherent class/labels Id (" + classId + "/" + hbClassId + " " + labelsId + "/" + hbLabelsId + ") for " + metadata);
+                  Sensision.update(SensisionConstants.CLASS_DIRECTORY_INCOHERENT_IDS_FDB, Sensision.EMPTY_LABELS, 1);
+                  rejected.addAndGet(1);
                   continue;
                 }
 
@@ -761,7 +781,17 @@ public class Directory extends AbstractHandler implements Runnable {
 
               done = true;
             } catch (Throwable t) {
+              FDBUtils.errorMetrics("directory", t.getCause());
               if (t.getCause() instanceof FDBException) {
+                FDBException fdbe = (FDBException) t.getCause();
+                int code = fdbe.getCode();
+                // Tenant related errors are not recoverable
+                if (2130 == code || 2131 == code) {
+                  self.initializationError = new RuntimeException("Error while accessing FoundationDB.", t);
+                  done = true;
+                  self.cachePopulated.set(true);
+                  throw self.initializationError;
+                }
                 try {
                   db.close();
                 } catch (Exception e) {}
@@ -825,7 +855,7 @@ public class Directory extends AbstractHandler implements Runnable {
 
           nano = System.nanoTime() - nano;
 
-          LOG.info("Loaded " + count + " GTS in " + (nano / 1000000.0D) + " ms");
+          LOG.info("Loaded " + count + " GTS in " + (nano / 1000000.0D) + " ms, rejected " + rejected.get());
         }
       });
 
@@ -861,8 +891,12 @@ public class Directory extends AbstractHandler implements Runnable {
         // Wait until directory is fully initialized
         //
 
-        while(!self.fullyInitialized.get()) {
+        while(!self.fullyInitialized.get() && null == self.initializationError) {
           LockSupport.parkNanos(1000000000L);
+        }
+
+        if (null != self.initializationError) {
+          return;
         }
 
         Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_CLASSES, Sensision.EMPTY_LABELS, classNames.size());
@@ -1061,8 +1095,12 @@ public class Directory extends AbstractHandler implements Runnable {
     // Wait for initialization to be done
     //
 
-    while(!this.fullyInitialized.get()) {
+    while(!this.fullyInitialized.get() && null == initializationError) {
       LockSupport.parkNanos(1000000000L);
+    }
+
+    if (null != initializationError) {
+      throw initializationError;
     }
 
     try {
@@ -1103,6 +1141,10 @@ public class Directory extends AbstractHandler implements Runnable {
     while(!this.cachePopulated.get()) {
       Sensision.set(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_JVM_FREEMEMORY, Sensision.EMPTY_LABELS, Runtime.getRuntime().freeMemory());
       LockSupport.parkNanos(1000000000L);
+    }
+
+    if (null != initializationError) {
+      throw initializationError;
     }
 
     //
@@ -1371,7 +1413,9 @@ public class Directory extends AbstractHandler implements Runnable {
                 retry = false;
                 txn = db.createTransaction();
                 // Allow RAW access because we may manually force a tenant key prefix without actually setting a tenant
-                txn.options().setRawAccess();
+                if (fdbContext.hasTenant()) {
+                  txn.options().setRawAccess();
+                }
 
                 for (FDBMutation mutation: mutations) {
                   mutation.apply(txn);
@@ -1516,8 +1560,10 @@ public class Directory extends AbstractHandler implements Runnable {
             //long labelsId = Longs.fromByteArray(labelsBytes);
 
             // 128bits
+
+            // The value contains the classId/labelsId followed by the value
             byte[] metadataBytes = Arrays.copyOfRange(data, 16, data.length);
-            TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
+            TDeserializer deserializer = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
             Metadata metadata = new Metadata();
             deserializer.deserialize(metadata, metadataBytes);
 
@@ -1548,6 +1594,14 @@ public class Directory extends AbstractHandler implements Runnable {
             int rem = ((int) ((labelsId >>> 56) & 0xffL)) % directory.modulus;
 
             if (directory.remainder != rem) {
+              continue;
+            }
+
+            ByteBuffer xbb = ByteBuffer.wrap(data);
+            xbb.order(ByteOrder.BIG_ENDIAN);
+
+            if (classId != xbb.getLong() || labelsId != xbb.getLong()) {
+              Sensision.update(SensisionConstants.CLASS_DIRECTORY_INCOHERENT_IDS_KAFKA, Sensision.EMPTY_LABELS, 1);
               continue;
             }
 
@@ -1767,7 +1821,7 @@ public class Directory extends AbstractHandler implements Runnable {
                 // Copy attributes from the currently store Metadata instance
                 metadata.setAttributes(meta.getAttributes());
 
-                TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+                TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
                 metadataBytes = serializer.serialize(meta);
 
                 id = MetadataUtils.id(metadata);
@@ -1815,7 +1869,7 @@ public class Directory extends AbstractHandler implements Runnable {
                 metadata.setAttributes(new HashMap<String,String>(meta.getAttributes()));
 
                 // We re-serialize metadata
-                TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+                TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
                 metadataBytes = serializer.serialize(metadata);
               }
 
@@ -1839,7 +1893,7 @@ public class Directory extends AbstractHandler implements Runnable {
 
                 if (hasChanged) {
                   // We re-serialize metadata
-                  TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+                  TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
                   metadataBytes = serializer.serialize(metadata);
                 }
               }
@@ -2005,7 +2059,7 @@ public class Directory extends AbstractHandler implements Runnable {
       byte[] raw = OrderPreservingBase64.decode(line.getBytes(StandardCharsets.US_ASCII));
 
       // Extract DirectoryStatsRequest
-      TDeserializer deser = new TDeserializer(new TCompactProtocol.Factory());
+      TDeserializer deser = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
       DirectoryStatsRequest req = new DirectoryStatsRequest();
 
       try {
@@ -2015,7 +2069,7 @@ public class Directory extends AbstractHandler implements Runnable {
         response.setContentType("text/plain");
         OutputStream out = response.getOutputStream();
 
-        TSerializer ser = new TSerializer(new TCompactProtocol.Factory());
+        TSerializer ser = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
         byte[] data = ser.serialize(resp);
 
         OrderPreservingBase64.encodeToStream(data, out);
@@ -2128,7 +2182,7 @@ public class Directory extends AbstractHandler implements Runnable {
     long count = 0;
     long hits = 0;
 
-    TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+    TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
 
     MetadataID id = null;
 

@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package io.warp10.script;
 
+import io.warp10.ThriftUtils;
 import io.warp10.continuum.gts.Varint;
 import io.warp10.continuum.thrift.data.HyperLogLogPlusParameters;
 
@@ -38,15 +39,15 @@ import org.joda.time.DateTimeZone;
 
 /**
  * This class implements an HyperLogLog+ cardinality estimator.
- * 
+ *
  * It implements the HLL+ algorithm as described in the Google research paper
  * http://research.google.com/pubs/pub40671.html
- * 
+ *
  */
 public class HyperLogLogPlus {
-  
+
   /**
-   * rawEstimateData from http://goo.gl/iU8Ig  
+   * rawEstimateData from http://goo.gl/iU8Ig
    */
   double[][] rawEstimateData = {
     // precision 4
@@ -116,77 +117,77 @@ public class HyperLogLogPlus {
     // precision 18
     { 189083, 185696.913, 182348.774, 179035.946, 175762.762, 172526.444, 169329.754, 166166.099, 163043.269, 159958.91, 156907.912, 153906.845, 150924.199, 147996.568, 145093.457, 142239.233, 139421.475, 136632.27, 133889.588, 131174.2, 128511.619, 125868.621, 123265.385, 120721.061, 118181.769, 115709.456, 113252.446, 110840.198, 108465.099, 106126.164, 103823.469, 101556.618, 99308.004, 97124.508, 94937.803, 92833.731, 90745.061, 88677.627, 86617.47, 84650.442, 82697.833, 80769.132, 78879.629, 77014.432, 75215.626, 73384.587, 71652.482, 69895.93, 68209.301, 66553.669, 64921.981, 63310.323, 61742.115, 60205.018, 58698.658, 57190.657, 55760.865, 54331.169, 52908.167, 51550.273, 50225.254, 48922.421, 47614.533, 46362.049, 45098.569, 43926.083, 42736.03, 41593.473, 40425.26, 39316.237, 38243.651, 37170.617, 36114.609, 35084.19, 34117.233, 33206.509, 32231.505, 31318.728, 30403.404, 29540.0550000001, 28679.236, 27825.862, 26965.216, 26179.148, 25462.08, 24645.952, 23922.523, 23198.144, 22529.128, 21762.4179999999, 21134.779, 20459.117, 19840.818, 19187.04, 18636.3689999999, 17982.831, 17439.7389999999, 16874.547, 16358.2169999999, 15835.684, 15352.914, 14823.681, 14329.313, 13816.897, 13342.874, 12880.882, 12491.648, 12021.254, 11625.392, 11293.7610000001, 10813.697, 10456.209, 10099.074, 9755.39000000001, 9393.18500000006, 9047.57900000003, 8657.98499999999, 8395.85900000005, 8033, 7736.95900000003, 7430.59699999995, 7258.47699999996, 6924.58200000005, 6691.29399999999, 6357.92500000005, 6202.05700000003, 5921.19700000004, 5628.28399999999, 5404.96799999999, 5226.71100000001, 4990.75600000005, 4799.77399999998, 4622.93099999998, 4472.478, 4171.78700000001, 3957.46299999999, 3868.95200000005, 3691.14300000004, 3474.63100000005, 3341.67200000002, 3109.14000000001, 3071.97400000005, 2796.40399999998, 2756.17799999996, 2611.46999999997, 2471.93000000005, 2382.26399999997, 2209.22400000005, 2142.28399999999, 2013.96100000001, 1911.18999999994, 1818.27099999995, 1668.47900000005, 1519.65800000005, 1469.67599999998, 1367.13800000004, 1248.52899999998, 1181.23600000003, 1022.71900000004, 1088.20700000005, 959.03600000008, 876.095999999903, 791.183999999892, 703.337000000058, 731.949999999953, 586.86400000006, 526.024999999907, 323.004999999888, 320.448000000091, 340.672999999952, 309.638999999966, 216.601999999955, 102.922999999952, 19.2399999999907, -0.114000000059605, -32.6240000000689, -89.3179999999702, -153.497999999905, -64.2970000000205, -143.695999999996, -259.497999999905, -253.017999999924, -213.948000000091, -397.590000000084, -434.006000000052, -403.475000000093, -297.958000000101, -404.317000000039, -528.898999999976, -506.621000000043, -513.205000000075, -479.351000000024, -596.139999999898, -527.016999999993, -664.681000000099, -680.306000000099, -704.050000000047, -850.486000000034, -757.43200000003, -713.308999999892, }
   };
-  
+
   /**
    * Maximum value of 'p'
    */
   private static final int MAX_PRECISION = 18;
-  
+
   /**
    * Alpha values for various values of 'm' (2 ^ 'p')
    */
   private static double[] alpha = new double[MAX_PRECISION - 4 + 1];
-  
+
   static {
     alpha[0] = 0.673D; // alpha16
     alpha[1] = 0.697D; // alpha32
     alpha[2] = 0.709D; // alpha64
-    
+
     for (int i = 3; i < alpha.length; i++) {
       alpha[i] = 0.7213D / (1.0D + 1.079D / (1 << (i + 4)));
     }
   }
-  
+
   private enum Format { SPARSE, NORMAL };
-  
+
   /**
    * Length of prefix for the NORMAL case
    */
   private int p;
-  
+
   /**
    * Length of prefix for the SPARSE case
    */
   private int pprime;
-  
+
   /**
    * Number of registers for the NORMAL case
    */
-  private int m;  
-  
+  private int m;
+
   /**
    * Number of registers for the SPARSE case
    */
   private int mprime;
-  
+
   private long pmask;
-  
+
   private long ptopprimemask;
   private long pprimemask;
 
   private byte[] M;
-  
+
   /**
    * Temporary array to store offered hashes.
    * We allow its size to be m
    */
   private int[] tmp_set;
-  
+
   /**
    * Next index to fill in 'tmp_set'
    */
   private int tmp_set_idx = 0;
-  
+
   /**
    * Compressed representation of the sparse_list
    */
   private byte[] sparse_list = new byte[0];
-  
+
   /**
    * Number of registers (thus non 0) in sparse_list
    */
   private int sparse_list_len = 0;
-  
+
   /**
    * Current format of the estimator
    */
@@ -194,28 +195,28 @@ public class HyperLogLogPlus {
 
   private int _64minusp;
   private int _64minuspprime;
-  
+
   /**
    * Thresholds for correcting bias
    * @see <a href="https://docs.google.com/document/d/1gyjfMHy43U9OWBXxfaeG-3MjGzejW1dlpyMwEYAAWEI/view?fullscreen#">https://docs.google.com/document/d/1gyjfMHy43U9OWBXxfaeG-3MjGzejW1dlpyMwEYAAWEI/view?fullscreen#</a>
    */
   private static final int[] THRESHOLDS = new int[] { 10, 20, 40, 80, 220, 400, 900, 1800, 3100, 6500, 11500, 20000, 50000, 120000, 350000 };
-  
+
   private long initTime;
   private long expiry;
-  
+
   private String key = null;
-  
+
   private HyperLogLogPlus() {}
-  
+
   public HyperLogLogPlus(int p, int pprime) {
-    
+
     setInitTime(System.currentTimeMillis());
-        
+
     if (pprime < 4 || pprime > 64) {
       throw new RuntimeException("p' MUST be in [4,64].");
     }
-    
+
     // Limit p' to 25 so we are sure we have enough bits in encodeHash for index + rho (6) + 1
     if (pprime > 25) {
       throw new RuntimeException("p' is limited to 25.");
@@ -223,17 +224,17 @@ public class HyperLogLogPlus {
     if (p < 4 || p > pprime || p > 18) {
       throw new RuntimeException("p MUST be in [4,p'], with an enforced hard limit of 18.");
     }
-  
+
     this.p = p;
     this._64minusp = 64 - p;
     this.pmask = (1L << _64minusp) - 1;
     this.pprime = pprime;
     this._64minuspprime = 64 - pprime;
-    
+
     //
     // Compute the masks to extract <x63-p......x64-p'> and <x63-p'...x0> to use in encodeHash
     //
-    
+
     this.ptopprimemask = ((1L << _64minusp) - 1) ^ ((1L << _64minuspprime) - 1);
     this.pprimemask = ((1L << _64minuspprime) - 1);
 
@@ -245,41 +246,41 @@ public class HyperLogLogPlus {
     // Don't allocate it too small as this would lead to 'merge' being
     // called too often. We allocate it to 25% of the footprint of the NORMAL case
     //
-    
+
     this.tmp_set = new int[(int)(Math.ceil(this.m * 6 / 8) / 4 / 2)];
-    
+
     if (this.p == this.pprime) {
       this.format = Format.NORMAL;
       this.M = new byte[(int) Math.ceil((this.m * 6) / 8)];
       this.tmp_set = null;
     }
   }
-    
+
   public long getInitTime() {
     return this.initTime;
   }
-  
+
   public void setInitTime(long instant) {
-    
+
     this.initTime = instant;
-    
+
     //
     // Compute expiry time, we compute the timestamp of the first day of the month following the current one
     //
-    
-    DateTime dt = new DateTime(this.initTime, DateTimeZone.UTC);    
+
+    DateTime dt = new DateTime(this.initTime, DateTimeZone.UTC);
     this.expiry = new DateTime(dt.getYear(), dt.getMonthOfYear(), 1, 0, 0, DateTimeZone.UTC).plusMonths(1).getMillis();
   }
-  
+
   public boolean hasExpired() {
     return System.currentTimeMillis() > expiry;
   }
-  
+
   /**
    * Check if 'x' would modify the cardinality estimation
    */
   public synchronized boolean isNew(long x) {
-    
+
     switch(format) {
       case NORMAL:
         int idx = (int) (x >>> _64minusp);
@@ -290,7 +291,7 @@ public class HyperLogLogPlus {
           return true;
         }
         return false;
-        
+
       case SPARSE:
         // Encode 'x'
         int k = encodeHash(x);
@@ -298,7 +299,7 @@ public class HyperLogLogPlus {
 
         // Check if k has precedence above any value in tmp_set
 
-        for (int i = 0; i < tmp_set_idx; i++) {          
+        for (int i = 0; i < tmp_set_idx; i++) {
           int pidx = decodeIndex(tmp_set[i], pprime);
           if (pidx != idx) {
             continue;
@@ -309,24 +310,24 @@ public class HyperLogLogPlus {
             return false;
           }
         }
-        
+
         // Check if k has precedence above any value in sparse_list
-        
+
         if (0 != sparse_list.length) {
           ByteBuffer bb = ByteBuffer.wrap(sparse_list).order(ByteOrder.BIG_ENDIAN);
 
           int lastvalue = 0;
-          
+
           while (bb.hasRemaining()) {
             if (0 == bb.position()) {
               lastvalue = (int) Varint.decodeSignedLong(bb);
             } else {
               int delta = (int) Varint.decodeUnsignedLong(bb);
               lastvalue += delta;
-            }        
-          
+            }
+
             int pidx = decodeIndex(lastvalue, pprime);
-            
+
             if (pidx != idx) {
               continue;
             }
@@ -345,18 +346,18 @@ public class HyperLogLogPlus {
 
       default:
         return true;
-    }    
+    }
   }
-  
+
   public synchronized void aggregate(long x) throws IOException {
     switch(format) {
       case NORMAL:
         int idx = (int) (x >>> _64minusp);
         long w = x & pmask;
         byte rho = rho(w, _64minusp);
-        setRho(idx, rho);      
+        setRho(idx, rho);
         break;
-        
+
       case SPARSE:
         int k = encodeHash(x);
         tmp_set[tmp_set_idx++] = k;
@@ -372,14 +373,14 @@ public class HyperLogLogPlus {
           }
         }
         break;
-    }    
+    }
   }
-  
+
   /**
    * Compute the estimated cardinality
    */
   public long cardinality() throws IOException {
-    
+
     switch(format) {
       case NORMAL:
         double E = 0.0D;
@@ -391,26 +392,26 @@ public class HyperLogLogPlus {
             V++;
           }
         }
-                
+
         E = 1.0D / E;
         E = alpha[this.p - 4] * this.m * this.m * E;
-        
+
         double Eprime = (E <= 5 * this.m) ? E - estimateBias(E, this.p) : E;
 
         double H;
-        
+
         if (0 != V) {
           H = linearCounting(this.m, V);
         } else {
           H = Eprime;
         }
-        
+
         if ((p <= 18 && H <= THRESHOLDS[this.p - 4]) || (p > 18 && E <= 5 * this.m)) {
           return Math.round(H);
         } else {
           return Math.round(Eprime);
         }
-        
+
       case SPARSE:
         merge();
         return Math.round(linearCounting(mprime, mprime - sparse_list_len));
@@ -418,19 +419,19 @@ public class HyperLogLogPlus {
         return -1;
     }
   }
-  
+
   public byte setRho(int idx, byte rho) {
     // Read current value of rho
     byte current = getRho(idx);
-    
+
     if (rho < current) {
       return current;
     }
-    
+
     int bits = idx * 6;
     int firstbyte = bits / 8;
     int bitoffset = bits % 8;
-    
+
     switch (bitoffset) {
       case 0:
         this.M[firstbyte] = (byte) (this.M[firstbyte] & 0x3);
@@ -480,10 +481,10 @@ public class HyperLogLogPlus {
         this.M[firstbyte + 1] |= (byte) ((rho << 3) & (byte) 0xf8);
         break;
     }
-    
+
     return rho;
   }
-  
+
   public byte getRho(int idx) {
     int bits = idx * 6;
     int firstbyte = bits / 8;
@@ -510,39 +511,39 @@ public class HyperLogLogPlus {
         throw new RuntimeException();
     }
   }
-      
+
   private double estimateBias(double E, int p) {
-    
+
     //
     // For 'p' above 18 there is no bias
     //
-    
+
     if (p > 18) {
       return 0.0D;
     }
-    
+
     //
     // Determine the 6 nearest neighbors in terms of distance from the estimate
     //
 
     TreeMap<Double, Integer> neighbors = new TreeMap<Double, Integer>();
-    
+
     double[] estimates = rawEstimateData[p - 4];
-    
+
     for (int i = 0; i < estimates.length; i++) {
       neighbors.put(Math.pow(estimates[i] - E, 2.0D),  i);
     }
-    
+
     //
     // Compute bias on the 6 nearest neighbors
     //
-    
+
     double[] biasVector = biasData[p - 4];
-    
+
     double biasTotal = 0.0D;
-    
+
     int k = 0;
-    
+
     for (int idx: neighbors.values()) {
       biasTotal += biasVector[idx];
       k++;
@@ -553,87 +554,87 @@ public class HyperLogLogPlus {
 
     return biasTotal / k;
   }
-  
+
   private double linearCounting(int m, int V) {
     return m * Math.log((double) m / (double) V);
   }
-  
+
   private int[] decodeSparseList() {
     //
     // Extract values from 'sparse_list'
     //
-    
+
     int[] values = new int[this.sparse_list_len];
 
     int idx = 0;
 
-    if (0 != sparse_list.length) {     
+    if (0 != sparse_list.length) {
       ByteBuffer bb = ByteBuffer.wrap(sparse_list).order(ByteOrder.BIG_ENDIAN);
 
       int lastvalue = 0;
-      
+
       while (bb.hasRemaining()) {
         if (0 == bb.position()) {
           lastvalue = (int) Varint.decodeSignedLong(bb);
         } else {
           long delta = (int) Varint.decodeUnsignedLong(bb);
           lastvalue += delta;
-        }        
-        
+        }
+
         values[idx++] = lastvalue;
-      }            
+      }
     }
 
     return values;
   }
-  
-  private void merge() throws IOException {    
+
+  private void merge() throws IOException {
     int[] values = decodeSparseList();
-    
+
     merge(values);
   }
-  
+
   private void merge(int[] values) throws IOException {
-        
+
     if (0 == tmp_set_idx) {
       return;
     }
-    
+
     //
     // Add values from tmp_set
     //
-  
+
     int idx = values.length;
-    
+
     values = Arrays.copyOf(values, idx + tmp_set_idx);
-    
+
     for (int i = 0; i < tmp_set_idx; i++) {
       values[idx++] = tmp_set[i];
     }
-    
+
     //
     // Sort 'values'
     //
-    
+
     Arrays.sort(values);
-    
+
     //
     // Encode 'values'
     //
-    
+
     // Create a ByteArrayOutputStream with an initial size computed by a heuristic
     ByteArrayOutputStream baos = new ByteArrayOutputStream(sparse_list.length + tmp_set_idx * 6);
 
     int index = decodeIndex(values[0], this.pprime);
     baos.write(Varint.encodeSignedLong(values[0]));
     int len = 1;
-    
+
     int prev = 0;
 
     int i = 1;
-        
+
     int nextindex;
-    
+
     while(i < idx) {
       nextindex = decodeIndex(values[i], this.pprime);
       //
@@ -655,67 +656,67 @@ public class HyperLogLogPlus {
       }
       i++;
     }
-    
+
     this.sparse_list = baos.toByteArray();
     this.sparse_list_len = len;
-    
+
     this.tmp_set_idx = 0;
   }
-  
+
   public synchronized void toNormal() throws IOException {
-    
+
     // Do nothing if we're already in the normal case
     if (Format.NORMAL == this.format) {
       return;
     }
-    
+
     //
     // Call merge otherwise we end up with a count of 0
     //
-    
+
     merge();
-    
+
     this.M = new byte[(int) Math.ceil((this.m * 6) / 8)];
-    
+
     int[] values = decodeSparseList();
-    
+
     for (int encodedHash: values) {
       int index = decodeIndex(encodedHash, this.p);
       byte rho = decodeRho(encodedHash);
       setRho(index,rho);
     }
-    
+
     format = Format.NORMAL;
     this.sparse_list = null;
     this.tmp_set = null;
   }
-  
+
   /**
    * Compute the number of leading 0s in the binary representation of 'x'
-   * 
+   *
    * @param x Binary representation for which to count the zeroes
    * @param n The number of bits to consider (n lower bits)
-   * 
+   *
    * @return The number of leading 0s
    */
   byte rho(long x, int n) {
     //return (byte) (1 + Long.numberOfLeadingZeros(x) - (64 - n));
     return (byte) (Long.numberOfLeadingZeros((x << (64 - n)) | (long) (1 << ((64 -n) - 1))) + 1);
   }
-  
+
   /**
    * Encode a hash into an integer.
-   * 
+   *
    * @param x Hash to encode
    * @return The encoded hash on an integer.
    */
   int encodeHash(long x) {
-    
+
     //
     // We extract the prefix, on an int (since we constrain pprime to at most 25)
     // We clear the upper bit with the mask 0x7fffffffL
     //
-    
+
     int prefix = (int) ((x >>> _64minuspprime) & 0x7fffffffL);
 
     int encoded = prefix;
@@ -723,26 +724,26 @@ public class HyperLogLogPlus {
     //
     // Check if bits x(63-p) to x(64-pprime) are all zero
     //
-     
+
     //
     // If all (p' - p) bits of the p' prefix minus the p prefix
     // are 0 then the number of leading 0s is (p'-p) + the number
     // of leading zeros of the remaining 64-p' bits
     //
-    
+
     if (0 == (x & this.ptopprimemask)) {
       byte rho = rho(x & this.pprimemask, _64minuspprime);
-      
+
       encoded = encoded << 7;
 
       // Invert the bits of rho so the largest values appear first when
       // sorting by prefix
-      
+
       rho = (byte) ((rho ^ 0x3f) & 0x3f);
-          
+
       // Add rho
       encoded = encoded | ((rho << 1) & 0x7e);
-      
+
       // Force lower bit to 1
       encoded = encoded | 0x1;
     } else {
@@ -750,19 +751,19 @@ public class HyperLogLogPlus {
       // so the number of zero bits can be counted from that.
       // Shift the prefix to the left to clear the LSB
       encoded = encoded << 1;
-    } 
-    
+    }
+
     return encoded;
   }
-  
+
   int decodeIndex(int encodedHash, int plen) {
     if (0 == (encodedHash & 0x1)) {
       return (encodedHash >>> 1) >>> (pprime - plen);
     } else {
-      return (encodedHash >>> 7) >>> (pprime - plen);      
+      return (encodedHash >>> 7) >>> (pprime - plen);
     }
   }
-  
+
   byte decodeRho(int encodedHash) {
     //
     // If the lower bit is 1, extract rho
@@ -777,84 +778,84 @@ public class HyperLogLogPlus {
       return (byte)rho;
     }
   }
-  
+
   /**
    * Merge estimates from another HLL+
-   * 
+   *
    * @param other
    */
   public synchronized void fuse(HyperLogLogPlus other) throws IOException {
-    
+
     if (null == other) {
       return;
     }
-    
+
     //
     // If 'p' differs for the estimators
     // we can't fuse them
     //
-    
+
     if(this.p != other.p) {
       throw new IOException("Can't fuse estimators with different prefix length.");
     }
-    
+
     //
     // If 'pprime' differs in both estimators,
     // we will take the easy way and convert them to the NORMAL case
     //
-    
+
     if (this.pprime != other.pprime) {
       other.toNormal();
       this.toNormal();
     }
-    
+
     //
     // If one of the estimators is in SPARSE mode, convert them both to NORMAL
     //
-    
+
     if (Format.SPARSE == this.format || Format.SPARSE == other.format) {
       other.toNormal();
       this.toNormal();
     }
-    
+
     if (Format.SPARSE == this.format && Format.SPARSE == this.format) {
       //
       // Both estimators are in SPARSE mode, trigger a merge
       //
-      
+
       this.merge();
       other.merge();
-      
+
       //
       // Now decode and merge the sparse lists
       //
-      
+
       int[] slthis = this.decodeSparseList();
       int[] slother = other.decodeSparseList();
-      
+
       //
       // Merge sparse lists
       //
-      
+
       slthis = Arrays.copyOf(slthis, slthis.length + slother.length);
       System.arraycopy(slother, 0, slthis, slthis.length - slother.length, slother.length);
 
       merge(slthis);
-      
+
       //
       // Convert to NORMAL mode if the sparse list has grown too much
       //
-      
+
       if (sparse_list.length > (int) Math.ceil((this.m * 6) / 8)) {
         toNormal();
         this.sparse_list = null;
         this.tmp_set = null;
-      }      
+      }
     } else {
       //
       // Update the registers with the rho values from 'other'
       //
-      
+
       for (int i = 0; i < this.m; i++) {
         byte rho = other.getRho(i);
         this.setRho(i, rho);
@@ -864,17 +865,17 @@ public class HyperLogLogPlus {
 
   public byte[] toBytes() throws IOException {
     HyperLogLogPlusParameters params = new HyperLogLogPlusParameters();
-    
+
     params.setInitTime(this.initTime);
     params.setP((byte) this.p);
     params.setPprime((byte) this.pprime);
     params.setSparse(Format.SPARSE == this.format);
-    
+
     if (null != this.key) {
       params.setKey(this.key);
     }
-    
-    if (Format.SPARSE == this.format) {      
+
+    if (Format.SPARSE == this.format) {
       // Trigger a merge
       merge();
       // Output the sparse list size
@@ -886,9 +887,9 @@ public class HyperLogLogPlus {
       GZIPOutputStream gzos = new GZIPOutputStream(baos);
       gzos.write(this.M);
       gzos.close();
-      
+
       byte[] gzipped = baos.toByteArray();
-      
+
       if (gzipped.length < this.M.length) {
         params.setRegisters(gzipped);
         params.setGzipped(true);
@@ -897,43 +898,43 @@ public class HyperLogLogPlus {
         params.setGzipped(false);
       }
     }
-    
+
     try {
-      TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+      TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
       byte[] ser = serializer.serialize(params);
       return ser;
     } catch (TException te) {
       throw new IOException(te);
     }
   }
-  
+
   public static HyperLogLogPlus fromBytes(byte[] bytes) throws IOException, ClassNotFoundException {
-    
-    TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
-    
+
+    TDeserializer deserializer = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
+
     HyperLogLogPlusParameters params = new HyperLogLogPlusParameters();
-    
+
     try {
       deserializer.deserialize(params, bytes);
     } catch (TException te) {
       throw new IOException(te);
     }
-    
+
     HyperLogLogPlus hllp = new HyperLogLogPlus();
-    
+
     hllp.setInitTime(params.getInitTime());
-    
+
     if (params.isSetKey()) {
       hllp.setKey(params.getKey());
     }
-    
+
     // Read p
     hllp.p = params.getP();
     hllp.m = 1 << hllp.p;
     // Read p'
     hllp.pprime= params.getPprime();
     hllp.mprime = 1 << hllp.pprime;
-    
+
     hllp._64minusp = 64 - hllp.p;
     hllp.pmask = (1L << hllp._64minusp) - 1;
     hllp._64minuspprime = 64 - hllp.pprime;
@@ -942,7 +943,7 @@ public class HyperLogLogPlus {
 
     // Read the current mode
     hllp.format = params.isSparse() ? Format.SPARSE : Format.NORMAL;
-    
+
     if (Format.SPARSE == hllp.format) {
       hllp.sparse_list_len = params.getSparseListLen();
       hllp.sparse_list = params.getSparseList();
@@ -958,7 +959,7 @@ public class HyperLogLogPlus {
         byte[] buf = new byte[1024];
         while(true) {
           int len = gzis.read(buf);
-          
+
           if (len < 0) {
             break;
           }
@@ -970,22 +971,22 @@ public class HyperLogLogPlus {
         hllp.M = params.getRegisters();
       }
     }
-    
+
     return hllp;
   }
-  
+
   public int getP() {
     return this.p;
   }
-  
+
   public int getPPrime() {
     return this.pprime;
   }
-  
+
   public String getKey() {
     return this.key;
   }
-  
+
   public void setKey(String key) {
     this.key = key;
   }

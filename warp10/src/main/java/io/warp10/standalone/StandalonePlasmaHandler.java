@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package io.warp10.standalone;
 
+import io.warp10.ThriftUtils;
 import io.warp10.ThrowableUtils;
 import io.warp10.json.JsonUtils;
 import io.warp10.continuum.Configuration;
@@ -85,7 +86,7 @@ import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
 
 import com.geoxp.GeoXPLib;
 public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements Runnable, StandalonePlasmaHandlerInterface {
-  
+
   private enum OUTPUT_FORMAT {
     RAW,
     JSON,
@@ -96,105 +97,105 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
 
   protected final KeyStore keystore;
   private final Properties properties;
-  
+
   private DirectoryClient directoryClient;
 
   private final Random random = new Random();
-  
+
   private byte[] metadataKey;
-  
+
   private LinkedBlockingQueue<GTSEncoder> encoders = new LinkedBlockingQueue<GTSEncoder>(256);
-  
+
   /**
    * Map of classId+labelsId to Metadata
    */
   private Map<BigInteger, Metadata> metadatas = new HashMap<BigInteger, Metadata>();
-  
+
   /**
    * Map of Session to subscription
    */
   private Map<Session, Set<BigInteger>> subscriptions = new ConcurrentHashMap<Session, Set<BigInteger>>();
-  
+
   /**
    * Map of Session to JSON format
    */
   private Map<Session, Boolean> format = new HashMap<Session, Boolean>();
-  
+
   /**
    * Map of Session to output format
    */
   private Map<Session, OUTPUT_FORMAT> outputFormat = new HashMap<Session, OUTPUT_FORMAT>();
-  
+
   /**
    * Mp of Session to sample rate
    */
   private Map<Session, Long> sampleRate = new HashMap<Session, Long>();
-  
+
   /**
    * Map of Session flag to expose owner/producer, based on the tokens used
    */
   private Map<Session, Boolean> exposeOwnerProducer = new HashMap<Session, Boolean>();
-  
+
   /**
-   * Number of 
+   * Number of
    */
   private Map<BigInteger, AtomicInteger> refcounts = new ConcurrentHashMap<BigInteger, AtomicInteger>();
-  
+
   private boolean hasclients = false;
-  
+
   private PlasmaSubscriptionListener subscriptionListener = null;
-  
+
   /**
    * Max number of subscriptions per session
    */
   private final int maxSubscriptions;
-  
+
   @WebSocket
   public static class StandalonePlasmaWebSocket {
-    
+
     private StandalonePlasmaHandler handler;
-    
+
     @OnWebSocketConnect
     public void onWebSocketConnect(Session session) {
     }
-    
+
     @OnWebSocketMessage
     public void onWebSocketMessage(Session session, String message) throws Exception {
-      
+
       //
       // Split message on whitespace boundary
       //
-      
+
       String[] tokens = message.split("\\s+");
-            
+
       tokens[0] = tokens[0].trim();
-      
+
       if ("SUBSCRIBE".equals(tokens[0]) || "UNSUBSCRIBE".equals(tokens[0])) {
         //
         // [UN]SUBSCRIBE <TOKEN> <SELECTOR>
         //
-        
+
         Matcher m = EgressFetchHandler.SELECTOR_RE.matcher(tokens[2].trim());
-        
+
         if (!m.matches()) {
           session.getRemote().sendString("KO Invalid subscription selector.");
           return;
         }
-        
+
         String classSelector = m.group(1);
         Map<String,String> labelsSelector = GTSHelper.parseLabelsSelectors(m.group(2));
-        
+
         //
         // Extract token
         //
-        
+
         ReadToken rtoken = null;
-        
+
         try {
           rtoken = Tokens.extractReadToken(tokens[1]);
-          
+
           if (rtoken.getHooksSize() > 0) {
-            throw new IOException("Tokens with hooks cannot be used with Plasma.");        
+            throw new IOException("Tokens with hooks cannot be used with Plasma.");
           }
 
           Map<String, String> rtokenAttributes = rtoken.getAttributes();
@@ -204,40 +205,40 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
         } catch (Exception e) {
           rtoken = null;
         }
-        
+
         if (null == rtoken) {
           session.getRemote().sendString("KO Invalid token.");
           return;
         }
-        
+
         labelsSelector.remove(Constants.PRODUCER_LABEL);
         labelsSelector.remove(Constants.OWNER_LABEL);
         labelsSelector.remove(Constants.APPLICATION_LABEL);
 
         labelsSelector.putAll(Tokens.labelSelectorsFromReadToken(rtoken));
-        
+
         List<String> clsSels = new ArrayList<String>();
         List<Map<String,String>> lblsSels = new ArrayList<Map<String,String>>();
         clsSels.add(classSelector);
         lblsSels.add(labelsSelector);
-        
+
         List<Metadata> metadatas = new ArrayList<Metadata>();
-        
+
         DirectoryRequest drequest = new DirectoryRequest();
         drequest.setClassSelectors(clsSels);
         drequest.setLabelsSelectors(lblsSels);
         Iterator<Metadata> iter = this.handler.getDirectoryClient().iterator(drequest);
 
         int subs = this.handler.getSubscriptionCount(session);
-        
+
         try {
           while(iter.hasNext()) {
             metadatas.add(iter.next());
-            
+
             //
             // Process subscriptions 10000 at a time
             //
-            
+
             if (metadatas.size() >= 10000) {
               if ('S' == tokens[0].charAt(0)) {
                 this.handler.subscribe(session, metadatas);
@@ -247,7 +248,7 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
               metadatas.clear();
             }
           }
-          
+
           if ('S' == tokens[0].charAt(0)) {
             this.handler.subscribe(session, metadatas);
           } else {
@@ -258,7 +259,7 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
             try { ((MetadataIterator) iter).close(); } catch (Exception e) {}
           }
         }
-        
+
         //
         // Update the expose flag. If the token has the .expose attribute set
         // then if the subscription list is currently empty or the expose flag is
@@ -281,19 +282,19 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
               this.handler.setExposeOwnerProducer(session, true);
           } else {
             this.handler.setExposeOwnerProducer(session, false);
-          }            
+          }
         }
       } else if ("SUBSCRIPTIONS".equals(tokens[0])) {
         //
         // List subscriptions
         //
-        
+
         this.handler.listSubscriptions(session);
       } else if ("CLEAR".equals(tokens[0])) {
         //
         // Clear all subscriptions
         //
-        
+
         this.handler.clearSubscriptions(session);
       } else if ("TEXT".equals(tokens[0])) {
         this.handler.setOutputFormat(session, OUTPUT_FORMAT.TEXT);
@@ -318,9 +319,9 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
         //
         // Set the sample rate of data
         //
-                
+
         double rate = Double.parseDouble(tokens[1]);
-        
+
         if (rate > 0.0D && rate <= 1.0D) {
           this.handler.setSampleRate(session, rate);
         } else {
@@ -330,24 +331,24 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
         session.close(HttpServletResponse.SC_BAD_REQUEST, "Invalid verb.");
       }
     }
-    
-    @OnWebSocketClose    
+
+    @OnWebSocketClose
     public void onWebSocketClose(Session session, int statusCode, String reason) {
       this.handler.deregister(session);
     }
-    
+
     public void setHandler(StandalonePlasmaHandler handler) {
       this.handler = handler;
     }
   }
-  
+
   public StandalonePlasmaHandler(KeyStore keystore, Properties properties, DirectoryClient directoryClient) {
     this(keystore, properties, directoryClient, true);
   }
-  
+
   public StandalonePlasmaHandler(KeyStore keystore, Properties properties, DirectoryClient directoryClient, boolean startThread) {
     super(StandalonePlasmaWebSocket.class);
-    
+
     this.keystore = keystore;
     this.properties = properties;
     this.directoryClient = directoryClient;
@@ -357,23 +358,23 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
       this.maxSubscriptions = Constants.WARP_PLASMA_MAXSUBS_DEFAULT;
     }
     this.metadataKey = keystore.getKey(KeyStore.AES_KAFKA_METADATA);
-    
+
     if (startThread) {
       Thread t = new Thread(this);
       t.setDaemon(true);
       t.setName("[StandalonePlasmaHandler]");
-      t.start();      
+      t.start();
     }
   }
 
   public void setDirectoryClient(DirectoryClient directoryClient) {
-    this.directoryClient = directoryClient;    
+    this.directoryClient = directoryClient;
   }
-    
+
   public DirectoryClient getDirectoryClient() {
     return this.directoryClient;
   }
-  
+
   @Override
   public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
     if (Constants.API_ENDPOINT_PLASMA_SERVER.equals(target)) {
@@ -385,14 +386,14 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
       return;
     }
   }
-  
+
   @Override
   public void configure(final WebSocketServletFactory factory) {
-        
+
     final StandalonePlasmaHandler self = this;
 
     final WebSocketCreator oldcreator = factory.getCreator();
-    
+
     WebSocketCreator creator = new WebSocketCreator() {
       @Override
       public Object createWebSocket(ServletUpgradeRequest req, ServletUpgradeResponse resp) {
@@ -403,7 +404,7 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
     };
 
     factory.setCreator(creator);
-    
+
     //
     // Update the maxMessageSize if need be
     //
@@ -414,73 +415,73 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
 
     super.configure(factory);
   }
-  
+
   private synchronized void subscribe(Session session, List<Metadata> metadatas) {
-    
+
     if (metadatas.isEmpty()) {
       return;
     }
-    
+
     // 128BITS
     byte[] bytes = new byte[16];
     ByteBuffer bb = ByteBuffer.wrap(bytes).order(ByteOrder.BIG_ENDIAN);
-    
+
     if (!this.subscriptions.containsKey(session)) {
       this.subscriptions.put(session, new HashSet<BigInteger>());
     }
-    
+
     for (Metadata metadata: metadatas) {
       bb.rewind();
       bb.putLong(metadata.getClassId());
       bb.putLong(metadata.getLabelsId());
-      
+
       BigInteger id = new BigInteger(bytes);
-      
+
       //
       // Limit the number of subscriptions per session to 'maxSubscriptions'
       //
-      
+
       if (subscriptions.get(session).size() >= maxSubscriptions) {
         break;
       }
 
       this.metadatas.put(id, metadata);
-      
+
       if (!this.refcounts.containsKey(id)) {
         this.refcounts.put(id, new AtomicInteger(0));
       }
-      
+
       if (!subscriptions.get(session).contains(id)) {
         subscriptions.get(session).add(id);
         this.refcounts.get(id).addAndGet(1);
       }
       hasclients = true;
     }
-    
+
     if (null != this.subscriptionListener) {
       this.subscriptionListener.onChange();
     }
   }
 
-  private synchronized void unsubscribe(Session session, List<Metadata> metadatas) {   
-    
+  private synchronized void unsubscribe(Session session, List<Metadata> metadatas) {
+
     if (metadatas.isEmpty()) {
       return;
     }
-    
+
     // 128BITS
     byte[] bytes = new byte[16];
     ByteBuffer bb = ByteBuffer.wrap(bytes).order(ByteOrder.BIG_ENDIAN);
-    
+
     if (!this.subscriptions.containsKey(session)) {
       return;
     }
-    
+
     for (Metadata metadata: metadatas) {
       bb.rewind();
       bb.putLong(metadata.getClassId());
       bb.putLong(metadata.getLabelsId());
-      
+
       BigInteger id = new BigInteger(bytes);
 
       if (subscriptions.get(session).contains(id)) {
@@ -491,7 +492,7 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
         }
       }
     }
-    
+
     if (null != this.subscriptionListener) {
       this.subscriptionListener.onChange();
     }
@@ -500,21 +501,21 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
   public void setSubscriptionListener(PlasmaSubscriptionListener listener) {
     this.subscriptionListener = listener;
   }
-  
-  private synchronized void deregister(Session session) {    
+
+  private synchronized void deregister(Session session) {
     clearSubscriptions(session);
     this.format.remove(session);
     this.sampleRate.remove(session);
     this.exposeOwnerProducer.remove(session);
   }
-  
+
   private synchronized void clearSubscriptions(Session session) {
     //
     // Decrease refcount for each gts subscribed
     //
 
     boolean mustRepublish = false;
-    
+
     if (this.subscriptions.containsKey(session)) {
       Set<BigInteger> ids = this.subscriptions.get(session);
       this.subscriptions.remove(session);
@@ -525,23 +526,23 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
           this.metadatas.remove(id);
           this.refcounts.remove(id);
           mustRepublish = true;
-        }        
+        }
       }
-    }    
-    
+    }
+
     if (this.refcounts.isEmpty()) {
       hasclients = false;
     }
-    
+
     if (null != this.subscriptionListener && mustRepublish) {
       this.subscriptionListener.onChange();
     }
   }
-  
+
   private synchronized void listSubscriptions(Session session) throws IOException {
     if (this.subscriptions.containsKey(session)) {
       StringBuilder sb = new StringBuilder();
-      
+
       for (BigInteger id: this.subscriptions.get(session)) {
         sb.setLength(0);
         sb.append("SUB ");
@@ -550,63 +551,63 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
       }
     }
   }
-  
+
   private synchronized int getSubscriptionCount(Session session) {
-    Set<BigInteger> subs = this.subscriptions.get(session); 
+    Set<BigInteger> subs = this.subscriptions.get(session);
     if (null != subs) {
       return subs.size();
     } else {
       return 0;
     }
   }
-  
+
   public void publish(GTSEncoder encoder) {
-    try {      
+    try {
       // FIXME(hbs): this will block the pushing of data
       this.encoders.offer(encoder, 1000L, TimeUnit.SECONDS);
     } catch (InterruptedException ie) {
       // FIXME(hbs): Sensision metrics
     }
   }
-  
+
   @Override
   public boolean hasSubscriptions() {
     return hasclients;
   }
-  
+
   //
   // FIXME(hbs): dispatch will forward a given encoder to every single session which subscribed to it
   // This is done in the Kafka consuming thread. It might be a good idea to add some loosely coupled
   // logic in this by having a set of threads doing the actual dispatch.
   // Or maybe first add a metric to know how many different sessions were targeted
   //
-  
+
   protected void dispatch(GTSEncoder encoder) throws IOException {
-        
+
     long nano = System.nanoTime();
-    
+
     Sensision.update(SensisionConstants.SENSISION_CLASS_PLASMA_FRONTEND_DISPATCH_CALLS, Sensision.EMPTY_LABELS, 1);
-    
+
     // 128BITS
     byte[] bytes = new byte[16];
     ByteBuffer bb = ByteBuffer.wrap(bytes).order(ByteOrder.BIG_ENDIAN);
     bb.putLong(encoder.getClassId());
     bb.putLong(encoder.getLabelsId());
-    
+
     BigInteger id = new BigInteger(bytes);
-    
+
     AtomicInteger count = refcounts.get(id);
-    
+
     if (null == count) {
       return;
     }
-       
+
     int refcount = count.get();
-    
+
     if (refcount > 0) {
-      
+
       long maxmessagesize = Math.min(this.getWebSocketFactory().getPolicy().getMaxTextMessageSize(), this.getWebSocketFactory().getPolicy().getMaxBinaryMessageSize());
-      
+
       StringBuilder metasb = new StringBuilder();
       StringBuilder exposedmetasb = new StringBuilder();
       StringBuilder sb = new StringBuilder();
@@ -616,39 +617,39 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
       if (null == metadata) {
         return;
       }
-    
+
       GTSHelper.metadataToString(metasb, metadata.getName(), metadata.getLabels(), false);
       GTSHelper.metadataToString(exposedmetasb, metadata.getName(), metadata.getLabels(), true);
-      
+
       Set<Entry<Session, Set<BigInteger>>> subs = subscriptions.entrySet();
-      
+
       for (Entry<Session, Set<BigInteger>> entry: subs) {
-        
+
         //
         // We might have missed the close of a session, we get a chance to correct that here
         // FIXME(hbs): if we missed a close it's probably a bug though!
         //
-        
+
         if (!entry.getKey().isOpen()) {
           deregister(entry.getKey());
           continue;
         }
-        
+
         try {
           if (entry.getValue().contains(id)) {
             Sensision.update(SensisionConstants.SENSISION_CLASS_PLASMA_FRONTEND_DISPATCH_SESSIONS, Sensision.EMPTY_LABELS, 1);
             OUTPUT_FORMAT format = getOutputFormat(entry.getKey());
             boolean exposeOwnerProducer = getExposeOwnerProducer(entry.getKey());
             StringBuilder curmetasb = exposeOwnerProducer ? exposedmetasb : metasb;
-            
+
             if (OUTPUT_FORMAT.RAW.equals(format)) {
               sb.setLength(0);
-              
+
               sb.append(encoder.getBaseTimestamp());
               sb.append("// ");
-              
-              TSerializer tserializer = new TSerializer(new TCompactProtocol.Factory());
-              
+
+              TSerializer tserializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
+
               try {
                 byte[] serialized = tserializer.serialize(metadata);
 
@@ -656,86 +657,86 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
                 // FIXME(hbs): create chunks so we stay below maxmessagesize
                 byte[] encrypted = CryptoUtils.wrap(this.metadataKey, serialized);
                 sb.append(new String(OrderPreservingBase64.encode(encrypted), StandardCharsets.US_ASCII));
-                sb.append(":");              
+                sb.append(":");
                 sb.append(new String(OrderPreservingBase64.encode(encoder.getBytes()), StandardCharsets.US_ASCII));
-                
-                entry.getKey().getRemote().sendStringByFuture(sb.toString());                
+
+                entry.getKey().getRemote().sendStringByFuture(sb.toString());
               } catch (TException te) {
                 // Oh well, skip it!
               }
-              
+
               continue;
             } else if (OUTPUT_FORMAT.WRAPPER.equals(format)) {
               encoder.setMetadata(metadata);
-              
+
               //
               // Remove producer/owner
               //
-              
+
               if (!Constants.EXPOSE_OWNER_PRODUCER && !exposeOwnerProducer) {
                 encoder.getMetadata().getLabels().remove(Constants.PRODUCER_LABEL);
-                encoder.getMetadata().getLabels().remove(Constants.OWNER_LABEL);                
+                encoder.getMetadata().getLabels().remove(Constants.OWNER_LABEL);
               }
 
               // Compress with two pass max
               GTSWrapper wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(encoder, true, GTSWrapperHelper.DEFAULT_COMP_RATIO_THRESHOLD, 2);
-              
-              TSerializer tserializer = new TSerializer(new TCompactProtocol.Factory());
-              
+
+              TSerializer tserializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
+
               try {
                 byte[] serialized = tserializer.serialize(wrapper);
 
                 sb.setLength(0);
                 sb.append(new String(OrderPreservingBase64.encode(serialized), StandardCharsets.US_ASCII));
-                
-                entry.getKey().getRemote().sendStringByFuture(sb.toString());                
+
+                entry.getKey().getRemote().sendStringByFuture(sb.toString());
               } catch (TException te) {
                 // Oh well, skip it!
               }
 
               continue;
             }
-            
+
             GTSDecoder decoder = encoder.getDecoder();
-                      
+
             boolean first = true;
-                        
+
             double rate = getSampleRate(entry.getKey());
-            
+
             long budget = maxmessagesize;
-            
+
             //
             // Reset StringBuilder
             //
-            
+
             sb.setLength(0);
-            
+
             while(decoder.next()) {
-              
+
               if (1.0D != rate && random.nextDouble() > rate) {
                 continue;
               }
-              
+
               if (OUTPUT_FORMAT.JSON.equals(format)) {
                 Map<String,Object> json = new HashMap<String,Object>();
-                    
+
                 HashMap<String,String> labels = new HashMap<String,String>();
 
                 json.put("c", metadata.getName());
-                
+
                 labels.putAll(metadata.getLabels());
-                
+
                 //
                 // Remove PRODUCER/OWNER
                 //
-                
+
                 if (!Constants.EXPOSE_OWNER_PRODUCER && !exposeOwnerProducer) {
                   labels.remove(Constants.PRODUCER_LABEL);
                   labels.remove(Constants.OWNER_LABEL);
                 }
-                
-                json.put("l", labels);              
-                
+
+                json.put("l", labels);
+
                 json.put("t", decoder.getTimestamp());
                 // Requested format is JSON so we do not use getBinaryValue as JSON cannot represent byte arrays
                 json.put("v", decoder.getValue());
@@ -747,21 +748,21 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
                 if (GeoTimeSerie.NO_ELEVATION != decoder.getElevation()) {
                   json.put("elev", decoder.getElevation());
                 }
-                
+
                 if (first) {
                   sb.append("[");
                 } else {
-                  sb.append(",");                
+                  sb.append(",");
                 }
                 sb.append(JsonUtils.objectToJson(json));
-                
+
                 first = false;
               } else {
-                
+
                 if (!first && OUTPUT_FORMAT.TEXT.equals(format)) {
                   sb.append("=");
                 }
-                
+
                 sb.append(decoder.getTimestamp());
                 sb.append("/");
                 if (GeoTimeSerie.NO_LOCATION != decoder.getLocation()) {
@@ -783,14 +784,14 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
                 sb.append("\n");
                 first = false;
               }
-              
+
               //
               // If we've reached 90% of the max message size, flush the current message
               // FIXME(hbs): we really should check beforehand that we will not overflow the buffer.
               // With specially crafted content (String values) we could overflow the message size.
               // Given we're in a try/catch we would simply ignore the message, but still...
               //
-              
+
               if (sb.length() > 0.9 * maxmessagesize) {
                 if (OUTPUT_FORMAT.JSON.equals(format) && sb.length() > 0) {
                   sb.append("]");
@@ -801,51 +802,51 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
                 first = true;
               }
             }
-            
+
             if (OUTPUT_FORMAT.JSON.equals(format) && sb.length() > 0) {
               sb.append("]");
             }
 
             if (sb.length() > 0) {
               entry.getKey().getRemote().sendStringByFuture(sb.toString());
-              sb.setLength(0);              
+              sb.setLength(0);
             }
-            
+
             refcount--;
-            
+
             if (0 == refcount) {
               break;
             }
-          }          
-        } catch (WebSocketException wse) {          
+          }
+        } catch (WebSocketException wse) {
         }
-      }      
+      }
     }
-    
+
     nano = System.nanoTime() - nano;
-    
+
     Sensision.update(SensisionConstants.SENSISION_CLASS_PLASMA_FRONTEND_DISPATCH_TIME_US, Sensision.EMPTY_LABELS, nano/1000L);
   }
-  
+
   /**
    * Return the current set of subscribed classId/labelsId
    */
   public Set<BigInteger> getSubscriptions() {
     Set<BigInteger> ids = new HashSet<BigInteger>();
-    
+
     Collection<Set<BigInteger>> subs = this.subscriptions.values();
-    
+
     for (Set<BigInteger> sub: subs) {
       ids.addAll(sub);
     }
-    
+
     return ids;
   }
-  
+
   private boolean getExposeOwnerProducer(Session session) {
-    return this.exposeOwnerProducer.getOrDefault(session, false);  
+    return this.exposeOwnerProducer.getOrDefault(session, false);
   }
-  
+
   private synchronized void setExposeOwnerProducer(Session session, boolean expose) {
     if (expose) {
       this.exposeOwnerProducer.put(session, true);
@@ -853,7 +854,7 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
       this.exposeOwnerProducer.remove(session);
     }
   }
-  
+
   private OUTPUT_FORMAT getOutputFormat(Session session) {
     if (this.outputFormat.containsKey(session)) {
       return this.outputFormat.get(session);
@@ -861,7 +862,7 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
       return OUTPUT_FORMAT.TEXT;
     }
   }
-  
+
   private synchronized void setOutputFormat(Session session, OUTPUT_FORMAT format) {
     this.outputFormat.put(session, format);
   }
@@ -869,7 +870,7 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
   private synchronized void setSampleRate(Session session, double rate) {
     this.sampleRate.put(session, Double.doubleToLongBits(rate));
   }
-  
+
   private synchronized double getSampleRate(Session session) {
     if (!this.sampleRate.containsKey(session)) {
       return 1.0D;
@@ -877,13 +878,13 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
       return Double.longBitsToDouble(this.sampleRate.get(session));
     }
   }
-  
+
   @Override
   public void run() {
     while (true) {
       try {
         GTSEncoder encoder = this.encoders.poll(Long.MAX_VALUE, TimeUnit.DAYS);
-        
+
         if (null == encoder) {
           continue;
         }
@@ -897,13 +898,13 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
         // problems
         //
         // Or use 'Disruptor' or 'Chronicle' or 'BigQueue' from the HFT world?
-        
+
         dispatch(encoder);
       } catch (IOException ioe) {
         // FIXME(hbs): sensision metric
-      } catch (InterruptedException ie) {        
+      } catch (InterruptedException ie) {
       }
     }
   }
-  
+
 }

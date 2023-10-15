@@ -24,14 +24,6 @@
 
 set -eu
 
-##
-## Source warp10-env.sh when the file exists to predefine user variables
-##
-BIN_DIR=$(dirname "$0")
-if [ -f "${BIN_DIR}/../etc/warp10-env.sh" ]; then
-  . "${BIN_DIR}/../etc/warp10-env.sh"
-fi
-
 warn() {
   echo "$*"
 } >&2
@@ -44,6 +36,16 @@ die() {
 } >&2
 
 ##
+## Source warp10-env.sh when the file exists to predefine user variables
+##
+BIN_DIR=$(dirname "$0")
+if [ -f "${BIN_DIR}/../etc/warp10-env.sh" ]; then
+  . "${BIN_DIR}/../etc/warp10-env.sh"
+else 
+  die "Cannot load ${BIN_DIR}/../etc/warp10-env.sh, please check current user permissions."
+fi
+
+##
 ## Determine the Java command to use to start the JVM.
 ##
 getJava() {
@@ -52,7 +54,11 @@ getJava() {
       # IBM's JDK on AIX uses strange locations for the executables
       JAVACMD=$JAVA_HOME/jre/sh/java
     else
-      JAVACMD=$JAVA_HOME/bin/java
+      if [ -x "$JAVA_HOME/jre/bin/java" ]; then
+          JAVACMD=$JAVA_HOME/jre/bin/java
+        else  
+          JAVACMD=$JAVA_HOME/bin/java
+      fi
     fi
     if [ ! -x "$JAVACMD" ]; then
       die "ERROR: JAVA_HOME is set to an invalid directory: $JAVA_HOME
@@ -62,7 +68,7 @@ location of your Java installation."
     fi
   else
     JAVACMD=java
-    which java >/dev/null 2>&1 || die "ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH.
+    java -version >/dev/null 2>&1 || die "ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH.
 
 Please set the JAVA_HOME variable in ${WARP10_HOME}/etc/warp10-env.sh to match the
 location of your Java installation."
@@ -87,6 +93,7 @@ getConfigFiles() {
 ##
 ## Retrieve Warp 10 Home.
 ## If WARP10_HOME is not defined, set it to the parent directory
+## also set WARP10_HOME_ESCAPED
 ##
 getWarp10Home() {
   #WARP10_HOME=$(realpath -eL "${WARP10_HOME:-$(dirname "$0")/..}") # Does not work for Alpine}
@@ -98,6 +105,9 @@ getWarp10Home() {
   if [ "/" = "${TMP_HOME}" ]; then
     die "ERROR: Warp 10 should not be installed in the '/' directory."
   fi
+  WARP10_HOME_ESCAPED=$(echo "${WARP10_HOME}" | sed 's/\\/\\\\/g')        # Escape '\'
+  WARP10_HOME_ESCAPED=$(echo "${WARP10_HOME_ESCAPED}" | sed 's/\&/\\&/g') # Escape '&'
+  WARP10_HOME_ESCAPED=$(echo "${WARP10_HOME_ESCAPED}" | sed 's/|/\\|/g')  # Escape '|' (separator for sed)
 }
 
 checkRam() {
@@ -166,18 +176,13 @@ init() {
     die "ERROR: Configuration files already exist - Abort initialization."
   fi
 
-  WARP10_HOME_ESCAPED=$(echo "${WARP10_HOME}" | sed 's/\\/\\\\/g')        # Escape '\'
-  WARP10_HOME_ESCAPED=$(echo "${WARP10_HOME_ESCAPED}" | sed 's/\&/\\&/g') # Escape '&'
-  WARP10_HOME_ESCAPED=$(echo "${WARP10_HOME_ESCAPED}" | sed 's/|/\\|/g')  # Escape '|' (separator for sed)
-
   echo "//
 // This file contains configurations generated during initialization step.
 //
-// File generated on $(TZ=UTC date +%Y-%m-%dT%H:%M:%SZ)
+// File generated on $DATE
 //
 
 warp10.home = ${WARP10_HOME_ESCAPED}" >"${WARP10_CONFIG_DIR}/99-init.conf"
-
 
   ##
   ## Copy the template configuration file
@@ -210,8 +215,7 @@ postInit() {
 // Cryptographic keys definition
 //
 " >>"${WARP10_CONFIG_DIR}/99-init.conf"
-  ${JAVACMD} -cp "${WARP10_JAR}" -Dfile.encoding=UTF-8 io.warp10.GenerateCryptoKeys ${TEMPLATE} >> "${WARP10_CONFIG_DIR}/99-init.conf"
-
+  ${JAVACMD} -cp "${WARP10_JAR}" -Dfile.encoding=UTF-8 io.warp10.GenerateCryptoKeys ${TEMPLATE} >>"${WARP10_CONFIG_DIR}/99-init.conf"
 
   echo "
 //
@@ -225,7 +229,7 @@ postInit() {
 " >>"${WARP10_CONFIG_DIR}/99-init.conf"
 
   echo
-  echo "Warp 10 configuration has been generated in${WARP10_CONFIG_DIR}"
+  echo "Warp 10 configuration has been generated in ${WARP10_CONFIG_DIR}"
   echo
   echo "You can now configure the initial and maximum amount of RAM allocated to Warp 10."
   echo "Edit ${WARP10_HOME}/etc/warp10-env.sh and look for WARP10_HEAP and WARP10_HEAP_MAX variables."
@@ -239,27 +243,29 @@ distConf() {
   postInit
 }
 
-leveldbConf() {
-  echo "Initializing Warp 10 standalone configuration"
-  init
-
-  echo "
-backend = leveldb" >>"${WARP10_CONFIG_DIR}/99-init.conf"
-  mv "${WARP10_CONFIG_DIR}/10-fdb.conf" "${WARP10_CONFIG_DIR}/10-fdb.conf.DISABLE"
-  getConfigFiles
-
+leveldbWarpInit() {
   ##
   ##  Init LevelDB
   ##
-  LEVELDB_HOME="${WARP10_HOME_ESCAPED}/leveldb"
   echo "Initializing LevelDB"
   if ! mkdir -p "${LEVELDB_HOME}/snapshots"; then
     die "ERROR: ${LEVELDB_HOME} creation failed"
   fi
   chmod 700 "${LEVELDB_HOME}"
 
-  ${JAVACMD} -cp "${WARP10_JAR}" io.warp10.standalone.WarpInit "${LEVELDB_HOME}" >>"${WARP10_HOME}/logs/warp10.log" 2>&1
+  ${JAVACMD} -cp "${WARP10_JAR}" io.warp10.leveldb.WarpInit "${LEVELDB_HOME}" >>"${WARP10_HOME}/logs/warp10.log" 2>&1
+}
 
+leveldbConf() {
+  echo "Initializing Warp 10 standalone configuration"
+  init
+
+  echo "
+backend = leveldb" >>"${WARP10_CONFIG_DIR}/99-init.conf"
+  mv "${WARP10_CONFIG_DIR}/10-fdb.conf" "${WARP10_CONFIG_DIR}/10-fdb.conf.DISABLE-$DATE"
+  getConfigFiles
+  LEVELDB_HOME="${WARP10_HOME_ESCAPED}/leveldb"
+  leveldbWarpInit
   postInit
 }
 
@@ -270,7 +276,7 @@ standalonePlusConf() {
   echo "
 backend = fdb
 fdb.clusterfile=\${warp10.home}/etc/fdb.cluster" >>"${WARP10_CONFIG_DIR}/99-init.conf"
-  mv "${WARP10_CONFIG_DIR}/10-leveldb.conf" "${WARP10_CONFIG_DIR}/10-leveldb.conf.DISABLE"
+  mv "${WARP10_CONFIG_DIR}/10-leveldb.conf" "${WARP10_CONFIG_DIR}/10-leveldb.conf.DISABLE-$DATE"
   getConfigFiles
 
   echo
@@ -283,19 +289,19 @@ fdb.clusterfile=\${warp10.home}/etc/fdb.cluster" >>"${WARP10_CONFIG_DIR}/99-init
 inmemoryConf() {
   echo "Initializing Warp 10 in-memory configuration"
   init
-  echo "
-backend = memory" >>"${WARP10_CONFIG_DIR}/99-init.conf"
-  mv "${WARP10_CONFIG_DIR}/10-fdb.conf" "${WARP10_CONFIG_DIR}/10-fdb.conf.DISABLE"
-  mv "${WARP10_CONFIG_DIR}/10-leveldb.conf" "${WARP10_CONFIG_DIR}/10-leveldb.conf.DISABLE"
+  mv "${WARP10_CONFIG_DIR}/10-fdb.conf" "${WARP10_CONFIG_DIR}/10-fdb.conf.DISABLE-$DATE"
+  mv "${WARP10_CONFIG_DIR}/10-leveldb.conf" "${WARP10_CONFIG_DIR}/10-leveldb.conf.DISABLE-$DATE"
   getConfigFiles
 
-  echo
-  echo "in.memory.chunked = true" >>"${WARP10_CONFIG_DIR}/99-init.conf"
-  echo "in.memory.chunk.count = 2" >>"${WARP10_CONFIG_DIR}/99-init.conf"
-  echo "in.memory.chunk.length = 86400000000" >>"${WARP10_CONFIG_DIR}/99-init.conf"
-  echo "in.memory.load = ${WARP10_HOME}/memory.dump" >>"${WARP10_CONFIG_DIR}/99-init.conf"
-  echo "in.memory.dump = ${WARP10_HOME}/memory.dump" >>"${WARP10_CONFIG_DIR}/99-init.conf"
-  echo
+  {
+    echo
+    echo "backend = memory"
+    echo "in.memory.chunk.count = 2"
+    echo "in.memory.chunk.length = 86400000000"
+    echo "in.memory.load = ${WARP10_HOME}/memory.dump"
+    echo "in.memory.dump = ${WARP10_HOME}/memory.dump"
+    echo
+  } >>"${WARP10_CONFIG_DIR}/99-init.conf"
 
   postInit
 }
@@ -370,14 +376,14 @@ tokengen() {
   if [ "$#" -ne 2 ]; then
     die "Usage: $0 tokengen envelope.mc2"
   fi
-  ${JAVACMD} -cp "${WARP10_CP}" -Dlog4j.configuration=file:"${LOG4J_CONF}" -Dfile.encoding=UTF-8 io.warp10.TokenGen ${CONFIG_FILES} "$2"
+  ${JAVACMD} ${JAVA_OPTS} -cp "${WARP10_CP}" -Dlog4j.configuration=file:"${LOG4J_CONF}" -Dfile.encoding=UTF-8 io.warp10.TokenGen ${CONFIG_FILES} "$2"
 }
 
 run() {
   if [ "$#" -ne 2 ]; then
     die "Usage: $0 run script.mc2"
   fi
-  ${JAVACMD} -cp "${WARP10_CP}" -Dlog4j.configuration=file:"${LOG4J_CONF}" -Dfile.encoding=UTF-8 -Dwarp10.config="${CONFIG_FILES}" io.warp10.WarpRun "$2"
+  ${JAVACMD} ${JAVA_OPTS} -cp "${WARP10_CP}" -Dlog4j.configuration=file:"${LOG4J_CONF}" -Dfile.encoding=UTF-8 -Dwarp10.config="${CONFIG_FILES}" io.warp10.WarpRun "$2"
 }
 
 repair() {
@@ -399,7 +405,7 @@ repair() {
 
 compact() {
   if [ "$#" -ne 4 ]; then
-      die "Usage: $0 compact LEVELDB_HOME STARTKEY(hex) ENDKEY(hex)"
+    die "Usage: $0 compact LEVELDB_HOME STARTKEY(hex) ENDKEY(hex)"
   fi
 
   isWarp10User
@@ -415,16 +421,32 @@ compact() {
   fi
 }
 
+leveldbinit() {
+  echo "This command initializes an empty leveldb directory"
+  if [ "$#" -ne 2 ]; then
+    die "Usage: $0 leveldbinit LEVELDB_HOME"
+  fi
+  if [ ! -d "$2" ]; then
+    die "LEVELDB_HOME: '$2' does not exist, please create it first"
+  fi
+  if [ "$(ls -A "$2")" ]; then
+    die "LEVELDB_HOME: $2 is not empty"
+  fi
+  LEVELDB_HOME=$2
+  leveldbWarpInit  
+}
+
 ##
 ## Initialize script
 ##
 getWarp10Home
 
 WARP10_CONFIG_DIR=${WARP10_HOME}/etc/conf.d
-WARP10_REVISION=@VERSION@
-WARP10_JAR=${WARP10_HOME}/bin/warp10-${WARP10_REVISION}.jar
+WARP10_REVISION=${WARP10_REVISION:-@VERSION@}
+WARP10_JAR=${WARP10_JAR:-${WARP10_HOME}/bin/warp10-${WARP10_REVISION}.jar}
 WARP10_CLASS=io.warp10.Warp
 PID_FILE=${WARP10_HOME}/logs/warp10.pid
+DATE=$(TZ=UTC date +%Y%m%dT%H%M%SZ)
 getConfigFiles
 getJava
 
@@ -448,7 +470,7 @@ fi
 ## Classpath
 ## The lib directory is dedicated to user libraries (extensions, plugins...)
 ##
-WARP10_CP=${WARP10_HOME}/etc:${WARP10_JAR}:${WARP10_HOME}/lib/*
+WARP10_CP=${WARP10_CP:-${WARP10_HOME}/etc:${WARP10_JAR}:${WARP10_HOME}/lib/*}
 
 SENSISION_EVENTS_DIR=/var/run/sensision/metrics
 
@@ -464,7 +486,7 @@ if [ -n "${WARP10_IDENT:+x}" ]; then
   SENSISION_DEFAULT_LABELS=-Dsensision.default.labels=instance=${WARP10_IDENT}
   JAVA_OPTS="${JAVA_OPTS} -Dwarp.ident=${WARP10_IDENT}"
 fi
-JAVA_OPTS="-Djava.awt.headless=true -Dlog4j.configuration=file:${LOG4J_CONF} -Dsensision.server.port=0 ${SENSISION_DEFAULT_LABELS:-} -Dsensision.events.dir=${SENSISION_EVENTS_DIR} -Dfile.encoding=UTF-8 -Xms${WARP10_HEAP} -Xmx${WARP10_HEAP_MAX} -XX:+UseG1GC ${JAVA_OPTS:-} ${JAVA_EXTRA_OPTS:-}"
+JAVA_OPTS="-Djava.net.preferIPv4Stack=true -Djava.awt.headless=true -Dlog4j.configuration=file:${LOG4J_CONF} -Dsensision.server.port=0 ${SENSISION_DEFAULT_LABELS:-} -Dsensision.events.dir=${SENSISION_EVENTS_DIR} -Dfile.encoding=UTF-8 -Xms${WARP10_HEAP} -Xmx${WARP10_HEAP_MAX} -XX:+UseG1GC ${JAVA_OPTS:-} ${JAVA_EXTRA_OPTS:-}"
 export MALLOC_ARENA_MAX=1
 
 # See how we were called.
@@ -508,14 +530,17 @@ tokengen)
 run)
   run "$@"
   ;;
-repair)
+leveldbrepair)
   repair "$@"
   ;;
-compact)
+leveldbcompact)
   compact "$@"
   ;;
+leveldbinit)
+  leveldbinit "$@"
+  ;;
 *)
-  die "Usage: $0 {init|tokengen|start|stop|restart|status|repair|compact|run}"
+  die "Usage: $0 {init|tokengen|start|stop|restart|status|leveldbrepair|leveldbcompact|leveldbinit|run}"
   ;;
 esac
 

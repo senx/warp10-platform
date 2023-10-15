@@ -25,24 +25,10 @@ import io.warp10.continuum.gts.CORRELATE;
 import io.warp10.continuum.gts.DISCORDS;
 import io.warp10.continuum.gts.FFT;
 import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
-import io.warp10.fdb.FDBGET;
-import io.warp10.fdb.FDBSIZE;
-import io.warp10.fdb.FDBSTATUS;
-import io.warp10.fdb.FDBTENANT;
 import io.warp10.continuum.gts.IFFT;
 import io.warp10.continuum.gts.INTERPOLATE;
 import io.warp10.continuum.gts.LOCATIONOFFSET;
 import io.warp10.continuum.gts.ZIP;
-import io.warp10.leveldb.LEVELDBOPEN;
-import io.warp10.leveldb.LEVELDBCLOSE;
-import io.warp10.leveldb.LEVELDBCOMPACT;
-import io.warp10.leveldb.LEVELDBREPAIR;
-import io.warp10.leveldb.LEVELDBSNAPSHOT;
-import io.warp10.leveldb.SSTFIND;
-import io.warp10.leveldb.SSTINFO;
-import io.warp10.leveldb.SSTPURGE;
-import io.warp10.leveldb.SSTREPORT;
-import io.warp10.leveldb.SSTTIMESTAMP;
 import io.warp10.script.aggregator.And;
 import io.warp10.script.aggregator.Argminmax;
 import io.warp10.script.aggregator.CircularMean;
@@ -95,6 +81,7 @@ import io.warp10.script.filler.FillerInterpolate;
 import io.warp10.script.filler.FillerNext;
 import io.warp10.script.filler.FillerPrevious;
 import io.warp10.script.filler.FillerTrend;
+import io.warp10.script.filler.FillerValue;
 import io.warp10.script.filter.FilterAny;
 import io.warp10.script.filter.FilterByClass;
 import io.warp10.script.filter.FilterByLabels;
@@ -113,7 +100,6 @@ import io.warp10.script.functions.WSAUDIT;
 import io.warp10.script.functions.WSAUDITMODE;
 import io.warp10.script.functions.math.GETEXPONENT;
 import io.warp10.script.functions.math.RANDOM;
-import io.warp10.script.functions.math.ROUND;
 import io.warp10.script.functions.math.SCALB;
 import io.warp10.script.functions.shape.CHECKSHAPE;
 import io.warp10.script.functions.shape.HULLSHAPE;
@@ -592,7 +578,7 @@ import io.warp10.script.functions.METAMATCH;
 import io.warp10.script.functions.METASORT;
 import io.warp10.script.functions.MFILTER;
 import io.warp10.script.functions.MINLONG;
-import io.warp10.script.functions.MINREV;
+import io.warp10.script.functions.CHECKREV;
 import io.warp10.script.functions.MMAP;
 import io.warp10.script.functions.MODE;
 import io.warp10.script.functions.MONOTONIC;
@@ -878,6 +864,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
+import java.util.function.LongUnaryOperator;
 
 /**
  * Library of functions used to manipulate Geo Time Series
@@ -1031,6 +1018,7 @@ public class WarpScriptLib {
   public static final String REV = "REV";
   public static final String REPORT = "REPORT";
   public static final String MINREV = "MINREV";
+  public static final String MAXREV = "MAXREV";
   public static final String UPDATEON = "UPDATEON";
   public static final String UPDATEOFF = "UPDATEOFF";
   public static final String METAON = "METAON";
@@ -1845,7 +1833,8 @@ public class WarpScriptLib {
 
     addNamedWarpScriptFunction(new REV(REV));
     addNamedWarpScriptFunction(new REPORT(REPORT));
-    addNamedWarpScriptFunction(new MINREV(MINREV));
+    addNamedWarpScriptFunction(new CHECKREV(MINREV, true));
+    addNamedWarpScriptFunction(new CHECKREV(MAXREV, false));
 
     addNamedWarpScriptFunction(new MANAGERONOFF(UPDATEON, WarpManager.UPDATE_DISABLED, true));
     addNamedWarpScriptFunction(new MANAGERONOFF(UPDATEOFF, WarpManager.UPDATE_DISABLED, false));
@@ -2679,6 +2668,7 @@ public class WarpScriptLib {
     // Fillers
     //
 
+    addNamedWarpScriptFunction(new FillerValue.Builder("filler.value"));
     addNamedWarpScriptFunction(new FillerNext("filler.next"));
     addNamedWarpScriptFunction(new FillerPrevious("filler.previous"));
     addNamedWarpScriptFunction(new FillerInterpolate("filler.interpolate"));
@@ -2812,7 +2802,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new NumericalUnaryFunction(SIGNUM, null, Math::signum));
     addNamedWarpScriptFunction(new NumericalUnaryFunction(FLOOR, null, Math::floor));
     addNamedWarpScriptFunction(new NumericalUnaryFunction(CEIL, null, Math::ceil));
-    addNamedWarpScriptFunction(new ROUND(ROUND));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(ROUND, LongUnaryOperator.identity(), null, Math::round));
 
     addNamedWarpScriptFunction(new NumericalUnaryFunction(RINT, null, Math::rint));
     addNamedWarpScriptFunction(new NumericalUnaryFunction(ULP, null, Math::ulp));
@@ -3181,31 +3171,6 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new SLEEP(SLEEP));
     addNamedWarpScriptFunction(new WSAUDIT(WSAUDIT));
     addNamedWarpScriptFunction(new WSAUDITMODE(WSAUDITMODE));
-
-    //
-    // LevelDB
-    //
-
-    addNamedWarpScriptFunction(new LEVELDBOPEN(LEVELDBOPEN));
-    addNamedWarpScriptFunction(new LEVELDBCLOSE(LEVELDBCLOSE));
-    addNamedWarpScriptFunction(new LEVELDBREPAIR(LEVELDBREPAIR));
-    addNamedWarpScriptFunction(new LEVELDBCOMPACT(LEVELDBCOMPACT));
-    addNamedWarpScriptFunction(new LEVELDBSNAPSHOT(LEVELDBSNAPSHOT, false));
-    addNamedWarpScriptFunction(new LEVELDBSNAPSHOT(LEVELDBSNAPSHOTINC, true));
-    addNamedWarpScriptFunction(new SSTFIND(SSTFIND));
-    addNamedWarpScriptFunction(new SSTINFO(SSTINFO));
-    addNamedWarpScriptFunction(new SSTPURGE(SSTPURGE));
-    addNamedWarpScriptFunction(new SSTREPORT(SSTREPORT));
-    addNamedWarpScriptFunction(new SSTTIMESTAMP(SSTTIMESTAMP));
-
-    //
-    // FDB
-    //
-
-    addNamedWarpScriptFunction(new FDBTENANT(FDBTENANT));
-    addNamedWarpScriptFunction(new FDBSTATUS(FDBSTATUS));
-    addNamedWarpScriptFunction(new FDBSIZE(FDBSIZE));
-    addNamedWarpScriptFunction(new FDBGET(FDBGET));
 
     /////////////////////////
 

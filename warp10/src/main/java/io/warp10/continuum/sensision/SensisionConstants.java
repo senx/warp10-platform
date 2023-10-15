@@ -101,6 +101,16 @@ public class SensisionConstants {
   public static final String SENSISION_CLASS_WARP_REVISION = "warp.revision";
 
   /**
+   * Number of incoherent ids detected at startup, may be an indication of incorrect keys
+   */
+  public static final String CLASS_DIRECTORY_INCOHERENT_IDS_FDB = "warp.directory.incoherent.ids.fdb";
+
+  /**
+   * Number of incoherent ids detected via Kafka
+   */
+  public static final String CLASS_DIRECTORY_INCOHERENT_IDS_KAFKA = "warp.directory.incoherent.ids.kafka";
+
+  /**
    * Number of entries in the serialized metadata cache
    */
   public static final String CLASS_WARP_DIRECTORY_METADATA_CACHE_SIZE = "warp.directory.metadata.cache.size";
