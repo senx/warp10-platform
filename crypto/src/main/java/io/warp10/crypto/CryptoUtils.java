@@ -38,9 +38,9 @@ import java.util.Arrays;
  */
 public class CryptoUtils {
 
-  private static final String ARGON2ID_ITERATIONS = "argon2id.iterations";
-  private static final String ARGON2ID_MEMORY = "argon2id.memory";
-  private static final String ARGON2ID_PARALLELISM = "argon2id.parallelism";
+  private static final String ARGON2_ITERATIONS = "argon2.iterations";
+  private static final String ARGON2_MEMORY = "argon2.memory";
+  private static final String ARGON2_PARALLELISM = "argon2.parallelism";
 
   private static final long SALT_K0 = 0x9D38769AE67064E8L;
   private static final long SALT_K1 = 0x880EE777C5AEEFDDL;
@@ -243,9 +243,9 @@ public class CryptoUtils {
       byte[] key = decodeKey(ks, encoded.substring(bitstr.length() + 1));
 
       // Apply the KDF
-      int iters = Integer.valueOf(System.getProperty(ARGON2ID_ITERATIONS, "3"));
-      int memory = Integer.valueOf(System.getProperty(ARGON2ID_MEMORY, "524288"));
-      int parallelism = Integer.valueOf(System.getProperty(ARGON2ID_PARALLELISM, "1"));
+      int iters = Integer.valueOf(System.getProperty(ARGON2_ITERATIONS, "3"));
+      int memory = Integer.valueOf(System.getProperty(ARGON2_MEMORY, "524288"));
+      int parallelism = Integer.valueOf(System.getProperty(ARGON2_PARALLELISM, "1"));
 
       byte[] salt = Longs.toByteArray(SipHashInline.hash24_palindromic(SALT_K0, SALT_K1, key));
       byte[] secret = Longs.toByteArray(SipHashInline.hash24_palindromic(SECRET_K0, SECRET_K1, key));
