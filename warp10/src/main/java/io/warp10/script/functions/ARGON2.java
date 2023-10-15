@@ -39,7 +39,6 @@ public class ARGON2 extends NamedWarpScriptFunction implements WarpScriptStackFu
   private static final String KEY_SIZE = "size";
   private static final String KEY_PASSWORD = "password";
   private static final String KEY_TYPE = "type";
-  private static final String KEY_VERSION = "version";
 
   private static final String CAP_ARGON2_MAXITER = "argon2.maxiter";
   private static final String CAP_ARGON2_MAXPAR = "argon2.maxpar";
@@ -77,16 +76,6 @@ public class ARGON2 extends NamedWarpScriptFunction implements WarpScriptStackFu
     }
 
     int version = Argon2Parameters.ARGON2_VERSION_13;
-
-    if (map.get(KEY_VERSION) instanceof Long) {
-      if (10 == ((Long) map.get(KEY_VERSION)).longValue()) {
-        version = Argon2Parameters.ARGON2_VERSION_10;
-      } else if (13 == ((Long) map.get(KEY_VERSION)).longValue()) {
-        version = Argon2Parameters.ARGON2_VERSION_13;
-      } else {
-        throw new WarpScriptException(getName() + " invalid version " + map.get(KEY_VERSION) + ", can use either 10 or 13 (default).");
-      }
-    }
 
     Argon2Parameters.Builder builder = new Argon2Parameters.Builder(type).withVersion(version);
 
