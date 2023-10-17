@@ -277,8 +277,6 @@ archiveConf() {
 backend = archive" >>"${WARP10_CONFIG_DIR}/99-init.conf"
   mv "${WARP10_CONFIG_DIR}/10-fdb.conf" "${WARP10_CONFIG_DIR}/10-fdb.conf.DISABLE-$DATE"
   getConfigFiles
-  LEVELDB_HOME="${WARP10_HOME_ESCAPED}/leveldb"
-  leveldbWarpInit
   postInit
 }
 
