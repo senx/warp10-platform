@@ -269,7 +269,7 @@ backend = leveldb" >>"${WARP10_CONFIG_DIR}/99-init.conf"
   postInit
 }
 
-leveldbConf() {
+archiveConf() {
   echo "Initializing Warp 10 archive configuration"
   init
 
