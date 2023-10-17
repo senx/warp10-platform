@@ -615,6 +615,7 @@ public class Constants {
   public static final String BACKEND_MEMORY = "memory";
   public static final String BACKEND_PLASMA = "plasma";
   public static final String BACKEND_NULL = "null";
+  public static final String BACKEND_ARCHIVE = "archive";
   public static final String BACKEND_LEVELDB = "leveldb";
   public static final String BACKEND_FDB = "fdb";
 }
