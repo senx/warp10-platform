@@ -46,5 +46,5 @@
 #influxdb.default.token =
 
 // Label to use for storing the measurement. If unset, the measurement is prepended to the field name, separated with a dot unless
-// the X-InfluxDB-Measurement-Label request header is set in which case the specified name is used for the label.
+// the mlabel parameter is set in which case the specified name is used for the label.
 #influxdb.measurement.label = .measurement
