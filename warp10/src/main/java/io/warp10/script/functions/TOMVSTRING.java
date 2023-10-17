@@ -142,7 +142,7 @@ public class TOMVSTRING extends NamedWarpScriptFunction implements WarpScriptSta
   }
 
   private static StringBuilder bytesToString(StringBuilder sb, byte[] bytes) {
-    TDeserializer deser = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
+    TDeserializer deser = ThriftUtils.getTDeserializer();
     GTSWrapper wrapper = new GTSWrapper();
 
     try {

@@ -65,7 +65,7 @@ public class GEOUNPACK extends NamedWarpScriptFunction implements WarpScriptStac
       throw new WarpScriptException(getName() + " expects a packed shape on top of the stack.");
     }
 
-    TDeserializer deserializer = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
+    TDeserializer deserializer = ThriftUtils.getTDeserializer();
 
     GTSWrapper wrapper = new GTSWrapper();
 

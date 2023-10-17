@@ -900,7 +900,7 @@ public class HyperLogLogPlus {
     }
 
     try {
-      TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
+      TSerializer serializer = ThriftUtils.getTSerializer();
       byte[] ser = serializer.serialize(params);
       return ser;
     } catch (TException te) {
@@ -910,7 +910,7 @@ public class HyperLogLogPlus {
 
   public static HyperLogLogPlus fromBytes(byte[] bytes) throws IOException, ClassNotFoundException {
 
-    TDeserializer deserializer = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
+    TDeserializer deserializer = ThriftUtils.getTDeserializer();
 
     HyperLogLogPlusParameters params = new HyperLogLogPlusParameters();
 

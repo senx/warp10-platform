@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2022  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -24,8 +24,8 @@ import java.util.TreeMap;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
-import org.apache.thrift.protocol.TCompactProtocol;
 
+import io.warp10.ThriftUtils;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GTSWrapperHelper;
@@ -67,7 +67,7 @@ public class GOLDWRAP extends ListRecursiveStackFunction {
           } else if (element instanceof GTSEncoder) {
             encoder = (GTSEncoder) element;
           } else if (element instanceof String || element instanceof byte[]) {
-            TDeserializer deser = new TDeserializer(new TCompactProtocol.Factory());
+            TDeserializer deser = ThriftUtils.getTDeserializer();
             byte[] bytes;
 
             if (element instanceof String) {
@@ -122,7 +122,7 @@ public class GOLDWRAP extends ListRecursiveStackFunction {
             enc.getRawMetadata().setName(metadata.getName());
 
             GTSWrapper wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(enc, true, 1.0D, Integer.MAX_VALUE);
-            TSerializer ser = new TSerializer(new TCompactProtocol.Factory());
+            TSerializer ser = ThriftUtils.getTSerializer();
             byte[] bytes = ser.serialize(wrapper);
 
             return bytes;

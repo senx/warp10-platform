@@ -98,7 +98,7 @@ public class Warp10RecordWriter extends RecordWriter<Writable, Writable> {
     // Assume the value is a GTSWrapper
     //
 
-    TDeserializer deserializer = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
+    TDeserializer deserializer = ThriftUtils.getTDeserializer();
 
     GTSWrapper gtsWrapper = new GTSWrapper();
 

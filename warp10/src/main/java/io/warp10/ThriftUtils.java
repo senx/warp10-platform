@@ -19,9 +19,16 @@ package io.warp10;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
+import org.apache.thrift.protocol.TCompactProtocol;
+import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.protocol.TProtocolFactory;
+import org.apache.thrift.transport.TTransport;
 
 public class ThriftUtils {
+  public static TSerializer getTSerializer() {
+    return getTSerializer(getTCompactProtocolFactory());
+  }
+
   public static TSerializer getTSerializer(TProtocolFactory factory) {
     try {
       return new TSerializer(factory);
@@ -30,11 +37,27 @@ public class ThriftUtils {
     }
   }
 
+  public static TDeserializer getTDeserializer() {
+    return getTDeserializer(getTCompactProtocolFactory());
+  }
+
   public static TDeserializer getTDeserializer(TProtocolFactory factory) {
     try {
       return new TDeserializer(factory);
     } catch (TException te) {
       throw new RuntimeException("Error while instantiating TDeserializer.", te);
     }
+  }
+
+  private static TProtocolFactory getTCompactProtocolFactory() {
+    TCompactProtocol.Factory factory = new TCompactProtocol.Factory() {
+      @Override
+      public TProtocol getProtocol(TTransport trans) {
+        trans.getConfiguration().setMaxMessageSize(Integer.MAX_VALUE);
+        return super.getProtocol(trans);
+      }
+    };
+
+    return factory;
   }
 }

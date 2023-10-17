@@ -570,7 +570,7 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
         byte[] outAESKey = backend.keystore.getKey(KeyStore.AES_KAFKA_PLASMA_BACKEND_OUT);
 
         // Iterate on the messages
-        TDeserializer deserializer = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
+        TDeserializer deserializer = ThriftUtils.getTDeserializer();
 
         // TODO(hbs): allow setting of writeBufferSize
 
@@ -722,7 +722,7 @@ public class PlasmaBackEnd extends Thread implements NodeCacheListener {
         outmsg = new ProducerRecord<byte[], byte[]>(topic, key, value);
       } else {
         if (null == value) {
-          TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
+          TSerializer serializer = ThriftUtils.getTSerializer();
 
           try {
             value = serializer.serialize(msg);

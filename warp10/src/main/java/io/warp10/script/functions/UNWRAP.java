@@ -77,7 +77,7 @@ public class UNWRAP extends NamedWarpScriptFunction implements WarpScriptStackFu
     for (Object s: inputs) {
       byte[] bytes = s instanceof String ? OrderPreservingBase64.decode(s.toString().getBytes(StandardCharsets.US_ASCII)) : (byte[]) s;
 
-      TDeserializer deser = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
+      TDeserializer deser = ThriftUtils.getTDeserializer();
 
       try {
         GTSWrapper wrapper = new GTSWrapper();
