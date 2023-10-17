@@ -39,6 +39,8 @@ public class BDMIN extends NamedWarpScriptFunction implements WarpScriptStackFun
 
     BigDecimal bd2 = TOBD.toBigDecimal(getName(), o);
 
+    stack.push(bd1.min(bd2));
+
     return stack;
   }
 }

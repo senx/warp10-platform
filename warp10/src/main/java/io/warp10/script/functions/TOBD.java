@@ -16,20 +16,14 @@
 
 package io.warp10.script.functions;
 
-import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
-import io.warp10.script.WarpScriptException;
-import io.warp10.script.WarpScriptStack;
-
-import com.google.common.io.BaseEncoding;
-
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.nio.charset.StandardCharsets;
 
-/**
- * Encode a String in base64
- */
+import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
+
 public class TOBD extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
   public TOBD(String name) {
