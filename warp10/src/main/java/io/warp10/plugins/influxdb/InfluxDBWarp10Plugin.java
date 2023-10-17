@@ -46,8 +46,8 @@ public class InfluxDBWarp10Plugin extends AbstractWarp10Plugin implements Runnab
   private static final String CONF_INFLUXDB_FLUSH_THRESHOLD = "influxdb.flush.threshold";
   private static final String CONF_INFLUXDB_CACHE_SIZE = "influxdb.cache.size";
 
-  private static final String DEFAULT_FLUSH_THRESHOLD = Long.toString(100000L);
-  private static final String DEFAULT_CACHE_SIZE = Long.toString(10000L);
+  private static final String DEFAULT_FLUSH_THRESHOLD = Long.toString(1000000L);
+  private static final String DEFAULT_CACHE_SIZE = Long.toString(1000L);
 
   private int port;
   private String host;
