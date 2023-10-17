@@ -66,7 +66,7 @@ public class InfluxDBWarp10Plugin extends AbstractWarp10Plugin implements Runnab
   @Override
   public void run() {
     QueuedThreadPool queuedThreadPool = new QueuedThreadPool(maxThreads, 8, idleTimeout, queue);
-    queuedThreadPool.setName("Warp InfluxDB plugin Jett Thread");
+    queuedThreadPool.setName("Warp InfluxDB plugin Jetty Thread");
     Server server = new Server(queuedThreadPool);
     ServerConnector connector = new ServerConnector(server, acceptors, selectors);
     connector.setIdleTimeout(idleTimeout);
