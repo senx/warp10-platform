@@ -161,7 +161,7 @@ public class InfluxDBHandler extends AbstractHandler {
 
     //
     // By default we use the measurement label from the configuration.
-    // If not set, we allow the request to specify one using a header
+    // If not set, we allow the request to specify one using a parameter
     //
 
     String mlabel = measurementlabel;
