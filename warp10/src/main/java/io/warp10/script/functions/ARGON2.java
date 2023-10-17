@@ -67,11 +67,11 @@ public class ARGON2 extends NamedWarpScriptFunction implements WarpScriptStackFu
 
     int type = Argon2Parameters.ARGON2_id;
 
-    if ("2i".equalsIgnoreCase(String.valueOf(map.get(KEY_TYPE)))) {
+    if ("i".equalsIgnoreCase(String.valueOf(map.get(KEY_TYPE)))) {
       type = Argon2Parameters.ARGON2_i;
-    } else if ("2d".equalsIgnoreCase(String.valueOf(map.get(KEY_TYPE)))) {
+    } else if ("d".equalsIgnoreCase(String.valueOf(map.get(KEY_TYPE)))) {
       type = Argon2Parameters.ARGON2_d;
-    } else if ("2id".equalsIgnoreCase(String.valueOf(map.get(KEY_TYPE)))) {
+    } else if ("id".equalsIgnoreCase(String.valueOf(map.get(KEY_TYPE)))) {
       type = Argon2Parameters.ARGON2_id;
     }
 
