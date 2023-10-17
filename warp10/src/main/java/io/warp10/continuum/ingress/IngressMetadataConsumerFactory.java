@@ -55,7 +55,7 @@ public class IngressMetadataConsumerFactory implements ConsumerFactory {
       @Override
       public void run() {
         // Iterate on the messages
-        TDeserializer deserializer = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
+        TDeserializer deserializer = ThriftUtils.getTDeserializer();
 
         KafkaOffsetCounters counters = pool.getCounters();
 

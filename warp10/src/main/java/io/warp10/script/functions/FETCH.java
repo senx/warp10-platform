@@ -431,7 +431,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       // Sort metadata by id so the enforcement of keepempty works
       //
 
-      Collections.sort(metadatas, MetadataIdComparator.COMPARATOR);
+      Collections.sort(metas, MetadataIdComparator.COMPARATOR);
 
       iter = ((List<Metadata>) params.get(PARAM_GTS)).iterator();
     } else {
@@ -1130,7 +1130,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       }
 
       metaset = new MetaSet();
-      TDeserializer deser = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
+      TDeserializer deser = ThriftUtils.getTDeserializer();
 
       try {
         deser.deserialize(metaset, (byte[]) ms);

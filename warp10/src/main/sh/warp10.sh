@@ -269,6 +269,18 @@ backend = leveldb" >>"${WARP10_CONFIG_DIR}/99-init.conf"
   postInit
 }
 
+archiveConf() {
+  echo "Initializing Warp 10 archive configuration"
+  init
+
+  echo "
+backend = archive" >>"${WARP10_CONFIG_DIR}/99-init.conf"
+  mv "${WARP10_CONFIG_DIR}/10-fdb.conf" "${WARP10_CONFIG_DIR}/10-fdb.conf.DISABLE-$DATE"
+  getConfigFiles
+  postInit
+}
+
+
 standalonePlusConf() {
   echo "Initializing Warp 10 standalone+ configuration"
   init
@@ -486,7 +498,7 @@ if [ -n "${WARP10_IDENT:+x}" ]; then
   SENSISION_DEFAULT_LABELS=-Dsensision.default.labels=instance=${WARP10_IDENT}
   JAVA_OPTS="${JAVA_OPTS} -Dwarp.ident=${WARP10_IDENT}"
 fi
-JAVA_OPTS="-Djava.awt.headless=true -Dlog4j.configuration=file:${LOG4J_CONF} -Dsensision.server.port=0 ${SENSISION_DEFAULT_LABELS:-} -Dsensision.events.dir=${SENSISION_EVENTS_DIR} -Dfile.encoding=UTF-8 -Xms${WARP10_HEAP} -Xmx${WARP10_HEAP_MAX} -XX:+UseG1GC ${JAVA_OPTS:-} ${JAVA_EXTRA_OPTS:-}"
+JAVA_OPTS="-Djava.net.preferIPv4Stack=true -Djava.awt.headless=true -Dlog4j.configuration=file:${LOG4J_CONF} -Dsensision.server.port=0 ${SENSISION_DEFAULT_LABELS:-} -Dsensision.events.dir=${SENSISION_EVENTS_DIR} -Dfile.encoding=UTF-8 -Xms${WARP10_HEAP} -Xmx${WARP10_HEAP_MAX} -XX:+UseG1GC ${JAVA_OPTS:-} ${JAVA_EXTRA_OPTS:-}"
 export MALLOC_ARENA_MAX=1
 
 # See how we were called.
@@ -505,8 +517,11 @@ init)
   in-memory)
     inmemoryConf
     ;;
+  archive)
+    archiveConf
+    ;;
   *)
-    die "Usage: $0 init <distributed|standalone|standalone+|in-memory>"
+    die "Usage: $0 init <distributed|standalone|standalone+|in-memory|archive>"
     ;;
   esac
   ;;

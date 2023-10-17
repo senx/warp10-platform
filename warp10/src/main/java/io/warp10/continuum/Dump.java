@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package io.warp10.continuum;
 
+import io.warp10.ThriftUtils;
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
@@ -50,22 +51,22 @@ public class Dump extends Configured implements Tool {
 
   @Override
   public int run(String[] args) throws Exception {
-    
+
     String dumpurl = args[0];
     String seqfile = args[1];
-    
+
     //
     // Open output SequenceFile
     //
-    
+
     Configuration conf = getConf();
-    
+
     //
     // Open output file
     //
-    
+
     FSDataOutputStream out = null;
-    
+
     if ("-".equals(args[args.length - 1])) {
       out = new FSDataOutputStream(System.out, null);
     }
@@ -77,58 +78,58 @@ public class Dump extends Configured implements Tool {
       null == out ? SequenceFile.Writer.file(new Path(args[args.length - 1])) : SequenceFile.Writer.stream(out));
 
     InputStream is = null;
-    
+
     if (dumpurl.startsWith("http://") || dumpurl.startsWith("https://")) {
       URLConnection conn = new URL(dumpurl).openConnection();
       conn.setDoInput(true);
       conn.connect();
-      is = conn.getInputStream();      
+      is = conn.getInputStream();
     } else if ("-".equals(dumpurl)) {
       is = System.in;
     } else {
       is = new FileInputStream(dumpurl);
     }
-          
+
     BufferedReader br = new BufferedReader(new InputStreamReader(is));
-    
-    TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
-    
+
+    TSerializer serializer = ThriftUtils.getTSerializer();
+
     while(true) {
       String line = br.readLine();
-      
+
       if (null == line) {
         break;
       }
-      
+
       //
       // Extract ts// class{labels}
       //
-      
+
       String meta = line.substring(0, line.indexOf('}') + 1);
-      
+
       //
       // Parse a dummy line 'ts// class{labels} T' to retrieve the Metadata
       //
-      
+
       GTSEncoder encoder = GTSHelper.parse(null, meta + " T");
-      
+
       Metadata metadata = encoder.getMetadata();
-      
+
       // Retrieve potential dummy elevation which will encode the number of datapoints encoded
-      
+
       GTSDecoder decoder = encoder.getDecoder();
       decoder.next();
-      
+
       long count = decoder.getElevation();
-      
+
       //
       // Create a GTSWrapper
       //
-      
+
       GTSWrapper wrapper = new GTSWrapper();
       wrapper.setMetadata(metadata);
       wrapper.setBase(encoder.getBaseTimestamp());
-      
+
       if (GeoTimeSerie.NO_ELEVATION != count) {
         wrapper.setCount(count);
       } else {
@@ -138,25 +139,25 @@ public class Dump extends Configured implements Tool {
       //
       // Retrieve encoded datapoints
       //
-      
+
       byte[] datapoints = OrderPreservingBase64.decode(line.substring(line.indexOf('}') + 2).getBytes(StandardCharsets.UTF_8));
-      
+
       writer.append(new BytesWritable(serializer.serialize(wrapper)), new BytesWritable(datapoints));
     }
-    
+
     writer.close();
     br.close();
     is.close();
-    
+
     return 0;
   }
-  
+
   public static void main(String[] args) throws Exception {
-    
+
     if (args.length < 2) {
       throw new IOException("Usage: Dump FETCH_URL output");
     }
-    
+
     //args = new String[] { "/var/tmp/debs.encoders", "file:///var/tmp/debs.seq" };
     int exitCode = ToolRunner.run(new Dump(), args);
     System.exit(exitCode);

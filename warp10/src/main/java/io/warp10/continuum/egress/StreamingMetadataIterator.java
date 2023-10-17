@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -31,6 +31,7 @@ import java.util.NoSuchElementException;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.protocol.TCompactProtocol;
 
+import io.warp10.ThriftUtils;
 import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.gts.GTSHelper;
@@ -203,7 +204,7 @@ public class StreamingMetadataIterator extends MetadataIterator {
 
     byte[] bytes = OrderPreservingBase64.decode(line.getBytes(StandardCharsets.US_ASCII));
 
-    TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
+    TDeserializer deserializer = ThriftUtils.getTDeserializer();
 
     Metadata meta = new Metadata();
 

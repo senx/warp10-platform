@@ -1,19 +1,21 @@
-#!/usr/bin/python -u 
+#!/usr/bin/env -S python3 -u 
 
-import cPickle
+import pickle
 import sys
-import urllib
+import urllib.parse
 import base64
+import json
 
 #
 # Output the maximum number of instances of this 'callable' to spawn
 # The absolute maximum is set in the configuration file via 'warpscript.call.maxcapacity'
 #
 
-print 10
+print(1)
 
 #
-# An example of Warpscript to trigger this script: NOW ISO8601 ->PICKLE ->B64URL 'testcall.py' CALL
+# An example of Warpscript to test this script: 
+#  [ NOW ISO8601 1 ] ->PICKLE ->B64 'testcall.py' CALL JSON->
 #
 
 #
@@ -29,24 +31,32 @@ while True:
     #
     line = sys.stdin.readline()
     line = line.strip()
-    line = urllib.unquote(line.decode('utf-8'))
-    # Remove Base64 encoding
-    mystr = base64.b64decode(line)
-    args = cPickle.loads(mystr)
+    # Remove URL encoding done by CALL itself
+    line = urllib.parse.unquote(line)
+    # Remove Base64 encoding done by ->B64 function
+    pickledArguments = base64.b64decode(line)
+    # Deserialize object hierarchy
+    args = pickle.loads(pickledArguments)
 
     #
     # Do our stuff
     #
-    output = 'output'
+    out = {}
+    out['arguments'] = args
+    out['my answer'] = "hello world"
 
     #
-    # Output result (URL encoded UTF-8).
+    # Output result (CALL expects one line, URL encoded, UTF-8).
+    # Here we choose json output, but pickle serialization can also be used, see PICKLE-> documentation
     #
-    print urllib.quote(output.encode('utf-8'))
+    jsonOutput = json.dumps(out)
+    print(urllib.parse.quote(jsonOutput.encode('utf-8')))
+
   except Exception as err:
     #
     # If returning a content starting with ' ' (not URL encoded), then
     # the rest of the line is interpreted as a URL encoded UTF-8 of an error message
     # and will propagate the error to the calling WarpScript
     #
-    print ' ' + urllib.quote(repr(err).encode('utf-8'))
+    print(' ' + "Error within the python CALL:" + urllib.parse.quote(repr(err).encode('utf-8')))
+

@@ -365,7 +365,7 @@ public class ThriftDirectoryClient implements ServiceCacheListener, DirectoryCli
 
     List<Future<DirectoryStatsResponse>> responses = new ArrayList<Future<DirectoryStatsResponse>>();
 
-    TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
+    TSerializer serializer = ThriftUtils.getTSerializer();
 
     byte[] bytes = null;
 
@@ -418,7 +418,7 @@ public class ThriftDirectoryClient implements ServiceCacheListener, DirectoryCli
 
                   byte[] data = OrderPreservingBase64.decode(line.getBytes(StandardCharsets.US_ASCII));
 
-                  TDeserializer deser = new TDeserializer(new TCompactProtocol.Factory());
+                  TDeserializer deser = ThriftUtils.getTDeserializer();
 
                   deser.deserialize(resp, data);
                 }

@@ -293,7 +293,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
             padding = new PKCS7Padding();
           }
 
-          TDeserializer deserializer = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
+          TDeserializer deserializer = ThriftUtils.getTDeserializer();
 
           while (!stopMe.get()) {
             try {
@@ -1079,7 +1079,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       }
     }
 
-    TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
+    TSerializer serializer = ThriftUtils.getTSerializer();
 
     try {
       if (null != this.db || null != this.fdb) {

@@ -178,7 +178,7 @@ public class PlasmaFrontEnd extends StandalonePlasmaHandler implements Runnable,
             byte[] aesKey = frontend.keystore.getKey(KeyStore.AES_KAFKA_PLASMA_FRONTEND_IN);
 
             // Iterate on the messages
-            TDeserializer deserializer = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
+            TDeserializer deserializer = ThriftUtils.getTDeserializer();
 
             KafkaOffsetCounters counters = pool.getCounters();
 

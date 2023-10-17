@@ -99,7 +99,6 @@ import io.warp10.script.functions.WSAUDIT;
 import io.warp10.script.functions.WSAUDITMODE;
 import io.warp10.script.functions.math.GETEXPONENT;
 import io.warp10.script.functions.math.RANDOM;
-import io.warp10.script.functions.math.ROUND;
 import io.warp10.script.functions.math.SCALB;
 import io.warp10.script.functions.shape.CHECKSHAPE;
 import io.warp10.script.functions.shape.HULLSHAPE;
@@ -864,6 +863,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
+import java.util.function.LongUnaryOperator;
 
 /**
  * Library of functions used to manipulate Geo Time Series
@@ -2799,7 +2799,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new NumericalUnaryFunction(SIGNUM, null, Math::signum));
     addNamedWarpScriptFunction(new NumericalUnaryFunction(FLOOR, null, Math::floor));
     addNamedWarpScriptFunction(new NumericalUnaryFunction(CEIL, null, Math::ceil));
-    addNamedWarpScriptFunction(new ROUND(ROUND));
+    addNamedWarpScriptFunction(new NumericalUnaryFunction(ROUND, LongUnaryOperator.identity(), null, Math::round));
 
     addNamedWarpScriptFunction(new NumericalUnaryFunction(RINT, null, Math::rint));
     addNamedWarpScriptFunction(new NumericalUnaryFunction(ULP, null, Math::ulp));

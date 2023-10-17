@@ -39,6 +39,7 @@ import com.apple.foundationdb.FDBException;
 import com.apple.foundationdb.LocalityUtil;
 import com.apple.foundationdb.Transaction;
 
+import io.warp10.ThriftUtils;
 import io.warp10.continuum.Tokens;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.DirectoryClient;
@@ -305,7 +306,7 @@ public class EgressSplitsHandler extends AbstractHandler {
         // Serialize and encrypt Split
         //
 
-        TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+        TSerializer serializer = ThriftUtils.getTSerializer();
         byte[] data = null;
 
         try {

@@ -502,7 +502,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
 
     SequenceFile.Writer writer = SequenceFile.createWriter(conf, optPath, optKey, optVal, optCom);
 
-    TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
+    TSerializer serializer = ThriftUtils.getTSerializer();
 
     System.out.println("Dumping memory to '" + path + "'.");
 
@@ -583,7 +583,7 @@ public class StandaloneChunkedMemoryStore extends Thread implements StoreClient 
     BytesWritable key = new BytesWritable();
     BytesWritable value = new BytesWritable();
 
-    TDeserializer deserializer = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
+    TDeserializer deserializer = ThriftUtils.getTDeserializer();
 
     SequenceFile.Reader.Option optPath = SequenceFile.Reader.file(new Path(path));
 

@@ -92,7 +92,7 @@ public class LogUtil {
       return null;
     }
 
-    TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
+    TSerializer serializer = ThriftUtils.getTSerializer();
 
     byte[] serialized = null;
 
@@ -196,7 +196,7 @@ public class LogUtil {
         return null;
       }
 
-      TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
+      TDeserializer deserializer = ThriftUtils.getTDeserializer();
       LoggingEvent event = new LoggingEvent();
       try {
         deserializer.deserialize(event, data);

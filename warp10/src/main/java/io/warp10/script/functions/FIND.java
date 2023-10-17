@@ -562,7 +562,7 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
         // Encode the MetaSet
         //
 
-        TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
+        TSerializer serializer = ThriftUtils.getTSerializer();
 
         try {
           byte[] serialized = serializer.serialize(set);
