@@ -65,6 +65,7 @@ import com.geoxp.GeoXPLib;
 import com.geoxp.GeoXPLib.GeoXPShape;
 
 import io.warp10.CapacityExtractorOutputStream;
+import io.warp10.ThriftUtils;
 import io.warp10.WarpHexDecoder;
 import io.warp10.WarpURLDecoder;
 import io.warp10.WarpURLEncoder;
@@ -3501,7 +3502,7 @@ public class GTSHelper {
         // space
         GTSWrapper wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(encoder, comp, GTSWrapperHelper.DEFAULT_COMP_RATIO_THRESHOLD, Integer.MAX_VALUE, false);
 
-        TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+        TSerializer serializer = ThriftUtils.getTSerializer();
 
         byte[] ser = serializer.serialize(wrapper);
 
@@ -3812,6 +3813,18 @@ public class GTSHelper {
       res = ce.flush(bb);
       error = error || !res.isUnderflow();
       bb.flip();
+
+      //
+      // We check if the data in the ByteBuffer is at least as long as the entry we converted. This is to
+      // catch some nasty issue attributed to JITs which induced delayed buffer write backs. This issue was normally
+      // solved by https://github.com/senx/warp10-platform/pull/1260 but we had this test just in case the
+      // issue appears with future JDK versions.
+      //
+
+      if (bb.limit() < klen) {
+        throw new RuntimeException("Incoherent buffer len for key '" + ekey + "', expected at least " + klen + " got " + bb.limit());
+      }
+
       hashes[idx] = SipHashInline.hash24_palindromic(sipkey0, sipkey1, bb.array(), 0, bb.limit());
 
       ce = ce.reset().onMalformedInput(CodingErrorAction.REPLACE).onUnmappableCharacter(CodingErrorAction.REPLACE);
@@ -3826,6 +3839,11 @@ public class GTSHelper {
       res = ce.flush(bb);
       error = error || !res.isUnderflow();
       bb.flip();
+
+      if (bb.limit() < vlen) {
+        throw new RuntimeException("Incoherent buffer len for value '" + eval + "', expected at least " + vlen + " got " + bb.limit());
+      }
+
       hashes[idx+1] = SipHashInline.hash24_palindromic(sipkey0, sipkey1, bb.array(), 0, bb.limit());
       idx+=2;
     }

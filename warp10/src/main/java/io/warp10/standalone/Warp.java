@@ -148,6 +148,7 @@ public class Warp extends WarpDist implements Runnable {
     boolean nullbackend = false;
     boolean plasmabackend = false;
     boolean inmemory = false;
+    boolean archivebackend = false;
 
     boolean analyticsEngineOnly = "true".equals(properties.getProperty(Configuration.ANALYTICS_ENGINE_ONLY));
 
@@ -169,6 +170,9 @@ public class Warp extends WarpDist implements Runnable {
           break;
         case Constants.BACKEND_NULL:
           nullbackend = true;
+          break;
+        case Constants.BACKEND_ARCHIVE:
+          archivebackend = true;
           break;
         case Constants.BACKEND_PLASMA:
           plasmabackend = true;
@@ -409,6 +413,9 @@ public class Warp extends WarpDist implements Runnable {
     } else if (plasmabackend) {
       sdc = new StandaloneDirectoryClient(null, keystore);
       scc = new PlasmaStoreClient();
+    } else if (archivebackend) {
+      sdc = new StandaloneDirectoryClient(null, keystore);
+      scc = new NullStoreClient();
     } else if (nullbackend) {
       sdc = new NullDirectoryClient(keystore);
       scc = new NullStoreClient();

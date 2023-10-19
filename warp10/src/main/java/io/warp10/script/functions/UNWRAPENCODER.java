@@ -51,7 +51,7 @@ public class UNWRAPENCODER extends NamedWarpScriptFunction implements WarpScript
 
     byte[] bytes = top instanceof String ? OrderPreservingBase64.decode(top.toString().getBytes(StandardCharsets.US_ASCII)) : (byte[]) top;
 
-    TDeserializer deser = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
+    TDeserializer deser = ThriftUtils.getTDeserializer();
 
     try {
       GTSWrapper wrapper = new GTSWrapper();

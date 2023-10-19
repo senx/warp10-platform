@@ -648,7 +648,7 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
               sb.append(encoder.getBaseTimestamp());
               sb.append("// ");
 
-              TSerializer tserializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
+              TSerializer tserializer = ThriftUtils.getTSerializer();
 
               try {
                 byte[] serialized = tserializer.serialize(metadata);
@@ -681,7 +681,7 @@ public class StandalonePlasmaHandler extends WebSocketHandler.Simple implements 
               // Compress with two pass max
               GTSWrapper wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(encoder, true, GTSWrapperHelper.DEFAULT_COMP_RATIO_THRESHOLD, 2);
 
-              TSerializer tserializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
+              TSerializer tserializer = ThriftUtils.getTSerializer();
 
               try {
                 byte[] serialized = tserializer.serialize(wrapper);

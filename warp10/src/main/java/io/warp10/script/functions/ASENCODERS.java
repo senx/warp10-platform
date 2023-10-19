@@ -47,7 +47,7 @@ public class ASENCODERS extends ElementOrListStackFunction {
 
       // If raw wrap, convert to GTS
       if (element instanceof byte[]) {
-        TDeserializer deser = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
+        TDeserializer deser = ThriftUtils.getTDeserializer();
 
         try {
           GTSWrapper wrapper = new GTSWrapper();

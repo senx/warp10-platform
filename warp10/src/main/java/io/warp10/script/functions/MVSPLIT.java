@@ -136,7 +136,7 @@ public class MVSPLIT extends NamedWarpScriptFunction implements WarpScriptStackF
       throw new WarpScriptException(getName() + " operates on Geo Time Series or ENCODER or a list thereof.");
     }
 
-    TDeserializer deser = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
+    TDeserializer deser = ThriftUtils.getTDeserializer();
     GTSWrapper wrapper = new GTSWrapper();
 
     Map<Long,GTSEncoder> encoders = new HashMap<Long, GTSEncoder>();

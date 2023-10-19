@@ -134,14 +134,14 @@ public class ADDVALUE extends NamedWarpScriptFunction implements WarpScriptStack
     //
 
     if (value instanceof GeoTimeSerie) {
-      TSerializer ser = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
+      TSerializer ser = ThriftUtils.getTSerializer();
       try {
         value = ser.serialize(GTSWrapperHelper.fromGTSToGTSWrapper((GeoTimeSerie) value, true, GTSWrapperHelper.DEFAULT_COMP_RATIO_THRESHOLD, Integer.MAX_VALUE, false, false));
       } catch (TException te) {
         throw new WarpScriptException(getName() + " encountered an error while serializing the Geo Time Series.", te);
       }
     } else if (value instanceof GTSEncoder) {
-      TSerializer ser = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
+      TSerializer ser = ThriftUtils.getTSerializer();
       try {
         value = ser.serialize(GTSWrapperHelper.fromGTSEncoderToGTSWrapper((GTSEncoder) value, true, GTSWrapperHelper.DEFAULT_COMP_RATIO_THRESHOLD, Integer.MAX_VALUE, false));
       } catch (TException te) {

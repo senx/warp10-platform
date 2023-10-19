@@ -862,7 +862,7 @@ public class Store extends Thread {
         synchronizer.setDaemon(true);
         synchronizer.start();
 
-        TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
+        TDeserializer deserializer = new TDeserializer();
 
         // The call to resetInflight is a hack, we need to reset inflightMessage BUT iter.hasNext() may block
         // so we add an artificial call to resetInflight which always returns true but has the side effect

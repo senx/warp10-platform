@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2022  SenX S.A.S.
+//   Copyright 2020-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -28,8 +28,8 @@ import java.util.Map.Entry;
 
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
-import org.apache.thrift.protocol.TCompactProtocol;
 
+import io.warp10.ThriftUtils;
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
@@ -295,7 +295,7 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
     } else {
       try {
         byte[] bytes = o instanceof String ? OrderPreservingBase64.decode(o.toString().getBytes(StandardCharsets.US_ASCII)) : (byte[]) o;
-        TDeserializer deser = new TDeserializer(new TCompactProtocol.Factory());
+        TDeserializer deser = ThriftUtils.getTDeserializer();
         GTSWrapper wrapper = new GTSWrapper();
         deser.deserialize(wrapper, bytes);
         decoder = GTSWrapperHelper.fromGTSWrapperToGTSDecoder(wrapper);

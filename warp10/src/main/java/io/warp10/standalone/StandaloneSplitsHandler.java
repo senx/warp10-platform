@@ -33,6 +33,7 @@ import org.apache.thrift.protocol.TCompactProtocol;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 
+import io.warp10.ThriftUtils;
 import io.warp10.continuum.Tokens;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.DirectoryClient;
@@ -214,7 +215,7 @@ public class StandaloneSplitsHandler extends AbstractHandler {
         // Serialize and encrypt Split
         //
 
-        TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+        TSerializer serializer = ThriftUtils.getTSerializer();
         byte[] data = null;
 
         try {
