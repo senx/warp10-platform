@@ -57,7 +57,6 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.math3.fitting.PolynomialCurveFitter;
 import org.apache.commons.math3.fitting.WeightedObservedPoint;
 import org.apache.thrift.TSerializer;
-import org.apache.thrift.protocol.TCompactProtocol;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -103,6 +102,13 @@ import io.warp10.script.functions.TOQUATERNION;
 public class GTSHelper {
 
   private static final Logger LOG = LoggerFactory.getLogger(GTSHelper.class);
+
+  private static final String LABELSID_SLOWIMPL = "labelsid.slowimpl";
+  private static final boolean labelsIdSlowImpl;
+
+  static {
+    labelsIdSlowImpl = "true".equals(System.getProperty(LABELSID_SLOWIMPL));
+  }
 
   /**
    * Sort the values (and associated locations/elevations) by order of their ticks
@@ -3754,6 +3760,10 @@ public class GTSHelper {
 
   public static final long labelsId(long sipkey0, long sipkey1, Map<String,String> labels) {
 
+    if (labelsIdSlowImpl) {
+      return labelsId_slow(sipkey0, sipkey1, labels);
+    }
+
     //
     // Allocate a CharsetEncoder.
     // Implementation is a sun.nio.cs.UTF_8$Encoder which implements ArrayEncoder
@@ -3909,8 +3919,12 @@ public class GTSHelper {
     long id = SipHashInline.hash24_palindromic(sipkey0, sipkey1, buf, 0, hasheslen);
     return id;
   }
-
   public static final long labelsId_slow(byte[] key, Map<String,String> labels) {
+    return labelsId_slow(key[0], key[1], labels);
+  }
+
+  public static final long labelsId_slow(long sipkey0, long sipkey1, Map<String,String> labels) {
+
     //
     // Allocate an array to hold both name and value hashes
     //
@@ -3923,11 +3937,9 @@ public class GTSHelper {
 
     int idx = 0;
 
-    long[] sipkey = SipHashInline.getKey(key);
-
     for (Entry<String, String> entry: labels.entrySet()) {
-      hashes[idx] = SipHashInline.hash24_palindromic(sipkey[0], sipkey[1], entry.getKey().getBytes(StandardCharsets.UTF_8));
-      hashes[idx+1] = SipHashInline.hash24_palindromic(sipkey[0], sipkey[1], entry.getValue().getBytes(StandardCharsets.UTF_8));
+      hashes[idx] = SipHashInline.hash24_palindromic(sipkey0, sipkey1, entry.getKey().getBytes(StandardCharsets.UTF_8));
+      hashes[idx+1] = SipHashInline.hash24_palindromic(sipkey0, sipkey1, entry.getValue().getBytes(StandardCharsets.UTF_8));
       idx+=2;
     }
 
@@ -3971,7 +3983,7 @@ public class GTSHelper {
       bb.putLong(hash);
     }
 
-    return SipHashInline.hash24_palindromic(sipkey[0], sipkey[1], buf, 0, buf.length);
+    return SipHashInline.hash24_palindromic(sipkey0, sipkey1, buf, 0, buf.length);
   }
 
   /**
