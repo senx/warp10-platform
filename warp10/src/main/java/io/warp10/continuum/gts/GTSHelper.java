@@ -3920,7 +3920,8 @@ public class GTSHelper {
     return id;
   }
   public static final long labelsId_slow(byte[] key, Map<String,String> labels) {
-    return labelsId_slow(key[0], key[1], labels);
+    long[] sipkey = SipHashInline.getKey(key);
+    return labelsId_slow(sipkey[0], sipkey[1], labels);
   }
 
   public static final long labelsId_slow(long sipkey0, long sipkey1, Map<String,String> labels) {
