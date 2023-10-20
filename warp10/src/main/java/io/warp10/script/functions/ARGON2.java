@@ -84,7 +84,7 @@ public class ARGON2 extends NamedWarpScriptFunction implements WarpScriptStackFu
 
       if (iterations > MAXITER_DEFAULT) {
         if (null == Capabilities.get(stack, CAP_ARGON2_MAXITER)) {
-          throw new WarpScriptException(getName() + " missing capabbility '" + CAP_ARGON2_MAXITER + "'.");
+          throw new WarpScriptException(getName() + " missing capability '" + CAP_ARGON2_MAXITER + "'.");
         }
         if (iterations > Long.parseLong(Capabilities.get(stack, CAP_ARGON2_MAXITER))) {
           throw new WarpScriptException(getName() + " number of iterations exceeds capability value.");
@@ -97,7 +97,7 @@ public class ARGON2 extends NamedWarpScriptFunction implements WarpScriptStackFu
       int memory = ((Long) map.get(KEY_MEMORY)).intValue();
       if (memory > MAXMEM_DEFAULT) {
         if (null == Capabilities.get(stack, CAP_ARGON2_MAXMEM)) {
-          throw new WarpScriptException(getName() + " missing capabbility '" + CAP_ARGON2_MAXMEM + "'.");
+          throw new WarpScriptException(getName() + " missing capability '" + CAP_ARGON2_MAXMEM + "'.");
         }
         if (memory > Long.parseLong(Capabilities.get(stack, CAP_ARGON2_MAXMEM))) {
           throw new WarpScriptException(getName() + " memory exceeds capability value.");
@@ -110,7 +110,7 @@ public class ARGON2 extends NamedWarpScriptFunction implements WarpScriptStackFu
       int lanes = ((Long) map.get(KEY_PARALLELISM)).intValue();
       if (lanes > MAXPAR_DEFAULT) {
         if (null == Capabilities.get(stack, CAP_ARGON2_MAXPAR)) {
-          throw new WarpScriptException(getName() + " missing capabbility '" + CAP_ARGON2_MAXPAR + "'.");
+          throw new WarpScriptException(getName() + " missing capability '" + CAP_ARGON2_MAXPAR + "'.");
         }
         if (lanes > Long.parseLong(Capabilities.get(stack, CAP_ARGON2_MAXPAR))) {
           throw new WarpScriptException(getName() + " lane count exceeds capability value.");
@@ -137,7 +137,7 @@ public class ARGON2 extends NamedWarpScriptFunction implements WarpScriptStackFu
       size = ((Long) map.get(KEY_SIZE)).intValue();
       if (size > MAXSIZE_DEFAULT) {
         if (null == Capabilities.get(stack, CAP_ARGON2_MAXSIZE)) {
-          throw new WarpScriptException(getName() + " missing capabbility '" + CAP_ARGON2_MAXSIZE + "'.");
+          throw new WarpScriptException(getName() + " missing capability '" + CAP_ARGON2_MAXSIZE + "'.");
         }
         if (size > Long.parseLong(Capabilities.get(stack, CAP_ARGON2_MAXSIZE))) {
           throw new WarpScriptException(getName() + " requested output size exceeds capability value.");

@@ -94,7 +94,7 @@ public class OSSKeyStore implements KeyStore {
       }
       return CryptoHelper.unwrapBlob(this.masterKey, CryptoUtils.decodeKey(this, encoded.substring(8)));
     } else {
-      return null;
+      return CryptoUtils.decodeSimpleKey(encoded);
     }
   }
 
