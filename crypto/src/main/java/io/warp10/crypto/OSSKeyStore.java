@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,18 +16,14 @@
 
 package io.warp10.crypto;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.bouncycastle.util.encoders.Base64;
-import org.bouncycastle.util.encoders.Hex;
-
 import com.geoxp.oss.CryptoHelper;
 import com.geoxp.oss.OSSException;
 import com.geoxp.oss.client.OSSClient;
-
-import java.util.Arrays;
 
 /**
  * KeyStore implementation which uses a master key stored in OSS.
@@ -61,7 +57,8 @@ public class OSSKeyStore implements KeyStore {
 
     if (null != masterKeySpec) {
       try {
-        this.masterKey = decodeKey(masterKeySpec);
+        // We call decodeKey with a null KeyStore as we are not yet initialized
+        this.masterKey = CryptoUtils.decodeKey(null, masterKeySpec);
       } catch (Exception e) {
         // empty
       }
@@ -91,17 +88,14 @@ public class OSSKeyStore implements KeyStore {
     if (null == encoded) {
       return null;
     }
-    if (encoded.startsWith("hex:")) {
-      return Hex.decode(encoded.substring(4));
-    } else if (encoded.startsWith("base64:")) {
-      return Base64.decode(encoded.substring(7));
-    } else if (encoded.startsWith("wrapped:")) {
+
+    if (encoded.startsWith("wrapped:")) {
       if (null == this.masterKey) {
         throw new RuntimeException("Master Key not retrieved from OSS, aborting.");
       }
-      return CryptoHelper.unwrapBlob(this.masterKey, decodeKey(encoded.substring(8)));
+      return CryptoHelper.unwrapBlob(this.masterKey, CryptoUtils.decodeKey(this, encoded.substring(8)));
     } else {
-      return null;
+      return CryptoUtils.decodeKey(this, encoded);
     }
   }
 
