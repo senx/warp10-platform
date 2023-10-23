@@ -274,7 +274,11 @@ public class CryptoUtils {
 
       return derived;
     } else {
-      return ks.decodeKey(encoded);
+      if (null != ks) {
+        return ks.decodeKey(encoded);
+      } else {
+        throw new RuntimeException("Unable to decode key, KeyStore not set.");
+      }
     }
   }
 

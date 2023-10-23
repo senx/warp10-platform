@@ -57,7 +57,8 @@ public class OSSKeyStore implements KeyStore {
 
     if (null != masterKeySpec) {
       try {
-        this.masterKey = CryptoUtils.decodeSimpleKey(masterKeySpec);
+        // We call decodeKey with a null KeyStore as we are not yet initialized
+        this.masterKey = CryptoUtils.decodeKey(null, masterKeySpec);
       } catch (Exception e) {
         // empty
       }
@@ -94,7 +95,7 @@ public class OSSKeyStore implements KeyStore {
       }
       return CryptoHelper.unwrapBlob(this.masterKey, CryptoUtils.decodeKey(this, encoded.substring(8)));
     } else {
-      return CryptoUtils.decodeSimpleKey(encoded);
+      return CryptoUtils.decodeKey(this, encoded);
     }
   }
 
