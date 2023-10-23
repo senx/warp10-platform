@@ -131,7 +131,7 @@ public class InfluxDBHandler extends AbstractHandler {
     long ratio = 1L;
 
     //
-    // If the platform's time unit is not set to ns then adapt ratio and nsPerTimeUnit
+    // If the platform's time unit is not set to ns then adapt ratio and ilpTimeUnitMultiplier
     //
 
     if (1000000000L != Constants.TIME_UNITS_PER_S) {
@@ -303,7 +303,7 @@ public class InfluxDBHandler extends AbstractHandler {
 
   private static final List<GTSEncoder> NO_ENCODERS = Collections.unmodifiableList(new ArrayList<GTSEncoder>(0));
 
-  public static List<GTSEncoder> parse(String ilp, long ratio, AtomicReference<String> lastmeasurement, AtomicReference<String> lastLabels, AtomicReference<Map<String,String>> curLabels, String mlabel, long nsPerTimeUnit) {
+  public static List<GTSEncoder> parse(String ilp, long ratio, AtomicReference<String> lastmeasurement, AtomicReference<String> lastLabels, AtomicReference<Map<String,String>> curLabels, String mlabel, long ilpTimeUnitMultiplier) {
     ilp = ilp.trim();
 
     if ("".equals(ilp) || ilp.startsWith("#")) {
@@ -416,10 +416,11 @@ public class InfluxDBHandler extends AbstractHandler {
     // Parse the timestamp
     //
     int tsidx = sb.lastIndexOf(" ");
-    long ts = Long.parseLong(sb.substring(tsidx + 1)) * nsPerTimeUnit;
 
-    // Adjust the time units
-    if (1L != ratio) {
+    long ts = -1 != tsidx ? Long.parseLong(sb.substring(tsidx + 1)) * ilpTimeUnitMultiplier : TimeSource.getTime();
+
+    // Adjust the time units if there was a timestamp specified AND the ratio is not 1L
+    if (1L != ratio && -1 != tsidx) {
       ts = ts / ratio;
     }
 
