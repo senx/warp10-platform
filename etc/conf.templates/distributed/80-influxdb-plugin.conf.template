@@ -48,3 +48,9 @@
 // Label to use for storing the measurement. If unset, the measurement is prepended to the field name, separated with a dot unless
 // the mlabel parameter is set which case the specified name is used for the label.
 #influxdb.measurement.label = .measurement
+
+// Maximum memory footprint (in bytes) of current data points (encoders), going over this threshold will trigger a flush to Warp 10. Defaults to 1000000
+#influxdb.flush.threshold = 1000000
+
+// Maximum size of the class ids cache. Defaults to 1000
+#influxdb.cache.size = 1000
