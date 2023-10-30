@@ -104,7 +104,7 @@ public class InfluxDBHandler extends AbstractHandler {
     if (null != qs) {
       params = Splitter.on("&").withKeyValueSeparator("=").split(qs);
     } else {
-      params = new HashMap();
+      params = new HashMap<String,String>();
     }
 
     String precision = params.get(PARAM_PRECISION);
@@ -202,12 +202,9 @@ public class InfluxDBHandler extends AbstractHandler {
       }
 
       Map<UUID, GTSEncoder> currentEncoders = new HashMap<UUID, GTSEncoder>();
-      AtomicReference<String> lastLabels = new AtomicReference(null);
-      AtomicReference<String> lastMeasurement = new AtomicReference(null);
-      AtomicReference<Map<String,String>> curLabels = new AtomicReference(null);
-
-      long labelsId = 0L;
-      long classId = 0L;
+      AtomicReference<String> lastLabels = new AtomicReference<String>(null);
+      AtomicReference<String> lastMeasurement = new AtomicReference<String>(null);
+      AtomicReference<Map<String,String>> curLabels = new AtomicReference<Map<String,String>>(null);
 
       Map<String,Long> classIds = new LinkedHashMap<String,Long>() {
         @Override
@@ -233,6 +230,14 @@ public class InfluxDBHandler extends AbstractHandler {
           currentEncoders.clear();
           encsize = 0;
         }
+      }
+
+      if (encsize > 0) {
+        for (GTSEncoder encoder: currentEncoders.values()) {
+          GTSHelper.dump(encoder, pw);
+        }
+        currentEncoders.clear();
+        encsize = 0;
       }
 
       pw.close();

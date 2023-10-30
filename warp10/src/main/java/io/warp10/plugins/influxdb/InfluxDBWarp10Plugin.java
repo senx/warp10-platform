@@ -116,7 +116,7 @@ public class InfluxDBWarp10Plugin extends AbstractWarp10Plugin implements Runnab
     try {
       this.url = new URL(properties.getProperty(CONF_INFLUXDB_WARP10_ENDPOINT));
     } catch (Exception e) {
-      throw new RuntimeException("Error parsing InfluxDB Plugin Warp 10 endpoint URL", e);
+      throw new RuntimeException("Error parsing InfluxDB Plugin Warp 10 endpoint URL set in '" + CONF_INFLUXDB_WARP10_ENDPOINT +"'.", e);
     }
 
     if (properties.containsKey(CONF_INFLUXDB_JETTY_MAXQUEUESIZE)) {
