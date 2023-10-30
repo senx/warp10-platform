@@ -95,6 +95,7 @@ import io.warp10.script.filter.FilterLastLE;
 import io.warp10.script.filter.FilterLastLT;
 import io.warp10.script.filter.FilterLastNE;
 import io.warp10.script.filter.LatencyFilter;
+import io.warp10.script.functions.ARGON2;
 import io.warp10.script.functions.math.GETEXPONENT;
 import io.warp10.script.functions.math.RANDOM;
 import io.warp10.script.functions.math.SCALB;
@@ -1240,6 +1241,7 @@ public class WarpScriptLib {
   public static final String US = "us";
   public static final String NS = "ns";
   public static final String PS = "ps";
+  public static final String ARGON2 = "ARGON2";
   public static final String HASH = "HASH";
   public static final String KECCAK_128 = "KECCAK.128";
   public static final String KECCAK_224 = "KECCAK.224";
@@ -2175,6 +2177,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new UNIT(PS, 0.000000001));
 
     // Crypto functions
+    addNamedWarpScriptFunction(new ARGON2(ARGON2));
     addNamedWarpScriptFunction(new HASH(HASH));
     addNamedWarpScriptFunction(new DIGEST(KECCAK_128, KeccakDigest.class, 128));
     addNamedWarpScriptFunction(new DIGEST(KECCAK_224, KeccakDigest.class, 224));

@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -22,8 +22,12 @@ import java.nio.ByteOrder;
 import org.bouncycastle.crypto.CipherParameters;
 import org.bouncycastle.crypto.InvalidCipherTextException;
 import org.bouncycastle.crypto.engines.AESWrapEngine;
+import org.bouncycastle.crypto.generators.Argon2BytesGenerator;
 import org.bouncycastle.crypto.paddings.PKCS7Padding;
+import org.bouncycastle.crypto.params.Argon2Parameters;
 import org.bouncycastle.crypto.params.KeyParameter;
+import org.bouncycastle.util.encoders.Base64;
+import org.bouncycastle.util.encoders.Hex;
 
 import com.google.common.primitives.Longs;
 
@@ -33,6 +37,22 @@ import java.util.Arrays;
  * The type Crypto utils.
  */
 public class CryptoUtils {
+
+  private static final String ARGON2_ITERATIONS = "argon2.iterations";
+  private static final String ARGON2_ITERATIONS_DEFAULT = Integer.toString(3);
+  private static final String ARGON2_MEMORY = "argon2.memory";
+  private static final String ARGON2_MEMORY_DEFAULT = Integer.toString(524288);
+  private static final String ARGON2_PARALLELISM = "argon2.parallelism";
+  private static final String ARGON2_PARALLELISM_DEFAULT = Integer.toString(1);
+
+  private static final long SALT_K0 = 0x9D38769AE67064E8L;
+  private static final long SALT_K1 = 0x880EE777C5AEEFDDL;
+
+  private static final long SECRET_K0 = 0xAD5440600A88E93FL;
+  private static final long SECRET_K1 = 0xBF2299D5BC38C882L;
+
+  private static final long ADDITIONAL_K0 = 0x5BCDAA0E77F14C90L;
+  private static final long ADDITIONAL_K1 = 0x0511E948D63E47B8L;
 
   /**
    * Wrap byte [ ].
@@ -205,5 +225,74 @@ public class CryptoUtils {
       inverted[i] = (byte) (inverted[i] & 0xFF);
     }
     return inverted;
+  }
+
+  public static byte[] decodeKey(KeyStore ks, String encoded) {
+    if (null == encoded) {
+      return null;
+    }
+
+    if (encoded.startsWith("hex:")) {
+      return Hex.decode(encoded.substring(4));
+    } else if (encoded.startsWith("base64:")) {
+      return Base64.decode(encoded.substring(7));
+    } else if (encoded.startsWith("argon2id:")) {
+      // Extract the bit size
+      encoded = encoded.substring("argon2id:".length());
+      String bitstr = encoded.replaceAll(":.*", "");
+      int bitsize = Integer.valueOf(bitstr);
+
+      // Retrieve the decoded key
+      byte[] key = decodeKey(ks, encoded.substring(bitstr.length() + 1));
+
+      // Apply the KDF
+      int iters = Integer.valueOf(System.getProperty(ARGON2_ITERATIONS, ARGON2_ITERATIONS_DEFAULT));
+      int memory = Integer.valueOf(System.getProperty(ARGON2_MEMORY, ARGON2_MEMORY_DEFAULT));
+      int parallelism = Integer.valueOf(System.getProperty(ARGON2_PARALLELISM, ARGON2_PARALLELISM_DEFAULT));
+
+      // Allocate 16 bytes for salt as this is recommended by RFC-9106
+      byte[] salt = new byte[16];
+      System.arraycopy(Longs.toByteArray(SipHashInline.hash24_palindromic(SALT_K0, SALT_K1, key)), 0, salt, 0, 8);
+      System.arraycopy(Longs.toByteArray(SipHashInline.hash24_palindromic(SALT_K1, SALT_K0, key)), 0, salt, 8, 8);
+
+      byte[] secret = Longs.toByteArray(SipHashInline.hash24_palindromic(SECRET_K0, SECRET_K1, key));
+      byte[] additional = Longs.toByteArray(SipHashInline.hash24_palindromic(ADDITIONAL_K0, ADDITIONAL_K1, key));
+
+      Argon2Parameters.Builder builder = new Argon2Parameters.Builder(Argon2Parameters.ARGON2_id)
+          .withSalt(salt)
+          .withSecret(secret)
+          .withAdditional(additional)
+          .withVersion(Argon2Parameters.ARGON2_VERSION_13)
+          .withIterations(iters)
+          .withMemoryAsKB(memory)
+          .withParallelism(parallelism);
+      Argon2BytesGenerator generator = new Argon2BytesGenerator();
+      generator.init(builder.build());
+
+      byte[] derived = new byte[bitsize >>> 3];
+      generator.generateBytes(key, derived);
+
+      return derived;
+    } else {
+      if (null != ks) {
+        return ks.decodeKey(encoded);
+      } else {
+        throw new RuntimeException("Unable to decode key, KeyStore not set.");
+      }
+    }
+  }
+
+  public static byte[] decodeSimpleKey(String encoded) {
+    if (null == encoded) {
+      return null;
+    }
+
+    if (encoded.startsWith("hex:")) {
+      return Hex.decode(encoded.substring(4));
+    } else if (encoded.startsWith("base64:")) {
+      return Base64.decode(encoded.substring(7));
+    } else {
+      return null;
+    }
   }
 }

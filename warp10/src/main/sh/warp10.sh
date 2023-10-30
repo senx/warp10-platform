@@ -496,7 +496,7 @@ JAVA_HEAP_DUMP=${WARP10_HOME}/logs/java.heapdump
 # you can specialize your metrics for this instance of Warp 10
 if [ -n "${WARP10_IDENT:+x}" ]; then
   SENSISION_DEFAULT_LABELS=-Dsensision.default.labels=instance=${WARP10_IDENT}
-  JAVA_OPTS="${JAVA_OPTS} -Dwarp.ident=${WARP10_IDENT}"
+  JAVA_OPTS="${JAVA_OPTS:-} -Dwarp.ident=${WARP10_IDENT}"
 fi
 JAVA_OPTS="-Djava.net.preferIPv4Stack=true -Djava.awt.headless=true -Dlog4j.configuration=file:${LOG4J_CONF} -Dsensision.server.port=0 ${SENSISION_DEFAULT_LABELS:-} -Dsensision.events.dir=${SENSISION_EVENTS_DIR} -Dfile.encoding=UTF-8 -Xms${WARP10_HEAP} -Xmx${WARP10_HEAP_MAX} -XX:+UseG1GC ${JAVA_OPTS:-} ${JAVA_EXTRA_OPTS:-}"
 export MALLOC_ARENA_MAX=1
