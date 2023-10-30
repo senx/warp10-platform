@@ -369,6 +369,8 @@ public class InfluxDBHandler extends AbstractHandler {
         } catch (UnsupportedEncodingException uee) {
         }
       }
+      lastLabels.set("");
+      curLabels.set(new LinkedHashMap<String,String>());
     }
 
     lastmeasurement.set(measurement);
@@ -509,7 +511,6 @@ public class InfluxDBHandler extends AbstractHandler {
 
           // Compute labelsId
           labelsId = GTSHelper.labelsId(LABELS_KEYS, labels);
-          parsedLabels = lastLabels.get();
         }
 
         for (GTSEncoder encoder: encoders) {
