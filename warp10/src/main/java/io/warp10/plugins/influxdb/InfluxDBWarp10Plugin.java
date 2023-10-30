@@ -17,6 +17,7 @@ package io.warp10.plugins.influxdb;
 
 import io.warp10.continuum.JettyUtil;
 import io.warp10.continuum.egress.CORSHandler;
+import io.warp10.script.WarpScriptLib;
 import io.warp10.warp.sdk.AbstractWarp10Plugin;
 
 import java.net.URL;
@@ -32,6 +33,8 @@ import org.eclipse.jetty.util.BlockingArrayQueue;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
 public class InfluxDBWarp10Plugin extends AbstractWarp10Plugin implements Runnable {
+
+  private static final String ILPTO = "ILP->";
 
   private static final String CONF_INFLUXDB_PORT = "influxdb.port";
   private static final String CONF_INFLUXDB_HOST = "influxdb.host";
@@ -106,6 +109,8 @@ public class InfluxDBWarp10Plugin extends AbstractWarp10Plugin implements Runnab
     this.measurementlabel = properties.getProperty(CONF_INFLUXDB_MEASUREMENT_LABEL);
     this.threshold = Long.parseLong(properties.getProperty(CONF_INFLUXDB_FLUSH_THRESHOLD, DEFAULT_FLUSH_THRESHOLD));
     this.cachesize = Integer.parseInt(properties.getProperty(CONF_INFLUXDB_CACHE_SIZE, DEFAULT_CACHE_SIZE));
+
+    WarpScriptLib.addNamedWarpScriptFunction(new ILPTO(ILPTO));
 
     try {
       this.url = new URL(properties.getProperty(CONF_INFLUXDB_WARP10_ENDPOINT));

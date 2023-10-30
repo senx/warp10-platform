@@ -216,76 +216,20 @@ public class InfluxDBHandler extends AbstractHandler {
       long encsize = 0L;
 
       while(true) {
-        String line = br.readLine();
-        if (null == line) {
+        encsize = parseMulti(br, mlabel, ilpTimeUnitMultiplier, ratio, threshold, classIds, currentEncoders, lastLabels, lastMeasurement, curLabels);
+
+        if (0 == encsize) {
           break;
         }
-        try {
-          String parsedLabels = lastLabels.get();
-          String parsedMeasurement = lastMeasurement.get();
 
-          List<GTSEncoder> encoders = parse(line, ratio, lastMeasurement, lastLabels, curLabels, mlabel, ilpTimeUnitMultiplier);
-
-          if (encoders.isEmpty()) {
-            continue;
+        // If the cumulative size of encoders is above a threshold, flush all encoders
+        if (encsize > this.threshold) {
+          for (GTSEncoder encoder: currentEncoders.values()) {
+            GTSHelper.dump(encoder, pw);
           }
-
-          Map<String,String> labels = encoders.get(0).getRawMetadata().getLabels();
-
-          if (!lastLabels.get().equals(parsedLabels) || (null != mlabel && !lastMeasurement.get().equals(parsedMeasurement))) {
-            // Remove producer/owner/app
-            labels.remove(Constants.PRODUCER_LABEL);
-            labels.remove(Constants.OWNER_LABEL);
-            labels.remove(Constants.APPLICATION_LABEL);
-
-            // Compute labelsId
-            labelsId = GTSHelper.labelsId(LABELS_KEYS, labels);
-            parsedLabels = lastLabels.get();
-          }
-
-          for (GTSEncoder encoder: encoders) {
-            // Compute classid if it changed
-            String cls = encoder.getRawMetadata().getName();
-            if (!classIds.containsKey(cls)) {
-              classId = GTSHelper.classId(CLASS_KEYS, cls);
-              classIds.put(cls, classId);
-            } else {
-              classId = classIds.get(cls);
-            }
-
-            UUID uuid = new UUID(classId, labelsId);
-
-            if (!currentEncoders.containsKey(uuid)) {
-              currentEncoders.put(uuid, encoder);
-              encsize += encoder.size();
-            } else {
-              GTSDecoder decoder = encoder.getDecoder(true);
-              GTSEncoder enco = currentEncoders.get(uuid);
-              long cursize = enco.size();
-              while(decoder.next()) {
-                enco.addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue());
-              }
-              encsize -= cursize;
-              encsize += enco.size();
-            }
-          }
-
-          // If the cumulative size of encoders is above a threshold, flush all encoders
-          if (encsize > this.threshold) {
-            for (GTSEncoder encoder: currentEncoders.values()) {
-              GTSHelper.dump(encoder, pw);
-            }
-            currentEncoders.clear();
-            encsize = 0;
-          }
-        } catch (Throwable t) {
-          LOG.error("Error while parsing '" + line + "'.", t);
-          throw t;
+          currentEncoders.clear();
+          encsize = 0;
         }
-      }
-
-      for (GTSEncoder encoder: currentEncoders.values()) {
-        GTSHelper.dump(encoder, pw);
       }
 
       pw.close();
@@ -497,5 +441,78 @@ public class InfluxDBHandler extends AbstractHandler {
     } catch (IOException ioe) {
       throw new RuntimeException(ioe);
     }
+  }
+
+  private static long parseMulti(BufferedReader br, String mlabel, long ilpTimeUnitMultiplier, long ratio, long threshold, Map<String,Long> classIds, Map<UUID,GTSEncoder> currentEncoders, AtomicReference<String> lastLabels, AtomicReference<String> lastMeasurement, AtomicReference<Map<String,String>> curLabels) throws IOException {
+
+    long labelsId = 0L;
+    long classId = 0L;
+    long encsize = 0L;
+
+    while(true) {
+      String line = br.readLine();
+      if (null == line) {
+        break;
+      }
+      try {
+        String parsedLabels = lastLabels.get();
+        String parsedMeasurement = lastMeasurement.get();
+
+        List<GTSEncoder> encoders = parse(line, ratio, lastMeasurement, lastLabels, curLabels, mlabel, ilpTimeUnitMultiplier);
+
+        if (encoders.isEmpty()) {
+          continue;
+        }
+
+        Map<String,String> labels = encoders.get(0).getRawMetadata().getLabels();
+
+        if (!lastLabels.get().equals(parsedLabels) || (null != mlabel && !lastMeasurement.get().equals(parsedMeasurement))) {
+          // Remove producer/owner/app
+          labels.remove(Constants.PRODUCER_LABEL);
+          labels.remove(Constants.OWNER_LABEL);
+          labels.remove(Constants.APPLICATION_LABEL);
+
+          // Compute labelsId
+          labelsId = GTSHelper.labelsId(LABELS_KEYS, labels);
+          parsedLabels = lastLabels.get();
+        }
+
+        for (GTSEncoder encoder: encoders) {
+          // Compute classid if it changed
+          String cls = encoder.getRawMetadata().getName();
+          if (!classIds.containsKey(cls)) {
+            classId = GTSHelper.classId(CLASS_KEYS, cls);
+            classIds.put(cls, classId);
+          } else {
+            classId = classIds.get(cls);
+          }
+
+          UUID uuid = new UUID(classId, labelsId);
+
+          if (!currentEncoders.containsKey(uuid)) {
+            currentEncoders.put(uuid, encoder);
+            encsize += encoder.size();
+          } else {
+            GTSDecoder decoder = encoder.getDecoder(true);
+            GTSEncoder enco = currentEncoders.get(uuid);
+            long cursize = enco.size();
+            while(decoder.next()) {
+              enco.addValue(decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue());
+            }
+            encsize -= cursize;
+            encsize += enco.size();
+          }
+        }
+
+        if (encsize > threshold) {
+          break;
+        }
+      } catch (Throwable t) {
+        LOG.error("Error while parsing '" + line + "'.", t);
+        throw t;
+      }
+    }
+
+    return encsize;
   }
 }
