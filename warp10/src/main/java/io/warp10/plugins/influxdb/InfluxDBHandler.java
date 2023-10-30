@@ -13,6 +13,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
+
 package io.warp10.plugins.influxdb;
 
 import io.warp10.WarpURLDecoder;
@@ -54,6 +55,8 @@ import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 
 import com.google.common.base.Splitter;
+import com.nimbusds.jose.util.StandardCharset;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -316,8 +319,15 @@ public class InfluxDBHandler extends AbstractHandler {
 
     int commaidx = sb.indexOf(",", 0);
 
-    if (commaidx < idx) {
+    if (-1 != commaidx && commaidx < idx) {
       measurement = sb.substring(0, commaidx).toString();
+
+      if (-1 != measurement.indexOf('%')) {
+        try {
+          measurement = WarpURLDecoder.decode(measurement, StandardCharset.UTF_8);
+        } catch (UnsupportedEncodingException uee) {
+        }
+      }
 
       String tagset = sb.substring(commaidx + 1, idx);
 
@@ -348,6 +358,12 @@ public class InfluxDBHandler extends AbstractHandler {
       }
     } else {
       measurement = sb.substring(0, idx).toString();
+      if (-1 != measurement.indexOf('%')) {
+        try {
+          measurement = WarpURLDecoder.decode(measurement, StandardCharset.UTF_8);
+        } catch (UnsupportedEncodingException uee) {
+        }
+      }
     }
 
     lastmeasurement.set(measurement);
@@ -361,7 +377,21 @@ public class InfluxDBHandler extends AbstractHandler {
     //
     int tsidx = sb.lastIndexOf(" ");
 
-    long ts = -1 != tsidx ? Long.parseLong(sb.substring(tsidx + 1)) * ilpTimeUnitMultiplier : TimeSource.getTime();
+    long ts = 0L;
+
+    if (-1 != tsidx && tsidx > idx) {
+      // Check that the remaining content is only digits
+      try {
+        ts = Long.parseLong(sb.substring(tsidx + 1)) * ilpTimeUnitMultiplier;
+      } catch (NumberFormatException nfe) {
+        // There was an error parsing the timestamp, it probably means there was no timestamp
+        ts = TimeSource.getTime();
+        tsidx = -1;
+      }
+    } else {
+      tsidx = -1;
+      ts = TimeSource.getTime();
+    }
 
     // Adjust the time units if there was a timestamp specified AND the ratio is not 1L
     if (1L != ratio && -1 != tsidx) {
@@ -372,7 +402,7 @@ public class InfluxDBHandler extends AbstractHandler {
     // Parse the fields
     //
 
-    String fieldset = sb.substring(idx + 1, tsidx);
+    String fieldset = -1 == tsidx ? sb.substring(idx + 1) : sb.substring(idx + 1, tsidx);
 
     List<GTSEncoder> encoders = new ArrayList<GTSEncoder>();
 
@@ -397,8 +427,8 @@ public class InfluxDBHandler extends AbstractHandler {
         Object o = null;
 
         if ('\"' == fieldset.charAt(eqidx + 1)) {
-          // We can check the for end " since escaped double quotes were percent encoded
-          startidx = fieldset.indexOf('\"', eqidx + 2);
+          // We can check for the end " since escaped double quotes were percent encoded
+          startidx = fieldset.indexOf('"', eqidx + 2);
           value = fieldset.substring(eqidx + 2, startidx);
           if ( -1 != value.indexOf('%')) {
             value = WarpURLDecoder.decode(value, StandardCharsets.UTF_8);
@@ -443,7 +473,7 @@ public class InfluxDBHandler extends AbstractHandler {
     }
   }
 
-  private static long parseMulti(BufferedReader br, String mlabel, long ilpTimeUnitMultiplier, long ratio, long threshold, Map<String,Long> classIds, Map<UUID,GTSEncoder> currentEncoders, AtomicReference<String> lastLabels, AtomicReference<String> lastMeasurement, AtomicReference<Map<String,String>> curLabels) throws IOException {
+  public static long parseMulti(BufferedReader br, String mlabel, long ilpTimeUnitMultiplier, long ratio, long threshold, Map<String,Long> classIds, Map<UUID,GTSEncoder> currentEncoders, AtomicReference<String> lastLabels, AtomicReference<String> lastMeasurement, AtomicReference<Map<String,String>> curLabels) throws IOException {
 
     long labelsId = 0L;
     long classId = 0L;
