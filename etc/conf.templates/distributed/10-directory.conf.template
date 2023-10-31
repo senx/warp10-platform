@@ -45,16 +45,6 @@ directory.kafka.nthreads = 1
 directory.partition = 1:0
 
 ##
-## Set to true to only process directory queries when shards covering all partitions are available
-##
-#directory.shards.strict = true
-
-##
-## Set to true to fail directory queries when accessing a shard produced an error
-##
-#directory.shards.failonerror = true
-
-##
 ## MANDATORY - Address on which the Directory will listen
 ##
 directory.host = 127.0.0.1

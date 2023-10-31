@@ -114,9 +114,9 @@ public class ThriftDirectoryClient implements ServiceCacheListener, DirectoryCli
 
   public ThriftDirectoryClient(KeyStore keystore, Properties props) throws Exception {
 
-    strictShards = "true".equals(props.getProperty(Configuration.DIRECTORY_SHARDS_STRICT));
+    strictShards = "true".equals(props.getProperty(Configuration.EGRESS_DIRECTORY_SHARDS_STRICT));
 
-    failOnError = "true".equals(props.getProperty(Configuration.DIRECTORY_SHARDS_FAILONERROR));
+    failOnError = "true".equals(props.getProperty(Configuration.EGRESS_DIRECTORY_SHARDS_FAILONERROR));
 
     // Extract Directory PSK
 
