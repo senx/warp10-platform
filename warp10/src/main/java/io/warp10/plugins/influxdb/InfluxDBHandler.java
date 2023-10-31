@@ -218,7 +218,7 @@ public class InfluxDBHandler extends AbstractHandler {
       while(true) {
         encsize = parseMulti(br, mlabel, ilpTimeUnitMultiplier, ratio, threshold, classIds, currentEncoders, lastLabels, lastMeasurement, curLabels);
 
-        // If the cumulative size of encoders is above a threshold, flush all encoders
+        // If the cumulative size of encoders is above a threshold or we reached EOF on br, flush all encoders
         if (encsize > this.threshold || 0 == encsize) {
           for (GTSEncoder encoder: currentEncoders.values()) {
             GTSHelper.dump(encoder, pw);
