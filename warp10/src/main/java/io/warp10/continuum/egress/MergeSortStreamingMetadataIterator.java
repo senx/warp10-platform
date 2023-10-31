@@ -1,5 +1,5 @@
 //
-//   Copyright 2021  SenX S.A.S.
+//   Copyright 2021-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@ public class MergeSortStreamingMetadataIterator extends MetadataIterator {
   private final Metadata[] metadatas;
   private Boolean lastHasNext = null;
 
-  public MergeSortStreamingMetadataIterator(long[] SIPHASH_PSK, DirectoryRequest request, List<URL> urls, boolean noProxy) {
+  public MergeSortStreamingMetadataIterator(long[] SIPHASH_PSK, DirectoryRequest request, List<URL> urls, boolean noProxy, boolean failOnError) {
     //
     // Check that the DirectoryRequest contains a single selector
     //
@@ -47,7 +47,7 @@ public class MergeSortStreamingMetadataIterator extends MetadataIterator {
     for (int i = 0; i < iterators.length; i++) {
       List<URL> url = new ArrayList<URL>(1);
       url.add(urls.get(i));
-      iterators[i] = new StreamingMetadataIterator(SIPHASH_PSK, request, url, noProxy);
+      iterators[i] = new StreamingMetadataIterator(SIPHASH_PSK, request, url, noProxy, failOnError);
     }
   }
 

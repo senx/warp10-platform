@@ -425,6 +425,17 @@ public class Configuration {
   public static final String DIRECTORY_TCP_BACKLOG = "directory.tcp.backlog";
 
   /**
+   * Set to true to ensure requests are only processed when shards covering the whole
+   * key space are available.
+   */
+  public static final String DIRECTORY_SHARDS_STRICT = "directory.shards.strict";
+
+  /**
+   * Set to true to fail whenever an error is detected on a shard access.
+   */
+  public static final String DIRECTORY_SHARDS_FAILONERROR = "directory.shards.failonerror";
+
+  /**
    * Port the streaming directory service listens to
    */
   public static final String DIRECTORY_STREAMING_PORT = "directory.streaming.port";
