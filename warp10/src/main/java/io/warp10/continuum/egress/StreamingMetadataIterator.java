@@ -29,7 +29,8 @@ import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 
 import org.apache.thrift.TDeserializer;
-import org.apache.thrift.protocol.TCompactProtocol;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.warp10.ThriftUtils;
 import io.warp10.WarpURLEncoder;
@@ -43,6 +44,8 @@ import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.crypto.SipHashInline;
 
 public class StreamingMetadataIterator extends MetadataIterator {
+
+  private static final Logger LOG = LoggerFactory.getLogger(StreamingMetadataIterator.class);
 
   /**
    * Index on classSelectors
@@ -70,11 +73,14 @@ public class StreamingMetadataIterator extends MetadataIterator {
 
   private final boolean noProxy;
 
-  public StreamingMetadataIterator(long[] SIPHASH_PSK, DirectoryRequest request, List<URL> urls, boolean noProxy) {
+  private final boolean failOnError;
+
+  public StreamingMetadataIterator(long[] SIPHASH_PSK, DirectoryRequest request, List<URL> urls, boolean noProxy, boolean failOnError) {
     this.SIPHASH_PSK = SIPHASH_PSK;
     this.directoryRequest = request;
     this.urls = urls;
     this.noProxy = noProxy;
+    this.failOnError = failOnError;
   }
 
   @Override
@@ -82,6 +88,10 @@ public class StreamingMetadataIterator extends MetadataIterator {
     try {
       return hasNextInternal();
     } catch (Exception e) {
+      LOG.error("Error while retrieving directory results from server " + (urlidx < urls.size() ? urls.get(urlidx) : ""), e);
+      if (this.failOnError) {
+        throw new RuntimeException("Error while retrieving directory results from server " + (urlidx < urls.size() ? urls.get(urlidx) : ""), e);
+      }
       return false;
     }
   }
@@ -245,11 +255,11 @@ public class StreamingMetadataIterator extends MetadataIterator {
     }
   }
 
-  public static MetadataIterator getIterator(long[] SIPHASH_PSK, DirectoryRequest request, List<URL> urls, boolean noProxy) {
+  public static MetadataIterator getIterator(long[] SIPHASH_PSK, DirectoryRequest request, List<URL> urls, boolean noProxy, boolean failOnError) {
     if (request.isSorted()) {
-      return new MergeSortStreamingMetadataIterator(SIPHASH_PSK, request, urls, noProxy);
+      return new MergeSortStreamingMetadataIterator(SIPHASH_PSK, request, urls, noProxy, failOnError);
     } else {
-      return new StreamingMetadataIterator(SIPHASH_PSK, request, urls, noProxy);
+      return new StreamingMetadataIterator(SIPHASH_PSK, request, urls, noProxy, failOnError);
     }
   }
 }

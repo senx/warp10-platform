@@ -44,13 +44,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.LockSupport;
 
-import org.apache.thrift.TDeserializer;
-import org.apache.thrift.TException;
-import org.apache.thrift.TSerializer;
-import org.apache.thrift.protocol.TCompactProtocol;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.state.ConnectionState;
@@ -60,6 +53,9 @@ import org.apache.curator.x.discovery.ServiceDiscovery;
 import org.apache.curator.x.discovery.ServiceDiscoveryBuilder;
 import org.apache.curator.x.discovery.ServiceInstance;
 import org.apache.curator.x.discovery.details.ServiceCacheListener;
+import org.apache.thrift.TDeserializer;
+import org.apache.thrift.TException;
+import org.apache.thrift.TSerializer;
 
 import io.warp10.ThriftUtils;
 import io.warp10.continuum.Configuration;
@@ -80,8 +76,6 @@ import io.warp10.script.HyperLogLogPlus;
 import io.warp10.sensision.Sensision;
 
 public class ThriftDirectoryClient implements ServiceCacheListener, DirectoryClient {
-
-  private static final Logger LOG = LoggerFactory.getLogger(ThriftDirectoryClient.class);
 
   private static final String STATS_GTS_ESTIMATOR = "gts.estimate";
   private static final String STATS_CLASSES_ESTIMATOR = "classes.estimate";
@@ -114,7 +108,15 @@ public class ThriftDirectoryClient implements ServiceCacheListener, DirectoryCli
 
   private final boolean noProxy;
 
+  private final boolean strictShards;
+
+  private final boolean failOnError;
+
   public ThriftDirectoryClient(KeyStore keystore, Properties props) throws Exception {
+
+    strictShards = "true".equals(props.getProperty(Configuration.EGRESS_DIRECTORY_SHARDS_STRICT));
+
+    failOnError = "true".equals(props.getProperty(Configuration.EGRESS_DIRECTORY_SHARDS_FAILONERROR));
 
     // Extract Directory PSK
 
@@ -670,6 +672,10 @@ public class ThriftDirectoryClient implements ServiceCacheListener, DirectoryCli
       called.add(remainder.get(server));
     }
 
-    return StreamingMetadataIterator.getIterator(SIPHASH_PSK, request, urls, this.noProxy);
+    if (this.strictShards && selectedmodulus != urls.size()) {
+      throw new IOException("Partial directory shards selected while in strict mode (" + urls.size() + "/" + selectedmodulus + "), aborting request");
+    }
+
+    return StreamingMetadataIterator.getIterator(SIPHASH_PSK, request, urls, this.noProxy, this.failOnError);
   }
 }

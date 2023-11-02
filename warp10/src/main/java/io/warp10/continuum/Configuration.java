@@ -1942,6 +1942,17 @@ public class Configuration {
    */
   public static final String EGRESS_FETCH_BATCHSIZE = "egress.fetch.batchsize";
 
+  /**
+   * Set to true to ensure requests are only processed when shards covering the whole
+   * key space are available.
+   */
+  public static final String EGRESS_DIRECTORY_SHARDS_STRICT = "egress.directory.shards.strict";
+
+  /**
+   * Set to true to fail whenever an error is detected on a shard access.
+   */
+  public static final String EGRESS_DIRECTORY_SHARDS_FAILONERROR = "egress.directory.shards.failonerror";
+
   //
   // T H R O T T L I N G    M A N A G E R
   //
