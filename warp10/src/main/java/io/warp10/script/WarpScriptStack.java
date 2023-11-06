@@ -127,7 +127,7 @@ public interface WarpScriptStack {
    * These errors are stored as WarpScriptAuditStatement with UNKNOWN or WS_EXCEPTION type.
    */
   public static final String ATTRIBUTE_PARSING_ERRORS = "wsaudit.errors";
-  
+
   /**
    * Debug depth of the stack. This is the number
    * of elements to return when an error occurs.
@@ -311,6 +311,11 @@ public interface WarpScriptStack {
    * Stack attribute for runner rescheduling absolute timestamp in millisecond
    */
   public static final String ATTRIBUTE_RUNNER_RESCHEDULE_TIMESTAMP = "runner.reschedule.timestamp";
+
+  /**
+   * Custom wrapped statement factory
+   */
+  public static final String ATTRIBUTE_WRAPPED_STATEMENT_FACTORY = "wrapped.statement.factory";
 
   /**
    * Index of RETURN_DEPTH counter
@@ -998,11 +1003,11 @@ public interface WarpScriptStack {
    * If macroOpen was not previously called, this function has no effect.
    */
   public void macroClose() throws WarpScriptException;
-  
+
   /**
    * Turn on/off auditMode. In auditMode, Macros contains WarpScriptAuditStatement with line numbers or WarpScript parsing errors.
    * auditMode exits automatically after closing the first macro level, leaving on stack a macro object.
    */
   public void auditMode(boolean auditMode);
-  
+
 }
