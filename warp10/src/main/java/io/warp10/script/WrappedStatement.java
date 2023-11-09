@@ -19,7 +19,7 @@ package io.warp10.script;
 /**
  * A WrappedStatement instance wraps a normal statement
  */
-public interface WrappedStatement {
+public interface WrappedStatement extends WarpScriptStackFunction {
   /**
    * @return the wrapped statement
    */
