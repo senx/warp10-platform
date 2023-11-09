@@ -865,8 +865,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
               if (macros.isEmpty()) {
                 this.push(lastmacro);
               } else {
-                // Add the macro to the outer macro
-                macros.get(0).add(factory.wrap(lastmacro, lineNumber, pos, pos + stmt.length() - 1));
+                // Add the macro to the outer macro, we do not wrap macros so they still appear as Macro instances.
+                macros.get(0).add(lastmacro);
               }
             }
           } else if (WarpScriptStack.MACRO_START.equals(stmt)) {
@@ -1012,11 +1012,11 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
 
               run(symbol);
             } else {
-              macros.get(0).add(factory.wrap(stmt.substring(1), lineNumber, pos, pos + stmt.length() - 1));
               if (auditMode) {
-                macros.get(0).add(new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_LOAD,
-                    stmt.substring(1), stmt, lineNumber, pos));
+                macros.get(0).add(stmt.substring(1));
+                macros.get(0).add(new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_LOAD, stmt.substring(1), stmt, lineNumber, pos));
               } else {
+                macros.get(0).add(factory.wrap(stmt.substring(1), lineNumber, pos, pos + stmt.length() - 1));
                 macros.get(0).add(factory.wrap(RUN, lineNumber, pos , pos + stmt.length() - 1));
               }
             }
