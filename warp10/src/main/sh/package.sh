@@ -113,7 +113,14 @@ find "${WARP10_HOME}" -type f \( -name \*.sh -o -name \*.py -o -name \*.init \) 
 chmod 700 "${WARP10_HOME}/etc"
 
 # Build tar
-tar czpf "../build/libs/warp10-${VERSION}.tar.gz" "${WARP10_HOME}"
+FILE=../build/libs/warp10-${VERSION}.tar.gz
+tar czpf "${FILE}" "${WARP10_HOME}"
+
+# Generate signature
+gpg --local-user BD49DA0A --output "${FILE}".asc --detach-sign "${FILE}"
+
+# Generate hash
+sha512sum "${FILE}" | sed -e "s@  .*/@  @" > "${FILE}".sha512
 
 # Delete ARCHIVE
 rm -rf "${ARCHIVE}"

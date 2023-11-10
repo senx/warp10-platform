@@ -68,54 +68,62 @@ pipeline {
             }
         }
 
-        stage('Deploy libs to SenX\' Nexus') {
-            options {
-                timeout(time: 2, unit: 'HOURS')
-            }
-            input {
-                message "Should we deploy libs?"
-            }
-            steps {
-                sh "$GRADLE_CMD publishMavenPublicationToNexusRepository -x test"
-            }
-        }
-
-        stage('Release tar.gz on GitHub') {
+        stage('Publish') {
             when {
-                beforeInput true
-                // Only possible if code pulled from github because the release will refer to the
-                // given tag in the given branch. If no such tag exists, it is created from the
-                // HEAD of the branch.
-                expression { return 'github.com' == getParam('gitHost') }
+                expression { "" != ${TAG} }
             }
-            options {
-                timeout(time: 2, unit: 'HOURS')
-            }
-            input {
-                message "Should we release Warp 10?"
-            }
-            steps {
-                script {
-                    releaseID = createGitHubRelease()
+            stages {
+                stage('Deploy libs to SenX\' Nexus') {
+                    options {
+                        timeout(time: 24, unit: 'HOURS')
+                    }
+                    input {
+                        message "Should we deploy libs?"
+                    }
+                    steps {
+                        sh "$GRADLE_CMD publishMavenPublicationToNexusRepository -x test"
+                    }
                 }
-                sh "curl -f -X POST -H \"Authorization:token ${getParam('githubToken')}\" -H \"Content-Type:application/octet-stream\" -T warp10/build/libs/warp10-${VERSION}.tar.gz https://uploads.github.com/repos/${getParam('gitOwner')}/${getParam('gitRepo')}/releases/${releaseID}/assets?name=warp10-${VERSION}.tar.gz"
-            }
-        }
 
-        stage('Deploy libs to Maven Central') {
-            options {
-                timeout(time: 2, unit: 'HOURS')
-            }
-            input {
-                message "Should we deploy libs?"
-            }
-            steps {
-                sh "$GRADLE_CMD publish"
-                sh "$GRADLE_CMD closeRepository"
-                sh "$GRADLE_CMD releaseRepository"
-                notifyBuild('PUBLISHED')
-            }
-        }
+                stage('Release tar.gz on GitHub') {
+                    when {
+                        beforeInput true
+                        // Only possible if code pulled from github because the release will refer to the
+                        // given tag in the given branch. If no such tag exists, it is created from the
+                        // HEAD of the branch.
+                        expression { return 'github.com' == getParam('gitHost') }
+                    }
+                    options {
+                        timeout(time: 2, unit: 'HOURS')
+                    }
+                    input {
+                        message "Should we release Warp 10?"
+                    }
+                    steps {
+                        script {
+                            releaseID = createGitHubRelease()
+                        }
+                        sh "curl -f -X POST -H \"Authorization:token ${getParam('githubToken')}\" -H \"Content-Type:application/octet-stream\" -T warp10/build/libs/warp10-${VERSION}.tar.gz https://uploads.github.com/repos/${getParam('gitOwner')}/${getParam('gitRepo')}/releases/${releaseID}/assets?name=warp10-${VERSION}.tar.gz"
+                        sh "curl -f -X POST -H \"Authorization:token ${getParam('githubToken')}\" -H \"Content-Type:application/octet-stream\" -T warp10/build/libs/warp10-${VERSION}.tar.gz.asc https://uploads.github.com/repos/${getParam('gitOwner')}/${getParam('gitRepo')}/releases/${releaseID}/assets?name=warp10-${VERSION}.tar.gz.asc"
+                        sh "curl -f -X POST -H \"Authorization:token ${getParam('githubToken')}\" -H \"Content-Type:application/octet-stream\" -T warp10/build/libs/warp10-${VERSION}.tar.gz.sha512 https://uploads.github.com/repos/${getParam('gitOwner')}/${getParam('gitRepo')}/releases/${releaseID}/assets?name=warp10-${VERSION}.tar.gz.sha512"
+                    }
+                }
+
+                stage('Deploy libs to Maven Central') {
+                    options {
+                        timeout(time: 2, unit: 'HOURS')
+                    }
+                    input {
+                        message "Should we deploy libs?"
+                    }
+                    steps {
+                        sh "$GRADLE_CMD publish"
+                        sh "$GRADLE_CMD closeRepository"
+                        sh "$GRADLE_CMD releaseRepository"
+                        notifyBuild('PUBLISHED')
+                    }
+                }
+           }
 
     }
 
@@ -181,5 +189,5 @@ String getVersion() {
 }
 
 String getTag() {
-    return sh(returnStdout: true, script: 'git describe --tags').trim()
+    return sh(returnStdout: true, script: 'git tag --points-at HEAD').trim()
 }
