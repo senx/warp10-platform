@@ -70,7 +70,7 @@ pipeline {
 
         stage('Publish') {
             when {
-                expression { "" != ${TAG} }
+                expression { "" != TAG }
             }
             stages {
                 stage('Deploy libs to SenX\' Nexus') {
