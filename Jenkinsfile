@@ -123,8 +123,8 @@ pipeline {
                         notifyBuild('PUBLISHED')
                     }
                 }
-           }
-
+            }
+        }
     }
 
     post {
