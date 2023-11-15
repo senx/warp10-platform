@@ -73,7 +73,7 @@ runner.kafka.producer.bootstrap.servers = ${kafka.runner.bootstrap.servers}
 runner.kafka.poolsize = 2
 
 ##
-## MANDATORY (scheduler) - ZooKeeper connect string for the leader election among schedulers
+## MANDATORY (scheduler) - ZooKeeper connect string for the leader election among schedulers, list of comma separated IP:port
 ##
 runner.zk.quorum = ${zk.quorum}
 

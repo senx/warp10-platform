@@ -25,7 +25,7 @@
 ###
 
 ##
-## MANDATORY - ZooKeeper server list for registering
+## MANDATORY - ZooKeeper server list for registering, list of comma separated IP:port
 ##
 directory.zk.quorum = ${zk.quorum}
 
