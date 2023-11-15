@@ -55,7 +55,7 @@ plasma.backend.kafka.in.nthreads = 2
 plasma.backend.kafka.out.producer.bootstrap.servers = ${kafka.plasmafe.bootstrap.servers}
 
 ##
-## MANDATORY (backend) - ZooKeeper Quorum for the ZK ensemble to use for retrieving subscriptions
+## MANDATORY (backend) - ZooKeeper Quorum for the ZK ensemble to use for retrieving subscriptions, list of comma separated IP:port
 ##
 plasma.backend.subscriptions.zk.quorum = ${zk.quorum}
 
@@ -106,7 +106,7 @@ plasma.frontend.port = 8884
 plasma.frontend.maxznodesize = 100000
 
 ##
-## MANDATORY (frontend) - ZooKeeper connect String for subscription
+## MANDATORY (frontend) - ZooKeeper connect String for subscription, list of comma separated IP:port
 ##
 plasma.frontend.zk.quorum = ${zk.quorum}
 
