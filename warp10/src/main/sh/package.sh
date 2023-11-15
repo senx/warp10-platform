@@ -32,7 +32,7 @@ set -eu
 
 VERSION=$1
 if [ -z "${VERSION:+x}" ]; then
-  echo "Usage: $0 VERSION WARP_ROOT_PATH"
+  echo "Usage: $0 VERSION WARP_ROOT_PATH GPG_KEY_NAME"
   exit 1
 fi
 WARP10_HOME=warp10-${VERSION}
@@ -40,11 +40,17 @@ WARP10_HOME=warp10-${VERSION}
 # Warp 10 root project path (../warp10)
 WARP_ROOT_PATH=$2
 if [ -z "${WARP_ROOT_PATH:+x}" ]; then
-  echo "Usage: $0 VERSION WARP_ROOT_PATH"
+  echo "Usage: $0 VERSION WARP_ROOT_PATH GPG_KEY_NAME"
   exit 1
 fi
 if [ ! -d "${WARP_ROOT_PATH}" ]; then
   echo "${WARP_ROOT_PATH} folder does not exist."
+  exit 1
+fi
+
+GPG_KEY_NAME=$3
+if [ -z "${GPG_KEY_NAME:+x}" ]; then
+  echo "Usage: $0 VERSION WARP_ROOT_PATH GPG_KEY_NAME"
   exit 1
 fi
 
@@ -117,7 +123,7 @@ FILE=../build/libs/warp10-${VERSION}.tar.gz
 tar czpf "${FILE}" "${WARP10_HOME}"
 
 # Generate signature
-gpg --local-user BD49DA0A --output "${FILE}".asc --detach-sign "${FILE}"
+gpg --local-user "${GPG_KEY_NAME}" --output "${FILE}".asc --detach-sign "${FILE}"
 
 # Generate hash
 sha512sum "${FILE}" | sed -e "s@  .*/@  @" > "${FILE}".sha512
