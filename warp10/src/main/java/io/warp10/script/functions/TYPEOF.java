@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -92,6 +92,7 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
   public static final String TYPE_KEY = "KEY";
   public static final String TYPE_CONTEXT = "CONTEXT";
   public static final String TYPE_FUNCTION = "FUNCTION";
+  public static final String TYPE_BIGDECIMAL = "BIGDECIMAL";
 
   /**
    * Interface to be used by extensions and plugins to define a new type.
@@ -128,8 +129,10 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
       return TYPE_STRING;
     } else if (Long.class.isAssignableFrom(c) || Integer.class.isAssignableFrom(c) || Short.class.isAssignableFrom(c) || Byte.class.isAssignableFrom(c) || BigInteger.class.isAssignableFrom(c)) {
       return TYPE_LONG;
-    } else if (Double.class.isAssignableFrom(c) || Float.class.isAssignableFrom(c) || BigDecimal.class.isAssignableFrom(c)) {
-      return TYPE_DOUBLE;
+    } else if (Double.class.isAssignableFrom(c) || Float.class.isAssignableFrom(c)) {
+      return TYPE_DOUBLE; 
+    } else if (BigDecimal.class.isAssignableFrom(c)) {
+      return TYPE_BIGDECIMAL;
     } else if (Boolean.class.isAssignableFrom(c)) {
       return TYPE_BOOLEAN;
     } else if (Vector.class.isAssignableFrom(c)) {  // place before List. Vector implements List.
