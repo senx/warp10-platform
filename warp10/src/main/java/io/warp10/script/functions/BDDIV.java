@@ -43,9 +43,9 @@ public class BDDIV extends NamedWarpScriptFunction implements WarpScriptStackFun
     BigDecimal bd2 = TOBD.toBigDecimal(getName(), o);
 
     if (this.integral) {
-      stack.push(bd1.divideToIntegralValue(bd2));
+      stack.push(bd2.divideToIntegralValue(bd1));
     } else {
-      stack.push(bd1.divide(bd2));
+      stack.push(bd2.divide(bd1));
     }
 
     return stack;
