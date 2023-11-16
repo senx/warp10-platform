@@ -91,7 +91,7 @@ public class UNSECURE extends NamedWarpScriptFunction implements WarpScriptStack
     byte[] unwrapped = CryptoUtils.unwrap(aesKey, raw);
 
     // Deserialize
-    TDeserializer deserializer = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
+    TDeserializer deserializer = ThriftUtils.getTDeserializer();
 
     SecureScript sscript = new SecureScript();
 

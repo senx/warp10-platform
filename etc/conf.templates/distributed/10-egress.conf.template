@@ -56,7 +56,7 @@ egress.selectors = 8
 egress.idle.timeout = 300000
 
 ##
-## MANDATORY - ZooKeeper server list, to discover Directory services
+## MANDATORY - ZooKeeper server list, to discover Directory services, list of comma separated IP:port
 ##
 egress.zk.quorum = ${zk.quorum}
 
@@ -168,3 +168,13 @@ egress.fetch.batchsize = 10000
 ## The default value if 1000 ms
 ##
 #egress.runner.nonce.validity = 1000
+
+##
+## Set to true to only process directory queries when shards covering all partitions are available
+##
+#egress.directory.shards.strict = true
+
+##
+## Set to true to fail directory queries when accessing a shard produced an error
+##
+#egress.directory.shards.failonerror = true

@@ -78,7 +78,7 @@ public class UnpackingGTSDecoderIterator extends GTSDecoderIterator {
       // Unwrap the value
       //
 
-      TDeserializer deser = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
+      TDeserializer deser = ThriftUtils.getTDeserializer();
 
       GTSWrapper wrapper = new GTSWrapper();
       try {

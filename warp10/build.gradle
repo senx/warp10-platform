@@ -183,7 +183,7 @@ task pack(type: Jar) {
 //
 task createTarArchive(type: Exec, dependsOn: pack) {
     workingDir '.'
-    commandLine "${projectDir}/src/main/sh/package.sh", version, projectDir
+    commandLine "${projectDir}/src/main/sh/package.sh", version, projectDir, project.getProperties().get("signing.gnupg.keyName")
     outputs.file "${buildDir}/libs/warp10-${version}.tar.gz"
 }
 

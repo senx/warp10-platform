@@ -57,7 +57,6 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.math3.fitting.PolynomialCurveFitter;
 import org.apache.commons.math3.fitting.WeightedObservedPoint;
 import org.apache.thrift.TSerializer;
-import org.apache.thrift.protocol.TCompactProtocol;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,6 +64,7 @@ import com.geoxp.GeoXPLib;
 import com.geoxp.GeoXPLib.GeoXPShape;
 
 import io.warp10.CapacityExtractorOutputStream;
+import io.warp10.ThriftUtils;
 import io.warp10.WarpHexDecoder;
 import io.warp10.WarpURLDecoder;
 import io.warp10.WarpURLEncoder;
@@ -102,6 +102,13 @@ import io.warp10.script.functions.TOQUATERNION;
 public class GTSHelper {
 
   private static final Logger LOG = LoggerFactory.getLogger(GTSHelper.class);
+
+  private static final String LABELSID_SLOWIMPL = "labelsid.slowimpl";
+  private static final boolean labelsIdSlowImpl;
+
+  static {
+    labelsIdSlowImpl = "true".equals(System.getProperty(LABELSID_SLOWIMPL));
+  }
 
   /**
    * Sort the values (and associated locations/elevations) by order of their ticks
@@ -3501,7 +3508,7 @@ public class GTSHelper {
         // space
         GTSWrapper wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(encoder, comp, GTSWrapperHelper.DEFAULT_COMP_RATIO_THRESHOLD, Integer.MAX_VALUE, false);
 
-        TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
+        TSerializer serializer = ThriftUtils.getTSerializer();
 
         byte[] ser = serializer.serialize(wrapper);
 
@@ -3753,6 +3760,10 @@ public class GTSHelper {
 
   public static final long labelsId(long sipkey0, long sipkey1, Map<String,String> labels) {
 
+    if (labelsIdSlowImpl) {
+      return labelsId_slow(sipkey0, sipkey1, labels);
+    }
+
     //
     // Allocate a CharsetEncoder.
     // Implementation is a sun.nio.cs.UTF_8$Encoder which implements ArrayEncoder
@@ -3812,6 +3823,18 @@ public class GTSHelper {
       res = ce.flush(bb);
       error = error || !res.isUnderflow();
       bb.flip();
+
+      //
+      // We check if the data in the ByteBuffer is at least as long as the entry we converted. This is to
+      // catch some nasty issue attributed to JITs which induced delayed buffer write backs. This issue was normally
+      // solved by https://github.com/senx/warp10-platform/pull/1260 but we had this test just in case the
+      // issue appears with future JDK versions.
+      //
+
+      if (bb.limit() < klen) {
+        throw new RuntimeException("Incoherent buffer len for key '" + ekey + "', expected at least " + klen + " got " + bb.limit());
+      }
+
       hashes[idx] = SipHashInline.hash24_palindromic(sipkey0, sipkey1, bb.array(), 0, bb.limit());
 
       ce = ce.reset().onMalformedInput(CodingErrorAction.REPLACE).onUnmappableCharacter(CodingErrorAction.REPLACE);
@@ -3826,6 +3849,11 @@ public class GTSHelper {
       res = ce.flush(bb);
       error = error || !res.isUnderflow();
       bb.flip();
+
+      if (bb.limit() < vlen) {
+        throw new RuntimeException("Incoherent buffer len for value '" + eval + "', expected at least " + vlen + " got " + bb.limit());
+      }
+
       hashes[idx+1] = SipHashInline.hash24_palindromic(sipkey0, sipkey1, bb.array(), 0, bb.limit());
       idx+=2;
     }
@@ -3891,8 +3919,13 @@ public class GTSHelper {
     long id = SipHashInline.hash24_palindromic(sipkey0, sipkey1, buf, 0, hasheslen);
     return id;
   }
-
   public static final long labelsId_slow(byte[] key, Map<String,String> labels) {
+    long[] sipkey = SipHashInline.getKey(key);
+    return labelsId_slow(sipkey[0], sipkey[1], labels);
+  }
+
+  public static final long labelsId_slow(long sipkey0, long sipkey1, Map<String,String> labels) {
+
     //
     // Allocate an array to hold both name and value hashes
     //
@@ -3905,11 +3938,9 @@ public class GTSHelper {
 
     int idx = 0;
 
-    long[] sipkey = SipHashInline.getKey(key);
-
     for (Entry<String, String> entry: labels.entrySet()) {
-      hashes[idx] = SipHashInline.hash24_palindromic(sipkey[0], sipkey[1], entry.getKey().getBytes(StandardCharsets.UTF_8));
-      hashes[idx+1] = SipHashInline.hash24_palindromic(sipkey[0], sipkey[1], entry.getValue().getBytes(StandardCharsets.UTF_8));
+      hashes[idx] = SipHashInline.hash24_palindromic(sipkey0, sipkey1, entry.getKey().getBytes(StandardCharsets.UTF_8));
+      hashes[idx+1] = SipHashInline.hash24_palindromic(sipkey0, sipkey1, entry.getValue().getBytes(StandardCharsets.UTF_8));
       idx+=2;
     }
 
@@ -3953,7 +3984,7 @@ public class GTSHelper {
       bb.putLong(hash);
     }
 
-    return SipHashInline.hash24_palindromic(sipkey[0], sipkey[1], buf, 0, buf.length);
+    return SipHashInline.hash24_palindromic(sipkey0, sipkey1, buf, 0, buf.length);
   }
 
   /**

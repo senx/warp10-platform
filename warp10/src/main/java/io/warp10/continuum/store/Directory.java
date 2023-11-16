@@ -522,7 +522,7 @@ public class Directory extends AbstractHandler implements Runnable {
 
             PKCS7Padding padding = new PKCS7Padding();
 
-            TDeserializer deserializer = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
+            TDeserializer deserializer = ThriftUtils.getTDeserializer();
 
             while (!stopMe.get()) {
               try {
@@ -1563,7 +1563,7 @@ public class Directory extends AbstractHandler implements Runnable {
 
             // The value contains the classId/labelsId followed by the value
             byte[] metadataBytes = Arrays.copyOfRange(data, 16, data.length);
-            TDeserializer deserializer = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
+            TDeserializer deserializer = ThriftUtils.getTDeserializer();
             Metadata metadata = new Metadata();
             deserializer.deserialize(metadata, metadataBytes);
 
@@ -1821,7 +1821,7 @@ public class Directory extends AbstractHandler implements Runnable {
                 // Copy attributes from the currently store Metadata instance
                 metadata.setAttributes(meta.getAttributes());
 
-                TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
+                TSerializer serializer = ThriftUtils.getTSerializer();
                 metadataBytes = serializer.serialize(meta);
 
                 id = MetadataUtils.id(metadata);
@@ -1869,7 +1869,7 @@ public class Directory extends AbstractHandler implements Runnable {
                 metadata.setAttributes(new HashMap<String,String>(meta.getAttributes()));
 
                 // We re-serialize metadata
-                TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
+                TSerializer serializer = ThriftUtils.getTSerializer();
                 metadataBytes = serializer.serialize(metadata);
               }
 
@@ -1893,7 +1893,7 @@ public class Directory extends AbstractHandler implements Runnable {
 
                 if (hasChanged) {
                   // We re-serialize metadata
-                  TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
+                  TSerializer serializer = ThriftUtils.getTSerializer();
                   metadataBytes = serializer.serialize(metadata);
                 }
               }
@@ -2059,7 +2059,7 @@ public class Directory extends AbstractHandler implements Runnable {
       byte[] raw = OrderPreservingBase64.decode(line.getBytes(StandardCharsets.US_ASCII));
 
       // Extract DirectoryStatsRequest
-      TDeserializer deser = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
+      TDeserializer deser = ThriftUtils.getTDeserializer();
       DirectoryStatsRequest req = new DirectoryStatsRequest();
 
       try {
@@ -2069,7 +2069,7 @@ public class Directory extends AbstractHandler implements Runnable {
         response.setContentType("text/plain");
         OutputStream out = response.getOutputStream();
 
-        TSerializer ser = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
+        TSerializer ser = ThriftUtils.getTSerializer();
         byte[] data = ser.serialize(resp);
 
         OrderPreservingBase64.encodeToStream(data, out);
@@ -2182,7 +2182,7 @@ public class Directory extends AbstractHandler implements Runnable {
     long count = 0;
     long hits = 0;
 
-    TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
+    TSerializer serializer = ThriftUtils.getTSerializer();
 
     MetadataID id = null;
 

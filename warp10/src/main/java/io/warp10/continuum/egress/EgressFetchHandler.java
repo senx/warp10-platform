@@ -772,7 +772,7 @@ public class EgressFetchHandler extends AbstractHandler {
               throw new RuntimeException("Invalid wrapped content.");
             }
 
-            TDeserializer deserializer = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
+            TDeserializer deserializer = ThriftUtils.getTDeserializer();
 
             GTSSplit split = new GTSSplit();
 
@@ -830,7 +830,7 @@ public class EgressFetchHandler extends AbstractHandler {
 
         FileWriter writer = new FileWriter(cache);
 
-        TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
+        TSerializer serializer = ThriftUtils.getTSerializer();
 
         int padidx = 0;
 
@@ -901,7 +901,7 @@ public class EgressFetchHandler extends AbstractHandler {
           private Metadata current = null;
           private boolean done = false;
 
-          private TDeserializer deserializer = ThriftUtils.getTDeserializer(new TCompactProtocol.Factory());
+          private TDeserializer deserializer = ThriftUtils.getTDeserializer();
 
           int padidx = 0;
 
@@ -1294,7 +1294,7 @@ public class EgressFetchHandler extends AbstractHandler {
       // Serialize the wrapper
       //
 
-      TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
+      TSerializer serializer = ThriftUtils.getTSerializer();
       byte[] data = null;
 
       try {
@@ -2261,7 +2261,7 @@ public class EgressFetchHandler extends AbstractHandler {
 
           GTSWrapper wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(encoder, true);
 
-          TSerializer ser = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
+          TSerializer ser = ThriftUtils.getTSerializer();
           byte[] serialized;
 
           try {

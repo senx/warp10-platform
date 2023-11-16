@@ -19,6 +19,7 @@ package io.warp10.script.functions;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
@@ -255,6 +256,11 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
           sb.append(WarpScriptLib.COUNTERSET);
           sb.append(" ");
         }
+      } else if (o instanceof BigDecimal) {
+        sb.append(((BigDecimal) o).toString());
+        sb.append(" ");
+        sb.append(WarpScriptLib.TOBD);
+        sb.append(" ");
       } else if (o instanceof Number) {
         sb.append(o);
         sb.append(" ");

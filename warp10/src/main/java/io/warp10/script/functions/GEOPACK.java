@@ -83,7 +83,7 @@ public class GEOPACK extends NamedWarpScriptFunction implements WarpScriptStackF
 
     GTSWrapper wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(encoder, true);
 
-    TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
+    TSerializer serializer = ThriftUtils.getTSerializer();
 
     try {
       byte[] serialized = serializer.serialize(wrapper);

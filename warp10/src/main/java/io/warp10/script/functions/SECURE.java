@@ -92,7 +92,7 @@ public class SECURE extends NamedWarpScriptFunction implements WarpScriptStackFu
     sscript.setCompressed(compress);
     sscript.setScript(scriptBytes);
 
-    TSerializer serializer = ThriftUtils.getTSerializer(new TCompactProtocol.Factory());
+    TSerializer serializer = ThriftUtils.getTSerializer();
 
     try {
       byte[] serialized = serializer.serialize(sscript);
