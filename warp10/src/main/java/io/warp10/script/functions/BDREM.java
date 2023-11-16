@@ -39,7 +39,7 @@ public class BDREM extends NamedWarpScriptFunction implements WarpScriptStackFun
 
     BigDecimal bd2 = TOBD.toBigDecimal(getName(), o);
 
-    stack.push(bd1.remainder(bd2));
+    stack.push(bd2.remainder(bd1));
 
     return stack;
   }
