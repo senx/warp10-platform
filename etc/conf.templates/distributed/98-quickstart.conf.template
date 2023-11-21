@@ -20,7 +20,7 @@ warp10.instance = RENAME.ME.PLEASE
 #mac.key = hex:.....
 #hash.key = hex:.....
 
-components = ingress,directory,store,egress
+warp.components = ingress,directory,store,egress
 
 fdb.clusterfile = ${warp10.home}/etc/fdb.cluster
 fdb.data.aes = ${aes.key}
