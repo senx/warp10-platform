@@ -39,7 +39,7 @@ public class BDSUB extends NamedWarpScriptFunction implements WarpScriptStackFun
 
     BigDecimal bd2 = TOBD.toBigDecimal(getName(), o);
 
-    stack.push(bd1.subtract(bd2));
+    stack.push(bd2.subtract(bd1));
 
     return stack;
   }
