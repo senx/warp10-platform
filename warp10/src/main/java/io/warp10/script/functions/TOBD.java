@@ -16,13 +16,13 @@
 
 package io.warp10.script.functions;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
-
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
+
+import java.math.BigDecimal;
+import java.math.BigInteger;
 
 public class TOBD extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
@@ -46,7 +46,7 @@ public class TOBD extends NamedWarpScriptFunction implements WarpScriptStackFunc
     BigDecimal bd = null;
 
     if (o instanceof BigDecimal) {
-      return (BigDecimal) o; 
+      bd = (BigDecimal) o; 
     } else if (o instanceof String) {
       bd = new BigDecimal((String) o);
     } else if (o instanceof Long) {
