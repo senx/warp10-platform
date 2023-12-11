@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-20  SenX S.A.S.
+//   Copyright 2018-23  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -48,41 +48,41 @@ import sun.net.www.protocol.file.FileURLConnection;
 /**
  * Macro library built by adding macros from various files, loaded from a root directory
  * or from the classpath
- * 
+ *
  * TODO(hbs): add support for secure script (the keystore is not initialized)
  */
 public class WarpScriptMacroLibrary {
-  
+
   private static final Logger LOG = LoggerFactory.getLogger(WarpScriptMacroLibrary.class);
-  
+
   private static final Map<String,Macro> macros;
-  
+
   private static final int DEFAULT_CACHE_SIZE = 10000;
-  
+
   /**
    * Default TTL for macros loaded on demand
    */
   private static final long DEFAULT_MACRO_TTL = 600000L;
-  
+
   /**
    * Default TTL for loaded macros
    */
   private static long ttl = DEFAULT_MACRO_TTL;
-  
+
   /**
    * Maximum TTL for loaded macros
    */
   private static long hardTtl = Long.MAX_VALUE >> 2;
-  
+
   private static final int maxcachesize;
-  
+
   static {
     //
     // Create macro map
     //
-    
+
     maxcachesize = Integer.parseInt(WarpConfig.getProperty(Configuration.WARPSCRIPT_LIBRARY_CACHE_SIZE, Integer.toString(DEFAULT_CACHE_SIZE)));
-    
+
     macros = new LinkedHashMap<String,Macro>() {
       @Override
       protected boolean removeEldestEntry(java.util.Map.Entry<String,Macro> eldest) {
@@ -95,81 +95,81 @@ public class WarpScriptMacroLibrary {
     ttl = Long.parseLong(WarpConfig.getProperty(Configuration.WARPSCRIPT_LIBRARY_TTL, Long.toString(DEFAULT_MACRO_TTL)));
     hardTtl = Long.parseLong(WarpConfig.getProperty(Configuration.WARPSCRIPT_LIBRARY_TTL_HARD, Long.toString(Long.MAX_VALUE >>> 2)));
   }
-  
+
   public static void addJar(String path) throws WarpScriptException {
     addJar(path, null);
   }
-  
+
   private static void addJar(String path, String resource) throws WarpScriptException {
     //
     // Extract basename of path
     //
-    
+
     File f = new File(path);
-    
+
     if (!f.exists() || !f.isFile()) {
       throw new WarpScriptException("File not found " + f.getAbsolutePath());
     }
-    
+
     JarFile jar = null;
-    
+
     try {
       String basename = f.getName();
-      
+
       jar = new JarFile(f);
-      
+
       Enumeration<JarEntry> entries = jar.entries();
-      
+
       while(entries.hasMoreElements()) {
         JarEntry entry = entries.nextElement();
-        
+
         if (entry.isDirectory()) {
           continue;
         }
-        
+
         String name = entry.getName();
-                
+
         if (!name.endsWith(WarpScriptMacroRepository.WARPSCRIPT_FILE_EXTENSION)) {
           continue;
         }
-        
+
         if (null != resource && !resource.equals(name)) {
           continue;
         }
-        
+
         name = name.substring(0, name.length() - WarpScriptMacroRepository.WARPSCRIPT_FILE_EXTENSION.length());
-        
+
         InputStream in = jar.getInputStream(entry);
 
         Macro macro = loadMacro(jar, in, name);
-        
+
         //
         // Store resulting macro under 'name'
         //
-        
+
         // Make macro a secure one
         macro.setSecure(true);
 
         macros.put(name, macro);
       }
-      
+
       if (maxcachesize == macros.size()) {
         LOG.warn("Some cached library macros were evicted.");
       }
-      
+
       Sensision.set(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_LIBRARY_CACHED, Sensision.EMPTY_LABELS, macros.size());
 
     } catch (IOException ioe) {
       throw new WarpScriptException("Encountered error while loading " + f.getAbsolutePath(), ioe);
     } finally {
       if (null != jar) { try { jar.close(); } catch (IOException ioe) {} }
-    }    
+    }
   }
-  
+
   public static Macro loadMacro(Object root, InputStream in, String name) throws WarpScriptException {
-    
+
     MemoryWarpScriptStack stack = null;
-    
+
     try {
       byte[] buf = new byte[8192];
       StringBuilder sb = new StringBuilder();
@@ -178,11 +178,11 @@ public class WarpScriptMacroLibrary {
 
       while(true) {
         int len = in.read(buf);
-        
+
         if (len < 0) {
           break;
         }
-        
+
         out.write(buf, 0, len);
       }
 
@@ -194,9 +194,9 @@ public class WarpScriptMacroLibrary {
       sb.append(" ");
 
       sb.append(new String(data, StandardCharsets.UTF_8));
-      
+
       sb.append("\n");
-      
+
       stack = new MemoryWarpScriptStack(null, null, new Properties());
       stack.setAttribute(WarpScriptStack.ATTRIBUTE_NAME, "[WarpScriptMacroLibrary " + name + "]");
 
@@ -206,16 +206,16 @@ public class WarpScriptMacroLibrary {
       //
       // Add 'INCLUDE'
       //
-      
+
       AtomicBoolean enabled = new AtomicBoolean(true);
-      
+
       final INCLUDE include = root instanceof File ? new INCLUDE("INCLUDE", (File) root, enabled) : new INCLUDE("INCLUDE", (JarFile) root, enabled);
       stack.define("INCLUDE", new Macro() {
         public boolean isSecure() { return true; }
         public java.util.List<Object> statements() { return new ArrayList<Object>() {{ add(include); }}; }
         }
       );
-      
+
       //
       // Execute the code
       //
@@ -225,9 +225,9 @@ public class WarpScriptMacroLibrary {
       //
       // Disable INCLUDE
       //
-      
+
       enabled.set(false);
-      
+
       //
       // Ensure the resulting stack is one level deep and has a macro on top
       //
@@ -235,15 +235,15 @@ public class WarpScriptMacroLibrary {
       if (1 != stack.depth()) {
         throw new WarpScriptException("Stack depth was not 1 after the code execution.");
       }
-      
+
       if (!(stack.peek() instanceof Macro)) {
         throw new WarpScriptException("No macro was found on top of the stack.");
       }
-      
+
       Macro macro = (Macro) stack.pop();
       macro.setSecure(true);
       macro.setNameRecursive(name);
-      
+
       long macroTtl = ttl;
 
       if (stack.getAttribute(WarpScriptStack.ATTRIBUTE_MACRO_TTL) instanceof Long) {
@@ -268,29 +268,29 @@ public class WarpScriptMacroLibrary {
       try { in.close(); } catch (IOException ioe) {}
     }
   }
-  
-  public static Macro find(String name) throws WarpScriptException { 
-    
+
+  public static Macro find(String name) throws WarpScriptException {
+
     // Reject names with relative path components in them or starting with '/'
     if (name.contains("/../") || name.contains("/./") || name.startsWith("../") || name.startsWith("./") || name.startsWith("/")) {
       return null;
     }
 
     Macro macro = (Macro) macros.get(name);
-    
+
     //
     // The macro is not (yet) known, we will attempt to load it from the
     // classpath
     //
-    
+
     if (null == macro || macro.isExpired()) {
       String rsc = name + WarpScriptMacroRepository.WARPSCRIPT_FILE_EXTENSION;
       URL url = WarpScriptMacroLibrary.class.getClassLoader().getResource(rsc);
-      
+
       if (null != url) {
         try {
           URLConnection conn = url.openConnection();
-          
+
           if (conn instanceof JarURLConnection) {
             //
             // This case is when the requested macro is in a jar
@@ -301,14 +301,11 @@ public class WarpScriptMacroLibrary {
             addJar(f.getAbsolutePath(), rsc);
             macro = (Macro) macros.get(name);
           } else if (conn instanceof FileURLConnection) {
-            //
-            // This case is when the requested macro is in the classpath but not in a jar.
-            // In this case we do not cache the parsed macro, allowing for dynamic modification.
-            //
             String urlstr = url.toString();
             File root = new File(urlstr.substring(0, urlstr.length() - name.length()  - WarpScriptMacroRepository.WARPSCRIPT_FILE_EXTENSION.length()));
             macro = loadMacro(root, conn.getInputStream(), name);
-          }          
+            macros.put(name, macro);
+          }
         } catch (URISyntaxException use) {
           throw new WarpScriptException("Error while loading '" + name + "'", use);
         } catch (IOException ioe) {
@@ -316,7 +313,7 @@ public class WarpScriptMacroLibrary {
         }
       }
     }
-    
+
     return macro;
   }
 }
