@@ -44,7 +44,7 @@ All versions provide the same level of functionality except for some minor diffe
 
 ## Getting started
 
-We strongly recommend that you start with the [Onboarding tutorials](https://studio.senx.io/) to learn how Warp 10 works, and how to perform basic operations with WarpScript.
+We strongly recommend that you start with the [Onboarding tutorials](https://studio.senx.io/#/editor/load/sandbox-01/00-Welcome.mc2) to learn how Warp 10 works, and how to perform basic operations with WarpScript.
 To deploy your own instance, read the [getting started](https://www.warp10.io/content/02_Getting_started).
 
 Learn more by browsing the [documentation](https://www.warp10.io/doc/reference).
