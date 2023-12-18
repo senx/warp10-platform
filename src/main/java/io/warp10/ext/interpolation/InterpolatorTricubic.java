@@ -185,19 +185,19 @@ public class InterpolatorTricubic extends NamedWarpScriptFunction implements War
 
     o = stack.pop();
     if (!(o instanceof List)) {
-      throw new WarpScriptException(getName() + " expects a LIST as 3rd argument");
+      throw new WarpScriptException(getName() + " expects a sorted LIST as 3rd argument");
     }
     List o3 = (List) o;
 
     o = stack.pop();
     if (!(o instanceof List)) {
-      throw new WarpScriptException(getName() + " expects a LIST as 2nd argument");
+      throw new WarpScriptException(getName() + " expects a sorted LIST as 2nd argument");
     }
     List o2 = (List) o;
 
     o = stack.pop();
     if (!(o instanceof List)) {
-      throw new WarpScriptException(getName() + " expects a LIST as 1st argument");
+      throw new WarpScriptException(getName() + " expects a sorted LIST as 1st argument");
     }
     List o1 = (List) o;
 
@@ -224,33 +224,33 @@ public class InterpolatorTricubic extends NamedWarpScriptFunction implements War
 
     // fill f
     if (o4.size() != d1) {
-      throw new WarpScriptException(getName() + ": incoherent argument sizes");
+      throw new WarpScriptException(getName() + ": incoherent argument sizes. Up to vector sizes, values should be a LIST (size " + d1 + ") of LIST (size " + d2 + ") of LIST (size " + d3 + ").");
     }
     fval = new double[d1][d2][d3];
 
     for (int i = 0; i < d1; i++) {
       if (!(o4.get(i) instanceof List)) {
-        throw new WarpScriptException(getName() + " expects the last argument to be a LIST tensor of dimension 3");
+        throw new WarpScriptException(getName() + " expects the last argument to be a LIST of LIST of LIST of numbers.");
       }
 
       List row = (List) o4.get(i);
       if (row.size() != d2) {
-        throw new WarpScriptException(getName() + ": incoherent argument sizes");
+        throw new WarpScriptException(getName() + ": incoherent argument sizes. Up to vector sizes, values should be a LIST (size " + d1 + ") of LIST (size " + d2 + ") of LIST (size " + d3 + ").");
       }
 
       for (int j = 0; j < d2; j++) {
         if (!(row.get(j) instanceof List)) {
-          throw new WarpScriptException(getName() + " expects the last argument to be a LIST tensor of dimension 3");
+          throw new WarpScriptException(getName() + " expects the last argument to be a LIST of LIST of LIST of numbers.");
         }
 
         List col = (List) row.get(j);
         if (col.size() != d3) {
-          throw new WarpScriptException(getName() + ": incoherent argument sizes");
+          throw new WarpScriptException(getName() + ": incoherent argument sizes. Up to vector sizes, values should be a LIST (size " + d1 + ") of LIST (size " + d2 + ") of LIST (size " + d3 + ").");
         }
 
         for (int k = 0; k < d3; k++) {
           if (!((col.get(k)) instanceof Number)) {
-            throw new WarpScriptException(getName() + " expects the last argument to be a numeric LIST tensor of dimension 3");
+            throw new WarpScriptException(getName() + " expects the last argument to be a numeric LIST of LIST of LIST of numbers.");
           }
 
           fval[i][j][k] = ((Number) col.get(k)).doubleValue();
