@@ -158,13 +158,13 @@ public class InterpolatorBicubic extends NamedWarpScriptFunction implements Warp
 
     o = stack.pop();
     if (!(o instanceof List)) {
-      throw new WarpScriptException(getName() + " expects a LIST as 2nd argument");
+      throw new WarpScriptException(getName() + " expects a sorted LIST as 2nd argument");
     }
     List o2 = (List) o;
 
     o = stack.pop();
     if (!(o instanceof List)) {
-      throw new WarpScriptException(getName() + " expects a LIST as 1st argument");
+      throw new WarpScriptException(getName() + " expects a sorted LIST as 1st argument");
     }
     List o1 = (List) o;
 
@@ -184,23 +184,23 @@ public class InterpolatorBicubic extends NamedWarpScriptFunction implements Warp
 
     // fill f
     if (o3.size() != d1) {
-      throw new WarpScriptException(getName() + ": incoherent argument sizes");
+      throw new WarpScriptException(getName() + ": incoherent argument sizes. Up to vector sizes, values should be a LIST (size " + d1 + ") of LIST (size " + d2 + ").");
     }
     fval = new double[d1][d2];
 
     for (int i = 0; i < d1; i++) {
       if (!(o3.get(i) instanceof List)) {
-        throw new WarpScriptException(getName() + " expects the last argument to be a LIST tensor of dimension 2");
+        throw new WarpScriptException(getName() + " expects the last argument to be a LIST of LIST of numbers");
       }
 
       List row = (List) o3.get(i);
       if (row.size() != d2) {
-        throw new WarpScriptException(getName() + ": incoherent argument sizes");
+        throw new WarpScriptException(getName() + ": incoherent argument sizes. Up to vector sizes, values should be a LIST (size " + d1 + ") of LIST (size " + d2 + ").");
       }
 
       for (int j = 0; j < d2; j++) {
         if (!(row.get(j) instanceof Number)) {
-          throw new WarpScriptException(getName() + " expects the last argument to be a numeric LIST tensor of dimension 2");
+          throw new WarpScriptException(getName() + " expects the last argument to be a LIST of LIST of numbers");
         }
 
         fval[i][j] = ((Number) row.get(j)).doubleValue();

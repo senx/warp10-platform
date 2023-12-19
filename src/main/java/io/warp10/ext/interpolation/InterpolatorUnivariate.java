@@ -148,7 +148,7 @@ public class InterpolatorUnivariate extends NamedWarpScriptFunction implements W
 
     o = stack.pop();
     if (!(o instanceof List)) {
-      throw new WarpScriptException(getName() + " expects a LIST as 1st argument");
+      throw new WarpScriptException(getName() + " expects a sorted LIST as 1st argument");
     }
     List o1 = (List) o;
 
@@ -164,7 +164,7 @@ public class InterpolatorUnivariate extends NamedWarpScriptFunction implements W
 
     // fill f
     if (o2.size() != d1) {
-      throw new WarpScriptException(getName() + ": incoherent argument sizes");
+      throw new WarpScriptException(getName() + ": incoherent argument sizes, both input LIST should have the same size.");
     }
     fval = new double[d1];
 
