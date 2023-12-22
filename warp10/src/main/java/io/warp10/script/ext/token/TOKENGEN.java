@@ -16,6 +16,16 @@
 
 package io.warp10.script.ext.token;
 
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+
+import org.apache.thrift.TBase;
+import org.apache.thrift.TException;
+
 import io.warp10.crypto.KeyStore;
 import io.warp10.quasar.encoder.QuasarTokenEncoder;
 import io.warp10.quasar.token.thrift.data.ReadToken;
@@ -26,16 +36,6 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.warp.sdk.Capabilities;
-
-import org.apache.thrift.TBase;
-import org.apache.thrift.TException;
-
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 
 public class TOKENGEN extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
@@ -72,8 +72,9 @@ public class TOKENGEN extends NamedWarpScriptFunction implements WarpScriptStack
 
   /**
    * Create the TOKENGEN function.
-   * @param name The name of the function.
-   * @param keystore The keystore containing the AES and SipHash keys to decode tokens when no such keys are given when applying this function.
+   *
+   * @param name         The name of the function.
+   * @param keystore     The keystore containing the AES and SipHash keys to decode tokens when no such keys are given when applying this function.
    * @param warpKeystore Whether the given keystore is that of a Warp/WarpDist instance. If true, a secret is needed to access the keystore keys.
    */
   public TOKENGEN(String name, KeyStore keystore, boolean warpKeystore) {
@@ -132,7 +133,7 @@ public class TOKENGEN extends NamedWarpScriptFunction implements WarpScriptStack
       throw new WarpScriptException(getName() + " expects a map on top of the stack.");
     }
 
-    Map<Object, Object> params = (Map<Object, Object>) top;
+    Map<Object,Object> params = (Map<Object,Object>) top;
 
     try {
       TBase token = tokenFromMap(params, getName(), DEFAULT_TTL);
@@ -140,7 +141,7 @@ public class TOKENGEN extends NamedWarpScriptFunction implements WarpScriptStack
       String tokenstr = encoder.encryptToken(token, tokenAESKey, tokenSipHashKey);
       String ident = encoder.getTokenIdent(tokenstr, tokenSipHashKey);
 
-      Map<Object, Object> result = new HashMap<Object, Object>();
+      Map<Object,Object> result = new LinkedHashMap<Object,Object>();
       result.put(KEY_TOKEN, tokenstr);
       result.put(KEY_IDENT, ident);
       if (null != params.get(KEY_ID)) {
@@ -243,7 +244,7 @@ public class TOKENGEN extends NamedWarpScriptFunction implements WarpScriptStack
         if (!(params.get(KEY_ATTRIBUTES) instanceof Map)) {
           throw new WarpScriptException(name + " expects '" + KEY_ATTRIBUTES + "' to be a map.");
         }
-        for (Entry<Object, Object> entry: ((Map<Object, Object>) params.get(KEY_ATTRIBUTES)).entrySet()) {
+        for (Entry<Object,Object> entry: ((Map<Object,Object>) params.get(KEY_ATTRIBUTES)).entrySet()) {
           if (!(entry.getKey() instanceof String) || !(entry.getValue() instanceof String)) {
             throw new WarpScriptException(name + " expects '" + KEY_ATTRIBUTES + "' to be a map of STRING keys and values.");
           }
@@ -255,7 +256,7 @@ public class TOKENGEN extends NamedWarpScriptFunction implements WarpScriptStack
         if (!(params.get(KEY_LABELS) instanceof Map)) {
           throw new WarpScriptException(name + " expects '" + KEY_LABELS + "' to be a map.");
         }
-        for (Entry<Object, Object> entry: ((Map<Object, Object>) params.get(KEY_LABELS)).entrySet()) {
+        for (Entry<Object,Object> entry: ((Map<Object,Object>) params.get(KEY_LABELS)).entrySet()) {
           if (!(entry.getKey() instanceof String) || !(entry.getValue() instanceof String)) {
             throw new WarpScriptException(name + " expects '" + KEY_LABELS + "' to be a map of STRING keys and values.");
           }
@@ -314,7 +315,7 @@ public class TOKENGEN extends NamedWarpScriptFunction implements WarpScriptStack
         if (!(params.get(KEY_ATTRIBUTES) instanceof Map)) {
           throw new WarpScriptException(name + " expects '" + KEY_ATTRIBUTES + "' to be a map.");
         }
-        for (Entry<Object, Object> entry: ((Map<Object, Object>) params.get(KEY_ATTRIBUTES)).entrySet()) {
+        for (Entry<Object,Object> entry: ((Map<Object,Object>) params.get(KEY_ATTRIBUTES)).entrySet()) {
           if (!(entry.getKey() instanceof String) || !(entry.getValue() instanceof String)) {
             throw new WarpScriptException(name + " expects '" + KEY_ATTRIBUTES + "' to be a map of STRING keys and values.");
           }
@@ -326,7 +327,7 @@ public class TOKENGEN extends NamedWarpScriptFunction implements WarpScriptStack
         if (!(params.get(KEY_LABELS) instanceof Map)) {
           throw new WarpScriptException(name + " expects '" + KEY_LABELS + "' to be a map.");
         }
-        for (Entry<Object, Object> entry: ((Map<Object, Object>) params.get(KEY_LABELS)).entrySet()) {
+        for (Entry<Object,Object> entry: ((Map<Object,Object>) params.get(KEY_LABELS)).entrySet()) {
           if (!(entry.getKey() instanceof String) || !(entry.getValue() instanceof String)) {
             throw new WarpScriptException(name + " expects '" + KEY_LABELS + "' to be a map of STRING keys and values.");
           }

@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -47,21 +48,16 @@ public class WarpReport {
 
   public static boolean debug = false;
 
-  public static Map<String, Object> report(String manifest) throws IOException {
-
-    FileChannel channel = null;
-    FileInputStream is = null;
+  public static Map<String,Object> report(String manifest) throws IOException {
 
     File path = new File(manifest);
 
-    try {
-      is = new FileInputStream(path);
-      channel = is.getChannel();
+    try (FileInputStream is = new FileInputStream(path); FileChannel channel = is.getChannel()) {
 
       LogReader reader = new LogReader(channel, null, true, 0);
 
-      Map<Long, FileMetaData> files = new HashMap<Long, FileMetaData>();
-      Map<Long, Integer> levels = new HashMap<Long, Integer>();
+      Map<Long,FileMetaData> files = new HashMap<Long,FileMetaData>();
+      Map<Long,Integer> levels = new HashMap<Long,Integer>();
 
       Long lognumber = null;
 
@@ -82,13 +78,13 @@ public class WarpReport {
 
         // Ignore compaction pointers and deleted files
 
-        for (Entry<Integer, Long> entry: edit.getDeletedFiles().entries()) {
+        for (Entry<Integer,Long> entry: edit.getDeletedFiles().entries()) {
           files.remove(entry.getValue());
           levels.remove(entry.getValue());
         }
 
         // Report current files
-        for (Entry<Integer, FileMetaData> entry: edit.getNewFiles().entries()) {
+        for (Entry<Integer,FileMetaData> entry: edit.getNewFiles().entries()) {
           Integer level = entry.getKey();
 
           files.put(entry.getValue().getNumber(), entry.getValue());
@@ -101,7 +97,7 @@ public class WarpReport {
 
       List<Object> sstentries = new ArrayList<Object>();
 
-      for (Entry<Long, FileMetaData> entry: files.entrySet()) {
+      for (Entry<Long,FileMetaData> entry: files.entrySet()) {
 
         int level = levels.get(entry.getKey());
 
@@ -128,7 +124,7 @@ public class WarpReport {
         sstentries.add(sstentry);
       }
 
-      Map<String, Object> result = new HashMap<String, Object>();
+      Map<String,Object> result = new LinkedHashMap<String,Object>();
 
       result.put(WarpReport.MAXLEVEL_KEY, (long) maxlevel);
       result.put(WarpReport.SST_KEY, sstentries);
@@ -138,13 +134,6 @@ public class WarpReport {
       return result;
     } catch (FileNotFoundException fnfe) {
       throw new IOException("MANIFEST file was not found.");
-    } finally {
-      if (null != is) {
-        is.close();
-      }
-      if (null != channel) {
-        channel.close();
-      }
     }
   }
 
@@ -157,7 +146,7 @@ public class WarpReport {
       System.exit(-1);
     }
 
-    Map<String, Object> report = report(args[0]);
+    Map<String,Object> report = report(args[0]);
 
     StringBuilder sb = new StringBuilder();
 

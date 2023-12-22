@@ -20,7 +20,6 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -52,7 +51,7 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
   private static final String TYPE_LABEL_NAME_PARAMETER = "label.type";
   private static final String DEFAULT_TYPE_LABEL_NAME = ".type";
 
-  private static final String[] TYPES = { "LONG", "DOUBLE", "BOOLEAN", "STRING", "BINARY" };
+  private static final String[] TYPES = {"LONG", "DOUBLE", "BOOLEAN", "STRING", "BINARY"};
 
   public TOGTS(String name) {
     super(name);
@@ -61,15 +60,15 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
 
-    Map<String, ArrayList<MetadataSelectorMatcher>> typeMap = null;
+    Map<String,ArrayList<MetadataSelectorMatcher>> typeMap = null;
     Object top = stack.pop();
     // this is the default label name.
     String extraLabel = DEFAULT_TYPE_LABEL_NAME;
 
     if (top instanceof Map) {
-      typeMap = new LinkedHashMap<String, ArrayList<MetadataSelectorMatcher>>();
+      typeMap = new LinkedHashMap<String,ArrayList<MetadataSelectorMatcher>>();
       // this is a map to specify type by selector. MetadataSelectorMatcher are build once here.
-      for (Map.Entry<Object, Object> entry: ((Map<Object, Object>) top).entrySet()) {
+      for (Map.Entry<Object,Object> entry: ((Map<Object,Object>) top).entrySet()) {
         if (entry.getKey() instanceof String) {
           String t = (String) entry.getKey();
           if ("LONG".equals(t) || "DOUBLE".equals(t) || "BOOLEAN".equals(t) || "STRING".equals(t) || "BINARY".equals(t)) {
@@ -130,7 +129,7 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
 
     // if there is no type map, the output is a map of GTS (v2.3.0 signature), or a map of lists of GTS
     if (null == typeMap) {
-      Map<String, ArrayList<GeoTimeSerie>> result = new HashMap<String, ArrayList<GeoTimeSerie>>();
+      Map<String,ArrayList<GeoTimeSerie>> result = new LinkedHashMap<String,ArrayList<GeoTimeSerie>>();
       GeoTimeSerie[] series = new GeoTimeSerie[5];
 
       for (GTSDecoder decoder: decodersInput) {
@@ -211,7 +210,7 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
         gts.setMetadata(decoder.getMetadata());
         String enforcedType = null;
         boolean mustGuessTypeFromFirstValue = true;
-        for (Entry<String, ArrayList<MetadataSelectorMatcher>> entry: typeMap.entrySet()) {
+        for (Entry<String,ArrayList<MetadataSelectorMatcher>> entry: typeMap.entrySet()) {
           for (MetadataSelectorMatcher m: entry.getValue()) {
             if (m.matches(decoder.getMetadata())) {
               enforcedType = entry.getKey();
@@ -255,7 +254,7 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
           }
           do {
             GTSHelper.setValue(gts, decoder.getTimestamp(), decoder.getLocation(), decoder.getElevation(), decoder.getBinaryValue(), false);
-          } while(decoder.next());
+          } while (decoder.next());
         }
         // also set an extra label with the enforced type, or UNDEFINED if there is no type enforcement match AND the encoder was empty.
         if (null != extraLabel) {
@@ -286,7 +285,7 @@ public class TOGTS extends NamedWarpScriptFunction implements WarpScriptStackFun
    *
    * @param o string, encoder, or byte array
    * @return a GTSDecoder object
-   * @throws WarpScriptException
+   * @throws WarpScriptException If an error occurs
    */
   private GTSDecoder getDecoderFromObject(Object o) throws WarpScriptException {
     GTSDecoder decoder;
