@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2023  SenX S.A.S.
+//   Copyright 2020-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@
 package io.warp10.script.ext.stackps;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,7 +29,15 @@ import io.warp10.script.WarpScriptStackRegistry;
 
 public class WSINFO extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  public static final String[] EXPOSED_ATTRIBUTES = new String[]{WarpScriptStack.ATTRIBUTE_CREATION_TIME, WarpScriptStack.ATTRIBUTE_FETCH_COUNT, WarpScriptStack.ATTRIBUTE_GTS_COUNT, WarpScriptStack.ATTRIBUTE_MACRO_NAME, WarpScriptStack.ATTRIBUTE_NAME, WarpScriptStack.ATTRIBUTE_SECTION_NAME, StackPSWarpScriptExtension.ATTRIBUTE_SESSION,};
+  public static final String[] EXPOSED_ATTRIBUTES = new String[] {
+    WarpScriptStack.ATTRIBUTE_CREATION_TIME,
+    WarpScriptStack.ATTRIBUTE_FETCH_COUNT,
+    WarpScriptStack.ATTRIBUTE_GTS_COUNT,
+    WarpScriptStack.ATTRIBUTE_MACRO_NAME,
+    WarpScriptStack.ATTRIBUTE_NAME,
+    WarpScriptStack.ATTRIBUTE_SECTION_NAME,
+    StackPSWarpScriptExtension.ATTRIBUTE_SESSION,
+  };
 
   public WSINFO(String name) {
     super(name);
