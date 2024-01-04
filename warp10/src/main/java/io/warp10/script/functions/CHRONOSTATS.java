@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,14 +16,14 @@
 
 package io.warp10.script.functions;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
+
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
 
 public class CHRONOSTATS extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
@@ -35,15 +35,15 @@ public class CHRONOSTATS extends NamedWarpScriptFunction implements WarpScriptSt
 
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    Map<String, AtomicLong[]> stats = (Map<String, AtomicLong[]>) stack.getAttribute(key);
+    Map<String,AtomicLong[]> stats = (Map<String,AtomicLong[]>) stack.getAttribute(key);
 
     if (null == stats) {
       stack.push(null);
     } else {
       // Get the map containing all the results and transform it for easier understanding, getting the long values of AtomicLongs
-      HashMap<String, HashMap<String, Long>> result = new HashMap<String, HashMap<String, Long>>();
-      for (Map.Entry<String, AtomicLong[]> entry: stats.entrySet()) {
-        HashMap<String, Long> macro_result = new HashMap<String, Long>();
+      LinkedHashMap<String,LinkedHashMap<String,Long>> result = new LinkedHashMap<String,LinkedHashMap<String,Long>>();
+      for (Map.Entry<String,AtomicLong[]> entry: stats.entrySet()) {
+        LinkedHashMap<String,Long> macro_result = new LinkedHashMap<String,Long>();
         macro_result.put("total_time", entry.getValue()[0].longValue());
         macro_result.put("total_calls", entry.getValue()[1].longValue());
         result.put(entry.getKey(), macro_result);

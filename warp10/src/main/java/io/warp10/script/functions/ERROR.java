@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -17,8 +17,8 @@
 package io.warp10.script.functions;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -29,27 +29,27 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
 public class ERROR extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   public ERROR(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    
+
     Throwable t = (Throwable) stack.getAttribute(WarpScriptStack.ATTRIBUTE_LAST_ERROR);
-    
+
     // List of errors (with cause for each one)
     List<Object> errlist = new ArrayList<Object>();
-    
+
     // Set to make sure we don't have cycles
     Set<Throwable> throwables = new HashSet<Throwable>();
-    
-    while(null != t && !throwables.contains(t)) {
-      Map<String,Object> err = new HashMap<String,Object>();
-      
+
+    while (null != t && !throwables.contains(t)) {
+      Map<String,Object> err = new LinkedHashMap<String,Object>();
+
       List<Object> trace = new ArrayList<Object>();
-      
+
       StackTraceElement[] st = t.getStackTrace();
 
       if (null != st) {
@@ -75,14 +75,14 @@ public class ERROR extends NamedWarpScriptFunction implements WarpScriptStackFun
       err.put("stacktrace", trace);
 
       throwables.add(t);
-      
+
       t = t.getCause();
-      
+
       errlist.add(err);
     }
-    
+
     stack.push(errlist);
-    
+
     return stack;
   }
 }

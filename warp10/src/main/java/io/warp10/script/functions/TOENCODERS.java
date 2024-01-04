@@ -18,19 +18,16 @@ package io.warp10.script.functions;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
-import org.apache.thrift.protocol.TCompactProtocol;
 
 import io.warp10.ThriftUtils;
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
-import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GTSWrapperHelper;
-import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.continuum.store.thrift.data.GTSWrapper;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.script.NamedWarpScriptFunction;
@@ -55,7 +52,7 @@ public class TOENCODERS extends NamedWarpScriptFunction implements WarpScriptSta
       throw new WarpScriptException(getName() + " operates on a string, byte array or encoder.");
     }
 
-    Map<String,GTSEncoder> encoders = new HashMap<String,GTSEncoder>();
+    Map<String,GTSEncoder> encoders = new LinkedHashMap<String,GTSEncoder>();
 
     GTSDecoder decoder;
 
@@ -80,7 +77,7 @@ public class TOENCODERS extends NamedWarpScriptFunction implements WarpScriptSta
     GTSEncoder enc;
 
     try {
-      while(decoder.next()) {
+      while (decoder.next()) {
         Object value = decoder.getBinaryValue();
 
         String type = "DOUBLE";

@@ -1,5 +1,5 @@
 //
-//   Copyright 2020  SenX S.A.S.
+//   Copyright 2020-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 package io.warp10.script.ext.stackps;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -28,17 +28,17 @@ import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptStackRegistry;
 
 public class WSINFO extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   public static final String[] EXPOSED_ATTRIBUTES = new String[] {
-      WarpScriptStack.ATTRIBUTE_CREATION_TIME,
-      WarpScriptStack.ATTRIBUTE_FETCH_COUNT,
-      WarpScriptStack.ATTRIBUTE_GTS_COUNT,
-      WarpScriptStack.ATTRIBUTE_MACRO_NAME,
-      WarpScriptStack.ATTRIBUTE_NAME,
-      WarpScriptStack.ATTRIBUTE_SECTION_NAME,
-      StackPSWarpScriptExtension.ATTRIBUTE_SESSION,
+    WarpScriptStack.ATTRIBUTE_CREATION_TIME,
+    WarpScriptStack.ATTRIBUTE_FETCH_COUNT,
+    WarpScriptStack.ATTRIBUTE_GTS_COUNT,
+    WarpScriptStack.ATTRIBUTE_MACRO_NAME,
+    WarpScriptStack.ATTRIBUTE_NAME,
+    WarpScriptStack.ATTRIBUTE_SECTION_NAME,
+    StackPSWarpScriptExtension.ATTRIBUTE_SESSION,
   };
-  
+
   public WSINFO(String name) {
     super(name);
   }
@@ -50,34 +50,34 @@ public class WSINFO extends NamedWarpScriptFunction implements WarpScriptStackFu
     if (!(top instanceof String)) {
       throw new WarpScriptException(getName() + " expects a session id.");
     }
-    
+
     List<Object> infos = new ArrayList<Object>();
 
     String session = top.toString();
-    
+
     for (WarpScriptStack stck: WarpScriptStackRegistry.stacks()) {
       if (session.equals(stck.getAttribute(StackPSWarpScriptExtension.ATTRIBUTE_SESSION))) {
         infos.add(getInfos(stck));
       }
     }
-    
+
     stack.push(infos);
-    
+
     return stack;
   }
-  
+
   public static Map<Object,Object> getInfos(WarpScriptStack stck) {
-    Map<Object,Object> infos = new HashMap<Object,Object>();
+    Map<Object,Object> infos = new LinkedHashMap<Object,Object>();
 
     infos.put("uuid", stck.getUUID());
-    
-    Map<String,Object> attributes = new HashMap<String,Object>();
+
+    Map<String,Object> attributes = new LinkedHashMap<String,Object>();
     infos.put("attributes", attributes);
-    
+
     for (String attr: EXPOSED_ATTRIBUTES) {
-      attributes.put(attr, stck.getAttribute(attr));          
-    }  
-    
+      attributes.put(attr, stck.getAttribute(attr));
+    }
+
     return infos;
   }
 }

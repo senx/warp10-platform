@@ -20,7 +20,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.iq80.leveldb.impl.Filename;
@@ -73,7 +73,7 @@ public class SSTINFO extends NamedWarpScriptFunction implements WarpScriptStackF
       BasicFileAttributes attr = Files.readAttributes(sstfile.toPath(), BasicFileAttributes.class);
       long creationTime = attr.creationTime().toMillis() * Constants.TIME_UNITS_PER_MS;
       long size = attr.size();
-      Map<String,Object> infos = new HashMap<String,Object>();
+      Map<String,Object> infos = new LinkedHashMap<String,Object>();
       infos.put(SIZE_KEY, size);
       infos.put(CREATIONTIME_KEY, creationTime);
       stack.push(infos);

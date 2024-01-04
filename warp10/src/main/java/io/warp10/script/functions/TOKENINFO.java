@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,44 +16,44 @@
 
 package io.warp10.script.functions;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import io.warp10.continuum.ThrottlingManager;
 import io.warp10.continuum.Tokens;
 import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
-
-import java.util.HashMap;
-import java.util.Map;
+import io.warp10.script.WarpScriptStackFunction;
 
 /**
  * Push on the stack information regarding a token
  */
 public class TOKENINFO extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   public TOKENINFO(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    
+
     Object o = stack.pop();
-    
+
     if (!(o instanceof String)) {
       throw new WarpScriptException(getName() + " expects a string on top of the stack.");
     }
-    
-    Map<String,Object> tokenParams = new HashMap<String, Object>();
-        
+
+    Map<String,Object> tokenParams = new LinkedHashMap<String,Object>();
+
     String readError = null;
     String writeError = null;
-    
+
     try {
       ReadToken rtoken = Tokens.extractReadToken(o.toString());
-      
+
       tokenParams.put("type", "READ");
       tokenParams.put("issuance", rtoken.getIssuanceTimestamp());
       tokenParams.put("expiry", rtoken.getExpiryTimestamp());
@@ -67,10 +67,10 @@ public class TOKENINFO extends NamedWarpScriptFunction implements WarpScriptStac
     } catch (WarpScriptException ee) {
       readError = ee.getMessage();
     }
-    
+
     try {
       WriteToken wtoken = Tokens.extractWriteToken(o.toString());
-      
+
       tokenParams.put("type", "WRITE");
       tokenParams.put("issuance", wtoken.getIssuanceTimestamp());
       tokenParams.put("expiry", wtoken.getExpiryTimestamp());
@@ -79,8 +79,8 @@ public class TOKENINFO extends NamedWarpScriptFunction implements WarpScriptStac
         tokenParams.put("labels", wtoken.getLabels());
       }
       Map<String,Object> limits = ThrottlingManager.getLimits(Tokens.getUUID(wtoken.getProducerId()), wtoken.getAppName());
-      
-      tokenParams.put("limits", limits);      
+
+      tokenParams.put("limits", limits);
     } catch (WarpScriptException ee) {
       writeError = ee.getMessage();
     }
@@ -89,9 +89,9 @@ public class TOKENINFO extends NamedWarpScriptFunction implements WarpScriptStac
       tokenParams.put("ReadTokenDecodeError", readError);
       tokenParams.put("WriteTokenDecodeError", writeError);
     }
-    
+
     stack.push(tokenParams);
-    
+
     return stack;
   }
 }

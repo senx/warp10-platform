@@ -16,6 +16,15 @@
 
 package io.warp10.script.ext.token;
 
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.thrift.TBase;
+
 import io.warp10.continuum.Tokens;
 import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OrderPreservingBase64;
@@ -31,15 +40,6 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.warp.sdk.Capabilities;
-
-import org.apache.thrift.TBase;
-
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Reads a token and generates a structure for TOKENGEN to recreate an identical token
@@ -61,13 +61,14 @@ public class TOKENDUMP extends NamedWarpScriptFunction implements WarpScriptStac
 
   /**
    * Create the TOKENDUMP function.
-   * @param name The name of the function.
-   * @param keystore The keystore containing the AES and SipHash keys to decode tokens when no such keys are given when applying this function.
+   *
+   * @param name         The name of the function.
+   * @param keystore     The keystore containing the AES and SipHash keys to decode tokens when no such keys are given when applying this function.
    * @param warpKeystore Whether the given keystore is that of a Warp/WarpDist instance. If true, a secret is needed to access the keystore keys.
    */
   public TOKENDUMP(String name, KeyStore keystore, boolean warpKeystore) {
     super(name);
-    if(null != keystore) {
+    if (null != keystore) {
       keystoreTokenAESKey = keystore.getKey(KeyStore.AES_TOKEN);
       keystoreTokenSipHashKey = keystore.getKey(KeyStore.SIPHASH_TOKEN);
     } else {
@@ -159,7 +160,7 @@ public class TOKENDUMP extends NamedWarpScriptFunction implements WarpScriptStac
 
     String ident = encoder.getTokenIdent(tokenstr, tokenSipHashKey);
 
-    Map<Object, Object> result = new HashMap<Object, Object>();
+    Map<Object,Object> result = new LinkedHashMap<Object,Object>();
     result.put(TOKENGEN.KEY_TOKEN, tokenstr);
     result.put(TOKENGEN.KEY_IDENT, ident);
     result.put(KEY_PARAMS, mapFromToken(null != rtoken ? rtoken : wtoken));
@@ -169,8 +170,8 @@ public class TOKENDUMP extends NamedWarpScriptFunction implements WarpScriptStac
     return stack;
   }
 
-  public static Map<String, Object> mapFromToken(TBase token) {
-    Map<String, Object> params = new HashMap<String, Object>();
+  public static Map<String,Object> mapFromToken(TBase token) {
+    Map<String,Object> params = new LinkedHashMap<String,Object>();
 
     if (token instanceof ReadToken) {
       ReadToken rtoken = (ReadToken) token;
@@ -200,18 +201,16 @@ public class TOKENDUMP extends NamedWarpScriptFunction implements WarpScriptStac
       if (rtoken.getAppsSize() > 0) {
         List<String> applications = new ArrayList<String>(rtoken.getAppsSize());
         params.put(TOKENGEN.KEY_APPLICATIONS, applications);
-        for (String app: rtoken.getApps()) {
-          applications.add(app);
-        }
+        applications.addAll(rtoken.getApps());
       }
 
       if (rtoken.getAttributesSize() > 0) {
-        Map<String, String> attr = new HashMap<String, String>(rtoken.getAttributes());
+        Map<String,String> attr = new LinkedHashMap<String,String>(rtoken.getAttributes());
         params.put(TOKENGEN.KEY_ATTRIBUTES, attr);
       }
 
       if (rtoken.getLabelsSize() > 0) {
-        Map<String, String> labels = new HashMap<String, String>(rtoken.getLabels());
+        Map<String,String> labels = new LinkedHashMap<String,String>(rtoken.getLabels());
         params.put(TOKENGEN.KEY_LABELS, labels);
       }
     } else {
@@ -225,12 +224,12 @@ public class TOKENDUMP extends NamedWarpScriptFunction implements WarpScriptStac
       params.put(TOKENGEN.KEY_EXPIRY, wtoken.getExpiryTimestamp());
 
       if (wtoken.getAttributesSize() > 0) {
-        Map<String, String> attr = new HashMap<String, String>(wtoken.getAttributes());
+        Map<String,String> attr = new LinkedHashMap<String,String>(wtoken.getAttributes());
         params.put(TOKENGEN.KEY_ATTRIBUTES, attr);
       }
 
       if (wtoken.getLabelsSize() > 0) {
-        Map<String, String> labels = new HashMap<String, String>(wtoken.getLabels());
+        Map<String,String> labels = new LinkedHashMap<String,String>(wtoken.getLabels());
         params.put(TOKENGEN.KEY_LABELS, labels);
       }
     }
