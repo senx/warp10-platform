@@ -53,7 +53,13 @@ public class ThriftUtils {
     TCompactProtocol.Factory factory = new TCompactProtocol.Factory() {
       @Override
       public TProtocol getProtocol(TTransport trans) {
-        trans.getConfiguration().setMaxMessageSize(Integer.MAX_VALUE);
+        try {
+          trans.getConfiguration().setMaxMessageSize(Integer.MAX_VALUE);
+        } catch (NoSuchMethodError t) {
+          // In case the Thrift dependency is an older one it may be impossible
+          // to access the configuration. BUT we actually won't need to as
+          // there is no max message size set.
+        }
         return super.getProtocol(trans);
       }
     };

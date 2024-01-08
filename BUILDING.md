@@ -1,44 +1,71 @@
 # Warp 10 Setup & Build  
 
-All commands examples below are valid for latest ubuntu or other debian based release.
+All command examples below are valid for the latest Ubuntu or other Debian-based release.
 
 ## Install Java 8 jdk
 ```bash
-sudo apt install openjdk-8-jdk
+sudo apt install -y openjdk-8-jdk
 ```
 
 ## Install Thrift
 You need Thrift in order to build the Warp 10 platform.
-Currently, Warp 10 uses Thrift 0.11.0, to be compatible with other dependencies. 
-All major distributions now ships Thrift 0.13+, so you need to compile Thrift.
+Currently, Warp 10 uses Thrift 0.17.0, to be compatible with other dependencies. 
+All major distributions now ship Thrift 0.13+, so you will need to compile Thrift.
 
-Download Thrift 0.11, compile and install it:
+Download Thrift 0.17, compile and install it:
 ```bash
-sudo apt install libtool g++ libboost-all-dev build-essential bison
-wget "http://archive.apache.org/dist/thrift/0.11.0/thrift-0.11.0.tar.gz"
-tar -xf thrift-0.11.0.tar.gz
-cd thrift-0.11.0
-sudo mkdir -p /opt/thrift-0.11.0
+sudo apt install -y automake bison flex g++ git libboost-all-dev libevent-dev libssl-dev libtool make pkg-config wget
+wget "http://archive.apache.org/dist/thrift/0.17.0/thrift-0.17.0.tar.gz"
+echo "b272c1788bb165d99521a2599b31b97fa69e5931d099015d91ae107a0b0cc58f  thrift-0.17.0.tar.gz" | sha256sum -c -
+tar xf thrift-0.17.0.tar.gz
+cd thrift-0.17.0
+sudo mkdir -p /opt/thrift-0.17.0
 ./bootstrap.sh
-./configure --prefix=/opt/thrift-0.11.0 --with-qt4=no --with-qt5=no --with-c_glib=no --with-csharp=no --with-java=no --with-erlang=no --with-nodejs=no --with-lua=no --with-python=no --with-perl=no --with-php=no --with-php_extension=no --with-dart=no --with-ruby=no --with-haskell=no --with-go=no --with-rs=no --with-haxe=no --with-dotnetcore=no --with-d=no  --with-cpp=no
-make -j$(nproc)
+./configure \
+    --prefix=/opt/thrift-0.17.0 \
+    --without-cpp \
+    --without-qt5 \
+    --without-c_glib \
+    --without-java \
+    --without-kotlin \
+    --without-erlang \
+    --without-nodejs \
+    --without-nodets \
+    --without-lua \
+    --without-python-sys-prefix \
+    --without-python_prefix \
+    --without-python_exec_prefix \
+    --without-python \
+    --without-py3 \
+    --without-perl \
+    --without-php \
+    --without-php_extension \
+    --without-dart \
+    --without-ruby \
+    --without-go \
+    --without-swift \
+    --without-rs \
+    --without-haxe \
+    --without-netstd \
+    --without-d     
+make -j
 sudo make install
-/opt/thrift-0.11.0/bin/thrift -version
+/opt/thrift-0.17.0/bin/thrift -version
 ```
 
-`thrift -version` should return "Thrift version 0.11.0".
+`thrift -version` should return "Thrift version 0.17.0".
 
-If you need several thrift versions on your system, you can use the `THRIFT_HOME` environment variable (example: `export THRIFT_HOME=/<path_to_thrift>/thrift-0.11.0`).
+If you need several thrift versions on your system, you can use the `THRIFT_HOME` environment variable (example: `export THRIFT_HOME=/<path_to_thrift>/thrift-0.17.0`).
 
 ## Build and replace jar in an existing Warp 10 instance
 
 Clone the repo master branch, compile, and copy the jar to your Warp 10 bin directory.
 ```bash
 cd
-sudo apt install git
+sudo apt install -y git
 git clone https://github.com/senx/warp10-platform.git
 cd warp10-platform
-export THRIFT_HOME=/opt/thrift-0.11.0
+export THRIFT_HOME=/opt/thrift-0.17.0
 ./gradlew pack
 ```
 The jar file should be suffixed with the latest tag. 
@@ -75,8 +102,8 @@ Add your API key & credentials in the gradle.properties file.
 
 Commit & push the change.
 
-Add GIT tag `git tag -a 0.0.2-rc1 -m 'release candidate 0.0.2'`
-WARNING don't forget to push the TAG `git push origin 0.0.2-rc1`
+Add GIT tag `git tag -s 3.0.0 -m 'Warp 10 release 3.0.0'`
+WARNING don't forget to push the TAG `git push origin 3.0.0`
 
 ### Building Warp 10
 

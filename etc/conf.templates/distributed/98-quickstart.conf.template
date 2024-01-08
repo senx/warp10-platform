@@ -20,16 +20,18 @@ warp10.instance = RENAME.ME.PLEASE
 #mac.key = hex:.....
 #hash.key = hex:.....
 
-components = ingress,directory,store,egress
+warp.components = ingress,directory,store,egress
 
 fdb.clusterfile = ${warp10.home}/etc/fdb.cluster
 fdb.data.aes = ${aes.key}
 fdb.metadata.aes = ${aes.key}
 
+# Comma separated list of IP:port
 zk.quorum = 127.0.0.1:2181
 
 directory.psk = ${hash.key}
 
+# Comma separated list of IP:port
 kafka.bootstrap.servers = 127.0.0.1:9092
 
 kafka.metadata.bootstrap.servers = ${kafka.bootstrap.servers}

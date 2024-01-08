@@ -39,7 +39,7 @@ public class BDCOMP extends NamedWarpScriptFunction implements WarpScriptStackFu
 
     BigDecimal bd2 = TOBD.toBigDecimal(getName(), o);
 
-    stack.push(bd1.compareTo(bd2));
+    stack.push(bd2.compareTo(bd1));
 
     return stack;
   }

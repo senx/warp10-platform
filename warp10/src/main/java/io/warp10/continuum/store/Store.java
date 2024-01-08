@@ -58,6 +58,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.primitives.Longs;
 import com.google.common.util.concurrent.RateLimiter;
 
+import io.warp10.ThriftUtils;
 import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.KafkaOffsetCounters;
@@ -862,7 +863,7 @@ public class Store extends Thread {
         synchronizer.setDaemon(true);
         synchronizer.start();
 
-        TDeserializer deserializer = new TDeserializer();
+        TDeserializer deserializer = ThriftUtils.getTDeserializer();
 
         // The call to resetInflight is a hack, we need to reset inflightMessage BUT iter.hasNext() may block
         // so we add an artificial call to resetInflight which always returns true but has the side effect

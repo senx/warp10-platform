@@ -56,7 +56,7 @@ egress.selectors = 8
 egress.idle.timeout = 300000
 
 ##
-## MANDATORY - ZooKeeper server list, to discover Directory services
+## MANDATORY - ZooKeeper server list, to discover Directory services, list of comma separated IP:port
 ##
 egress.zk.quorum = ${zk.quorum}
 

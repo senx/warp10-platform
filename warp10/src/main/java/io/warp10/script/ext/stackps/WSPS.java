@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2022  SenX S.A.S.
+//   Copyright 2020-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -37,7 +37,7 @@ public class WSPS extends NamedWarpScriptFunction implements WarpScriptStackFunc
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
 
     if (null == Capabilities.get(stack, StackPSWarpScriptExtension.CAPABILITY)) {
-      throw new WarpScriptException(getName() + " missing capability.");
+      throw new WarpScriptException(getName() + " missing capability '" + StackPSWarpScriptExtension.CAPABILITY + "'.");
     }
 
     List<Object> results = new ArrayList<Object>();

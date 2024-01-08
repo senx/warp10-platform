@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,38 +16,38 @@
 
 package io.warp10.script.functions;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
-
-import java.util.HashMap;
-import java.util.Map;
+import io.warp10.script.WarpScriptStackFunction;
 
 /**
  * Extract the attributes of the GTS on top of the stack
  */
 public class ATTRIBUTES extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   public ATTRIBUTES(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object o = stack.pop();
-    
+
     if (!(o instanceof GeoTimeSerie) && !(o instanceof GTSEncoder)) {
       throw new WarpScriptException(getName() + " expects a Geo Time Series or encoder instance on top of the stack.");
     }
-    
+
     //
     // Clone the attributes map
     //
-    
-    Map<String,String> attributes = new HashMap<String,String>();
+
+    Map<String,String> attributes = new LinkedHashMap<String,String>();
     if (o instanceof GeoTimeSerie) {
       attributes.putAll(((GeoTimeSerie) o).getMetadata().getAttributes());
     } else {
