@@ -45,6 +45,11 @@ public class STMTPOS extends NamedWarpScriptFunction implements WarpScriptStackF
     public Object statement() {
       return null;
     }
+
+    @Override
+    public String snapshot() {
+      return null;
+    }
   }
 
   public static WrappedStatementFactory NUMBERING_WRAPPED_STATEMENT_FACTORY = new WrappedStatementFactory() {
