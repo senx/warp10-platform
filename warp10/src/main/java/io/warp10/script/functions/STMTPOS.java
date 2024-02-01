@@ -30,7 +30,7 @@ import io.warp10.script.WarpScriptStack.Macro;
  */
 public class STMTPOS extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  public static class WrappedWarpScriptStackFunction extends NamedWarpScriptFunction implements WarpScriptStackFunction, WrappedStatement {
+  public static class WrappedWarpScriptStackFunction extends NamedWarpScriptFunction implements WarpScriptStackFunction, WrappedStatement, Snapshotable {
 
     public WrappedWarpScriptStackFunction(String name) {
       super(name);
@@ -66,7 +66,9 @@ public class STMTPOS extends NamedWarpScriptFunction implements WarpScriptStackF
           @Override
           public Object statement() { return o; }
           @Override
-          public String toString() { if (o instanceof Snapshotable) { return ((Snapshotable) o).snapshot(); } else { return o.toString(); } }
+          public String snapshot() { if (o instanceof Snapshotable) { return ((Snapshotable) o).snapshot(); } else { return o.toString(); } }
+          @Override
+          public String toString() { return o.toString(); }
         };
       } else if (o instanceof WarpScriptStackFunction) {
         return new WrappedWarpScriptStackFunction("") {
@@ -77,7 +79,9 @@ public class STMTPOS extends NamedWarpScriptFunction implements WarpScriptStackF
           }
           public Object statement() { return o; }
           @Override
-          public String toString() { if (o instanceof Snapshotable) { return ((Snapshotable) o).snapshot(); } else { return o.toString(); } }
+          public String snapshot() { if (o instanceof Snapshotable) { return ((Snapshotable) o).snapshot(); } else { return o.toString(); } }
+          @Override
+          public String toString() { return o.toString(); }
         };
       } else if (o instanceof Macro) {
         // Leave Macro instances unwrapped
@@ -92,7 +96,9 @@ public class STMTPOS extends NamedWarpScriptFunction implements WarpScriptStackF
           }
           public Object statement() { return o; }
           @Override
-          public String toString() { if (o instanceof Snapshotable) { return ((Snapshotable) o).snapshot(); } else { return o.toString(); } }
+          public String snapshot() { if (o instanceof Snapshotable) { return ((Snapshotable) o).snapshot(); } else { return o.toString(); } }
+          @Override
+          public String toString() { return o.toString(); }
         };
       }
     }
