@@ -20,6 +20,7 @@ import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WrappedStatement;
 import io.warp10.script.WrappedStatementFactory;
+import io.warp10.script.functions.SNAPSHOT.Snapshotable;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
@@ -64,6 +65,8 @@ public class STMTPOS extends NamedWarpScriptFunction implements WarpScriptStackF
           }
           @Override
           public Object statement() { return o; }
+          @Override
+          public String toString() { if (o instanceof Snapshotable) { return ((Snapshotable) o).snapshot(); } else { return o.toString(); } }
         };
       } else if (o instanceof WarpScriptStackFunction) {
         return new WrappedWarpScriptStackFunction("") {
@@ -73,6 +76,8 @@ public class STMTPOS extends NamedWarpScriptFunction implements WarpScriptStackF
             return ((WarpScriptStackFunction) o).apply(stack);
           }
           public Object statement() { return o; }
+          @Override
+          public String toString() { if (o instanceof Snapshotable) { return ((Snapshotable) o).snapshot(); } else { return o.toString(); } }
         };
       } else if (o instanceof Macro) {
         // Leave Macro instances unwrapped
@@ -86,6 +91,8 @@ public class STMTPOS extends NamedWarpScriptFunction implements WarpScriptStackF
             return stack;
           }
           public Object statement() { return o; }
+          @Override
+          public String toString() { if (o instanceof Snapshotable) { return ((Snapshotable) o).snapshot(); } else { return o.toString(); } }
         };
       }
     }
