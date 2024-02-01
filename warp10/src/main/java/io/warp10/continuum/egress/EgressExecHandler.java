@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2023  SenX S.A.S.
+//   Copyright 2018-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -546,7 +546,7 @@ public class EgressExecHandler extends AbstractHandler {
       resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_FETCHEDX), stack.getAttribute(WarpScriptStack.ATTRIBUTE_FETCH_COUNT).toString());
 
       resp.addHeader("Access-Control-Expose-Headers", Constants.getHeader(Configuration.HTTP_HEADER_ERROR_LINEX) + "," + Constants.getHeader(Configuration.HTTP_HEADER_ERROR_MESSAGEX));
-      resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_ERROR_LINEX), Long.toString(lineno));
+      resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_ERROR_LINEX), stack.getAttribute(WarpScriptStack.ATTRIBUTE_LAST_STMTPOS) instanceof String ? (String) stack.getAttribute(WarpScriptStack.ATTRIBUTE_LAST_STMTPOS) : Long.toString(lineno));
       String headerErrorMsg = ThrowableUtils.getErrorMessage(t, Constants.MAX_HTTP_HEADER_LENGTH);
       resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_ERROR_MESSAGEX), headerErrorMsg);
 
@@ -576,7 +576,7 @@ public class EgressExecHandler extends AbstractHandler {
         try {
           // Set max stack depth to max int value - 1 so we can push our error message
           stack.setAttribute(WarpScriptStack.ATTRIBUTE_MAX_DEPTH, Integer.MAX_VALUE - 1);
-          stack.push("ERROR line #" + lineno + ": " + ThrowableUtils.getErrorMessage(t));
+          stack.push("ERROR line #" + (stack.getAttribute(WarpScriptStack.ATTRIBUTE_LAST_STMTPOS) instanceof String ? (String) stack.getAttribute(WarpScriptStack.ATTRIBUTE_LAST_STMTPOS) : Long.toString(lineno)) + ": " + ThrowableUtils.getErrorMessage(t));
           if (debugDepth < Integer.MAX_VALUE) {
             debugDepth++;
           }
@@ -596,7 +596,7 @@ public class EgressExecHandler extends AbstractHandler {
           String prefix = "";
           // If error happened before any WarpScript execution, do not add line.
           if (lineno > 0) {
-            prefix = "ERROR line #" + lineno + ": ";
+            prefix = "ERROR line #" + (stack.getAttribute(WarpScriptStack.ATTRIBUTE_LAST_STMTPOS) instanceof String ? (String) stack.getAttribute(WarpScriptStack.ATTRIBUTE_LAST_STMTPOS) : Long.toString(lineno)) + ": ";
           }
           String msg = prefix + ThrowableUtils.getErrorMessage(t, Constants.MAX_HTTP_REASON_LENGTH - prefix.length());
           resp.sendError(errorCode, msg);

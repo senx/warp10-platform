@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2023  SenX S.A.S.
+//   Copyright 2019-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -541,6 +541,7 @@ import io.warp10.script.functions.STACKTOLIST;
 import io.warp10.script.functions.STANDARDIZE;
 import io.warp10.script.functions.STL;
 import io.warp10.script.functions.STLESDTEST;
+import io.warp10.script.functions.STMTPOS;
 import io.warp10.script.functions.STOP;
 import io.warp10.script.functions.STORE;
 import io.warp10.script.functions.STRICTREDUCER;
@@ -1159,6 +1160,7 @@ public class WarpScriptLib {
   public static final String DEBUGOFF = "DEBUGOFF";
   public static final String LINEON = "LINEON";
   public static final String LINEOFF = "LINEOFF";
+  public static final String STMTPOS = "STMTPOS";
   public static final String LMAP = "LMAP";
   public static final String MMAP = "MMAP";
   public static final String LFILTER = "LFILTER";
@@ -2020,6 +2022,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new DEBUGOFF(DEBUGOFF));
     addNamedWarpScriptFunction(new LINEON(LINEON));
     addNamedWarpScriptFunction(new LINEOFF(LINEOFF));
+    addNamedWarpScriptFunction(new STMTPOS(STMTPOS));
     addNamedWarpScriptFunction(new LMAP(LMAP));
     addNamedWarpScriptFunction(new MMAP(MMAP));
     addNamedWarpScriptFunction(new LFILTER(LFILTER));

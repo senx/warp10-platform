@@ -796,7 +796,6 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
           }
           stmt = line.substring(pos, end);
 
-
           if (WarpScriptStack.MULTILINE_START.equals(stmt)) {
             if (!WarpScriptStack.MULTILINE_START.equals(line.trim())) {
               if (auditMode && !(macros.isEmpty() || macros.size() == forcedMacro)) {
@@ -1053,7 +1052,13 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
 
                   WarpScriptStackFunction esf = (WarpScriptStackFunction) func;
 
-                  esf.apply(this);
+                  Object wstmt = factory.wrap(esf, lineNumber, pos , pos + stmt.length() - 1);
+
+                  if (wstmt instanceof WarpScriptStackFunction) {
+                    ((WarpScriptStackFunction) wstmt).apply(this);
+                  } else {
+                    this.push(wstmt);
+                  }
                 } else {
                   //
                   // Push any other type of function onto the stack
@@ -1195,9 +1200,9 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
           }
         }
         if (null == name) {
-          throw new WarpScriptException("Exception" + (i < n ? (" at '" + statementString + "'") : "") + " in section '" + section + "'", ee);
+          throw new WarpScriptException("Exception" + (i < n ? (" at '" + statementString + "'") : "") + " in section '" + section + "'" + (getAttribute(WarpScriptStack.ATTRIBUTE_LAST_STMTPOS) instanceof String ? (" at position " + getAttribute(WarpScriptStack.ATTRIBUTE_LAST_STMTPOS)) : ""), ee);
         } else {
-          throw new WarpScriptException("Exception" + (i < n ? (" at '" + statementString + "'") : "") + " in section '" + section + "' called from macro '" + name + "'", ee);
+          throw new WarpScriptException("Exception" + (i < n ? (" at '" + statementString + "'") : "") + " in section '" + section + "'" + (getAttribute(WarpScriptStack.ATTRIBUTE_LAST_STMTPOS) instanceof String ? (" at position " + getAttribute(WarpScriptStack.ATTRIBUTE_LAST_STMTPOS)) : "") + " called from macro '" + name + "'", ee);
         }
       }
     } finally {

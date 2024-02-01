@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2023  SenX S.A.S.
+//   Copyright 2018-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -281,6 +281,11 @@ public interface WarpScriptStack {
    * Last error encountered in a TRY block
    */
   public static final String ATTRIBUTE_LAST_ERROR = "last.error";
+
+  /**
+   * Last statement position set (line:start:end)
+   */
+  public static final String ATTRIBUTE_LAST_STMTPOS = "last.stmtpos";
 
   /**
    * Creation timestamp for the stack
