@@ -65,8 +65,11 @@ public class STMTPOS extends NamedWarpScriptFunction implements WarpScriptStackF
         return new WrappedWarpScriptStackFunction(((NamedWarpScriptFunction) o).getName()) {
           @Override
           public Object apply(WarpScriptStack stack) throws WarpScriptException {
-            stack.setAttribute(WarpScriptStack.ATTRIBUTE_LAST_STMTPOS, flineno + ":" + fstart + ":" + fend);
-            return ((WarpScriptStackFunction) o).apply(stack);
+            try {
+              return ((WarpScriptStackFunction) o).apply(stack);
+            } finally {
+              stack.setAttribute(WarpScriptStack.ATTRIBUTE_LAST_STMTPOS, flineno + ":" + fstart + ":" + fend);
+            }
           }
           @Override
           public Object statement() { return o; }
@@ -79,8 +82,11 @@ public class STMTPOS extends NamedWarpScriptFunction implements WarpScriptStackF
         return new WrappedWarpScriptStackFunction("") {
           @Override
           public Object apply(WarpScriptStack stack) throws WarpScriptException {
-            stack.setAttribute(WarpScriptStack.ATTRIBUTE_LAST_STMTPOS, flineno + ":" + fstart + ":" + fend);
-            return ((WarpScriptStackFunction) o).apply(stack);
+            try {
+              return ((WarpScriptStackFunction) o).apply(stack);
+            } finally {
+              stack.setAttribute(WarpScriptStack.ATTRIBUTE_LAST_STMTPOS, flineno + ":" + fstart + ":" + fend);
+            }
           }
           public Object statement() { return o; }
           @Override
