@@ -288,6 +288,11 @@ public interface WarpScriptStack {
   public static final String ATTRIBUTE_LAST_STMTPOS = "last.stmtpos";
 
   /**
+   * Last error position set (line:start:end)
+   */
+  public static final String ATTRIBUTE_LAST_ERRORPOS = "last.errorpos";
+
+  /**
    * Creation timestamp for the stack
    */
   public static final String ATTRIBUTE_CREATION_TIME = "creation.time";
