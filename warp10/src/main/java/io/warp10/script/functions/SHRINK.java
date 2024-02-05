@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2023  SenX S.A.S.
+//   Copyright 2018-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -49,13 +49,15 @@ public class SHRINK extends ListRecursiveStackFunction {
         if (element instanceof GeoTimeSerie) {
           GeoTimeSerie gts = (GeoTimeSerie) element;
 
-          if (GTSHelper.nvalues(gts) > Math.abs(shrinkto)) {
-            if (shrinkto < 0) {
-              GTSHelper.sort(gts, true);
-            } else {
-              GTSHelper.sort(gts, false);
+          if (shrinkto != Long.MIN_VALUE && shrinkto != Long.MAX_VALUE) {
+            if (GTSHelper.nvalues(gts) > Math.abs(shrinkto)) {
+              if (shrinkto < 0) {
+                GTSHelper.sort(gts, true);
+              } else {
+                GTSHelper.sort(gts, false);
+              }
+              GTSHelper.shrinkTo(gts, (int) Math.abs(shrinkto));
             }
-            GTSHelper.shrinkTo(gts, (int) Math.abs(shrinkto));
           }
           return gts;
 
