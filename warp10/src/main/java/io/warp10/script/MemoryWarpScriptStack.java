@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2023  SenX S.A.S.
+//   Copyright 2020-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -1141,6 +1141,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
     String macroname = this.macroName;
     this.macroName = macro.getName();
 
+    long nanos = System.nanoTime();
+
     try {
 
       recurseIn();
@@ -1217,6 +1219,11 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       //if (sectionname != this.getAttribute(WarpScriptStack.ATTRIBUTE_SECTION_NAME)) {
       //  this.setAttribute(WarpScriptStack.ATTRIBUTE_SECTION_NAME, sectionname);
       //}
+
+      synchronized(macro) {
+        macro.calls++;
+        macro.time += System.nanoTime() - nanos;
+      }
     }
   }
 

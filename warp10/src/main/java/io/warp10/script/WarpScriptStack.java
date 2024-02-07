@@ -140,7 +140,7 @@ public interface WarpScriptStack {
   public static final String ATTRIBUTE_JSON_STRICT = "json.strict";
 
   /**
-   * Is the stack configured to output pretty JSON (i.e with ident)?
+   * Is the stack configured to output pretty JSON (i.e with indent)?
    */
   public static final String ATTRIBUTE_JSON_PRETTY = "json.pretty";
 
@@ -346,6 +346,9 @@ public interface WarpScriptStack {
     private long fingerprint;
 
     private String name = null;
+
+    public long calls = 0L;
+    public long time = 0L;
 
     /**
      * Timestamp at which the macro expired, or LONG.MIN_VALUE if no expiry date was set
