@@ -332,6 +332,9 @@ public interface WarpScriptStack {
 
     private String name = null;
 
+    public long calls = 0L;
+    public long time = 0L;
+
     /**
      * Timestamp at which the macro expired, or LONG.MIN_VALUE if no expiry date was set
      */
