@@ -1013,7 +1013,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             } else {
               if (auditMode) {
                 macros.get(0).add(stmt.substring(1));
-                macros.get(0).add(new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_LOAD, stmt.substring(1), stmt, lineNumber, pos));
+                macros.get(0).add(new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_RUN, stmt.substring(1), stmt, lineNumber, pos));
               } else {
                 macros.get(0).add(factory.wrap(stmt.substring(1), lineNumber, pos, pos + stmt.length() - 1));
                 macros.get(0).add(factory.wrap(RUN, lineNumber, pos , pos + stmt.length() - 1));
