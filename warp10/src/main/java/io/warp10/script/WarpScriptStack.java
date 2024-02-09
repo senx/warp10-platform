@@ -18,6 +18,7 @@ package io.warp10.script;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
@@ -347,6 +348,8 @@ public interface WarpScriptStack {
 
     private String name = null;
 
+    private Map<String,Object> attributes = null;
+
     public long calls = 0L;
     public long time = 0L;
 
@@ -572,6 +575,31 @@ public interface WarpScriptStack {
 
       int newlen = n + this.statements.length + (this.statements.length >> 1);
       this.statements = Arrays.copyOf(this.statements, newlen);
+    }
+
+    public Object getAttribute(String key) {
+      if (null == this.attributes) {
+        return null;
+      } else {
+        return this.attributes.get(key);
+      }
+    }
+
+    public Object setAttribute(String key, Object value) {
+      synchronized(this) {
+        if (null == this.attributes) {
+          if (null == value) {
+            return null;
+          }
+          this.attributes = new HashMap<String, Object>();
+        }
+      }
+
+      if (null == value) {
+        return this.attributes.remove(key);
+      }
+
+      return this.attributes.put(key, value);
     }
    }
 
