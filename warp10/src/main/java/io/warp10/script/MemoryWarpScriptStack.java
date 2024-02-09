@@ -864,7 +864,6 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
               if (macros.isEmpty()) {
                 this.push(lastmacro);
               } else {
-                // Add the macro to the outer macro, we do not wrap macros so they still appear as Macro instances.
                 macros.get(0).add(lastmacro);
               }
             }
@@ -873,7 +872,12 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             // Create holder for current macro
             //
 
-            macros.add(0, new Macro());
+            // The factory is expected to return a Macro when wrap is called on a Macro. This allows to keep track of the beginning position
+            Object wrapped = factory.wrap(new Macro(), lineNumber, pos, end);
+            if (!(wrapped instanceof Macro)) {
+              throw new RuntimeException("WrappedStatement factory did not return a Macro but an instance of " + wrapped.getClass());
+            }
+            macros.add(0, (Macro) wrapped);
           } else if (stmt.length() > 1 && ((stmt.charAt(0) == '\'' && stmt.charAt(stmt.length() - 1) == '\'')
               || (stmt.charAt(0) == '\"' && stmt.charAt(stmt.length() - 1) == '\"'))) {
             //
@@ -1113,7 +1117,6 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
 
   @Override
   public void exec(Macro macro) throws WarpScriptException {
-
     // We increment op count for the macro itself. We'll increment
     // for each statement of the macro inside the loop
     incOps();
