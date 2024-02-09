@@ -1,5 +1,5 @@
 //
-//   Copyright 2023  SenX S.A.S.
+//   Copyright 2023-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -26,10 +26,10 @@ public interface WrappedStatementFactory {
 
   WrappedStatementFactory DEFAULT_FACTORY = new WrappedStatementFactory() {
     @Override
-    public Object wrap(Object obj, long lineno, int start, int end) throws WarpScriptException {
+    public Object wrap(Object obj, long lineno, long start, long end) throws WarpScriptException {
       return obj;
     }
   };
 
-  public Object wrap(Object obj, long lineno, int start, int end) throws WarpScriptException;
+  public Object wrap(Object obj, long lineno, long start, long end) throws WarpScriptException;
 }
