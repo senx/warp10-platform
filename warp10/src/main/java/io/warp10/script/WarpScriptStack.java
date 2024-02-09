@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2023  SenX S.A.S.
+//   Copyright 2018-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -140,7 +140,7 @@ public interface WarpScriptStack {
   public static final String ATTRIBUTE_JSON_STRICT = "json.strict";
 
   /**
-   * Is the stack configured to output pretty JSON (i.e with ident)?
+   * Is the stack configured to output pretty JSON (i.e with indent)?
    */
   public static final String ATTRIBUTE_JSON_PRETTY = "json.pretty";
 
@@ -331,6 +331,9 @@ public interface WarpScriptStack {
     private long fingerprint;
 
     private String name = null;
+
+    public long calls = 0L;
+    public long time = 0L;
 
     /**
      * Timestamp at which the macro expired, or LONG.MIN_VALUE if no expiry date was set
