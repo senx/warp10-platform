@@ -30,10 +30,21 @@ import io.warp10.script.WarpScriptStack.Macro;
  */
 public class STMTPOS extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  public static class WrappedWarpScriptStackFunction extends NamedWarpScriptFunction implements WarpScriptStackFunction, WrappedStatement, Snapshotable {
+  public static final String POS_LINENO = "pos.lineno";
+  public static final String POS_START = "pos.start";
+  public static final String POS_END = "pos.end";
 
-    public WrappedWarpScriptStackFunction(String name) {
+  public static class PositionedWrappedWarpScriptStackFunction extends NamedWarpScriptFunction implements WarpScriptStackFunction, WrappedStatement, Snapshotable {
+
+    private final long lineno;
+    private final long start;
+    private final long end;
+
+    public PositionedWrappedWarpScriptStackFunction(String name, long lineno, long start, long end) {
       super(name);
+      this.lineno = lineno;
+      this.start = start;
+      this.end = end;
     }
 
     @Override
@@ -50,29 +61,38 @@ public class STMTPOS extends NamedWarpScriptFunction implements WarpScriptStackF
     public String snapshot() {
       return null;
     }
+
+    public long getLine() {
+      return lineno;
+    }
+
+    public long getStart() {
+      return start;
+    }
+
+    public long getEnd() {
+      return end;
+    }
   }
 
   public static WrappedStatementFactory NUMBERING_WRAPPED_STATEMENT_FACTORY = new WrappedStatementFactory() {
 
     @Override
-    public Object wrap(Object obj, long lineno, int start, int end) throws WarpScriptException {
+    public Object wrap(Object obj, long lineno, long start, long end) throws WarpScriptException {
       final Object o = obj;
-      final long flineno = lineno;
-      final int fstart = start;
-      final int fend = end;
 
       if (o instanceof NamedWarpScriptFunction) {
-        return new WrappedWarpScriptStackFunction(((NamedWarpScriptFunction) o).getName()) {
+        return new PositionedWrappedWarpScriptStackFunction(((NamedWarpScriptFunction) o).getName(), lineno, start, end) {
           @Override
           public Object apply(WarpScriptStack stack) throws WarpScriptException {
             Object ret = null;
             try {
               ret = ((WarpScriptStackFunction) o).apply(stack);
             } catch (Throwable t) {
-              stack.setAttribute(WarpScriptStack.ATTRIBUTE_LAST_ERRORPOS, flineno + ":" + fstart + ":" + fend);
+              stack.setAttribute(WarpScriptStack.ATTRIBUTE_LAST_ERRORPOS, lineno + ":" + start + ":" + end);
               throw t;
             }
-            stack.setAttribute(WarpScriptStack.ATTRIBUTE_LAST_STMTPOS, flineno + ":" + fstart + ":" + fend);
+            stack.setAttribute(WarpScriptStack.ATTRIBUTE_LAST_STMTPOS, lineno + ":" + start + ":" + end);
             return ret;
           }
           @Override
@@ -83,17 +103,17 @@ public class STMTPOS extends NamedWarpScriptFunction implements WarpScriptStackF
           public String toString() { return o.toString(); }
         };
       } else if (o instanceof WarpScriptStackFunction) {
-        return new WrappedWarpScriptStackFunction("") {
+        return new PositionedWrappedWarpScriptStackFunction("", lineno, start, end) {
           @Override
           public Object apply(WarpScriptStack stack) throws WarpScriptException {
             Object ret = null;
             try {
               ret = ((WarpScriptStackFunction) o).apply(stack);
             } catch (Throwable t) {
-              stack.setAttribute(WarpScriptStack.ATTRIBUTE_LAST_ERRORPOS, flineno + ":" + fstart + ":" + fend);
+              stack.setAttribute(WarpScriptStack.ATTRIBUTE_LAST_ERRORPOS, lineno + ":" + start + ":" + end);
               throw t;
             }
-            stack.setAttribute(WarpScriptStack.ATTRIBUTE_LAST_STMTPOS, flineno + ":" + fstart + ":" + fend);
+            stack.setAttribute(WarpScriptStack.ATTRIBUTE_LAST_STMTPOS, lineno + ":" + start + ":" + end);
             return ret;
           }
           public Object statement() { return o; }
@@ -103,17 +123,20 @@ public class STMTPOS extends NamedWarpScriptFunction implements WarpScriptStackF
           public String toString() { return o.toString(); }
         };
       } else if (o instanceof Macro) {
-        // Leave Macro instances unwrapped
+        // Leave Macro instances unwrapped but set their position
+        ((Macro) o).setAttribute(POS_LINENO, lineno);
+        ((Macro) o).setAttribute(POS_START, start);
+        ((Macro) o).setAttribute(POS_END, end);
         return o;
       } else {
-        return new WrappedWarpScriptStackFunction("") {
+        return new PositionedWrappedWarpScriptStackFunction("", lineno, start, end) {
           @Override
           public Object apply(WarpScriptStack stack) throws WarpScriptException {
             try {
               stack.push(o);
-              stack.setAttribute(WarpScriptStack.ATTRIBUTE_LAST_STMTPOS, flineno + ":" + fstart + ":" + fend);
+              stack.setAttribute(WarpScriptStack.ATTRIBUTE_LAST_STMTPOS, lineno + ":" + start + ":" + end);
             } catch (Throwable t) {
-              stack.setAttribute(WarpScriptStack.ATTRIBUTE_LAST_ERRORPOS, flineno + ":" + fstart + ":" + fend);
+              stack.setAttribute(WarpScriptStack.ATTRIBUTE_LAST_ERRORPOS, lineno + ":" + start + ":" + end);
               throw t;
             }
             return stack;
