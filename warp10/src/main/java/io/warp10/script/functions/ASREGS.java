@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2022  SenX S.A.S.
+//   Copyright 2019-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.WrappedStatementUtils;
 
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -111,7 +112,7 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
       List<Object> statements = new ArrayList<Object>(m.statements());
 
       for (int i = 0; i < statements.size(); i++) {
-        Object currentSymbol = statements.get(i);
+        Object currentSymbol = WrappedStatementUtils.unwrapAll(statements.get(i));
 
         if (currentSymbol instanceof PUSHR) {
           inuse.set(((PUSHR) currentSymbol).getRegister());
@@ -127,7 +128,7 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
             break;
           }
           // Fetch what precedes the LOAD/CSTORE/RUN
-          Object previousSymbol = statements.get(i - 1);
+          Object previousSymbol = WrappedStatementUtils.unwrapAll(statements.get(i - 1));
           if (previousSymbol instanceof Long) {
             inuse.set(((Long) previousSymbol).intValue());
           } else if (currentSymbol instanceof RUN && previousSymbol instanceof String) {
@@ -150,7 +151,7 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
             break;
           }
           // Fetch what precedes the STORE
-          Object previousSymbol = statements.get(i - 1);
+          Object previousSymbol = WrappedStatementUtils.unwrapAll(statements.get(i - 1));
           if (previousSymbol instanceof Long) {
             inuse.set(((Long) previousSymbol).intValue());
           } else if (previousSymbol instanceof List) {
@@ -165,8 +166,8 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
             // If we encounter something else than String/Long/NULL, we abort as we cannot
             // determine if a register is used or not
             int idx = i - 2;
-            while (idx >= 0 && !(statements.get(idx) instanceof MARK)) {
-              Object stmt = statements.get(idx--);
+            while (idx >= 0 && !(WrappedStatementUtils.unwrapAll(statements.get(idx)) instanceof MARK)) {
+              Object stmt = WrappedStatementUtils.unwrapAll(statements.get(idx--));
               if (stmt instanceof Long) {
                 inuse.set(((Long) stmt).intValue());
               } else if (null != stmt && !(stmt instanceof String) && !(stmt instanceof NULL)) {
@@ -231,13 +232,13 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
       List<Object> statements = new ArrayList<Object>(m.statements());
 
       for (int i = 0; i < statements.size(); i++) {
-        Object currentSymbol = statements.get(i);
+        Object currentSymbol = WrappedStatementUtils.unwrapAll(statements.get(i));
 
         if (currentSymbol instanceof Macro) {
           allmacros.add((Macro) currentSymbol);
           continue;
         } else if (i > 0 && currentSymbol instanceof LOAD) {
-          Object previousSymbol = statements.get(i - 1);
+          Object previousSymbol = WrappedStatementUtils.unwrapAll(statements.get(i - 1));
 
           if (previousSymbol instanceof String) {
             Integer regno = varregs.get(previousSymbol.toString());
@@ -256,7 +257,7 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
             break;
           }
         } else if (i > 0 && currentSymbol instanceof RUN) {
-          Object previousSymbol = statements.get(i - 1);
+          Object previousSymbol = WrappedStatementUtils.unwrapAll(statements.get(i - 1));
 
           if (previousSymbol instanceof Long) {
             // Optimize RUN on a long with RUNR which is faster
@@ -268,7 +269,7 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
             break;
           }
         } else if (i > 0 && currentSymbol instanceof STORE) {
-          Object previousSymbol = statements.get(i - 1);
+          Object previousSymbol = WrappedStatementUtils.unwrapAll(statements.get(i - 1));
           if (previousSymbol instanceof String) {
             Integer regno = varregs.get(previousSymbol.toString());
             if (null != regno) {
@@ -288,8 +289,8 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
           } else if (previousSymbol instanceof ENDLIST) {
             int idx = i - 2;
             int nbOfRegOrNull = 0; // Keeps track of the number of registers or nulls in this list
-            while (idx >= 0 && !(statements.get(idx) instanceof MARK)) {
-              Object stmt = statements.get(idx);
+            while (idx >= 0 && !(WrappedStatementUtils.unwrapAll(statements.get(idx)) instanceof MARK)) {
+              Object stmt = WrappedStatementUtils.unwrapAll(statements.get(idx));
               if (stmt instanceof String) {
                 Integer regno = varregs.get(stmt);
                 if (null != regno) {
@@ -317,7 +318,7 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
               // As we must flip the order of the list, we must store the registers first.
               int[] regInList = new int[listLength];
               for (int listIndex = listLength - 1; listIndex >= 0; listIndex--) {
-                Object stmt = statements.get(idx + 1 + listIndex);
+                Object stmt = WrappedStatementUtils.unwrapAll(statements.get(idx + 1 + listIndex));
                 if(stmt instanceof Long) {
                   int regno = ((Long)stmt).intValue();
                   if(regset.add(regno)) {
@@ -353,7 +354,7 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
             break;
           }
         } else if (i > 0 && currentSymbol instanceof CSTORE) {
-          Object previousSymbol = statements.get(i - 1);
+          Object previousSymbol = WrappedStatementUtils.unwrapAll(statements.get(i - 1));
           if (previousSymbol instanceof String) {
             Integer regno = varregs.get(previousSymbol.toString());
             if (null != regno) {
@@ -378,7 +379,7 @@ public class ASREGS extends NamedWarpScriptFunction implements WarpScriptStackFu
         // Ignore the XNOOPs
         int xnoops = 0;
         for (int i = 0; i < statements.size(); i++) {
-          if (statements.get(i) instanceof XNOOP) {
+          if (WrappedStatementUtils.unwrapAll(statements.get(i)) instanceof XNOOP) {
             xnoops++;
             continue;
           }
