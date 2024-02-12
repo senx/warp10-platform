@@ -487,11 +487,18 @@ public interface WarpScriptStack {
       if (!secure || !hideSecure) {
         for (Object o: this.statements()) {
           try {
+            //
+            // Unwrap wrapped statements
+            //
+
+            if (WrappedStatement.class.isAssignableFrom(o.getClass())) {
+              o = WrappedStatementUtils.unwrapAll(o);
+            }
+
             if (o instanceof Macro) {
               sb.append(((Macro) o).snapshot(hideSecure));
               sb.append(" ");
             } else if (o instanceof WarpScriptStackFunction) {
-
               // In the case the snapshot of the function is 'MYFUNC' FUNCREF, instead of adding
               // 'MYFUNC' FUNCREF EVAL to the snapshot, MYFUNC can simply be added.
               // This can be done only if the name of function contains no special character.
