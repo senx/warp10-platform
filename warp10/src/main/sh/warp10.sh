@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-#   Copyright 2016-2023  SenX S.A.S.
+#   Copyright 2016-2024  SenX S.A.S.
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -81,12 +81,12 @@ location of your Java installation."
 getConfigFiles() {
   # Get configuration files from standard directory
   if [ -d "${WARP10_CONFIG_DIR}" ]; then
-    CONFIG_FILES=$(find -L "${WARP10_CONFIG_DIR}" -type f -name \*.conf | sort | tr '\n' ' ' 2>/dev/null)
+    CONFIG_FILES=$(find -L "${WARP10_CONFIG_DIR}" -type f -name \*.conf | sort -V | tr '\n' ' ' 2>/dev/null)
   fi
 
   # Get additional configuration files from extra directory
   if [ -d "${WARP10_EXT_CONFIG_DIR:-}" ]; then
-    CONFIG_FILES="${CONFIG_FILES} $(find -L "${WARP10_EXT_CONFIG_DIR}" -type f -name \*.conf | sort | tr '\n' ' ' 2>/dev/null)"
+    CONFIG_FILES="${CONFIG_FILES} $(find -L "${WARP10_EXT_CONFIG_DIR}" -type f -name \*.conf | sort -V | tr '\n' ' ' 2>/dev/null)"
   fi
 }
 
