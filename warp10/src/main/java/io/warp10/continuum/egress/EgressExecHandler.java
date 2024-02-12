@@ -547,7 +547,9 @@ public class EgressExecHandler extends AbstractHandler {
 
       resp.addHeader("Access-Control-Expose-Headers", Constants.getHeader(Configuration.HTTP_HEADER_ERROR_LINEX) + "," + Constants.getHeader(Configuration.HTTP_HEADER_ERROR_POSITIONX) + "," + Constants.getHeader(Configuration.HTTP_HEADER_ERROR_MESSAGEX));
       resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_ERROR_LINEX), Long.toString(lineno));
-      resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_ERROR_POSITIONX), stack.getAttribute(WarpScriptStack.ATTRIBUTE_LAST_ERRORPOS) instanceof String ? (String) stack.getAttribute(WarpScriptStack.ATTRIBUTE_LAST_ERRORPOS) : Long.toString(lineno));
+      if (stack.getAttribute(WarpScriptStack.ATTRIBUTE_LAST_ERRORPOS) instanceof String) {
+        resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_ERROR_POSITIONX), (String) stack.getAttribute(WarpScriptStack.ATTRIBUTE_LAST_ERRORPOS));
+      }
       String headerErrorMsg = ThrowableUtils.getErrorMessage(t, Constants.MAX_HTTP_HEADER_LENGTH);
       resp.setHeader(Constants.getHeader(Configuration.HTTP_HEADER_ERROR_MESSAGEX), headerErrorMsg);
 
