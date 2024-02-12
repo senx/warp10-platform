@@ -1205,9 +1205,9 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
           }
         }
         if (null == name) {
-          throw new WarpScriptException("Exception" + (i < n ? (" at '" + statementString + "'") : "") + " in section '" + section + "'" + (getAttribute(WarpScriptStack.ATTRIBUTE_LAST_STMTPOS) instanceof String ? (" at position " + getAttribute(WarpScriptStack.ATTRIBUTE_LAST_STMTPOS)) : ""), ee);
+          throw new WarpScriptException("Exception" + (i < n ? (" at '" + statementString + "'") : "") + " in section '" + section + "'" + (getAttribute(WarpScriptStack.ATTRIBUTE_LAST_ERRORPOS) instanceof String ? (" at position " + getAttribute(WarpScriptStack.ATTRIBUTE_LAST_ERRORPOS)) : ""), ee);
         } else {
-          throw new WarpScriptException("Exception" + (i < n ? (" at '" + statementString + "'") : "") + " in section '" + section + "'" + (getAttribute(WarpScriptStack.ATTRIBUTE_LAST_STMTPOS) instanceof String ? (" at position " + getAttribute(WarpScriptStack.ATTRIBUTE_LAST_STMTPOS)) : "") + " called from macro '" + name + "'", ee);
+          throw new WarpScriptException("Exception" + (i < n ? (" at '" + statementString + "'") : "") + " in section '" + section + "'" + (getAttribute(WarpScriptStack.ATTRIBUTE_LAST_ERRORPOS) instanceof String ? (" at position " + getAttribute(WarpScriptStack.ATTRIBUTE_LAST_ERRORPOS)) : "") + " called from macro '" + name + "'", ee);
         }
       }
     } finally {
