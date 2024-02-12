@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2023  SenX S.A.S.
+//   Copyright 2018-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -179,6 +179,11 @@ public class Constants {
    * Script line where an error was encountered
    */
   public static final String HTTP_HEADER_ERROR_LINE_DEFAULT = "X-Warp10-Error-Line";
+
+  /**
+   * Script position where an error was encountered
+   */
+  public static final String HTTP_HEADER_ERROR_POSITION_DEFAULT = "X-Warp10-Error-Position";
 
   /**
    * Message for the error that was encountered
@@ -569,6 +574,7 @@ public class Constants {
     HEADERS.put(Configuration.HTTP_HEADER_OPSX, WarpConfig.getProperty(Configuration.HTTP_HEADER_OPSX, HTTP_HEADER_OPS_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_FETCHEDX, WarpConfig.getProperty(Configuration.HTTP_HEADER_FETCHEDX, HTTP_HEADER_FETCHED_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_ERROR_LINEX, WarpConfig.getProperty(Configuration.HTTP_HEADER_ERROR_LINEX, HTTP_HEADER_ERROR_LINE_DEFAULT));
+    HEADERS.put(Configuration.HTTP_HEADER_ERROR_POSITIONX, WarpConfig.getProperty(Configuration.HTTP_HEADER_ERROR_POSITIONX, HTTP_HEADER_ERROR_POSITION_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_ERROR_MESSAGEX, WarpConfig.getProperty(Configuration.HTTP_HEADER_ERROR_MESSAGEX, HTTP_HEADER_ERROR_MESSAGE_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_TOKENX, WarpConfig.getProperty(Configuration.HTTP_HEADER_TOKENX, HTTP_HEADER_TOKEN_DEFAULT));
     HEADERS.put(Configuration.HTTP_HEADER_META_TOKENX, WarpConfig.getProperty(Configuration.HTTP_HEADER_META_TOKENX, HTTP_HEADER_META_TOKEN_DEFAULT));
