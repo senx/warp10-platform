@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2023  SenX S.A.S.
+//   Copyright 2018-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -65,6 +65,7 @@ import com.geoxp.GeoXPLib.GeoXPShape;
 
 import io.warp10.CapacityExtractorOutputStream;
 import io.warp10.ThriftUtils;
+import io.warp10.WarpConfig;
 import io.warp10.WarpHexDecoder;
 import io.warp10.WarpURLDecoder;
 import io.warp10.WarpURLEncoder;
@@ -107,7 +108,14 @@ public class GTSHelper {
   private static final boolean labelsIdSlowImpl;
 
   static {
-    labelsIdSlowImpl = "true".equals(System.getProperty(LABELSID_SLOWIMPL));
+    if ("17".equals(System.getProperty("java.specification.version")) && null == WarpConfig.getProperty(LABELSID_SLOWIMPL)) {
+      String ERR = "\n\n######\n###### ATTENTION ######\n######\n\n\nYou are using Java 17.\n\nSome Java Virtual Machine implementations for this specification version are known to have issues with the Just In Time compiler which can produce erroneous code for the ID computations used by Warp 10.\n\nIn order to prevent any corruption of your data it is highly advised you add the follwing to your configuration to ensure a slower but safer implementation is used:\n\n\n      " + LABELSID_SLOWIMPL + " = true\n\n\nIn case you want to risk being exposed to the JIT issue, please set this configuration key to false.\n\n\n";
+      LOG.error(ERR);
+      System.err.println(ERR);
+      System.out.println(ERR);
+      System.exit(-17);
+    }
+    labelsIdSlowImpl = "true".equals(WarpConfig.getProperty(LABELSID_SLOWIMPL));
   }
 
   /**
