@@ -81,7 +81,7 @@ public class STMTPOS extends NamedWarpScriptFunction implements WarpScriptStackF
     public Object wrap(Object obj, long lineno, long start, long end) throws WarpScriptException {
       final Object o = obj;
 
-      if (o instanceof NamedWarpScriptFunction) {
+      if (o instanceof NamedWarpScriptFunction && o instanceof WarpScriptStackFunction) {
         return new PositionedWrappedWarpScriptStackFunction(((NamedWarpScriptFunction) o).getName(), lineno, start, end) {
           @Override
           public Object apply(WarpScriptStack stack) throws WarpScriptException {
