@@ -35,7 +35,7 @@ public class GTSDecoderTest {
   public static void loadConfig() throws Exception {
     StringReader reader = new StringReader(
         Configuration.WARP_TIME_UNITS + "=us\n" +
-        "labels.slowimpl=true"
+        "labelsid.slowimpl=true"
     );
     WarpConfig.safeSetProperties(reader);
   }
