@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2023  SenX S.A.S.
+//   Copyright 2018-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -33,6 +33,7 @@ import io.warp10.continuum.Configuration;
 import io.warp10.continuum.MetadataUtils;
 import io.warp10.continuum.ThrottlingManager;
 import io.warp10.continuum.egress.Egress;
+import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.ingress.Ingress;
 import io.warp10.continuum.plasma.PlasmaBackEnd;
 import io.warp10.continuum.plasma.PlasmaFrontEnd;
@@ -335,6 +336,10 @@ public class WarpDist {
     //
 
     MetadataUtils.validateMetadata(null);
+
+    // Ensure GTSHelper is loaded so we can detect JDK 17 and ensure labelsid.slowimpl is set
+    GTSHelper.labelsId(0, 0, new HashMap<String,String>());
+
     WarpDist.initialized = true;
   }
 
