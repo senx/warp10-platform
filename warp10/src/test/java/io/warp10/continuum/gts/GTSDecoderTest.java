@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,24 +16,29 @@
 
 package io.warp10.continuum.gts;
 
-import io.warp10.continuum.gts.GTSDecoder;
-import io.warp10.continuum.gts.GTSEncoder;
-import io.warp10.continuum.gts.GeoTimeSerie;
-
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.StringReader;
 import java.io.StringWriter;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.geoxp.oss.jarjar.org.bouncycastle.util.encoders.Hex;
+import io.warp10.WarpConfig;
+import io.warp10.continuum.Configuration;
 public class GTSDecoderTest {
+
+  @BeforeClass
+  public static void loadConfig() throws Exception {
+    StringReader reader = new StringReader(
+        Configuration.WARP_TIME_UNITS + "=us\n" +
+        "labels.slowimpl=true"
+    );
+    WarpConfig.safeSetProperties(reader);
+  }
 
   @Test
   public void testDecoder_encrypted() throws Exception {
