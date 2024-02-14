@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2020  SenX S.A.S.
+//   Copyright 2019-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -30,6 +30,7 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.WrappedStatementUtils;
 
 /**
  * Extract all used variables in a macro. If a STORE/CSTORE or LOAD operation is
@@ -43,11 +44,11 @@ import io.warp10.script.WarpScriptStackFunction;
  * PUSHR will be done on an empty register.
  */
 public class VARS extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   public VARS(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
@@ -101,7 +102,7 @@ public class VARS extends NamedWarpScriptFunction implements WarpScriptStackFunc
       List<Object> statements = new ArrayList<Object>(m.statements());
 
       for (int i = 0; i < statements.size(); i++) {
-        Object currentSymbol = statements.get(i);
+        Object currentSymbol = WrappedStatementUtils.unwrapAll(statements.get(i));
 
         if (currentSymbol instanceof Macro) {
           allmacros.add((Macro) currentSymbol);
@@ -139,7 +140,7 @@ public class VARS extends NamedWarpScriptFunction implements WarpScriptStackFunc
             abort = true;
             break;
           }
-          Object previousSymbol = statements.get(i - 1);
+          Object previousSymbol = WrappedStatementUtils.unwrapAll(statements.get(i - 1));
           // If the parameter to LOAD/CSTORE is not a string or a long, then we cannot extract
           // the variables in a safe way as some may be unknown to us (as their name may be the result
           // of a computation), so in this case we abort the process
@@ -164,7 +165,7 @@ public class VARS extends NamedWarpScriptFunction implements WarpScriptStackFunc
             abort = true;
             break;
           }
-          Object previousSymbol = statements.get(i - 1);
+          Object previousSymbol = WrappedStatementUtils.unwrapAll(statements.get(i - 1));
           if (previousSymbol instanceof List) {
             // We inspect the list, looking for registers
             for (Object elt: (List) previousSymbol) {
@@ -186,8 +187,8 @@ public class VARS extends NamedWarpScriptFunction implements WarpScriptStackFunc
             // If we encounter something else than String/Long/NULL, we abort as we cannot
             // determine if a register is used or not
             int idx = i - 2;
-            while (idx >= 0 && !(statements.get(idx) instanceof MARK)) {
-              Object stmt = statements.get(idx--);
+            while (idx >= 0 && !(WrappedStatementUtils.unwrapAll(statements.get(idx)) instanceof MARK)) {
+              Object stmt = WrappedStatementUtils.unwrapAll(statements.get(idx--));
               if (stmt instanceof String || stmt instanceof Long) {
                 symbols.add(stmt);
                 AtomicInteger occ = occurrences.get(stmt);

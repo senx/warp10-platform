@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -27,25 +27,26 @@ import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.WrappedStatementUtils;
 
 /**
  * Modifies a Macro so LOAD/PUSHRx operations for the given symbols or registers
  * are replaced by a specific value
  */
 public class DEREF extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   private static final NOOP NOOP = new NOOP(WarpScriptLib.NOOP);
   private static final EVAL EVAL = new EVAL(WarpScriptLib.EVAL);
-  
+
   public DEREF(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    
+
     Object top = stack.pop();
-    
+
     if (!(top instanceof Map)) {
       throw new WarpScriptException(getName() + " expects a map of variable names or register id to values on top of the stack.");
     }
@@ -53,34 +54,34 @@ public class DEREF extends NamedWarpScriptFunction implements WarpScriptStackFun
     Map<Object,Object> values = (Map<Object,Object>) top;
 
     top = stack.pop();
-    
+
     if (!(top instanceof Macro)) {
       throw new WarpScriptException(getName() + " operates on a Macro.");
     }
-        
+
     //
     // Now loop over the macro statement, replacing occurrences of X LOAD and PUSHRx by the use
     // of the associated value
     //
-    
+
     List<Macro> allmacros = new ArrayList<Macro>();
     allmacros.add((Macro) top);
-    
+
     while(!allmacros.isEmpty()) {
       Macro m = allmacros.remove(0);
-    
+
       if (((Macro) m).isSecure()) {
         throw new WarpScriptException(getName() + " cannot operate on a secure Macro.");
       }
 
       List<Object> statements = new ArrayList<Object>(m.statements());
-                
+
       for (int i = 0; i < statements.size(); i++) {
         if (statements.get(i) instanceof Macro) {
           allmacros.add((Macro) statements.get(i));
           continue;
-        } else if (i > 0 && statements.get(i) instanceof LOAD) {
-          Object symbol = statements.get(i - 1);
+        } else if (i > 0 && WrappedStatementUtils.unwrapAll(statements.get(i)) instanceof LOAD) {
+          Object symbol = WrappedStatementUtils.unwrapAll(statements.get(i - 1));
           if (symbol instanceof String && values.containsKey(symbol)) {
             Object value = values.get(symbol);
 
@@ -96,14 +97,14 @@ public class DEREF extends NamedWarpScriptFunction implements WarpScriptStackFun
               }
             } else {
               statements.set(i - 1, NOOP);
-              statements.set(i, value);              
+              statements.set(i, value);
             }
           }
-        } else if (statements.get(i) instanceof PUSHR) {
-          long register = (long) ((PUSHR) statements.get(i)).getRegister();
+        } else if (WrappedStatementUtils.unwrapAll(statements.get(i)) instanceof PUSHR) {
+          long register = (long) ((PUSHR) WrappedStatementUtils.unwrapAll(statements.get(i))).getRegister();
           if (values.containsKey(register)) {
             Object value = values.get(register);
-            
+
             if (value instanceof Macro) {
               statements.set(i, MacroHelper.wrap((Macro) value));
             } else {
@@ -111,13 +112,13 @@ public class DEREF extends NamedWarpScriptFunction implements WarpScriptStackFun
             }
           }
         }
-      }      
+      }
 
       List<Object> macstmt = m.statements();
       // Ignore the NOOPs
       int noops = 0;
       for (int i = 0; i < statements.size(); i++) {
-        if (statements.get(i) instanceof NOOP) {
+        if (WrappedStatementUtils.unwrapAll(statements.get(i)) instanceof NOOP) {
           noops++;
           continue;
         }
@@ -125,9 +126,9 @@ public class DEREF extends NamedWarpScriptFunction implements WarpScriptStackFun
       }
       m.setSize(statements.size() - noops);
     }
-    
+
     stack.push(top);
-    
+
     return stack;
   }
 }

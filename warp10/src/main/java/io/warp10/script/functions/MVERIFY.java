@@ -1,5 +1,5 @@
 //
-//   Copyright 2021  SenX S.A.S.
+//   Copyright 2021-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -33,6 +33,7 @@ import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.WrappedStatement;
 
 public class MVERIFY extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
@@ -104,6 +105,15 @@ public class MVERIFY extends NamedWarpScriptFunction implements WarpScriptStackF
     Macro m = new Macro();
 
     for (int i = 0; i < macro.size() - signature.size(); i++) {
+      //
+      // If a single statement is a wrapped one, consider that the verification failed.
+      // This is to prevent signatures from being successfully verified even though the
+      // macro behavior would differ from the original one
+      //
+
+      if (WrappedStatement.class.isAssignableFrom(macro.get(i).getClass())) {
+        return false;
+      }
       m.add(macro.get(i));
     }
 

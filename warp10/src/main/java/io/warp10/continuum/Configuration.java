@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2023  SenX S.A.S.
+//   Copyright 2018-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -2144,6 +2144,11 @@ public class Configuration {
    * Script line where an error was encountered
    */
   public static final String HTTP_HEADER_ERROR_LINEX = "http.header.error.line";
+
+  /**
+   * Script position (line:start:end) where an error was encountered
+   */
+  public static final String HTTP_HEADER_ERROR_POSITIONX = "http.header.error.position";
 
   /**
    * Message for the error that was encountered

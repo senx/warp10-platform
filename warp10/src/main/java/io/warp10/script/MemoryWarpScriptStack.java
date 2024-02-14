@@ -33,7 +33,9 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
+import io.warp10.script.functions.LOAD;
 import io.warp10.script.functions.MSGFAIL;
+import io.warp10.script.functions.RUN;
 import io.warp10.script.functions.SNAPSHOT;
 import org.apache.hadoop.util.Progressable;
 
@@ -53,8 +55,13 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
 
   private static final Properties DEFAULT_PROPERTIES;
 
+  private static final LOAD LOAD;
+  private static final RUN RUN;
+
   static {
     DEFAULT_PROPERTIES = WarpConfig.getProperties();
+    LOAD = new LOAD(WarpScriptLib.LOAD);
+    RUN = new RUN(WarpScriptLib.RUN);
   }
 
   /**
@@ -521,6 +528,14 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
 
   @Override
   public void execMulti(String script) throws WarpScriptException {
+    WrappedStatementFactory factory = WrappedStatementFactory.DEFAULT_FACTORY;
+    if (getAttribute(WarpScriptStack.ATTRIBUTE_WRAPPED_STATEMENT_FACTORY) instanceof WrappedStatementFactory) {
+      factory = (WrappedStatementFactory) getAttribute(WarpScriptStack.ATTRIBUTE_WRAPPED_STATEMENT_FACTORY);
+    }
+    execMulti(script, factory);
+  }
+
+  public void execMulti(String script, WrappedStatementFactory factory) throws WarpScriptException {
     BufferedReader br = new BufferedReader(new StringReader(script));
 
     int i = 1;
@@ -533,7 +548,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
           break;
         }
 
-        exec(line, i);
+        exec(line, i, factory);
         i++;
       }
       br.close();
@@ -558,6 +573,14 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   }
 
   public void exec(String line, long lineNumber) throws WarpScriptException {
+    WrappedStatementFactory factory = WrappedStatementFactory.DEFAULT_FACTORY;
+    if (getAttribute(WarpScriptStack.ATTRIBUTE_WRAPPED_STATEMENT_FACTORY) instanceof WrappedStatementFactory) {
+      factory = (WrappedStatementFactory) getAttribute(WarpScriptStack.ATTRIBUTE_WRAPPED_STATEMENT_FACTORY);
+    }
+    exec(line, lineNumber, factory);
+  }
+
+  public void exec(String line, long lineNumber, WrappedStatementFactory factory) throws WarpScriptException {
 
     String rawline = line;
 
@@ -571,7 +594,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
       //
       if (inMultiline.get()) {
         line = line.trim();
-        // End of multiline        
+        // End of multiline
         if (WarpScriptStack.MULTILINE_END.equals(line)) {
           inMultiline.set(false);
           String mlcontent = multiline.toString();
@@ -587,12 +610,12 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             if (macros.isEmpty()) {
               this.push(mlcontent);
             } else {
-              macros.get(0).add(mlcontent);
+              macros.get(0).add(factory.wrap(mlcontent, lineNumber, start, line.length() - 1));
             }
           }
           multiline.setLength(0);
         } else {
-          // Append current line to existing multiline 
+          // Append current line to existing multiline
           if (multiline.length() > 0) {
             multiline.append("\n");
           }
@@ -611,7 +634,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
           start = end; // Skip the beginning of the line, before */
         }
       }
-      
+
       //
       // Process line character by character, looking at block comments, comments, strings, then process statements.
       //
@@ -671,9 +694,9 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
           if (inComment.get()) { // should never happen
             continue;
           }
-          
+
           //
-          // Line comments, // or # 
+          // Line comments, // or #
           //
           if (line.charAt(pos) == '#' || (pos < line.length() - 1 && line.charAt(pos) == '/' && line.charAt(pos + 1) == '/')) {
             break; // Ignore the remaining characters of the line
@@ -746,7 +769,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
                   if (macros.isEmpty()) {
                     push(str);
                   } else {
-                    macros.get(0).add(str);
+                    macros.get(0).add(factory.wrap(str, lineNumber, pos, end));
                   }
                 }
               } catch (Exception uee) {
@@ -773,7 +796,6 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
           }
           stmt = line.substring(pos, end);
 
-          
           if (WarpScriptStack.MULTILINE_START.equals(stmt)) {
             if (!WarpScriptStack.MULTILINE_START.equals(line.trim())) {
               if (auditMode && !(macros.isEmpty() || macros.size() == forcedMacro)) {
@@ -842,7 +864,6 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
               if (macros.isEmpty()) {
                 this.push(lastmacro);
               } else {
-                // Add the macro to the outer macro
                 macros.get(0).add(lastmacro);
               }
             }
@@ -851,7 +872,12 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             // Create holder for current macro
             //
 
-            macros.add(0, new Macro());
+            // The factory is expected to return a Macro when wrap is called on a Macro. This allows to keep track of the beginning position
+            Object wrapped = factory.wrap(new Macro(), lineNumber, pos, end);
+            if (!(wrapped instanceof Macro)) {
+              throw new RuntimeException("WrappedStatement factory did not return a Macro but an instance of " + wrapped.getClass());
+            }
+            macros.add(0, (Macro) wrapped);
           } else if (stmt.length() > 1 && ((stmt.charAt(0) == '\'' && stmt.charAt(stmt.length() - 1) == '\'')
               || (stmt.charAt(0) == '\"' && stmt.charAt(stmt.length() - 1) == '\"'))) {
             //
@@ -866,7 +892,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
               if (macros.isEmpty()) {
                 push(str);
               } else {
-                macros.get(0).add(str);
+                macros.get(0).add(factory.wrap(str, lineNumber, pos, pos + stmt.length() - 1));
               }
             } catch (UnsupportedEncodingException uee) {
               // Cannot happen...
@@ -877,14 +903,14 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             if (macros.isEmpty()) {
               push(hexl);
             } else {
-              macros.get(0).add(hexl);
+              macros.get(0).add(factory.wrap(hexl, lineNumber, pos, pos + stmt.length() - 1));
             }
           } else if (stmt.length() > 2 && stmt.charAt(1) == 'b' && stmt.charAt(0) == '0') {
             long binl = stmt.length() < 66 ? Long.parseLong(stmt.substring(2), 2) : new BigInteger(stmt.substring(2), 2).longValue();
             if (macros.isEmpty()) {
               push(binl);
             } else {
-              macros.get(0).add(binl);
+              macros.get(0).add(factory.wrap(binl, lineNumber, pos, pos + stmt.length() - 1));
             }
           } else if (UnsafeString.isLong(stmt)) {
             //
@@ -894,7 +920,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             if (macros.isEmpty()) {
               push(Long.valueOf(stmt));
             } else {
-              macros.get(0).add(Long.valueOf(stmt));
+              macros.get(0).add(factory.wrap(Long.valueOf(stmt), lineNumber, pos, pos + stmt.length() - 1));
             }
           } else if (UnsafeString.isDouble(stmt)) {
             //
@@ -903,7 +929,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             if (macros.isEmpty()) {
               push(Double.valueOf(stmt));
             } else {
-              macros.get(0).add(Double.valueOf(stmt));
+              macros.get(0).add(factory.wrap(Double.valueOf(stmt), lineNumber, pos, pos + stmt.length() - 1));
             }
           } else if (stmt.equalsIgnoreCase("T")
                      || stmt.equalsIgnoreCase("F")
@@ -916,13 +942,13 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
               if (macros.isEmpty()) {
                 push(true);
               } else {
-                macros.get(0).add(true);
+                macros.get(0).add(factory.wrap(true, lineNumber, pos, pos + stmt.length() - 1));
               }
             } else {
               if (macros.isEmpty()) {
                 push(false);
               } else {
-                macros.get(0).add(false);
+                macros.get(0).add(factory.wrap(false, lineNumber, pos, pos + stmt.length() - 1));
               }
             }
           } else if (stmt.startsWith("$")) {
@@ -944,8 +970,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
                 macros.get(0).add(new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_LOAD,
                     stmt.substring(1), stmt, lineNumber, pos));
               } else {
-                macros.get(0).add(stmt.substring(1));
-                macros.get(0).add(WarpScriptLib.getFunction(WarpScriptLib.LOAD));
+                macros.get(0).add(factory.wrap(stmt.substring(1), lineNumber, pos, pos + stmt.length() - 1));
+                macros.get(0).add(factory.wrap(LOAD, lineNumber, pos, pos + stmt.length() - 1));
               }
             }
           } else if (stmt.startsWith("!$")) {
@@ -975,7 +1001,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
               if (macros.isEmpty()) {
                 push(o);
               } else {
-                macros.get(0).add(o);
+                macros.get(0).add(factory.wrap(o, lineNumber, pos, pos + stmt.length() - 1));
               }
             }
 
@@ -989,12 +1015,12 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
 
               run(symbol);
             } else {
-              macros.get(0).add(stmt.substring(1));
               if (auditMode) {
-                macros.get(0).add(new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_LOAD,
-                    stmt.substring(1), stmt, lineNumber, pos));
+                macros.get(0).add(stmt.substring(1));
+                macros.get(0).add(new WarpScriptAuditStatement(WarpScriptAuditStatement.STATEMENT_TYPE.WS_RUN, stmt.substring(1), stmt, lineNumber, pos));
               } else {
-                macros.get(0).add(WarpScriptLib.getFunction(WarpScriptLib.RUN));
+                macros.get(0).add(factory.wrap(stmt.substring(1), lineNumber, pos, pos + stmt.length() - 1));
+                macros.get(0).add(factory.wrap(RUN, lineNumber, pos , pos + stmt.length() - 1));
               }
             }
           } else {
@@ -1030,7 +1056,13 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
 
                   WarpScriptStackFunction esf = (WarpScriptStackFunction) func;
 
-                  esf.apply(this);
+                  Object wstmt = factory.wrap(esf, lineNumber, pos , pos + stmt.length() - 1);
+
+                  if (wstmt instanceof WarpScriptStackFunction) {
+                    ((WarpScriptStackFunction) wstmt).apply(this);
+                  } else {
+                    this.push(wstmt);
+                  }
                 } else {
                   //
                   // Push any other type of function onto the stack
@@ -1038,7 +1070,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
                   if (macros.isEmpty()) {
                     push(func);
                   } else {
-                    macros.get(0).add(func);
+                    macros.get(0).add(factory.wrap(func, lineNumber, pos , pos + stmt.length() - 1));
                   }
                 }
               } finally {
@@ -1085,7 +1117,6 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
 
   @Override
   public void exec(Macro macro) throws WarpScriptException {
-
     // We increment op count for the macro itself. We'll increment
     // for each statement of the macro inside the loop
     incOps();
@@ -1174,9 +1205,9 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
           }
         }
         if (null == name) {
-          throw new WarpScriptException("Exception" + (i < n ? (" at '" + statementString + "'") : "") + " in section '" + section + "'", ee);
+          throw new WarpScriptException("Exception" + (i < n ? (" at '" + statementString + "'") : "") + " in section '" + section + "'" + (getAttribute(WarpScriptStack.ATTRIBUTE_LAST_ERRORPOS) instanceof String ? (" at position " + getAttribute(WarpScriptStack.ATTRIBUTE_LAST_ERRORPOS)) : ""), ee);
         } else {
-          throw new WarpScriptException("Exception" + (i < n ? (" at '" + statementString + "'") : "") + " in section '" + section + "' called from macro '" + name + "'", ee);
+          throw new WarpScriptException("Exception" + (i < n ? (" at '" + statementString + "'") : "") + " in section '" + section + "'" + (getAttribute(WarpScriptStack.ATTRIBUTE_LAST_ERRORPOS) instanceof String ? (" at position " + getAttribute(WarpScriptStack.ATTRIBUTE_LAST_ERRORPOS)) : "") + " called from macro '" + name + "'", ee);
         }
       }
     } finally {
@@ -1612,8 +1643,8 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
   /**
    * This object is used to synchronize the recursion level from substacks
    */
-  protected Object reclevelSync = new Object(); 
-  
+  protected Object reclevelSync = new Object();
+
   protected void recurseIn() throws WarpScriptException {
     if (++this.reclevel > this.maxrecurse) {
       throw new WarpScriptException("Maximum recursion level reached (" + this.reclevel + ")");

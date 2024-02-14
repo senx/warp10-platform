@@ -1,5 +1,5 @@
 //
-//   Copyright 2021  SenX S.A.S.
+//   Copyright 2021-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.WrappedStatementUtils;
 
 public class MSIGCOUNT extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
@@ -44,10 +45,10 @@ public class MSIGCOUNT extends NamedWarpScriptFunction implements WarpScriptStac
     long sigcount = 0;
 
     while (size >= 4) {
-     if (macro.get(size - 1) instanceof MSIG
-        && macro.get(size - 2) instanceof String
-        && macro.get(size - 3) instanceof String
-        && macro.get(size - 4) instanceof String) {
+     if (WrappedStatementUtils.unwrapAll(macro.get(size - 1)) instanceof MSIG
+        && WrappedStatementUtils.unwrapAll(macro.get(size - 2)) instanceof String
+        && WrappedStatementUtils.unwrapAll(macro.get(size - 3)) instanceof String
+        && WrappedStatementUtils.unwrapAll(macro.get(size - 4)) instanceof String) {
        sigcount++;
        size -= 4;
      } else {

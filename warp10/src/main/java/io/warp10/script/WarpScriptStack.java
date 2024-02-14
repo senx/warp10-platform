@@ -18,6 +18,7 @@ package io.warp10.script;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
@@ -127,7 +128,7 @@ public interface WarpScriptStack {
    * These errors are stored as WarpScriptAuditStatement with UNKNOWN or WS_EXCEPTION type.
    */
   public static final String ATTRIBUTE_PARSING_ERRORS = "wsaudit.errors";
-  
+
   /**
    * Debug depth of the stack. This is the number
    * of elements to return when an error occurs.
@@ -283,6 +284,16 @@ public interface WarpScriptStack {
   public static final String ATTRIBUTE_LAST_ERROR = "last.error";
 
   /**
+   * Last statement position set (line:start:end)
+   */
+  public static final String ATTRIBUTE_LAST_STMTPOS = "last.stmtpos";
+
+  /**
+   * Last error position set (line:start:end)
+   */
+  public static final String ATTRIBUTE_LAST_ERRORPOS = "last.errorpos";
+
+  /**
    * Creation timestamp for the stack
    */
   public static final String ATTRIBUTE_CREATION_TIME = "creation.time";
@@ -313,6 +324,11 @@ public interface WarpScriptStack {
   public static final String ATTRIBUTE_RUNNER_RESCHEDULE_TIMESTAMP = "runner.reschedule.timestamp";
 
   /**
+   * Custom wrapped statement factory
+   */
+  public static final String ATTRIBUTE_WRAPPED_STATEMENT_FACTORY = "wrapped.statement.factory";
+
+  /**
    * Index of RETURN_DEPTH counter
    */
   public static final int COUNTER_RETURN_DEPTH = 0;
@@ -331,6 +347,8 @@ public interface WarpScriptStack {
     private long fingerprint;
 
     private String name = null;
+
+    private Map<String,Object> attributes = null;
 
     public long calls = 0L;
     public long time = 0L;
@@ -469,11 +487,18 @@ public interface WarpScriptStack {
       if (!secure || !hideSecure) {
         for (Object o: this.statements()) {
           try {
+            //
+            // Unwrap wrapped statements
+            //
+
+            if (WrappedStatement.class.isAssignableFrom(o.getClass())) {
+              o = WrappedStatementUtils.unwrapAll(o);
+            }
+
             if (o instanceof Macro) {
               sb.append(((Macro) o).snapshot(hideSecure));
               sb.append(" ");
             } else if (o instanceof WarpScriptStackFunction) {
-
               // In the case the snapshot of the function is 'MYFUNC' FUNCREF, instead of adding
               // 'MYFUNC' FUNCREF EVAL to the snapshot, MYFUNC can simply be added.
               // This can be done only if the name of function contains no special character.
@@ -557,6 +582,31 @@ public interface WarpScriptStack {
 
       int newlen = n + this.statements.length + (this.statements.length >> 1);
       this.statements = Arrays.copyOf(this.statements, newlen);
+    }
+
+    public Object getAttribute(String key) {
+      if (null == this.attributes) {
+        return null;
+      } else {
+        return this.attributes.get(key);
+      }
+    }
+
+    public Object setAttribute(String key, Object value) {
+      synchronized(this) {
+        if (null == this.attributes) {
+          if (null == value) {
+            return null;
+          }
+          this.attributes = new HashMap<String, Object>();
+        }
+      }
+
+      if (null == value) {
+        return this.attributes.remove(key);
+      }
+
+      return this.attributes.put(key, value);
     }
    }
 
@@ -1001,11 +1051,11 @@ public interface WarpScriptStack {
    * If macroOpen was not previously called, this function has no effect.
    */
   public void macroClose() throws WarpScriptException;
-  
+
   /**
    * Turn on/off auditMode. In auditMode, Macros contains WarpScriptAuditStatement with line numbers or WarpScript parsing errors.
    * auditMode exits automatically after closing the first macro level, leaving on stack a macro object.
    */
   public void auditMode(boolean auditMode);
-  
+
 }
