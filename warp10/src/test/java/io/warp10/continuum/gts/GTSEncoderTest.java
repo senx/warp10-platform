@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2023  SenX S.A.S.
+//   Copyright 2018-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -32,12 +32,17 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import io.warp10.WarpConfig;
+import io.warp10.continuum.Configuration;
 
 public class GTSEncoderTest {
 
   @BeforeClass
-  public static void beforeClass() throws Exception {
-    WarpConfig.safeSetProperties(new StringReader("warp.timeunits=us"));
+  public static void loadConfig() throws Exception {
+    StringReader reader = new StringReader(
+        Configuration.WARP_TIME_UNITS + "=us\n" +
+        "labelsid.slowimpl=true"
+    );
+    WarpConfig.safeSetProperties(reader);
   }
 
   @Test

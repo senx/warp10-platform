@@ -1,5 +1,5 @@
 //
-//   Copyright 2021-2023  SenX S.A.S.
+//   Copyright 2021-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,12 +16,26 @@
 
 package io.warp10.continuum.gts;
 
+import java.io.StringReader;
+
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
+import io.warp10.WarpConfig;
+import io.warp10.continuum.Configuration;
 import io.warp10.script.aggregator.Sum;
 
 public class SubSerieTest {
+
+  @BeforeClass
+  public static void loadConfig() throws Exception {
+    StringReader reader = new StringReader(
+        Configuration.WARP_TIME_UNITS + "=us\n" +
+        "labels.slowimpl=true"
+    );
+    WarpConfig.safeSetProperties(reader);
+  }
 
   @Test
   public void testEmpty() throws Exception {
