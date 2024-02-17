@@ -257,7 +257,9 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
           sb.append(" ");
         }
       } else if (o instanceof BigDecimal) {
+        sb.append("'");
         sb.append(((BigDecimal) o).toString());
+        sb.append("'");
         sb.append(" ");
         sb.append(WarpScriptLib.TOBD);
         sb.append(" ");
