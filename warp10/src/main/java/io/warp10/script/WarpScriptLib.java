@@ -131,21 +131,41 @@ import io.warp10.script.functions.B64TO;
 import io.warp10.script.functions.B64TOHEX;
 import io.warp10.script.functions.B64URLTO;
 import io.warp10.script.functions.BBOX;
-import io.warp10.script.functions.BDTO;
-import io.warp10.script.functions.BDMUL;
+import io.warp10.script.functions.BDABS;
 import io.warp10.script.functions.BDADD;
-import io.warp10.script.functions.BDDIV;
-import io.warp10.script.functions.BDSUB;
-import io.warp10.script.functions.BDNEG;
-import io.warp10.script.functions.BDPOW;
+import io.warp10.script.functions.BDAND;
+import io.warp10.script.functions.BDBITCOUNT;
+import io.warp10.script.functions.BDBITLENGTH;
+import io.warp10.script.functions.BDCLEAR;
+import io.warp10.script.functions.BDCLEARBIT;
 import io.warp10.script.functions.BDCOMP;
+import io.warp10.script.functions.BDDIV;
+import io.warp10.script.functions.BDDIVIDEANDREMAINDER;
+import io.warp10.script.functions.BDFLIPBIT;
+import io.warp10.script.functions.BDGCD;
+import io.warp10.script.functions.BDISPROBABLEPRIME;
+import io.warp10.script.functions.BDLOWESTSETBIT;
 import io.warp10.script.functions.BDMAX;
 import io.warp10.script.functions.BDMIN;
+import io.warp10.script.functions.BDMODPOW;
+import io.warp10.script.functions.BDMUL;
+import io.warp10.script.functions.BDNEG;
+import io.warp10.script.functions.BDNEXTPROBABLEPRIME;
+import io.warp10.script.functions.BDNOT;
+import io.warp10.script.functions.BDOR;
+import io.warp10.script.functions.BDPOW;
 import io.warp10.script.functions.BDREM;
-import io.warp10.script.functions.BDABS;
-import io.warp10.script.functions.BDULP;
 import io.warp10.script.functions.BDSCALE;
+import io.warp10.script.functions.BDSETBIT;
+import io.warp10.script.functions.BDSHIFTLEFT;
+import io.warp10.script.functions.BDSHIFTRIGHT;
+import io.warp10.script.functions.BDSIGNUM;
 import io.warp10.script.functions.BDSTRIP;
+import io.warp10.script.functions.BDSUB;
+import io.warp10.script.functions.BDTESTBIT;
+import io.warp10.script.functions.BDTO;
+import io.warp10.script.functions.BDULP;
+import io.warp10.script.functions.BDXOR;
 import io.warp10.script.functions.BINTO;
 import io.warp10.script.functions.BINTOHEX;
 import io.warp10.script.functions.BITCOUNT;
@@ -1029,6 +1049,34 @@ public class WarpScriptLib {
   public static final String BDULP = "BDULP";
   public static final String BDSCALE = "BDSCALE";
   public static final String BDSTRIP = "BDSTRIP";
+  public static final String BDSIGNUM = "BDSIGNUM";
+  public static final String BDCLEAR = "BDCLEAR";
+
+  //
+  // BigInteger functions (apply to BD)
+  //
+
+  public static final String BDAND = "BDAND";
+  public static final String BDBITLENGTH = "BDBITLENGTH";
+  public static final String BDBITCOUNT = "BDBITCOUNT";
+  public static final String BDCLEARBIT = "BDCLEARBIT";
+  public static final String BDDIVIDEANDREMAINDER = "BDDIVIDEANDREMAINDER";
+  public static final String BDFLIPBIT = "BDFLIPBIT";
+  public static final String BDGCD = "BDGCD";
+  public static final String BDLOWESTSETBIT = "BDLOWESTSETBIT";
+  public static final String BDISPROBABLEPRIME = "BDISPROBABLEPRIME";
+  public static final String BDMODPOW = "BDMODPOW";
+  public static final String BDNEXTPROBABLEPRIME = "BDNEXTPROBABLEPRIME";
+  public static final String BDNOT = "BDNOT";
+  public static final String BDOR = "BDOR";
+  public static final String BDSETBIT = "BDSETBIT";
+  public static final String BDSHIFTLEFT = "BDSHIFTLEFT";
+  public static final String BDSHIFTRIGHT = "BDSHIFTRIGHT";
+  public static final String BDTESTBIT = "BDTESTBIT";
+  public static final String BDXOR = "BDXOR";
+
+
+
 
   public static final String RSAPUBLIC = "RSAPUBLIC";
   public static final String RSAPRIVATE = "RSAPRIVATE";
@@ -2828,6 +2876,26 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new BDULP(BDULP));
     addNamedWarpScriptFunction(new BDSCALE(BDSCALE));
     addNamedWarpScriptFunction(new BDSTRIP(BDSTRIP));
+    addNamedWarpScriptFunction(new BDAND(BDAND));
+    addNamedWarpScriptFunction(new BDBITLENGTH(BDBITLENGTH));
+    addNamedWarpScriptFunction(new BDBITCOUNT(BDBITCOUNT));
+    addNamedWarpScriptFunction(new BDCLEARBIT(BDCLEARBIT));
+    addNamedWarpScriptFunction(new BDDIVIDEANDREMAINDER(BDDIVIDEANDREMAINDER));
+    addNamedWarpScriptFunction(new BDFLIPBIT(BDFLIPBIT));
+    addNamedWarpScriptFunction(new BDGCD(BDGCD));
+    addNamedWarpScriptFunction(new BDLOWESTSETBIT(BDLOWESTSETBIT));
+    addNamedWarpScriptFunction(new BDISPROBABLEPRIME(BDISPROBABLEPRIME));
+    addNamedWarpScriptFunction(new BDMODPOW(BDMODPOW));
+    addNamedWarpScriptFunction(new BDNEXTPROBABLEPRIME(BDNEXTPROBABLEPRIME));
+    addNamedWarpScriptFunction(new BDNOT(BDNOT));
+    addNamedWarpScriptFunction(new BDOR(BDOR));
+    addNamedWarpScriptFunction(new BDSETBIT(BDSETBIT));
+    addNamedWarpScriptFunction(new BDSHIFTLEFT(BDSHIFTLEFT));
+    addNamedWarpScriptFunction(new BDSHIFTRIGHT(BDSHIFTRIGHT));
+    addNamedWarpScriptFunction(new BDXOR(BDXOR));
+    addNamedWarpScriptFunction(new BDTESTBIT(BDTESTBIT));
+    addNamedWarpScriptFunction(new BDSIGNUM(BDSIGNUM));
+    addNamedWarpScriptFunction(new BDCLEAR(BDCLEAR));
 
     //
     // Linear Algebra
