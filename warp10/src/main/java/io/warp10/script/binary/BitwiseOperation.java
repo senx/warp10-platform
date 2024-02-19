@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,6 +16,9 @@
 
 package io.warp10.script.binary;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
+
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GTSOpsHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
@@ -23,31 +26,36 @@ import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.functions.TOBD;
 
 public abstract class BitwiseOperation extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   private final GTSOpsHelper.GTSBinaryOp op = new GTSOpsHelper.GTSBinaryOp() {
     @Override
     public Object op(GeoTimeSerie gtsa, GeoTimeSerie gtsb, int idxa, int idxb) {
       return operator(((Number) GTSHelper.valueAtIndex(gtsa, idxa)).longValue(), ((Number) GTSHelper.valueAtIndex(gtsb, idxb)).longValue());
     }
   };
-  
+
   public abstract long operator(long op1, long op2);
-  
+
+  public abstract BigInteger operator(BigInteger op1, BigInteger op2);
+
   public BitwiseOperation(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    String exceptionMessage = getName() + " can only operate on two long, or two long GTS, or one long GTS and a long.";
-    
+    String exceptionMessage = getName() + " can only operate on two LONG, or two LONG GTS, or one LONG GTS and a LONG.";
+
     Object op2 = stack.pop();
     Object op1 = stack.pop();
-    
+
     if (op2 instanceof Long && op1 instanceof Long) {
       stack.push(operator(((Long) op1).longValue(), ((Long) op2).longValue()));
+    } else if (op1 instanceof Number && op2 instanceof Number && (op1 instanceof BigDecimal || op2 instanceof BigDecimal)) {
+      stack.push(TOBD.toBigDecimal(getName(), operator(TOBD.toBigInteger(getName(), op1), TOBD.toBigInteger(getName(), op2))));
     } else if (op1 instanceof GeoTimeSerie && op2 instanceof GeoTimeSerie) {
       GeoTimeSerie gts1 = (GeoTimeSerie) op1;
       GeoTimeSerie gts2 = (GeoTimeSerie) op2;
@@ -83,7 +91,7 @@ public abstract class BitwiseOperation extends NamedWarpScriptFunction implement
     } else {
       throw new WarpScriptException(exceptionMessage);
     }
-    
+
     return stack;
   }
 }

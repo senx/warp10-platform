@@ -134,6 +134,7 @@ import io.warp10.script.functions.BBOX;
 import io.warp10.script.functions.BDABS;
 import io.warp10.script.functions.BDADD;
 import io.warp10.script.functions.BDAND;
+import io.warp10.script.functions.BDANDNOT;
 import io.warp10.script.functions.BDBITCOUNT;
 import io.warp10.script.functions.BDBITLENGTH;
 import io.warp10.script.functions.BDCLEAR;
@@ -1057,6 +1058,7 @@ public class WarpScriptLib {
   //
 
   public static final String BDAND = "BDAND";
+  public static final String BDANDNOT = "BDANDNOT";
   public static final String BDBITLENGTH = "BDBITLENGTH";
   public static final String BDBITCOUNT = "BDBITCOUNT";
   public static final String BDCLEARBIT = "BDCLEARBIT";
@@ -2877,6 +2879,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new BDSCALE(BDSCALE));
     addNamedWarpScriptFunction(new BDSTRIP(BDSTRIP));
     addNamedWarpScriptFunction(new BDAND(BDAND));
+    addNamedWarpScriptFunction(new BDANDNOT(BDANDNOT));
     addNamedWarpScriptFunction(new BDBITLENGTH(BDBITLENGTH));
     addNamedWarpScriptFunction(new BDBITCOUNT(BDBITCOUNT));
     addNamedWarpScriptFunction(new BDCLEARBIT(BDCLEARBIT));
