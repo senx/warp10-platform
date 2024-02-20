@@ -6427,30 +6427,41 @@ public class GTSHelper {
    *
    * @param gts GeoTimeSerie to return the last tick for.
    *
-   * @return The last tick or Long.MIN_VALUE if 'gts' is not bucketized and has no values.
+   * @return The last tick or Long.MIN_VALUE if the gts is not bucketized and has no value.
    */
   public static long lasttick(GeoTimeSerie gts) {
     if (isBucketized(gts)) {
       return gts.lastbucket;
     } else {
-      long lasttick = Long.MIN_VALUE;
+      return lasttickNotEmpty(gts);
+    }
+  }
 
-      if (gts.sorted && gts.values > 0) {
-        if (!gts.reversed) {
-          lasttick = gts.ticks[gts.values - 1];
-        } else {
-          lasttick = gts.ticks[0];
-        }
+  /**
+   * Return the last non-empty tick in the GTS instance.
+   *
+   * @param gts GeoTimeSerie to return the last tick for.
+   *
+   * @return The last tick or Long.MIN_VALUE if the gts has no value.
+   */
+  public static long lasttickNotEmpty(GeoTimeSerie gts) {
+    long lasttick = Long.MIN_VALUE;
+
+    if (gts.sorted && gts.values > 0) {
+      if (!gts.reversed) {
+        lasttick = gts.ticks[gts.values - 1];
       } else {
-        for (int i = 0; i < gts.values; i++) {
-          if (gts.ticks[i] > lasttick) {
-            lasttick = gts.ticks[i];
-          }
+        lasttick = gts.ticks[0];
+      }
+    } else {
+      for (int i = 0; i < gts.values; i++) {
+        if (gts.ticks[i] > lasttick) {
+          lasttick = gts.ticks[i];
         }
       }
-
-      return lasttick;
     }
+
+    return lasttick;
   }
 
   /**
