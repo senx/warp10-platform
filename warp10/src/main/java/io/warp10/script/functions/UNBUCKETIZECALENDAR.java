@@ -73,7 +73,7 @@ public class UNBUCKETIZECALENDAR extends GTSStackFunction {
 
     ADDDURATION.ReadWritablePeriodWithSubSecondOffset bucketperiod = ADDDURATION.durationToPeriod(gts.getMetadata().getAttributes().get(BUCKETIZECALENDAR.DURATION_ATTRIBUTE_KEY));
     long bucketoffset = Long.parseLong(gts.getMetadata().getAttributes().get(BUCKETIZECALENDAR.OFFSET_ATTRIBUTE_KEY));
-    long lastbucketIndex = GTSHelper.lasttick(gts);
+    long lastbucketIndex = GTSHelper.lasttickNotEmpty(gts);
     long lastbucket = BUCKETIZECALENDAR.addNonNegativePeriod(0, bucketperiod, DateTimeZone.UTC, lastbucketIndex + 1) - 1 - bucketoffset;
     DateTimeZone dtz = DateTimeZone.forID(gts.getMetadata().getAttributes().get(BUCKETIZECALENDAR.TIMEZONE_ATTRIBUTE_KEY));
 
