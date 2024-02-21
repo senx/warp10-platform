@@ -95,15 +95,6 @@ import io.warp10.script.filter.FilterLastLE;
 import io.warp10.script.filter.FilterLastLT;
 import io.warp10.script.filter.FilterLastNE;
 import io.warp10.script.filter.LatencyFilter;
-import io.warp10.script.functions.ARGON2;
-import io.warp10.script.functions.math.GETEXPONENT;
-import io.warp10.script.functions.math.RANDOM;
-import io.warp10.script.functions.math.SCALB;
-import io.warp10.script.functions.shape.CHECKSHAPE;
-import io.warp10.script.functions.shape.HULLSHAPE;
-import io.warp10.script.functions.shape.PERMUTE;
-import io.warp10.script.functions.shape.RESHAPE;
-import io.warp10.script.functions.shape.SHAPE;
 import io.warp10.script.functions.ACCELCACHE;
 import io.warp10.script.functions.ACCELPERSIST;
 import io.warp10.script.functions.ACCELREPORT;
@@ -118,6 +109,7 @@ import io.warp10.script.functions.AGO;
 import io.warp10.script.functions.ALMOSTEQ;
 import io.warp10.script.functions.APPEND;
 import io.warp10.script.functions.APPLY;
+import io.warp10.script.functions.ARGON2;
 import io.warp10.script.functions.ASENCODERS;
 import io.warp10.script.functions.ASREGS;
 import io.warp10.script.functions.ASSERT;
@@ -156,7 +148,10 @@ import io.warp10.script.functions.BDNEG;
 import io.warp10.script.functions.BDNEXTPROBABLEPRIME;
 import io.warp10.script.functions.BDNOT;
 import io.warp10.script.functions.BDOR;
+import io.warp10.script.functions.BDPARSE;
 import io.warp10.script.functions.BDPOW;
+import io.warp10.script.functions.BDPROBABLEPRIME;
+import io.warp10.script.functions.BDRAND;
 import io.warp10.script.functions.BDREM;
 import io.warp10.script.functions.BDROUND;
 import io.warp10.script.functions.BDSCALE;
@@ -685,8 +680,14 @@ import io.warp10.script.functions.LOGINIT;
 import io.warp10.script.functions.STDERR;
 import io.warp10.script.functions.STDOUT;
 import io.warp10.script.functions.TDESCRIBE;
-import io.warp10.script.functions.SLEEP;
-
+import io.warp10.script.functions.SLEEP;import io.warp10.script.functions.math.GETEXPONENT;
+import io.warp10.script.functions.math.RANDOM;
+import io.warp10.script.functions.math.SCALB;
+import io.warp10.script.functions.shape.CHECKSHAPE;
+import io.warp10.script.functions.shape.HULLSHAPE;
+import io.warp10.script.functions.shape.PERMUTE;
+import io.warp10.script.functions.shape.RESHAPE;
+import io.warp10.script.functions.shape.SHAPE;
 import io.warp10.script.mapper.MapperAbs;
 import io.warp10.script.mapper.MapperAdd;
 import io.warp10.script.mapper.MapperCeil;
@@ -1058,6 +1059,11 @@ public class WarpScriptLib {
   public static final String BDSTRIP = "BDSTRIP";
   public static final String BDSIGNUM = "BDSIGNUM";
   public static final String BDCLEAR = "BDCLEAR";
+  public static final String BDPARSE = "BDPARSE";
+  public static final String BDRAND = "BDRAND";
+  public static final String SBDRAND = "SBDRAND";
+  public static final String BDPROBABLEPRIME = "BDPROBABLEPRIME";
+  public static final String SBDPROBABLEPRIME = "SBDPROBABLEPRIME";
 
   //
   // BigInteger functions (apply to BD)
@@ -2908,6 +2914,11 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new BDTESTBIT(BDTESTBIT));
     addNamedWarpScriptFunction(new BDSIGNUM(BDSIGNUM));
     addNamedWarpScriptFunction(new BDCLEAR(BDCLEAR));
+    addNamedWarpScriptFunction(new BDRAND(BDRAND, false));
+    addNamedWarpScriptFunction(new BDRAND(SBDRAND, false));
+    addNamedWarpScriptFunction(new BDPARSE(BDPARSE));
+    addNamedWarpScriptFunction(new BDPROBABLEPRIME(BDPROBABLEPRIME, false));
+    addNamedWarpScriptFunction(new BDPROBABLEPRIME(SBDPROBABLEPRIME, true));
 
     //
     // Linear Algebra

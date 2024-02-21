@@ -79,6 +79,11 @@ public interface WarpScriptStack {
   public static final String TOP_LEVEL_SECTION = "[TOP]";
 
   /**
+   * Stack attribute set when bigint parsing is on
+   */
+  public static final String ATTRIBUTE_PARSE_BIGINTS = "parse.bigints";
+
+  /**
    * Name of attribute for storing macro import rules
    */
   public static final String ATTRIBUTE_IMPORT_RULES = "import.rules";
