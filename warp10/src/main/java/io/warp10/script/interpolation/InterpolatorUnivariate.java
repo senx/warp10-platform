@@ -14,7 +14,7 @@
 //   limitations under the License.
 //
 
-package io.warp10.ext.interpolation;
+package io.warp10.script.interpolation;
 
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;

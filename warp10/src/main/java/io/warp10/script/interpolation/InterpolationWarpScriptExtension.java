@@ -14,7 +14,7 @@
 //   limitations under the License.
 //
 
-package io.warp10.ext.interpolation;
+package io.warp10.script.interpolation;
 
 import java.util.HashMap;
 import java.util.Map;
