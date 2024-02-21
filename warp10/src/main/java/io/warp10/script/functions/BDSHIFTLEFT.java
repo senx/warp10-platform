@@ -43,7 +43,7 @@ public class BDSHIFTLEFT extends NamedWarpScriptFunction implements WarpScriptSt
 
     BigInteger bi = TOBD.toBigInteger(getName(), o);
 
-    stack.push(TOBD.toBigDecimal(getName(), bi.shiftRight(n)));
+    stack.push(TOBD.toBigDecimal(getName(), bi.shiftLeft(n)));
 
     return stack;
   }
