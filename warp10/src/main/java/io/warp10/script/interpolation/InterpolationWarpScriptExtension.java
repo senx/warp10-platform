@@ -52,29 +52,6 @@ public class InterpolationWarpScriptExtension extends WarpScriptExtension {
     functions.put(INTERPOLATOR_1D_AKIMA, new InterpolatorUnivariate(INTERPOLATOR_1D_AKIMA, InterpolatorUnivariate.TYPE.AKIMA));
   }
 
-  //
-  // Function special configuration
-  //
-
-  static int getIntLimitValue(WarpScriptStack stack, String limitName, int defaultValue) {
-
-    // this is the default limit value
-    int val = defaultValue;
-
-    // if the config exists with the limit name, it is used to determine the value of the limit
-    if (null != WarpConfig.getProperty(limitName)) {
-      val = Integer.parseInt(WarpConfig.getProperty(limitName));
-    }
-
-    // if the capability with the limit name is present within the stack, its value supersedes the default or configured limit
-    String capValue = Capabilities.get(stack, limitName);
-    if (null != capValue) {
-      val = Integer.parseInt(capValue);
-    }
-
-    return val;
-  }
-
   @Override
   public Map<String, Object> getFunctions() {
     return functions;

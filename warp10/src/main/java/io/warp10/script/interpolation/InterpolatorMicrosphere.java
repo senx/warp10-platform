@@ -16,6 +16,7 @@
 
 package io.warp10.script.interpolation;
 
+import io.warp10.WarpConfig;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
@@ -26,6 +27,7 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.functions.PRNG;
 import io.warp10.script.functions.SNAPSHOT;
+import io.warp10.warp.sdk.Capabilities;
 import org.apache.commons.math3.analysis.MultivariateFunction;
 import org.apache.commons.math3.analysis.interpolation.InterpolatingMicrosphere;
 import org.apache.commons.math3.analysis.interpolation.MicrosphereProjectionInterpolator;
@@ -280,7 +282,7 @@ public class InterpolatorMicrosphere extends NamedWarpScriptFunction implements 
     }
 
     int elements = ((Number) interpolationParams.get(ELEMENTS)).intValue();
-    if (elements > InterpolationWarpScriptExtension.getIntLimitValue(stack, CONFIG_OR_CAPNAME_MAX_ELEMENTS, DEFAULT_MAX_ELEMENTS) ) {
+    if (elements > getIntLimitValue(stack, CONFIG_OR_CAPNAME_MAX_ELEMENTS, DEFAULT_MAX_ELEMENTS) ) {
       throw new WarpScriptException(getName() + ": argument " + ELEMENTS + " is above the limit " + CONFIG_OR_CAPNAME_MAX_ELEMENTS);
     }
     double maxDarkFraction = ((Number) interpolationParams.get(MAXDARKFRACTION)).doubleValue();
@@ -315,5 +317,23 @@ public class InterpolatorMicrosphere extends NamedWarpScriptFunction implements 
     stack.push(new MICROSPHERE(func, xval, yval, additionalParams, getName()));
 
     return stack;
+  }
+  private int getIntLimitValue(WarpScriptStack stack, String limitName, int defaultValue) {
+
+    // this is the default limit value
+    int val = defaultValue;
+
+    // if the config exists with the limit name, it is used to determine the value of the limit
+    if (null != WarpConfig.getProperty(limitName)) {
+      val = Integer.parseInt(WarpConfig.getProperty(limitName));
+    }
+
+    // if the capability with the limit name is present within the stack, its value supersedes the default or configured limit
+    String capValue = Capabilities.get(stack, limitName);
+    if (null != capValue) {
+      val = Integer.parseInt(capValue);
+    }
+
+    return val;
   }
 }
