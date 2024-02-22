@@ -663,10 +663,10 @@ import io.warp10.script.functions.STDOUT;
 import io.warp10.script.functions.TDESCRIBE;
 import io.warp10.script.functions.SLEEP;
 
-import io.warp10.script.interpolation.INTERPOLATOR_2D;
-import io.warp10.script.interpolation.INTERPOLATOR_ND;
-import io.warp10.script.interpolation.INTERPOLATOR_3D;
 import io.warp10.script.interpolation.INTERPOLATOR_1D;
+import io.warp10.script.interpolation.INTERPOLATOR_2D;
+import io.warp10.script.interpolation.INTERPOLATOR_3D;
+import io.warp10.script.interpolation.INTERPOLATOR_ND;
 import io.warp10.script.mapper.MapperAbs;
 import io.warp10.script.mapper.MapperAdd;
 import io.warp10.script.mapper.MapperCeil;
@@ -2916,13 +2916,13 @@ public class WarpScriptLib {
     // Interpolation
     //
 
-    addNamedWarpScriptFunction(new INTERPOLATOR_ND(INTERPOLATOR_ND_MICROSPHERE, false));
-    addNamedWarpScriptFunction(new INTERPOLATOR_ND(INTERPOLATOR_ND_SMICROSPHERE, true));
-    addNamedWarpScriptFunction(new INTERPOLATOR_2D(INTERPOLATOR_2D_BICUBIC));
-    addNamedWarpScriptFunction(new INTERPOLATOR_3D(INTERPOLATOR_3D_TRICUBIC));
     addNamedWarpScriptFunction(new INTERPOLATOR_1D(INTERPOLATOR_1D_LINEAR, INTERPOLATOR_1D.TYPE.LINEAR));
     addNamedWarpScriptFunction(new INTERPOLATOR_1D(INTERPOLATOR_1D_SPLINE, INTERPOLATOR_1D.TYPE.SPLINE));
     addNamedWarpScriptFunction(new INTERPOLATOR_1D(INTERPOLATOR_1D_AKIMA, INTERPOLATOR_1D.TYPE.AKIMA));
+    addNamedWarpScriptFunction(new INTERPOLATOR_2D(INTERPOLATOR_2D_BICUBIC));
+    addNamedWarpScriptFunction(new INTERPOLATOR_3D(INTERPOLATOR_3D_TRICUBIC));
+    addNamedWarpScriptFunction(new INTERPOLATOR_ND(INTERPOLATOR_ND_MICROSPHERE, false));
+    addNamedWarpScriptFunction(new INTERPOLATOR_ND(INTERPOLATOR_ND_SMICROSPHERE, true));
 
     //
     // Processing
