@@ -663,6 +663,10 @@ import io.warp10.script.functions.STDOUT;
 import io.warp10.script.functions.TDESCRIBE;
 import io.warp10.script.functions.SLEEP;
 
+import io.warp10.script.interpolation.InterpolatorBicubic;
+import io.warp10.script.interpolation.InterpolatorMicrosphere;
+import io.warp10.script.interpolation.InterpolatorTricubic;
+import io.warp10.script.interpolation.InterpolatorUnivariate;
 import io.warp10.script.mapper.MapperAbs;
 import io.warp10.script.mapper.MapperAdd;
 import io.warp10.script.mapper.MapperCeil;
@@ -1855,6 +1859,13 @@ public class WarpScriptLib {
   public static final String SSTPURGE = "SSTPURGE";
   public static final String SSTREPORT = "SSTREPORT";
   public static final String SSTTIMESTAMP = "SSTTIMESTAMP";
+  public static final String INTERPOLATOR_1D_LINEAR = "INTERPOLATOR.1D.LINEAR";
+  public static final String INTERPOLATOR_1D_SPLINE = "INTERPOLATOR.1D.SPLINE";
+  public static final String INTERPOLATOR_1D_AKIMA = "INTERPOLATOR.1D.AKIMA";
+  public static final String INTERPOLATOR_2D_BICUBIC = "INTERPOLATOR.2D.BICUBIC";
+  public static final String INTERPOLATOR_3D_TRICUBIC = "INTERPOLATOR.3D.TRICUBIC";
+  public static final String INTERPOLATOR_ND_MICROSPHERE = "INTERPOLATOR.ND.MICROSPHERE";
+  public static final String INTERPOLATOR_ND_SMICROSPHERE = "INTERPOLATOR.ND.SMICROSPHERE";
 
   //
   // FDB
@@ -2900,6 +2911,18 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new GETEXPONENT(GETEXPONENT));
 
     addNamedWarpScriptFunction(new IDENT(IDENT));
+
+    //
+    // Interpolation
+    //
+
+    addNamedWarpScriptFunction(new InterpolatorMicrosphere(INTERPOLATOR_ND_MICROSPHERE, false));
+    addNamedWarpScriptFunction(new InterpolatorMicrosphere(INTERPOLATOR_ND_SMICROSPHERE, true));
+    addNamedWarpScriptFunction(new InterpolatorBicubic(INTERPOLATOR_2D_BICUBIC));
+    addNamedWarpScriptFunction(new InterpolatorTricubic(INTERPOLATOR_3D_TRICUBIC));
+    addNamedWarpScriptFunction(new InterpolatorUnivariate(INTERPOLATOR_1D_LINEAR, InterpolatorUnivariate.TYPE.LINEAR));
+    addNamedWarpScriptFunction(new InterpolatorUnivariate(INTERPOLATOR_1D_SPLINE, InterpolatorUnivariate.TYPE.SPLINE));
+    addNamedWarpScriptFunction(new InterpolatorUnivariate(INTERPOLATOR_1D_AKIMA, InterpolatorUnivariate.TYPE.AKIMA));
 
     //
     // Processing
