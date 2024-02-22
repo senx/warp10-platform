@@ -1,5 +1,5 @@
 //
-//   Copyright 2022 - 2024  SenX S.A.S.
+//   Copyright 2022 - 2024 SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@
 
 package io.warp10.script.interpolation;
 
-import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptLib;
@@ -24,37 +23,31 @@ import io.warp10.script.WarpScriptReducerFunction;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 import org.apache.commons.lang3.reflect.FieldUtils;
-import org.apache.commons.math3.analysis.interpolation.TricubicInterpolatingFunction;
-import org.apache.commons.math3.exception.OutOfRangeException;
+import org.apache.commons.math3.analysis.interpolation.BicubicInterpolatingFunction;
 
 import java.util.List;
 
 /**
- * Function that implements the tricubic spline interpolation, as proposed in
- * Tricubic interpolation in three dimensions, F. Lekien and J. Marsden, Int. J. Numer. Meth. Eng 2005; 63:455-471
+ * Function that implements the bicubic spline interpolation
  */
-public class InterpolatorTricubic extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class INTERPOLATOR_2D extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  private static class TRICUBE extends NamedWarpScriptFunction implements WarpScriptStackFunction, WarpScriptReducerFunction {
+  private static class BICUBE extends NamedWarpScriptFunction implements WarpScriptStackFunction, WarpScriptReducerFunction {
 
-    private final TricubicInterpolatingFunction func;
+    private final BicubicInterpolatingFunction func;
     private final String generatedFrom;
 
-    private TRICUBE(TricubicInterpolatingFunction function, String interpolatorName) {
-      super("TRICUBE");
+    private BICUBE(BicubicInterpolatingFunction function, String interpolatorName) {
+      super("BICUBE");
       func = function;
       generatedFrom = interpolatorName;
     }
 
-    private double value(double x, double y, double z) {
-      try {
-        if (!func.isValidPoint(x, y, z)) {
-          return Double.NaN;
-        } else {
-          return func.value(x, y, z);
-        }
-      } catch (OutOfRangeException e) {
-        return Double.NaN; // It can happen, even with the isValidPoint check.
+    private double value(double x, double y) {
+      if (!func.isValidPoint(x, y)) {
+        return Double.NaN;
+      } else {
+        return func.value(x, y);
       }
     }
 
@@ -66,14 +59,13 @@ public class InterpolatorTricubic extends NamedWarpScriptFunction implements War
       }
       List l = (List) o;
 
-      if (3 != l.size()) {
-        throw new WarpScriptException(getName() + " expects a LIST with 3 components " + l.size());
+      if (2 != l.size()) {
+        throw new WarpScriptException(getName() + " expects a LIST with 2 components " + l.size());
       }
 
       double x = ((Number) l.get(0)).doubleValue();
       double y = ((Number) l.get(1)).doubleValue();
-      double z = ((Number) l.get(2)).doubleValue();
-      stack.push(value(x, y, z));
+      stack.push(value(x, y));
 
       return stack;
     }
@@ -85,18 +77,13 @@ public class InterpolatorTricubic extends NamedWarpScriptFunction implements War
       long[] elevations = (long[]) args[5];
       Object[] values = (Object[]) args[6];
 
-      if (3 != values.length) {
-        throw new WarpScriptException(getName() + " expects 3 components but got " + values.length);
-      }
-
-      if (null == values[0] || null == values[1] || null == values[2]) {
-        return new Object[] {tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, null};
+      if (2 != values.length) {
+        throw new WarpScriptException(getName() + " expects 2 components but only got " + values.length);
       }
 
       double x = ((Number) values[0]).doubleValue();
       double y = ((Number) values[1]).doubleValue();
-      double z = ((Number) values[2]).doubleValue();
-      double res = value(x, y, z);
+      double res = value(x, y);
 
       return new Object[] {tick, locations[0], elevations[0], res};
     }
@@ -104,6 +91,7 @@ public class InterpolatorTricubic extends NamedWarpScriptFunction implements War
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder();
+
       try {
         double[] xval = (double[]) FieldUtils.readField(func, "xval", true);
         sb.append(WarpScriptLib.LIST_START);
@@ -125,16 +113,6 @@ public class InterpolatorTricubic extends NamedWarpScriptFunction implements War
         sb.append(WarpScriptLib.LIST_END);
         sb.append(" ");
 
-        double[] zval = (double[]) FieldUtils.readField(func, "zval", true);
-        sb.append(WarpScriptLib.LIST_START);
-        sb.append(" ");
-        for (int i = 0; i < zval.length; i++) {
-          sb.append(zval[i]);
-          sb.append(" ");
-        }
-        sb.append(WarpScriptLib.LIST_END);
-        sb.append(" ");
-
         // fval
         sb.append(WarpScriptLib.LIST_START);
         sb.append(" ");
@@ -142,13 +120,7 @@ public class InterpolatorTricubic extends NamedWarpScriptFunction implements War
           sb.append(WarpScriptLib.LIST_START);
           sb.append(" ");
           for (int j = 0; j < yval.length; j++) {
-            sb.append(WarpScriptLib.LIST_START);
-            sb.append(" ");
-            for (int k = 0; k < zval.length; k++) {
-              sb.append(func.value(xval[i], yval[j], zval[k]));
-              sb.append(" ");
-            }
-            sb.append(WarpScriptLib.LIST_END);
+            sb.append(func.value(xval[i], yval[j]));
             sb.append(" ");
           }
           sb.append(WarpScriptLib.LIST_END);
@@ -156,16 +128,18 @@ public class InterpolatorTricubic extends NamedWarpScriptFunction implements War
         }
         sb.append(WarpScriptLib.LIST_END);
         sb.append(" ");
+
       } catch (Exception e) {
         throw new RuntimeException("Error building argument snapshot", e);
       }
+
       sb.append(generatedFrom);
 
       return sb.toString();
     }
   }
 
-  public InterpolatorTricubic(String name) {
+  public INTERPOLATOR_2D(String name) {
     super(name);
   }
 
@@ -174,18 +148,11 @@ public class InterpolatorTricubic extends NamedWarpScriptFunction implements War
 
     double xval[];
     double yval[];
-    double zval[];
-    double[][][] fval;
+    double[][] fval;
 
     Object o = stack.pop();
     if (!(o instanceof List)) {
-      throw new WarpScriptException(getName() + " expects a LIST as 4th argument");
-    }
-    List o4 = (List) o;
-
-    o = stack.pop();
-    if (!(o instanceof List)) {
-      throw new WarpScriptException(getName() + " expects a sorted LIST as 3rd argument");
+      throw new WarpScriptException(getName() + " expects a LIST as 3rd argument");
     }
     List o3 = (List) o;
 
@@ -215,51 +182,33 @@ public class InterpolatorTricubic extends NamedWarpScriptFunction implements War
       yval[i] = ((Number) o2.get(i)).doubleValue();
     }
 
-    // fill z
-    int d3 = o3.size();
-    zval = new double[d3];
-    for (int i = 0; i < d3; i++) {
-      zval[i] = ((Number) o3.get(i)).doubleValue();
-    }
-
     // fill f
-    if (o4.size() != d1) {
-      throw new WarpScriptException(getName() + ": incoherent argument sizes. Up to vector sizes, values should be a LIST (size " + d1 + ") of LIST (size " + d2 + ") of LIST (size " + d3 + ").");
+    if (o3.size() != d1) {
+      throw new WarpScriptException(getName() + ": incoherent argument sizes. Up to vector sizes, values should be a LIST (size " + d1 + ") of LIST (size " + d2 + ").");
     }
-    fval = new double[d1][d2][d3];
+    fval = new double[d1][d2];
 
     for (int i = 0; i < d1; i++) {
-      if (!(o4.get(i) instanceof List)) {
-        throw new WarpScriptException(getName() + " expects the last argument to be a LIST of LIST of LIST of numbers.");
+      if (!(o3.get(i) instanceof List)) {
+        throw new WarpScriptException(getName() + " expects the last argument to be a LIST of LIST of numbers");
       }
 
-      List row = (List) o4.get(i);
+      List row = (List) o3.get(i);
       if (row.size() != d2) {
-        throw new WarpScriptException(getName() + ": incoherent argument sizes. Up to vector sizes, values should be a LIST (size " + d1 + ") of LIST (size " + d2 + ") of LIST (size " + d3 + ").");
+        throw new WarpScriptException(getName() + ": incoherent argument sizes. Up to vector sizes, values should be a LIST (size " + d1 + ") of LIST (size " + d2 + ").");
       }
 
       for (int j = 0; j < d2; j++) {
-        if (!(row.get(j) instanceof List)) {
-          throw new WarpScriptException(getName() + " expects the last argument to be a LIST of LIST of LIST of numbers.");
+        if (!(row.get(j) instanceof Number)) {
+          throw new WarpScriptException(getName() + " expects the last argument to be a LIST of LIST of numbers");
         }
 
-        List col = (List) row.get(j);
-        if (col.size() != d3) {
-          throw new WarpScriptException(getName() + ": incoherent argument sizes. Up to vector sizes, values should be a LIST (size " + d1 + ") of LIST (size " + d2 + ") of LIST (size " + d3 + ").");
-        }
-
-        for (int k = 0; k < d3; k++) {
-          if (!((col.get(k)) instanceof Number)) {
-            throw new WarpScriptException(getName() + " expects the last argument to be a numeric LIST of LIST of LIST of numbers.");
-          }
-
-          fval[i][j][k] = ((Number) col.get(k)).doubleValue();
-        }
+        fval[i][j] = ((Number) row.get(j)).doubleValue();
       }
     }
 
-    TricubicInterpolatingFunction function = (new TricubicInterpolator()).interpolate(xval, yval, zval, fval);
-    TRICUBE warpscriptFunction = new TRICUBE(function, getName());
+    BicubicInterpolatingFunction function = (new BicubicInterpolator()).interpolate(xval, yval, fval);
+    BICUBE warpscriptFunction = new BICUBE(function, getName());
     stack.push(warpscriptFunction);
 
     return stack;
