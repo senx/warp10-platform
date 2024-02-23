@@ -1,5 +1,5 @@
 //
-//   Copyright 2021-2023  SenX S.A.S.
+//   Copyright 2021-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -139,7 +139,9 @@ public class MergeSortStreamingMetadataIterator extends MetadataIterator {
 
     for (int i = 0; i < iterators.length; i++) {
       try {
-        iterators[i].close();
+        if (null != iterators[i]) {
+          iterators[i].close();
+        }
       } catch (Exception e) {
         error = e;
       }
