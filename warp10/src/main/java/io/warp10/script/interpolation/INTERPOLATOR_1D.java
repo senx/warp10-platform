@@ -57,7 +57,7 @@ public class INTERPOLATOR_1D extends NamedWarpScriptFunction implements WarpScri
     }
 
     private double value(double x) {
-      if (!func.isValidPoint(x)) {
+      if (null == func || !func.isValidPoint(x)) {
         return Double.NaN;
       } else {
         return func.value(x);
@@ -154,9 +154,6 @@ public class INTERPOLATOR_1D extends NamedWarpScriptFunction implements WarpScri
 
     // fill x
     int d1 = o1.size();
-    if (getName().equals("AKIMASPLINEFIT") && d1 < 5) {
-      throw new WarpScriptException(getName() + " expects at least 5 interpolation points");
-    }
     xval = new double[d1];
     for (int i = 0; i < d1; i++) {
       xval[i] = ((Number) o1.get(i)).doubleValue();
@@ -176,12 +173,12 @@ public class INTERPOLATOR_1D extends NamedWarpScriptFunction implements WarpScri
     }
 
     PolynomialSplineFunction function = null;
-    if (type==TYPE.LINEAR) {
-      function = (new LinearInterpolator()).interpolate(xval, fval);
-    } else if (type==TYPE.SPLINE) {
+    if (type==TYPE.SPLINE && d1 > 2) {
       function = (new SplineInterpolator()).interpolate(xval, fval);
-    } else if (type==TYPE.AKIMA) {
+    } else if (type==TYPE.AKIMA && d1 > 4) {
       function = (new AkimaSplineInterpolator()).interpolate(xval, fval);
+    } else if (d1 > 1) {
+      function = (new LinearInterpolator()).interpolate(xval, fval);
     }
 
     // clone the inputs for snapshot. 
