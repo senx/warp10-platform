@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2023  SenX S.A.S.
+//   Copyright 2018-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPOutputStream;
 
 import org.apache.hadoop.io.BytesWritable;
@@ -136,7 +137,9 @@ public class Warp10RecordWriter extends RecordWriter<Writable, Writable> {
 
     while (decoder.next()) {
       if (null != this.limiter) {
-        this.limiter.acquire(1);
+        if (!this.limiter.tryAcquire(1, Long.MAX_VALUE, TimeUnit.MICROSECONDS)) {
+          throw new IOException("The configured write rate will not allow the data to be written to Warp 10, consider increasing the provided value.");
+        }
       }
 
       if (!first) {
