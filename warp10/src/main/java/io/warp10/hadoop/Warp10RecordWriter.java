@@ -137,7 +137,9 @@ public class Warp10RecordWriter extends RecordWriter<Writable, Writable> {
 
     while (decoder.next()) {
       if (null != this.limiter) {
-        this.limiter.tryAcquire(1, Long.MAX_VALUE, TimeUnit.MICROSECONDS);
+        if (!this.limiter.tryAcquire(1, Long.MAX_VALUE, TimeUnit.MICROSECONDS)) {
+          throw new IOException("The configured write rate will not allow the data to be written to Warp 10, consider increasing the provided value.");
+        }
       }
 
       if (!first) {
