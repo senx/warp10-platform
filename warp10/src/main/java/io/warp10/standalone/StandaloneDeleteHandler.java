@@ -214,6 +214,11 @@ public class StandaloneDeleteHandler extends AbstractHandler {
 
     String selector = request.getParameter(Constants.HTTP_PARAM_SELECTOR);
 
+    if (null == selector) {
+      response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid '" + Constants.HTTP_PARAM_SELECTOR +"' query parameter, should not be empty.");
+      return;
+    }
+
     String minage = request.getParameter(Constants.HTTP_PARAM_MINAGE);
 
     if (null != minage) {
