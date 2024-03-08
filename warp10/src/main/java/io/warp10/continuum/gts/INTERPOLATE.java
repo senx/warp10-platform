@@ -36,11 +36,13 @@ public class INTERPOLATE extends GTSStackFunction {
   public static String PARAM_OCCURRENCES = "occurrences";
   public static String PARAM_INTERPOLATOR = "interpolator";
   public static String PARAM_INTERPOLATOR_GEO = "interpolator.geo";
+  public static String PARAM_INVALID_TICK_VALUE = "invalid.tick.value";
   public static List<String> paramKeys = new ArrayList<String>();
   static {
     paramKeys.add(PARAM_OCCURRENCES);
     paramKeys.add(PARAM_INTERPOLATOR);
     paramKeys.add(PARAM_INTERPOLATOR_GEO);
+    paramKeys.add(PARAM_INVALID_TICK_VALUE);
   }
 
   public INTERPOLATE(String name) {
@@ -84,6 +86,15 @@ public class INTERPOLATE extends GTSStackFunction {
 
       o = params.get(PARAM_INTERPOLATOR);
       // todo
+
+      //
+      // Invalid tick value
+      //
+
+      o = params.get(PARAM_INVALID_TICK_VALUE);
+      if (null != o && !(o instanceof Number)) {
+        throw new WarpScriptException(PARAM_OCCURRENCES + " parameter must be a NUMBER or NULL. Default to NULL");
+      }
 
       return params;
     }
@@ -157,10 +168,15 @@ public class INTERPOLATE extends GTSStackFunction {
       for (Long tick: (List<Long>) params.get(PARAM_OCCURRENCES)) {
         if (function.isValidPoint(tick)) {
           GTSHelper.setValue(filled, tick, function.value(tick));
+        } else {
+          Number filler = (Number) params.get(PARAM_INVALID_TICK_VALUE);
+          if (null != filler) {
+            GTSHelper.setValue(filled, tick, filler);
+          }
         }
       }
     }
-    
+
     return filled;
   }
 
