@@ -178,15 +178,21 @@ public class INTERPOLATE extends GTSStackFunction {
       function = (new LinearInterpolator()).interpolate(xval, fval);
     } else {
       switch (Interpolator.valueOf((String) params.get(PARAM_INTERPOLATOR))) {
-        case linear:
-          function = (new LinearInterpolator()).interpolate(xval, fval);
-          break;
         case spline:
-          function = (new SplineInterpolator().interpolate(xval, fval));
-          break;
+          if (nvalues > 2) {
+            function = (new SplineInterpolator().interpolate(xval, fval));
+            break;
+          }
         case akima:
-          function = (new AkimaSplineInterpolator().interpolate(xval, fval));
-          break;
+          if (nvalues > 4 ) {
+            function = (new AkimaSplineInterpolator().interpolate(xval, fval));
+            break;
+          }
+        case linear:
+          if (nvalues > 1) {
+            function = (new LinearInterpolator()).interpolate(xval, fval);
+            break;
+          }
         case noop:
           function = null;
           break;
