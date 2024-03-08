@@ -293,25 +293,58 @@ public class INTERPOLATE extends GTSStackFunction {
     }
 
     //
-    // Take care of elevation if we have at least two valid values
+    // Take care of geo if we have at least two valid values for either elevation or location
     //
 
+    PolynomialSplineFunction elevFunction = null;
+    PolynomialSplineFunction latFunction = null;
+    PolynomialSplineFunction lonFunction = null;
+
+    //
+    // Compute interpolators
+    //
+
+    double[] xelev = null;
+    double[] felev = null;
+    double[] xloc = null;
+    double[] flat = null;
+    double[] flon = null;
+
     if (nElevations >= 2) {
+      xelev = new double[nElevations];
+      felev = new double[nElevations];
+    }
 
-      //
-      // Compute elevation interpolator
-      //
+    if (nLocations >= 2) {
+      xloc = new double[nLocations];
+      flat = new double[nLocations];
+      flon = new double[nLocations];
+    }
 
-      double xelev[] = new double[nElevations];
-      double felev[] = new double[nElevations];
-      for (int i = 0; i < nElevations; i++) {
+    for (int i = 0; i < nvalues; i++) {
+      if (nElevations >= 2) {
         if (GeoTimeSerie.NO_ELEVATION != filled.elevations[i]) {
           xelev[i] = ((Number) GTSHelper.tickAtIndex(filled, i)).doubleValue();
           felev[i] = ((Number) filled.elevations[i]).doubleValue();
         }
       }
 
-      PolynomialSplineFunction elevFunction = null;
+      if (nLocations >= 2) {
+        if (GeoTimeSerie.NO_LOCATION != filled.locations[i]) {
+          xloc[i] = ((Number) GTSHelper.tickAtIndex(filled, i)).doubleValue();
+
+          double[] latlon = GeoXPLib.fromGeoXPPoint(filled.locations[i]);
+          flat[i] = latlon[0];
+          flon[i] = latlon[1];
+        }
+      }
+    }
+
+    //
+    // Fill elevation
+    //
+
+    if (nElevations >= 2) {
       if (null == params.get(PARAM_INTERPOLATOR_GEO)) {
         elevFunction = (new LinearInterpolator()).interpolate(xelev, felev);
       } else {
@@ -322,7 +355,7 @@ public class INTERPOLATE extends GTSStackFunction {
               break;
             }
           case akima:
-            if (nElevations > 4 ) {
+            if (nElevations > 4) {
               elevFunction = (new AkimaSplineInterpolator().interpolate(xelev, felev));
               break;
             }
@@ -377,6 +410,100 @@ public class INTERPOLATE extends GTSStackFunction {
               Number filler = (Number) params.get(PARAM_INVALID_TICK_VALUE);
               if (null != filler) {
                 filled.elevations[j] = filler.longValue();
+              }
+            }
+          }
+        }
+
+        // Advance idx
+        idx = i;
+      }
+    }
+
+    //
+    // Fill location
+    //
+
+    if (nLocations >= 2) {
+
+      if (null == params.get(PARAM_INTERPOLATOR_GEO)) {
+        latFunction = (new LinearInterpolator()).interpolate(xloc, flat);
+        lonFunction = (new LinearInterpolator()).interpolate(xloc, flon);
+      } else {
+        switch (Interpolator.valueOf((String) params.get(PARAM_INTERPOLATOR_GEO))) {
+          case spline:
+            if (nLocations > 2) {
+              latFunction = (new SplineInterpolator()).interpolate(xloc, flat);
+              lonFunction = (new SplineInterpolator()).interpolate(xloc, flon);
+              break;
+            }
+          case akima:
+            if (nLocations > 4) {
+              latFunction = (new AkimaSplineInterpolator()).interpolate(xloc, flat);
+              lonFunction = (new AkimaSplineInterpolator()).interpolate(xloc, flon);
+              break;
+            }
+          case linear:
+            latFunction = (new LinearInterpolator()).interpolate(xloc, flat);
+            lonFunction = (new LinearInterpolator()).interpolate(xloc, flon);
+            break;
+          case noop:
+            latFunction = null;
+            lonFunction = null;
+            break;
+        }
+      }
+
+      //
+      // Sort ticks
+      //
+
+      GTSHelper.sort(filled);
+
+      //
+      // Advance 'idx' to the first tick with a valid location
+      //
+
+      int idx = 0;
+
+      // nLocations > 0, this means locations is non null
+      while (GeoTimeSerie.NO_LOCATION == filled.locations[idx]) {
+        idx++;
+      }
+
+      while (idx < filled.values) {
+        int i = idx + 1;
+
+        // Advance 'i' to the next tick with no location
+        while (i < filled.values && GeoTimeSerie.NO_LOCATION != filled.locations[i]) {
+          i++;
+        }
+
+        // Move 'idx' to 'i' - 1, the last tick with a location before one without one
+        idx = i - 1;
+
+        // 'i' now points to a tick with no location, advance it to the next one with a location.
+        while (i < filled.values && GeoTimeSerie.NO_LOCATION == filled.locations[i]) {
+          i++;
+        }
+
+        // Fill all ticks between 'idx' and 'i' with an interpolated location
+        if (i < filled.values) {
+          double[] latlon_i = GeoXPLib.fromGeoXPPoint(filled.locations[i]);
+          double[] latlon_idx = GeoXPLib.fromGeoXPPoint(filled.locations[idx]);
+
+
+          for (int j = idx + 1; j < i; j++) {
+            long tick = filled.ticks[j];
+            if (function.isValidPoint(tick)) {
+              double lat = latFunction.value(tick);
+              double lon = lonFunction.value(tick);
+              filled.locations[j] = GeoXPLib.toGeoXPPoint(lat, lon);
+              
+            } else {
+              Number filler = (Number) params.get(PARAM_INVALID_TICK_VALUE);
+              if (null != filler) {
+                filled.locations[j] = filler.longValue();
               }
             }
           }
