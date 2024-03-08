@@ -16,9 +16,7 @@
 
 package io.warp10.continuum.gts;
 
-import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
 import io.warp10.script.GTSStackFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
@@ -33,20 +31,63 @@ import com.geoxp.GeoXPLib;
  */
 public class INTERPOLATE extends GTSStackFunction {
 
+  public static String PARAM_OCCURRENCES = "occurrences";
+  public static String PARAM_INTERPOLATOR = "interpolator";
+  public static List<String> paramKeys = new ArrayList<String>();
+  static {
+    paramKeys.add(PARAM_OCCURRENCES);
+    paramKeys.add(PARAM_INTERPOLATOR);
+  }
+
   public INTERPOLATE(String name) {
     super(name);
   }
 
   protected Map<String, Object> retrieveParameters(WarpScriptStack stack) throws WarpScriptException {
+    if (stack.peek() instanceof Map) {
+      Map params = (Map) stack.pop();
+
+      //
+      // Sanity checks
+      //
+
+      for (Object k: params.entrySet()) {
+        if (!(k instanceof String)) {
+          throw new WarpScriptException("Parameters MAP keys must be of type STRING.");
+        }
+        if (!(paramKeys.contains(k))) {
+          throw new WarpScriptException("Unrecognized parameter: " + k);
+        }
+      }
+
+      //
+      // Occurrences
+      //
+
+      Object o = params.get(PARAM_OCCURRENCES);
+      if (!(o instanceof List)) {
+        throw new WarpScriptException(PARAM_OCCURRENCES + " parameter must be a LIST");
+      }
+      for (Object i: (List) o) {
+        if (!(i instanceof Long)) {
+          throw new WarpScriptException(PARAM_OCCURRENCES + " parameter must be a LIST of ticks (LONG)");
+        }
+      }
+
+      //
+      // Interpolator
+      //
+
+      o = params.get(PARAM_INTERPOLATOR);
+      // todo
+
+      return params;
+    }
     return null;
   }
 
   @Override
   protected Object gtsOp(Map<String, Object> params, GeoTimeSerie gts) throws WarpScriptException {
-    return interpolate(gts);
-  }
-
-  public static GeoTimeSerie interpolate(GeoTimeSerie gts) {
     //
     // Clone gts
     //
