@@ -289,7 +289,101 @@ public class INTERPOLATE extends GTSStackFunction {
         }
       }
     }
-    
+
+    //
+    // Take care of elevation if we have at least two valid values
+    //
+
+    if (nElevations >= 2) {
+
+      //
+      // Compute elevation interpolator
+      //
+
+      double xelev[] = new double[nElevations];
+      double felev[] = new double[nElevations];
+      for (int i = 0; i < nvalues; i++) {
+        if (GeoTimeSerie.NO_ELEVATION != filled.elevations[i]) {
+          xelev[i] = ((Number) GTSHelper.tickAtIndex(filled, i)).doubleValue();
+          felev[i] = ((Number) filled.elevations[i]).doubleValue();
+        }
+      }
+
+      // marker
+
+      PolynomialSplineFunction function = null;
+      if (null == params.get(PARAM_INTERPOLATOR)) {
+        function = (new LinearInterpolator()).interpolate(xval, fval);
+      } else {
+        switch (Interpolator.valueOf((String) params.get(PARAM_INTERPOLATOR))) {
+          case spline:
+            if (nvalues > 2) {
+              function = (new SplineInterpolator().interpolate(xval, fval));
+              break;
+            }
+          case akima:
+            if (nvalues > 4 ) {
+              function = (new AkimaSplineInterpolator().interpolate(xval, fval));
+              break;
+            }
+          case linear:
+            if (nvalues > 1) {
+              function = (new LinearInterpolator()).interpolate(xval, fval);
+              break;
+            }
+          case noop:
+            function = null;
+            break;
+        }
+      }
+
+      bucket = filled.lastbucket - filled.bucketcount * filled.bucketspan;
+
+      //
+      // Sort ticks
+      //
+
+      GTSHelper.sort(filled);
+
+      //
+      // Advance 'idx' to the first tick with a valid elevation
+      //
+
+      int idx = 0;
+
+      while (GeoTimeSerie.NO_ELEVATION == filled.elevations[idx]) {
+        idx++;
+      }
+
+      while (idx < filled.values) {
+        int i = idx + 1;
+
+        // Advance 'i' to the next tick with no elevation
+        while (i < filled.values && GeoTimeSerie.NO_ELEVATION != filled.elevations[i]) {
+          i++;
+        }
+
+        // Move 'idx' to 'i' - 1, the last tick with an elevation before one without one
+        idx = i - 1;
+
+        // 'i' now points to a tick with no elevation, advance it to the next one with an elevation.
+        while (i < filled.values && GeoTimeSerie.NO_ELEVATION == filled.elevations[i]) {
+          i++;
+        }
+
+        // Fill all ticks between 'idx' and 'i' with an interpolated elevation
+        if (i < filled.values) {
+          double eRate = ((double) (filled.elevations[i] - filled.elevations[idx])) / (filled.ticks[i] - filled.ticks[idx]);
+          for (int j = idx + 1; j < i; j++) {
+            filled.elevations[j] = (long) (filled.elevations[idx] + eRate * (filled.ticks[j] - filled.ticks[idx]));
+          }
+        }
+
+        // Advance idx
+        idx = i;
+      }
+    }
+
     return filled;
   }
 
