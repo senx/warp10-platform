@@ -25,7 +25,9 @@ import java.util.List;
 import java.util.Map;
 
 import com.geoxp.GeoXPLib;
+import org.apache.commons.math3.analysis.interpolation.AkimaSplineInterpolator;
 import org.apache.commons.math3.analysis.interpolation.LinearInterpolator;
+import org.apache.commons.math3.analysis.interpolation.SplineInterpolator;
 import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction;
 
 /**
@@ -170,7 +172,26 @@ public class INTERPOLATE extends GTSStackFunction {
       xval[i] = ((Number) GTSHelper.tickAtIndex(filled, i)).doubleValue();
       fval[i] = ((Number) GTSHelper.valueAtIndex(filled, i)).doubleValue();
     }
-    PolynomialSplineFunction function = (new LinearInterpolator().interpolate(xval, fval));
+
+    PolynomialSplineFunction function = null;
+    if (null == params.get(PARAM_INTERPOLATOR)) {
+      function = (new LinearInterpolator()).interpolate(xval, fval);
+    } else {
+      switch (Interpolator.valueOf((String) params.get(PARAM_INTERPOLATOR))) {
+        case linear:
+          function = (new LinearInterpolator()).interpolate(xval, fval);
+          break;
+        case spline:
+          function = (new SplineInterpolator().interpolate(xval, fval));
+          break;
+        case akima:
+          function = (new AkimaSplineInterpolator().interpolate(xval, fval));
+          break;
+        case noop:
+          function = null;
+          break;
+      }
+    }
 
     //
     // Fill the result
