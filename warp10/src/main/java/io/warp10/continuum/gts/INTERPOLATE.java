@@ -313,22 +313,22 @@ public class INTERPOLATE extends GTSStackFunction {
 
       PolynomialSplineFunction elevFunction = null;
       if (null == params.get(PARAM_INTERPOLATOR_GEO)) {
-        elevFunction = (new LinearInterpolator()).interpolate(xval, fval);
+        elevFunction = (new LinearInterpolator()).interpolate(xelev, felev);
       } else {
         switch (Interpolator.valueOf((String) params.get(PARAM_INTERPOLATOR_GEO))) {
           case spline:
             if (nvalues > 2) {
-              elevFunction = (new SplineInterpolator().interpolate(xval, fval));
+              elevFunction = (new SplineInterpolator().interpolate(xelev, felev));
               break;
             }
           case akima:
             if (nvalues > 4 ) {
-              elevFunction = (new AkimaSplineInterpolator().interpolate(xval, fval));
+              elevFunction = (new AkimaSplineInterpolator().interpolate(xelev, felev));
               break;
             }
           case linear:
             if (nvalues > 1) {
-              elevFunction = (new LinearInterpolator()).interpolate(xval, fval);
+              elevFunction = (new LinearInterpolator()).interpolate(xelev, felev);
               break;
             }
           case noop:
