@@ -535,7 +535,7 @@ public class INTERPOLATE extends GTSStackFunction {
     return filled;
   }
 
-  protected Object interpolate(GeoTimeSerie gts) throws WarpScriptException {
+  public static GeoTimeSerie interpolate(GeoTimeSerie gts) {
     //
     // Clone gts
     //
