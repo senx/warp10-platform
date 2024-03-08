@@ -48,12 +48,18 @@ public class INTERPOLATE extends GTSStackFunction {
   public static String PARAM_INTERPOLATOR = "interpolator";
   public static String PARAM_INTERPOLATOR_GEO = "interpolator.geo";
   public static String PARAM_INVALID_TICK_VALUE = "invalid.tick.value";
+  public static String PARAM_INVALID_TICK_ELEV = "invalid.tick.elevation";
+  public static String PARAM_INVALID_TICK_LAT = "invalid.tick.latitude";
+  public static String PARAM_INVALID_TICK_LON = "invalid.tick.longitude";
   public static List<String> paramKeys = new ArrayList<String>();
   static {
     paramKeys.add(PARAM_OCCURRENCES);
     paramKeys.add(PARAM_INTERPOLATOR);
     paramKeys.add(PARAM_INTERPOLATOR_GEO);
     paramKeys.add(PARAM_INVALID_TICK_VALUE);
+    paramKeys.add(PARAM_INVALID_TICK_ELEV);
+    paramKeys.add(PARAM_INVALID_TICK_LAT);
+    paramKeys.add(PARAM_INVALID_TICK_LON);
   }
 
   public INTERPOLATE(String name) {
@@ -113,7 +119,22 @@ public class INTERPOLATE extends GTSStackFunction {
 
       o = params.get(PARAM_INVALID_TICK_VALUE);
       if (null != o && !(o instanceof Number)) {
-        throw new WarpScriptException(PARAM_OCCURRENCES + " parameter must be a NUMBER or NULL. Default to NULL if not set");
+        throw new WarpScriptException(PARAM_INVALID_TICK_VALUE + " parameter must be a NUMBER or NULL. Default to NULL if not set");
+      }
+
+      o = params.get(PARAM_INVALID_TICK_ELEV);
+      if (null != o && !(o instanceof Number)) {
+        throw new WarpScriptException(PARAM_INVALID_TICK_ELEV + " parameter must be a NUMBER or NULL. Default to NULL if not set");
+      }
+
+      o = params.get(PARAM_INVALID_TICK_LAT);
+      if (null != o && !(o instanceof Number)) {
+        throw new WarpScriptException(PARAM_INVALID_TICK_LAT + " parameter must be a NUMBER or NULL. Default to NULL if not set");
+      }
+
+      o = params.get(PARAM_INVALID_TICK_LON);
+      if (null != o && !(o instanceof Number)) {
+        throw new WarpScriptException(PARAM_INVALID_TICK_LON + " parameter must be a NUMBER or NULL. Default to NULL if not set");
       }
 
       return params;
@@ -407,7 +428,7 @@ public class INTERPOLATE extends GTSStackFunction {
             if (function.isValidPoint(tick)) {
               filled.elevations[j] = (long) elevFunction.value(tick);
             } else {
-              Number filler = (Number) params.get(PARAM_INVALID_TICK_VALUE);
+              Number filler = (Number) params.get(PARAM_INVALID_TICK_ELEV);
               if (null != filler) {
                 filled.elevations[j] = filler.longValue();
               }
@@ -497,9 +518,10 @@ public class INTERPOLATE extends GTSStackFunction {
               filled.locations[j] = GeoXPLib.toGeoXPPoint(lat, lon);
 
             } else {
-              Number filler = (Number) params.get(PARAM_INVALID_TICK_VALUE);
-              if (null != filler) {
-                filled.locations[j] = filler.longValue();
+              Number fillerLat = (Number) params.get(PARAM_INVALID_TICK_LAT);
+              Number fillerLon = (Number) params.get(PARAM_INVALID_TICK_LON);
+              if (null != fillerLat && null != fillerLon) {
+                filled.locations[j] = GeoXPLib.toGeoXPPoint(fillerLat.doubleValue(), fillerLon.doubleValue());
               }
             }
           }
