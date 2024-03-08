@@ -161,10 +161,51 @@ public class INTERPOLATE extends GTSStackFunction {
     //
 
     if (null == params.get(PARAM_OCCURRENCES)) {
-      // fill empty buckets
-      // todo
+      // in this case, the result is necessarily bucketized
+      // we fill empty buckets
+
+      //
+      // Compute oldest bucket
+      //
+
+      long bucket = filled.lastbucket - filled.bucketcount * filled.bucketspan;
+
+      for (int i = 1; i < nvalues; i++) {
+
+        //
+        // Move bucket passed the last tick encountered
+        //
+        while(bucket < filled.lastbucket && bucket <= filled.ticks[i-1]) {
+          bucket += filled.bucketspan;
+        }
+
+        //
+        // If bucket is on the current tick, advance tick
+        //
+        if (bucket == filled.ticks[i]) {
+          continue;
+        }
+
+        //
+        // Fill missing values until bucket passes the current tick
+        //
+
+        while(bucket < filled.ticks[i]) {
+          if (function.isValidPoint(bucket)) {
+            GTSHelper.setValue(filled, bucket, function.value(bucket));
+          } else {
+            Number filler = (Number) params.get(PARAM_INVALID_TICK_VALUE);
+            if (null != filler) {
+              GTSHelper.setValue(filled, bucket, filler);
+            }
+          }
+          bucket += filled.bucketspan;
+        }
+      }
 
     } else {
+      // fill occurrence ticks
+
       for (Long tick: (List<Long>) params.get(PARAM_OCCURRENCES)) {
         if (function.isValidPoint(tick)) {
           GTSHelper.setValue(filled, tick, function.value(tick));
