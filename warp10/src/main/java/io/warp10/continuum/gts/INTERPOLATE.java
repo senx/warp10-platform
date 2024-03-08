@@ -33,10 +33,12 @@ public class INTERPOLATE extends GTSStackFunction {
 
   public static String PARAM_OCCURRENCES = "occurrences";
   public static String PARAM_INTERPOLATOR = "interpolator";
+  public static String PARAM_INTERPOLATOR_GEO = "interpolator.geo";
   public static List<String> paramKeys = new ArrayList<String>();
   static {
     paramKeys.add(PARAM_OCCURRENCES);
     paramKeys.add(PARAM_INTERPOLATOR);
+    paramKeys.add(PARAM_INTERPOLATOR_GEO);
   }
 
   public INTERPOLATE(String name) {
