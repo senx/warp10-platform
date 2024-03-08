@@ -304,7 +304,7 @@ public class INTERPOLATE extends GTSStackFunction {
 
       double xelev[] = new double[nElevations];
       double felev[] = new double[nElevations];
-      for (int i = 0; i < nvalues; i++) {
+      for (int i = 0; i < nElevations; i++) {
         if (GeoTimeSerie.NO_ELEVATION != filled.elevations[i]) {
           xelev[i] = ((Number) GTSHelper.tickAtIndex(filled, i)).doubleValue();
           felev[i] = ((Number) filled.elevations[i]).doubleValue();
@@ -317,20 +317,18 @@ public class INTERPOLATE extends GTSStackFunction {
       } else {
         switch (Interpolator.valueOf((String) params.get(PARAM_INTERPOLATOR_GEO))) {
           case spline:
-            if (nvalues > 2) {
+            if (nElevations > 2) {
               elevFunction = (new SplineInterpolator().interpolate(xelev, felev));
               break;
             }
           case akima:
-            if (nvalues > 4 ) {
+            if (nElevations > 4 ) {
               elevFunction = (new AkimaSplineInterpolator().interpolate(xelev, felev));
               break;
             }
           case linear:
-            if (nvalues > 1) {
-              elevFunction = (new LinearInterpolator()).interpolate(xelev, felev);
-              break;
-            }
+            elevFunction = (new LinearInterpolator()).interpolate(xelev, felev);
+            break;
           case noop:
             elevFunction = null;
             break;
