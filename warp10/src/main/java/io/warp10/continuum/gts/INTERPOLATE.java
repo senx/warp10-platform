@@ -30,6 +30,8 @@ import org.apache.commons.math3.analysis.interpolation.LinearInterpolator;
 import org.apache.commons.math3.analysis.interpolation.SplineInterpolator;
 import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction;
 
+import io.warp10.script.functions.MAP;
+
 /**
  * Fills the gaps in a GTS by interpolating linearly.
  */
@@ -42,7 +44,7 @@ public class INTERPOLATE extends GTSStackFunction {
     noop
   }
 
-  public static String PARAM_OCCURRENCES = "occurrences";
+  public static String PARAM_OCCURRENCES = MAP.PARAM_OCCURRENCES;
   public static String PARAM_INTERPOLATOR = "interpolator";
   public static String PARAM_INTERPOLATOR_GEO = "interpolator.geo";
   public static String PARAM_INVALID_TICK_VALUE = "invalid.tick.value";
