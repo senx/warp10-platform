@@ -201,7 +201,11 @@ public class INTERPOLATE extends GTSStackFunction {
 
     //
     // Fill the result
+    // Count ticks with elevation and location
     //
+
+    int nElevations = 0;
+    int nLocations = 0;
 
     if (null == params.get(PARAM_OCCURRENCES)) {
       // in this case, the result is necessarily bucketized
@@ -213,7 +217,21 @@ public class INTERPOLATE extends GTSStackFunction {
 
       long bucket = filled.lastbucket - filled.bucketcount * filled.bucketspan;
 
+      if ((null != filled.elevations) && (GeoTimeSerie.NO_ELEVATION != filled.elevations[0])) {
+        nElevations++;
+      }
+
+      if ((null != filled.locations) && (GeoTimeSerie.NO_LOCATION != filled.locations[0])) {
+        nLocations++;
+      }
+
       for (int i = 1; i < nvalues; i++) {
+        if ((null != filled.elevations) && (GeoTimeSerie.NO_ELEVATION != filled.elevations[i])) {
+          nElevations++;
+        }
+        if ((null != filled.locations) && (GeoTimeSerie.NO_LOCATION != filled.locations[i])) {
+          nLocations++;
+        }
 
         //
         // Move bucket passed the last tick encountered
@@ -247,8 +265,19 @@ public class INTERPOLATE extends GTSStackFunction {
       }
 
     } else {
-      // fill occurrence ticks
+      // count geo
+      for (int i = 0; i < nvalues; i++) {
 
+        if ((null != filled.elevations) && (GeoTimeSerie.NO_ELEVATION != filled.elevations[i])) {
+          nElevations++;
+        }
+
+        if ((null != filled.locations) && (GeoTimeSerie.NO_LOCATION != filled.locations[i])) {
+          nLocations++;
+        }
+      }
+
+      // fill occurrence ticks
       for (Long tick: (List<Long>) params.get(PARAM_OCCURRENCES)) {
         if (function.isValidPoint(tick)) {
           GTSHelper.setValue(filled, tick, function.value(tick));
@@ -260,7 +289,7 @@ public class INTERPOLATE extends GTSStackFunction {
         }
       }
     }
-
+    
     return filled;
   }
 
