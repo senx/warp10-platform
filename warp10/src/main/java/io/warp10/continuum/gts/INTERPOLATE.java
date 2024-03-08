@@ -33,6 +33,13 @@ import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction;
  */
 public class INTERPOLATE extends GTSStackFunction {
 
+  enum Interpolator {
+    linear,
+    spline,
+    akima,
+    noop
+  }
+
   public static String PARAM_OCCURRENCES = "occurrences";
   public static String PARAM_INTERPOLATOR = "interpolator";
   public static String PARAM_INTERPOLATOR_GEO = "interpolator.geo";
@@ -81,11 +88,18 @@ public class INTERPOLATE extends GTSStackFunction {
       }
 
       //
-      // Interpolator
+      // Interpolators
       //
 
       o = params.get(PARAM_INTERPOLATOR);
-      // todo
+      if (!(o instanceof String)) {
+        throw new WarpScriptException(PARAM_INTERPOLATOR + " parameter must be a STRING");
+      }
+
+      o = params.get(PARAM_INTERPOLATOR_GEO);
+      if (!(o instanceof String)) {
+        throw new WarpScriptException(PARAM_INTERPOLATOR_GEO + " parameter must be a STRING");
+      }
 
       //
       // Invalid tick value
