@@ -311,35 +311,31 @@ public class INTERPOLATE extends GTSStackFunction {
         }
       }
 
-      // marker
-
-      PolynomialSplineFunction function = null;
-      if (null == params.get(PARAM_INTERPOLATOR)) {
-        function = (new LinearInterpolator()).interpolate(xval, fval);
+      PolynomialSplineFunction elevFunction = null;
+      if (null == params.get(PARAM_INTERPOLATOR_GEO)) {
+        elevFunction = (new LinearInterpolator()).interpolate(xval, fval);
       } else {
-        switch (Interpolator.valueOf((String) params.get(PARAM_INTERPOLATOR))) {
+        switch (Interpolator.valueOf((String) params.get(PARAM_INTERPOLATOR_GEO))) {
           case spline:
             if (nvalues > 2) {
-              function = (new SplineInterpolator().interpolate(xval, fval));
+              elevFunction = (new SplineInterpolator().interpolate(xval, fval));
               break;
             }
           case akima:
             if (nvalues > 4 ) {
-              function = (new AkimaSplineInterpolator().interpolate(xval, fval));
+              elevFunction = (new AkimaSplineInterpolator().interpolate(xval, fval));
               break;
             }
           case linear:
             if (nvalues > 1) {
-              function = (new LinearInterpolator()).interpolate(xval, fval);
+              elevFunction = (new LinearInterpolator()).interpolate(xval, fval);
               break;
             }
           case noop:
-            function = null;
+            elevFunction = null;
             break;
         }
       }
-
-      bucket = filled.lastbucket - filled.bucketcount * filled.bucketspan;
 
       //
       // Sort ticks
@@ -375,9 +371,16 @@ public class INTERPOLATE extends GTSStackFunction {
 
         // Fill all ticks between 'idx' and 'i' with an interpolated elevation
         if (i < filled.values) {
-          double eRate = ((double) (filled.elevations[i] - filled.elevations[idx])) / (filled.ticks[i] - filled.ticks[idx]);
           for (int j = idx + 1; j < i; j++) {
-            filled.elevations[j] = (long) (filled.elevations[idx] + eRate * (filled.ticks[j] - filled.ticks[idx]));
+            long tick = filled.ticks[j];
+            if (function.isValidPoint(tick)) {
+              filled.elevations[j] = (long) elevFunction.value(tick);
+            } else {
+              Number filler = (Number) params.get(PARAM_INVALID_TICK_VALUE);
+              if (null != filler) {
+                filled.elevations[j] = filler.longValue();
+              }
+            }
           }
         }
 
