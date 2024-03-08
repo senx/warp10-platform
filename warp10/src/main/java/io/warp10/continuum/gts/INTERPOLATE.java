@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.Map;
 
 import com.geoxp.GeoXPLib;
+import org.apache.commons.math3.analysis.interpolation.LinearInterpolator;
+import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction;
 
 /**
  * Fills the gaps in a GTS by interpolating linearly.
@@ -110,8 +112,55 @@ public class INTERPOLATE extends GTSStackFunction {
       return filled;
     }
 
-    //todo
+    //
+    // Sort GTS
+    //
 
+    GTSHelper.sort(filled);
+    //filled = GTSHelper.dedup(filled);
+
+    //
+    // If there is less than two values, we cannot interpolate, return the filled GTS now
+    //
+
+    if (filled.values < 2) {
+      return filled;
+    }
+
+    //
+    // Extract initial number of values
+    //
+
+    int nvalues = filled.values;
+
+    //
+    // Compute linear interpolator
+    //
+
+    double xval[] = new double[nvalues];
+    double fval[] = new double[nvalues];
+    for (int i = 0; i < nvalues; i++) {
+      xval[i] = ((Number) GTSHelper.tickAtIndex(filled, i)).doubleValue();
+      fval[i] = ((Number) GTSHelper.valueAtIndex(filled, i)).doubleValue();
+    }
+    PolynomialSplineFunction function = (new LinearInterpolator().interpolate(xval, fval));
+
+    //
+    // Fill the result
+    //
+
+    if (null == params.get(PARAM_OCCURRENCES)) {
+      // fill empty buckets
+      // todo
+
+    } else {
+      for (Long tick: (List<Long>) params.get(PARAM_OCCURRENCES)) {
+        if (function.isValidPoint(tick)) {
+          GTSHelper.setValue(filled, tick, function.value(tick));
+        }
+      }
+    }
+    
     return filled;
   }
 
