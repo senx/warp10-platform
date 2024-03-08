@@ -88,6 +88,32 @@ public class INTERPOLATE extends GTSStackFunction {
 
   @Override
   protected Object gtsOp(Map<String, Object> params, GeoTimeSerie gts) throws WarpScriptException {
+    if (null == params) {
+
+      // original implementation
+      return interpolate(gts);
+    }
+
+    //
+    // Clone gts
+    //
+
+    GeoTimeSerie filled = gts.clone();
+
+    //
+    // If gts is not bucketized and occurrences parameter is not defined, do nothing
+    //
+
+    if (!GTSHelper.isBucketized(filled) && null == params.get(PARAM_OCCURRENCES)) {
+      return filled;
+    }
+
+    //todo
+
+    return filled;
+  }
+
+  protected Object interpolate(GeoTimeSerie gts) throws WarpScriptException {
     //
     // Clone gts
     //
