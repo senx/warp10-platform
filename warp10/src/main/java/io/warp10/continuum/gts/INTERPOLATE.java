@@ -489,17 +489,13 @@ public class INTERPOLATE extends GTSStackFunction {
 
         // Fill all ticks between 'idx' and 'i' with an interpolated location
         if (i < filled.values) {
-          double[] latlon_i = GeoXPLib.fromGeoXPPoint(filled.locations[i]);
-          double[] latlon_idx = GeoXPLib.fromGeoXPPoint(filled.locations[idx]);
-
-
           for (int j = idx + 1; j < i; j++) {
             long tick = filled.ticks[j];
             if (function.isValidPoint(tick)) {
               double lat = latFunction.value(tick);
               double lon = lonFunction.value(tick);
               filled.locations[j] = GeoXPLib.toGeoXPPoint(lat, lon);
-              
+
             } else {
               Number filler = (Number) params.get(PARAM_INVALID_TICK_VALUE);
               if (null != filler) {
