@@ -78,12 +78,14 @@ public class INTERPOLATE extends GTSStackFunction {
       //
 
       Object o = params.get(PARAM_OCCURRENCES);
-      if (!(o instanceof List)) {
-        throw new WarpScriptException(PARAM_OCCURRENCES + " parameter must be a LIST");
-      }
-      for (Object i: (List) o) {
-        if (!(i instanceof Long)) {
-          throw new WarpScriptException(PARAM_OCCURRENCES + " parameter must be a LIST of ticks (LONG)");
+      if (null != o) {
+        if (!(o instanceof List)) {
+          throw new WarpScriptException(PARAM_OCCURRENCES + " parameter must be a LIST, default to empty buckets if not set");
+        }
+        for (Object i : (List) o) {
+          if (!(i instanceof Long)) {
+            throw new WarpScriptException(PARAM_OCCURRENCES + " parameter must be a LIST of ticks (LONG), default to empty buckets if not set");
+          }
         }
       }
 
@@ -92,13 +94,13 @@ public class INTERPOLATE extends GTSStackFunction {
       //
 
       o = params.get(PARAM_INTERPOLATOR);
-      if (!(o instanceof String)) {
-        throw new WarpScriptException(PARAM_INTERPOLATOR + " parameter must be a STRING");
+      if (null != o && !(o instanceof String)) {
+        throw new WarpScriptException(PARAM_INTERPOLATOR + " parameter must be a STRING, default to linear if not set");
       }
 
       o = params.get(PARAM_INTERPOLATOR_GEO);
-      if (!(o instanceof String)) {
-        throw new WarpScriptException(PARAM_INTERPOLATOR_GEO + " parameter must be a STRING");
+      if (null != o && !(o instanceof String)) {
+        throw new WarpScriptException(PARAM_INTERPOLATOR_GEO + " parameter must be a STRING, default to linear if not set");
       }
 
       //
@@ -107,7 +109,7 @@ public class INTERPOLATE extends GTSStackFunction {
 
       o = params.get(PARAM_INVALID_TICK_VALUE);
       if (null != o && !(o instanceof Number)) {
-        throw new WarpScriptException(PARAM_OCCURRENCES + " parameter must be a NUMBER or NULL. Default to NULL");
+        throw new WarpScriptException(PARAM_OCCURRENCES + " parameter must be a NUMBER or NULL. Default to NULL if not set");
       }
 
       return params;
