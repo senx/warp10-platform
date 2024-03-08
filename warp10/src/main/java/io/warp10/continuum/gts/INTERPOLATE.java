@@ -163,7 +163,7 @@ public class INTERPOLATE extends GTSStackFunction {
     int nvalues = filled.values;
 
     //
-    // Compute linear interpolator
+    // Compute interpolator
     //
 
     double xval[] = new double[nvalues];
