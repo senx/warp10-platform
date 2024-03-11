@@ -1622,7 +1622,7 @@ public class Ingress extends AbstractHandler implements Runnable {
 
       String selector = request.getParameter(Constants.HTTP_PARAM_SELECTOR);
 
-    if (null == selector || selector.isEmpty) {
+    if (null == selector || selector.isEmpty()) {
       response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid '" + Constants.HTTP_PARAM_SELECTOR +"' query parameter, should not be missing or empty.");
       return;
     }
