@@ -25,9 +25,11 @@ import java.util.List;
 import java.util.Map;
 
 import com.geoxp.GeoXPLib;
+import org.apache.commons.math3.analysis.UnivariateFunction;
 import org.apache.commons.math3.analysis.interpolation.AkimaSplineInterpolator;
 import org.apache.commons.math3.analysis.interpolation.LinearInterpolator;
 import org.apache.commons.math3.analysis.interpolation.SplineInterpolator;
+import org.apache.commons.math3.analysis.interpolation.UnivariateInterpolator;
 import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction;
 
 import io.warp10.script.functions.MAP;
@@ -203,29 +205,37 @@ public class INTERPOLATE extends GTSStackFunction {
       fval[i] = ((Number) GTSHelper.valueAtIndex(filled, i)).doubleValue();
     }
 
-    PolynomialSplineFunction function = null;
+    UnivariateInterpolator interpolator = null;
     if (null == params.get(PARAM_INTERPOLATOR)) {
-      function = (new LinearInterpolator()).interpolate(xval, fval);
+      interpolator = new LinearInterpolator();
     } else {
       switch (Interpolator.valueOf((String) params.get(PARAM_INTERPOLATOR))) {
         case spline:
           if (nvalues > 2) {
-            function = (new SplineInterpolator().interpolate(xval, fval));
+            interpolator = new SplineInterpolator();
             break;
           }
         case akima:
           if (nvalues > 4 ) {
-            function = (new AkimaSplineInterpolator().interpolate(xval, fval));
+            interpolator = new AkimaSplineInterpolator();
             break;
           }
         case linear:
           if (nvalues > 1) {
-            function = (new LinearInterpolator()).interpolate(xval, fval);
+            interpolator = new LinearInterpolator();
             break;
           }
         case noop:
-          function = null;
           break;
+      }
+    }
+
+    UnivariateFunction function = null;
+    if (null != interpolator) {
+      try {
+        function = interpolator.interpolate(xval, fval);
+      } catch (Exception e) {
+        throw new WarpScriptException(getName() + " encountered an interpolation error.", e);
       }
     }
 
@@ -282,16 +292,7 @@ public class INTERPOLATE extends GTSStackFunction {
         //
 
         while(bucket < filled.ticks[i]) {
-          if (null != function) {
-            if (function.isValidPoint(bucket)) {
-              GTSHelper.setValue(filled, bucket, function.value(bucket));
-            } else {
-              Number filler = (Number) params.get(PARAM_INVALID_TICK_VALUE);
-              if (null != filler) {
-                GTSHelper.setValue(filled, bucket, filler);
-              }
-            }
-          }
+          fillValue(filled, function, bucket, params.get(PARAM_INVALID_TICK_VALUE));
           bucket += filled.bucketspan;
         }
       }
@@ -312,14 +313,7 @@ public class INTERPOLATE extends GTSStackFunction {
       // fill occurrence ticks
       if (null != function) {
         for (Long tick : (List<Long>) params.get(PARAM_OCCURRENCES)) {
-          if (function.isValidPoint(tick)) {
-            GTSHelper.setValue(filled, tick, function.value(tick));
-          } else {
-            Number filler = (Number) params.get(PARAM_INVALID_TICK_VALUE);
-            if (null != filler) {
-              GTSHelper.setValue(filled, tick, filler);
-            }
-          }
+          fillValue(filled, function, tick, params.get(PARAM_INVALID_TICK_VALUE));
         }
       }
     }
@@ -438,7 +432,7 @@ public class INTERPOLATE extends GTSStackFunction {
           if (i < filled.values) {
             for (int j = idx + 1; j < i; j++) {
               long tick = filled.ticks[j];
-              if (function.isValidPoint(tick)) {
+              if (elevFunction.isValidPoint(tick)) {
                 filled.elevations[j] = (long) elevFunction.value(tick);
               } else {
                 Number filler = (Number) params.get(PARAM_INVALID_TICK_ELEV);
@@ -528,8 +522,8 @@ public class INTERPOLATE extends GTSStackFunction {
           if (i < filled.values) {
             for (int j = idx + 1; j < i; j++) {
               long tick = filled.ticks[j];
-              if (function.isValidPoint(tick)) {
-                double lat = latFunction.value(tick);
+              if (latFunction.isValidPoint(tick)) {
+                double lat = latFunction.value(tick); // todo: fix here
                 double lon = lonFunction.value(tick);
                 filled.locations[j] = GeoXPLib.toGeoXPPoint(lat, lon);
 
@@ -550,6 +544,32 @@ public class INTERPOLATE extends GTSStackFunction {
     }
 
     return filled;
+  }
+
+  private void fillValue(GeoTimeSerie gts, UnivariateFunction function, long tick, Object invalidPointValue) {
+    if (null != function) {
+
+      if (function instanceof PolynomialSplineFunction) {
+        if (((PolynomialSplineFunction) function).isValidPoint(tick)) {
+          GTSHelper.setValue(gts, tick, function.value(tick));
+        } else {
+          if (null != invalidPointValue) {
+            GTSHelper.setValue(gts, tick, invalidPointValue);
+          }
+        }
+
+      } else {
+        // non spline function handling here
+
+        try {
+          GTSHelper.setValue(gts, tick, function.value(tick));
+        } catch (Exception e) {
+          if (null != invalidPointValue) {
+            GTSHelper.setValue(gts, tick, invalidPointValue);
+          }
+        }
+      }
+    }
   }
 
   public static GeoTimeSerie interpolate(GeoTimeSerie gts) {
