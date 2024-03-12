@@ -33,6 +33,7 @@ import org.apache.commons.math3.analysis.interpolation.UnivariateInterpolator;
 import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction;
 
 import io.warp10.script.functions.MAP;
+import org.apache.commons.math3.exception.NonMonotonicSequenceException;
 
 /**
  * Fills the gaps in a GTS by interpolating linearly.
@@ -78,12 +79,12 @@ public class INTERPOLATE extends GTSStackFunction {
 
   public static String PARAM_OCCURRENCES = MAP.PARAM_OCCURRENCES;
   public static String PARAM_INTERPOLATOR = "interpolator";
-  public static String PARAM_INTERPOLATOR_ELEV = "interpolator.elevation";
-  public static String PARAM_INTERPOLATOR_LOC = "interpolator.location";
-  public static String PARAM_INVALID_TICK_VALUE = "invalid.tick.value";
-  public static String PARAM_INVALID_TICK_ELEV = "invalid.tick.elevation";
-  public static String PARAM_INVALID_TICK_LAT = "invalid.tick.latitude";
-  public static String PARAM_INVALID_TICK_LON = "invalid.tick.longitude";
+  public static String PARAM_INTERPOLATOR_ELEV = "interpolator.elev";
+  public static String PARAM_INTERPOLATOR_LOC = "interpolator.loc";
+  public static String PARAM_INVALID_TICK_VALUE = "invalid.tick.val";
+  public static String PARAM_INVALID_TICK_ELEV = "invalid.tick.elev";
+  public static String PARAM_INVALID_TICK_LAT = "invalid.tick.lat";
+  public static String PARAM_INVALID_TICK_LON = "invalid.tick.lon";
   public static List<String> paramKeys = new ArrayList<String>();
   static {
     paramKeys.add(PARAM_OCCURRENCES);
@@ -113,7 +114,8 @@ public class INTERPOLATE extends GTSStackFunction {
           throw new WarpScriptException("Parameters MAP keys must be of type STRING.");
         }
         if (!(paramKeys.contains(k))) {
-          throw new WarpScriptException("Unrecognized parameter: " + k);
+          System.out.println(k);
+          throw new WarpScriptException("Unrecognized parameter " + k);
         }
       }
 
@@ -240,8 +242,10 @@ public class INTERPOLATE extends GTSStackFunction {
     if (null != interpolator) {
       try {
         function = interpolator.interpolate(xval, fval);
+      } catch (NonMonotonicSequenceException e) {
+        throw new WarpScriptException(getName() + " cannot perform this interpolation when there are duplicate ticks. Consider using DEDUP first.");
       } catch (Exception e) {
-        throw new WarpScriptException(getName() + " encountered an interpolation error.", e);
+        throw new WarpScriptException(getName() + " encountered an interpolation error", e);
       }
     }
 
