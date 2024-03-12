@@ -275,12 +275,14 @@ public class INTERPOLATE extends GTSStackFunction {
         //
 
         while(bucket < filled.ticks[i]) {
-          if (function.isValidPoint(bucket)) {
-            GTSHelper.setValue(filled, bucket, function.value(bucket));
-          } else {
-            Number filler = (Number) params.get(PARAM_INVALID_TICK_VALUE);
-            if (null != filler) {
-              GTSHelper.setValue(filled, bucket, filler);
+          if (null != function) {
+            if (function.isValidPoint(bucket)) {
+              GTSHelper.setValue(filled, bucket, function.value(bucket));
+            } else {
+              Number filler = (Number) params.get(PARAM_INVALID_TICK_VALUE);
+              if (null != filler) {
+                GTSHelper.setValue(filled, bucket, filler);
+              }
             }
           }
           bucket += filled.bucketspan;
@@ -301,13 +303,15 @@ public class INTERPOLATE extends GTSStackFunction {
       }
 
       // fill occurrence ticks
-      for (Long tick: (List<Long>) params.get(PARAM_OCCURRENCES)) {
-        if (function.isValidPoint(tick)) {
-          GTSHelper.setValue(filled, tick, function.value(tick));
-        } else {
-          Number filler = (Number) params.get(PARAM_INVALID_TICK_VALUE);
-          if (null != filler) {
-            GTSHelper.setValue(filled, tick, filler);
+      if (null != function) {
+        for (Long tick : (List<Long>) params.get(PARAM_OCCURRENCES)) {
+          if (function.isValidPoint(tick)) {
+            GTSHelper.setValue(filled, tick, function.value(tick));
+          } else {
+            Number filler = (Number) params.get(PARAM_INVALID_TICK_VALUE);
+            if (null != filler) {
+              GTSHelper.setValue(filled, tick, filler);
+            }
           }
         }
       }
@@ -389,55 +393,58 @@ public class INTERPOLATE extends GTSStackFunction {
         }
       }
 
-      //
-      // Sort ticks
-      //
+      if (null != elevFunction) {
 
-      GTSHelper.sort(filled);
+        //
+        // Sort ticks
+        //
 
-      //
-      // Advance 'idx' to the first tick with a valid elevation
-      //
+        GTSHelper.sort(filled);
 
-      int idx = 0;
+        //
+        // Advance 'idx' to the first tick with a valid elevation
+        //
 
-      while (GeoTimeSerie.NO_ELEVATION == filled.elevations[idx]) {
-        idx++;
-      }
+        int idx = 0;
 
-      while (idx < filled.values) {
-        int i = idx + 1;
-
-        // Advance 'i' to the next tick with no elevation
-        while (i < filled.values && GeoTimeSerie.NO_ELEVATION != filled.elevations[i]) {
-          i++;
+        while (GeoTimeSerie.NO_ELEVATION == filled.elevations[idx]) {
+          idx++;
         }
 
-        // Move 'idx' to 'i' - 1, the last tick with an elevation before one without one
-        idx = i - 1;
+        while (idx < filled.values) {
+          int i = idx + 1;
 
-        // 'i' now points to a tick with no elevation, advance it to the next one with an elevation.
-        while (i < filled.values && GeoTimeSerie.NO_ELEVATION == filled.elevations[i]) {
-          i++;
-        }
+          // Advance 'i' to the next tick with no elevation
+          while (i < filled.values && GeoTimeSerie.NO_ELEVATION != filled.elevations[i]) {
+            i++;
+          }
 
-        // Fill all ticks between 'idx' and 'i' with an interpolated elevation
-        if (i < filled.values) {
-          for (int j = idx + 1; j < i; j++) {
-            long tick = filled.ticks[j];
-            if (function.isValidPoint(tick)) {
-              filled.elevations[j] = (long) elevFunction.value(tick);
-            } else {
-              Number filler = (Number) params.get(PARAM_INVALID_TICK_ELEV);
-              if (null != filler) {
-                filled.elevations[j] = filler.longValue();
+          // Move 'idx' to 'i' - 1, the last tick with an elevation before one without one
+          idx = i - 1;
+
+          // 'i' now points to a tick with no elevation, advance it to the next one with an elevation.
+          while (i < filled.values && GeoTimeSerie.NO_ELEVATION == filled.elevations[i]) {
+            i++;
+          }
+
+          // Fill all ticks between 'idx' and 'i' with an interpolated elevation
+          if (i < filled.values) {
+            for (int j = idx + 1; j < i; j++) {
+              long tick = filled.ticks[j];
+              if (function.isValidPoint(tick)) {
+                filled.elevations[j] = (long) elevFunction.value(tick);
+              } else {
+                Number filler = (Number) params.get(PARAM_INVALID_TICK_ELEV);
+                if (null != filler) {
+                  filled.elevations[j] = filler.longValue();
+                }
               }
             }
           }
-        }
 
-        // Advance idx
-        idx = i;
+          // Advance idx
+          idx = i;
+        }
       }
     }
 
@@ -475,60 +482,63 @@ public class INTERPOLATE extends GTSStackFunction {
         }
       }
 
-      //
-      // Sort ticks
-      //
+      if (null != latFunction) {
 
-      GTSHelper.sort(filled);
+        //
+        // Sort ticks
+        //
 
-      //
-      // Advance 'idx' to the first tick with a valid location
-      //
+        GTSHelper.sort(filled);
 
-      int idx = 0;
+        //
+        // Advance 'idx' to the first tick with a valid location
+        //
 
-      // nLocations > 0, this means locations is non null
-      while (GeoTimeSerie.NO_LOCATION == filled.locations[idx]) {
-        idx++;
-      }
+        int idx = 0;
 
-      while (idx < filled.values) {
-        int i = idx + 1;
-
-        // Advance 'i' to the next tick with no location
-        while (i < filled.values && GeoTimeSerie.NO_LOCATION != filled.locations[i]) {
-          i++;
+        // nLocations > 0, this means locations is non null
+        while (GeoTimeSerie.NO_LOCATION == filled.locations[idx]) {
+          idx++;
         }
 
-        // Move 'idx' to 'i' - 1, the last tick with a location before one without one
-        idx = i - 1;
+        while (idx < filled.values) {
+          int i = idx + 1;
 
-        // 'i' now points to a tick with no location, advance it to the next one with a location.
-        while (i < filled.values && GeoTimeSerie.NO_LOCATION == filled.locations[i]) {
-          i++;
-        }
+          // Advance 'i' to the next tick with no location
+          while (i < filled.values && GeoTimeSerie.NO_LOCATION != filled.locations[i]) {
+            i++;
+          }
 
-        // Fill all ticks between 'idx' and 'i' with an interpolated location
-        if (i < filled.values) {
-          for (int j = idx + 1; j < i; j++) {
-            long tick = filled.ticks[j];
-            if (function.isValidPoint(tick)) {
-              double lat = latFunction.value(tick);
-              double lon = lonFunction.value(tick);
-              filled.locations[j] = GeoXPLib.toGeoXPPoint(lat, lon);
+          // Move 'idx' to 'i' - 1, the last tick with a location before one without one
+          idx = i - 1;
 
-            } else {
-              Number fillerLat = (Number) params.get(PARAM_INVALID_TICK_LAT);
-              Number fillerLon = (Number) params.get(PARAM_INVALID_TICK_LON);
-              if (null != fillerLat && null != fillerLon) {
-                filled.locations[j] = GeoXPLib.toGeoXPPoint(fillerLat.doubleValue(), fillerLon.doubleValue());
+          // 'i' now points to a tick with no location, advance it to the next one with a location.
+          while (i < filled.values && GeoTimeSerie.NO_LOCATION == filled.locations[i]) {
+            i++;
+          }
+
+          // Fill all ticks between 'idx' and 'i' with an interpolated location
+          if (i < filled.values) {
+            for (int j = idx + 1; j < i; j++) {
+              long tick = filled.ticks[j];
+              if (function.isValidPoint(tick)) {
+                double lat = latFunction.value(tick);
+                double lon = lonFunction.value(tick);
+                filled.locations[j] = GeoXPLib.toGeoXPPoint(lat, lon);
+
+              } else {
+                Number fillerLat = (Number) params.get(PARAM_INVALID_TICK_LAT);
+                Number fillerLon = (Number) params.get(PARAM_INVALID_TICK_LON);
+                if (null != fillerLat && null != fillerLon) {
+                  filled.locations[j] = GeoXPLib.toGeoXPPoint(fillerLat.doubleValue(), fillerLon.doubleValue());
+                }
               }
             }
           }
-        }
 
-        // Advance idx
-        idx = i;
+          // Advance idx
+          idx = i;
+        }
       }
     }
 
