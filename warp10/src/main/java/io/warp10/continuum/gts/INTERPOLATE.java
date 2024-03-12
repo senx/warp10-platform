@@ -46,7 +46,8 @@ public class INTERPOLATE extends GTSStackFunction {
 
   public static String PARAM_OCCURRENCES = MAP.PARAM_OCCURRENCES;
   public static String PARAM_INTERPOLATOR = "interpolator";
-  public static String PARAM_INTERPOLATOR_GEO = "interpolator.geo";
+  public static String PARAM_INTERPOLATOR_ELEV = "interpolator.elevation";
+  public static String PARAM_INTERPOLATOR_LOC = "interpolator.location";
   public static String PARAM_INVALID_TICK_VALUE = "invalid.tick.value";
   public static String PARAM_INVALID_TICK_ELEV = "invalid.tick.elevation";
   public static String PARAM_INVALID_TICK_LAT = "invalid.tick.latitude";
@@ -55,7 +56,8 @@ public class INTERPOLATE extends GTSStackFunction {
   static {
     paramKeys.add(PARAM_OCCURRENCES);
     paramKeys.add(PARAM_INTERPOLATOR);
-    paramKeys.add(PARAM_INTERPOLATOR_GEO);
+    paramKeys.add(PARAM_INTERPOLATOR_ELEV);
+    paramKeys.add(PARAM_INTERPOLATOR_LOC);
     paramKeys.add(PARAM_INVALID_TICK_VALUE);
     paramKeys.add(PARAM_INVALID_TICK_ELEV);
     paramKeys.add(PARAM_INVALID_TICK_LAT);
@@ -108,9 +110,14 @@ public class INTERPOLATE extends GTSStackFunction {
         throw new WarpScriptException(PARAM_INTERPOLATOR + " parameter must be a STRING, default to linear if not set");
       }
 
-      o = params.get(PARAM_INTERPOLATOR_GEO);
+      o = params.get(PARAM_INTERPOLATOR_ELEV);
       if (null != o && !(o instanceof String)) {
-        throw new WarpScriptException(PARAM_INTERPOLATOR_GEO + " parameter must be a STRING, default to linear if not set");
+        throw new WarpScriptException(PARAM_INTERPOLATOR_ELEV + " parameter must be a STRING, default to linear if not set");
+      }
+
+      o = params.get(PARAM_INTERPOLATOR_LOC);
+      if (null != o && !(o instanceof String)) {
+        throw new WarpScriptException(PARAM_INTERPOLATOR_LOC + " parameter must be a STRING, default to linear if not set");
       }
 
       //
@@ -370,10 +377,10 @@ public class INTERPOLATE extends GTSStackFunction {
     //
 
     if (nElevations >= 2) {
-      if (null == params.get(PARAM_INTERPOLATOR_GEO)) {
+      if (null == params.get(PARAM_INTERPOLATOR_ELEV)) {
         elevFunction = (new LinearInterpolator()).interpolate(xelev, felev);
       } else {
-        switch (Interpolator.valueOf((String) params.get(PARAM_INTERPOLATOR_GEO))) {
+        switch (Interpolator.valueOf((String) params.get(PARAM_INTERPOLATOR_ELEV))) {
           case spline:
             if (nElevations > 2) {
               elevFunction = (new SplineInterpolator().interpolate(xelev, felev));
@@ -454,11 +461,11 @@ public class INTERPOLATE extends GTSStackFunction {
 
     if (nLocations >= 2) {
 
-      if (null == params.get(PARAM_INTERPOLATOR_GEO)) {
+      if (null == params.get(PARAM_INTERPOLATOR_LOC)) {
         latFunction = (new LinearInterpolator()).interpolate(xloc, flat);
         lonFunction = (new LinearInterpolator()).interpolate(xloc, flon);
       } else {
-        switch (Interpolator.valueOf((String) params.get(PARAM_INTERPOLATOR_GEO))) {
+        switch (Interpolator.valueOf((String) params.get(PARAM_INTERPOLATOR_LOC))) {
           case spline:
             if (nLocations > 2) {
               latFunction = (new SplineInterpolator()).interpolate(xloc, flat);
