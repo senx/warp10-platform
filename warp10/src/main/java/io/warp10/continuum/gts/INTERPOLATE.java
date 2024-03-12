@@ -298,7 +298,13 @@ public class INTERPOLATE extends GTSStackFunction {
         //
 
         while(bucket < filled.ticks[i]) {
-          fillValue(filled, function, bucket, params.get(PARAM_INVALID_TICK_VALUE));
+
+          if (null != function) {
+
+          }
+          Object value = fillerValue(function, bucket, params.get(PARAM_INVALID_TICK_VALUE));
+          GTSHelper.setValue(filled, bucket, value);
+
           bucket += filled.bucketspan;
         }
       }
@@ -319,7 +325,8 @@ public class INTERPOLATE extends GTSStackFunction {
       // fill occurrence ticks
       if (null != function) {
         for (Long tick : (List<Long>) params.get(PARAM_OCCURRENCES)) {
-          fillValue(filled, function, tick, params.get(PARAM_INVALID_TICK_VALUE));
+          Object value = fillerValue(function, tick, params.get(PARAM_INVALID_TICK_VALUE));
+          GTSHelper.setValue(filled, tick, value);
         }
       }
     }
@@ -329,8 +336,8 @@ public class INTERPOLATE extends GTSStackFunction {
     //
 
     UnivariateFunction elevFunction = null;
-    PolynomialSplineFunction latFunction = null;
-    PolynomialSplineFunction lonFunction = null;
+    UnivariateFunction latFunction = null;
+    UnivariateFunction lonFunction = null;
 
     //
     // Compute interpolators
@@ -426,7 +433,10 @@ public class INTERPOLATE extends GTSStackFunction {
           if (i < filled.values) {
             for (int j = idx + 1; j < i; j++) {
               long tick = filled.ticks[j];
-              fillValue(filled, elevFunction, tick, params.get(PARAM_INVALID_TICK_ELEV));
+              Double elev = fillerValue(elevFunction, tick, params.get(PARAM_INVALID_TICK_ELEV));
+              if (null != elev) {
+                filled.elevations[j] = elev.longValue();
+              }
             }
           }
 
@@ -442,35 +452,28 @@ public class INTERPOLATE extends GTSStackFunction {
 
     if (nLocations >= 2) {
 
-      if (null == params.get(PARAM_INTERPOLATOR_LOC)) {
-        latFunction = (new LinearInterpolator()).interpolate(xloc, flat);
-        lonFunction = (new LinearInterpolator()).interpolate(xloc, flon);
-      } else {
-        switch (Interpolator.valueOf((String) params.get(PARAM_INTERPOLATOR_LOC))) {
-          case spline:
-            if (nLocations > 2) {
-              latFunction = (new SplineInterpolator()).interpolate(xloc, flat);
-              lonFunction = (new SplineInterpolator()).interpolate(xloc, flon);
-              break;
-            }
-          case akima:
-            if (nLocations > 4) {
-              latFunction = (new AkimaSplineInterpolator()).interpolate(xloc, flat);
-              lonFunction = (new AkimaSplineInterpolator()).interpolate(xloc, flon);
-              break;
-            }
-          case linear:
-            latFunction = (new LinearInterpolator()).interpolate(xloc, flat);
-            lonFunction = (new LinearInterpolator()).interpolate(xloc, flon);
-            break;
-          case noop:
-            latFunction = null;
-            lonFunction = null;
-            break;
+      UnivariateInterpolator latInterpolator = createInterpolator((String) params.get(PARAM_INTERPOLATOR_LOC), nLocations);
+      UnivariateInterpolator lonInterpolator = createInterpolator((String) params.get(PARAM_INTERPOLATOR_LOC), nLocations);
+
+      latFunction = null;
+      if (null != latInterpolator) {
+        try {
+          latFunction = latInterpolator.interpolate(xval, fval);
+        } catch (Exception e) {
+          throw new WarpScriptException(getName() + " encountered an interpolation error.", e);
         }
       }
 
-      if (null != latFunction) {
+      lonFunction = null;
+      if (null != lonInterpolator) {
+        try {
+          lonFunction = lonInterpolator.interpolate(xval, fval);
+        } catch (Exception e) {
+          throw new WarpScriptException(getName() + " encountered an interpolation error.", e);
+        }
+      }
+
+      if (null != latFunction && null != lonFunction) {
 
         //
         // Sort ticks
@@ -509,17 +512,11 @@ public class INTERPOLATE extends GTSStackFunction {
           if (i < filled.values) {
             for (int j = idx + 1; j < i; j++) {
               long tick = filled.ticks[j];
-              if (latFunction.isValidPoint(tick)) {
-                double lat = latFunction.value(tick); // todo: fix here
-                double lon = lonFunction.value(tick);
-                filled.locations[j] = GeoXPLib.toGeoXPPoint(lat, lon);
+              Double lat = fillerValue(latFunction, tick, params.get(PARAM_INVALID_TICK_LAT));
+              Double lon = fillerValue(lonFunction, tick, params.get(PARAM_INVALID_TICK_LON));
 
-              } else {
-                Number fillerLat = (Number) params.get(PARAM_INVALID_TICK_LAT);
-                Number fillerLon = (Number) params.get(PARAM_INVALID_TICK_LON);
-                if (null != fillerLat && null != fillerLon) {
-                  filled.locations[j] = GeoXPLib.toGeoXPPoint(fillerLat.doubleValue(), fillerLon.doubleValue());
-                }
+              if (null != lat && null != lon) {
+                filled.locations[j] = GeoXPLib.toGeoXPPoint(lat, lon);
               }
             }
           }
@@ -533,30 +530,31 @@ public class INTERPOLATE extends GTSStackFunction {
     return filled;
   }
 
-  private void fillValue(GeoTimeSerie gts, UnivariateFunction function, long tick, Object invalidPointValue) {
-    if (null != function) {
+  private Double fillerValue(UnivariateFunction function, long tick, Object invalidPointValue) {
 
-      if (function instanceof PolynomialSplineFunction) {
-        if (((PolynomialSplineFunction) function).isValidPoint(tick)) {
-          GTSHelper.setValue(gts, tick, function.value(tick));
-        } else {
-          if (null != invalidPointValue) {
-            GTSHelper.setValue(gts, tick, invalidPointValue);
-          }
-        }
-
+    Double val = null;
+    if (function instanceof PolynomialSplineFunction) {
+      if (((PolynomialSplineFunction) function).isValidPoint(tick)) {
+        val = function.value(tick);
       } else {
-        // non spline function handling here
+        if (null != invalidPointValue) {
+          val = ((Number) invalidPointValue).doubleValue();
+        }
+      }
 
-        try {
-          GTSHelper.setValue(gts, tick, function.value(tick));
-        } catch (Exception e) {
-          if (null != invalidPointValue) {
-            GTSHelper.setValue(gts, tick, invalidPointValue);
-          }
+    } else {
+      // non spline function handling here
+
+      try {
+        val = function.value(tick);
+      } catch (Exception e) {
+        if (null != invalidPointValue) {
+          val = ((Number) invalidPointValue).doubleValue();
         }
       }
     }
+
+    return val;
   }
 
   public static GeoTimeSerie interpolate(GeoTimeSerie gts) {
