@@ -74,7 +74,7 @@ public class INTERPOLATE extends GTSStackFunction {
       // Sanity checks
       //
 
-      for (Object k: params.entrySet()) {
+      for (Object k: params.keySet()) {
         if (!(k instanceof String)) {
           throw new WarpScriptException("Parameters MAP keys must be of type STRING.");
         }
