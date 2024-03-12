@@ -46,6 +46,36 @@ public class INTERPOLATE extends GTSStackFunction {
     noop
   }
 
+  private UnivariateInterpolator createInterpolator(String name, int nvalues) {
+    UnivariateInterpolator interpolator = null;
+
+    if (null == name) {
+      interpolator = new LinearInterpolator();
+    } else {
+      switch (Interpolator.valueOf(name)) {
+        case spline:
+          if (nvalues > 2) {
+            interpolator = new SplineInterpolator();
+            break;
+          }
+        case akima:
+          if (nvalues > 4 ) {
+            interpolator = new AkimaSplineInterpolator();
+            break;
+          }
+        case linear:
+          if (nvalues > 1) {
+            interpolator = new LinearInterpolator();
+            break;
+          }
+        case noop:
+          break;
+      }
+    }
+
+    return interpolator;
+  }
+
   public static String PARAM_OCCURRENCES = MAP.PARAM_OCCURRENCES;
   public static String PARAM_INTERPOLATOR = "interpolator";
   public static String PARAM_INTERPOLATOR_ELEV = "interpolator.elevation";
@@ -205,31 +235,7 @@ public class INTERPOLATE extends GTSStackFunction {
       fval[i] = ((Number) GTSHelper.valueAtIndex(filled, i)).doubleValue();
     }
 
-    UnivariateInterpolator interpolator = null;
-    if (null == params.get(PARAM_INTERPOLATOR)) {
-      interpolator = new LinearInterpolator();
-    } else {
-      switch (Interpolator.valueOf((String) params.get(PARAM_INTERPOLATOR))) {
-        case spline:
-          if (nvalues > 2) {
-            interpolator = new SplineInterpolator();
-            break;
-          }
-        case akima:
-          if (nvalues > 4 ) {
-            interpolator = new AkimaSplineInterpolator();
-            break;
-          }
-        case linear:
-          if (nvalues > 1) {
-            interpolator = new LinearInterpolator();
-            break;
-          }
-        case noop:
-          break;
-      }
-    }
-
+    UnivariateInterpolator interpolator = createInterpolator((String) params.get(PARAM_INTERPOLATOR), nvalues);
     UnivariateFunction function = null;
     if (null != interpolator) {
       try {
