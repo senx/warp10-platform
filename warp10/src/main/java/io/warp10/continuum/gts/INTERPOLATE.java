@@ -328,7 +328,7 @@ public class INTERPOLATE extends GTSStackFunction {
     // Take care of geo if we have at least two valid values for either elevation or location
     //
 
-    PolynomialSplineFunction elevFunction = null;
+    UnivariateFunction elevFunction = null;
     PolynomialSplineFunction latFunction = null;
     PolynomialSplineFunction lonFunction = null;
 
@@ -377,26 +377,14 @@ public class INTERPOLATE extends GTSStackFunction {
     //
 
     if (nElevations >= 2) {
-      if (null == params.get(PARAM_INTERPOLATOR_ELEV)) {
-        elevFunction = (new LinearInterpolator()).interpolate(xelev, felev);
-      } else {
-        switch (Interpolator.valueOf((String) params.get(PARAM_INTERPOLATOR_ELEV))) {
-          case spline:
-            if (nElevations > 2) {
-              elevFunction = (new SplineInterpolator().interpolate(xelev, felev));
-              break;
-            }
-          case akima:
-            if (nElevations > 4) {
-              elevFunction = (new AkimaSplineInterpolator().interpolate(xelev, felev));
-              break;
-            }
-          case linear:
-            elevFunction = (new LinearInterpolator()).interpolate(xelev, felev);
-            break;
-          case noop:
-            elevFunction = null;
-            break;
+
+      UnivariateInterpolator elevInterpolator = createInterpolator((String) params.get(PARAM_INTERPOLATOR_ELEV), nElevations);
+      elevFunction = null;
+      if (null != elevInterpolator) {
+        try {
+          elevFunction = elevInterpolator.interpolate(xval, fval);
+        } catch (Exception e) {
+          throw new WarpScriptException(getName() + " encountered an interpolation error.", e);
         }
       }
 
@@ -438,14 +426,7 @@ public class INTERPOLATE extends GTSStackFunction {
           if (i < filled.values) {
             for (int j = idx + 1; j < i; j++) {
               long tick = filled.ticks[j];
-              if (elevFunction.isValidPoint(tick)) {
-                filled.elevations[j] = (long) elevFunction.value(tick);
-              } else {
-                Number filler = (Number) params.get(PARAM_INVALID_TICK_ELEV);
-                if (null != filler) {
-                  filled.elevations[j] = filler.longValue();
-                }
-              }
+              fillValue(filled, elevFunction, tick, params.get(PARAM_INVALID_TICK_ELEV));
             }
           }
 
