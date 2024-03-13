@@ -410,7 +410,7 @@ public class INTERPOLATE extends GTSStackFunction {
       elevFunction = null;
       if (null != elevInterpolator) {
         try {
-          elevFunction = elevInterpolator.interpolate(xval, felev);
+          elevFunction = elevInterpolator.interpolate(xelev, felev);
         } catch (Exception e) {
           throw new WarpScriptException(getName() + " encountered an interpolation error.", e);
         }
@@ -479,7 +479,7 @@ public class INTERPOLATE extends GTSStackFunction {
       latFunction = null;
       if (null != latInterpolator) {
         try {
-          latFunction = latInterpolator.interpolate(xval, flat);
+          latFunction = latInterpolator.interpolate(xloc, flat);
         } catch (Exception e) {
           throw new WarpScriptException(getName() + " encountered an interpolation error.", e);
         }
@@ -488,7 +488,7 @@ public class INTERPOLATE extends GTSStackFunction {
       lonFunction = null;
       if (null != lonInterpolator) {
         try {
-          lonFunction = lonInterpolator.interpolate(xval, flon);
+          lonFunction = lonInterpolator.interpolate(xloc, flon);
         } catch (Exception e) {
           throw new WarpScriptException(getName() + " encountered an interpolation error.", e);
         }
