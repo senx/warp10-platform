@@ -21,10 +21,12 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
 import com.geoxp.GeoXPLib;
+import org.apache.commons.lang3.EnumUtils;
 import org.apache.commons.math3.analysis.UnivariateFunction;
 import org.apache.commons.math3.analysis.interpolation.AkimaSplineInterpolator;
 import org.apache.commons.math3.analysis.interpolation.LinearInterpolator;
@@ -140,18 +142,33 @@ public class INTERPOLATE extends GTSStackFunction {
       //
 
       o = params.get(PARAM_INTERPOLATOR);
-      if (null != o && !(o instanceof String)) {
-        throw new WarpScriptException(PARAM_INTERPOLATOR + " parameter must be a STRING, default to linear if not set");
+      if (null != o) {
+        if (!(o instanceof String)) {
+          throw new WarpScriptException(PARAM_INTERPOLATOR + " parameter must be a STRING, default to linear if not set");
+        }
+        if (!EnumUtils.isValidEnum(Interpolator.class, (String) o)) {
+          throw new WarpScriptException(PARAM_INTERPOLATOR + " parameter must be one of " + Arrays.asList(Interpolator.values()) + ", but got " + o);
+        }
       }
 
       o = params.get(PARAM_INTERPOLATOR_ELEV);
-      if (null != o && !(o instanceof String)) {
-        throw new WarpScriptException(PARAM_INTERPOLATOR_ELEV + " parameter must be a STRING, default to linear if not set");
+      if (null != o) {
+        if (!(o instanceof String)) {
+          throw new WarpScriptException(PARAM_INTERPOLATOR_ELEV + " parameter must be a STRING, default to linear if not set");
+        }
+        if (!EnumUtils.isValidEnum(Interpolator.class, (String) o)) {
+          throw new WarpScriptException(PARAM_INTERPOLATOR_ELEV + " parameter must be one of " + Arrays.asList(Interpolator.values()) + ", but got " + o);
+        }
       }
 
       o = params.get(PARAM_INTERPOLATOR_LOC);
-      if (null != o && !(o instanceof String)) {
-        throw new WarpScriptException(PARAM_INTERPOLATOR_LOC + " parameter must be a STRING, default to linear if not set");
+      if (null != o) {
+        if (!(o instanceof String)) {
+          throw new WarpScriptException(PARAM_INTERPOLATOR_LOC + " parameter must be a STRING, default to linear if not set");
+        }
+        if (!EnumUtils.isValidEnum(Interpolator.class, (String) o)) {
+          throw new WarpScriptException(PARAM_INTERPOLATOR_LOC + " parameter must be one of " + Arrays.asList(Interpolator.values()) + ", but got " + o);
+        }
       }
 
       //
