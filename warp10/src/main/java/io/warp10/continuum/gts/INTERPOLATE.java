@@ -202,6 +202,10 @@ public class INTERPOLATE extends GTSStackFunction {
 
   @Override
   protected Object gtsOp(Map<String, Object> params, GeoTimeSerie gts) throws WarpScriptException {
+    if (GeoTimeSerie.TYPE.DOUBLE != gts.getType() && GeoTimeSerie.TYPE.LONG != gts.getType()) {
+      throw new WarpScriptException(getName() + " can only be applied on numeric Geo Time Series");
+    }
+
     if (null == params) {
 
       // original implementation
