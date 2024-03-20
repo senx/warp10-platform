@@ -17,6 +17,7 @@
 package io.warp10.script.functions;
 
 import java.util.List;
+import java.util.Map;
 
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
@@ -27,6 +28,16 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
 public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+
+  public static String PARAM_OCCURRENCES = MAP.PARAM_OCCURRENCES;
+  public static String PARAM_FILLER = "filler";
+  public static String PARAM_FILLER_ELEV = "filler.elev";
+  public static String PARAM_FILLER_LOC = "filler.loc";
+  public static String PARAM_INVALID_TICK_VALUE = "invalid.tick.val";
+  public static String PARAM_INVALID_TICK_ELEV = "invalid.tick.elev";
+  public static String PARAM_INVALID_TICK_LAT = "invalid.tick.lat";
+  public static String PARAM_INVALID_TICK_LON = "invalid.tick.lon";
+
   public FILL(String name) {
     super(name);
   }
@@ -68,9 +79,32 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
   }
 
   private Object univariateFillApply(WarpScriptStack stack) throws WarpScriptException {
+    if (stack.peek() instanceof Map) {
+      return applyFromMap(stack, (Map) stack.pop());
+    } else if (stack.peek() instanceof List) {
+      return applyFromList(stack, (List) stack.pop());
+    } else {
+     throw new WarpScriptException(getName() + "'s argument types do not match the expected ones.");
+    }
+  }
+
+  private Object applyFromMap(WarpScriptStack stack, Map params) throws WarpScriptException {
 
     //todo
 
     return stack;
+  }
+
+  private Object applyFromList(WarpScriptStack stack, List params) throws WarpScriptException {
+
+    //todo
+
+    return stack;
+  }
+
+  private GeoTimeSerie fill(GeoTimeSerie gts, List<Long> occurrences, Object filler, Object fillerElev, Object fillerLoc, Object invalidTickValue, long invalidTickElev, double invalidTickLat, double invalidTickLon) throws WarpScriptException {
+    GeoTimeSerie res = gts.clone();
+
+    return res;
   }
 }
