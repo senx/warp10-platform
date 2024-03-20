@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2023  SenX S.A.S.
+//   Copyright 2018-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -33,35 +33,44 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
+    if (stack.peek() instanceof WarpScriptFillerFunction) {
+      return crossFillApply(stack);
+    } else {
+      return univariateFillApply(stack);
+    }
+  }
+
+  private Object crossFillApply(WarpScriptStack stack) throws WarpScriptException {
+    WarpScriptFillerFunction filler = (WarpScriptFillerFunction) stack.pop();
+
     Object top = stack.pop();
-    
-    if (!(top instanceof WarpScriptFillerFunction)) {
-      throw new WarpScriptException(getName() + " expects a FILLER on top of the stack.");
-    }
-    
-    WarpScriptFillerFunction filler = (WarpScriptFillerFunction) top;
-    
-    top = stack.pop();
-    
+
     if (!(top instanceof GeoTimeSerie)) {
-      throw new WarpScriptException(getName() + " operates on two Geo Time Series.");
+      throw new WarpScriptException(getName() + " expected a " + TYPEOF.typeof(GeoTimeSerie.class) + ", but instead got a " + TYPEOF.typeof(top));
     }
-    
+
     GeoTimeSerie gtsb = (GeoTimeSerie) top;
 
     top = stack.pop();
-    
+
     if (!(top instanceof GeoTimeSerie)) {
-      throw new WarpScriptException(getName() + " operates on two Geo Time Series.");
+      throw new WarpScriptException(getName() + " expected a " + TYPEOF.typeof(GeoTimeSerie.class) + ", but instead got a " + TYPEOF.typeof(top));
     }
-    
+
     GeoTimeSerie gtsa = (GeoTimeSerie) top;
 
     List<GeoTimeSerie> gts = GTSHelper.fill(gtsa, gtsb, filler);
-    
+
     stack.push(gts.get(0));
     stack.push(gts.get(1));
-    
+
+    return stack;
+  }
+
+  private Object univariateFillApply(WarpScriptStack stack) throws WarpScriptException {
+
+    //todo
+
     return stack;
   }
 }
