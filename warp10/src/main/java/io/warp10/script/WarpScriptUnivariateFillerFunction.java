@@ -16,19 +16,51 @@
 
 package io.warp10.script;
 
-/**
- * An interface to create function used for data imputation.
- */
-public interface WarpScriptUnivariateFillerFunction {
+import io.warp10.continuum.gts.GeoTimeSerie;
+
+public interface WarpScriptUnivariateFillerFunction extends WarpScriptFillerFunction {
 
   /**
-   * This method implements the imputation function.
-   * If the input tick is an invalid point, null is expected to be returned.
-   * @param tick
-   * @return Imputed value or null
+   * The interface used to evaluate the filled value.
+   * The implementation can compute an evaluator specific to the data in the GTS being filled
+   */
+  public interface Evaluator {
+
+    // number of input ticks depends on the window size
+    Object evaluate(Long... ticks);
+  }
+
+  /**
+   * Get the Evaluator object based on the input gts and this filler properties
+   * @return
+   */
+  public Evaluator getEvaluator();
+
+  /**
+   * Returns the size of the pre-window (in number of ticks)
+   */
+  public int getPreWindow();
+
+  /**
+   * Returns the size of the post-window (in ticks)
+   */
+  public int getPostWindow();
+
+  /**
+   * Implemented for compatibility with cross fill
+   * @param args
+   * @return
    * @throws WarpScriptException
    */
-  //public Object value(Object params, long tick) throws WarpScriptException;
+  default public Object[] apply(Object[] args) throws WarpScriptException {
+    Object[] res = new Object[4];
 
-  // todo
+    Long[] ticks = new Long[getPreWindow() + 1 + getPostWindow()];
+    for (int i = 0; i < ticks.length; i++) {
+      ticks[i] = (Long) ((Object[]) args[i + 1])[0];
+    }
+
+    // To also cross fill elev and loc, this default method would have to be overwritten
+    return new Object[]{ticks[getPreWindow()], GeoTimeSerie.NO_ELEVATION, GeoTimeSerie.NO_ELEVATION, getEvaluator().evaluate(ticks)};
+  }
 }
