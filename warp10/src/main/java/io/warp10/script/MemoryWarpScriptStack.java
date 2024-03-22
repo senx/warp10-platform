@@ -908,11 +908,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
               hexl = Long.parseLong(stmt.substring(2), 16);
             } else {
               hexl = new BigInteger(stmt.substring(2), 16);
-              if (Boolean.TRUE.equals(getAttribute(WarpScriptStack.ATTRIBUTE_PARSE_BIGINTS))) {
-                hexl = new BigDecimal((BigInteger) hexl);
-              } else {
-                hexl = ((BigInteger) hexl).longValue();
-              }
+              hexl = ((BigInteger) hexl).longValue();
             }
             if (macros.isEmpty()) {
               push(hexl);
@@ -926,11 +922,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
               binl = Long.parseLong(stmt.substring(2), 2);
             } else {
               binl = new BigInteger(stmt.substring(2), 2);
-              if (Boolean.TRUE.equals(getAttribute(WarpScriptStack.ATTRIBUTE_PARSE_BIGINTS))) {
-                binl = new BigDecimal((BigInteger) binl);
-              } else {
-                binl = ((BigInteger) binl).longValue();
-              }
+              binl = ((BigInteger) binl).longValue();
             }
             if (macros.isEmpty()) {
               push(binl);
@@ -942,18 +934,7 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             // Push longs onto the stack
             //
 
-            Object l;
-
-            if (Boolean.TRUE.equals(getAttribute(WarpScriptStack.ATTRIBUTE_PARSE_BIGINTS))) {
-              BigInteger bi = new BigInteger(stmt);
-              try {
-                l = bi.longValueExact();
-              } catch (ArithmeticException ae) {
-                l = TOBD.toBigDecimal("", bi);
-              }
-            } else {
-              l = Long.valueOf(stmt);
-            }
+            Long l = Long.valueOf(stmt);
 
             if (macros.isEmpty()) {
               push(l);

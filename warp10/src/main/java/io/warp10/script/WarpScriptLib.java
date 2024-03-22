@@ -148,7 +148,6 @@ import io.warp10.script.functions.BDNEG;
 import io.warp10.script.functions.BDNEXTPROBABLEPRIME;
 import io.warp10.script.functions.BDNOT;
 import io.warp10.script.functions.BDOR;
-import io.warp10.script.functions.BDPARSE;
 import io.warp10.script.functions.BDPOW;
 import io.warp10.script.functions.BDPROBABLEPRIME;
 import io.warp10.script.functions.BDRAND;
@@ -1059,7 +1058,6 @@ public class WarpScriptLib {
   public static final String BDSTRIP = "BDSTRIP";
   public static final String BDSIGNUM = "BDSIGNUM";
   public static final String BDCLEAR = "BDCLEAR";
-  public static final String BDPARSE = "BDPARSE";
   public static final String BDRAND = "BDRAND";
   public static final String SBDRAND = "SBDRAND";
   public static final String BDPROBABLEPRIME = "BDPROBABLEPRIME";
@@ -2916,7 +2914,6 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new BDCLEAR(BDCLEAR));
     addNamedWarpScriptFunction(new BDRAND(BDRAND, false));
     addNamedWarpScriptFunction(new BDRAND(SBDRAND, false));
-    addNamedWarpScriptFunction(new BDPARSE(BDPARSE));
     addNamedWarpScriptFunction(new BDPROBABLEPRIME(BDPROBABLEPRIME, false));
     addNamedWarpScriptFunction(new BDPROBABLEPRIME(SBDPROBABLEPRIME, true));
 
