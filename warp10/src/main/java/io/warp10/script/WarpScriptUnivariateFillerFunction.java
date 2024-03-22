@@ -27,14 +27,14 @@ public interface WarpScriptUnivariateFillerFunction extends WarpScriptFillerFunc
   public interface Evaluator {
 
     // number of input ticks depends on the window size
-    Object evaluate(Long... ticks);
+    Object[] evaluate(Long... ticks);
   }
 
   /**
-   * Get the Evaluator object based on the input gts and this filler properties
-   * @return
+   * Compute the Evaluator
+   * @param gts
    */
-  public Evaluator getEvaluator();
+  public Evaluator computeEvaluator(GeoTimeSerie gts);
 
   /**
    * Returns the size of the pre-window (in number of ticks)
@@ -53,14 +53,6 @@ public interface WarpScriptUnivariateFillerFunction extends WarpScriptFillerFunc
    * @throws WarpScriptException
    */
   default public Object[] apply(Object[] args) throws WarpScriptException {
-    Object[] res = new Object[4];
-
-    Long[] ticks = new Long[getPreWindow() + 1 + getPostWindow()];
-    for (int i = 0; i < ticks.length; i++) {
-      ticks[i] = (Long) ((Object[]) args[i + 1])[0];
-    }
-
-    // To also cross fill elev and loc, this default method would have to be overwritten
-    return new Object[]{ticks[getPreWindow()], GeoTimeSerie.NO_ELEVATION, GeoTimeSerie.NO_ELEVATION, getEvaluator().evaluate(ticks)};
+    throw new RuntimeException("This method should not be called");
   }
 }

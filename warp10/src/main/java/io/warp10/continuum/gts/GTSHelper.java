@@ -5247,6 +5247,16 @@ public class GTSHelper {
     Map<String,String> attrB = Collections.unmodifiableMap(gb.getMetadata().getAttributes());
 
     //
+    // Compute univariate filler evaluator if needed
+    //
+    WarpScriptUnivariateFillerFunction.Evaluator evaluatorA = null;
+    WarpScriptUnivariateFillerFunction.Evaluator evaluatorB = null;
+    if (filler instanceof WarpScriptUnivariateFillerFunction) {
+      evaluatorA = ((WarpScriptUnivariateFillerFunction) filler).computeEvaluator(ga);
+      evaluatorB = ((WarpScriptUnivariateFillerFunction) filler).computeEvaluator(gb);
+    }
+
+    //
     // We use a sweeping line algorithm to go over all the ticks
     //
 
@@ -5264,6 +5274,10 @@ public class GTSHelper {
     }
     Object[] other = new Object[4];
     Object[][] params = new Object[2 + prewindow + postwindow][];
+    Long[] ticks = null;
+    if (filler instanceof WarpScriptUnivariateFillerFunction) {
+      ticks = new Long[1 + prewindow + postwindow];
+    }
 
     while(idxa < gtsa.values || idxb < gtsb.values) {
 
@@ -5328,11 +5342,13 @@ public class GTSHelper {
       Map<String,String> otherAttr = null;
 
       GeoTimeSerie filled = null;
+      WarpScriptUnivariateFillerFunction.Evaluator evaluator = null;
 
       if (curTickA == null || (null != curTickB && curTickA > curTickB)) {
         // We should fill GTS A
 
         filled = ga;
+        evaluator = evaluatorA;
 
         for (int i = prewindow - 1; i >= 0; i--) {
           int ia = idxa - prewindow + i;
@@ -5376,6 +5392,7 @@ public class GTSHelper {
         // We should fill GTS B
 
         filled = gb;
+        evaluator = evaluatorB;
 
         for (int i = prewindow - 1; i >= 0; i--) {
           int ib = idxb - prewindow + i;
@@ -5441,11 +5458,27 @@ public class GTSHelper {
         params[2 + prewindow + i] = next[i];
       }
 
+      if (filler instanceof WarpScriptUnivariateFillerFunction) {
+        for (int i = 0; i < prewindow; i++) {
+          ticks[i] = (Long) prev[i][0];
+        }
+        ticks[prewindow] = (Long) other[0];
+        for (int i = 0; i < postwindow; i++) {
+          ticks[1 + prewindow + i] = (Long) next[i][0];
+        }
+      }
+
       //
       // Call the filler
       //
 
-      Object[] result = filler.apply(params);
+      Object[] result;
+      if (filler instanceof WarpScriptUnivariateFillerFunction) {
+        result = evaluator.evaluate(ticks);
+
+      } else {
+        result = filler.apply(params);
+      }
 
       if (null != result[3]) {
         long tick = ((Number) result[0]).longValue();
@@ -5464,22 +5497,16 @@ public class GTSHelper {
     return results;
   }
 
-  public static final GeoTimeSerie fill(GeoTimeSerie gts , List<Long> occurences, WarpScriptUnivariateFillerFunction filler, Object invalidValue) throws WarpScriptException {
-    return fill(gts, occurences, filler, filler, filler, invalidValue);
-  }
-
   /**
    * Fills the gaps in a GTS.
    * @param gts The GTS to fill
    * @param occurrences A list of ticks to fill. If null, empty buckets are filled
    * @param filler The filler function used to calculate values
-   * @param fillerElev The filler function used to calculate elevations
-   * @param fillerLoc The filler function used to calculate latitudes and longitudes
    * @param invalidValue The value to use if the filler function is not supported on the tick of a gap
    * @return A filled GTS
    * @throws WarpScriptException
    */
-  public static final GeoTimeSerie fill(GeoTimeSerie gts, List<Long> occurrences, WarpScriptUnivariateFillerFunction filler, WarpScriptUnivariateFillerFunction fillerElev, WarpScriptUnivariateFillerFunction fillerLoc, Object invalidValue) throws WarpScriptException {
+  public static final GeoTimeSerie fill(GeoTimeSerie gts, List<Long> occurrences, WarpScriptUnivariateFillerFunction filler, Object invalidValue) throws WarpScriptException {
     if (GeoTimeSerie.TYPE.DOUBLE != gts.getType() && GeoTimeSerie.TYPE.LONG != gts.getType()) {
       throw new WarpScriptException("GTS must be of numeric type");
     }
