@@ -83,7 +83,8 @@ public class UNBUCKETIZECALENDAR extends GTSStackFunction {
     result.getMetadata().getAttributes().remove(BUCKETIZECALENDAR.TIMEZONE_ATTRIBUTE_KEY);
 
     for (int i = 0; i < gts.size(); i++) {
-      long tick = BUCKETIZECALENDAR.addNonNegativePeriod(lastbucket, bucketperiod, dtz,  i - (gts.size() - 1));
+      long bucketIndex = GTSHelper.tickAtIndex(gts, i);
+      long tick = BUCKETIZECALENDAR.addNonNegativePeriod(lastbucket, bucketperiod, dtz, bucketIndex - lastbucketIndex);
       GTSHelper.setValue(result, tick, GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i), GTSHelper.valueAtIndex(gts, i), false);
     }
 

@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2023  SenX S.A.S.
+//   Copyright 2018-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -66,7 +66,6 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
-import org.apache.thrift.protocol.TCompactProtocol;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Request;
@@ -1623,6 +1622,11 @@ public class Ingress extends AbstractHandler implements Runnable {
 
       String selector = request.getParameter(Constants.HTTP_PARAM_SELECTOR);
 
+    if (null == selector || selector.isEmpty()) {
+      response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid '" + Constants.HTTP_PARAM_SELECTOR +"' query parameter, should not be missing or empty.");
+      return;
+    }
+
       //
       // Extract the class and labels selectors
       // The class selector and label selectors are supposed to have
@@ -1938,6 +1942,25 @@ public class Ingress extends AbstractHandler implements Runnable {
 
         DirectoryRequest drequest = new DirectoryRequest();
         drequest.setSorted(mustSort);
+
+        Long activeAfter = null == request.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER) ? null : Long.parseLong(request.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER));
+        Long quietAfter = null == request.getParameter(Constants.HTTP_PARAM_QUIETAFTER) ? null : Long.parseLong(request.getParameter(Constants.HTTP_PARAM_QUIETAFTER));
+
+        if (!Constants.DELETE_ACTIVITY_SUPPORT) {
+          if (null != activeAfter || null != quietAfter) {
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Activity based selection is disabled by configuration.");
+            return;
+          }
+        }
+
+        if (null != activeAfter) {
+          drequest.setActiveAfter(activeAfter);
+        }
+
+        if (null != quietAfter) {
+          drequest.setQuietAfter(quietAfter);
+        }
+
         drequest.setClassSelectors(clsSels);
         drequest.setLabelsSelectors(lblsSels);
 
