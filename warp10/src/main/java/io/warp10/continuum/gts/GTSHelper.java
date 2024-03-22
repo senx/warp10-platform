@@ -52,6 +52,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.warp10.script.WarpScriptUnivariateFillerFunction;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.math3.fitting.PolynomialCurveFitter;
@@ -5205,7 +5206,7 @@ public class GTSHelper {
   }
 
   /**
-   * This function fills the gaps in two GTS so they end up with identical ticks
+   * This function cross fills the gaps in two GTS so they end up with identical ticks
    *
    * @param gtsa First GTS to fill
    * @param gtsb Second GTS to fill
@@ -5457,6 +5458,29 @@ public class GTSHelper {
     results.add(gb);
 
     return results;
+  }
+
+  public static final GeoTimeSerie fill(GeoTimeSerie gts , List<Long> occurences, WarpScriptUnivariateFillerFunction filler, Object invalidValue) throws WarpScriptException {
+    return fill(gts, occurences, filler, filler, filler, invalidValue);
+  }
+
+  /**
+   * Fills the gaps in a GTS.
+   * @param gts The GTS to fill
+   * @param occurrences A list of ticks to fill. If null, empty buckets are filled
+   * @param filler The filler function used to calculate values
+   * @param fillerElev The filler function used to calculate elevations
+   * @param fillerLoc The filler function used to calculate latitudes and longitudes
+   * @param invalidValue The value to use if the filler function is not supported on the tick of a gap
+   * @return A filled GTS
+   * @throws WarpScriptException
+   */
+  public static final GeoTimeSerie fill(GeoTimeSerie gts, List<Long> occurrences, WarpScriptUnivariateFillerFunction filler, WarpScriptUnivariateFillerFunction fillerElev, WarpScriptUnivariateFillerFunction fillerLoc, Object invalidValue) throws WarpScriptException {
+    GeoTimeSerie res = gts.clone();
+
+    //todo
+
+    return res;
   }
 
   /**

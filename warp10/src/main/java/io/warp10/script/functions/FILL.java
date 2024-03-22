@@ -149,14 +149,14 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
 
     List res = new ArrayList<GeoTimeSerie>();
     if (stack.peek() instanceof GeoTimeSerie) {
-      res.add(fill((GeoTimeSerie) stack.pop(), (List<Long>) occurrences, (WarpScriptUnivariateFillerFunction) filler, (WarpScriptUnivariateFillerFunction) fillerElev, (WarpScriptUnivariateFillerFunction) fillerLoc, invalidValue));
+      res.add(GTSHelper.fill((GeoTimeSerie) stack.pop(), (List<Long>) occurrences, (WarpScriptUnivariateFillerFunction) filler, (WarpScriptUnivariateFillerFunction) fillerElev, (WarpScriptUnivariateFillerFunction) fillerLoc, invalidValue));
 
     } else if (stack.peek() instanceof List) {
       for (Object o: (List) stack.pop()) {
         if (!(o instanceof GeoTimeSerie)) {
           throw new WarpScriptException(getName() + " expects a LIST of GTS, but instead the list contains a " + TYPEOF.typeof(o));
         }
-        res.add(fill((GeoTimeSerie) o, (List<Long>) occurrences, (WarpScriptUnivariateFillerFunction) filler, (WarpScriptUnivariateFillerFunction) fillerElev, (WarpScriptUnivariateFillerFunction) fillerLoc, invalidValue));
+        res.add(GTSHelper.fill((GeoTimeSerie) o, (List<Long>) occurrences, (WarpScriptUnivariateFillerFunction) filler, (WarpScriptUnivariateFillerFunction) fillerElev, (WarpScriptUnivariateFillerFunction) fillerLoc, invalidValue));
       }
 
     } else {
@@ -213,14 +213,14 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
 
     List res = new ArrayList<GeoTimeSerie>();
     if (params.get(0) instanceof GeoTimeSerie) {
-      res.add(fill((GeoTimeSerie) params.get(0), occurrences, filler, null));
+      res.add(GTSHelper.fill((GeoTimeSerie) params.get(0), occurrences, filler, null));
 
     } else if (params.get(0) instanceof List) {
       for (Object o: (List) params.get(0)) {
         if (!(o instanceof GeoTimeSerie)) {
           throw new WarpScriptException(getName() + " expects a LIST of GTS as first parameter in the input LIST, but instead the list contains a " + TYPEOF.typeof(o));
         }
-        res.add(fill((GeoTimeSerie) o, occurrences, filler, null));
+        res.add(GTSHelper.fill((GeoTimeSerie) o, occurrences, filler, null));
       }
 
     } else {
@@ -230,17 +230,5 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
     stack.push(res);
 
     return stack;
-  }
-
-  private GeoTimeSerie fill(GeoTimeSerie gts , List<Long> occurences, WarpScriptUnivariateFillerFunction filler, Object invalidValue) throws WarpScriptException {
-    return fill(gts, occurences, filler, filler, filler, invalidValue);
-  }
-
-  private GeoTimeSerie fill(GeoTimeSerie gts, List<Long> occurrences, WarpScriptUnivariateFillerFunction filler, WarpScriptUnivariateFillerFunction fillerElev, WarpScriptUnivariateFillerFunction fillerLoc, Object invalidValue) throws WarpScriptException {
-    GeoTimeSerie res = gts.clone();
-
-    //todo
-
-    return res;
   }
 }
