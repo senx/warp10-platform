@@ -63,6 +63,10 @@ public class INTERPOLATOR_2D extends NamedWarpScriptFunction implements WarpScri
         throw new WarpScriptException(getName() + " expects a LIST with 2 components " + l.size());
       }
 
+      if (!(l.get(0) instanceof Number && l.get(1) instanceof Number)) {
+        throw new WarpScriptException(getName() + " expects a numeric LIST as argument, but it contains at least one non-numeric element.");
+      }
+
       double x = ((Number) l.get(0)).doubleValue();
       double y = ((Number) l.get(1)).doubleValue();
       stack.push(value(x, y));
@@ -78,7 +82,11 @@ public class INTERPOLATOR_2D extends NamedWarpScriptFunction implements WarpScri
       Object[] values = (Object[]) args[6];
 
       if (2 != values.length) {
-        throw new WarpScriptException(getName() + " expects 2 components but only got " + values.length);
+        throw new WarpScriptException(getName() + " expects 2 components but got " + values.length);
+      }
+
+      if (!(values[0]instanceof Number && values[1] instanceof Number)) {
+        throw new WarpScriptException(getName() + " expects two numeric GTS when used as a reducer, but at least one value was not numeric.");
       }
 
       double x = ((Number) values[0]).doubleValue();
@@ -172,6 +180,9 @@ public class INTERPOLATOR_2D extends NamedWarpScriptFunction implements WarpScri
     int d1 = o1.size();
     xval = new double[d1];
     for (int i = 0; i < d1; i++) {
+      if (!(o1.get(i) instanceof Number)) {
+        throw new WarpScriptException(getName() + " expects a numeric LIST as 1st argument, but it contains at least one non-numeric element.");
+      }
       xval[i] = ((Number) o1.get(i)).doubleValue();
     }
 
@@ -179,6 +190,9 @@ public class INTERPOLATOR_2D extends NamedWarpScriptFunction implements WarpScri
     int d2 = o2.size();
     yval = new double[d2];
     for (int i = 0; i < d2; i++) {
+      if (!(o2.get(i) instanceof Number)) {
+        throw new WarpScriptException(getName() + " expects a numeric LIST as 2nd argument, but it contains at least one non-numeric element.");
+      }
       yval[i] = ((Number) o2.get(i)).doubleValue();
     }
 

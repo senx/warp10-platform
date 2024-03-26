@@ -88,6 +88,9 @@ public class INTERPOLATOR_1D extends NamedWarpScriptFunction implements WarpScri
         throw new WarpScriptException(getName() + " expects 1 element but got " + values.length);
       }
 
+      if (!(values[0]instanceof Number)) {
+        throw new WarpScriptException(getName() + " expects a numeric GTS as argument when used as a mapper, but instead got a non numeric element");
+      }
       double x = ((Number) values[0]).doubleValue();
       double res = value(x);
 
@@ -163,6 +166,9 @@ public class INTERPOLATOR_1D extends NamedWarpScriptFunction implements WarpScri
     xval = new double[d1];
     fval = new double[d1];
     for (int i = 0; i < d1; i++) {
+      if (!(o1.get(i) instanceof Number)) {
+        throw new WarpScriptException(getName() + " expects the first argument to be a numeric LIST of numbers");
+      }
       xval[i] = ((Number) o1.get(i)).doubleValue();
       if (!(o2.get(i) instanceof Number)) {
         throw new WarpScriptException(getName() + " expects the last argument to be a numeric LIST of numbers");
