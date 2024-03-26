@@ -70,6 +70,9 @@ public class INTERPOLATOR_3D extends NamedWarpScriptFunction implements WarpScri
         throw new WarpScriptException(getName() + " expects a LIST with 3 components " + l.size());
       }
 
+      if (!(l.get(0) instanceof Number && l.get(1) instanceof Number && l.get(2) instanceof Number)) {
+        throw new WarpScriptException(getName() + " expects a numeric LIST as argument, instead got at least one non numeric element");
+      }
       double x = ((Number) l.get(0)).doubleValue();
       double y = ((Number) l.get(1)).doubleValue();
       double z = ((Number) l.get(2)).doubleValue();
@@ -93,6 +96,9 @@ public class INTERPOLATOR_3D extends NamedWarpScriptFunction implements WarpScri
         return new Object[] {tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, null};
       }
 
+      if (!(values[0] instanceof Number && values[1] instanceof Number && values[2] instanceof Number)) {
+        throw new WarpScriptException(getName() + " expects a numeric GTS as argument when used as a reducer, instead got at least one non numeric element");
+      }
       double x = ((Number) values[0]).doubleValue();
       double y = ((Number) values[1]).doubleValue();
       double z = ((Number) values[2]).doubleValue();
@@ -205,6 +211,9 @@ public class INTERPOLATOR_3D extends NamedWarpScriptFunction implements WarpScri
     int d1 = o1.size();
     xval = new double[d1];
     for (int i = 0; i < d1; i++) {
+      if (!(o1.get(i) instanceof Number)) {
+        throw new WarpScriptException(getName() + " expects a numeric LIST as 1st argument, instead got at least one non numeric element");
+      }
       xval[i] = ((Number) o1.get(i)).doubleValue();
     }
 
@@ -212,6 +221,9 @@ public class INTERPOLATOR_3D extends NamedWarpScriptFunction implements WarpScri
     int d2 = o2.size();
     yval = new double[d2];
     for (int i = 0; i < d2; i++) {
+      if (!(o2.get(i) instanceof Number)) {
+        throw new WarpScriptException(getName() + " expects a numeric LIST as 2nd argument, instead got at least one non numeric element");
+      }
       yval[i] = ((Number) o2.get(i)).doubleValue();
     }
 
@@ -219,6 +231,9 @@ public class INTERPOLATOR_3D extends NamedWarpScriptFunction implements WarpScri
     int d3 = o3.size();
     zval = new double[d3];
     for (int i = 0; i < d3; i++) {
+      if (!(o3.get(i) instanceof Number)) {
+        throw new WarpScriptException(getName() + " expects a numeric LIST as 3rd argument, instead got at least one non numeric element");
+      }
       zval[i] = ((Number) o3.get(i)).doubleValue();
     }
 
