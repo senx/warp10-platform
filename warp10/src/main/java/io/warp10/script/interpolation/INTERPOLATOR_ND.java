@@ -94,6 +94,9 @@ public class INTERPOLATOR_ND extends NamedWarpScriptFunction implements WarpScri
 
       double[] point = new double[l.size()];
       for (int i = 0; i < l.size(); i++) {
+        if (!(l.get(i) instanceof Number)) {
+          throw new WarpScriptException(getName() + " expects a numeric LIST as argument, instead got at least one non numeric element");
+        }
         point[i] = ((Number) l.get(i)).doubleValue();
       }
 
@@ -112,6 +115,9 @@ public class INTERPOLATOR_ND extends NamedWarpScriptFunction implements WarpScri
 
       double[] point = new double[values.length];
       for (int i = 0; i < values.length; i++) {
+        if (!(values[i] instanceof Number)) {
+          throw new WarpScriptException(getName() + " expects to operate on numeric GTS when used as reducer, instead got at least one non numeric element");
+        }
         point[i] = ((Number) values[i]).doubleValue();
       }
       double res = func.value(point);
