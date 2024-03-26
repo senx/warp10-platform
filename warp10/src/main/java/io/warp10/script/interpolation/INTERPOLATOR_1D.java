@@ -152,26 +152,25 @@ public class INTERPOLATOR_1D extends NamedWarpScriptFunction implements WarpScri
     }
     List o1 = (List) o;
 
-    // fill x
-    int d1 = o1.size();
-    xval = new double[d1];
-    for (int i = 0; i < d1; i++) {
-      xval[i] = ((Number) o1.get(i)).doubleValue();
-    }
 
-    // fill f
+    // check sizes
+    int d1 = o1.size();
     if (o2.size() != d1) {
       throw new WarpScriptException(getName() + ": incoherent argument sizes, both input LIST should have the same size.");
     }
-    fval = new double[d1];
 
+    // init and type checking
+    xval = new double[d1];
+    fval = new double[d1];
     for (int i = 0; i < d1; i++) {
+      xval[i] = ((Number) o1.get(i)).doubleValue();
       if (!(o2.get(i) instanceof Number)) {
         throw new WarpScriptException(getName() + " expects the last argument to be a numeric LIST of numbers");
       }
       fval[i] = ((Number) o2.get(i)).doubleValue();
     }
 
+    // init function
     PolynomialSplineFunction function = null;
     if (type==TYPE.SPLINE && d1 > 2) {
       function = (new SplineInterpolator()).interpolate(xval, fval);
