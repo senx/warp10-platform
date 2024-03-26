@@ -255,7 +255,7 @@ public class INTERPOLATOR_3D extends NamedWarpScriptFunction implements WarpScri
 
       for (int j = 0; j < d2; j++) {
         if (!(row.get(j) instanceof List)) {
-          throw new WarpScriptException(getName() + " expects the last argument to be a LIST of LIST of LIST of numbers.");
+          throw new WarpScriptException(getName() + " expects the last argument to be a LIST of LIST of LIST of numbers");
         }
 
         List col = (List) row.get(j);
@@ -265,7 +265,7 @@ public class INTERPOLATOR_3D extends NamedWarpScriptFunction implements WarpScri
 
         for (int k = 0; k < d3; k++) {
           if (!((col.get(k)) instanceof Number)) {
-            throw new WarpScriptException(getName() + " expects the last argument to be a numeric LIST of LIST of LIST of numbers.");
+            throw new WarpScriptException(getName() + " expects the last argument to be a LIST of LIST of LIST of numbers");
           }
 
           fval[i][j][k] = ((Number) col.get(k)).doubleValue();

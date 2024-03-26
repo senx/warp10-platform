@@ -167,11 +167,11 @@ public class INTERPOLATOR_1D extends NamedWarpScriptFunction implements WarpScri
     fval = new double[d1];
     for (int i = 0; i < d1; i++) {
       if (!(o1.get(i) instanceof Number)) {
-        throw new WarpScriptException(getName() + " expects the first argument to be a numeric LIST of numbers");
+        throw new WarpScriptException(getName() + " expects the first argument to be a numeric LIST");
       }
       xval[i] = ((Number) o1.get(i)).doubleValue();
       if (!(o2.get(i) instanceof Number)) {
-        throw new WarpScriptException(getName() + " expects the last argument to be a numeric LIST of numbers");
+        throw new WarpScriptException(getName() + " expects the last argument to be a numeric LIST");
       }
       fval[i] = ((Number) o2.get(i)).doubleValue();
     }
