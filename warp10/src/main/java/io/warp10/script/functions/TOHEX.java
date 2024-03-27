@@ -61,7 +61,7 @@ public class TOHEX extends NamedWarpScriptFunction implements WarpScriptStackFun
         throw new WarpScriptException(getName() + " can only operate on a BIGDECIMAL with no fractional part.");
       }
     } else {
-      throw new WarpScriptException(getName() + " operates on a STRING, BYTES or LONG.");
+      throw new WarpScriptException(getName() + " operates on a STRING, BYTES, BIGDECIMAL or LONG.");
     }
 
     return stack;

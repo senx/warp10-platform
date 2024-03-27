@@ -47,7 +47,7 @@ public abstract class BitwiseOperation extends NamedWarpScriptFunction implement
 
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    String exceptionMessage = getName() + " can only operate on two LONG, or two LONG GTS, or one LONG GTS and a LONG.";
+    String exceptionMessage = getName() + " can only operate on two LONG, or two LONG GTS, or one LONG GTS and a LONG, or a BIGDECIMAL/LONG combination .";
 
     Object op2 = stack.pop();
     Object op1 = stack.pop();
