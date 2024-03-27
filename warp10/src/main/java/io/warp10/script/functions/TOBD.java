@@ -1,5 +1,5 @@
 //
-//   Copyright 2023  SenX S.A.S.
+//   Copyright 2023-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -46,9 +46,21 @@ public class TOBD extends NamedWarpScriptFunction implements WarpScriptStackFunc
     BigDecimal bd = null;
 
     if (o instanceof BigDecimal) {
-      bd = (BigDecimal) o; 
+      bd = (BigDecimal) o;
+    } else if (o instanceof BigInteger) {
+      bd = new BigDecimal((BigInteger) o);
     } else if (o instanceof String) {
-      bd = new BigDecimal((String) o);
+      if (((String) o).startsWith("0x")) {
+        bd = new BigDecimal(new BigInteger(((String) o).substring(2), 16));
+      } else if (((String) o).startsWith("-0x")) {
+        bd = new BigDecimal(new BigInteger(((String) o).substring(3), 16).negate());
+      } else if (((String) o).startsWith("0b")) {
+          bd = new BigDecimal(new BigInteger(((String) o).substring(2), 2));
+        } else if (((String) o).startsWith("-0b")) {
+          bd = new BigDecimal(new BigInteger(((String) o).substring(3), 2).negate());
+      } else {
+        bd = new BigDecimal((String) o);
+      }
     } else if (o instanceof Long) {
       bd = BigDecimal.valueOf(((Long) o).longValue());
     } else if (o instanceof Double) {
@@ -61,5 +73,15 @@ public class TOBD extends NamedWarpScriptFunction implements WarpScriptStackFunc
     }
 
     return bd;
+  }
+
+  public static BigInteger toBigInteger(String name, Object o)  throws WarpScriptException {
+    BigDecimal bd = toBigDecimal(name, o);
+
+    try {
+      return bd.toBigIntegerExact();
+    } catch (ArithmeticException ae) {
+      throw new WarpScriptException(name + " can only be applied to a BIGDECIMAL with no fractional part.");
+    }
   }
 }

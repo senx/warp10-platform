@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,10 +16,7 @@
 
 package io.warp10.script.binary;
 
-import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
-import io.warp10.script.WarpScriptException;
-import io.warp10.script.WarpScriptStack;
+import java.math.BigInteger;
 
 /**
  * Shift right the long below the top of the stack by the number of bits on top of the stack
@@ -39,6 +36,11 @@ public class SHIFTRIGHT extends BitwiseOperation {
     } else {
       return op1 >>> op2;
     }
+  }
+
+  @Override
+  public BigInteger operator(BigInteger op1, BigInteger op2) {
+    return op1.shiftRight(op2.intValueExact());
   }
 
 }

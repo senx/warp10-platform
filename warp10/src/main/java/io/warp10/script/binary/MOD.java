@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.functions.TOBD;
 
 import java.math.BigDecimal;
 
@@ -41,7 +42,9 @@ public class MOD extends NamedWarpScriptFunction implements WarpScriptStackFunct
       throw new WarpScriptException(getName() + " operates on numeric arguments.");
     }
 
-    if (op1 instanceof Double || op2 instanceof Double || op1 instanceof BigDecimal || op2 instanceof BigDecimal) {
+    if (op1 instanceof BigDecimal || op2 instanceof BigDecimal) {
+      stack.push(TOBD.toBigDecimal(getName(), TOBD.toBigDecimal(getName(), op1).remainder(TOBD.toBigDecimal(getName(), op2))));
+    } else if (op1 instanceof Double || op2 instanceof Double) {
       stack.push(((Number) op1).doubleValue() % ((Number) op2).doubleValue());
     } else {
       stack.push(((Number) op1).longValue() % ((Number) op2).longValue());

@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -21,6 +21,8 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.util.BitSet;
 
@@ -76,8 +78,21 @@ public class TOBIN extends NamedWarpScriptFunction implements WarpScriptStackFun
       }
 
       stack.push(sb.toString());
+    } else if (o instanceof BigDecimal) {
+      try {
+        BigInteger bi = ((BigDecimal) o).toBigIntegerExact();
+
+        if (bi.signum() < 0) {
+          stack.push("-0b" + bi.negate().toString(2));
+        } else {
+          stack.push("0b" + bi.toString(2));
+        }
+      } catch (ArithmeticException ae) {
+        throw new WarpScriptException(getName() + " can only operate on a BIGDECIMAL with no fractional part.");
+      }
+
     } else {
-      throw new WarpScriptException(getName() + " operates on a STRING, BYTES, LONG or BITSET.");
+      throw new WarpScriptException(getName() + " operates on a STRING, BYTES, LONG, BIGDECIMAL or BITSET.");
     }
 
     return stack;

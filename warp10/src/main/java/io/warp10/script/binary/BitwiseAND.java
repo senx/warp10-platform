@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,13 +16,7 @@
 
 package io.warp10.script.binary;
 
-import io.warp10.continuum.gts.GTSHelper;
-import io.warp10.continuum.gts.GTSOpsHelper;
-import io.warp10.continuum.gts.GeoTimeSerie;
-import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
-import io.warp10.script.WarpScriptException;
-import io.warp10.script.WarpScriptStack;
+import java.math.BigInteger;
 
 /**
  * Bitwise AND of the two operands on top of the stack
@@ -36,6 +30,11 @@ public class BitwiseAND extends BitwiseOperation {
   @Override
   public long operator(long op1, long op2) {
     return op1 & op2;
+  }
+
+  @Override
+  public BigInteger operator(BigInteger op1, BigInteger op2) {
+    return op1.and(op2);
   }
 
 }

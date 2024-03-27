@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2024  SenX S.A.S.
+//   Copyright 2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -14,40 +14,32 @@
 //   limitations under the License.
 //
 
-package io.warp10.script.unary;
-
-import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
-import io.warp10.script.functions.TOBD;
-import io.warp10.script.WarpScriptException;
-import io.warp10.script.WarpScriptStack;
+package io.warp10.script.functions;
 
 import java.math.BigInteger;
 
-/**
- * Converts the hex representation in the string operand to a LONG
- */
-public class FROMHEX extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
 
-  public FROMHEX(String name) {
+public class BDANDNOT extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+
+  public BDANDNOT(String name) {
     super(name);
   }
 
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    Object op = stack.pop();
+    Object o = stack.pop();
 
-    if (!(op instanceof String)) {
-      throw new WarpScriptException(getName() + " can only operate on string of hexadecimal representations.");
-    }
+    BigInteger bd2 = TOBD.toBigInteger(getName(), o);
 
-    BigInteger bi = new BigInteger(op.toString(), 16);
+    o = stack.pop();
 
-    if (op.toString().length() > 16) {
-      stack.push(TOBD.toBigDecimal(getName(), bi));
-    } else {
-      stack.push(bi.longValue());
-    }
+    BigInteger bd1 = TOBD.toBigInteger(getName(), o);
+
+    stack.push(TOBD.toBigDecimal(getName(), bd1.andNot(bd2)));
 
     return stack;
   }

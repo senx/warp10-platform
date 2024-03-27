@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2023  SenX S.A.S.
+//   Copyright 2020-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -26,7 +26,9 @@ import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
+import io.warp10.script.functions.TOBD;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -65,15 +67,17 @@ public class ADD extends NamedWarpScriptFunction implements WarpScriptStackFunct
   public ADD(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object op2 = stack.pop();
     Object op1 = stack.pop();
-    
+
     if (op2 instanceof Number && op1 instanceof Number) {
-      if (op1 instanceof Double || op2 instanceof Double) {
-        stack.push(((Number) op1).doubleValue() + ((Number) op2).doubleValue());        
+      if (op1 instanceof BigDecimal || op2 instanceof BigDecimal) {
+        stack.push(TOBD.toBigDecimal(getName(), TOBD.toBigDecimal(getName(), op1).add(TOBD.toBigDecimal(getName(), op2))));
+      } else if (op1 instanceof Double || op2 instanceof Double) {
+        stack.push(((Number) op1).doubleValue() + ((Number) op2).doubleValue());
       } else {
         stack.push(((Number) op1).longValue() + ((Number) op2).longValue());
       }
@@ -116,7 +120,7 @@ public class ADD extends NamedWarpScriptFunction implements WarpScriptStackFunct
       //
 
       TYPE type = TYPE.UNDEFINED;
-      
+
       if (TYPE.BOOLEAN == gts1.getType() || TYPE.BOOLEAN == gts2.getType()) {
         throw new WarpScriptException(getName() + " cannot operate on BOOLEAN Geo Time Series.");
       } else if (TYPE.STRING == gts1.getType() || TYPE.STRING == gts2.getType()) {
@@ -126,9 +130,9 @@ public class ADD extends NamedWarpScriptFunction implements WarpScriptStackFunct
       } else if (TYPE.LONG == gts1.getType() || TYPE.LONG == gts2.getType()) {
         type = TYPE.LONG;
       }
-      
+
       GeoTimeSerie result = new GeoTimeSerie(Math.max(GTSHelper.nvalues(gts1), GTSHelper.nvalues(gts2)));
-      
+
       result.setType(type);
 
       switch (type) {
@@ -153,18 +157,18 @@ public class ADD extends NamedWarpScriptFunction implements WarpScriptStackFunct
       stack.push(result);
     } else if (op1 instanceof GeoTimeSerie || op2 instanceof GeoTimeSerie) {
       TYPE type;
-      
+
       boolean op1gts = op1 instanceof GeoTimeSerie;
-      
+
       int n = op1gts ? GTSHelper.nvalues((GeoTimeSerie) op1) : GTSHelper.nvalues((GeoTimeSerie) op2);
-      
+
       GeoTimeSerie result = op1gts ? ((GeoTimeSerie) op1).cloneEmpty(n) : ((GeoTimeSerie) op2).cloneEmpty(n);
       GeoTimeSerie gts = op1gts ? (GeoTimeSerie) op1 : (GeoTimeSerie) op2;
-      
+
       // Determine type of result
-      
+
       Object op = op1gts ? op2 : op1;
-      
+
       if (op instanceof String) {
         type = TYPE.STRING;
       } else if (op instanceof Double) {
@@ -188,7 +192,7 @@ public class ADD extends NamedWarpScriptFunction implements WarpScriptStackFunct
       } else {
         throw new WarpScriptException(getName() + " can only be used with String or numeric types with a GTS.");
       }
-      
+
       for (int i = 0; i < n; i++) {
         Object value;
         switch (type) {
@@ -211,15 +215,15 @@ public class ADD extends NamedWarpScriptFunction implements WarpScriptStackFunct
             throw new WarpScriptException(getName() + " Invalid operand type.");
         }
         GTSHelper.setValue(result, GTSHelper.tickAtIndex(gts, i), GTSHelper.locationAtIndex(gts, i), GTSHelper.elevationAtIndex(gts, i), value, false);
-      }      
+      }
 
-      stack.push(result);          
+      stack.push(result);
     } else if (op1 instanceof byte[] && op2 instanceof byte[]) {
       stack.push(ArrayUtils.addAll((byte[])op1,(byte[])op2));
     } else {
       throw new WarpScriptException(getName() + " can only operate on numeric, string, lists, matrices, vectors, Geo Time Series, byte array and macro values.");
     }
-    
+
     return stack;
   }
 }
