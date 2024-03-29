@@ -679,7 +679,9 @@ import io.warp10.script.functions.LOGINIT;
 import io.warp10.script.functions.STDERR;
 import io.warp10.script.functions.STDOUT;
 import io.warp10.script.functions.TDESCRIBE;
-import io.warp10.script.functions.SLEEP;import io.warp10.script.functions.math.GETEXPONENT;
+import io.warp10.script.functions.SLEEP;
+
+import io.warp10.script.functions.math.GETEXPONENT;
 import io.warp10.script.functions.math.RANDOM;
 import io.warp10.script.functions.math.SCALB;
 import io.warp10.script.functions.shape.CHECKSHAPE;
@@ -687,6 +689,11 @@ import io.warp10.script.functions.shape.HULLSHAPE;
 import io.warp10.script.functions.shape.PERMUTE;
 import io.warp10.script.functions.shape.RESHAPE;
 import io.warp10.script.functions.shape.SHAPE;
+import io.warp10.script.functions.SLEEP;
+import io.warp10.script.interpolation.INTERPOLATOR_1D;
+import io.warp10.script.interpolation.INTERPOLATOR_2D;
+import io.warp10.script.interpolation.INTERPOLATOR_3D;
+import io.warp10.script.interpolation.INTERPOLATOR_ND;
 import io.warp10.script.mapper.MapperAbs;
 import io.warp10.script.mapper.MapperAdd;
 import io.warp10.script.mapper.MapperCeil;
@@ -1915,6 +1922,13 @@ public class WarpScriptLib {
   public static final String SSTPURGE = "SSTPURGE";
   public static final String SSTREPORT = "SSTREPORT";
   public static final String SSTTIMESTAMP = "SSTTIMESTAMP";
+  public static final String INTERPOLATOR_1D_LINEAR = "INTERPOLATOR.1D.LINEAR";
+  public static final String INTERPOLATOR_1D_SPLINE = "INTERPOLATOR.1D.SPLINE";
+  public static final String INTERPOLATOR_1D_AKIMA = "INTERPOLATOR.1D.AKIMA";
+  public static final String INTERPOLATOR_2D_BICUBIC = "INTERPOLATOR.2D.BICUBIC";
+  public static final String INTERPOLATOR_3D_TRICUBIC = "INTERPOLATOR.3D.TRICUBIC";
+  public static final String INTERPOLATOR_ND_MICROSPHERE = "INTERPOLATOR.ND.MICROSPHERE";
+  public static final String INTERPOLATOR_ND_SMICROSPHERE = "INTERPOLATOR.ND.SMICROSPHERE";
 
   //
   // FDB
@@ -2988,6 +3002,18 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new GETEXPONENT(GETEXPONENT));
 
     addNamedWarpScriptFunction(new IDENT(IDENT));
+
+    //
+    // Interpolation
+    //
+
+    addNamedWarpScriptFunction(new INTERPOLATOR_1D(INTERPOLATOR_1D_LINEAR, INTERPOLATOR_1D.TYPE.LINEAR));
+    addNamedWarpScriptFunction(new INTERPOLATOR_1D(INTERPOLATOR_1D_SPLINE, INTERPOLATOR_1D.TYPE.SPLINE));
+    addNamedWarpScriptFunction(new INTERPOLATOR_1D(INTERPOLATOR_1D_AKIMA, INTERPOLATOR_1D.TYPE.AKIMA));
+    addNamedWarpScriptFunction(new INTERPOLATOR_2D(INTERPOLATOR_2D_BICUBIC));
+    addNamedWarpScriptFunction(new INTERPOLATOR_3D(INTERPOLATOR_3D_TRICUBIC));
+    addNamedWarpScriptFunction(new INTERPOLATOR_ND(INTERPOLATOR_ND_MICROSPHERE, false));
+    addNamedWarpScriptFunction(new INTERPOLATOR_ND(INTERPOLATOR_ND_SMICROSPHERE, true));
 
     //
     // Processing
