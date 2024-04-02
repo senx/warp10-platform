@@ -5590,20 +5590,21 @@ public class GTSHelper {
   }
 
   /**
-   * Fills the gaps in a GTS.
+   * Fills the gaps in a GTS
+   *
    * @param gts The GTS to fill
-   * @param occurrences A list of ticks to fill. If null, empty buckets are filled
+   * @param ticks A list of ticks to fill. If null, empty buckets are filled
    * @param filler The filler function used to calculate values
    * @param invalidValue The value to use if the filler function is not supported on the tick of a gap
-   * @return A filled GTS
+   * @return The filled GTS
    * @throws WarpScriptException
    */
-  public static final GeoTimeSerie fill(GeoTimeSerie gts, List<Long> occurrences, WarpScriptSingleValueFillerFunction filler, Object invalidValue) throws WarpScriptException {
-    //todo: revise
+  public static final GeoTimeSerie fill(GeoTimeSerie gts, List<Long> ticks, WarpScriptSingleValueFillerFunction filler, Object invalidValue) throws WarpScriptException {
+    //
+    // Sort original gts (similarly than cross fill)
+    //
 
-    if (GeoTimeSerie.TYPE.DOUBLE != gts.getType() && GeoTimeSerie.TYPE.LONG != gts.getType()) {
-      throw new WarpScriptException("GTS must be of numeric type");
-    }
+    sort(gts, false);
 
     //
     // Clone gts
@@ -5612,339 +5613,65 @@ public class GTSHelper {
     GeoTimeSerie filled = gts.clone();
 
     //
-    // If gts is not bucketized and occurrences parameter is not defined, do nothing
+    // If gts is not bucketized and ticks parameter is not defined, do nothing
     //
 
-    if (!GTSHelper.isBucketized(filled) && null == occurrences) {
+    if (!GTSHelper.isBucketized(filled) && null == ticks) {
       return filled;
     }
 
     //
-    // Sort GTS
+    // Precompute evaluator if necessary
     //
 
-    GTSHelper.sort(filled);
-    //filled = GTSHelper.dedup(filled);
-
-    //
-    // If there is less than two values, we cannot interpolate, return the filled GTS now
-    //
-
-    if (filled.values < 2) {
-      return filled;
+    if (filler instanceof WarpScriptSingleValueFillerFunction.Precomputable) {
+      filler = ((WarpScriptSingleValueFillerFunction.Precomputable) filler).compute(gts);
     }
 
     //
-    // Extract initial number of values
+    // Loop on gaps
     //
 
-    int nvalues = filled.values;
+    if (null != ticks) {
+      // gaps to fill are specified
+      for (Long tick: ticks) {
 
-    //
-    // Compute interpolator
-    //
+        // fill the gap
+        Object value = filler.evaluate(tick);
+        if (null != value) {
+          GTSHelper.setValue(filled, tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, value, false);
 
-    double xval[] = new double[nvalues];
-    double fval[] = new double[nvalues];
-    for (int i = 0; i < nvalues; i++) {
-      xval[i] = ((Number) GTSHelper.tickAtIndex(filled, i)).doubleValue();
-      fval[i] = ((Number) GTSHelper.valueAtIndex(filled, i)).doubleValue();
-    }
-
-    UnivariateInterpolator interpolator = createInterpolator((String) params.get(PARAM_INTERPOLATOR), nvalues);
-    UnivariateFunction function = null;
-    if (null != interpolator) {
-      try {
-        function = interpolator.interpolate(xval, fval);
-      } catch (NonMonotonicSequenceException e) {
-        throw new WarpScriptException("Can not fill gaps because of duplicate ticks. Consider using DEDUP first.");
-      } catch (Exception e) {
-        throw new WarpScriptException("Interpolation error when trying to fill gaps", e);
-      }
-    }
-
-    //
-    // Fill the result
-    // Count ticks with elevation and location
-    //
-
-    int nElevations = 0;
-    int nLocations = 0;
-
-    if (null == occurrences) {
-      // in this case, the result is necessarily bucketized
-      // we fill empty buckets
-
-      //
-      // Compute oldest bucket
-      //
-
-      long bucket = filled.lastbucket - filled.bucketcount * filled.bucketspan;
-
-      if ((null != filled.elevations) && (GeoTimeSerie.NO_ELEVATION != filled.elevations[0])) {
-        nElevations++;
-      }
-
-      if ((null != filled.locations) && (GeoTimeSerie.NO_LOCATION != filled.locations[0])) {
-        nLocations++;
-      }
-
-      for (int i = 1; i < nvalues; i++) {
-        if ((null != filled.elevations) && (GeoTimeSerie.NO_ELEVATION != filled.elevations[i])) {
-          nElevations++;
-        }
-        if ((null != filled.locations) && (GeoTimeSerie.NO_LOCATION != filled.locations[i])) {
-          nLocations++;
-        }
-
-        //
-        // Move bucket passed the last tick encountered
-        //
-        while(bucket < filled.lastbucket && bucket <= filled.ticks[i-1]) {
-          bucket += filled.bucketspan;
-        }
-
-        //
-        // If bucket is on the current tick, advance tick
-        //
-        if (bucket == filled.ticks[i]) {
-          continue;
-        }
-
-        //
-        // Fill missing values until bucket passes the current tick
-        //
-
-        while(bucket < filled.ticks[i]) {
-
-          if (null != function) {
-
-          }
-          Object value = fillerValue(function, bucket, invalidValue);
-          GTSHelper.setValue(filled, bucket, value);
-
-          bucket += filled.bucketspan;
+        } else if (null != invalidValue) {
+          GTSHelper.setValue(filled, tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, invalidValue, false);
         }
       }
 
     } else {
-      // count geo
-      for (int i = 0; i < nvalues; i++) {
+      // gts is sorted and bucketized
+      // we fill empty buckets
 
-        if ((null != filled.elevations) && (GeoTimeSerie.NO_ELEVATION != filled.elevations[i])) {
-          nElevations++;
-        }
+      // prev is initialized as the tick of the first bucket
+      long prev = gts.lastbucket - (gts.bucketcount - 1) * gts.bucketspan;
+      for (long bucket: gts.ticks) {
+        // skip non bucket ticks
+        if (0 != bucket - prev % gts.bucketspan ) {
+          continue;
 
-        if ((null != filled.locations) && (GeoTimeSerie.NO_LOCATION != filled.locations[i])) {
-          nLocations++;
-        }
-      }
+        } else {
+          while ((prev += gts.bucketspan) != bucket) {
+            // fill the gap
+            Object value = filler.evaluate(prev);
+            if (null != value) {
+              GTSHelper.setValue(filled, prev, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, value, false);
 
-      // fill occurrence ticks
-      if (null != function) {
-        for (Long tick : occurrences) {
-          Object value = fillerValue(function, tick, invalidValue);
-          GTSHelper.setValue(filled, tick, value);
-        }
-      }
-    }
-
-    //
-    // Take care of geo if we have at least two valid values for either elevation or location
-    //
-
-    UnivariateFunction elevFunction = null;
-    UnivariateFunction latFunction = null;
-    UnivariateFunction lonFunction = null;
-
-    //
-    // Compute interpolators
-    //
-
-    double[] xelev = null;
-    double[] felev = null;
-    double[] xloc = null;
-    double[] flat = null;
-    double[] flon = null;
-
-    if (nElevations >= 2) {
-      xelev = new double[nElevations];
-      felev = new double[nElevations];
-    }
-
-    if (nLocations >= 2) {
-      xloc = new double[nLocations];
-      flat = new double[nLocations];
-      flon = new double[nLocations];
-    }
-
-    for (int i = 0; i < nvalues; i++) {
-      if (nElevations >= 2) {
-        if (GeoTimeSerie.NO_ELEVATION != filled.elevations[i]) {
-          xelev[i] = ((Number) GTSHelper.tickAtIndex(filled, i)).doubleValue();
-          felev[i] = ((Number) filled.elevations[i]).doubleValue();
-        }
-      }
-
-      if (nLocations >= 2) {
-        if (GeoTimeSerie.NO_LOCATION != filled.locations[i]) {
-          xloc[i] = ((Number) GTSHelper.tickAtIndex(filled, i)).doubleValue();
-
-          double[] latlon = GeoXPLib.fromGeoXPPoint(filled.locations[i]);
-          flat[i] = latlon[0];
-          flon[i] = latlon[1];
-        }
-      }
-    }
-
-    //
-    // Fill elevation
-    //
-
-    if (nElevations >= 2) {
-
-      UnivariateInterpolator elevInterpolator = createInterpolator((String) params.get(PARAM_INTERPOLATOR_ELEV), nElevations);
-      elevFunction = null;
-      if (null != elevInterpolator) {
-        try {
-          elevFunction = elevInterpolator.interpolate(xelev, felev);
-        } catch (Exception e) {
-          throw new WarpScriptException("Interpolation error encountered when trying to fill gaps", e);
-        }
-      }
-
-      if (null != elevFunction) {
-
-        //
-        // Sort ticks
-        //
-
-        GTSHelper.sort(filled);
-
-        //
-        // Advance 'idx' to the first tick with a valid elevation
-        //
-
-        int idx = 0;
-
-        while (GeoTimeSerie.NO_ELEVATION == filled.elevations[idx]) {
-          idx++;
-        }
-
-        while (idx < filled.values) {
-          int i = idx + 1;
-
-          // Advance 'i' to the next tick with no elevation
-          while (i < filled.values && GeoTimeSerie.NO_ELEVATION != filled.elevations[i]) {
-            i++;
-          }
-
-          // Move 'idx' to 'i' - 1, the last tick with an elevation before one without one
-          idx = i - 1;
-
-          // 'i' now points to a tick with no elevation, advance it to the next one with an elevation.
-          while (i < filled.values && GeoTimeSerie.NO_ELEVATION == filled.elevations[i]) {
-            i++;
-          }
-
-          // Fill all ticks between 'idx' and 'i' with an interpolated elevation
-          if (i < filled.values) {
-            for (int j = idx + 1; j < i; j++) {
-              long tick = filled.ticks[j];
-              Double elev = fillerValue(elevFunction, tick, GeoTimeSerie.NO_ELEVATION);
-              if (null != elev) {
-                filled.elevations[j] = elev.longValue();
-              }
+            } else if (null != invalidValue) {
+              GTSHelper.setValue(filled, prev, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, invalidValue, false);
             }
           }
-
-          // Advance idx
-          idx = i;
         }
       }
     }
-
-    //
-    // Fill location
-    //
-
-    if (nLocations >= 2) {
-
-      UnivariateInterpolator latInterpolator = createInterpolator((String) params.get(PARAM_INTERPOLATOR_LOC), nLocations);
-      UnivariateInterpolator lonInterpolator = createInterpolator((String) params.get(PARAM_INTERPOLATOR_LOC), nLocations);
-
-      latFunction = null;
-      if (null != latInterpolator) {
-        try {
-          latFunction = latInterpolator.interpolate(xloc, flat);
-        } catch (Exception e) {
-          throw new WarpScriptException("Interpolation error encountered when trying to fill gaps", e);
-        }
-      }
-
-      lonFunction = null;
-      if (null != lonInterpolator) {
-        try {
-          lonFunction = lonInterpolator.interpolate(xloc, flon);
-        } catch (Exception e) {
-          throw new WarpScriptException("Interpolation error encountered when trying to fill gaps", e);
-        }
-      }
-
-      if (null != latFunction && null != lonFunction) {
-
-        //
-        // Sort ticks
-        //
-
-        GTSHelper.sort(filled);
-
-        //
-        // Advance 'idx' to the first tick with a valid location
-        //
-
-        int idx = 0;
-
-        // nLocations > 0, this means locations is non null
-        while (GeoTimeSerie.NO_LOCATION == filled.locations[idx]) {
-          idx++;
-        }
-
-        while (idx < filled.values) {
-          int i = idx + 1;
-
-          // Advance 'i' to the next tick with no location
-          while (i < filled.values && GeoTimeSerie.NO_LOCATION != filled.locations[i]) {
-            i++;
-          }
-
-          // Move 'idx' to 'i' - 1, the last tick with a location before one without one
-          idx = i - 1;
-
-          // 'i' now points to a tick with no location, advance it to the next one with a location.
-          while (i < filled.values && GeoTimeSerie.NO_LOCATION == filled.locations[i]) {
-            i++;
-          }
-
-          // Fill all ticks between 'idx' and 'i' with an interpolated location
-          if (i < filled.values) {
-            for (int j = idx + 1; j < i; j++) {
-              long tick = filled.ticks[j];
-              Double lat = fillerValue(latFunction, tick, invalidValue);
-              Double lon = fillerValue(lonFunction, tick, invalidValue);
-
-              if (null != lat && null != lon) {
-                filled.locations[j] = GeoXPLib.toGeoXPPoint(lat, lon);
-              }
-            }
-          }
-
-          // Advance idx
-          idx = i;
-        }
-      }
-    }
-
+    
     return filled;
   }
 

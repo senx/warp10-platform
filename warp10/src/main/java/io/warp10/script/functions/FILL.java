@@ -196,7 +196,7 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
     }
 
     List<Long> ticks = null;
-    if (3 == params.size()) {
+    if (3 == params.size() && null != params.get(2)) {
       if (!(params.get(2) instanceof List)) {
         throw new WarpScriptException(getName() + "expects the last parameter of the input LIST to be a LIST");
       }
