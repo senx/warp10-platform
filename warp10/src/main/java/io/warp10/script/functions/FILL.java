@@ -28,11 +28,10 @@ import io.warp10.script.WarpScriptFillerFunction;
 import io.warp10.script.WarpScriptSingleValueFillerFunction;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
-import io.warp10.script.WarpScriptUnivariateFillerFunction;
 
 public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  public static String PARAM_OCCURRENCES = "ticks";
+  public static String PARAM_TICKS = "ticks";
   public static String PARAM_FILLER = "filler";
   public static String PARAM_INVALID_VALUE = "invalid.value";
 
@@ -50,15 +49,18 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
   }
 
   /**
+   * crossFillApply aligns two gts by ensuring they end up with the same ticks.
+   * If a tick is present in one gts but not in the other, it is added to the later and the value is computed using the filler function.
+   *
    * Expected signature:
    * a:GTS b:GTS c:Filler FILL d:GTS e:GTS
    *
    * @param stack
-   * @return
+   * @return stack
    * @throws WarpScriptException
    */
   private Object crossFillApply(WarpScriptStack stack) throws WarpScriptException {
-    WarpScriptFillerFunction filler = (WarpScriptFillerFunction) stack.pop();
+    Object filler = stack.pop();
 
     Object top = stack.pop();
 
@@ -76,7 +78,12 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
 
     GeoTimeSerie gtsa = (GeoTimeSerie) top;
 
-    List<GeoTimeSerie> gts = GTSHelper.fill(gtsa, gtsb, filler);
+    List<GeoTimeSerie> gts;
+    if (filler instanceof WarpScriptFillerFunction) {
+      gts = GTSHelper.fill(gtsa, gtsb, (WarpScriptFillerFunction) filler);
+    } else {
+      gts = GTSHelper.fill(gtsa, gtsb, (WarpScriptSingleValueFillerFunction) filler);
+    }
 
     stack.push(gts.get(0));
     stack.push(gts.get(1));
@@ -84,6 +91,13 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
     return stack;
   }
 
+  /**
+   * univariateFillApply fills missing ticks in each input gts independently, either by filling on specified gaps or on empty buckets.
+   *
+   * @param stack
+   * @return stack
+   * @throws WarpScriptException
+   */
   private Object univariateFillApply(WarpScriptStack stack) throws WarpScriptException {
     if (stack.peek() instanceof Map) {
       return applyFromMap(stack, (Map) stack.pop());
@@ -105,63 +119,49 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
    * @throws WarpScriptException
    */
   private Object applyFromMap(WarpScriptStack stack, Map params) throws WarpScriptException {
-    Object occurrences = params.get(PARAM_OCCURRENCES);
-    if (null != occurrences) {
-      if (!(occurrences instanceof List)) {
-        throw new WarpScriptException(getName() + " expects parameter " + PARAM_OCCURRENCES + " to be a LIST, but instead got a " + TYPEOF.typeof(occurrences));
+    Object ticks = params.get(PARAM_TICKS);
+    if (null != ticks) {
+      if (!(ticks instanceof List)) {
+        throw new WarpScriptException(getName() + " expects parameter " + PARAM_TICKS + " to be a LIST, but instead got a " + TYPEOF.typeof(ticks));
       }
-      for (Object o: (List) occurrences) {
+      for (Object o: (List) ticks) {
         if (!(o instanceof Long)) {
-          throw new WarpScriptException(getName() + " expects parameter " + PARAM_OCCURRENCES + " to be a LIST of LONG, but it contains a " + TYPEOF.typeof(o));
+          throw new WarpScriptException(getName() + " expects parameter " + PARAM_TICKS + " to be a LIST of LONG, but it contains a " + TYPEOF.typeof(o));
         }
       }
     }
 
     Object filler = params.get(PARAM_FILLER);
-    if (!(filler instanceof WarpScriptUnivariateFillerFunction)) {
-      if (filler instanceof WarpScriptFillerFunction) {
-        throw new WarpScriptException(getName() + " expects parameter " + PARAM_FILLER + " to be an univariate filler, but instead got a filler used to cross fill two GTS.");
-      } else {
-        throw new WarpScriptException(getName() + " expects parameter " + PARAM_FILLER + " to be a filler, but instead got a " + TYPEOF.typeof(filler));
-      }
+    if (!(filler instanceof WarpScriptFillerFunction) || !(filler instanceof WarpScriptSingleValueFillerFunction)) {
+      throw new WarpScriptException(getName() + " expects parameter " + PARAM_FILLER + " to be a filler, but instead got a " + TYPEOF.typeof(filler));
     }
-
-    /*Object fillerElev = params.get(PARAM_FILLER_ELEV);
-    if (null != fillerElev && !(fillerElev instanceof WarpScriptUnivariateFillerFunction)) {
-      if (fillerElev instanceof WarpScriptFillerFunction) {
-        throw new WarpScriptException(getName() + " expects parameter " + PARAM_FILLER_ELEV + " to be an univariate filler, but instead got a filler used to cross fill two GTS.");
-      } else {
-        throw new WarpScriptException(getName() + " expects parameter " + PARAM_FILLER_ELEV + " to be a filler, but instead got a " + TYPEOF.typeof(fillerElev));
-      }
-    }
-
-    Object fillerLoc = params.get(PARAM_FILLER_LOC);
-    if (null != fillerLoc && !(fillerLoc instanceof WarpScriptUnivariateFillerFunction)) {
-      if (fillerLoc instanceof WarpScriptFillerFunction) {
-        throw new WarpScriptException(getName() + " expects parameter " + PARAM_FILLER_LOC + " to be an univariate filler, but instead got a filler used to cross fill two GTS.");
-      } else {
-        throw new WarpScriptException(getName() + " expects parameter " + PARAM_FILLER_LOC + " to be a filler, but instead got a " + TYPEOF.typeof(fillerLoc));
-      }
-    }*/
 
     Object invalidValue = params.get(PARAM_INVALID_VALUE);
 
     List res = new ArrayList<GeoTimeSerie>();
     if (stack.peek() instanceof GeoTimeSerie) {
-      //res.add(GTSHelper.fill((GeoTimeSerie) stack.pop(), (List<Long>) occurrences, (WarpScriptUnivariateFillerFunction) filler, (WarpScriptUnivariateFillerFunction) fillerElev, (WarpScriptUnivariateFillerFunction) fillerLoc, invalidValue));
-      res.add(GTSHelper.fill((GeoTimeSerie) stack.pop(), (List<Long>) occurrences, (WarpScriptUnivariateFillerFunction) filler, invalidValue));
+      if (filler instanceof WarpScriptFillerFunction) {
+        res.add(GTSHelper.fill((GeoTimeSerie) stack.pop(), (List<Long>) ticks, (WarpScriptFillerFunction) filler, invalidValue));
+
+      } else {
+        res.add(GTSHelper.fill((GeoTimeSerie) stack.pop(), (List<Long>) ticks, (WarpScriptSingleValueFillerFunction) filler, invalidValue));
+      }
 
     } else if (stack.peek() instanceof List) {
       for (Object o: (List) stack.pop()) {
         if (!(o instanceof GeoTimeSerie)) {
           throw new WarpScriptException(getName() + " expects a LIST of GTS, but instead the list contains a " + TYPEOF.typeof(o));
         }
-        //res.add(GTSHelper.fill((GeoTimeSerie) o, (List<Long>) occurrences, (WarpScriptUnivariateFillerFunction) filler, (WarpScriptUnivariateFillerFunction) fillerElev, (WarpScriptUnivariateFillerFunction) fillerLoc, invalidValue));
-        res.add(GTSHelper.fill((GeoTimeSerie) o, (List<Long>) occurrences, (WarpScriptUnivariateFillerFunction) filler, invalidValue));
+        if (filler instanceof WarpScriptFillerFunction) {
+          res.add(GTSHelper.fill((GeoTimeSerie) o, (List<Long>) ticks, (WarpScriptFillerFunction) filler, invalidValue));
+
+        } else {
+          res.add(GTSHelper.fill((GeoTimeSerie) o, (List<Long>) ticks, (WarpScriptSingleValueFillerFunction) filler, invalidValue));
+        }
       }
 
     } else {
-      throw new WarpScriptException(getName() + "expects a GTS or a LIST of GTS before the parameter MAP");
+      throw new WarpScriptException(getName() + "expects a GTS or a LIST of GTS before the map of parameters");
     }
 
     stack.push(res);
