@@ -16,5 +16,13 @@
 
 package io.warp10.script;
 
+import io.warp10.continuum.gts.GeoTimeSerie;
+
 public interface WarpScriptSingleValueFillerFunction {
+
+  public interface Precomputable extends WarpScriptSingleValueFillerFunction {
+    public WarpScriptSingleValueFillerFunction compute(GeoTimeSerie gts) throws WarpScriptException;
+  }
+
+  public Object evaluate(long tick) throws WarpScriptException;
 }

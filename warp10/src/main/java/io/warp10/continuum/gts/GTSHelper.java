@@ -52,8 +52,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import io.warp10.script.WarpScriptSingleValueFillerFunction;
-import io.warp10.script.WarpScriptUnivariateFillerFunction;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.math3.analysis.UnivariateFunction;
@@ -91,6 +89,7 @@ import io.warp10.script.WarpScriptBinaryOp;
 import io.warp10.script.WarpScriptBucketizerFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptFillerFunction;
+import io.warp10.script.WarpScriptSingleValueFillerFunction;
 import io.warp10.script.WarpScriptFilterFunction;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptMapperFunction;
@@ -5213,6 +5212,10 @@ public class GTSHelper {
   /**
    * This function fills the gaps in two GTS so they end up with identical ticks
    *
+   * The filler implements the WarpScriptFillerFunction interface:
+   *   - it computes the filled value using a sliding window
+   *   - it also fills geo coordinates
+   *
    * @param gtsa First GTS to fill
    * @param gtsb Second GTS to fill
    * @param filler Instance of filler to use for filling the gaps.
@@ -5468,14 +5471,15 @@ public class GTSHelper {
   /**
    * This function cross fills the gaps in two GTS so they end up with identical ticks
    *
+   * The filler implements the WarpScriptSingleValueFillerFunction interface:
+   *   - it computes the filled value by evaluating on each current tick a function that was precomputed on the whole gts
+   *   - it does not fill geo coordinates
+   *
    * @param gtsa First GTS to fill
    * @param gtsb Second GTS to fill
    * @param filler Instance of filler to use for filling the gaps.
    */
   public static final List<GeoTimeSerie> fill(GeoTimeSerie gtsa, GeoTimeSerie gtsb, WarpScriptSingleValueFillerFunction filler) throws WarpScriptException {
-    //todo: revise
-
-
     //
     // Ensure the two original GTS are sorted
     //
@@ -5496,24 +5500,18 @@ public class GTSHelper {
     Long curTickA = null;
     Long curTickB = null;
 
-    String classA = ga.getName();
-    String classB = gb.getName();
-
-    Map<String,String> labelsA = Collections.unmodifiableMap(ga.getLabels());
-    Map<String,String> labelsB = Collections.unmodifiableMap(gb.getLabels());
-
-    Map<String,String> attrA = Collections.unmodifiableMap(ga.getMetadata().getAttributes());
-    Map<String,String> attrB = Collections.unmodifiableMap(gb.getMetadata().getAttributes());
-
     //
-    // Compute univariate filler evaluator if needed
+    // Precompute evaluator if necessary
     //
-    WarpScriptUnivariateFillerFunction.Evaluator evaluatorA = null;
-    WarpScriptUnivariateFillerFunction.Evaluator evaluatorB = null;
-    if (filler instanceof WarpScriptUnivariateFillerFunction) {
-      evaluatorA = ((WarpScriptUnivariateFillerFunction) filler).computeEvaluator(ga);
-      evaluatorB = ((WarpScriptUnivariateFillerFunction) filler).computeEvaluator(gb);
+
+    WarpScriptSingleValueFillerFunction fillerA = filler;
+    WarpScriptSingleValueFillerFunction fillerB = filler;
+    if (filler instanceof WarpScriptSingleValueFillerFunction.Precomputable) {
+      fillerA = ((WarpScriptSingleValueFillerFunction.Precomputable) filler).compute(gtsa);
+      fillerB = ((WarpScriptSingleValueFillerFunction.Precomputable) filler).compute(gtsb);
     }
+
+    // todo: wip
 
     //
     // We use a sweeping line algorithm to go over all the ticks
