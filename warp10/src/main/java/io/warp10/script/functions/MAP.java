@@ -39,7 +39,7 @@ public class MAP extends NamedWarpScriptFunction implements WarpScriptStackFunct
   private static final String PARAM_MAPPER = "mapper";
   private static final String PARAM_PREWINDOW = "pre";
   private static final String PARAM_POSTWINDOW = "post";
-  public static final String PARAM_OCCURRENCES = "occurrences";
+  private static final String PARAM_OCCURRENCES = "occurrences";
   private static final String PARAM_STEP = "step";
   private static final String PARAM_OVERRIDE = "override";
 

@@ -25,17 +25,16 @@ import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptFillerFunction;
+import io.warp10.script.WarpScriptSingleValueFillerFunction;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptUnivariateFillerFunction;
 
 public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  public static String PARAM_OCCURRENCES = MAP.PARAM_OCCURRENCES;
+  public static String PARAM_OCCURRENCES = "ticks";
   public static String PARAM_FILLER = "filler";
-  //public static String PARAM_FILLER_ELEV = "filler.elev";
-  //public static String PARAM_FILLER_LOC = "filler.loc";
-  public static String PARAM_INVALID_VALUE = "invalid.val";
+  public static String PARAM_INVALID_VALUE = "invalid.value";
 
   public FILL(String name) {
     super(name);
@@ -43,7 +42,7 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    if (stack.peek() instanceof WarpScriptFillerFunction) {
+    if (stack.peek() instanceof WarpScriptFillerFunction || stack.peek() instanceof WarpScriptSingleValueFillerFunction) {
       return crossFillApply(stack);
     } else {
       return univariateFillApply(stack);
