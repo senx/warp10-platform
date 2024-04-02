@@ -5583,14 +5583,195 @@ public class GTSHelper {
     return results;
   }
 
-  public static final GeoTimeSerie fill(GeoTimeSerie gts, List<Long> occurrences, WarpScriptFillerFunction filler, Object invalidValue) throws WarpScriptException {
-    //todo: inplement
+  /**
+   * Fills the gaps in a GTS
+   *
+   * The filler implements the WarpScriptFillerFunction interface:
+   *   - it computes the filled value using a sliding window
+   *   - it also fills geo coordinates
+   *
+   * @param gts The GTS to fill
+   * @param ticks A list of ticks to fill. If null, empty buckets are filled
+   * @param filler The filler function used to calculate values
+   * @param invalidValue The value to use if the filler function is not supported on the tick of a gap
+   * @return The filled GTS
+   * @throws WarpScriptException
+   */
+  public static final GeoTimeSerie fill(GeoTimeSerie gts, List<Long> ticks, WarpScriptFillerFunction filler, Object invalidValue) throws WarpScriptException {
+    //
+    // Sort original gts (similarly than cross fill)
+    //
 
-    return null;
+    sort(gts, false);
+
+    //
+    // Clone gts
+    //
+
+    GeoTimeSerie filled = gts.clone();
+
+    //
+    // If gts is not bucketized and ticks parameter is not defined, do nothing
+    //
+
+    if (!GTSHelper.isBucketized(filled) && null == ticks) {
+      return filled;
+    }
+
+    //
+    // Metadata
+    //
+
+    String classname = filled.getName();
+    Map<String,String> lbl = Collections.unmodifiableMap(filled.getLabels());
+    Map<String,String> attr = Collections.unmodifiableMap(filled.getMetadata().getAttributes());
+    Metadata meta = new Metadata();
+    meta.setName(classname);
+    meta.setLabels(lbl);
+    meta.setAttributes(attr);
+
+    //
+    // Data buffer with agreed-upon structure
+    //
+
+    int prewindow = filler.getPreWindow() >= 0 ? filler.getPreWindow() : 0;
+    int postwindow = filler.getPostWindow() >= 0 ? filler.getPostWindow() : 0;
+
+    Object[][] params = new Object[1 + prewindow + 1 + postwindow][];
+    params[0] = new Object[]{meta, null}; // second metadata placeholder is not used here
+    for (int i = 1; i < params.length - 1; i++) {
+      params[i] = new Object[4];
+    }
+
+    //
+    // Determine gaps in case GTS is bucketized
+    //
+
+    if (null == ticks) {
+      ticks = new ArrayList<Long>();
+
+      // prev is initialized as the tick of the first bucket
+      long prev = gts.lastbucket - (gts.bucketcount - 1) * gts.bucketspan;
+      for (int i = 0; i < gts.size(); i++) {
+        long bucket = gts.ticks[i];
+        // skip non bucket ticks
+        if (0 != bucket - prev % gts.bucketspan ) {
+          continue;
+
+        } else {
+          while ((prev += gts.bucketspan) != bucket) {
+            ticks.add(prev);
+          }
+        }
+      }
+    }
+
+    //
+    // Loop on gaps
+    //
+
+    int index = -1;
+    for (Long tick: ticks) {
+
+      //
+      // Determine index of rightmost tick that is less than tick
+      //
+
+      while(index < gts.size() - 1 && gts.ticks[index + 1] < tick) {
+        index += 1;
+      }
+
+      // set index to first index of postwindow (or index of tick)
+      index += 1;
+
+      //
+      // Fill buffer of prewindow
+      //
+
+      for (int i = 0; i < prewindow; i++) {
+        int id = index - prewindow + i;
+        int p = 1 + i;
+        if (id >= 0) {
+          params[p][0] = tickAtIndex(gts, id);
+          params[p][1] = locationAtIndex(gts, id);
+          params[p][2] = elevationAtIndex(gts, id);
+          params[p][3] = valueAtIndex(gts, id);
+
+        } else {
+          params[p][0] = null;
+          params[p][1] = null;
+          params[p][2] = null;
+          params[p][3] = null;
+        }
+      }
+
+      //
+      // Fill buffer of current tick
+      //
+
+      params[1 + prewindow][0] = tick;
+      if (tick == gts.ticks[index]) {
+        params[1 + prewindow][1] = locationAtIndex(gts, index);
+        params[1 + prewindow][2] = elevationAtIndex(gts, index);
+        params[1 + prewindow][3] = valueAtIndex(gts, index);
+        index += 1; // shift index to first index of postwindow
+      } else {
+        params[1 + prewindow][1] = null;
+        params[1 + prewindow][2] = null;
+        params[1 + prewindow][3] = null;
+      }
+
+      //
+      // Fill buffer of postwindow
+      //
+
+      for (int i = 0; i < postwindow; i++) {
+        int id = index + i;
+        int p = 1 + prewindow + 1 + i;
+        if (id < gts.size()) {
+          params[p][0] = tickAtIndex(gts, id);
+          params[p][1] = locationAtIndex(gts, id);
+          params[p][2] = elevationAtIndex(gts, id);
+          params[p][3] = valueAtIndex(gts, id);
+
+        } else {
+          params[p][0] = null;
+          params[p][1] = null;
+          params[p][2] = null;
+          params[p][3] = null;
+        }
+      }
+
+      //
+      // Call the filler
+      //
+
+      Object[] result = filler.apply(params);
+      if (null != result[3]) {
+        long t = ((Number) result[0]).longValue();
+        long location = ((Number) result[1]).longValue();
+        long elevation = ((Number) result[2]).longValue();
+
+        GTSHelper.setValue(filled, t, location, elevation, result[3], false);
+
+      } else if (null != invalidValue) {
+        long t = ((Number) result[0]).longValue();
+        long location = ((Number) result[1]).longValue();
+        long elevation = ((Number) result[2]).longValue();
+
+        GTSHelper.setValue(filled, t, location, elevation, invalidValue, false);
+      }
+    }
+
+    return filled;
   }
 
   /**
    * Fills the gaps in a GTS
+   *
+   * The filler implements the WarpScriptSingleValueFillerFunction interface:
+   *   - it computes the filled value by evaluating on each current tick a function that was precomputed on the whole gts
+   *   - it does not fill geo coordinates
    *
    * @param gts The GTS to fill
    * @param ticks A list of ticks to fill. If null, empty buckets are filled
@@ -5652,7 +5833,8 @@ public class GTSHelper {
 
       // prev is initialized as the tick of the first bucket
       long prev = gts.lastbucket - (gts.bucketcount - 1) * gts.bucketspan;
-      for (long bucket: gts.ticks) {
+      for (int i = 0; i < gts.size(); i++) {
+        long bucket = gts.ticks[i];
         // skip non bucket ticks
         if (0 != bucket - prev % gts.bucketspan ) {
           continue;
@@ -5671,7 +5853,7 @@ public class GTSHelper {
         }
       }
     }
-    
+
     return filled;
   }
 
