@@ -5511,30 +5511,9 @@ public class GTSHelper {
       fillerB = ((WarpScriptSingleValueFillerFunction.Precomputable) filler).compute(gtsb);
     }
 
-    // todo: wip
-
     //
     // We use a sweeping line algorithm to go over all the ticks
     //
-
-    int prewindow = filler.getPreWindow() >= 0 ? filler.getPreWindow() : 0;
-    int postwindow = filler.getPostWindow() >= 0 ? filler.getPostWindow() : 0;
-
-    Object[] meta = new Object[2];
-    Object[][] prev = new Object[prewindow][];
-    for (int i = 0; i < prewindow; i++) {
-      prev[i] = new Object[4];
-    }
-    Object[][] next = new Object[postwindow][];
-    for (int i = 0; i < postwindow; i++) {
-      next[i] = new Object[4];
-    }
-    Object[] other = new Object[4];
-    Object[][] params = new Object[2 + prewindow + postwindow][];
-    Long[] ticks = null;
-    if (filler instanceof WarpScriptUnivariateFillerFunction) {
-      ticks = new Long[1 + prewindow + postwindow];
-    }
 
     while(idxa < gtsa.values || idxb < gtsb.values) {
 
@@ -5568,182 +5547,32 @@ public class GTSHelper {
       // Determine if we should fill GTS A or GTS B
       //
 
-      for (int i = 0; i < prewindow; i++) {
-        prev[i][0] = null;
-        prev[i][1] = null;
-        prev[i][2] = null;
-        prev[i][3] = null;
-      }
-
-      for (int i = 0; i < postwindow; i++) {
-        next[i][0] = null;
-        next[i][1] = null;
-        next[i][2] = null;
-        next[i][3] = null;
-      }
-
-      Object otherValue = null;
-      Long otherTick = null;
-      Long otherLocation = null;
-      Long otherElevation = null;
-
-      Metadata ourMeta = new Metadata();
-      Metadata otherMeta = new Metadata();
-
-      String ourClass = null;
-      Map<String,String> ourLabels = null;
-      Map<String,String> ourAttr = null;
-
-      String otherClass = null;
-      Map<String,String> otherLabels = null;
-      Map<String,String> otherAttr = null;
-
+      long otherTick;
       GeoTimeSerie filled = null;
-      WarpScriptUnivariateFillerFunction.Evaluator evaluator = null;
+      filler = null;
 
       if (curTickA == null || (null != curTickB && curTickA > curTickB)) {
-        // We should fill GTS A
-
+        // fill GTS A
         filled = ga;
-        evaluator = evaluatorA;
-
-        for (int i = prewindow - 1; i >= 0; i--) {
-          int ia = idxa - prewindow + i;
-          if (ia >= 0) {
-            prev[i][0] = gtsa.ticks[ia];
-            prev[i][1] = locationAtIndex(gtsa, ia);
-            prev[i][2] = elevationAtIndex(gtsa, ia);
-            prev[i][3] = valueAtIndex(gtsa, ia);
-          } else {
-            break; // No more element to add
-          }
-        }
-
-        for (int i = 0; i < postwindow; i++) {
-          int ia = idxa + i;
-          if (ia < gtsa.values) {
-            next[i][0] = gtsa.ticks[ia];
-            next[i][1] = locationAtIndex(gtsa, ia);
-            next[i][2] = elevationAtIndex(gtsa, ia);
-            next[i][3] = valueAtIndex(gtsa, ia);
-          } else {
-            break; // No more element to add
-          }
-        }
-
-        otherValue = valueAtIndex(gtsb, idxb);
+        filler = fillerA;
         otherTick = gtsb.ticks[idxb];
-        otherLocation = locationAtIndex(gtsb, idxb);
-        otherElevation = elevationAtIndex(gtsb, idxb);
-
-        ourClass = classA;
-        ourLabels = labelsA;
-        ourAttr = attrA;
-
-        otherClass = classB;
-        otherLabels = labelsB;
-        otherAttr = attrB;
-
         idxb++;
+
       } else {
-        // We should fill GTS B
-
+        // fill GTS B
         filled = gb;
-        evaluator = evaluatorB;
-
-        for (int i = prewindow - 1; i >= 0; i--) {
-          int ib = idxb - prewindow + i;
-          if (ib >= 0) {
-            prev[i][0] = gtsb.ticks[ib];
-            prev[i][1] = locationAtIndex(gtsb, ib);
-            prev[i][2] = elevationAtIndex(gtsb, ib);
-            prev[i][3] = valueAtIndex(gtsb, ib);
-          } else {
-            break; // No more element to add
-          }
-        }
-
-        for (int i = 0; i < postwindow; i++) {
-          int ib = idxb + i;
-          if (ib < gtsb.values) {
-            next[i][0] = gtsb.ticks[ib];
-            next[i][1] = locationAtIndex(gtsb, ib);
-            next[i][2] = elevationAtIndex(gtsb, ib);
-            next[i][3] = valueAtIndex(gtsb, ib);
-          } else {
-            break; // No more element to add
-          }
-        }
-
-        otherValue = valueAtIndex(gtsa, idxa);
+        filler = fillerB;
         otherTick = gtsa.ticks[idxa];
-        otherLocation = locationAtIndex(gtsa, idxa);
-        otherElevation = elevationAtIndex(gtsa, idxa);
-
-        ourClass = classB;
-        ourLabels = labelsB;
-        ourAttr = attrB;
-
-        otherClass = classA;
-        otherLabels = labelsA;
-        otherAttr = attrA;
-
         idxa++;
-      }
-
-      other[0] = otherTick;
-      other[1] = otherLocation;
-      other[2] = otherElevation;
-      other[3] = otherValue;
-
-      ourMeta.setName(ourClass);
-      ourMeta.setLabels(ourLabels);
-      ourMeta.setAttributes(ourAttr);
-      meta[0] = ourMeta;
-
-      otherMeta.setName(otherClass);
-      otherMeta.setLabels(otherLabels);
-      otherMeta.setAttributes(otherAttr);
-      meta[1] = otherMeta;
-
-      params[0] = meta;
-      for (int i = 0; i < prewindow; i++) {
-        params[1 + i] = prev[i];
-      }
-      params[prewindow + 1] = other;
-      for (int i = 0; i < postwindow; i++) {
-        params[2 + prewindow + i] = next[i];
-      }
-
-      if (filler instanceof WarpScriptUnivariateFillerFunction) {
-        for (int i = 0; i < prewindow; i++) {
-          ticks[i] = (Long) prev[i][0];
-        }
-        ticks[prewindow] = (Long) other[0];
-        for (int i = 0; i < postwindow; i++) {
-          ticks[1 + prewindow + i] = (Long) next[i][0];
-        }
       }
 
       //
       // Call the filler
       //
 
-      Object[] result;
-      if (filler instanceof WarpScriptUnivariateFillerFunction) {
-        result = evaluator.evaluate(ticks);
-
-      } else {
-        result = filler.apply(params);
-      }
-
-      if (null != result[3]) {
-        long tick = ((Number) result[0]).longValue();
-        long location = ((Number) result[1]).longValue();
-        long elevation = ((Number) result[2]).longValue();
-        Object value = result[3];
-
-        GTSHelper.setValue(filled, tick, location, elevation, value, false);
+      Object res = filler.evaluate(otherTick);
+      if (null != res) {
+        GTSHelper.setValue(filled, otherTick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, res, false);
       }
     }
 
