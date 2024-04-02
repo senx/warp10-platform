@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2023  SenX S.A.S.
+//   Copyright 2018-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -213,6 +213,11 @@ public class StandaloneDeleteHandler extends AbstractHandler {
     //
 
     String selector = request.getParameter(Constants.HTTP_PARAM_SELECTOR);
+
+    if (null == selector || selector.isEmpty()) {
+      response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid '" + Constants.HTTP_PARAM_SELECTOR +"' query parameter, should not be missing or empty.");
+      return;
+    }
 
     String minage = request.getParameter(Constants.HTTP_PARAM_MINAGE);
 

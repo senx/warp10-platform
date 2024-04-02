@@ -1060,6 +1060,12 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
 
                   if (wstmt instanceof WarpScriptStackFunction) {
                     ((WarpScriptStackFunction) wstmt).apply(this);
+                    // Update the wrapping factory
+                    if (getAttribute(WarpScriptStack.ATTRIBUTE_WRAPPED_STATEMENT_FACTORY) instanceof WrappedStatementFactory) {
+                      factory = (WrappedStatementFactory) getAttribute(WarpScriptStack.ATTRIBUTE_WRAPPED_STATEMENT_FACTORY);
+                    } else {
+                      factory = WrappedStatementFactory.DEFAULT_FACTORY;
+                    }
                   } else {
                     this.push(wstmt);
                   }
