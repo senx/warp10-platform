@@ -161,7 +161,7 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
       }
 
     } else {
-      throw new WarpScriptException(getName() + "expects a GTS or a LIST of GTS before the map of parameters");
+      throw new WarpScriptException(getName() + "expects a GTS or a LIST of GTS before the MAP of parameters");
     }
 
     stack.push(res);
@@ -190,16 +190,12 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
       throw new WarpScriptException(getName() + " expects an input LIST containing at most three parameters, but got " +params.size());
     }
 
-    if (!(params.get(1) instanceof WarpScriptUnivariateFillerFunction)) {
-      if (params.get(1) instanceof WarpScriptFillerFunction) {
-        throw new WarpScriptException(getName() + " expects the second parameter of the input LIST to be an univariate filler, but instead got a filler used to cross fill two GTS.");
-      } else {
-        throw new WarpScriptException(getName() + " expects parameter the second parameter of the input LIST to be a filler, but instead got a " + TYPEOF.typeof(params.get(1)));
-      }
+    Object filler = params.get(1);
+    if (!(filler instanceof WarpScriptFillerFunction) || !(filler instanceof WarpScriptSingleValueFillerFunction)) {
+      throw new WarpScriptException(getName() + " expects the second parameter of the input LIST to be a filler, but instead got a " + TYPEOF.typeof(filler));
     }
-    WarpScriptUnivariateFillerFunction filler = (WarpScriptUnivariateFillerFunction) params.get(1);
 
-    List<Long> occurrences = null;
+    List<Long> ticks = null;
     if (3 == params.size()) {
       if (!(params.get(2) instanceof List)) {
         throw new WarpScriptException(getName() + "expects the last parameter of the input LIST to be a LIST");
@@ -209,19 +205,29 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
           throw new WarpScriptException(getName() + " expects the last parameter of the input LIST to be a LIST of LONG, but it contains a " + TYPEOF.typeof(o));
         }
       }
-      occurrences = (List<Long>) params.get(2);
+      ticks = (List<Long>) params.get(2);
     }
 
     List res = new ArrayList<GeoTimeSerie>();
     if (params.get(0) instanceof GeoTimeSerie) {
-      res.add(GTSHelper.fill((GeoTimeSerie) params.get(0), occurrences, filler, null));
+      if (filler instanceof WarpScriptFillerFunction) {
+        res.add(GTSHelper.fill((GeoTimeSerie) params.get(0), ticks, (WarpScriptFillerFunction) filler, null));
+
+      } else {
+        res.add(GTSHelper.fill((GeoTimeSerie) params.get(0), ticks, (WarpScriptSingleValueFillerFunction) filler, null));
+      }
 
     } else if (params.get(0) instanceof List) {
       for (Object o: (List) params.get(0)) {
         if (!(o instanceof GeoTimeSerie)) {
           throw new WarpScriptException(getName() + " expects a LIST of GTS as first parameter in the input LIST, but instead the list contains a " + TYPEOF.typeof(o));
         }
-        res.add(GTSHelper.fill((GeoTimeSerie) o, occurrences, filler, null));
+        if (filler instanceof WarpScriptFillerFunction) {
+          res.add(GTSHelper.fill((GeoTimeSerie) o, ticks, (WarpScriptFillerFunction) filler, null));
+
+        } else {
+          res.add(GTSHelper.fill((GeoTimeSerie) o, ticks, (WarpScriptSingleValueFillerFunction) filler, null));
+        }
       }
 
     } else {
