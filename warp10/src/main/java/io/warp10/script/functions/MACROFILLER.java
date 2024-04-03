@@ -94,9 +94,13 @@ public class MACROFILLER extends NamedWarpScriptFunction implements WarpScriptSt
       gts.safeSetMetadata((Metadata) ((Object[]) args[0])[0]);
       // Our GTS
       stack.push(gts);
-      gts = new GeoTimeSerie(0);
-      gts.safeSetMetadata((Metadata) ((Object[]) args[0])[1]);
+
       // Other GTS
+      gts = null;
+      if (null != ((Object[]) args[0])[1]) {
+        gts = new GeoTimeSerie(0);
+        gts.safeSetMetadata((Metadata) ((Object[]) args[0])[1]);
+      }
       stack.push(gts);
 
       long ts = 0L;
