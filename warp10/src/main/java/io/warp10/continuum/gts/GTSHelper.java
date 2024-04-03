@@ -10406,6 +10406,20 @@ public class GTSHelper {
   }
 
   /**
+   * Return an array with the ticks of the GTS converted to doubles
+   *
+   * @param gts GTS to get the ticks from
+   * @return A new array with doubles
+   */
+  public static double[] getTicksAsDouble(GeoTimeSerie gts) {
+    double[] ticks = new double[gts.values];
+    for (int i = 0; i < gts.values; i++) {
+      ticks[i] = gts.ticks[i];
+    }
+    return ticks;
+  }
+
+  /**
    * Transform a Metadata instance by 'intern'ing all of its strings.
    *
    * @param meta Metadata to be internalized.
