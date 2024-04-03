@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2024  SenX S.A.S.
+//   Copyright 2018  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -18,16 +18,12 @@ package io.warp10.script.filler;
 
 import com.geoxp.GeoXPLib;
 
-import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptFillerFunction;
-import io.warp10.script.WarpScriptSingleValueFillerFunction;
-import org.apache.commons.math3.analysis.interpolation.LinearInterpolator;
-import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction;
 
-public class FillerInterpolate extends NamedWarpScriptFunction implements WarpScriptFillerFunction, WarpScriptSingleValueFillerFunction.Precomputable {
+public class FillerInterpolate extends NamedWarpScriptFunction implements WarpScriptFillerFunction {
   
   public FillerInterpolate(String name) {
     super(name);
@@ -112,23 +108,5 @@ public class FillerInterpolate extends NamedWarpScriptFunction implements WarpSc
   @Override
   public int getPostWindow() {
     return 1;
-  }
-
-  @Override
-  public WarpScriptSingleValueFillerFunction compute(GeoTimeSerie gts) throws WarpScriptException {
-    double[] xval = GTSHelper.getTicksAsDouble(gts);
-    double[] fval = GTSHelper.getValuesAsDouble(gts);
-    final PolynomialSplineFunction function = gts.size() > 1 ? (new LinearInterpolator()).interpolate(xval, fval) : null;
-
-    return new WarpScriptSingleValueFillerFunction() {
-      @Override
-      public Object evaluate(long tick) throws WarpScriptException {
-        if (null == function || !function.isValidPoint(tick)) {
-          return null;
-        } else {
-          return function.value(tick);
-        }
-      }
-    };
   }
 }

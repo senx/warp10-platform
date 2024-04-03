@@ -79,6 +79,7 @@ import io.warp10.script.binary.SHIFTRIGHT;
 import io.warp10.script.binary.SUB;
 import io.warp10.script.filler.FillerAkima;
 import io.warp10.script.filler.FillerInterpolate;
+import io.warp10.script.filler.FillerLinear;
 import io.warp10.script.filler.FillerNext;
 import io.warp10.script.filler.FillerPrevious;
 import io.warp10.script.filler.FillerSpline;
@@ -2723,6 +2724,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new FillerPrevious("filler.previous"));
     addNamedWarpScriptFunction(new FillerTrend("filler.trend"));
     addNamedWarpScriptFunction(new FillerInterpolate("filler.interpolate"));
+    addNamedWarpScriptFunction(new FillerLinear("filler.linear"));
     addNamedWarpScriptFunction(new FillerAkima("filler.akima"));
     addNamedWarpScriptFunction(new FillerSpline("filler.spline"));
 
