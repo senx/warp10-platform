@@ -22,6 +22,10 @@ public interface WarpScriptSingleValueFillerFunction {
 
   public interface Precomputable extends WarpScriptSingleValueFillerFunction {
     public WarpScriptSingleValueFillerFunction compute(GeoTimeSerie gts) throws WarpScriptException;
+
+    default public Object evaluate(long tick) throws WarpScriptException {
+      throw new WarpScriptException("Invalid Filler Error: evaluator function has not been precomputed yet.");
+    }
   }
 
   public Object evaluate(long tick) throws WarpScriptException;
