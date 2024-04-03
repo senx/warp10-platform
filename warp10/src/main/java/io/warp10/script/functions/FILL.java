@@ -81,8 +81,12 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
     List<GeoTimeSerie> gts;
     if (filler instanceof WarpScriptFillerFunction) {
       gts = GTSHelper.fill(gtsa, gtsb, (WarpScriptFillerFunction) filler);
-    } else {
+
+    } else if (filler instanceof WarpScriptSingleValueFillerFunction) {
       gts = GTSHelper.fill(gtsa, gtsb, (WarpScriptSingleValueFillerFunction) filler);
+
+    } else {
+      throw new WarpScriptException(getName() + " expects a filler as last parameter, but instead got a " + TYPEOF.typeof(filler));
     }
 
     stack.push(gts.get(0));
@@ -140,11 +144,14 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
 
     List res = new ArrayList<GeoTimeSerie>();
     if (stack.peek() instanceof GeoTimeSerie) {
-      if (filler instanceof WarpScriptFillerFunction) {
+      if (filler instanceof WarpScriptSingleValueFillerFunction) {
+        res.add(GTSHelper.fill((GeoTimeSerie) stack.pop(), (List<Long>) ticks, (WarpScriptSingleValueFillerFunction) filler, invalidValue));
+
+      } else if (filler instanceof WarpScriptFillerFunction) {
         res.add(GTSHelper.fill((GeoTimeSerie) stack.pop(), (List<Long>) ticks, (WarpScriptFillerFunction) filler, invalidValue));
 
       } else {
-        res.add(GTSHelper.fill((GeoTimeSerie) stack.pop(), (List<Long>) ticks, (WarpScriptSingleValueFillerFunction) filler, invalidValue));
+        throw new WarpScriptException(getName() + " expects parameter " + PARAM_FILLER + " to be a filler, but instead got a " + TYPEOF.typeof(filler));
       }
 
     } else if (stack.peek() instanceof List) {
@@ -152,11 +159,14 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
         if (!(o instanceof GeoTimeSerie)) {
           throw new WarpScriptException(getName() + " expects a LIST of GTS, but instead the list contains a " + TYPEOF.typeof(o));
         }
-        if (filler instanceof WarpScriptFillerFunction) {
+        if (filler instanceof WarpScriptSingleValueFillerFunction) {
+          res.add(GTSHelper.fill((GeoTimeSerie) o, (List<Long>) ticks, (WarpScriptSingleValueFillerFunction) filler, invalidValue));
+
+        } else if (filler instanceof WarpScriptFillerFunction) {
           res.add(GTSHelper.fill((GeoTimeSerie) o, (List<Long>) ticks, (WarpScriptFillerFunction) filler, invalidValue));
 
         } else {
-          res.add(GTSHelper.fill((GeoTimeSerie) o, (List<Long>) ticks, (WarpScriptSingleValueFillerFunction) filler, invalidValue));
+          throw new WarpScriptException(getName() + " expects parameter " + PARAM_FILLER + " to be a filler, but instead got a " + TYPEOF.typeof(filler));
         }
       }
 
@@ -210,11 +220,14 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
 
     List res = new ArrayList<GeoTimeSerie>();
     if (params.get(0) instanceof GeoTimeSerie) {
-      if (filler instanceof WarpScriptFillerFunction) {
+      if (filler instanceof WarpScriptSingleValueFillerFunction) {
+        res.add(GTSHelper.fill((GeoTimeSerie) params.get(0), ticks, (WarpScriptSingleValueFillerFunction) filler, null));
+
+      } else if (filler instanceof WarpScriptFillerFunction) {
         res.add(GTSHelper.fill((GeoTimeSerie) params.get(0), ticks, (WarpScriptFillerFunction) filler, null));
 
       } else {
-        res.add(GTSHelper.fill((GeoTimeSerie) params.get(0), ticks, (WarpScriptSingleValueFillerFunction) filler, null));
+        throw new WarpScriptException(getName() + " expects a filler, but instead got a " + TYPEOF.typeof(filler));
       }
 
     } else if (params.get(0) instanceof List) {
@@ -222,11 +235,14 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
         if (!(o instanceof GeoTimeSerie)) {
           throw new WarpScriptException(getName() + " expects a LIST of GTS as first parameter in the input LIST, but instead the list contains a " + TYPEOF.typeof(o));
         }
-        if (filler instanceof WarpScriptFillerFunction) {
+        if (filler instanceof WarpScriptSingleValueFillerFunction) {
+          res.add(GTSHelper.fill((GeoTimeSerie) o, ticks, (WarpScriptSingleValueFillerFunction) filler, null));
+
+        } else if (filler instanceof WarpScriptFillerFunction) {
           res.add(GTSHelper.fill((GeoTimeSerie) o, ticks, (WarpScriptFillerFunction) filler, null));
 
         } else {
-          res.add(GTSHelper.fill((GeoTimeSerie) o, ticks, (WarpScriptSingleValueFillerFunction) filler, null));
+          throw new WarpScriptException(getName() + " expects a filler, but instead got a " + TYPEOF.typeof(filler));
         }
       }
 
