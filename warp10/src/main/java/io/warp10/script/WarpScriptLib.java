@@ -81,6 +81,7 @@ import io.warp10.script.filler.FillerAkima;
 import io.warp10.script.filler.FillerInterpolate;
 import io.warp10.script.filler.FillerLinear;
 import io.warp10.script.filler.FillerLowess;
+import io.warp10.script.filler.FillerNewton;
 import io.warp10.script.filler.FillerNext;
 import io.warp10.script.filler.FillerPrevious;
 import io.warp10.script.filler.FillerRlowess;
@@ -2729,6 +2730,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new FillerLinear("filler.linear"));
     addNamedWarpScriptFunction(new FillerAkima("filler.akima"));
     addNamedWarpScriptFunction(new FillerSpline("filler.spline"));
+    addNamedWarpScriptFunction(new FillerNewton("filler.newton"));
     addNamedWarpScriptFunction(new FillerLowess.Builder("filler.lowess"));
     addNamedWarpScriptFunction(new FillerRlowess.Builder("filler.rlowess"));
 
