@@ -40,8 +40,6 @@ public class FillerSpline extends NamedWarpScriptFunction implements WarpScriptS
     final PolynomialSplineFunction function;
     if (size > 2) {
       function = (new SplineInterpolator()).interpolate(xval, fval);
-    } else if (size > 4) {
-      function = (new AkimaSplineInterpolator()).interpolate(xval, fval);
     } else if (size > 1) {
       function = (new LinearInterpolator()).interpolate(xval, fval);
     } else {
