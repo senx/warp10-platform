@@ -37,11 +37,22 @@ public class FillerRlowess extends NamedWarpScriptFunction implements WarpScript
   private int robustness;
   private double accuracy;
 
-  private FillerRlowess(String name, long bandwidth, int robustness, double accuracy) {
+  private FillerRlowess(String name, long bandwidth, int robustness, double accuracy) throws WarpScriptException {
     super(name);
     this.bandwidth = bandwidth;
     this.robustness = robustness;
     this.accuracy = accuracy;
+
+    if (bandwidth <= 1) {
+      throw new WarpScriptException(getName() + " expects a bandwidth > 1, instead got " + String.valueOf(bandwidth));
+    }
+    if (robustness <= 0) {
+      throw new WarpScriptException(getName() + " expects a positive robustness, instead got " + String.valueOf(robustness));
+    }
+
+    if (accuracy <= 0) {
+      throw new WarpScriptException(getName() + " expects a positive accuracy, instead got " + String.valueOf(accuracy));
+    }
   }
 
   public static class Builder extends NamedWarpScriptFunction implements WarpScriptStackFunction {
@@ -58,7 +69,7 @@ public class FillerRlowess extends NamedWarpScriptFunction implements WarpScript
       Object o = stack.pop();
       if (o instanceof Double) {
         a = (double) o;
-        stack.pop();
+        o = stack.pop();
       }
 
       // robustness iterations
@@ -87,7 +98,8 @@ public class FillerRlowess extends NamedWarpScriptFunction implements WarpScript
     int size = gts.size();
     final PolynomialSplineFunction function;
     if (size > 2) {
-      function = (new LoessInterpolator((double) bandwidth / size + 1e-12, robustness, accuracy)).interpolate(xval, fval);
+      double bandwidthRatio = Math.min(1.0, (double) bandwidth / size + 1e-12);
+      function = (new LoessInterpolator(bandwidthRatio,robustness, accuracy)).interpolate(xval, fval);
     } else if (size > 1) {
       function = (new LinearInterpolator()).interpolate(xval, fval);
     } else {

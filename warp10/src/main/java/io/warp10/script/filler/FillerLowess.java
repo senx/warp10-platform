@@ -34,10 +34,18 @@ public class FillerLowess extends NamedWarpScriptFunction implements WarpScriptS
   private long bandwidth;
   private double accuracy;
 
-  private FillerLowess(String name, long bandwidth, double accuracy) {
+  private FillerLowess(String name, long bandwidth, double accuracy) throws WarpScriptException {
     super(name);
     this.bandwidth = bandwidth;
     this.accuracy = accuracy;
+
+    if (bandwidth <= 1) {
+      throw new WarpScriptException(getName() + " expects a bandwidth > 1, instead got " + String.valueOf(bandwidth));
+    }
+
+    if (accuracy <= 0) {
+      throw new WarpScriptException(getName() + " expects a positive accuracy, instead got " + String.valueOf(accuracy));
+    }
   }
 
   public static class Builder extends NamedWarpScriptFunction implements WarpScriptStackFunction {
@@ -54,7 +62,7 @@ public class FillerLowess extends NamedWarpScriptFunction implements WarpScriptS
       Object o = stack.pop();
       if (o instanceof Double) {
         a = (double) o;
-        stack.pop();
+        o = stack.pop();
       }
 
       // bandwidth
@@ -76,7 +84,8 @@ public class FillerLowess extends NamedWarpScriptFunction implements WarpScriptS
     int size = gts.size();
     final PolynomialSplineFunction function;
     if (size > 2) {
-      function = (new LoessInterpolator((double) bandwidth / size + 1e-12,0, accuracy)).interpolate(xval, fval);
+      double bandwidthRatio = Math.min(1.0, (double) bandwidth / size + 1e-12);
+      function = (new LoessInterpolator(bandwidthRatio,0, accuracy)).interpolate(xval, fval);
     } else if (size > 1) {
       function = (new LinearInterpolator()).interpolate(xval, fval);
     } else {
