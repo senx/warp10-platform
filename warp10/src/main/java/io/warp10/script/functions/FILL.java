@@ -136,7 +136,7 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
     }
 
     Object filler = params.get(PARAM_FILLER);
-    if (!(filler instanceof WarpScriptFillerFunction) || !(filler instanceof WarpScriptSingleValueFillerFunction)) {
+    if (!(filler instanceof WarpScriptFillerFunction) && !(filler instanceof WarpScriptSingleValueFillerFunction)) {
       throw new WarpScriptException(getName() + " expects parameter " + PARAM_FILLER + " to be a filler, but instead got a " + TYPEOF.typeof(filler));
     }
 
