@@ -5635,7 +5635,7 @@ public class GTSHelper {
 
     Object[][] params = new Object[1 + prewindow + 1 + postwindow][];
     params[0] = new Object[]{meta, null}; // second metadata placeholder is not used here
-    for (int i = 1; i < params.length - 1; i++) {
+    for (int i = 1; i < params.length; i++) {
       params[i] = new Object[4];
     }
 
