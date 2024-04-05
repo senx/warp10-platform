@@ -54,7 +54,6 @@ public class FillerLowess extends NamedWarpScriptFunction implements WarpScriptS
       Object o = stack.pop();
       if (o instanceof Double) {
         a = (double) o;
-      } else {
         stack.pop();
       }
 
