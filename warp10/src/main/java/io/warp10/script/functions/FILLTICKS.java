@@ -36,6 +36,7 @@ import com.geoxp.GeoXPLib;
  * 1: a list of five parameters: lat, lon, elevation, value, ticks
  *    where ticks is a list of ticks for which to add the data point (tick, lat, lon, elevation and value) * 
  */
+@Deprecated
 public class FILLTICKS extends GTSStackFunction {
   
   public FILLTICKS(String name) {
