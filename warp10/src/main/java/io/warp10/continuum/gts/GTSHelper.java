@@ -5706,7 +5706,7 @@ public class GTSHelper {
       //
 
       params[1 + prewindow][0] = tick;
-      if (tick == gts.ticks[index]) {
+      if (gts.size() > 0 && tick == gts.ticks[index]) {
         params[1 + prewindow][1] = locationAtIndex(gts, index);
         params[1 + prewindow][2] = elevationAtIndex(gts, index);
         params[1 + prewindow][3] = valueAtIndex(gts, index);
