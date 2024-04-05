@@ -16,19 +16,22 @@
 
 package io.warp10.script.filler;
 
+import com.geoxp.GeoXPLib;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptSingleValueFillerFunction;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.functions.SNAPSHOT;
 import io.warp10.script.functions.TYPEOF;
 import org.apache.commons.math3.analysis.interpolation.LinearInterpolator;
 import org.apache.commons.math3.analysis.interpolation.LoessInterpolator;
 import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction;
 
-public class FillerRlowess extends NamedWarpScriptFunction implements WarpScriptSingleValueFillerFunction.Precomputable {
+public class FillerRlowess extends NamedWarpScriptFunction implements WarpScriptSingleValueFillerFunction.Precomputable, SNAPSHOT.Snapshotable {
 
   private long bandwidth;
   private int robustness;
@@ -102,5 +105,23 @@ public class FillerRlowess extends NamedWarpScriptFunction implements WarpScript
         }
       }
     };
+  }
+
+  @Override
+  public String snapshot() {
+    StringBuilder sb = new StringBuilder();
+    try {
+      SNAPSHOT.addElement(sb, bandwidth);
+      SNAPSHOT.addElement(sb, robustness);
+      SNAPSHOT.addElement(sb, accuracy);
+    } catch (WarpScriptException wse) {
+      sb.append(WarpScriptStack.COMMENT_START);
+      sb.append(" Error while snapshoting function " + getName());
+      sb.append(" ");
+      sb.append(WarpScriptStack.COMMENT_END);
+    }
+    sb.append(" ");
+    sb.append(getName());
+    return sb.toString();
   }
 }
