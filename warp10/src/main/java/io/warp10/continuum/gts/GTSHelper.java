@@ -5757,6 +5757,9 @@ public class GTSHelper {
 
         GTSHelper.setValue(filled, t, location, elevation, invalidValue, false);
       }
+
+      // reset index for new tick
+      index = -1;
     }
 
     return filled;
