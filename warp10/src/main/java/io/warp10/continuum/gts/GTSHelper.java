@@ -5757,9 +5757,22 @@ public class GTSHelper {
         GTSHelper.setValue(filled, t, location, elevation, result[3], false);
 
       } else if (null != invalidValue) {
-        long t = ((Number) result[0]).longValue();
-        long location = ((Number) result[1]).longValue();
-        long elevation = ((Number) result[2]).longValue();
+
+        // we take the current tick unless a tick is returned in res
+        long t = (long) params[1 + prewindow][0];
+        if (null != result[0]) {
+          t = ((Number) result[0]).longValue();
+        }
+
+        // no location / elev are added to the new data point unless a location is returned in res
+        long location = GeoTimeSerie.NO_LOCATION;
+        if (null != result[1]) {
+          location = ((Number) result[1]).longValue();
+        }
+        long elevation = GeoTimeSerie.NO_ELEVATION;
+        if (null != result[2]) {
+          elevation = ((Number) result[2]).longValue();
+        }
 
         GTSHelper.setValue(filled, t, location, elevation, invalidValue, false);
       }
