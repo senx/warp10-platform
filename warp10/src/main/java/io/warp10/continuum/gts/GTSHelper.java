@@ -5835,11 +5835,11 @@ public class GTSHelper {
       for (int i = 0; i < gts.size(); i++) {
         long bucket = gts.ticks[i];
         // skip non bucket ticks
-        if (0 != bucket - prev % gts.bucketspan ) {
+        if (0 != (bucket - prev) % gts.bucketspan ) {
           continue;
 
         } else {
-          while ((prev += gts.bucketspan) != bucket) {
+          while (prev != bucket) {
             // fill the gap
             Object value = filler.evaluate(prev);
             if (null != value) {
@@ -5848,7 +5848,13 @@ public class GTSHelper {
             } else if (null != invalidValue) {
               GTSHelper.setValue(filled, prev, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, invalidValue, false);
             }
+
+            // next bucket to be checked
+            prev += gts.bucketspan;
           }
+
+          // first bucket to be checked in next iter
+          prev += gts.bucketspan;
         }
       }
     }
