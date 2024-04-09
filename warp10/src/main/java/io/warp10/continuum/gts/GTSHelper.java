@@ -5651,13 +5651,19 @@ public class GTSHelper {
       for (int i = 0; i < gts.size(); i++) {
         long bucket = gts.ticks[i];
         // skip non bucket ticks
-        if (0 != bucket - prev % gts.bucketspan ) {
+        if (0 != (bucket - prev) % gts.bucketspan ) {
           continue;
 
         } else {
-          while ((prev += gts.bucketspan) != bucket) {
+          while (prev != bucket) {
             ticks.add(prev);
+
+            // next bucket to be checked
+            prev += gts.bucketspan;
           }
+
+          // first bucket to be checked in next iter
+          prev += gts.bucketspan;
         }
       }
     }
