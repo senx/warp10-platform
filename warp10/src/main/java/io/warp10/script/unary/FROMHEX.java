@@ -16,13 +16,12 @@
 
 package io.warp10.script.unary;
 
+import java.math.BigInteger;
+
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
-import io.warp10.script.functions.TOBD;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
-
-import java.math.BigInteger;
+import io.warp10.script.WarpScriptStackFunction;
 
 /**
  * Converts the hex representation in the string operand to a LONG
@@ -44,7 +43,7 @@ public class FROMHEX extends NamedWarpScriptFunction implements WarpScriptStackF
     BigInteger bi = new BigInteger(op.toString(), 16);
 
     if (op.toString().length() > 16) {
-      stack.push(TOBD.toBigDecimal(getName(), bi));
+      throw new WarpScriptException(getName() + " can only operate on hexadecimal representations of 64 bits or less.");
     } else {
       stack.push(bi.longValue());
     }
