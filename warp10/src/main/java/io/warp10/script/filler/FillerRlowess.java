@@ -90,6 +90,10 @@ public class FillerRlowess extends NamedWarpScriptFunction implements WarpScript
 
   @Override
   public WarpScriptSingleValueFillerFunction compute(GeoTimeSerie gts) throws WarpScriptException {
+    if (GeoTimeSerie.TYPE.DOUBLE != gts.getType() && GeoTimeSerie.TYPE.LONG != gts.getType()) {
+      throw new WarpScriptException(getName() + " expects a GTS of type DOUBLE or LONG, but instead got a GTS of type " + gts.getType().name());
+    }
+
     double[] xval = GTSHelper.getTicksAsDouble(gts);
     double[] fval = GTSHelper.getValuesAsDouble(gts);
 
