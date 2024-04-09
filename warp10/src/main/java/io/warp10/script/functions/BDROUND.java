@@ -26,6 +26,8 @@ import io.warp10.script.WarpScriptStackFunction;
 
 public class BDROUND extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
+  private static final BigDecimal MINUS_ZERO_POINT_FIVE = BigDecimal.valueOf(-0.5D);
+
   public BDROUND(String name) {
     super(name);
   }
@@ -36,7 +38,17 @@ public class BDROUND extends NamedWarpScriptFunction implements WarpScriptStackF
 
     BigDecimal bd1 = TOBD.toBigDecimal(getName(), o);
 
-    stack.push(bd1.setScale(0, RoundingMode.HALF_UP));
+    // If the discarding part is exactly 0.5 and the number is negative, use rounding mode HALF_DOWN
+    if (bd1.signum() < 0) {
+      BigDecimal nonfractional = new BigDecimal(bd1.toBigInteger());
+      if (MINUS_ZERO_POINT_FIVE.equals(bd1.subtract(nonfractional))) {
+        stack.push(bd1.setScale(0, RoundingMode.HALF_DOWN));
+      } else {
+        stack.push(bd1.setScale(0, RoundingMode.HALF_UP));
+      }
+    } else {
+      stack.push(bd1.setScale(0, RoundingMode.HALF_UP));
+    }
 
     return stack;
   }
