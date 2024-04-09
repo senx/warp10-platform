@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@ import io.warp10.script.GTSStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,7 +33,9 @@ import com.geoxp.GeoXPLib;
  *
  * FILLTICKS expects the following parameters on the stack:
  * 1: a list of five parameters: lat, lon, elevation, value, ticks
- *    where ticks is a list of ticks for which to add the data point (tick, lat, lon, elevation and value) * 
+ *    where ticks is a list of ticks for which to add the data point (tick, lat, lon, elevation and value)
+ *    
+ * This function is deprecated. Use instead 'ticks' parameter of FILL with filler.value
  */
 @Deprecated
 public class FILLTICKS extends GTSStackFunction {
