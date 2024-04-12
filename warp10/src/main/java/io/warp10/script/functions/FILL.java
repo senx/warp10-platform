@@ -27,13 +27,43 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptFillerFunction;
 import io.warp10.script.WarpScriptSingleValueFillerFunction;
 import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStackFunction;
 
 public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
+  /**
+   * Parameters of the WarpScript function
+   */
   public static String PARAM_TICKS = "ticks";
   public static String PARAM_FILLER = "filler";
   public static String PARAM_INVALID_VALUE = "invalid.value";
+
+  /**
+   * If a macro is passed as the filler parameter, FILL will use this method to wrap it as the filler function.
+   * The macro expects a gts and a tick on the stack and it outputs an object (the value to be filled).
+   *
+   * @param stack
+   * @param macro
+   * @return The filler
+   * @throws WarpScriptException
+   */
+  public static WarpScriptSingleValueFillerFunction.Precomputable fillerFromMacro(WarpScriptStack stack, Macro macro) throws WarpScriptException {
+    return new WarpScriptSingleValueFillerFunction.Precomputable() {
+      @Override
+      public WarpScriptSingleValueFillerFunction compute(GeoTimeSerie gts) throws WarpScriptException {
+        return new WarpScriptSingleValueFillerFunction() {
+          @Override
+          public Object evaluate(long tick) throws WarpScriptException {
+            stack.push(gts);
+            stack.push(tick);
+            stack.exec(macro);
+            return stack.pop();
+          }
+        };
+      }
+    };
+  }
 
   public FILL(String name) {
     super(name);
@@ -41,7 +71,7 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
   
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    if (stack.peek() instanceof WarpScriptFillerFunction || stack.peek() instanceof WarpScriptSingleValueFillerFunction) {
+    if (stack.peek() instanceof WarpScriptFillerFunction || stack.peek() instanceof WarpScriptSingleValueFillerFunction || stack.peek() instanceof Macro) {
       return crossFillApply(stack);
     } else {
       return univariateFillApply(stack);
@@ -85,8 +115,11 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
     } else if (filler instanceof WarpScriptSingleValueFillerFunction) {
       gts = GTSHelper.fill(gtsa, gtsb, (WarpScriptSingleValueFillerFunction) filler);
 
+    } else if (filler instanceof Macro) {
+      gts = GTSHelper.fill(gtsa, gtsb, fillerFromMacro(stack, (Macro) filler));
+
     } else {
-      throw new WarpScriptException(getName() + " expects a filler as last parameter, but instead got a " + TYPEOF.typeof(filler));
+      throw new WarpScriptException(getName() + " expects a filler or a macro as last parameter, but instead got a " + TYPEOF.typeof(filler));
     }
 
     stack.push(gts.get(0));
@@ -136,8 +169,12 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
     }
 
     Object filler = params.get(PARAM_FILLER);
+    if (filler instanceof Macro) {
+      Macro macro = (Macro) filler;
+      filler = fillerFromMacro(stack, macro);
+    }
     if (!(filler instanceof WarpScriptFillerFunction) && !(filler instanceof WarpScriptSingleValueFillerFunction)) {
-      throw new WarpScriptException(getName() + " expects parameter " + PARAM_FILLER + " to be a filler, but instead got a " + TYPEOF.typeof(filler));
+      throw new WarpScriptException(getName() + " expects parameter " + PARAM_FILLER + " to be a filler or a macro, but instead got a " + TYPEOF.typeof(filler));
     }
 
     Object invalidValue = params.get(PARAM_INVALID_VALUE);
@@ -201,8 +238,12 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
     }
 
     Object filler = params.get(1);
+    if (filler instanceof Macro) {
+      Macro macro = (Macro) filler;
+      filler = fillerFromMacro(stack, macro);
+    }
     if (!(filler instanceof WarpScriptFillerFunction) && !(filler instanceof WarpScriptSingleValueFillerFunction)) {
-      throw new WarpScriptException(getName() + " expects the second parameter of the input LIST to be a filler, but instead got a " + TYPEOF.typeof(filler));
+      throw new WarpScriptException(getName() + " expects the second parameter of the input LIST to be a filler or a macro, but instead got a " + TYPEOF.typeof(filler));
     }
 
     List<Long> ticks = null;
