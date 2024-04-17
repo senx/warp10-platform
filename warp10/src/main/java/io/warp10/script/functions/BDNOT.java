@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2024  SenX S.A.S.
+//   Copyright 2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -14,27 +14,29 @@
 //   limitations under the License.
 //
 
-package io.warp10.script.binary;
+package io.warp10.script.functions;
 
 import java.math.BigInteger;
 
-/**
- * Bitwise AND of the two operands on top of the stack
- */
-public class BitwiseAND extends BitwiseOperation {
+import io.warp10.script.NamedWarpScriptFunction;
+import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptStack;
+import io.warp10.script.WarpScriptStackFunction;
 
-  public BitwiseAND(String name) {
+public class BDNOT extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+
+  public BDNOT(String name) {
     super(name);
   }
 
   @Override
-  public long operator(long op1, long op2) {
-    return op1 & op2;
-  }
+  public Object apply(WarpScriptStack stack) throws WarpScriptException {
+    Object o = stack.pop();
 
-  @Override
-  public BigInteger operator(BigInteger op1, BigInteger op2) {
-    return op1.and(op2);
-  }
+    BigInteger bi = TOBD.toBigInteger(getName(), o);
 
+    stack.push(TOBD.toBigDecimal(getName(), bi.not()));
+
+    return stack;
+  }
 }

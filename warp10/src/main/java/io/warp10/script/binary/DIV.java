@@ -1,5 +1,5 @@
 //
-//   Copyright 2022-2023  SenX S.A.S.
+//   Copyright 2022-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -17,6 +17,9 @@
 package io.warp10.script.binary;
 
 import io.warp10.continuum.gts.GTSOpsHelper;
+
+import java.math.BigDecimal;
+
 import org.apache.commons.math3.linear.RealVector;
 
 import io.warp10.continuum.gts.GTSHelper;
@@ -24,6 +27,7 @@ import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.continuum.gts.GeoTimeSerie.TYPE;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.functions.TOBD;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 
@@ -59,7 +63,9 @@ public class DIV extends NamedWarpScriptFunction implements WarpScriptStackFunct
     Object op1 = stack.pop();
 
     if (op2 instanceof Number && op1 instanceof Number) {
-      if (op1 instanceof Double || op2 instanceof Double) {
+      if (op1 instanceof BigDecimal || op2 instanceof BigDecimal) {
+        stack.push(TOBD.toBigDecimal(getName(), TOBD.toBigDecimal(getName(), op1).divide(TOBD.toBigDecimal(getName(), op2))));
+      } else if (op1 instanceof Double || op2 instanceof Double) {
         stack.push(((Number) op1).doubleValue() / ((Number) op2).doubleValue());
       } else {
         stack.push(((Number) op1).longValue() / ((Number) op2).longValue());

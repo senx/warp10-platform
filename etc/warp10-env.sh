@@ -38,6 +38,8 @@ WARP10_HEAP_MAX=${WARP10_HEAP_MAX:-1023m}
 
 ################################################## advanced options ###################################################
 
+JAVA_OPTS=${JAVA_OPTS:-}
+
 ## If it exists on your system, JAVA_OPTS is automatically appended to java options by warp10.sh
 ## If you want to specify other options, you can define JAVA_EXTRA_OPTS here.
 ## JAVA_EXTRA_OPTS overrides JAVA_OPTS.

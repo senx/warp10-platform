@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2023  SenX S.A.S.
+//   Copyright 2020-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -257,7 +257,9 @@ public class SNAPSHOT extends NamedWarpScriptFunction implements WarpScriptStack
           sb.append(" ");
         }
       } else if (o instanceof BigDecimal) {
-        sb.append(((BigDecimal) o).toString());
+        sb.append("'");
+        sb.append(((BigDecimal) o).toPlainString());
+        sb.append("'");
         sb.append(" ");
         sb.append(WarpScriptLib.TOBD);
         sb.append(" ");
