@@ -20,6 +20,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -37,6 +38,8 @@ import io.warp10.script.functions.LOAD;
 import io.warp10.script.functions.MSGFAIL;
 import io.warp10.script.functions.RUN;
 import io.warp10.script.functions.SNAPSHOT;
+import io.warp10.script.functions.TOBD;
+
 import org.apache.hadoop.util.Progressable;
 
 import io.warp10.WarpConfig;
@@ -899,14 +902,28 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
               throw new WarpScriptException(uee);
             }
           } else if (stmt.length() > 2 && stmt.charAt(1) == 'x' && stmt.charAt(0) == '0') {
-            long hexl = stmt.length() < 18 ? Long.parseLong(stmt.substring(2), 16) : new BigInteger(stmt.substring(2), 16).longValue();
+            Object hexl = null;
+
+            if (stmt.length() < 18) {
+              hexl = Long.parseLong(stmt.substring(2), 16);
+            } else {
+              hexl = new BigInteger(stmt.substring(2), 16);
+              hexl = ((BigInteger) hexl).longValue();
+            }
             if (macros.isEmpty()) {
               push(hexl);
             } else {
               macros.get(0).add(factory.wrap(hexl, lineNumber, pos, pos + stmt.length() - 1));
             }
           } else if (stmt.length() > 2 && stmt.charAt(1) == 'b' && stmt.charAt(0) == '0') {
-            long binl = stmt.length() < 66 ? Long.parseLong(stmt.substring(2), 2) : new BigInteger(stmt.substring(2), 2).longValue();
+            Object binl = null;
+
+            if (stmt.length() < 66) {
+              binl = Long.parseLong(stmt.substring(2), 2);
+            } else {
+              binl = new BigInteger(stmt.substring(2), 2);
+              binl = ((BigInteger) binl).longValue();
+            }
             if (macros.isEmpty()) {
               push(binl);
             } else {
@@ -917,15 +934,18 @@ public class MemoryWarpScriptStack implements WarpScriptStack, Progressable {
             // Push longs onto the stack
             //
 
+            Long l = Long.valueOf(stmt);
+
             if (macros.isEmpty()) {
-              push(Long.valueOf(stmt));
+              push(l);
             } else {
-              macros.get(0).add(factory.wrap(Long.valueOf(stmt), lineNumber, pos, pos + stmt.length() - 1));
+              macros.get(0).add(factory.wrap(l, lineNumber, pos, pos + stmt.length() - 1));
             }
           } else if (UnsafeString.isDouble(stmt)) {
             //
             // Push doubles onto the stack
             //
+
             if (macros.isEmpty()) {
               push(Double.valueOf(stmt));
             } else {

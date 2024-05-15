@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,12 +16,12 @@
 
 package io.warp10.script.unary;
 
+import java.math.BigInteger;
+
 import io.warp10.script.NamedWarpScriptFunction;
-import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
-
-import java.math.BigInteger;
+import io.warp10.script.WarpScriptStackFunction;
 
 /**
  * Converts the hex representation in the string operand to a LONG
@@ -31,23 +31,23 @@ public class FROMHEX extends NamedWarpScriptFunction implements WarpScriptStackF
   public FROMHEX(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object op = stack.pop();
-    
+
     if (!(op instanceof String)) {
       throw new WarpScriptException(getName() + " can only operate on string of hexadecimal representations.");
     }
-    
+
+    BigInteger bi = new BigInteger(op.toString(), 16);
+
     if (op.toString().length() > 16) {
       throw new WarpScriptException(getName() + " can only operate on hexadecimal representations of 64 bits or less.");
+    } else {
+      stack.push(bi.longValue());
     }
-    
-    long value = new BigInteger(op.toString(), 16).longValue();
 
-    stack.push(value);
-    
     return stack;
   }
 }

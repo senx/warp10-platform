@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2024  SenX S.A.S.
+//   Copyright 2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 //   limitations under the License.
 //
 
-package io.warp10.script.unary;
+package io.warp10.script.functions;
 
 import java.math.BigInteger;
 
@@ -23,30 +23,27 @@ import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
-/**
- * Converts the binary representation in the string operand to a LONG
- */
-public class FROMBIN extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class BDISPROBABLEPRIME extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
-  public FROMBIN(String name) {
+  public BDISPROBABLEPRIME(String name) {
     super(name);
   }
 
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    Object op = stack.pop();
+    Object o = stack.pop();
 
-    if (!(op instanceof String)) {
-      throw new WarpScriptException(getName() + " can only operate on string of binary representations.");
+    if (!(o instanceof Long)) {
+      throw new WarpScriptException(getName() + " expects the certainty to be a LONG.");
     }
 
-    BigInteger bi = new BigInteger(op.toString(), 2);
+    int certainty = ((Long) o).intValue();
 
-    if (op.toString().length() > 64) {
-      throw new WarpScriptException(getName() + " can only operate on binary representations of 64 bits or less.");
-    } else {
-      stack.push(bi.longValue());
-    }
+    o = stack.pop();
+
+    BigInteger bi = TOBD.toBigInteger(getName(), o);
+
+    stack.push(bi.isProbablePrime(certainty));
 
     return stack;
   }
