@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,15 +16,16 @@
 
 package io.warp10.script.functions;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.ElementOrListStackFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Apply relabel on GTS instances
@@ -47,7 +48,14 @@ public class RELABEL extends ElementOrListStackFunction {
       throw new WarpScriptException(getName() + " expects a map of labels as parameter.");
     }
 
-    final Map<String, String> labels = (Map<String, String>) top;
+    final Map<String, String> labels = new LinkedHashMap<String,String>(((Map<Object, Object>) top).size());
+
+    for (Entry<Object,Object> entry: ((Map<Object,Object>) top).entrySet()) {
+      if (!(entry.getKey() instanceof String) || !(entry.getValue() instanceof String)) {
+        throw new WarpScriptException(getName() + " keys and values MUST be STRING");
+      }
+      labels.put((String) entry.getKey(), (String) entry.getValue());
+    }
 
     return new ElementStackFunction() {
       @Override
