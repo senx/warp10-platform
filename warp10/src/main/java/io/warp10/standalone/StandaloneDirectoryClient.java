@@ -582,7 +582,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       labelValues = new String[labelNames.size()];
 
       //
-      // Loop over the class names to find matches
+      // Loop over the class names to find matches. They are expected to be sorted by classid using CLASS_COMPARATOR
       //
 
       for (String className: classNames) {
