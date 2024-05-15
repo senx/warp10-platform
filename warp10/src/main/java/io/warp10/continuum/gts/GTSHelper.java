@@ -8954,7 +8954,7 @@ public class GTSHelper {
           sb.append(",");
         }
         encodeName(sb, entry.getKey());
-        if (forSearch && Constants.ABSENT_LABEL_SUPPORT && "".equals(entry.getValue())) {
+        if (forSearch && !Constants.ABSENT_LABEL_SUPPORT && "".equals(entry.getValue())) {
           sb.append("~$");
         } else {
           sb.append("=");
