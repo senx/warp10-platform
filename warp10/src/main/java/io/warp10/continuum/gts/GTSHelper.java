@@ -3843,7 +3843,7 @@ public class GTSHelper {
         throw new RuntimeException("Incoherent buffer len for key '" + ekey + "', expected at least " + klen + " got " + bb.limit());
       }
 
-      hashes[idx] = SipHashInline.hash24_palindromic(sipkey0, sipkey1, bb.array(), 0, bb.limit());
+      hashes[idx] = SipHashInline.hash24_palindromic(sipkey0, sipkey1, bb.array(), bb.arrayOffset(), bb.limit());
 
       ce = ce.reset().onMalformedInput(CodingErrorAction.REPLACE).onUnmappableCharacter(CodingErrorAction.REPLACE);
 
@@ -3862,7 +3862,7 @@ public class GTSHelper {
         throw new RuntimeException("Incoherent buffer len for value '" + eval + "', expected at least " + vlen + " got " + bb.limit());
       }
 
-      hashes[idx+1] = SipHashInline.hash24_palindromic(sipkey0, sipkey1, bb.array(), 0, bb.limit());
+      hashes[idx+1] = SipHashInline.hash24_palindromic(sipkey0, sipkey1, bb.array(), bb.arrayOffset(), bb.limit());
       idx+=2;
     }
 
