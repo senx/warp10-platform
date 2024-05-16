@@ -51,8 +51,8 @@ public class RELABEL extends ElementOrListStackFunction {
     final Map<String, String> labels = new LinkedHashMap<String,String>(((Map<Object, Object>) top).size());
 
     for (Entry<Object,Object> entry: ((Map<Object,Object>) top).entrySet()) {
-      if (!(entry.getKey() instanceof String) || !(entry.getValue() instanceof String)) {
-        throw new WarpScriptException(getName() + " keys and values MUST be STRING");
+      if ((null != entry.getKey() && !(entry.getKey() instanceof String)) || (null != entry.getValue() && !(entry.getValue() instanceof String))) {
+        throw new WarpScriptException(getName() + " keys and values MUST be STRING or NULL");
       }
       labels.put((String) entry.getKey(), (String) entry.getValue());
     }
