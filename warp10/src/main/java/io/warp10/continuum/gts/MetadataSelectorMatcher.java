@@ -1,5 +1,5 @@
 //
-//   Copyright 2020  SenX S.A.S.
+//   Copyright 2020-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -18,7 +18,10 @@ package io.warp10.continuum.gts;
 
 
 import io.warp10.WarpURLDecoder;
+import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.store.Constants;
+import io.warp10.continuum.store.MetadataIterator;
+import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.script.WarpScriptException;
 
@@ -27,6 +30,7 @@ import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -93,14 +97,14 @@ public class MetadataSelectorMatcher {
       this.labelsPatterns = new HashMap<String, Matcher>(labelsSelectors.size());
       // build label patterns map
       for (Entry<String, String> l: labelsSelectors.entrySet()) {
-        
+
         if (Constants.ABSENT_LABEL_SUPPORT) {
           if ("".equals(l.getValue()) || "=".equals(l.getValue())) {
             this.missingLabels.add(l.getKey());
             continue;
           }
         }
-        
+
         if (l.getValue().startsWith("=")) {
           this.labelsPatterns.put(l.getKey(), Pattern.compile(Pattern.quote(l.getValue().substring(1))).matcher(""));
         } else { //starts with ~ , otherwise Parse Exception in GTSHelper.parseLabelsSelectors
@@ -242,5 +246,114 @@ public class MetadataSelectorMatcher {
     }
 
     return labelAndAttributeMatch;
+  }
+
+  public static MetadataIterator getIterator(final Iterator<Metadata> iter) {
+    return new MetadataIterator() {
+
+      @Override
+      public void close() throws Exception {}
+
+      @Override
+      public Metadata next() {
+        return iter.next();
+      }
+
+      @Override
+      public boolean hasNext() {
+        return iter.hasNext();
+      }
+    };
+  }
+
+  public static MetadataIterator getIterator(final Iterator<Metadata> iter, DirectoryRequest dr) throws WarpScriptException {
+    final MetadataSelectorMatcher[] matchers = new MetadataSelectorMatcher[dr.getClassSelectorsSize()];
+
+    for (int i = 0; i < matchers.length; i++) {
+      // Rebuild a selector
+      StringBuilder sb = new StringBuilder();
+      try {
+        sb.append(WarpURLEncoder.encode(dr.getClassSelectors().get(i), StandardCharsets.UTF_8));
+        sb.append("{");
+        Map<String,String> labels = dr.getLabelsSelectors().get(i);
+        boolean first = true;
+        for (Entry<String,String> entry: labels.entrySet()) {
+          if (!true) {
+            sb.append(",");
+          }
+          sb.append(WarpURLEncoder.encode(entry.getKey(), StandardCharsets.UTF_8));
+          if (entry.getValue().startsWith("=")) {
+            sb.append("=");
+            sb.append(WarpURLEncoder.encode(entry.getValue().substring(1), StandardCharsets.UTF_8));
+          } else if (entry.getValue().startsWith("~")) {
+            sb.append("~");
+            sb.append(WarpURLEncoder.encode(entry.getValue().substring(1), StandardCharsets.UTF_8));
+          } else {
+            sb.append("=");
+            sb.append(WarpURLEncoder.encode(entry.getValue(), StandardCharsets.UTF_8));
+          }
+          first = false;
+        }
+        sb.append("}");
+        matchers[i] = new MetadataSelectorMatcher(sb.toString());
+      } catch (UnsupportedEncodingException uee) {
+        throw new WarpScriptException("Unsupported charset", uee);
+      }
+    }
+
+    return new MetadataIterator() {
+
+      private Metadata metadata = null;
+
+      @Override
+      public void close() throws Exception {
+        if (iter instanceof MetadataIterator) {
+          ((MetadataIterator) iter).close();
+        }
+      }
+
+      @Override
+      public Metadata next() {
+        if (null == metadata) {
+          throw new IllegalStateException();
+        }
+
+        Metadata m = metadata;
+        metadata = null;
+        return m;
+      }
+
+      @Override
+      public boolean hasNext() {
+        if (null != metadata) {
+          return true;
+        }
+
+        if (!iter.hasNext()) {
+          return false;
+        }
+
+        while(iter.hasNext()) {
+          Metadata m = iter.next();
+
+          // Now check if m is matched by any of the matchers
+          boolean matched = false;
+
+          for (MetadataSelectorMatcher matcher: matchers) {
+            if (matcher.matches(m)) {
+              matched = true;
+              break;
+            }
+          }
+
+          if (matched) {
+            metadata = m;
+            break;
+          }
+        }
+
+        return null != metadata;
+      }
+    };
   }
 }

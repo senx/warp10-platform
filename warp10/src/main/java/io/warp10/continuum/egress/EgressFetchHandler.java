@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2023  SenX S.A.S.
+//   Copyright 2018-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -104,6 +104,7 @@ import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.functions.ADDDURATION;
 import io.warp10.script.functions.FETCH;
+import io.warp10.script.functions.FIND;
 import io.warp10.sensision.Sensision;
 import io.warp10.standalone.AcceleratorConfig;
 
@@ -838,6 +839,12 @@ public class EgressFetchHandler extends AbstractHandler {
           if (gcount <= 0) {
             break;
           }
+
+          //
+          // Apply token scope
+          //
+
+          itermeta = FIND.getScopedIterator(itermeta, rtoken.get(), null);
 
           try {
             while(itermeta.hasNext()) {

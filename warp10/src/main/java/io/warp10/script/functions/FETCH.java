@@ -523,6 +523,12 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       }
     }
 
+    //
+    // Apply token scope
+    //
+
+    iter = FIND.getScopedIterator(iter, rtoken, null);
+
     boolean keepempty = Boolean.TRUE.equals(params.get(PARAM_KEEPEMPTY));
 
     metadatas = new ArrayList<Metadata>();
