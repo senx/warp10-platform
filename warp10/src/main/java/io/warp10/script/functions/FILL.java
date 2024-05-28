@@ -176,6 +176,16 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
           throw new WarpScriptException(getName() + " expects parameter " + PARAM_TICKS + " to be a LIST of LONG, but it contains a " + TYPEOF.typeof(o));
         }
       }
+
+      if (verify) {
+        List<Long> deduplicatedTicks = new ArrayList<Long>();
+        for (Long l: (List<Long>) ticks) {
+          if (!(deduplicatedTicks.contains(l))) {
+            deduplicatedTicks.add(l);
+          }
+        }
+        ticks = deduplicatedTicks;
+      }
     }
 
     Object filler = params.get(PARAM_FILLER);
@@ -261,12 +271,18 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
       if (!(params.get(2) instanceof List)) {
         throw new WarpScriptException(getName() + "expects the last parameter of the input LIST to be a LIST");
       }
+
+      ticks = new ArrayList<Long>();
       for (Object o: (List) params.get(2)) {
         if (!(o instanceof Long)) {
           throw new WarpScriptException(getName() + " expects the last parameter of the input LIST to be a LIST of LONG, but it contains a " + TYPEOF.typeof(o));
         }
+
+        // duplicates are not kept (verify is true)
+        if (!(ticks.contains(o))) {
+          ticks.add((Long) o);
+        }
       }
-      ticks = (List<Long>) params.get(2);
     }
 
     List res = new ArrayList<GeoTimeSerie>();
