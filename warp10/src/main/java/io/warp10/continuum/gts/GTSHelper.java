@@ -5587,13 +5587,14 @@ public class GTSHelper {
    *   - it also fills geo coordinates
    *
    * @param gts The GTS to fill
-   * @param ticks A list of ticks to fill. If null, empty buckets are filled
    * @param filler The filler function used to calculate values
+   * @param ticks A list of ticks to fill. If null, empty buckets are filled
+   * @param verify If ticks is not null, verify that each tick is a gap before filling
    * @param invalidValue The value to use if the filler function is not supported on the tick of a gap
    * @return The filled GTS
    * @throws WarpScriptException
    */
-  public static final GeoTimeSerie fill(GeoTimeSerie gts, List<Long> ticks, WarpScriptFillerFunction filler, Object invalidValue) throws WarpScriptException {
+  public static final GeoTimeSerie fill(GeoTimeSerie gts, WarpScriptFillerFunction filler, List<Long> ticks, boolean verify, Object invalidValue) throws WarpScriptException {
     //
     // Sort original gts (similarly than cross fill)
     //
@@ -5679,7 +5680,7 @@ public class GTSHelper {
       // In case GTS is not bucketize, verify if it is actually a gap
       //
 
-      if (!isBucketized(gts) && indexAtTick(gts, tick) >= 0) {
+      if (verify && !isBucketized(gts) && indexAtTick(gts, tick) >= 0) {
         continue;
       }
 
@@ -5800,13 +5801,14 @@ public class GTSHelper {
    *   - it does not fill geo coordinates
    *
    * @param gts The GTS to fill
-   * @param ticks A list of ticks to fill. If null, empty buckets are filled
    * @param filler The filler function used to calculate values
+   * @param ticks A list of ticks to fill. If null, empty buckets are filled
+   * @param verify If ticks is not null, verify that each tick is a gap before filling
    * @param invalidValue The value to use if the filler function is not supported on the tick of a gap
    * @return The filled GTS
    * @throws WarpScriptException
    */
-  public static final GeoTimeSerie fill(GeoTimeSerie gts, List<Long> ticks, WarpScriptSingleValueFillerFunction filler, Object invalidValue) throws WarpScriptException {
+  public static final GeoTimeSerie fill(GeoTimeSerie gts, WarpScriptSingleValueFillerFunction filler, List<Long> ticks, boolean verify, Object invalidValue) throws WarpScriptException {
     //
     // Sort original gts (similarly than cross fill)
     //
@@ -5844,7 +5846,7 @@ public class GTSHelper {
       for (Long tick: ticks) {
 
         // verify if it is a gap or not
-        if (indexAtTick(gts, tick) >= 0) {
+        if (verify && indexAtTick(gts, tick) >= 0) {
           continue;
         }
 

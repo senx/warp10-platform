@@ -35,8 +35,9 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
   /**
    * Parameters of the WarpScript function
    */
-  public static String PARAM_TICKS = "ticks";
   public static String PARAM_FILLER = "filler";
+  public static String PARAM_TICKS = "ticks";
+  public static String PARAM_VERIFY = "verify";
   public static String PARAM_INVALID_VALUE = "invalid.value";
 
   /**
@@ -156,6 +157,15 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
    * @throws WarpScriptException
    */
   private Object applyFromMap(WarpScriptStack stack, Map params) throws WarpScriptException {
+    boolean verify = true;
+    Object v = params.get(PARAM_VERIFY);
+    if (null != v) {
+      if (!(v instanceof Boolean)) {
+        throw new WarpScriptException(getName() + " expects parameter " + PARAM_VERIFY + " to be a BOOLEAN, but instead got a " + TYPEOF.typeof(v));
+      }
+      verify = (boolean) v;
+    }
+
     Object ticks = params.get(PARAM_TICKS);
     if (null != ticks) {
       if (!(ticks instanceof List)) {
@@ -182,10 +192,10 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
     List res = new ArrayList<GeoTimeSerie>();
     if (stack.peek() instanceof GeoTimeSerie) {
       if (filler instanceof WarpScriptSingleValueFillerFunction) {
-        res.add(GTSHelper.fill((GeoTimeSerie) stack.pop(), (List<Long>) ticks, (WarpScriptSingleValueFillerFunction) filler, invalidValue));
+        res.add(GTSHelper.fill((GeoTimeSerie) stack.pop(), (WarpScriptSingleValueFillerFunction) filler, (List<Long>) ticks, verify, invalidValue));
 
       } else if (filler instanceof WarpScriptFillerFunction) {
-        res.add(GTSHelper.fill((GeoTimeSerie) stack.pop(), (List<Long>) ticks, (WarpScriptFillerFunction) filler, invalidValue));
+        res.add(GTSHelper.fill((GeoTimeSerie) stack.pop(), (WarpScriptFillerFunction) filler, (List<Long>) ticks, verify, invalidValue));
 
       } else {
         throw new WarpScriptException(getName() + " expects parameter " + PARAM_FILLER + " to be a filler, but instead got a " + TYPEOF.typeof(filler));
@@ -197,10 +207,10 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
           throw new WarpScriptException(getName() + " expects a LIST of GTS, but instead the list contains a " + TYPEOF.typeof(o));
         }
         if (filler instanceof WarpScriptSingleValueFillerFunction) {
-          res.add(GTSHelper.fill((GeoTimeSerie) o, (List<Long>) ticks, (WarpScriptSingleValueFillerFunction) filler, invalidValue));
+          res.add(GTSHelper.fill((GeoTimeSerie) o, (WarpScriptSingleValueFillerFunction) filler, (List<Long>) ticks, verify, invalidValue));
 
         } else if (filler instanceof WarpScriptFillerFunction) {
-          res.add(GTSHelper.fill((GeoTimeSerie) o, (List<Long>) ticks, (WarpScriptFillerFunction) filler, invalidValue));
+          res.add(GTSHelper.fill((GeoTimeSerie) o, (WarpScriptFillerFunction) filler, (List<Long>) ticks, verify, invalidValue));
 
         } else {
           throw new WarpScriptException(getName() + " expects parameter " + PARAM_FILLER + " to be a filler, but instead got a " + TYPEOF.typeof(filler));
@@ -262,10 +272,10 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
     List res = new ArrayList<GeoTimeSerie>();
     if (params.get(0) instanceof GeoTimeSerie) {
       if (filler instanceof WarpScriptSingleValueFillerFunction) {
-        res.add(GTSHelper.fill((GeoTimeSerie) params.get(0), ticks, (WarpScriptSingleValueFillerFunction) filler, null));
+        res.add(GTSHelper.fill((GeoTimeSerie) params.get(0), (WarpScriptSingleValueFillerFunction) filler, ticks, true, null));
 
       } else if (filler instanceof WarpScriptFillerFunction) {
-        res.add(GTSHelper.fill((GeoTimeSerie) params.get(0), ticks, (WarpScriptFillerFunction) filler, null));
+        res.add(GTSHelper.fill((GeoTimeSerie) params.get(0), (WarpScriptFillerFunction) filler, ticks, true, null));
 
       } else {
         throw new WarpScriptException(getName() + " expects a filler, but instead got a " + TYPEOF.typeof(filler));
@@ -277,10 +287,10 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
           throw new WarpScriptException(getName() + " expects a LIST of GTS as first parameter in the input LIST, but instead the list contains a " + TYPEOF.typeof(o));
         }
         if (filler instanceof WarpScriptSingleValueFillerFunction) {
-          res.add(GTSHelper.fill((GeoTimeSerie) o, ticks, (WarpScriptSingleValueFillerFunction) filler, null));
+          res.add(GTSHelper.fill((GeoTimeSerie) o, (WarpScriptSingleValueFillerFunction) filler, ticks, true, null));
 
         } else if (filler instanceof WarpScriptFillerFunction) {
-          res.add(GTSHelper.fill((GeoTimeSerie) o, ticks, (WarpScriptFillerFunction) filler, null));
+          res.add(GTSHelper.fill((GeoTimeSerie) o, (WarpScriptFillerFunction) filler, ticks, true, null));
 
         } else {
           throw new WarpScriptException(getName() + " expects a filler, but instead got a " + TYPEOF.typeof(filler));
