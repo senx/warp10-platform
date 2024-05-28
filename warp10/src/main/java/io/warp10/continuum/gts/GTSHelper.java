@@ -5676,6 +5676,14 @@ public class GTSHelper {
     for (Long tick: ticks) {
 
       //
+      // In case GTS is not bucketize, verify if it is actually a gap
+      //
+
+      if (!isBucketized(gts) && indexAtTick(gts, tick) >= 0) {
+        continue;
+      }
+
+      //
       // Determine index of rightmost tick that is less than tick
       //
 
@@ -5834,6 +5842,11 @@ public class GTSHelper {
     if (null != ticks) {
       // gaps to fill are specified
       for (Long tick: ticks) {
+
+        // verify if it is a gap or not
+        if (indexAtTick(gts, tick) >= 0) {
+          continue;
+        }
 
         // fill the gap
         Object value = filler.evaluate(tick);
