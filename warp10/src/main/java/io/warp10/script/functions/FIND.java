@@ -707,7 +707,7 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
       try {
         clslbls = PARSESELECTOR.parse(rtoken.getAttributes().get(Constants.TOKEN_ATTR_SCOPE));
       } catch (WarpScriptException e) {
-        throw new WarpScriptException("invalid syntax for scope selector within the token.");
+        throw new WarpScriptException("Invalid syntax for token scope selector.");
       }
       
       DirectoryRequest dr = new DirectoryRequest();
@@ -758,7 +758,7 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
       try {
         clslbls = PARSESELECTOR.parse(rtoken.getAttributes().get(Constants.TOKEN_ATTR_SCOPE));
       } catch (WarpScriptException e) {
-        throw new WarpScriptException("invalid syntax for scope selector within the token.");
+        throw new WarpScriptException("Invalid syntax for token scope selector.");
       }
 
       DirectoryRequest dr = new DirectoryRequest();
