@@ -59,7 +59,6 @@ import java.util.zip.GZIPOutputStream;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
-import org.apache.thrift.protocol.TCompactProtocol;
 
 /**
  * Find Geo Time Series matching some criteria

@@ -278,21 +278,23 @@ public class MetadataSelectorMatcher {
         Map<String,String> labels = dr.getLabelsSelectors().get(i);
         boolean first = true;
         for (Entry<String,String> entry: labels.entrySet()) {
-          if (!first) {
-            sb.append(",");
+          if (entry.getValue() != null) { // it could be null (.owner, for example)
+            if (!first) {
+              sb.append(",");
+            }
+            sb.append(WarpURLEncoder.encode(entry.getKey(), StandardCharsets.UTF_8));
+            if (entry.getValue().startsWith("=")) {
+              sb.append("=");
+              sb.append(WarpURLEncoder.encode(entry.getValue().substring(1), StandardCharsets.UTF_8));
+            } else if (entry.getValue().startsWith("~")) {
+              sb.append("~");
+              sb.append(WarpURLEncoder.encode(entry.getValue().substring(1), StandardCharsets.UTF_8));
+            } else {
+              sb.append("=");
+              sb.append(WarpURLEncoder.encode(entry.getValue(), StandardCharsets.UTF_8));
+            }
+            first = false;
           }
-          sb.append(WarpURLEncoder.encode(entry.getKey(), StandardCharsets.UTF_8));
-          if (entry.getValue().startsWith("=")) {
-            sb.append("=");
-            sb.append(WarpURLEncoder.encode(entry.getValue().substring(1), StandardCharsets.UTF_8));
-          } else if (entry.getValue().startsWith("~")) {
-            sb.append("~");
-            sb.append(WarpURLEncoder.encode(entry.getValue().substring(1), StandardCharsets.UTF_8));
-          } else {
-            sb.append("=");
-            sb.append(WarpURLEncoder.encode(entry.getValue(), StandardCharsets.UTF_8));
-          }
-          first = false;
         }
         sb.append("}");
         matchers[i] = new MetadataSelectorMatcher(sb.toString());
