@@ -704,6 +704,10 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
 
       DirectoryRequest dr = new DirectoryRequest();
 
+      if (null == drequest) {
+        throw new WarpScriptException("Can only scope existing requests.");
+      }
+
       dr.setSorted(drequest.isSorted());
 
       if (drequest.isSetActiveAfter()) {
@@ -737,7 +741,7 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
 
       dr.addToLabelsSelectors(labelsSelectors);
 
-      return MetadataSelectorMatcher.getIterator(directoryClient.iterator(dr), drequest);
+      return MetadataSelectorMatcher.getIterator(directoryClient.iterator(drequest), dr);
     } else {
       return directoryClient.iterator(drequest);
     }
