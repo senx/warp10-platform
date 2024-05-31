@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -41,19 +41,19 @@ import org.joda.time.format.ISODateTimeFormat;
  * Estimate cardinalities of Geo Time Series matching some criteria
  *
  * The top of the stack must contain a list of the following parameters
- * 
+ *
  * @param token The OAuth 2.0 token to use for data retrieval
  * @param classSelector  Class selector.
  * @param labelsSelectors Map of label name to label selector.
  */
 public class FINDSTATS extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   private WarpScriptStackFunction listTo = new LISTTO("");
-  
+
   public FINDSTATS(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     //
@@ -61,8 +61,8 @@ public class FINDSTATS extends NamedWarpScriptFunction implements WarpScriptStac
     //
 
     Object top = stack.peek();
-  
-    if (top instanceof List) {      
+
+    if (top instanceof List) {
       if (3 != ((List) top).size()) {
         stack.drop();
         throw new WarpScriptException(getName() + " expects 3 parameters.");
@@ -71,48 +71,48 @@ public class FINDSTATS extends NamedWarpScriptFunction implements WarpScriptStac
       //
       // Explode list and remove its size
       //
-      
+
       listTo.apply(stack);
       stack.drop();
     }
-    
+
     //
     // Extract labels selector
     //
-    
+
     Object oLabelsSelector = stack.pop();
-    
+
     if (!(oLabelsSelector instanceof Map)) {
       throw new WarpScriptException(getName() + " expects the label selectors to be a MAP.");
     }
-    
+
     Map<String,String> labelSelectors = (Map<String,String>) oLabelsSelector;
 
     //
     // Extract class selector
     //
-    
+
     Object oClassSelector = stack.pop();
 
     if (!(oClassSelector instanceof String)) {
       throw new WarpScriptException(getName() + " expects the class selector to be a STRING.");
     }
-    
+
     String classSelector = (String) oClassSelector;
 
     //
     // Extract token
     //
-    
+
     Object oToken = stack.pop();
-    
+
     if (!(oToken instanceof String)) {
       throw new WarpScriptException(getName() + " expects the token to be a STRING.");
     }
-    
+
     String token = (String) oToken;
 
-    
+
     DirectoryClient directoryClient = stack.getDirectoryClient();
 
     ReadToken rtoken;
@@ -123,6 +123,10 @@ public class FINDSTATS extends NamedWarpScriptFunction implements WarpScriptStac
       if (null != rtokenAttributes && rtokenAttributes.containsKey(Constants.TOKEN_ATTR_NOFIND)) {
         throw new WarpScriptException("Token cannot be used for finding metadata.");
       }
+
+      if (null != rtokenAttributes && rtokenAttributes.containsKey(Constants.TOKEN_ATTR_SCOPE)) {
+        throw new WarpScriptException("Scoped token cannot be used for finding metadata.");
+      }
     } catch (WarpScriptException wse) {
       throw new WarpScriptException(getName() + " given an invalid token.", wse);
     }
@@ -131,10 +135,10 @@ public class FINDSTATS extends NamedWarpScriptFunction implements WarpScriptStac
     labelSelectors.remove(Constants.OWNER_LABEL);
     labelSelectors.remove(Constants.APPLICATION_LABEL);
     labelSelectors.putAll(Tokens.labelSelectorsFromReadToken(rtoken));
-    
+
     List<String> clsSels = new ArrayList<String>();
     List<Map<String,String>> lblsSels = new ArrayList<Map<String,String>>();
-    
+
     clsSels.add(classSelector);
     lblsSels.add(labelSelectors);
 
@@ -151,7 +155,7 @@ public class FINDSTATS extends NamedWarpScriptFunction implements WarpScriptStac
     }
 
     stack.push(stats);
-    
+
     return stack;
-  }  
+  }
 }

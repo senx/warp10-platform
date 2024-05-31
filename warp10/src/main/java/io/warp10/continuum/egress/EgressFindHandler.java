@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2023  SenX S.A.S.
+//   Copyright 2018-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -51,6 +51,7 @@ import io.warp10.crypto.KeyStore;
 import io.warp10.json.JsonUtils;
 import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.script.WarpScriptException;
+import io.warp10.script.functions.FIND;
 import io.warp10.script.functions.PARSESELECTOR;
 import io.warp10.sensision.Sensision;
 
@@ -202,7 +203,7 @@ public class EgressFindHandler extends AbstractHandler {
             request.setQuietAfter(quietAfter);
           }
 
-          try (MetadataIterator iterator = directoryClient.iterator(request)) {
+          try (MetadataIterator iterator = FIND.getScopedIterator(directoryClient, rtoken, request)) {
             while(iterator.hasNext()) {
               if (gcount <= 0) {
                 break;

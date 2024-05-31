@@ -468,6 +468,12 @@ public class Constants {
   public static final String TOKEN_ATTR_EXPOSE = ".expose";
 
   /**
+   * Attribute which contains a selector to restrict the scope of GTS parsed during matching.
+   * This allows to perform a pre-selection of GTS among which the user can further pick GTS.
+   */
+  public static final String TOKEN_ATTR_SCOPE = ".scope";
+
+  /**
    * Default max pending mutations size for FDB transactions - MUST be less than 10000000 which is the maximum transaction size in FDB
    */
   public static final String DEFAULT_FDB_DATA_PENDINGMUTATIONS_MAXSIZE = Long.toString(5000000L);

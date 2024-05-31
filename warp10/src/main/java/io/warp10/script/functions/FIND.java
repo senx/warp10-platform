@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2023  SenX S.A.S.
+//   Copyright 2018-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import io.warp10.WarpURLDecoder;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.Tokens;
 import io.warp10.continuum.gts.GeoTimeSerie;
+import io.warp10.continuum.gts.MetadataSelectorMatcher;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.MetadataIterator;
@@ -100,7 +101,7 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
 
   /**
    * Flag indicating whether we want to include the detail of GTS or only the
-   * elements (class / labels) values
+   * elements (class / labels) values. This field is true for FINDSETS
    */
   private final boolean elements;
 
@@ -428,7 +429,10 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
       if (null != quietAfter) {
         drequest.setQuietAfter(quietAfter);
       }
-      iter = directoryClient.iterator(drequest);
+
+      iter = getScopedIterator(directoryClient, rtoken, drequest);
+    } catch (WarpScriptException e) {
+      throw e;
     } catch (Exception e) {
       throw new WarpScriptException(e);
     }
@@ -694,5 +698,113 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
     }
 
     return params;
+  }
+
+  public static MetadataIterator getScopedIterator(DirectoryClient directoryClient, ReadToken rtoken, DirectoryRequest drequest) throws WarpScriptException, IOException {
+    if (rtoken.getAttributesSize() > 0 && rtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_SCOPE)) {
+
+      Object[] clslbls;
+      try {
+        clslbls = PARSESELECTOR.parse(rtoken.getAttributes().get(Constants.TOKEN_ATTR_SCOPE));
+      } catch (WarpScriptException e) {
+        throw new WarpScriptException("Invalid syntax for token scope selector.");
+      }
+      
+      DirectoryRequest dr = new DirectoryRequest();
+
+      if (null == drequest) {
+        throw new WarpScriptException("Can only scope existing requests.");
+      }
+
+      dr.setSorted(drequest.isSorted());
+
+      if (drequest.isSetActiveAfter()) {
+        dr.setActiveAfter(drequest.getActiveAfter());
+      }
+
+      if (drequest.isSetQuietAfter()) {
+        dr.setQuietAfter(drequest.getQuietAfter());
+      }
+
+      dr.addToClassSelectors((String) clslbls[0]);
+
+      //
+      // Check if there is an .owner/.produce/.app selector
+      // If not, add the missing ones from the token
+      //
+
+      Map<String,String> labelsSelectors = (Map<String,String>) clslbls[1];
+
+      Map<String,String> tokenSelectors = Tokens.labelSelectorsFromReadToken(rtoken);
+
+      if (!labelsSelectors.containsKey(Constants.PRODUCER_LABEL)) {
+        labelsSelectors.put(Constants.PRODUCER_LABEL, tokenSelectors.get(Constants.PRODUCER_LABEL));
+      }
+      if (!labelsSelectors.containsKey(Constants.OWNER_LABEL)) {
+        labelsSelectors.put(Constants.OWNER_LABEL, tokenSelectors.get(Constants.OWNER_LABEL));
+      }
+      if (!labelsSelectors.containsKey(Constants.APPLICATION_LABEL)) {
+        labelsSelectors.put(Constants.APPLICATION_LABEL, tokenSelectors.get(Constants.APPLICATION_LABEL));
+      }
+
+      dr.addToLabelsSelectors(labelsSelectors);
+
+      return MetadataSelectorMatcher.getIterator(directoryClient.iterator(drequest), dr);
+    } else {
+      return directoryClient.iterator(drequest);
+    }
+  }
+
+  public static MetadataIterator getScopedIterator(Iterator<Metadata> iterator, ReadToken rtoken, DirectoryRequest drequest) throws WarpScriptException {
+    if (rtoken.getAttributesSize() > 0 && rtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_SCOPE)) {
+
+      Object[] clslbls;
+      try {
+        clslbls = PARSESELECTOR.parse(rtoken.getAttributes().get(Constants.TOKEN_ATTR_SCOPE));
+      } catch (WarpScriptException e) {
+        throw new WarpScriptException("Invalid syntax for token scope selector.");
+      }
+
+      DirectoryRequest dr = new DirectoryRequest();
+
+      if (null != drequest) {
+        dr.setSorted(drequest.isSorted());
+
+        if (drequest.isSetActiveAfter()) {
+          dr.setActiveAfter(drequest.getActiveAfter());
+        }
+
+        if (drequest.isSetQuietAfter()) {
+          dr.setQuietAfter(drequest.getQuietAfter());
+        }
+      }
+
+      dr.addToClassSelectors((String) clslbls[0]);
+
+      //
+      // Check if there is an .owner/.produce/.app selector
+      // If not, add the missing ones from the token
+      //
+
+      Map<String,String> labelsSelectors = (Map<String,String>) clslbls[1];
+
+      Map<String,String> tokenSelectors = Tokens.labelSelectorsFromReadToken(rtoken);
+
+      if (!labelsSelectors.containsKey(Constants.PRODUCER_LABEL)) {
+        labelsSelectors.put(Constants.PRODUCER_LABEL, tokenSelectors.get(Constants.PRODUCER_LABEL));
+      }
+      if (!labelsSelectors.containsKey(Constants.OWNER_LABEL)) {
+        labelsSelectors.put(Constants.OWNER_LABEL, tokenSelectors.get(Constants.OWNER_LABEL));
+      }
+      if (!labelsSelectors.containsKey(Constants.APPLICATION_LABEL)) {
+        labelsSelectors.put(Constants.APPLICATION_LABEL, tokenSelectors.get(Constants.APPLICATION_LABEL));
+      }
+
+      dr.addToLabelsSelectors(labelsSelectors);
+
+      return null != drequest ? MetadataSelectorMatcher.getIterator(MetadataSelectorMatcher.getIterator(iterator, dr), drequest) : MetadataSelectorMatcher.getIterator(iterator, dr);
+    } else {
+      return null != drequest ? MetadataSelectorMatcher.getIterator(iterator, drequest) : MetadataSelectorMatcher.getIterator(iterator);
+    }
   }
 }
