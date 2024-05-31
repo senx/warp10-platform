@@ -278,7 +278,7 @@ public class MetadataSelectorMatcher {
         Map<String,String> labels = dr.getLabelsSelectors().get(i);
         boolean first = true;
         for (Entry<String,String> entry: labels.entrySet()) {
-          if (!true) {
+          if (!first) {
             sb.append(",");
           }
           sb.append(WarpURLEncoder.encode(entry.getKey(), StandardCharsets.UTF_8));
