@@ -431,6 +431,8 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
       }
 
       iter = getScopedIterator(directoryClient, rtoken, drequest);
+    } catch (WarpScriptException e) {
+      throw e;
     } catch (Exception e) {
       throw new WarpScriptException(e);
     }
@@ -700,8 +702,14 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
 
   public static MetadataIterator getScopedIterator(DirectoryClient directoryClient, ReadToken rtoken, DirectoryRequest drequest) throws WarpScriptException, IOException {
     if (rtoken.getAttributesSize() > 0 && rtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_SCOPE)) {
-      Object[] clslbls = PARSESELECTOR.parse(rtoken.getAttributes().get(Constants.TOKEN_ATTR_SCOPE));
 
+      Object[] clslbls;
+      try {
+        clslbls = PARSESELECTOR.parse(rtoken.getAttributes().get(Constants.TOKEN_ATTR_SCOPE));
+      } catch (WarpScriptException e) {
+        throw new WarpScriptException("Invalid syntax for token scope selector.");
+      }
+      
       DirectoryRequest dr = new DirectoryRequest();
 
       if (null == drequest) {
@@ -749,7 +757,13 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
 
   public static MetadataIterator getScopedIterator(Iterator<Metadata> iterator, ReadToken rtoken, DirectoryRequest drequest) throws WarpScriptException {
     if (rtoken.getAttributesSize() > 0 && rtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_SCOPE)) {
-      Object[] clslbls = PARSESELECTOR.parse(rtoken.getAttributes().get(Constants.TOKEN_ATTR_SCOPE));
+
+      Object[] clslbls;
+      try {
+        clslbls = PARSESELECTOR.parse(rtoken.getAttributes().get(Constants.TOKEN_ATTR_SCOPE));
+      } catch (WarpScriptException e) {
+        throw new WarpScriptException("Invalid syntax for token scope selector.");
+      }
 
       DirectoryRequest dr = new DirectoryRequest();
 
