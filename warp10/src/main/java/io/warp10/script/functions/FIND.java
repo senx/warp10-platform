@@ -709,7 +709,7 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
       } catch (WarpScriptException e) {
         throw new WarpScriptException("Invalid syntax for token scope selector.");
       }
-      
+
       DirectoryRequest dr = new DirectoryRequest();
 
       if (null == drequest) {
@@ -737,13 +737,13 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
 
       Map<String,String> tokenSelectors = Tokens.labelSelectorsFromReadToken(rtoken);
 
-      if (!labelsSelectors.containsKey(Constants.PRODUCER_LABEL)) {
+      if (!labelsSelectors.containsKey(Constants.PRODUCER_LABEL) && null != tokenSelectors.get(Constants.PRODUCER_LABEL)) {
         labelsSelectors.put(Constants.PRODUCER_LABEL, tokenSelectors.get(Constants.PRODUCER_LABEL));
       }
-      if (!labelsSelectors.containsKey(Constants.OWNER_LABEL)) {
+      if (!labelsSelectors.containsKey(Constants.OWNER_LABEL) && null != tokenSelectors.get(Constants.OWNER_LABEL)) {
         labelsSelectors.put(Constants.OWNER_LABEL, tokenSelectors.get(Constants.OWNER_LABEL));
       }
-      if (!labelsSelectors.containsKey(Constants.APPLICATION_LABEL)) {
+      if (!labelsSelectors.containsKey(Constants.APPLICATION_LABEL) && null != tokenSelectors.get(Constants.APPLICATION_LABEL)) {
         labelsSelectors.put(Constants.APPLICATION_LABEL, tokenSelectors.get(Constants.APPLICATION_LABEL));
       }
 
@@ -790,13 +790,13 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
 
       Map<String,String> tokenSelectors = Tokens.labelSelectorsFromReadToken(rtoken);
 
-      if (!labelsSelectors.containsKey(Constants.PRODUCER_LABEL)) {
+      if (!labelsSelectors.containsKey(Constants.PRODUCER_LABEL) && null != tokenSelectors.get(Constants.PRODUCER_LABEL)) {
         labelsSelectors.put(Constants.PRODUCER_LABEL, tokenSelectors.get(Constants.PRODUCER_LABEL));
       }
-      if (!labelsSelectors.containsKey(Constants.OWNER_LABEL)) {
+      if (!labelsSelectors.containsKey(Constants.OWNER_LABEL) && null != tokenSelectors.get(Constants.OWNER_LABEL)) {
         labelsSelectors.put(Constants.OWNER_LABEL, tokenSelectors.get(Constants.OWNER_LABEL));
       }
-      if (!labelsSelectors.containsKey(Constants.APPLICATION_LABEL)) {
+      if (!labelsSelectors.containsKey(Constants.APPLICATION_LABEL) && null != tokenSelectors.get(Constants.APPLICATION_LABEL)) {
         labelsSelectors.put(Constants.APPLICATION_LABEL, tokenSelectors.get(Constants.APPLICATION_LABEL));
       }
 
