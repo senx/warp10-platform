@@ -337,6 +337,10 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
 
     DirectoryClient directoryClient = stack.getDirectoryClient();
 
+    if (null == directoryClient) {
+      throw new WarpScriptException("There is no available backend. " + this.getName() + " might be executed from a plugin. To expose backend to plugins, set " + Configuration.EGRESS_CLIENTS_EXPOSE + " = true");
+    }
+
     ReadToken rtoken;
     try {
       rtoken = Tokens.extractReadToken(token);
