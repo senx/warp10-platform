@@ -159,7 +159,7 @@ public class MACROFILLER extends NamedWarpScriptFunction implements WarpScriptSt
           stack.push(ticks);
           stack.push(tick);
           ticks = new ArrayList<Object>(this.postWindow);
-          ts = ((Number) tick.get(0)).longValue();
+          ts = ((Number) atick[0]).longValue();
         }        
       }
       
@@ -176,13 +176,15 @@ public class MACROFILLER extends NamedWarpScriptFunction implements WarpScriptSt
       //
       // Check type of result
       //
-      
-      Object res = stack.peek();
-      
-      if (res instanceof List) {
-        stack.drop();
-        
-        return MACROMAPPER.listToObjects((List) res);
+
+      if (stack.peek() instanceof List) {
+
+        List listRes = (List) stack.pop();
+        if (1 == listRes.size()) {
+          listRes.add(0, ts);
+        }
+
+        return MACROMAPPER.listToObjects(listRes);
       } else {
         throw new WarpScriptException("Expected a [ ts lat lon elev value ] list as result of filler.");
       }
