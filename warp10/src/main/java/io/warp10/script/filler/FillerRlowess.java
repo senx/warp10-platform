@@ -74,7 +74,7 @@ public class FillerRlowess extends NamedWarpScriptFunction implements WarpScript
       if (!(o instanceof Long)) {
         throw new WarpScriptException(getName() + " expects a number of robustifying iterations (LONG), but instead got a " + TYPEOF.typeof(o));
       }
-      int r = (int) o;
+      int r = ((Long) o).intValue();
 
       // bandwidth
       o = stack.pop();
