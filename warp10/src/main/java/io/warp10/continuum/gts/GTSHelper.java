@@ -5677,10 +5677,10 @@ public class GTSHelper {
     for (Long tick: ticks) {
 
       //
-      // In case GTS is not bucketize, verify if it is actually a gap
+      // Verify if tick is actually a gap
       //
 
-      if (verify && !isBucketized(gts) && indexAtTick(gts, tick) >= 0) {
+      if (verify && indexAtTick(gts, tick) >= 0) {
         continue;
       }
 
