@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2023  SenX S.A.S.
+//   Copyright 2018-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -35,20 +35,17 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.zip.GZIPInputStream;
 
+import io.warp10.continuum.Configuration;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
-import org.apache.thrift.protocol.TCompactProtocol;
-import org.bouncycastle.util.encoders.Hex;
 import org.joda.time.Duration;
 import org.joda.time.Instant;
 import org.joda.time.MutablePeriod;
 import org.joda.time.Period;
 import org.joda.time.ReadWritablePeriod;
 import org.joda.time.format.ISOPeriodFormat;
-
-import com.google.common.primitives.Longs;
 
 import io.warp10.ThriftUtils;
 import io.warp10.WarpDist;
@@ -224,6 +221,10 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
 
     DirectoryClient directoryClient = stack.getDirectoryClient();
 
+    if (null == directoryClient || null == gtsStore) {
+      throw new WarpScriptException(getName() + " Backend clients are not exposed unless configuration '" + Configuration.EGRESS_CLIENTS_EXPOSE + "' is set to 'true'.");
+    }
+    
     GeoTimeSerie base = null;
     GeoTimeSerie[] bases = null;
     String typeattr = (String) params.get(PARAM_TYPEATTR);
