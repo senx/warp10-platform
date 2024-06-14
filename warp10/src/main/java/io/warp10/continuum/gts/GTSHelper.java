@@ -5641,7 +5641,7 @@ public class GTSHelper {
     }
 
     //
-    // Determine gaps in case GTS is bucketized
+    // Determine gaps in case GTS is bucketized and ticks is not specified
     //
 
     if (null == ticks) {
@@ -5667,6 +5667,9 @@ public class GTSHelper {
           prev += gts.bucketspan;
         }
       }
+
+      // gaps need not to be verified
+      verify = false;
     }
 
     //
