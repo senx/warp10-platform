@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -88,9 +88,23 @@ public class Pencode extends NamedWarpScriptFunction implements WarpScriptStackF
       pg.endDraw();
     }
 
-    BufferedImage bimage = new BufferedImage(image.pixelWidth, image.pixelHeight, BufferedImage.TYPE_INT_ARGB);
+    String format = "png";
+
+    if (null != chunks && chunks.containsKey("format")) {
+      format = String.valueOf(chunks.get("format"));
+
+      if (!"png".equals(format) && !"jpeg".equals(format)) {
+        throw new WarpScriptException("Only formats 'png' and 'jpeg' are supported.");
+      }
+    }
+
+    //
+    // For JPEG output we need to remove the alpha channel
+    //
+
+    BufferedImage bimage = new BufferedImage(image.pixelWidth, image.pixelHeight, "jpeg".equals(format) ? BufferedImage.TYPE_INT_RGB : BufferedImage.TYPE_INT_ARGB);
     bimage.setRGB(0, 0, image.pixelWidth, image.pixelHeight, image.pixels, 0, image.pixelWidth);
-    Iterator<ImageWriter> iter = ImageIO.getImageWritersByFormatName("png");
+    Iterator<ImageWriter> iter = ImageIO.getImageWritersByFormatName(format);
     ImageWriter writer = null;
     if (iter.hasNext()) {
       writer = iter.next();
@@ -104,7 +118,7 @@ public class Pencode extends NamedWarpScriptFunction implements WarpScriptStackF
 
       IIOImage iioimage = new IIOImage(bimage, null, null);
 
-      if (null != chunks) {
+      if (null != chunks && "png".equals(format)) {
         PNGMetadata metadata = new PNGMetadata();
 
         for (Entry<Object,Object> entry: chunks.entrySet()) {
@@ -165,6 +179,12 @@ public class Pencode extends NamedWarpScriptFunction implements WarpScriptStackF
           }
         }
         iioimage.setMetadata(metadata);
+      } else if (null != chunks && "jpeg".equals(format)) {
+        if (chunks.get("quality") instanceof Double) {
+          ImageWriteParam jpgWriteParam = writer.getDefaultWriteParam();
+          jpgWriteParam.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+          jpgWriteParam.setCompressionQuality(((Double) chunks.get("quality")).floatValue());
+        }
       }
 
       writer.write(null, iioimage, param);
@@ -174,7 +194,7 @@ public class Pencode extends NamedWarpScriptFunction implements WarpScriptStackF
 
     writer.dispose();
 
-    StringBuilder sb = new StringBuilder("data:image/png;base64,");
+    StringBuilder sb = new StringBuilder("data:image/" + format + ";base64,");
     sb.append(Base64.encodeBase64String(baos.toByteArray()));
 
     //
