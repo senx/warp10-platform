@@ -197,6 +197,9 @@ public class Pencode extends NamedWarpScriptFunction implements WarpScriptStackF
           ImageWriteParam jpgWriteParam = writer.getDefaultWriteParam();
           jpgWriteParam.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
           jpgWriteParam.setCompressionQuality(((Double) chunks.get(PARAM_QUALITY)).floatValue());
+          param = jpgWriteParam;
+        } else if (null != chunks.get(PARAM_QUALITY)) {
+          throw new WarpScriptException("The " + PARAM_QUALITY + " parameter for " + FORMAT_JPEG + " format must be a DOUBLE between 0.0 and 1.0.");
         }
       }
 
