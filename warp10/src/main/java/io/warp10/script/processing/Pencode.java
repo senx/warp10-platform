@@ -193,13 +193,17 @@ public class Pencode extends NamedWarpScriptFunction implements WarpScriptStackF
         }
         iioimage.setMetadata(metadata);
       } else if (null != chunks && FORMAT_JPEG.equals(format)) {
-        if (chunks.get(PARAM_QUALITY) instanceof Double) {
+        if (chunks.containsKey(PARAM_QUALITY)) {
           ImageWriteParam jpgWriteParam = writer.getDefaultWriteParam();
           jpgWriteParam.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
-          jpgWriteParam.setCompressionQuality(((Double) chunks.get(PARAM_QUALITY)).floatValue());
+          if (chunks.get(PARAM_QUALITY) instanceof Double) {
+            jpgWriteParam.setCompressionQuality(((Double) chunks.get(PARAM_QUALITY)).floatValue());
+          } else if (chunks.get(PARAM_QUALITY) instanceof Long) {
+            jpgWriteParam.setCompressionQuality(((Long) chunks.get(PARAM_QUALITY)).floatValue() / 100);
+          } else {
+            throw new WarpScriptException("The " + PARAM_QUALITY + " parameter for " + FORMAT_JPEG + " format must be a DOUBLE between 0.0 and 1.0, or a LONG between 0 and 100");
+          }
           param = jpgWriteParam;
-        } else if (null != chunks.get(PARAM_QUALITY)) {
-          throw new WarpScriptException("The " + PARAM_QUALITY + " parameter for " + FORMAT_JPEG + " format must be a DOUBLE between 0.0 and 1.0.");
         }
       }
 
