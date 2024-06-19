@@ -122,6 +122,7 @@ public class Pencode extends NamedWarpScriptFunction implements WarpScriptStackF
     if (iter.hasNext()) {
       writer = iter.next();
     }
+
     ImageWriteParam param = writer.getDefaultWriteParam();
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     BufferedOutputStream output = new BufferedOutputStream(baos);
@@ -194,15 +195,19 @@ public class Pencode extends NamedWarpScriptFunction implements WarpScriptStackF
         iioimage.setMetadata(metadata);
       } else if (null != chunks && FORMAT_JPEG.equals(format)) {
         if (chunks.containsKey(PARAM_QUALITY)) {
+          if (!(chunks.get(PARAM_QUALITY) instanceof Double) && !(chunks.get(PARAM_QUALITY) instanceof Long)) {
+            throw new WarpScriptException("Parameter '" + PARAM_QUALITY + "' for format '" + FORMAT_JPEG + "' must be a DOUBLE between 0.0 and 1.0, or a LONG between 0 and 100.");
+          }
+
           ImageWriteParam jpgWriteParam = writer.getDefaultWriteParam();
           jpgWriteParam.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+
           if (chunks.get(PARAM_QUALITY) instanceof Double) {
             jpgWriteParam.setCompressionQuality(((Double) chunks.get(PARAM_QUALITY)).floatValue());
           } else if (chunks.get(PARAM_QUALITY) instanceof Long) {
             jpgWriteParam.setCompressionQuality(((Long) chunks.get(PARAM_QUALITY)).floatValue() / 100);
-          } else {
-            throw new WarpScriptException("The " + PARAM_QUALITY + " parameter for " + FORMAT_JPEG + " format must be a DOUBLE between 0.0 and 1.0, or a LONG between 0 and 100");
           }
+
           param = jpgWriteParam;
         }
       }
