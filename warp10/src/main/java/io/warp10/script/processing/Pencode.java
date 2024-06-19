@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2021  SenX S.A.S.
+//   Copyright 2018-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -47,6 +47,19 @@ import processing.core.PImage;
  */
 public class Pencode extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
+  private static final String FORMAT_PNG = "png";
+  private static final String FORMAT_JPEG = "jpeg";
+  private static final String PARAM_FORMAT = "format";
+  private static final String PARAM_QUALITY = "quality";
+  private static final String PARAM_KEYWORD = "keyword";
+  private static final String PARAM_TEXT = "text";
+  private static final String PARAM_iTXt = "iTXt";
+  private static final String PARAM_tEXt = "tEXt";
+  private static final String PARAM_zTXt = "zTXt";
+  private static final String PARAM_COMPRESSIONFLAG = "compressionFlag";
+  private static final String PARAM_LANGUAGETAG = "languageTag";
+  private static final String PARAM_TRANSLATEDKEYWORD = "translatedKeyword";
+
   public Pencode(String name) {
     super(name);
   }
@@ -88,13 +101,28 @@ public class Pencode extends NamedWarpScriptFunction implements WarpScriptStackF
       pg.endDraw();
     }
 
-    BufferedImage bimage = new BufferedImage(image.pixelWidth, image.pixelHeight, BufferedImage.TYPE_INT_ARGB);
+    String format = FORMAT_PNG;
+
+    if (null != chunks && chunks.containsKey(PARAM_FORMAT)) {
+      format = String.valueOf(chunks.get(PARAM_FORMAT));
+
+      if (!FORMAT_PNG.equals(format) && !FORMAT_JPEG.equals(format)) {
+        throw new WarpScriptException("Only formats '" + FORMAT_PNG + "' and '" + FORMAT_JPEG + "' are supported.");
+      }
+    }
+
+    //
+    // For JPEG output we need to remove the alpha channel
+    //
+
+    BufferedImage bimage = new BufferedImage(image.pixelWidth, image.pixelHeight, FORMAT_JPEG.equals(format) ? BufferedImage.TYPE_INT_RGB : BufferedImage.TYPE_INT_ARGB);
     bimage.setRGB(0, 0, image.pixelWidth, image.pixelHeight, image.pixels, 0, image.pixelWidth);
-    Iterator<ImageWriter> iter = ImageIO.getImageWritersByFormatName("png");
+    Iterator<ImageWriter> iter = ImageIO.getImageWritersByFormatName(format);
     ImageWriter writer = null;
     if (iter.hasNext()) {
       writer = iter.next();
     }
+
     ImageWriteParam param = writer.getDefaultWriteParam();
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     BufferedOutputStream output = new BufferedOutputStream(baos);
@@ -104,12 +132,12 @@ public class Pencode extends NamedWarpScriptFunction implements WarpScriptStackF
 
       IIOImage iioimage = new IIOImage(bimage, null, null);
 
-      if (null != chunks) {
+      if (null != chunks && FORMAT_PNG.equals(format)) {
         PNGMetadata metadata = new PNGMetadata();
 
         for (Entry<Object,Object> entry: chunks.entrySet()) {
-          if ("tEXt".equals(entry.getKey()) || "zTXt".equals(entry.getKey())) {
-            boolean zTXt = "zTXt".equals(entry.getKey());
+          if (PARAM_tEXt.equals(entry.getKey()) || PARAM_zTXt.equals(entry.getKey())) {
+            boolean zTXt = PARAM_zTXt.equals(entry.getKey());
             Object chunklist = entry.getValue();
 
             if (!(chunklist instanceof List)) {
@@ -118,24 +146,24 @@ public class Pencode extends NamedWarpScriptFunction implements WarpScriptStackF
 
             for (Object chunkelt: (List<Object>) chunklist) {
               if (!(chunkelt instanceof Map)) {
-                throw new WarpScriptException("tEXt and zTXt chunks must be MAP instances.");
+                throw new WarpScriptException(PARAM_tEXt + " and " + PARAM_zTXt + " chunks must be MAP instances.");
               }
               Map<Object,Object> chunkmap = (Map<Object,Object>) chunkelt;
 
-              if (chunkmap.get("keyword") instanceof String && chunkmap.get("text") instanceof String) {
+              if (chunkmap.get(PARAM_KEYWORD) instanceof String && chunkmap.get(PARAM_TEXT) instanceof String) {
                 if (zTXt) {
-                  metadata.zTXt_keyword.add((String) chunkmap.get("keyword"));
-                  metadata.zTXt_text.add((String) chunkmap.get("text"));
+                  metadata.zTXt_keyword.add((String) chunkmap.get(PARAM_KEYWORD));
+                  metadata.zTXt_text.add((String) chunkmap.get(PARAM_TEXT));
                   metadata.zTXt_compressionMethod.add(0);
                 } else {
-                  metadata.tEXt_keyword.add((String) chunkmap.get("keyword"));
-                  metadata.tEXt_text.add((String) chunkmap.get("text"));
+                  metadata.tEXt_keyword.add((String) chunkmap.get(PARAM_KEYWORD));
+                  metadata.tEXt_text.add((String) chunkmap.get(PARAM_TEXT));
                 }
               } else {
-                throw new WarpScriptException("tEXt and zTXt chunks MUST contains 'keyword' and 'text' entries of type STRING.");
+                throw new WarpScriptException(PARAM_tEXt + " and " + PARAM_zTXt + " chunks MUST contains '" + PARAM_KEYWORD + "' and '" + PARAM_TEXT + "' entries of type STRING.");
               }
             }
-          } else if ("iTXt".equals(entry.getKey())) {
+          } else if (PARAM_iTXt.equals(entry.getKey())) {
             Object chunklist = entry.getValue();
 
             if (!(chunklist instanceof List)) {
@@ -144,27 +172,44 @@ public class Pencode extends NamedWarpScriptFunction implements WarpScriptStackF
 
             for (Object chunkelt: (List<Object>) chunklist) {
               if (!(chunkelt instanceof Map)) {
-                throw new WarpScriptException("iTXt chunks must be MAP instances.");
+                throw new WarpScriptException(PARAM_iTXt + " chunks must be MAP instances.");
               }
               Map<Object,Object> chunkmap = (Map<Object,Object>) chunkelt;
 
-              if (chunkmap.get("keyword") instanceof String && chunkmap.get("text") instanceof String) {
-                metadata.iTXt_keyword.add((String) chunkmap.get("keyword"));
-                metadata.iTXt_text.add((String) chunkmap.get("text"));
-                metadata.iTXt_compressionFlag.add(Boolean.TRUE.equals(chunkmap.get("compressionFlag")));
+              if (chunkmap.get(PARAM_KEYWORD) instanceof String && chunkmap.get(PARAM_TEXT) instanceof String) {
+                metadata.iTXt_keyword.add((String) chunkmap.get(PARAM_KEYWORD));
+                metadata.iTXt_text.add((String) chunkmap.get(PARAM_TEXT));
+                metadata.iTXt_compressionFlag.add(Boolean.TRUE.equals(chunkmap.get(PARAM_COMPRESSIONFLAG)));
                 // 0 is the only supported compression method (http://www.libpng.org/pub/png/spec/1.2/PNG-Chunks.html)
                 metadata.iTXt_compressionMethod.add(0);
-                metadata.iTXt_languageTag.add(chunkmap.getOrDefault("languageTag", "").toString());
-                metadata.iTXt_translatedKeyword.add(chunkmap.getOrDefault("translatedKeyword", "").toString());
+                metadata.iTXt_languageTag.add(chunkmap.getOrDefault(PARAM_LANGUAGETAG, "").toString());
+                metadata.iTXt_translatedKeyword.add(chunkmap.getOrDefault(PARAM_TRANSLATEDKEYWORD, "").toString());
               } else {
-                throw new WarpScriptException("iTXt chunks MUST contains 'keyword' and 'text' entries of type STRING.");
+                throw new WarpScriptException(PARAM_iTXt + " chunks MUST contains '" + PARAM_KEYWORD + "' and '" + PARAM_TEXT + "' entries of type STRING.");
               }
             }
           } else {
-            throw new WarpScriptException("Only 'tEXt', 'zTXt' and 'iTXt' chunks can be specified.");
+            throw new WarpScriptException("Only '" + PARAM_tEXt + "', '" + PARAM_zTXt + "' and '" + PARAM_iTXt + "' chunks can be specified.");
           }
         }
         iioimage.setMetadata(metadata);
+      } else if (null != chunks && FORMAT_JPEG.equals(format)) {
+        if (chunks.containsKey(PARAM_QUALITY)) {
+          if (!(chunks.get(PARAM_QUALITY) instanceof Double) && !(chunks.get(PARAM_QUALITY) instanceof Long)) {
+            throw new WarpScriptException("Parameter '" + PARAM_QUALITY + "' for format '" + FORMAT_JPEG + "' must be a DOUBLE between 0.0 and 1.0, or a LONG between 0 and 100.");
+          }
+
+          ImageWriteParam jpgWriteParam = writer.getDefaultWriteParam();
+          jpgWriteParam.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+
+          if (chunks.get(PARAM_QUALITY) instanceof Double) {
+            jpgWriteParam.setCompressionQuality(((Double) chunks.get(PARAM_QUALITY)).floatValue());
+          } else if (chunks.get(PARAM_QUALITY) instanceof Long) {
+            jpgWriteParam.setCompressionQuality(((Long) chunks.get(PARAM_QUALITY)).floatValue() / 100);
+          }
+
+          param = jpgWriteParam;
+        }
       }
 
       writer.write(null, iioimage, param);
@@ -174,7 +219,7 @@ public class Pencode extends NamedWarpScriptFunction implements WarpScriptStackF
 
     writer.dispose();
 
-    StringBuilder sb = new StringBuilder("data:image/png;base64,");
+    StringBuilder sb = new StringBuilder("data:image/" + format + ";base64,");
     sb.append(Base64.encodeBase64String(baos.toByteArray()));
 
     //
