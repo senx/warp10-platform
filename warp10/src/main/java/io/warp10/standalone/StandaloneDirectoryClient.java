@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2023  SenX S.A.S.
+//   Copyright 2018-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -586,7 +586,6 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       //
 
       for (String className: classNames) {
-
         //
         // If class matches, check all labels for matches
         //
@@ -1169,8 +1168,8 @@ public class StandaloneDirectoryClient implements DirectoryClient {
     return DirectoryUtil.stats(request, filter, metadatas, null, LIMIT_CLASS_CARDINALITY, LIMIT_LABELS_CARDINALITY,-1, classLongs, labelsLongs, null);
   }
 
-  @Override
-  public MetadataIterator iterator(DirectoryRequest request) throws IOException {
+  //@Override
+  public MetadataIterator iterator_old(DirectoryRequest request) throws IOException {
     List<Metadata> metadatas = find(request);
 
     final Iterator<Metadata> iter = metadatas.iterator();
@@ -1184,6 +1183,310 @@ public class StandaloneDirectoryClient implements DirectoryClient {
 
       @Override
       public Metadata next() { return iter.next(); }
+    };
+  }
+
+  @Override
+  public MetadataIterator iterator(DirectoryRequest request) throws IOException {
+
+    final List<String> classExpr = request.getClassSelectors();
+    final List<Map<String,String>> labelsExpr = request.getLabelsSelectors();
+
+    final boolean hasActiveAfter = request.isSetActiveAfter();
+    final long activeAfter = request.getActiveAfter();
+
+    final boolean hasQuietAfter = request.isSetQuietAfter();
+    final long quietAfter = request.getQuietAfter();
+
+    //
+    // If we have more than 1 classExpr, we fallback on calling find and
+    // iterating over the results since we cannot otherwise ensure that we do not have
+    // duplicates
+    //
+
+    if (classExpr.size() > 1) {
+      List<Metadata> metadatas = find(request);
+
+      final Iterator<Metadata> iter = metadatas.iterator();
+
+      return new MetadataIterator() {
+        @Override
+        public void close() throws Exception {}
+
+        @Override
+        public boolean hasNext() { return iter.hasNext(); }
+
+        @Override
+        public Metadata next() { return iter.next(); }
+      };
+    }
+
+    //
+    // Build patterns from expressions
+    //
+
+    SmartPattern classSmartPattern;
+
+    Collection<Metadata> requestedMetadatas;
+
+    if (classExpr.size() > 1) {
+      requestedMetadatas = new LinkedHashSet<Metadata>();
+    } else {
+      requestedMetadatas = new ArrayList<Metadata>();
+    }
+
+    Set<String> classNames = null;
+
+    List<String> missingLabels = Constants.ABSENT_LABEL_SUPPORT ? new ArrayList<String>() : null;
+
+    String exactClassName = null;
+
+    if (classExpr.get(0).startsWith("=") || !classExpr.get(0).startsWith("~")) {
+      exactClassName = classExpr.get(0).startsWith("=") ? classExpr.get(0).substring(1) : classExpr.get(0);
+      classSmartPattern = new SmartPattern(exactClassName);
+    } else {
+      classSmartPattern = new SmartPattern(Pattern.compile(classExpr.get(0).substring(1)));
+    }
+
+    Map<String,SmartPattern> labelPatterns = new LinkedHashMap<String,SmartPattern>();
+
+    if (null != missingLabels) {
+      missingLabels.clear();
+    }
+
+    if (null != labelsExpr.get(0)) {
+      for (Entry<String,String> entry: labelsExpr.get(0).entrySet()) {
+        String label = entry.getKey();
+        String expr = entry.getValue();
+        Pattern pattern;
+
+        if (null != missingLabels && ("=".equals(expr) || "".equals(expr))) {
+          missingLabels.add(label);
+          continue;
+        }
+
+        if (expr.startsWith("=") || !expr.startsWith("~")) {
+          labelPatterns.put(label, new SmartPattern(expr.startsWith("=") ? expr.substring(1) : expr));
+        } else {
+          pattern = Pattern.compile(expr.substring(1));
+          labelPatterns.put(label,  new SmartPattern(pattern));
+        }
+      }
+    }
+
+    if (null != exactClassName) {
+      if (!classids.containsKey(exactClassName)) {
+        return new MetadataIterator() {
+          @Override
+          public void close() throws Exception {}
+
+          @Override
+          public boolean hasNext() { return false; }
+
+          @Override
+          public Metadata next() { throw new IllegalStateException(); }
+        };
+      }
+      classNames = new LinkedHashSet<String>();
+      classNames.add(exactClassName);
+    } else {
+      classNames = metadatas.keySet();
+    }
+
+    //
+    // Create arrays to check the labels, this is to speed up discard
+    //
+
+    List<String> labelNames = new ArrayList<String>(labelPatterns.size());
+    List<SmartPattern> labelSmartPatterns = new ArrayList<SmartPattern>(labelPatterns.size());
+
+    for(Entry<String,SmartPattern> entry: labelPatterns.entrySet()) {
+      labelNames.add(entry.getKey());
+      labelSmartPatterns.add(entry.getValue());
+    }
+
+    final String[] labelValues = new String[labelNames.size()];
+
+    final List<String> fclassNames = new ArrayList<String>(classNames);
+
+    return new MetadataIterator() {
+
+      private Metadata metadata = null;
+      int classIdx = 0;
+      int metaIdx = -1;
+      List<Metadata> metadatasForCN = null;
+      String className = null;
+
+      @Override
+      public void close() throws Exception {}
+
+      @Override
+      public boolean hasNext() {
+        if (null != metadata) {
+          return true;
+        }
+
+        while(classIdx < fclassNames.size()) {
+          while (null == metadatasForCN) {
+            while (classIdx < fclassNames.size()) {
+              className = fclassNames.get(classIdx++);
+              if (classSmartPattern.matches(className)) {
+                Map<Long,Metadata> metadatasForClassname = metadatas.get(className);
+                if (null != metadatasForClassname) {
+                  metadatasForCN = new ArrayList<Metadata>(metadatasForClassname.values());
+                  metaIdx = 0;
+                  break;
+                }
+              }
+            }
+            if (null == metadatasForCN) {
+              break;
+            }
+          }
+
+          if (null == metadatasForCN) {
+            return false;
+          }
+
+          while(metaIdx < metadatasForCN.size()) {
+
+            Metadata md = metadatasForCN.get(metaIdx);
+
+            //
+            // Check activity
+            //
+
+            if (hasActiveAfter && md.getLastActivity() < activeAfter) {
+              metaIdx++;
+              continue;
+            }
+
+            if (hasQuietAfter && md.getLastActivity() >= quietAfter) {
+              metaIdx++;
+              continue;
+            }
+
+
+            boolean exclude = false;
+
+            if (null != missingLabels) {
+              for (String missing: missingLabels) {
+                // If the Metadata contain one of the missing labels, exclude the entry
+                if (null != md.getLabels().get(missing)) {
+                  exclude = true;
+                  break;
+                }
+              }
+              // Check attributes
+              if (!exclude && md.getAttributesSize() > 0) {
+                for (String missing: missingLabels) {
+                  // If the Metadata contain one of the missing labels, exclude the entry
+                  if (null != md.getAttributes().get(missing)) {
+                    exclude = true;
+                    break;
+                  }
+                }
+              }
+              if (exclude) {
+                metaIdx++;
+                continue;
+              }
+            }
+
+            int idx = 0;
+
+            for (String labelName: labelNames) {
+              //
+              // Immediately exclude metadata which do not contain one of the
+              // labels for which we have patterns either in labels or in attributes
+              //
+
+              String labelValue = md.getLabels().get(labelName);
+
+              if (null == labelValue) {
+                labelValue = md.getAttributes().get(labelName);
+                if (null == labelValue) {
+                  exclude = true;
+                  break;
+                }
+              }
+
+              labelValues[idx++] = labelValue;
+            }
+
+            // If we did not collect enough label/attribute values, exclude the GTS
+            if (idx < labelNames.size()) {
+              exclude = true;
+            }
+
+            if (exclude) {
+              metaIdx++;
+              continue;
+            }
+
+            //
+            // Check if the label value matches, if not, exclude the GTS
+            //
+
+            for (int j = 0; j < labelNames.size(); j++) {
+              if (!labelSmartPatterns.get(j).matches(labelValues[j])) {
+                exclude = true;
+                break;
+              }
+            }
+
+            if (exclude) {
+              metaIdx++;
+              continue;
+            }
+
+            //
+            // We have a match, rebuild metadata
+            //
+            // FIXME(hbs): include a 'safe' mode to expose the internal Metadata instances?
+            //
+
+            Metadata meta = new Metadata();
+            meta.setName(className);
+            meta.setLabels(Collections.unmodifiableMap(md.getLabels()));
+            meta.setAttributes(Collections.unmodifiableMap(md.getAttributes()));
+            // 128BITS
+            if (md.isSetClassId()) {
+              meta.setClassId(md.getClassId());
+            } else {
+              meta.setClassId(GTSHelper.classId(classKey, meta.getName()));
+            }
+            if (md.isSetLabelsId()) {
+              meta.setLabelsId(md.getLabelsId());
+            } else {
+              meta.setLabelsId(GTSHelper.labelsId(labelsKey, meta.getLabels()));
+            }
+
+            meta.setLastActivity(md.getLastActivity());
+            metadata = meta;
+            metaIdx++;
+            return true;
+          }
+
+          if (metaIdx >= metadatasForCN.size()) {
+            metadatasForCN = null;
+          }
+        }
+
+        return false;
+      }
+
+
+      @Override
+      public Metadata next() {
+        if (null == metadata) {
+          throw new IllegalStateException();
+        }
+
+        Metadata m = metadata;
+        metadata = null;
+        return m;
+      }
     };
   }
 
