@@ -250,6 +250,11 @@ struct DirectoryRequest {
    * This is mainly so HFDUMP can create HFiles from sorted GTS
    */
   5: optional bool sorted = false,
+  
+  /**
+   * Optional request attributes
+   */
+  6: optional map<string,string> attributes,
 }
 
 struct GTSWrapper {
