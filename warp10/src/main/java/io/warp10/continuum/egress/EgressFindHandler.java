@@ -40,6 +40,7 @@ import org.slf4j.LoggerFactory;
 import io.warp10.ThrowableUtils;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.Tokens;
+import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
@@ -53,6 +54,7 @@ import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.functions.FIND;
 import io.warp10.script.functions.PARSESELECTOR;
+import io.warp10.script.functions.SNAPSHOT;
 import io.warp10.sensision.Sensision;
 
 public class EgressFindHandler extends AbstractHandler {
@@ -117,6 +119,8 @@ public class EgressFindHandler extends AbstractHandler {
     try {
       String format = req.getParameter(Constants.HTTP_PARAM_FORMAT);
       boolean json = "json".equals(format);
+      boolean warpscript = "warpscript".equals(format);
+      GTSEncoder encoder = new GTSEncoder();
 
       boolean showErrors = null != req.getParameter(Constants.HTTP_PARAM_SHOW_ERRORS);
 
@@ -241,6 +245,21 @@ public class EgressFindHandler extends AbstractHandler {
                   first = false;
                 }
                 JsonUtils.objectToJson(pw, metadata, true);
+                continue;
+              }
+
+              if (warpscript) {
+                if (null != metadata.getLabels()) {
+                  metadata.setLabels(new HashMap<String,String>(metadata.getLabels()));
+                  if (!Constants.EXPOSE_OWNER_PRODUCER && !expose) {
+                    metadata.getLabels().remove(Constants.OWNER_LABEL);
+                    metadata.getLabels().remove(Constants.PRODUCER_LABEL);
+                  }
+                }
+                encoder.safeSetMetadata(metadata);
+                sb.setLength(0);
+                SNAPSHOT.addElement(sb, encoder);
+                pw.println(sb.toString());
                 continue;
               }
 
