@@ -1480,7 +1480,9 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       @Override
       public Metadata next() {
         if (null == metadata) {
-          throw new IllegalStateException();
+          if (!hasNext()) {
+            throw new IllegalStateException();
+          }
         }
 
         Metadata m = metadata;
