@@ -224,7 +224,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
     if (null == directoryClient || null == gtsStore) {
       throw new WarpScriptException(getName() + " Backend clients are not exposed unless configuration '" + Configuration.EGRESS_CLIENTS_EXPOSE + "' is set to 'true'.");
     }
-    
+
     GeoTimeSerie base = null;
     GeoTimeSerie[] bases = null;
     String typeattr = (String) params.get(PARAM_TYPEATTR);
@@ -513,14 +513,9 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       }
 
       try {
-        metadatas = directoryClient.find(drequest);
-        iter = metadatas.iterator();
-      } catch (IOException ioe) {
-        try {
-          iter = directoryClient.iterator(drequest);
-        } catch (Exception e) {
-          throw new WarpScriptException(getName() + " failed.", e);
-        }
+        iter = directoryClient.iterator(drequest);
+      } catch (Exception e) {
+        throw new WarpScriptException(getName() + " failed.", e);
       }
     }
 
