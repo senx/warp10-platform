@@ -67,7 +67,7 @@ public class FillerLowess extends NamedWarpScriptFunction implements WarpScriptS
 
       // bandwidth
       if (!(o instanceof Long)) {
-        throw new WarpScriptException(getName() + " expects an bandwidth as a number of data points (LONG), but instead got a " + TYPEOF.typeof(o));
+        throw new WarpScriptException(getName() + " expects a bandwidth as a number of data points (LONG), but instead got a " + TYPEOF.typeof(o));
       }
 
       stack.push(new FillerLowess(getName(), (long) o, a));
