@@ -363,6 +363,7 @@ public class Constants {
   public static final String HTTP_PARAM_POSTBOUNDARY = "boundary.post";
   public static final String HTTP_PARAM_METAONLY = "metaonly";
   public static final String HTTP_PARAM_ATTR_PREFIX = "attr.";
+  public static final String HTTP_PARAM_FIND_ATTR_PREFIX = "find.attr.";
 
   public static final String DEFAULT_PACKED_CLASS_SUFFIX = ":packed";
   public static final int DEFAULT_PACKED_MAXSIZE = 65536;
@@ -630,4 +631,6 @@ public class Constants {
   public static final String BACKEND_ARCHIVE = "archive";
   public static final String BACKEND_LEVELDB = "leveldb";
   public static final String BACKEND_FDB = "fdb";
+
+  public static final String DIRECTORY_REQUEST_ATTR_TOKEN = ".token";
 }

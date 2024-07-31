@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2023  SenX S.A.S.
+//   Copyright 2018-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -38,6 +38,7 @@ import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.continuum.gts.MetadataIdComparator;
 import io.warp10.continuum.store.Constants;
+import io.warp10.continuum.store.MetadataIterator;
 import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.quasar.token.thrift.data.ReadToken;
@@ -45,6 +46,7 @@ import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.script.functions.FIND;
 import io.warp10.standalone.Warp;
 import io.warp10.warp.sdk.Capabilities;
 
@@ -152,7 +154,17 @@ public class SSTFIND extends NamedWarpScriptFunction implements WarpScriptStackF
           DirectoryRequest dr = new DirectoryRequest();
           dr.setClassSelectors(clsSels);
           dr.setLabelsSelectors(lblsSels);
-          selectedmetas.addAll(stack.getDirectoryClient().find(dr));
+          MetadataIterator iter = stack.getDirectoryClient().iterator(dr);
+
+          //
+          // Apply token scope
+          //
+
+          iter = FIND.getScopedIterator(iter, rtoken, null);
+
+          while(iter.hasNext()) {
+            selectedmetas.add(iter.next());
+          }
         } catch (IOException ioe) {
           throw new WarpScriptException(getName() + " encountered exception while retrieving Geo Time Series.");
         }

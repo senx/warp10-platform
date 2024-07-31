@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -194,6 +194,7 @@ public class Warp10InputFormat extends InputFormat<Text, BytesWritable> {
   public static final String HTTP_HEADER_TIMESTEP = "X-Warp10-Timestep";
   public static final String HTTP_HEADER_SHOW_ERRORS = "X-Warp10-ShowErrors";
   public static final String HTTP_HEADER_ATTR_PREFIX = "X-Warp10-Attr-";
+  public static final String HTTP_HEADER_FIND_ATTR_PREFIX = "X-Warp10-Find-Attr-";
 
   public Warp10InputFormat(String suffix) {
     if (null != suffix) {

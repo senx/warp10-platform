@@ -55,7 +55,6 @@ import org.apache.commons.codec.binary.Hex;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
-import org.apache.thrift.protocol.TCompactProtocol;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.joda.time.DurationFieldType;
@@ -217,6 +216,7 @@ public class EgressFetchHandler extends AbstractHandler {
       String preBoundaryParam = null;
       String postBoundaryParam = null;
       Map<String,String> attrParams = new HashMap<String,String>();
+      Map<String,String> findAttrParams = new HashMap<String,String>();
 
       if (splitFetch) {
         //
@@ -242,6 +242,8 @@ public class EgressFetchHandler extends AbstractHandler {
           String name = names.nextElement();
           if (name.startsWith(Warp10InputFormat.HTTP_HEADER_ATTR_PREFIX)) {
             attrParams.put(name.substring(Warp10InputFormat.HTTP_HEADER_ATTR_PREFIX.length()), req.getHeader(name));
+          } else if (name.startsWith(Warp10InputFormat.HTTP_HEADER_FIND_ATTR_PREFIX)) {
+            findAttrParams.put(name.substring(Warp10InputFormat.HTTP_HEADER_FIND_ATTR_PREFIX.length()), req.getHeader(name));
           }
         }
       } else {
@@ -267,6 +269,8 @@ public class EgressFetchHandler extends AbstractHandler {
           String name = names.nextElement();
           if (name.startsWith(Constants.HTTP_PARAM_ATTR_PREFIX)) {
             attrParams.put(name.substring(Constants.HTTP_PARAM_ATTR_PREFIX.length()), req.getParameter(name));
+          } else if (name.startsWith(Constants.HTTP_PARAM_FIND_ATTR_PREFIX)) {
+            findAttrParams.put(name.substring(Constants.HTTP_PARAM_FIND_ATTR_PREFIX.length()), req.getParameter(name));
           }
         }
       }
@@ -662,26 +666,31 @@ public class EgressFetchHandler extends AbstractHandler {
           request.setClassSelectors(clsSels);
           request.setLabelsSelectors(lblsSels);
 
+          for (Entry<String,String> attr: findAttrParams.entrySet()) {
+            request.putToAttributes(attr.getKey(), attr.getValue());
+          }
+
+          // Add the token
+          request.putToAttributes(Constants.DIRECTORY_REQUEST_ATTR_TOKEN, token);
+
           if (null != activeAfter) {
             request.setActiveAfter(activeAfter);
           }
+
           if (null != quietAfter) {
             request.setQuietAfter(quietAfter);
           }
 
-          try {
-            metas = directoryClient.find(request);
-            metadatas.addAll(metas);
-          } catch (Exception e) {
-            //
-            // If metadatas is not empty, create an iterator for it, then clear it
-            //
-            if (!metadatas.isEmpty()) {
-              iterators.add(metadatas.iterator());
-              metadatas.clear();
-            }
-            iterators.add(directoryClient.iterator(request));
+          //
+          // If metadatas is not empty, create an iterator for it, then clear it
+          //
+
+          if (!metadatas.isEmpty()) {
+            iterators.add(metadatas.iterator());
+            metadatas.clear();
           }
+
+          iterators.add(directoryClient.iterator(request));
         }
       } else {
         // split fetch

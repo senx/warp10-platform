@@ -39,7 +39,6 @@ import org.joda.time.format.ISODateTimeFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.warp10.ThriftUtils;
 import io.warp10.ThrowableUtils;
 import io.warp10.WarpConfig;
 import io.warp10.WarpManager;
@@ -52,13 +51,16 @@ import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.MetadataIdComparator;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
+import io.warp10.continuum.store.MetadataIterator;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.continuum.thrift.data.LoggingEvent;
 import io.warp10.crypto.KeyStore;
+import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.script.WarpScriptException;
+import io.warp10.script.functions.FIND;
 import io.warp10.sensision.Sensision;
 import io.warp10.warp.sdk.IngressPlugin;
 
@@ -380,7 +382,26 @@ public class StandaloneDeleteHandler extends AbstractHandler {
       drequest.setClassSelectors(clsSels);
       drequest.setLabelsSelectors(lblsSels);
 
-      metadatas = directoryClient.find(drequest);
+      metadatas = new ArrayList<Metadata>();
+
+      MetadataIterator iter = directoryClient.iterator(drequest);
+
+      //
+      // Apply token scope
+      //
+
+      if (writeToken.getAttributesSize() > 0) {
+        ReadToken rtoken = new ReadToken();
+        rtoken.setAttributes(writeToken.getAttributes());
+        rtoken.addToApps(writeToken.getAppName());
+        rtoken.addToOwners(writeToken.bufferForOwnerId());
+        rtoken.addToProducers(writeToken.bufferForProducerId());
+        iter = FIND.getScopedIterator(iter, rtoken, null);
+      }
+
+      while(iter.hasNext()) {
+        metadatas.add(iter.next());
+      }
 
       response.setStatus(HttpServletResponse.SC_OK);
       response.setContentType("text/plain");
