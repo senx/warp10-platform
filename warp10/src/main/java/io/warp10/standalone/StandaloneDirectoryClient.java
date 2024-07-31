@@ -84,6 +84,7 @@ import io.warp10.continuum.store.MetadataIterator;
 import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.DirectoryStatsRequest;
 import io.warp10.continuum.store.thrift.data.DirectoryStatsResponse;
+import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.CryptoUtils;
 import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.SipHashInline;
@@ -95,7 +96,6 @@ import io.warp10.fdb.FDBScan;
 import io.warp10.fdb.FDBSet;
 import io.warp10.fdb.FDBUtils;
 import io.warp10.sensision.Sensision;
-import kotlin.Metadata;
 
 public class StandaloneDirectoryClient implements DirectoryClient {
 
