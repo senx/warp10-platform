@@ -35,7 +35,7 @@ import com.geoxp.GeoXPLib;
  * 1: a list of five parameters: lat, lon, elevation, value, ticks
  *    where ticks is a list of ticks for which to add the data point (tick, lat, lon, elevation and value)
  *    
- * This function is deprecated. Use instead 'ticks' parameter of FILL with filler.value
+ * This function is deprecated. Use instead 'ticks' parameter of FILL with filler.value (and 'verify' parameter set to false to keep the same duplicate behavior).
  */
 @Deprecated
 public class FILLTICKS extends GTSStackFunction {
