@@ -5668,6 +5668,12 @@ public class GTSHelper {
         }
       }
 
+      // add buckets in the future of last data point
+      while (prev <= gts.lastbucket) {
+        ticks.add(prev);
+        prev += gts.bucketspan;
+      }
+
       // gaps need not to be verified
       verify = false;
     }
@@ -5724,7 +5730,7 @@ public class GTSHelper {
       //
 
       params[1 + prewindow][0] = tick;
-      if (gts.size() > 0 && tick == gts.ticks[index]) {
+      if (gts.size() > 0 && index < gts.size() && tick == gts.ticks[index]) {
         params[1 + prewindow][1] = locationAtIndex(gts, index);
         params[1 + prewindow][2] = elevationAtIndex(gts, index);
         params[1 + prewindow][3] = valueAtIndex(gts, index);
