@@ -5900,6 +5900,21 @@ public class GTSHelper {
           prev += gts.bucketspan;
         }
       }
+
+      // add buckets in the future of last data point
+      while (prev <= gts.lastbucket) {
+
+        // fill the gap
+        Object value = filler.evaluate(prev);
+        if (null != value) {
+          GTSHelper.setValue(filled, prev, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, value, false);
+
+        } else if (null != invalidValue) {
+          GTSHelper.setValue(filled, prev, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, invalidValue, false);
+        }
+
+        prev += gts.bucketspan;
+      }
     }
 
     return filled;
