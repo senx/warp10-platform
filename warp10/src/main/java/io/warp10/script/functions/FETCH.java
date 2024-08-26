@@ -224,7 +224,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
     if (null == directoryClient || null == gtsStore) {
       throw new WarpScriptException(getName() + " Backend clients are not exposed unless configuration '" + Configuration.EGRESS_CLIENTS_EXPOSE + "' is set to 'true'.");
     }
-    
+
     GeoTimeSerie base = null;
     GeoTimeSerie[] bases = null;
     String typeattr = (String) params.get(PARAM_TYPEATTR);
@@ -358,9 +358,14 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       String tselector = "~.*" + GTSHelper.buildSelector(tmeta, true);
       MetadataSelectorMatcher matcher = new MetadataSelectorMatcher(tselector);
 
-      //
-      // Build a selector
+      final List<Metadata> modifiedMetas = new ArrayList<Metadata>(metas.size());
+
       for (Metadata m: metas) {
+
+        // We clone the Metadata instance so the user cannot alter it
+        m = new Metadata(m);
+        modifiedMetas.add(m);
+
         if (null == m.getLabels()) {
           m.setLabels(new LinkedHashMap<String,String>());
         }
@@ -429,12 +434,61 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       }
 
       //
+      // Now apply the scoping of the token if set
+      //
+
+      if (rtoken.getAttributesSize() > 0 && rtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_SCOPE)) {
+
+        Object[] clslbls;
+        try {
+          clslbls = PARSESELECTOR.parse(rtoken.getAttributes().get(Constants.TOKEN_ATTR_SCOPE));
+        } catch (WarpScriptException e) {
+          throw new WarpScriptException("Invalid syntax for token scope selector.");
+        }
+
+        DirectoryRequest dr = new DirectoryRequest();
+
+        dr.addToClassSelectors((String) clslbls[0]);
+
+        MetadataIterator miter = new MetadataIterator() {
+          int idx = 0;
+
+          @Override
+          public boolean hasNext() {
+            return idx < modifiedMetas.size();
+          }
+
+          @Override
+          public Metadata next() {
+            if (idx >= modifiedMetas.size()) {
+              throw new IllegalStateException();
+            } else {
+              return modifiedMetas.get(idx++);
+            }
+          }
+
+          @Override
+          public void close() throws Exception {}
+        };
+
+        MetadataIterator mi = MetadataSelectorMatcher.getIterator(miter, dr);
+
+        metas = new ArrayList<Metadata>(metas.size());
+
+        while(mi.hasNext()) {
+          metas.add(mi.next());
+        }
+      } else {
+        metas = modifiedMetas;
+      }
+
+      //
       // Sort metadata by id so the enforcement of keepempty works
       //
 
       Collections.sort(metas, MetadataIdComparator.COMPARATOR);
 
-      iter = ((List<Metadata>) params.get(PARAM_GTS)).iterator();
+      iter = metas.iterator();
     } else {
       if (params.containsKey(PARAM_SELECTOR_PAIRS)) {
         for (Pair<Object,Object> pair: (List<Pair<Object,Object>>) params.get(PARAM_SELECTOR_PAIRS)) {
