@@ -1235,16 +1235,19 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       Object o = map.get(PARAM_GTS);
 
       if (!(o instanceof List)) {
-        throw new WarpScriptException(getName() + " invalid '" + PARAM_GTS + "' parameter, expected a list of Geo Time Series.");
+        throw new WarpScriptException(getName() + " invalid '" + PARAM_GTS + "' parameter, expected a list of Geo Time Series  or GTS Encoders.");
       }
 
       List<Metadata> metadatas = new ArrayList<Metadata>();
 
       for (Object elt: (List<Object>) o) {
-        if (!(elt instanceof GeoTimeSerie)) {
-          throw new WarpScriptException(getName() + " invalid '" + PARAM_GTS + "' parameter, expected a list of Geo Time Series.");
+        if (elt instanceof GeoTimeSerie) {
+          metadatas.add((new Metadata(((GeoTimeSerie) elt).getMetadata())));
+        } else if (elt instanceof GTSEncoder) {
+          metadatas.add((new Metadata(((GTSEncoder) elt).getRawMetadata())));
+        } else {
+          throw new WarpScriptException(getName() + " invalid '" + PARAM_GTS + "' parameter, expected a list of Geo Time Series  or GTS Encoders.");
         }
-        metadatas.add((new Metadata(((GeoTimeSerie) elt).getMetadata())));
       }
 
       params.put(PARAM_GTS, metadatas);
