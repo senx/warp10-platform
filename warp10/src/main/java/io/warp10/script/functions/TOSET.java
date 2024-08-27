@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -29,24 +29,26 @@ import java.util.Set;
  * Convert the list on top of the stack into a set
  */
 public class TOSET extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   public TOSET(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
-    
-    if (!(top instanceof List)) {
-      throw new WarpScriptException(getName() + " expects a list on top of the stack.");
+
+    if (top instanceof List) {
+      Set<Object> set = new HashSet<Object>();
+
+      set.addAll((List) top);
+
+      stack.push(set);
+    } else if (top instanceof Set) {
+      stack.push(top);
+    } else {
+      throw new WarpScriptException(getName() + " operates on a LIST or SET.");
     }
-    
-    Set<Object> set = new HashSet<Object>();
-    
-    set.addAll((List) top);
-    
-    stack.push(set);
 
     return stack;
   }
