@@ -5616,6 +5616,14 @@ public class GTSHelper {
     }
 
     //
+    // If gts is bucketized and ticks parameter is defined, then output must be unbucketized
+    //
+
+    if (GTSHelper.isBucketized(filled) && null != ticks) {
+      GTSHelper.unbucketize(filled);
+    }
+
+    //
     // Metadata
     //
 
@@ -5836,6 +5844,14 @@ public class GTSHelper {
 
     if (!GTSHelper.isBucketized(filled) && null == ticks) {
       return filled;
+    }
+
+    //
+    // If gts is bucketized and ticks parameter is defined, then output must be unbucketized
+    //
+
+    if (GTSHelper.isBucketized(filled) && null != ticks) {
+      GTSHelper.unbucketize(filled);
     }
 
     //
