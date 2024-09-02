@@ -22,6 +22,7 @@ import java.io.StringWriter;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,6 +52,7 @@ import io.warp10.continuum.store.MetadataIterator;
 import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.KeyStore;
+import io.warp10.hadoop.Warp10InputFormat;
 import io.warp10.json.JsonUtils;
 import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.script.WarpScriptException;
@@ -136,6 +138,24 @@ public class EgressFindHandler extends AbstractHandler {
       Long activeAfter = null == req.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER) ? null : Long.parseLong(req.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER));
       Long quietAfter = null == req.getParameter(Constants.HTTP_PARAM_QUIETAFTER) ? null : Long.parseLong(req.getParameter(Constants.HTTP_PARAM_QUIETAFTER));
 
+      Map<String,String> findAttrParams = new HashMap<String,String>();
+
+      Enumeration<String> names = req.getHeaderNames();
+      while(names.hasMoreElements()) {
+        String name = names.nextElement();
+        if (name.startsWith(Warp10InputFormat.HTTP_HEADER_FIND_ATTR_PREFIX)) {
+          findAttrParams.put(name.substring(Warp10InputFormat.HTTP_HEADER_FIND_ATTR_PREFIX.length()), req.getHeader(name));
+        }
+      }
+
+      names = req.getParameterNames();
+      while(names.hasMoreElements()) {
+        String name = names.nextElement();
+        if (name.startsWith(Constants.HTTP_PARAM_FIND_ATTR_PREFIX)) {
+          findAttrParams.put(name.substring(Constants.HTTP_PARAM_FIND_ATTR_PREFIX.length()), req.getParameter(name));
+        }
+      }
+
       ReadToken rtoken;
 
       try {
@@ -210,6 +230,13 @@ public class EgressFindHandler extends AbstractHandler {
           if (null != quietAfter) {
             request.setQuietAfter(quietAfter);
           }
+
+          for (Entry<String,String> attr: findAttrParams.entrySet()) {
+            request.putToAttributes(attr.getKey(), attr.getValue());
+          }
+
+          // Add the token
+          request.putToAttributes(Constants.DIRECTORY_REQUEST_ATTR_TOKEN, token);
 
           try (MetadataIterator iterator = FIND.getScopedIterator(directoryClient, rtoken, request)) {
             while(iterator.hasNext()) {
