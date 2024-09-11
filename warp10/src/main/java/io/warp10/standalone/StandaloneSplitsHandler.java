@@ -46,6 +46,7 @@ import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.script.WarpScriptException;
+import io.warp10.script.functions.FETCH;
 import io.warp10.script.functions.PARSESELECTOR;
 
 /**
@@ -169,7 +170,21 @@ public class StandaloneSplitsHandler extends AbstractHandler {
       dr.setQuietAfter(quietAfter);
     }
 
+    if (gskip > 0) {
+      dr.putToAttributes(FETCH.PARAM_GSKIP, Long.toString(gskip));
+    }
+
     try (MetadataIterator metadatas = directoryClient.iterator(dr)) {
+
+      //
+      // The DirectoryClient may modify the DirectoryRequest to instruct the handler it could perform some
+      // optimizations.
+      // We check the GSKIP attribute, if its value has changed, we update gskip
+      //
+
+      if (dr.getAttributesSize() > 0 && dr.getAttributes().containsKey(FETCH.PARAM_GSKIP)) {
+        gskip = Long.parseLong(dr.getAttributes().get(FETCH.PARAM_GSKIP));
+      }
 
       //
       // We output a single split per Metadata, split combining is the
