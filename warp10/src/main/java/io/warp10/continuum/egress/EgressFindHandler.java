@@ -57,6 +57,7 @@ import io.warp10.json.JsonUtils;
 import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptLib;
+import io.warp10.script.functions.FETCH;
 import io.warp10.script.functions.FIND;
 import io.warp10.script.functions.PARSESELECTOR;
 import io.warp10.script.functions.SNAPSHOT;
@@ -235,10 +236,25 @@ public class EgressFindHandler extends AbstractHandler {
             request.putToAttributes(attr.getKey(), attr.getValue());
           }
 
+          if (1 == selectors.length && gskip > 0) {
+            request.putToAttributes(FETCH.PARAM_GSKIP, Long.toString(gskip));
+          }
+
           // Add the token
           request.putToAttributes(Constants.DIRECTORY_REQUEST_ATTR_TOKEN, token);
 
           try (MetadataIterator iterator = FIND.getScopedIterator(directoryClient, rtoken, request)) {
+
+            //
+            // The DirectoryClient may modify the DirectoryRequest to instruct the handler it could perform some
+            // optimizations.
+            // We check the GSKIP attribute, if its value has changed, we update gskip
+            //
+
+            if (1 == selectors.length && gskip > 0 && request.getAttributesSize() > 0 && request.getAttributes().containsKey(FETCH.PARAM_GSKIP)) {
+              gskip = Long.parseLong(request.getAttributes().get(FETCH.PARAM_GSKIP));
+            }
+
             while(iterator.hasNext()) {
               if (gcount <= 0) {
                 break;

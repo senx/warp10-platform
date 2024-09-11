@@ -182,7 +182,7 @@ public class StandaloneSplitsHandler extends AbstractHandler {
       // We check the GSKIP attribute, if its value has changed, we update gskip
       //
 
-      if (dr.getAttributesSize() > 0 && dr.getAttributes().containsKey(FETCH.PARAM_GSKIP)) {
+      if (gskip > 0 && dr.getAttributesSize() > 0 && dr.getAttributes().containsKey(FETCH.PARAM_GSKIP)) {
         gskip = Long.parseLong(dr.getAttributes().get(FETCH.PARAM_GSKIP));
       }
 

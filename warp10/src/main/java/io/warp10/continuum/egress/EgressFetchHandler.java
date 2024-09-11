@@ -607,6 +607,7 @@ public class EgressFetchHandler extends AbstractHandler {
 
       boolean cacheGTS = false;
       boolean doGskipGcount = true;
+      DirectoryRequest singleDirectoryRequest = null;
 
       if (!splitFetch) {
         if (null == selector) {
@@ -668,6 +669,12 @@ public class EgressFetchHandler extends AbstractHandler {
 
           for (Entry<String,String> attr: findAttrParams.entrySet()) {
             request.putToAttributes(attr.getKey(), attr.getValue());
+          }
+
+          // When there is a single selector and token has no scope, push down gskip in case the underlying Directory can handle it
+          if (1 == selectors.length && (0 == rtoken.get().getAttributesSize() || null == rtoken.get().getAttributes().get(Constants.TOKEN_ATTR_SCOPE)) && gskip > 0) {
+            request.putToAttributes(FETCH.PARAM_GSKIP, Long.toString(gskip));
+            singleDirectoryRequest = request;
           }
 
           // Add the token
@@ -821,6 +828,16 @@ public class EgressFetchHandler extends AbstractHandler {
 
       if (!metas.isEmpty()) {
         iterators.add(metas.iterator());
+      }
+
+      //
+      // The DirectoryClient may modify the DirectoryRequest to instruct the handler it could perform some
+      // optimizations.
+      // We check the GSKIP attribute, if its value has changed, we update gskip
+      //
+
+      if (null != singleDirectoryRequest && singleDirectoryRequest.getAttributesSize() > 0 && null != singleDirectoryRequest.getAttributes().get(FETCH.PARAM_GSKIP)) {
+        gskip = Long.parseLong(singleDirectoryRequest.getAttributes().get(FETCH.PARAM_GSKIP));
       }
 
       if (cacheGTS) {
