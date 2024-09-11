@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2023  SenX S.A.S.
+//   Copyright 2019-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ package io.warp10.standalone;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -137,19 +136,38 @@ public class StandaloneShardedDirectoryClientWrapper extends StandaloneDirectory
 
   @Override
   public MetadataIterator iterator(DirectoryRequest request) throws IOException {
-    List<Metadata> metadatas = find(request);
 
-    final Iterator<Metadata> iter = metadatas.iterator();
+    final MetadataIterator iter = this.client.iterator(request);
 
     return new MetadataIterator() {
       @Override
       public void close() throws Exception {}
 
-      @Override
-      public boolean hasNext() { return iter.hasNext(); }
+      private Metadata metadata = null;
 
       @Override
-      public Metadata next() { return iter.next(); }
+      public boolean hasNext() {
+        if (null != metadata) {
+          return true;
+        }
+
+        while(iter.hasNext()) {
+          Metadata m = iter.next();
+          if (null == filter || !filter.exclude(m.getClassId(), m.getLabelsId())) {
+            metadata = m;
+            break;
+          }
+        }
+
+        return null != metadata;
+      }
+
+      @Override
+      public Metadata next() {
+        Metadata m = metadata;
+        metadata = null;
+        return m;
+      }
     };
   }
 
