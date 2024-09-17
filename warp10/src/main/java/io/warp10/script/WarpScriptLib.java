@@ -648,6 +648,7 @@ import io.warp10.script.functions.UNWRAP;
 import io.warp10.script.functions.UNWRAPENCODER;
 import io.warp10.script.functions.UNWRAPSIZE;
 import io.warp10.script.functions.UPDATE;
+import io.warp10.script.functions.UPPERHULL;
 import io.warp10.script.functions.URLDECODE;
 import io.warp10.script.functions.URLENCODE;
 import io.warp10.script.functions.UUID;
