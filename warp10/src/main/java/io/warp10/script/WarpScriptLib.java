@@ -367,6 +367,7 @@ import io.warp10.script.functions.LMAP;
 import io.warp10.script.functions.LOAD;
 import io.warp10.script.functions.LOCATIONS;
 import io.warp10.script.functions.LOCSTRINGS;
+import io.warp10.script.functions.LOWERHULL;
 import io.warp10.script.functions.LOWESS;
 import io.warp10.script.functions.LR;
 import io.warp10.script.functions.LSORT;
@@ -1461,6 +1462,8 @@ public class WarpScriptLib {
   public static final String FDWT = "FDWT";
   public static final String IDWT = "IDWT";
   public static final String DWTSPLIT = "DWTSPLIT";
+  public static final String LOWERHULL = "LOWERHULL";
+  public static final String UPPERHULL = "UPPERHULL";
   public static final String EMPTY = "EMPTY";
   public static final String NONEMPTY = "NONEMPTY";
   public static final String PARTITION = "PARTITION";
@@ -2473,6 +2476,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new FDWT(FDWT));
     addNamedWarpScriptFunction(new IDWT(IDWT));
     addNamedWarpScriptFunction(new DWTSPLIT(DWTSPLIT));
+    addNamedWarpScriptFunction(new LOWERHULL(LOWERHULL));
+    addNamedWarpScriptFunction(new UPPERHULL(UPPERHULL));
     addNamedWarpScriptFunction(new EMPTY(EMPTY));
     addNamedWarpScriptFunction(new NONEMPTY(NONEMPTY));
     addNamedWarpScriptFunction(new PARTITION(PARTITION));
