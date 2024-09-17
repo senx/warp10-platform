@@ -12038,6 +12038,36 @@ public class GTSHelper {
     for (int i: currentHull) {
       GTSHelper.setValue(res, tickAtIndex(gts, i), locationAtIndex(gts, i), elevationAtIndex(gts, i), valueAtIndex(gts, i), false);
     }
+    GTSHelper.rename(res, res.getName() + ":lowerHull");
+
+    return res;
+  }
+
+  /**
+   * Implements Andrew's monotone chains algorithm to compute the upper part of the convex hull formed by the gts plot.
+   * @param gts
+   * @return res
+   */
+  public static GeoTimeSerie upperHull(GeoTimeSerie gts) {
+    GTSHelper.sort(gts, false);
+
+    if (gts.size() < 3) {
+      return gts.clone();
+    }
+
+    List<Integer> currentHull = new ArrayList<>();
+    for (int i = 0; i < gts.size(); i++) {
+      while (currentHull.size() >= 2 && crossProduct(gts, currentHull.get(-2), currentHull.get(-1), i) < 0) {
+        currentHull.remove(-1);
+      }
+      currentHull.add(i);
+    }
+
+    GeoTimeSerie res = gts.cloneEmpty();
+    for (int i: currentHull) {
+      GTSHelper.setValue(res, tickAtIndex(gts, i), locationAtIndex(gts, i), elevationAtIndex(gts, i), valueAtIndex(gts, i), false);
+    }
+    GTSHelper.rename(res, res.getName() + ":upperHull");
 
     return res;
   }
