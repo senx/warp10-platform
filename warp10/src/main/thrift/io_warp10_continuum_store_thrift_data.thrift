@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2023  SenX S.A.S.
+//   Copyright 2018-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -250,6 +250,11 @@ struct DirectoryRequest {
    * This is mainly so HFDUMP can create HFiles from sorted GTS
    */
   5: optional bool sorted = false,
+  
+  /**
+   * Optional request attributes
+   */
+  6: optional map<string,string> attributes,
 }
 
 struct GTSWrapper {

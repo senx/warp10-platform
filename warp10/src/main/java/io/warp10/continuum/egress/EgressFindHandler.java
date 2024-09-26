@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.Map.Entry;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -38,8 +39,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.warp10.ThrowableUtils;
+import io.warp10.WarpURLEncoder;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.Tokens;
+import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
@@ -51,8 +54,10 @@ import io.warp10.crypto.KeyStore;
 import io.warp10.json.JsonUtils;
 import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptLib;
 import io.warp10.script.functions.FIND;
 import io.warp10.script.functions.PARSESELECTOR;
+import io.warp10.script.functions.SNAPSHOT;
 import io.warp10.sensision.Sensision;
 
 public class EgressFindHandler extends AbstractHandler {
@@ -117,6 +122,9 @@ public class EgressFindHandler extends AbstractHandler {
     try {
       String format = req.getParameter(Constants.HTTP_PARAM_FORMAT);
       boolean json = "json".equals(format);
+      boolean warpscript = "warpscript".equals(format);
+      boolean clearwarpscript = "clearwarpscript".equals(format);
+      GTSEncoder encoder = new GTSEncoder();
 
       boolean showErrors = null != req.getParameter(Constants.HTTP_PARAM_SHOW_ERRORS);
 
@@ -241,6 +249,57 @@ public class EgressFindHandler extends AbstractHandler {
                   first = false;
                 }
                 JsonUtils.objectToJson(pw, metadata, true);
+                continue;
+              }
+
+              if (warpscript) {
+                if (null != metadata.getLabels()) {
+                  metadata.setLabels(new HashMap<String,String>(metadata.getLabels()));
+                  if (!Constants.EXPOSE_OWNER_PRODUCER && !expose) {
+                    metadata.getLabels().remove(Constants.OWNER_LABEL);
+                    metadata.getLabels().remove(Constants.PRODUCER_LABEL);
+                  }
+                }
+                encoder.safeSetMetadata(metadata);
+                sb.setLength(0);
+                SNAPSHOT.addElement(sb, encoder);
+                pw.println(sb.toString());
+                continue;
+              }
+
+              if (clearwarpscript) {
+                if (null != metadata.getLabels()) {
+                  metadata.setLabels(new HashMap<String,String>(metadata.getLabels()));
+                  if (!Constants.EXPOSE_OWNER_PRODUCER && !expose) {
+                    metadata.getLabels().remove(Constants.OWNER_LABEL);
+                    metadata.getLabels().remove(Constants.PRODUCER_LABEL);
+                  }
+                }
+                sb.setLength(0);
+                sb.append(GTSHelper.buildSelector(metadata, false));
+                if (metadata.getAttributesSize() > 0) {
+                  sb.append("{");
+                  boolean frst = true;
+                  for (Entry<String,String> entry: metadata.getAttributes().entrySet()) {
+                    if (!frst) {
+                      sb.append(",");
+                    }
+                    GTSHelper.encodeName(sb, entry.getKey());
+                    sb.append("=");
+                    GTSHelper.encodeName(sb, entry.getValue());
+                    frst = false;
+                  }
+                  sb.append("}");
+                } else {
+                  sb.append("{}");
+                }
+                String encoded = WarpURLEncoder.encode(sb.toString(), StandardCharsets.UTF_8.name());
+                sb.setLength(0);
+                sb.append("'");
+                sb.append(encoded);
+                sb.append("' ");
+                sb.append("'0// ' " + WarpScriptLib.SWAP + " " + WarpScriptLib.ADD + " ' T' " + WarpScriptLib.ADD + " " + WarpScriptLib.PARSE + " 0 " + WarpScriptLib.GET);
+                pw.println(sb.toString());
                 continue;
               }
 
