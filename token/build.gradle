@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2023  SenX S.A.S.
+//   Copyright 2018-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ sourceSets {
 
 dependencies {
     testImplementation 'junit:junit:4.6'
-    testImplementation 'org.slf4j:slf4j-log4j12:1.7.21'
+    testImplementation 'org.slf4j:slf4j-reload4j:2.0.16'
 
     // WARP10 DEPENDENCIES
     api project(':crypto')
