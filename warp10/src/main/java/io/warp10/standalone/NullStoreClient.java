@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package io.warp10.standalone;
 
 import java.io.IOException;
 
+import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.store.GTSDecoderIterator;
 import io.warp10.continuum.store.StoreClient;
@@ -26,15 +27,22 @@ import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 
 public class NullStoreClient implements StoreClient {
-  
+
   @Override
   public GTSDecoderIterator fetch(FetchRequest req) {
-    return null;
+    return new GTSDecoderIterator() {
+      @Override
+      public void close() throws Exception {}
+      @Override
+      public GTSDecoder next() { throw new IllegalStateException(); }
+      @Override
+      public boolean hasNext() { return false; }
+    };
   }
-  
+
   @Override
   public void addPlasmaHandler(StandalonePlasmaHandlerInterface handler) {}
-  
+
   @Override
   public void store(GTSEncoder encoder) throws IOException {}
 
