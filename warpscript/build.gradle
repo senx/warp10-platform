@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2023  SenX S.A.S.
+//   Copyright 2018-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -92,8 +92,8 @@ dependencies {
     compileOnly project(':warp10')
 
     api withVersion('org.apache.thrift:libthrift')
-    api withVersion('org.bouncycastle:bcprov-jdk15on')
-    api withVersion('org.bouncycastle:bcpg-jdk15on')
+    api withVersion('org.bouncycastle:bcprov-jdk18on')
+    api withVersion('org.bouncycastle:bcpg-jdk18on')
     api withVersion('commons-io:commons-io')
     api withVersion('commons-codec:commons-codec')
     api withVersion('org.apache.commons:commons-lang3')
