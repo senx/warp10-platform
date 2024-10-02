@@ -17,6 +17,7 @@
 package io.warp10.standalone;
 
 import java.io.IOException;
+import java.util.NoSuchElementException;
 
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
@@ -34,7 +35,7 @@ public class NullStoreClient implements StoreClient {
       @Override
       public void close() throws Exception {}
       @Override
-      public GTSDecoder next() { throw new IllegalStateException(); }
+      public GTSDecoder next() { throw new NoSuchElementException(); }
       @Override
       public boolean hasNext() { return false; }
     };
