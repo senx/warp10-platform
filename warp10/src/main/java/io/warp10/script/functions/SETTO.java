@@ -44,10 +44,8 @@ public class SETTO extends NamedWarpScriptFunction implements WarpScriptStackFun
       list.addAll((Set) top);
 
       stack.push(list);
-    } else if (top instanceof List) {
-      stack.push(top);
     } else {
-      throw new WarpScriptException(getName() + " operates on a SET or LIST.");
+      throw new WarpScriptException(getName() + " operates on a SET.");
     }
 
     return stack;
