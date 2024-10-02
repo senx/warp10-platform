@@ -34,6 +34,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -49,7 +50,6 @@ import java.util.regex.Pattern;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
-import org.apache.thrift.protocol.TCompactProtocol;
 import org.bouncycastle.crypto.CipherParameters;
 import org.bouncycastle.crypto.InvalidCipherTextException;
 import org.bouncycastle.crypto.engines.AESWrapEngine;
@@ -1481,7 +1481,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
       public Metadata next() {
         if (null == metadata) {
           if (!hasNext()) {
-            throw new IllegalStateException();
+            throw new NoSuchElementException();
           }
         }
 
