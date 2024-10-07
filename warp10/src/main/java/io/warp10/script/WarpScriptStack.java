@@ -491,7 +491,7 @@ public interface WarpScriptStack {
             // Unwrap wrapped statements
             //
 
-            if (WrappedStatement.class.isAssignableFrom(o.getClass())) {
+            if (null != o && WrappedStatement.class.isAssignableFrom(o.getClass())) {
               o = WrappedStatementUtils.unwrapAll(o);
             }
 
