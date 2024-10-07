@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2023  SenX S.A.S.
+//   Copyright 2018-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -41,6 +41,7 @@ import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.Directory;
+import io.warp10.continuum.store.MetadataIterator;
 import io.warp10.continuum.store.thrift.data.DirectoryStatsRequest;
 import io.warp10.continuum.store.thrift.data.DirectoryStatsResponse;
 import io.warp10.continuum.store.thrift.data.Metadata;
@@ -442,6 +443,155 @@ public class DirectoryUtil {
                   }
                 }
               }
+            }
+          }
+        }
+      }
+
+      response.setGtsCount(gtsCount.toBytes());
+
+      if (null != perClassCardinality) {
+        classCardinality = new HyperLogLogPlus(Directory.ESTIMATOR_P, Directory.ESTIMATOR_PPRIME);
+        for (Entry<String, HyperLogLogPlus> entry: perClassCardinality.entrySet()) {
+          response.putToPerClassCardinality(entry.getKey(), ByteBuffer.wrap(entry.getValue().toBytes()));
+          byte[] data = entry.getKey().getBytes(StandardCharsets.UTF_8);
+          classCardinality.aggregate(SipHashInline.hash24(classLongs[0], classLongs[1], data, 0, data.length, false));
+        }
+      }
+
+      response.setClassCardinality(classCardinality.toBytes());
+
+      if (null != perLabelValueCardinality) {
+        HyperLogLogPlus estimator = new HyperLogLogPlus(Directory.ESTIMATOR_P, Directory.ESTIMATOR_PPRIME);
+        HyperLogLogPlus nameEstimator = new HyperLogLogPlus(Directory.ESTIMATOR_P, Directory.ESTIMATOR_PPRIME);
+        for (Entry<String, HyperLogLogPlus> entry: perLabelValueCardinality.entrySet()) {
+          byte[] data = entry.getKey().getBytes(StandardCharsets.UTF_8);
+          nameEstimator.aggregate(SipHashInline.hash24(labelsLongs[0], labelsLongs[1], data, 0, data.length, false));
+          estimator.fuse(entry.getValue());
+          response.putToPerLabelValueCardinality(entry.getKey(), ByteBuffer.wrap(entry.getValue().toBytes()));
+        }
+        response.setLabelNamesCardinality(nameEstimator.toBytes());
+        response.setLabelValuesCardinality(estimator.toBytes());
+      } else {
+        response.setLabelNamesCardinality(labelNamesCardinality.toBytes());
+        response.setLabelValuesCardinality(labelValuesCardinality.toBytes());
+      }
+
+      return response;
+    } catch (Exception e) {
+      LOG.error("Error getting the stats.", e);
+      throw new TException(e);
+    }
+  }
+
+  public static DirectoryStatsResponse stats(MetadataIterator iterator,
+      long classCardinalityLimit,
+      long labelsCardinalityLimit,
+      long[] classLongs,
+      long[] labelsLongs) throws TException {
+    try {
+      DirectoryStatsResponse response = new DirectoryStatsResponse();
+
+      Sensision.update(SensisionConstants.SENSISION_CLASS_CONTINUUM_DIRECTORY_STATS_REQUESTS, Sensision.EMPTY_LABELS, 1);
+
+      HyperLogLogPlus gtsCount = new HyperLogLogPlus(Directory.ESTIMATOR_P, Directory.ESTIMATOR_PPRIME);
+      Map<String, HyperLogLogPlus> perClassCardinality = new HashMap<String, HyperLogLogPlus>();
+      Map<String, HyperLogLogPlus> perLabelValueCardinality = new HashMap<String, HyperLogLogPlus>();
+      HyperLogLogPlus labelNamesCardinality = null;
+      HyperLogLogPlus labelValuesCardinality = null;
+      HyperLogLogPlus classCardinality = null;
+
+      while(iterator.hasNext()) {
+        Metadata metadata = iterator.next();
+
+        //
+        // We have a match, update estimators
+        //
+
+        // Compute classId/labelsId
+        long classId = GTSHelper.classId(classLongs, metadata.getName());
+        long labelsId = GTSHelper.labelsId(labelsLongs, metadata.getLabels());
+
+        // Compute gtsId, we use the GTS Id String from which we extract the 16 bytes
+        byte[] data = GTSHelper.gtsIdToString(classId, labelsId).getBytes(StandardCharsets.UTF_16BE);
+        long gtsId = SipHashInline.hash24(classLongs[0], classLongs[1], data, 0, data.length);
+
+        gtsCount.aggregate(gtsId);
+
+        if (null != perClassCardinality) {
+          HyperLogLogPlus count = perClassCardinality.get(metadata.getName());
+          if (null == count) {
+            count = new HyperLogLogPlus(Directory.ESTIMATOR_P, Directory.ESTIMATOR_PPRIME);
+            perClassCardinality.put(metadata.getName(), count);
+          }
+
+          count.aggregate(gtsId);
+
+          // If we reached the limit in detailed number of classes, we fallback to a simple estimator
+          if (perClassCardinality.size() >= classCardinalityLimit) {
+            classCardinality = new HyperLogLogPlus(Directory.ESTIMATOR_P, Directory.ESTIMATOR_PPRIME);
+            for (String cls: perClassCardinality.keySet()) {
+              data = cls.getBytes(StandardCharsets.UTF_8);
+              classCardinality.aggregate(SipHashInline.hash24(classLongs[0], classLongs[1], data, 0, data.length, false));
+              perClassCardinality = null;
+            }
+          }
+        } else {
+          data = metadata.getName().getBytes(StandardCharsets.UTF_8);
+          classCardinality.aggregate(SipHashInline.hash24(classLongs[0], classLongs[1], data, 0, data.length, false));
+        }
+
+        if (null != perLabelValueCardinality) {
+          if (metadata.getLabelsSize() > 0) {
+            for (Entry<String, String> entry: metadata.getLabels().entrySet()) {
+              HyperLogLogPlus estimator = perLabelValueCardinality.get(entry.getKey());
+              if (null == estimator) {
+                estimator = new HyperLogLogPlus(Directory.ESTIMATOR_P, Directory.ESTIMATOR_PPRIME);
+                perLabelValueCardinality.put(entry.getKey(), estimator);
+              }
+              data = entry.getValue().getBytes(StandardCharsets.UTF_8);
+              long siphash = SipHashInline.hash24(labelsLongs[0], labelsLongs[1], data, 0, data.length, false);
+              estimator.aggregate(siphash);
+            }
+          }
+
+          if (metadata.getAttributesSize() > 0) {
+            for (Entry<String, String> entry: metadata.getAttributes().entrySet()) {
+              HyperLogLogPlus estimator = perLabelValueCardinality.get(entry.getKey());
+              if (null == estimator) {
+                estimator = new HyperLogLogPlus(Directory.ESTIMATOR_P, Directory.ESTIMATOR_PPRIME);
+                perLabelValueCardinality.put(entry.getKey(), estimator);
+              }
+              data = entry.getValue().getBytes(StandardCharsets.UTF_8);
+              estimator.aggregate(SipHashInline.hash24(labelsLongs[0], labelsLongs[1], data, 0, data.length, false));
+            }
+          }
+
+          if (perLabelValueCardinality.size() >= labelsCardinalityLimit) {
+            labelNamesCardinality = new HyperLogLogPlus(Directory.ESTIMATOR_P, Directory.ESTIMATOR_PPRIME);
+            labelValuesCardinality = new HyperLogLogPlus(Directory.ESTIMATOR_P, Directory.ESTIMATOR_PPRIME);
+            for (Entry<String, HyperLogLogPlus> entry: perLabelValueCardinality.entrySet()) {
+              data = entry.getKey().getBytes(StandardCharsets.UTF_8);
+              labelNamesCardinality.aggregate(SipHashInline.hash24(labelsLongs[0], labelsLongs[1], data, 0, data.length, false));
+              labelValuesCardinality.fuse(entry.getValue());
+            }
+            perLabelValueCardinality = null;
+          }
+        } else {
+          if (metadata.getLabelsSize() > 0) {
+            for (Entry<String, String> entry: metadata.getLabels().entrySet()) {
+              data = entry.getKey().getBytes(StandardCharsets.UTF_8);
+              labelValuesCardinality.aggregate(SipHashInline.hash24(labelsLongs[0], labelsLongs[1], data, 0, data.length, false));
+              data = entry.getValue().getBytes(StandardCharsets.UTF_8);
+              labelValuesCardinality.aggregate(SipHashInline.hash24(labelsLongs[0], labelsLongs[1], data, 0, data.length, false));
+            }
+          }
+          if (metadata.getAttributesSize() > 0) {
+            for (Entry<String, String> entry: metadata.getAttributes().entrySet()) {
+              data = entry.getKey().getBytes(StandardCharsets.UTF_8);
+              labelValuesCardinality.aggregate(SipHashInline.hash24(labelsLongs[0], labelsLongs[1], data, 0, data.length, false));
+              data = entry.getValue().getBytes(StandardCharsets.UTF_8);
+              labelValuesCardinality.aggregate(SipHashInline.hash24(labelsLongs[0], labelsLongs[1], data, 0, data.length, false));
             }
           }
         }
