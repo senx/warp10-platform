@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -29,24 +29,24 @@ import java.util.Set;
  * Convert the set on top of the stack into a list
  */
 public class SETTO extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   public SETTO(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
-    
-    if (!(top instanceof Set)) {
-      throw new WarpScriptException(getName() + " expects a set on top of the stack.");
+
+    if (top instanceof Set) {
+      List<Object> list = new ArrayList<Object>();
+
+      list.addAll((Set) top);
+
+      stack.push(list);
+    } else {
+      throw new WarpScriptException(getName() + " operates on a SET.");
     }
-    
-    List<Object> list = new ArrayList<Object>();
-    
-    list.addAll((Set) top);
-    
-    stack.push(list);
 
     return stack;
   }

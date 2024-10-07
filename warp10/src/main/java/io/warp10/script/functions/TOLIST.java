@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -23,6 +23,8 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Make a list with 'N' elements present in the stack.
@@ -41,9 +43,20 @@ public class TOLIST extends NamedWarpScriptFunction implements WarpScriptStackFu
 
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    Object[] elements = stack.popn();
-    ArrayList<Object> list = new ArrayList<Object>(new WrapperList(elements));
-    stack.push(list);
+    if (stack.peek() instanceof List) {
+      // Do nothing
+    } else if (stack.peek() instanceof Set) {
+      List<Object> list = new ArrayList<Object>();
+      list.addAll((Set) stack.pop());
+      stack.push(list);
+    } else if (stack.peek() instanceof Long) {
+      Object[] elements = stack.popn();
+      ArrayList<Object> list = new ArrayList<Object>(new WrapperList(elements));
+      stack.push(list);
+    } else {
+      throw new WarpScriptException(getName() + " expects a LIST, SET or a LONG number of elements to pack into a LIST.");
+    }
+
     return stack;
   }
 }
