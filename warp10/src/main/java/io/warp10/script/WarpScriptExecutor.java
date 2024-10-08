@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2023  SenX S.A.S.
+//   Copyright 2018-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -92,7 +92,7 @@ public class WarpScriptExecutor implements Serializable {
         config = System.getenv(WarpConfig.WARP10_CONFIG_ENV);
       }
 
-      WarpConfig.safeSetProperties(config.split("[, ]+"));
+      WarpConfig.safeSetProperties(null != config ? config.split("[, ]+") : null);
       properties = WarpConfig.getProperties();
       WarpScriptLib.registerExtensions();
     } catch (Exception e) {
