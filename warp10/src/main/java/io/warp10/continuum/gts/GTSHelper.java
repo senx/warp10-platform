@@ -12038,7 +12038,6 @@ public class GTSHelper {
     for (int i: currentHull) {
       GTSHelper.setValue(res, tickAtIndex(gts, i), locationAtIndex(gts, i), elevationAtIndex(gts, i), valueAtIndex(gts, i), false);
     }
-    GTSHelper.rename(res, res.getName() + ":lowerHull");
 
     return res;
   }
@@ -12067,7 +12066,6 @@ public class GTSHelper {
     for (int i: currentHull) {
       GTSHelper.setValue(res, tickAtIndex(gts, i), locationAtIndex(gts, i), elevationAtIndex(gts, i), valueAtIndex(gts, i), false);
     }
-    GTSHelper.rename(res, res.getName() + ":upperHull");
 
     return res;
   }
