@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2023  SenX S.A.S.
+//   Copyright 2018-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -29,7 +29,6 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
-import org.apache.thrift.protocol.TCompactProtocol;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 
@@ -46,6 +45,7 @@ import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.script.WarpScriptException;
+import io.warp10.script.functions.FETCH;
 import io.warp10.script.functions.PARSESELECTOR;
 
 /**
@@ -169,7 +169,21 @@ public class StandaloneSplitsHandler extends AbstractHandler {
       dr.setQuietAfter(quietAfter);
     }
 
+    if (gskip > 0) {
+      dr.putToAttributes(FETCH.PARAM_GSKIP, Long.toString(gskip));
+    }
+
     try (MetadataIterator metadatas = directoryClient.iterator(dr)) {
+
+      //
+      // The DirectoryClient may modify the DirectoryRequest to instruct the handler it could perform some
+      // optimizations.
+      // We check the GSKIP attribute, if its value has changed, we update gskip
+      //
+
+      if (gskip > 0 && dr.getAttributesSize() > 0 && dr.getAttributes().containsKey(FETCH.PARAM_GSKIP)) {
+        gskip = Long.parseLong(dr.getAttributes().get(FETCH.PARAM_GSKIP));
+      }
 
       //
       // We output a single split per Metadata, split combining is the

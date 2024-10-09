@@ -22,6 +22,7 @@ import java.io.StringWriter;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,10 +52,12 @@ import io.warp10.continuum.store.MetadataIterator;
 import io.warp10.continuum.store.thrift.data.DirectoryRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.KeyStore;
+import io.warp10.hadoop.Warp10InputFormat;
 import io.warp10.json.JsonUtils;
 import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptLib;
+import io.warp10.script.functions.FETCH;
 import io.warp10.script.functions.FIND;
 import io.warp10.script.functions.PARSESELECTOR;
 import io.warp10.script.functions.SNAPSHOT;
@@ -136,6 +139,24 @@ public class EgressFindHandler extends AbstractHandler {
       Long activeAfter = null == req.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER) ? null : Long.parseLong(req.getParameter(Constants.HTTP_PARAM_ACTIVEAFTER));
       Long quietAfter = null == req.getParameter(Constants.HTTP_PARAM_QUIETAFTER) ? null : Long.parseLong(req.getParameter(Constants.HTTP_PARAM_QUIETAFTER));
 
+      Map<String,String> findAttrParams = new HashMap<String,String>();
+
+      Enumeration<String> names = req.getHeaderNames();
+      while(names.hasMoreElements()) {
+        String name = names.nextElement();
+        if (name.startsWith(Warp10InputFormat.HTTP_HEADER_FIND_ATTR_PREFIX)) {
+          findAttrParams.put(name.substring(Warp10InputFormat.HTTP_HEADER_FIND_ATTR_PREFIX.length()), req.getHeader(name));
+        }
+      }
+
+      names = req.getParameterNames();
+      while(names.hasMoreElements()) {
+        String name = names.nextElement();
+        if (name.startsWith(Constants.HTTP_PARAM_FIND_ATTR_PREFIX)) {
+          findAttrParams.put(name.substring(Constants.HTTP_PARAM_FIND_ATTR_PREFIX.length()), req.getParameter(name));
+        }
+      }
+
       ReadToken rtoken;
 
       try {
@@ -211,7 +232,29 @@ public class EgressFindHandler extends AbstractHandler {
             request.setQuietAfter(quietAfter);
           }
 
+          for (Entry<String,String> attr: findAttrParams.entrySet()) {
+            request.putToAttributes(attr.getKey(), attr.getValue());
+          }
+
+          if (1 == selectors.length && gskip > 0) {
+            request.putToAttributes(FETCH.PARAM_GSKIP, Long.toString(gskip));
+          }
+
+          // Add the token
+          request.putToAttributes(Constants.DIRECTORY_REQUEST_ATTR_TOKEN, token);
+
           try (MetadataIterator iterator = FIND.getScopedIterator(directoryClient, rtoken, request)) {
+
+            //
+            // The DirectoryClient may modify the DirectoryRequest to instruct the handler it could perform some
+            // optimizations.
+            // We check the GSKIP attribute, if its value has changed, we update gskip
+            //
+
+            if (1 == selectors.length && gskip > 0 && request.getAttributesSize() > 0 && request.getAttributes().containsKey(FETCH.PARAM_GSKIP)) {
+              gskip = Long.parseLong(request.getAttributes().get(FETCH.PARAM_GSKIP));
+            }
+
             while(iterator.hasNext()) {
               if (gcount <= 0) {
                 break;
