@@ -77,9 +77,15 @@ import io.warp10.script.binary.NE;
 import io.warp10.script.binary.SHIFTLEFT;
 import io.warp10.script.binary.SHIFTRIGHT;
 import io.warp10.script.binary.SUB;
+import io.warp10.script.filler.FillerAkima;
 import io.warp10.script.filler.FillerInterpolate;
+import io.warp10.script.filler.FillerLinear;
+import io.warp10.script.filler.FillerLowess;
+import io.warp10.script.filler.FillerNewton;
 import io.warp10.script.filler.FillerNext;
 import io.warp10.script.filler.FillerPrevious;
+import io.warp10.script.filler.FillerRlowess;
+import io.warp10.script.filler.FillerSpline;
 import io.warp10.script.filler.FillerTrend;
 import io.warp10.script.filler.FillerValue;
 import io.warp10.script.filter.FilterAny;
@@ -2782,8 +2788,14 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new FillerValue.Builder("filler.value"));
     addNamedWarpScriptFunction(new FillerNext("filler.next"));
     addNamedWarpScriptFunction(new FillerPrevious("filler.previous"));
-    addNamedWarpScriptFunction(new FillerInterpolate("filler.interpolate"));
     addNamedWarpScriptFunction(new FillerTrend("filler.trend"));
+    addNamedWarpScriptFunction(new FillerInterpolate("filler.interpolate"));
+    addNamedWarpScriptFunction(new FillerLinear("filler.linear"));
+    addNamedWarpScriptFunction(new FillerAkima("filler.akima"));
+    addNamedWarpScriptFunction(new FillerSpline("filler.spline"));
+    addNamedWarpScriptFunction(new FillerNewton("filler.newton"));
+    addNamedWarpScriptFunction(new FillerLowess.Builder("filler.lowess"));
+    addNamedWarpScriptFunction(new FillerRlowess.Builder("filler.rlowess"));
 
     //
     // Geo Manipulation functions

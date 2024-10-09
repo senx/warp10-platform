@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -94,9 +94,13 @@ public class MACROFILLER extends NamedWarpScriptFunction implements WarpScriptSt
       gts.safeSetMetadata((Metadata) ((Object[]) args[0])[0]);
       // Our GTS
       stack.push(gts);
-      gts = new GeoTimeSerie(0);
-      gts.safeSetMetadata((Metadata) ((Object[]) args[0])[1]);
+
       // Other GTS
+      gts = null;
+      if (null != ((Object[]) args[0])[1]) {
+        gts = new GeoTimeSerie(0);
+        gts.safeSetMetadata((Metadata) ((Object[]) args[0])[1]);
+      }
       stack.push(gts);
 
       long ts = 0L;
@@ -155,7 +159,7 @@ public class MACROFILLER extends NamedWarpScriptFunction implements WarpScriptSt
           stack.push(ticks);
           stack.push(tick);
           ticks = new ArrayList<Object>(this.postWindow);
-          ts = ((Number) tick.get(0)).longValue();
+          ts = ((Number) atick[0]).longValue();
         }        
       }
       
@@ -172,13 +176,15 @@ public class MACROFILLER extends NamedWarpScriptFunction implements WarpScriptSt
       //
       // Check type of result
       //
-      
-      Object res = stack.peek();
-      
-      if (res instanceof List) {
-        stack.drop();
-        
-        return MACROMAPPER.listToObjects((List) res);
+
+      if (stack.peek() instanceof List) {
+
+        List listRes = (List) stack.pop();
+        if (1 == listRes.size()) {
+          listRes.add(0, ts);
+        }
+
+        return MACROMAPPER.listToObjects(listRes);
       } else {
         throw new WarpScriptException("Expected a [ ts lat lon elev value ] list as result of filler.");
       }
