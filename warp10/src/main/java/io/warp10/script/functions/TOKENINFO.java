@@ -52,7 +52,7 @@ public class TOKENINFO extends NamedWarpScriptFunction implements WarpScriptStac
     String readError = null;
     String writeError = null;
     
-    boolean exposeAttributes = (null != Capabilities.get(stack, WarpScriptStack.CAPABILITY_TOKENGEN_ATTR));
+    boolean exposeAttributes = (null != Capabilities.get(stack, WarpScriptStack.CAPABILITY_TOKENATTR));
     
     try {
       ReadToken rtoken = Tokens.extractReadToken(o.toString());
