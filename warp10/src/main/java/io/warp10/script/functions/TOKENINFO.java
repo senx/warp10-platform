@@ -27,6 +27,7 @@ import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
+import io.warp10.warp.sdk.Capabilities;
 
 /**
  * Push on the stack information regarding a token
@@ -50,7 +51,9 @@ public class TOKENINFO extends NamedWarpScriptFunction implements WarpScriptStac
 
     String readError = null;
     String writeError = null;
-
+    
+    boolean exposeAttributes = (null != Capabilities.get(stack, WarpScriptStack.CAPABILITY_TOKENGEN_ATTR));
+    
     try {
       ReadToken rtoken = Tokens.extractReadToken(o.toString());
 
@@ -63,6 +66,9 @@ public class TOKENINFO extends NamedWarpScriptFunction implements WarpScriptStac
       }
       if (rtoken.getLabelsSize() > 0) {
         tokenParams.put("labels", rtoken.getLabels());
+      }
+      if (exposeAttributes && rtoken.getAttributesSize() > 0) {
+        tokenParams.put("attributes", rtoken.getAttributes());
       }
     } catch (WarpScriptException ee) {
       readError = ee.getMessage();
@@ -78,6 +84,10 @@ public class TOKENINFO extends NamedWarpScriptFunction implements WarpScriptStac
       if (wtoken.getLabelsSize() > 0) {
         tokenParams.put("labels", wtoken.getLabels());
       }
+      if (exposeAttributes && wtoken.getAttributesSize() > 0) {
+        tokenParams.put("attributes", wtoken.getAttributes());
+      }
+      
       Map<String,Object> limits = ThrottlingManager.getLimits(Tokens.getUUID(wtoken.getProducerId()), wtoken.getAppName());
 
       tokenParams.put("limits", limits);
