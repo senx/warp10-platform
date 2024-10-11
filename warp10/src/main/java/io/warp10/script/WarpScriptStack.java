@@ -634,7 +634,7 @@ public interface WarpScriptStack {
   String CAPABILITY_LEVELDB_INFO = "leveldb.info";
   String CAPABILITY_LEVELDB_REPORT = "leveldb.report";
   String CAPABILITY_LEVELDB_TIMESTAMP = "leveldb.timestamp";
-  String CAPABILITY_TOKENATTR = "tokenattr";
+  String CAPABILITY_TOKENINFO_ATTR = "tokeninfo.attr";
 
   String CAPABILITY_LIMITS = "limits";
   String CAPABILITY_LIMIT = "limit";
