@@ -440,6 +440,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       if (rtoken.getAttributesSize() > 0 && rtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_SCOPE)) {
 
         Object[] clslbls;
+
         try {
           clslbls = PARSESELECTOR.parse(rtoken.getAttributes().get(Constants.TOKEN_ATTR_SCOPE));
         } catch (WarpScriptException e) {
@@ -449,6 +450,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         DirectoryRequest dr = new DirectoryRequest();
 
         dr.addToClassSelectors((String) clslbls[0]);
+        dr.addToLabelsSelectors((Map<String,String>) clslbls[1]);
 
         MetadataIterator miter = new MetadataIterator() {
           int idx = 0;
@@ -1235,7 +1237,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       Object o = map.get(PARAM_GTS);
 
       if (!(o instanceof List)) {
-        throw new WarpScriptException(getName() + " invalid '" + PARAM_GTS + "' parameter, expected a list of Geo Time Series  or GTS Encoders.");
+        throw new WarpScriptException(getName() + " invalid '" + PARAM_GTS + "' parameter, expected a list of Geo Time Series or GTS Encoders.");
       }
 
       List<Metadata> metadatas = new ArrayList<Metadata>();
@@ -1246,7 +1248,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
         } else if (elt instanceof GTSEncoder) {
           metadatas.add((new Metadata(((GTSEncoder) elt).getRawMetadata())));
         } else {
-          throw new WarpScriptException(getName() + " invalid '" + PARAM_GTS + "' parameter, expected a list of Geo Time Series  or GTS Encoders.");
+          throw new WarpScriptException(getName() + " invalid '" + PARAM_GTS + "' parameter, expected a list of Geo Time Series or GTS Encoders.");
         }
       }
 
