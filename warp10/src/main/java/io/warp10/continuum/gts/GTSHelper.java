@@ -12478,6 +12478,89 @@ public class GTSHelper {
     return sampled;
   }
 
+  /**
+   * Calculates the 2D cross product of three points represented by their indices in a GeoTimeSerie (GTS).
+   * The cross product of two vectors (AB and BC) is a scalar that can indicate the relative orientation of the points (A, B, C) in 2D space.
+   *
+   * The formula used to calculate the cross product is:
+   * ((Ax - Bx) * (Cy - By)) - ((Ay - By) * (Cx - Bx))
+   * This formula calculates the signed area of the parallelogram formed by the vectors AB and BC,
+   * which helps determine whether point C lies to the left, right, or on the line defined by points A and B.
+   *
+   * @param gts The GeoTimeSerie object that contains time ticks and values for the points.
+   * @param idA The index of point A in the GeoTimeSerie
+   * @param idB The index of point B in the GeoTimeSerie
+   * @param idC The index of point C in the GeoTimeSerie
+   * @return The cross product as a double value. A positive result indicates point C is to the left of AB,
+   *         a negative result indicates point C is to the right, and zero means the points are collinear.
+   */
+  public static double crossProduct(GeoTimeSerie gts, int idA, int idB, int idC) {
+    double Ax = ((Long) GTSHelper.tickAtIndex(gts, idA)).doubleValue();
+    double Ay = ((Number) GTSHelper.valueAtIndex(gts, idA)).doubleValue();
+    double Bx = ((Long) GTSHelper.tickAtIndex(gts, idB)).doubleValue();
+    double By = ((Number) GTSHelper.valueAtIndex(gts, idB)).doubleValue();
+    double Cx = ((Long) GTSHelper.tickAtIndex(gts, idC)).doubleValue();
+    double Cy = ((Number) GTSHelper.valueAtIndex(gts, idC)).doubleValue();
+
+    return ((Ax - Bx) * (Cy - By)) - ((Ay - By) * (Cx - Bx));
+  }
+
+  /**
+   * Implements Andrew's monotone chains algorithm to compute the lower part of the convex hull formed by the gts plot.
+   * @param gts
+   * @return res
+   */
+  public static GeoTimeSerie lowerHull(GeoTimeSerie gts) {
+    GTSHelper.sort(gts, false);
+
+    if (gts.size() < 3) {
+      return gts.clone();
+    }
+
+    List<Integer> currentHull = new ArrayList<>();
+    for (int i = 0; i < gts.size(); i++) {
+      while (currentHull.size() >= 2 && crossProduct(gts, currentHull.get(currentHull.size()-2), currentHull.get(currentHull.size()-1), i) > 0) {
+        currentHull.remove(currentHull.size()-1);
+      }
+      currentHull.add(i);
+    }
+
+    GeoTimeSerie res = gts.cloneEmpty();
+    for (int i: currentHull) {
+      GTSHelper.setValue(res, tickAtIndex(gts, i), locationAtIndex(gts, i), elevationAtIndex(gts, i), valueAtIndex(gts, i), false);
+    }
+
+    return res;
+  }
+
+  /**
+   * Implements Andrew's monotone chains algorithm to compute the upper part of the convex hull formed by the gts plot.
+   * @param gts
+   * @return res
+   */
+  public static GeoTimeSerie upperHull(GeoTimeSerie gts) {
+    GTSHelper.sort(gts, false);
+
+    if (gts.size() < 3) {
+      return gts.clone();
+    }
+
+    List<Integer> currentHull = new ArrayList<>();
+    for (int i = 0; i < gts.size(); i++) {
+      while (currentHull.size() >= 2 && crossProduct(gts, currentHull.get(currentHull.size()-2), currentHull.get(currentHull.size()-1), i) < 0) {
+        currentHull.remove(currentHull.size()-1);
+      }
+      currentHull.add(i);
+    }
+
+    GeoTimeSerie res = gts.cloneEmpty();
+    for (int i: currentHull) {
+      GTSHelper.setValue(res, tickAtIndex(gts, i), locationAtIndex(gts, i), elevationAtIndex(gts, i), valueAtIndex(gts, i), false);
+    }
+
+    return res;
+  }
+
   public static void dump(GTSEncoder encoder, PrintWriter pw) {
     StringBuilder sb = new StringBuilder(" ");
     Metadata meta = encoder.getMetadata();
