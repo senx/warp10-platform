@@ -12028,8 +12028,8 @@ public class GTSHelper {
 
     List<Integer> currentHull = new ArrayList<>();
     for (int i = 0; i < gts.size(); i++) {
-      while (currentHull.size() >= 2 && crossProduct(gts, currentHull.get(-2), currentHull.get(-1), i) > 0) {
-        currentHull.remove(currentHull.size() - 1);
+      while (currentHull.size() >= 2 && crossProduct(gts, currentHull.get(currentHull.size()-2), currentHull.get(currentHull.size()-1), i) > 0) {
+        currentHull.remove(currentHull.size()-1);
       }
       currentHull.add(i);
     }
@@ -12056,8 +12056,8 @@ public class GTSHelper {
 
     List<Integer> currentHull = new ArrayList<>();
     for (int i = 0; i < gts.size(); i++) {
-      while (currentHull.size() >= 2 && crossProduct(gts, currentHull.get(-2), currentHull.get(-1), i) < 0) {
-        currentHull.remove(currentHull.size() - 1);
+      while (currentHull.size() >= 2 && crossProduct(gts, currentHull.get(currentHull.size()-2), currentHull.get(currentHull.size()-1), i) < 0) {
+        currentHull.remove(currentHull.size()-1);
       }
       currentHull.add(i);
     }
