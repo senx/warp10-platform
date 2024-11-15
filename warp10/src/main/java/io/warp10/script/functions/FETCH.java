@@ -358,9 +358,14 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       String tselector = "~.*" + GTSHelper.buildSelector(tmeta, true);
       MetadataSelectorMatcher matcher = new MetadataSelectorMatcher(tselector);
 
-      //
-      // Build a selector
+      final List<Metadata> modifiedMetas = new ArrayList<Metadata>(metas.size());
+
       for (Metadata m: metas) {
+
+        // We clone the Metadata instance so the user cannot alter it
+        m = new Metadata(m);
+        modifiedMetas.add(m);
+
         if (null == m.getLabels()) {
           m.setLabels(new LinkedHashMap<String,String>());
         }
@@ -429,12 +434,63 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       }
 
       //
+      // Now apply the scoping of the token if set
+      //
+
+      if (rtoken.getAttributesSize() > 0 && rtoken.getAttributes().containsKey(Constants.TOKEN_ATTR_SCOPE)) {
+
+        Object[] clslbls;
+
+        try {
+          clslbls = PARSESELECTOR.parse(rtoken.getAttributes().get(Constants.TOKEN_ATTR_SCOPE));
+        } catch (WarpScriptException e) {
+          throw new WarpScriptException("Invalid syntax for token scope selector.");
+        }
+
+        DirectoryRequest dr = new DirectoryRequest();
+
+        dr.addToClassSelectors((String) clslbls[0]);
+        dr.addToLabelsSelectors((Map<String,String>) clslbls[1]);
+
+        MetadataIterator miter = new MetadataIterator() {
+          int idx = 0;
+
+          @Override
+          public boolean hasNext() {
+            return idx < modifiedMetas.size();
+          }
+
+          @Override
+          public Metadata next() {
+            if (idx >= modifiedMetas.size()) {
+              throw new IllegalStateException();
+            } else {
+              return modifiedMetas.get(idx++);
+            }
+          }
+
+          @Override
+          public void close() throws Exception {}
+        };
+
+        MetadataIterator mi = MetadataSelectorMatcher.getIterator(miter, dr);
+
+        metas = new ArrayList<Metadata>(metas.size());
+
+        while(mi.hasNext()) {
+          metas.add(mi.next());
+        }
+      } else {
+        metas = modifiedMetas;
+      }
+
+      //
       // Sort metadata by id so the enforcement of keepempty works
       //
 
       Collections.sort(metas, MetadataIdComparator.COMPARATOR);
 
-      iter = ((List<Metadata>) params.get(PARAM_GTS)).iterator();
+      iter = metas.iterator();
     } else {
       if (params.containsKey(PARAM_SELECTOR_PAIRS)) {
         for (Pair<Object,Object> pair: (List<Pair<Object,Object>>) params.get(PARAM_SELECTOR_PAIRS)) {
@@ -1176,16 +1232,19 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       Object o = map.get(PARAM_GTS);
 
       if (!(o instanceof List)) {
-        throw new WarpScriptException(getName() + " invalid '" + PARAM_GTS + "' parameter, expected a list of Geo Time Series.");
+        throw new WarpScriptException(getName() + " invalid '" + PARAM_GTS + "' parameter, expected a list of Geo Time Series or GTS Encoders.");
       }
 
       List<Metadata> metadatas = new ArrayList<Metadata>();
 
       for (Object elt: (List<Object>) o) {
-        if (!(elt instanceof GeoTimeSerie)) {
-          throw new WarpScriptException(getName() + " invalid '" + PARAM_GTS + "' parameter, expected a list of Geo Time Series.");
+        if (elt instanceof GeoTimeSerie) {
+          metadatas.add((new Metadata(((GeoTimeSerie) elt).getMetadata())));
+        } else if (elt instanceof GTSEncoder) {
+          metadatas.add((new Metadata(((GTSEncoder) elt).getRawMetadata())));
+        } else {
+          throw new WarpScriptException(getName() + " invalid '" + PARAM_GTS + "' parameter, expected a list of Geo Time Series or GTS Encoders.");
         }
-        metadatas.add((new Metadata(((GeoTimeSerie) elt).getMetadata())));
       }
 
       params.put(PARAM_GTS, metadatas);
