@@ -31,6 +31,10 @@ public class UPPERHULL extends GTSStackFunction {
 
   @Override
   protected Object gtsOp(Map<String, Object> params, GeoTimeSerie gts) throws WarpScriptException {
+    if (0 == gts.size()) {
+      return gts.clone();
+    }
+
     if (gts.getType() != GeoTimeSerie.TYPE.DOUBLE && gts.getType() != GeoTimeSerie.TYPE.LONG) {
       throw new WarpScriptException(getName() + " expects a numeric GTS.");
     }
