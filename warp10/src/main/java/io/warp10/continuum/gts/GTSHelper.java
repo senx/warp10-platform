@@ -85,6 +85,7 @@ import io.warp10.script.WarpScriptBinaryOp;
 import io.warp10.script.WarpScriptBucketizerFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptFillerFunction;
+import io.warp10.script.WarpScriptSingleValueFillerFunction;
 import io.warp10.script.WarpScriptFilterFunction;
 import io.warp10.script.WarpScriptLib;
 import io.warp10.script.WarpScriptMapperFunction;
@@ -5207,6 +5208,10 @@ public class GTSHelper {
   /**
    * This function fills the gaps in two GTS so they end up with identical ticks
    *
+   * The filler implements the WarpScriptFillerFunction interface:
+   *   - it computes the filled value using a sliding window
+   *   - it also fills geo coordinates
+   *
    * @param gtsa First GTS to fill
    * @param gtsb Second GTS to fill
    * @param filler Instance of filler to use for filling the gaps.
@@ -5282,7 +5287,7 @@ public class GTSHelper {
         idxb++;
 
         if ((idxa < gtsa.values && curTickA == gtsa.ticks[idxa])
-            || (idxb < gtsb.values && curTickB == gtsb.ticks[idxb])) {
+          || (idxb < gtsb.values && curTickB == gtsb.ticks[idxb])) {
           throw new WarpScriptException("Cannot fill Geo Time Series with duplicate timestamps.");
         }
         continue;
@@ -5457,6 +5462,478 @@ public class GTSHelper {
     results.add(gb);
 
     return results;
+  }
+
+  /**
+   * This function cross fills the gaps in two GTS so they end up with identical ticks
+   *
+   * The filler implements the WarpScriptSingleValueFillerFunction interface:
+   *   - it computes the filled value by evaluating on each current tick a function that was precomputed on the whole gts
+   *   - it does not fill geo coordinates
+   *
+   * @param gtsa First GTS to fill
+   * @param gtsb Second GTS to fill
+   * @param filler Instance of filler to use for filling the gaps.
+   */
+  public static final List<GeoTimeSerie> fill(GeoTimeSerie gtsa, GeoTimeSerie gtsb, WarpScriptSingleValueFillerFunction filler) throws WarpScriptException {
+    //
+    // Ensure the two original GTS are sorted
+    //
+
+    sort(gtsa, false);
+    sort(gtsb, false);
+
+    //
+    // Clone the Geo Time Series, we will fill ga and gb
+    //
+
+    GeoTimeSerie ga = gtsa.clone();
+    GeoTimeSerie gb = gtsb.clone();
+
+    int idxa = 0;
+    int idxb = 0;
+
+    Long curTickA = null;
+    Long curTickB = null;
+
+    //
+    // Precompute evaluator if necessary
+    //
+
+    WarpScriptSingleValueFillerFunction fillerA = filler;
+    WarpScriptSingleValueFillerFunction fillerB = filler;
+    if (filler instanceof WarpScriptSingleValueFillerFunction.Precomputable) {
+      fillerA = ((WarpScriptSingleValueFillerFunction.Precomputable) filler).compute(gtsa);
+      fillerB = ((WarpScriptSingleValueFillerFunction.Precomputable) filler).compute(gtsb);
+    }
+
+    //
+    // We use a sweeping line algorithm to go over all the ticks
+    //
+
+    while(idxa < gtsa.values || idxb < gtsb.values) {
+
+      curTickA = null;
+      curTickB = null;
+
+      if (idxa < gtsa.values) {
+        curTickA = gtsa.ticks[idxa];
+      }
+
+      if (idxb < gtsb.values) {
+        curTickB = gtsb.ticks[idxb];
+      }
+
+      //
+      // If both ticks are identical, advance the indices until the next timestamp
+      //
+
+      if (null != curTickA && curTickA.equals(curTickB)) {
+        idxa++;
+        idxb++;
+
+        if ((idxa < gtsa.values && curTickA == gtsa.ticks[idxa])
+            || (idxb < gtsb.values && curTickB == gtsb.ticks[idxb])) {
+          throw new WarpScriptException("Cannot fill Geo Time Series with duplicate timestamps.");
+        }
+        continue;
+      }
+
+      //
+      // Determine if we should fill GTS A or GTS B
+      //
+
+      long otherTick;
+      GeoTimeSerie filled = null;
+      filler = null;
+
+      if (curTickA == null || (null != curTickB && curTickA > curTickB)) {
+        // fill GTS A
+        filled = ga;
+        filler = fillerA;
+        otherTick = gtsb.ticks[idxb];
+        idxb++;
+
+      } else {
+        // fill GTS B
+        filled = gb;
+        filler = fillerB;
+        otherTick = gtsa.ticks[idxa];
+        idxa++;
+      }
+
+      //
+      // Call the filler
+      //
+
+      Object res = filler.evaluate(otherTick);
+      if (null != res) {
+        GTSHelper.setValue(filled, otherTick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, res, false);
+      }
+    }
+
+    List<GeoTimeSerie> results = new ArrayList<GeoTimeSerie>();
+    results.add(ga);
+    results.add(gb);
+
+    return results;
+  }
+
+  /**
+   * Fills the gaps in a GTS
+   *
+   * The filler implements the WarpScriptFillerFunction interface:
+   *   - it computes the filled value using a sliding window
+   *   - it also fills geo coordinates
+   *
+   * @param gts The GTS to fill
+   * @param filler The filler function used to calculate values
+   * @param ticks A list of ticks to fill. If null, empty buckets are filled
+   * @param verify If ticks is not null, verify that each tick is a gap before filling
+   * @param invalidValue The value to use if the filler function is not supported on the tick of a gap
+   * @return The filled GTS
+   * @throws WarpScriptException
+   */
+  public static final GeoTimeSerie fill(GeoTimeSerie gts, WarpScriptFillerFunction filler, List<Long> ticks, boolean verify, Object invalidValue) throws WarpScriptException {
+    //
+    // Sort original gts (similarly than cross fill)
+    //
+
+    sort(gts, false);
+
+    //
+    // Clone gts
+    //
+
+    GeoTimeSerie filled = gts.clone();
+
+    //
+    // If gts is not bucketized and ticks parameter is not defined, do nothing
+    //
+
+    if (!GTSHelper.isBucketized(filled) && null == ticks) {
+      return filled;
+    }
+
+    //
+    // If gts is bucketized and ticks parameter is defined, then output must be unbucketized
+    //
+
+    if (GTSHelper.isBucketized(filled) && null != ticks) {
+      GTSHelper.unbucketize(filled);
+    }
+
+    //
+    // Metadata
+    //
+
+    String classname = filled.getName();
+    Map<String,String> lbl = Collections.unmodifiableMap(filled.getLabels());
+    Map<String,String> attr = Collections.unmodifiableMap(filled.getMetadata().getAttributes());
+    Metadata meta = new Metadata();
+    meta.setName(classname);
+    meta.setLabels(lbl);
+    meta.setAttributes(attr);
+
+    //
+    // Data buffer with agreed-upon structure
+    //
+
+    int prewindow = filler.getPreWindow() >= 0 ? filler.getPreWindow() : 0;
+    int postwindow = filler.getPostWindow() >= 0 ? filler.getPostWindow() : 0;
+
+    Object[][] params = new Object[1 + prewindow + 1 + postwindow][];
+    params[0] = new Object[]{meta, null}; // second metadata placeholder is not used here
+    for (int i = 1; i < params.length; i++) {
+      params[i] = new Object[4];
+    }
+
+    //
+    // Determine gaps in case GTS is bucketized and ticks is not specified
+    //
+
+    if (null == ticks) {
+      ticks = new ArrayList<Long>();
+
+      // prev is initialized as the tick of the first bucket
+      long prev = gts.lastbucket - (gts.bucketcount - 1) * gts.bucketspan;
+      for (int i = 0; i < gts.size(); i++) {
+        long bucket = gts.ticks[i];
+        // skip non bucket ticks
+        if (0 != (bucket - prev) % gts.bucketspan ) {
+          continue;
+
+        } else {
+          while (prev != bucket) {
+            ticks.add(prev);
+
+            // next bucket to be checked
+            prev += gts.bucketspan;
+          }
+
+          // first bucket to be checked in next iter
+          prev += gts.bucketspan;
+        }
+      }
+
+      // add buckets in the future of last data point
+      while (prev <= gts.lastbucket) {
+        ticks.add(prev);
+        prev += gts.bucketspan;
+      }
+
+      // gaps need not to be verified
+      verify = false;
+    }
+
+    //
+    // Loop on gaps
+    //
+
+    int index = -1;
+    for (Long tick: ticks) {
+
+      //
+      // Verify if tick is actually a gap
+      //
+
+      if (verify && indexAtTick(gts, tick) >= 0) {
+        continue;
+      }
+
+      //
+      // Determine index of rightmost tick that is less than tick
+      //
+
+      while(index < gts.size() - 1 && gts.ticks[index + 1] < tick) {
+        index += 1;
+      }
+
+      // set index to first index of postwindow (or index of tick)
+      index += 1;
+
+      //
+      // Fill buffer of prewindow
+      //
+
+      for (int i = 0; i < prewindow; i++) {
+        int id = index - prewindow + i;
+        int p = 1 + i;
+        if (id >= 0) {
+          params[p][0] = tickAtIndex(gts, id);
+          params[p][1] = locationAtIndex(gts, id);
+          params[p][2] = elevationAtIndex(gts, id);
+          params[p][3] = valueAtIndex(gts, id);
+
+        } else {
+          params[p][0] = null;
+          params[p][1] = null;
+          params[p][2] = null;
+          params[p][3] = null;
+        }
+      }
+
+      //
+      // Fill buffer of current tick
+      //
+
+      params[1 + prewindow][0] = tick;
+      if (gts.size() > 0 && index < gts.size() && tick == gts.ticks[index]) {
+        params[1 + prewindow][1] = locationAtIndex(gts, index);
+        params[1 + prewindow][2] = elevationAtIndex(gts, index);
+        params[1 + prewindow][3] = valueAtIndex(gts, index);
+        index += 1; // shift index to first index of postwindow
+      } else {
+        params[1 + prewindow][1] = null;
+        params[1 + prewindow][2] = null;
+        params[1 + prewindow][3] = null;
+      }
+
+      //
+      // Fill buffer of postwindow
+      //
+
+      for (int i = 0; i < postwindow; i++) {
+        int id = index + i;
+        int p = 1 + prewindow + 1 + i;
+        if (id < gts.size()) {
+          params[p][0] = tickAtIndex(gts, id);
+          params[p][1] = locationAtIndex(gts, id);
+          params[p][2] = elevationAtIndex(gts, id);
+          params[p][3] = valueAtIndex(gts, id);
+
+        } else {
+          params[p][0] = null;
+          params[p][1] = null;
+          params[p][2] = null;
+          params[p][3] = null;
+        }
+      }
+
+      //
+      // Call the filler
+      //
+
+      Object[] result = filler.apply(params);
+      if (null != result[3]) {
+        long t = ((Number) result[0]).longValue();
+        long location = ((Number) result[1]).longValue();
+        long elevation = ((Number) result[2]).longValue();
+
+        GTSHelper.setValue(filled, t, location, elevation, result[3], false);
+
+      } else if (null != invalidValue) {
+
+        // we take the current tick unless a tick is returned in res
+        long t = (long) params[1 + prewindow][0];
+        if (null != result[0]) {
+          t = ((Number) result[0]).longValue();
+        }
+
+        // no location / elev are added to the new data point unless a location is returned in res
+        long location = GeoTimeSerie.NO_LOCATION;
+        if (null != result[1]) {
+          location = ((Number) result[1]).longValue();
+        }
+        long elevation = GeoTimeSerie.NO_ELEVATION;
+        if (null != result[2]) {
+          elevation = ((Number) result[2]).longValue();
+        }
+
+        GTSHelper.setValue(filled, t, location, elevation, invalidValue, false);
+      }
+
+      // reset index for new tick
+      index = -1;
+    }
+
+    return filled;
+  }
+
+  /**
+   * Fills the gaps in a GTS
+   *
+   * The filler implements the WarpScriptSingleValueFillerFunction interface:
+   *   - it computes the filled value by evaluating on each current tick a function that was precomputed on the whole gts
+   *   - it does not fill geo coordinates
+   *
+   * @param gts The GTS to fill
+   * @param filler The filler function used to calculate values
+   * @param ticks A list of ticks to fill. If null, empty buckets are filled
+   * @param verify If ticks is not null, verify that each tick is a gap before filling
+   * @param invalidValue The value to use if the filler function is not supported on the tick of a gap
+   * @return The filled GTS
+   * @throws WarpScriptException
+   */
+  public static final GeoTimeSerie fill(GeoTimeSerie gts, WarpScriptSingleValueFillerFunction filler, List<Long> ticks, boolean verify, Object invalidValue) throws WarpScriptException {
+    //
+    // Sort original gts (similarly than cross fill)
+    //
+
+    sort(gts, false);
+
+    //
+    // Clone gts
+    //
+
+    GeoTimeSerie filled = gts.clone();
+
+    //
+    // If gts is not bucketized and ticks parameter is not defined, do nothing
+    //
+
+    if (!GTSHelper.isBucketized(filled) && null == ticks) {
+      return filled;
+    }
+
+    //
+    // If gts is bucketized and ticks parameter is defined, then output must be unbucketized
+    //
+
+    if (GTSHelper.isBucketized(filled) && null != ticks) {
+      GTSHelper.unbucketize(filled);
+    }
+
+    //
+    // Precompute evaluator if necessary
+    //
+
+    if (filler instanceof WarpScriptSingleValueFillerFunction.Precomputable) {
+      filler = ((WarpScriptSingleValueFillerFunction.Precomputable) filler).compute(gts);
+    }
+
+    //
+    // Loop on gaps
+    //
+
+    if (null != ticks) {
+      // gaps to fill are specified
+      for (Long tick: ticks) {
+
+        // verify if it is a gap or not
+        if (verify && indexAtTick(gts, tick) >= 0) {
+          continue;
+        }
+
+        // fill the gap
+        Object value = filler.evaluate(tick);
+        if (null != value) {
+          GTSHelper.setValue(filled, tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, value, false);
+
+        } else if (null != invalidValue) {
+          GTSHelper.setValue(filled, tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, invalidValue, false);
+        }
+      }
+
+    } else {
+      // gts is sorted and bucketized
+      // we fill empty buckets
+
+      // prev is initialized as the tick of the first bucket
+      long prev = gts.lastbucket - (gts.bucketcount - 1) * gts.bucketspan;
+      for (int i = 0; i < gts.size(); i++) {
+        long bucket = gts.ticks[i];
+        // skip non bucket ticks
+        if (0 != (bucket - prev) % gts.bucketspan ) {
+          continue;
+
+        } else {
+          while (prev != bucket) {
+            // fill the gap
+            Object value = filler.evaluate(prev);
+            if (null != value) {
+              GTSHelper.setValue(filled, prev, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, value, false);
+
+            } else if (null != invalidValue) {
+              GTSHelper.setValue(filled, prev, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, invalidValue, false);
+            }
+
+            // next bucket to be checked
+            prev += gts.bucketspan;
+          }
+
+          // first bucket to be checked in next iter
+          prev += gts.bucketspan;
+        }
+      }
+
+      // add buckets in the future of last data point
+      while (prev <= gts.lastbucket) {
+
+        // fill the gap
+        Object value = filler.evaluate(prev);
+        if (null != value) {
+          GTSHelper.setValue(filled, prev, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, value, false);
+
+        } else if (null != invalidValue) {
+          GTSHelper.setValue(filled, prev, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, invalidValue, false);
+        }
+
+        prev += gts.bucketspan;
+      }
+    }
+
+    return filled;
   }
 
   /**
@@ -10009,6 +10486,20 @@ public class GTSHelper {
     } else {
       throw new WarpScriptException("Invalid Geo Time Series type.");
     }
+  }
+
+  /**
+   * Return an array with the ticks of the GTS converted to doubles
+   *
+   * @param gts GTS to get the ticks from
+   * @return A new array with doubles
+   */
+  public static double[] getTicksAsDouble(GeoTimeSerie gts) {
+    double[] ticks = new double[gts.values];
+    for (int i = 0; i < gts.values; i++) {
+      ticks[i] = gts.ticks[i];
+    }
+    return ticks;
   }
 
   /**

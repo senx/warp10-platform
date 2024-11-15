@@ -23,6 +23,7 @@ import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptAggregatorFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptFillerFunction;
+import io.warp10.script.WarpScriptSingleValueFillerFunction;
 import io.warp10.script.WarpScriptFilterFunction;
 import io.warp10.script.WarpScriptNAryFunction;
 import io.warp10.script.WarpScriptStack;
@@ -146,6 +147,8 @@ public class TYPEOF extends NamedWarpScriptFunction implements WarpScriptStackFu
     } else if (WarpScriptAggregatorFunction.class.isAssignableFrom(c)) {
       return TYPE_AGGREGATOR;
     } else if (WarpScriptFillerFunction.class.isAssignableFrom(c)) {
+      return TYPE_FILLER;
+    } else if (WarpScriptSingleValueFillerFunction.class.isAssignableFrom(c)) {
       return TYPE_FILLER;
     } else if (WarpScriptFilterFunction.class.isAssignableFrom(c)) {
       return TYPE_FILTER;
