@@ -148,6 +148,8 @@ import io.warp10.script.functions.BDISPROBABLEPRIME;
 import io.warp10.script.functions.BDLOWESTSETBIT;
 import io.warp10.script.functions.BDMAX;
 import io.warp10.script.functions.BDMIN;
+import io.warp10.script.functions.BDMOD;
+import io.warp10.script.functions.BDMODINVERSE;
 import io.warp10.script.functions.BDMODPOW;
 import io.warp10.script.functions.BDMUL;
 import io.warp10.script.functions.BDNEG;
@@ -1093,6 +1095,8 @@ public class WarpScriptLib {
   public static final String BDLOWESTSETBIT = "BDLOWESTSETBIT";
   public static final String BDISPROBABLEPRIME = "BDISPROBABLEPRIME";
   public static final String BDMODPOW = "BDMODPOW";
+  public static final String BDMOD = "BDMOD";
+  public static final String BDMODINVERSE = "BDMODINVERSE";
   public static final String BDNEXTPROBABLEPRIME = "BDNEXTPROBABLEPRIME";
   public static final String BDNOT = "BDNOT";
   public static final String BDOR = "BDOR";
@@ -2933,6 +2937,8 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new BDGCD(BDGCD));
     addNamedWarpScriptFunction(new BDLOWESTSETBIT(BDLOWESTSETBIT));
     addNamedWarpScriptFunction(new BDISPROBABLEPRIME(BDISPROBABLEPRIME));
+    addNamedWarpScriptFunction(new BDMOD(BDMOD));
+    addNamedWarpScriptFunction(new BDMODINVERSE(BDMODINVERSE));
     addNamedWarpScriptFunction(new BDMODPOW(BDMODPOW));
     addNamedWarpScriptFunction(new BDNEXTPROBABLEPRIME(BDNEXTPROBABLEPRIME));
     addNamedWarpScriptFunction(new BDNOT(BDNOT));
