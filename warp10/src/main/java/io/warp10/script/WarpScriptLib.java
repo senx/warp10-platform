@@ -2945,7 +2945,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new BDSIGNUM(BDSIGNUM));
     addNamedWarpScriptFunction(new BDCLEAR(BDCLEAR));
     addNamedWarpScriptFunction(new BDRAND(BDRAND, false));
-    addNamedWarpScriptFunction(new BDRAND(SBDRAND, false));
+    addNamedWarpScriptFunction(new BDRAND(SBDRAND, true));
     addNamedWarpScriptFunction(new BDPROBABLEPRIME(BDPROBABLEPRIME, false));
     addNamedWarpScriptFunction(new BDPROBABLEPRIME(SBDPROBABLEPRIME, true));
 
