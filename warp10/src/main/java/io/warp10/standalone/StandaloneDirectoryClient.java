@@ -1326,7 +1326,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
           return true;
         }
 
-        while(classIdx < fclassNames.size()) {
+        while(null != metadatasForCN || classIdx < fclassNames.size()) {
           while (null == metadatasForCN) {
             while (classIdx < fclassNames.size()) {
               className = fclassNames.get(classIdx++);
@@ -1349,7 +1349,6 @@ public class StandaloneDirectoryClient implements DirectoryClient {
           }
 
           while(metaIdx < metadatasForCN.size()) {
-
             Metadata md = metadatasForCN.get(metaIdx);
 
             //
