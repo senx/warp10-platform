@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2021  SenX S.A.S.
+//   Copyright 2020-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -66,18 +66,7 @@ public class ECPRIVATE extends NamedWarpScriptFunction implements WarpScriptStac
       throw new WarpScriptException(getName() + " curve name not in " + ECGEN.getCurves() + ".");
     }
 
-    if (!(params.get(Constants.KEY_D) instanceof String)) {
-      throw new WarpScriptException(getName() + " missing or non-String parameter '" + Constants.KEY_D + "'.");
-    }
-
-    String dstr = (String) params.get(Constants.KEY_D);
-    final BigInteger d;
-
-    if (dstr.startsWith("0x") || dstr.startsWith("0X")) {
-      d = new BigInteger(dstr.substring(2), 16);
-    } else {
-      d = new BigInteger(dstr);
-    }
+    final BigInteger d = TOBD.toBigInteger(getName(), params.get(Constants.KEY_D));
 
     ECPrivateKey privateKey = new ECPrivateKey() {
       public String getFormat() { return "PKCS#8"; }
