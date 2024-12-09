@@ -1,5 +1,5 @@
 //
-//   Copyright 2021-2022  SenX S.A.S.
+//   Copyright 2021-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -83,6 +83,14 @@ public class ECRECOVER extends NamedWarpScriptFunction implements WarpScriptStac
       throw new WarpScriptException(getName() + " missing ECC curve name under '" + KEY_CURVE + "'.");
     }
     final ECNamedCurveParameterSpec spec = ECNamedCurveTable.getParameterSpec((String) params.get(KEY_CURVE));
+
+    //
+    // We don't support signing with Curve25519
+    //
+
+    if ("curve25519".equals(spec.getName())) {
+      throw new WarpScriptException(getName() + " doesn't support curve " + spec.getName());
+    }
 
     BigInteger H = spec.getH();
     BigInteger r;
