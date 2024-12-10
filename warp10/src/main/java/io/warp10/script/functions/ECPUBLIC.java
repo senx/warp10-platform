@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2021  SenX S.A.S.
+//   Copyright 2020-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@
 
 package io.warp10.script.functions;
 
+import java.math.BigInteger;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -25,6 +27,7 @@ import org.bouncycastle.jce.interfaces.ECPublicKey;
 import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec;
 import org.bouncycastle.jce.spec.ECParameterSpec;
 import org.bouncycastle.math.ec.ECPoint;
+import org.bouncycastle.math.ec.rfc7748.X25519;
 import org.bouncycastle.util.encoders.Hex;
 
 import io.warp10.continuum.store.Constants;
@@ -62,15 +65,56 @@ public class ECPUBLIC extends NamedWarpScriptFunction implements WarpScriptStack
 
       ECPrivateKey privateKey = (ECPrivateKey) top;
 
-      final ECParameterSpec bcSpec = privateKey.getParameters();
-      ECPoint q = bcSpec.getG().multiply(privateKey.getD());
+      final ECNamedCurveParameterSpec bcSpec = (ECNamedCurveParameterSpec) privateKey.getParameters();
 
+      ECPoint q = null;
+
+      if ("curve25519".equals(bcSpec.getName())) {
+        // Add one bit so we know the value is > 0
+        BigInteger d = privateKey.getD().or(BigInteger.ONE.shiftLeft(256));
+        byte[] p = d.toByteArray();
+        p = Arrays.copyOfRange(p, 1, 33);
+        // Reverse p
+        for (int i = 0; i < 16; i++) {
+          byte tmp = p[i];
+          p[i] = p[31 - i];
+          p[31 - i] = tmp;
+        }
+
+        byte[] publ = new byte[X25519.POINT_SIZE];
+        X25519.scalarMultBase (p, 0, publ, 0);
+
+        // Now convert from Montgomery form to Weierstrass form
+        // See https://github.com/bcgit/bc-java/issues/251
+
+        byte[] bXm = publ;
+        // Reverse Xm bytes
+        for (int i = 0; i < 16; i++) {
+          byte tmp = bXm[i];
+          bXm[i] = bXm[31 - i];
+          bXm[31 - i] = tmp;
+        }
+        BigInteger Xm = new BigInteger(bXm);
+
+        BigInteger P = BigInteger.ONE.shiftLeft(255).subtract(BigInteger.valueOf(19));
+        BigInteger D = BigInteger.valueOf(3).modInverse(P).multiply(BigInteger.valueOf(486662)).mod(P);
+        BigInteger Xw = Xm.add(D).mod(P);
+        String hex = Hex.toHexString(Xw.toByteArray());
+        hex = "0000000000000000000000000000000000000000000000000000000000000000" + hex;
+        hex = hex.substring(hex.length() - 64);
+        hex = "02" + hex;
+        q = bcSpec.getCurve().decodePoint(Hex.decode(hex));
+      } else {
+        q = bcSpec.getG().multiply(privateKey.getD());
+      }
+
+      final ECPoint fq = q;
       ECPublicKey publicKey = new ECPublicKey() {
         public String getFormat() { return "PKCS#8"; }
-        public byte[] getEncoded() { return q.getEncoded(false); }
+        public byte[] getEncoded() { return fq.getEncoded(false); }
         public String getAlgorithm() { return "EC"; }
         public ECParameterSpec getParameters() { return bcSpec; }
-        public ECPoint getQ() { return q; }
+        public ECPoint getQ() { return fq; }
       };
 
       stack.push(publicKey);

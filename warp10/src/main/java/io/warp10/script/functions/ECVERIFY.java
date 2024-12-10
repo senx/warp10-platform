@@ -1,5 +1,5 @@
 //
-//   Copyright 2020  SenX S.A.S.
+//   Copyright 2020-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import java.security.spec.EllipticCurve;
 
 import org.bouncycastle.jcajce.provider.asymmetric.util.EC5Util;
 import org.bouncycastle.jce.interfaces.ECPublicKey;
+import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec;
 
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
@@ -48,6 +49,8 @@ public class ECVERIFY extends NamedWarpScriptFunction implements WarpScriptStack
     if (!(top instanceof ECPublicKey)) {
       throw new WarpScriptException(getName() + " expects an ECC public key.");
     }
+
+    ECPublicKey pubkey = (ECPublicKey) top;
 
     byte[] encoded = ((ECPublicKey) top).getQ().getEncoded(false);
     org.bouncycastle.math.ec.ECPoint q = ((ECPublicKey) top).getQ();
@@ -92,6 +95,16 @@ public class ECVERIFY extends NamedWarpScriptFunction implements WarpScriptStack
     }
 
     byte[] data = (byte[]) top;
+
+
+    //
+    // We don't support signing with Curve25519
+    //
+
+    ECNamedCurveParameterSpec crv = (ECNamedCurveParameterSpec) pubkey.getParameters();
+    if ("curve25519".equals(crv.getName())) {
+      throw new WarpScriptException(getName() + " doesn't support curve " + crv.getName());
+    }
 
     try {
       Signature signature = Signature.getInstance(alg, ECGEN.BCProvider);
