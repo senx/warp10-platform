@@ -1,5 +1,5 @@
 //
-//   Copyright 2020  SenX S.A.S.
+//   Copyright 2020-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import java.security.Signature;
 import java.security.SignatureException;
 
 import org.bouncycastle.jce.interfaces.ECPrivateKey;
+import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec;
 
 import com.geoxp.oss.CryptoHelper;
 
@@ -35,59 +36,68 @@ import io.warp10.script.WarpScriptStackFunction;
  * Sign data using ECC and a hash algorithm
  */
 public class ECSIGN extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   public ECSIGN(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     Object top = stack.pop();
-    
+
     if (!(top instanceof ECPrivateKey)) {
       throw new WarpScriptException(getName() + " expects an ECC private key.");
     }
 
     PrivateKey key = (PrivateKey) top;
-    
+
     top = stack.pop();
-    
+
     if (!(top instanceof String)) {
       throw new WarpScriptException(getName() + " expects an algorithm name.");
     }
-    
+
     //
     // Algorithms are among those supported by BouncyCastle
     // cf http://stackoverflow.com/questions/8778531/bouncycastle-does-not-find-algorithms-that-it-provides
     //
-    
+
     String alg = (String) top;
-        
+
     top = stack.pop();
-    
+
     if (!(top instanceof byte[])) {
       throw new WarpScriptException(getName() + " operates on a byte array.");
     }
-    
+
     byte[] data = (byte[]) top;
+
+    //
+    // We don't support signing with Curve25519
+    //
+
+    ECNamedCurveParameterSpec curve = (ECNamedCurveParameterSpec) ((ECPrivateKey) key).getParameters();
+    if ("curve25519".equals(curve.getName())) {
+      throw new WarpScriptException(getName() + " doesn't support curve " + curve.getName());
+    }
 
     //
     // Sign
     //
-    
+
     try {
       Signature signature = Signature.getInstance(alg, ECGEN.BCProvider);
       signature.initSign(key, CryptoHelper.getSecureRandom());
       signature.update(data);
       stack.push(signature.sign());
-    } catch (SignatureException se) { 
+    } catch (SignatureException se) {
       throw new WarpScriptException(getName() + " error signing content.", se);
     } catch (InvalidKeyException ike) {
       throw new WarpScriptException(getName() + " error signing content.", ike);
     } catch (NoSuchAlgorithmException nsae) {
       throw new WarpScriptException(getName() + " error signing content.", nsae);
     }
-    
+
     return stack;
   }
 }

@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2021  SenX S.A.S.
+//   Copyright 2020-2024  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -26,7 +26,6 @@ import org.bouncycastle.crypto.generators.ECKeyPairGenerator;
 import org.bouncycastle.crypto.params.ECDomainParameters;
 import org.bouncycastle.crypto.params.ECKeyGenerationParameters;
 import org.bouncycastle.crypto.params.ECPrivateKeyParameters;
-import org.bouncycastle.crypto.params.ECPublicKeyParameters;
 import org.bouncycastle.jce.ECNamedCurveTable;
 import org.bouncycastle.jce.interfaces.ECPrivateKey;
 import org.bouncycastle.jce.interfaces.ECPublicKey;
@@ -37,6 +36,7 @@ import org.bouncycastle.math.ec.ECCurve;
 import com.geoxp.oss.CryptoHelper;
 
 import io.warp10.continuum.store.Constants;
+import io.warp10.script.MemoryWarpScriptStack;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptLib;
@@ -50,6 +50,9 @@ import io.warp10.script.functions.SNAPSHOT.SnapshotEncoder;
 public class ECGEN extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
   public static final BouncyCastleProvider BCProvider = new BouncyCastleProvider();
+
+  private static final ECPUBLIC ECPUBLIC = new ECPUBLIC(WarpScriptLib.ECPUBLIC);
+  private static final ECPRIVATE ECPRIVATE = new ECPRIVATE(WarpScriptLib.ECPRIVATE);
 
   static {
     // Add a custom snapshot encoder for EC private and public keys
@@ -124,7 +127,6 @@ public class ECGEN extends NamedWarpScriptFunction implements WarpScriptStackFun
     final AsymmetricCipherKeyPair keypair = gen.generateKeyPair();
 
     ECPrivateKeyParameters privateKey = (ECPrivateKeyParameters) keypair.getPrivate();
-    ECPublicKeyParameters publicKey = (ECPublicKeyParameters) keypair.getPublic();
 
     Map<String,String> keyparams = new LinkedHashMap<String,String>();
 
@@ -133,12 +135,20 @@ public class ECGEN extends NamedWarpScriptFunction implements WarpScriptStackFun
 
     stack.push(keyparams);
 
-    keyparams = new LinkedHashMap<String,String>();
+    //
+    // We rely on ECPRIVATE/ECPUBLIC to generate the public key so the specificity of curve25519 is taken into account
+    //
 
-    keyparams.put(Constants.KEY_CURVE, name);
-    keyparams.put(Constants.KEY_Q, Hex.encodeHexString(publicKey.getQ().getEncoded(false)));
+    Object privmap = stack.peek();
 
-    stack.push(keyparams);
+    MemoryWarpScriptStack stck = new MemoryWarpScriptStack(null,null);
+    stck.maxLimits();
+    stck.push(privmap);
+    ECPRIVATE.apply(stck);
+    ECPUBLIC.apply(stck);
+    ECPUBLIC.apply(stck);
+
+    stack.push(stck.pop());
 
     return stack;
   }
