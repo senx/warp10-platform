@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2023  SenX S.A.S.
+//   Copyright 2018-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -838,6 +838,11 @@ public class SensisionConstants {
    * Number of results of the 'find' method of Directory plugin
    */
   public static final String SENSISION_CLASS_CONTINUUM_DIRECTORY_PLUGIN_FIND_RESULTS = "warp.directory.plugin.find.results";
+
+  /**
+   * Saturation of FoundationDB network threads
+   */
+  public static final String SENSISION_CLASS_FDB_CLIENT_BUSYNESS = "fdb.client.busyness";
 
   /**
    * Number of times the WarpScript bootstrap code was loaded
