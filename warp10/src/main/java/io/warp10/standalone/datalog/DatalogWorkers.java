@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2023  SenX S.A.S.
+//   Copyright 2020-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import io.warp10.WarpConfig;
 import io.warp10.continuum.store.DirectoryClient;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.continuum.store.thrift.data.DatalogRecord;
+import io.warp10.continuum.store.thrift.data.DatalogRecordType;
 
 public class DatalogWorkers {
 
@@ -91,11 +92,20 @@ public class DatalogWorkers {
     // Note: this has nothing to do with the shard id
     //
 
-    long classid = record.getMetadata().getClassId();
-    long labelsid = record.getMetadata().getLabelsId();
+    //
+    // For KVStore messages we use the first worker so all mutations are handled by a single worker.
+    // We cannot do it on a per Key basis since a single KVStoreRequest may have multiple keys
+    //
 
-    long partkey = (((classid << 16) & 0xFFFF0000L) | ((labelsid >>> 48) & 0xFFFFL));
-    long partition = partkey % NUM_WORKERS;
+    long partition = 0L;
+
+    if (!DatalogRecordType.KVSTORE.equals(record.getType())) {
+      long classid = record.getMetadata().getClassId();
+      long labelsid = record.getMetadata().getLabelsId();
+
+      long partkey = (((classid << 16) & 0xFFFF0000L) | ((labelsid >>> 48) & 0xFFFFL));
+      partition = partkey % NUM_WORKERS;
+    }
 
     DatalogJob job = new DatalogJob(consumer, ref, record);
 

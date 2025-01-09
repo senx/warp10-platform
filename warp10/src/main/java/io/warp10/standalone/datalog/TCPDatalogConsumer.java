@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2023  SenX S.A.S.
+//   Copyright 2020-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -540,7 +540,7 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
           DatalogHelper.deserialize(msg.getRecord(), record);
 
           //
-          // If our id or an exluded one created this message, ignore it, it would otherwise create a loop
+          // If our id or an excluded one created this message, ignore it, it would otherwise create a loop
           //
 
           if (id.equals(record.getId()) || this.excluded.contains(record.getId())) {
@@ -550,219 +550,221 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
             continue;
           }
 
-          //
-          // Recompute the class and labels id with our own keys
-          //
+          if (!DatalogRecordType.KVSTORE.equals(record.getType())) {
+            //
+            // Recompute the class and labels id with our own keys
+            //
 
-          long classid = GTSHelper.classId(CLASS_KEYS, record.getMetadata().getName());
-          long labelsid = GTSHelper.labelsId(LABELS_KEYS, record.getMetadata().getLabels());
+            long classid = GTSHelper.classId(CLASS_KEYS, record.getMetadata().getName());
+            long labelsid = GTSHelper.labelsId(LABELS_KEYS, record.getMetadata().getLabels());
 
-          record.getMetadata().setClassId(classid);
-          record.getMetadata().setLabelsId(labelsid);
+            record.getMetadata().setClassId(classid);
+            record.getMetadata().setLabelsId(labelsid);
 
-          //
-          // Check shards if needed
-          //
+            //
+            // Check shards if needed
+            //
 
-          if (hasShards) {
-            // compute shard id
-            long sid = DatalogHelper.getShardId(classid, labelsid, shardShift);
+            if (hasShards) {
+              // compute shard id
+              long sid = DatalogHelper.getShardId(classid, labelsid, shardShift);
 
-            boolean matched = false;
+              boolean matched = false;
 
-            for (int i = 0; i < modulus.length; i++) {
-              if (0 != modulus[i] && remainder[i] == sid % modulus[i]) {
-                matched = true;
-                break;
+              for (int i = 0; i < modulus.length; i++) {
+                if (0 != modulus[i] && remainder[i] == sid % modulus[i]) {
+                  matched = true;
+                  break;
+                }
               }
-            }
 
-            if (!matched) {
-              continue;
-            }
-          }
-
-          //
-          // Execute the filtering macro if set.
-          // If 'datalog.consumer.macro.data' is false, the macro is
-          // expected to return a boolean which, if true, will
-          // accept the message.
-          // The macro is fed with a GTS Encoder with the metadata
-          // of the GTS subject of the message and a STRING with
-          // the type of message (From DatalogRecordType, UPDATE, DELETE, REGISTER, UNREGISTER).
-          // If 'datalog.consumer.macro.data' is true, the macro
-          // is fed with an encoder as above but with the actual data included for UPDATE messages.
-          // The macro will then have the ability to alter the encoder to update metadata
-          // and/or data. It is then expected to return a boolean or an encoder.
-          //
-          // The macro is called in the consumer thread, not in the worker threads so metadata alterations
-          // are reflected in the choice of the worker to respect the sequence of messages per GTS
-          //
-
-          if (null != macro) {
-            stack.show();
-            stack.clear();
-            Map<String,Object> tokenMap = null;
-
-            if (macroToken && null != record.getToken()) {
-              tokenMap = TOKENDUMP.mapFromToken(record.getToken());
-            }
-
-            if (!macroData) {
-              GTSEncoder encoder = new GTSEncoder(0L);
-              encoder.setMetadata(record.getMetadata());
-
-              stack.push(tokenMap);
-              stack.push(encoder);
-              stack.push(record.getType().name());
-              stack.push(macro);
-              RUN.apply(stack);
-              if (0 == stack.depth() || !Boolean.TRUE.equals(stack.peek())) {
-                stack.show();
-                stack.clear();
-                Sensision.update(SensisionConstants.SENSISION_CLASS_DATALOG_SKIPPED, labels, 1);
+              if (!matched) {
                 continue;
               }
-            } else {
-              GTSEncoder encoder;
+            }
 
-              if (DatalogRecordType.UPDATE.equals(record.getType())) {
-                GTSDecoder decoder = new GTSDecoder(record.getBaseTimestamp(), record.bufferForEncoder());
-                decoder.next();
-                encoder = decoder.getEncoder();
-              } else {
-                encoder = new GTSEncoder(0L);
+            //
+            // Execute the filtering macro if set.
+            // If 'datalog.consumer.macro.data' is false, the macro is
+            // expected to return a boolean which, if true, will
+            // accept the message.
+            // The macro is fed with a GTS Encoder with the metadata
+            // of the GTS subject of the message and a STRING with
+            // the type of message (From DatalogRecordType, UPDATE, DELETE, REGISTER, UNREGISTER).
+            // If 'datalog.consumer.macro.data' is true, the macro
+            // is fed with an encoder as above but with the actual data included for UPDATE messages.
+            // The macro will then have the ability to alter the encoder to update metadata
+            // and/or data. It is then expected to return a boolean or an encoder.
+            //
+            // The macro is called in the consumer thread, not in the worker threads so metadata alterations
+            // are reflected in the choice of the worker to respect the sequence of messages per GTS
+            //
+
+            if (null != macro) {
+              stack.show();
+              stack.clear();
+              Map<String,Object> tokenMap = null;
+
+              if (macroToken && null != record.getToken()) {
+                tokenMap = TOKENDUMP.mapFromToken(record.getToken());
               }
-              encoder.setMetadata(record.getMetadata());
 
-              // Call the macro with the token, the encoder and the record type
-              stack.push(tokenMap);
-              stack.push(encoder);
-              stack.push(record.getType().name());
-              stack.push(macro);
-              RUN.apply(stack);
+              if (!macroData) {
+                GTSEncoder encoder = new GTSEncoder(0L);
+                encoder.setMetadata(record.getMetadata());
 
-              // Skip if the macro did not return a boolean TRUE
-              boolean skip = !(stack.depth() >= 1 && Boolean.TRUE.equals(stack.peek()));
+                stack.push(tokenMap);
+                stack.push(encoder);
+                stack.push(record.getType().name());
+                stack.push(macro);
+                RUN.apply(stack);
+                if (0 == stack.depth() || !Boolean.TRUE.equals(stack.peek())) {
+                  stack.show();
+                  stack.clear();
+                  Sensision.update(SensisionConstants.SENSISION_CLASS_DATALOG_SKIPPED, labels, 1);
+                  continue;
+                }
+              } else {
+                GTSEncoder encoder;
 
-              boolean updateIds = false;
+                if (DatalogRecordType.UPDATE.equals(record.getType())) {
+                  GTSDecoder decoder = new GTSDecoder(record.getBaseTimestamp(), record.bufferForEncoder());
+                  decoder.next();
+                  encoder = decoder.getEncoder();
+                } else {
+                  encoder = new GTSEncoder(0L);
+                }
+                encoder.setMetadata(record.getMetadata());
 
-              if (!skip) {
-                // Discard the boolean
-                stack.pop();
+                // Call the macro with the token, the encoder and the record type
+                stack.push(tokenMap);
+                stack.push(encoder);
+                stack.push(record.getType().name());
+                stack.push(macro);
+                RUN.apply(stack);
 
-                // The macro returned a GTS or an ENCODER, update the record with the
-                // metadata and the content (for UPDATE records)
-                GTSEncoder forwardEncoder = null;
-                if (stack.depth() > 0) {
-                  if (stack.peek() instanceof GeoTimeSerie) {
-                    GeoTimeSerie gts = (GeoTimeSerie) stack.pop();
-                    encoder = new GTSEncoder(0L);
-                    encoder.setMetadata(gts.getMetadata());
-                    encoder.encode(gts);
-                    updateIds = true;
-                  } else if (stack.peek() instanceof GTSEncoder) {
-                    encoder = (GTSEncoder) stack.pop();
-                    updateIds = true;
-                  } else if (stack.peek() instanceof List) {
-                    // The macro returned a list of two elements, either GTS or ENCODER. The first one is the
-                    // content to use for the action (UPDATE/REGISTER/UNREGISTER/DELETE), the second one is
-                    // the content to forward.
-                    List<Object> l = (List<Object>) stack.pop();
-                    if (2 == l.size()) {
-                      Object update = l.get(0);
-                      Object forward = l.get(1);
+                // Skip if the macro did not return a boolean TRUE
+                boolean skip = !(stack.depth() >= 1 && Boolean.TRUE.equals(stack.peek()));
 
-                      if (update instanceof GeoTimeSerie) {
-                        GeoTimeSerie gts = (GeoTimeSerie) update;
-                        encoder = new GTSEncoder(0L);
-                        encoder.setMetadata(gts.getMetadata());
-                        encoder.encode(gts);
-                        updateIds = true;
-                      } else if (update instanceof GTSEncoder) {
-                        encoder = (GTSEncoder) update;
-                        updateIds = true;
+                boolean updateIds = false;
+
+                if (!skip) {
+                  // Discard the boolean
+                  stack.pop();
+
+                  // The macro returned a GTS or an ENCODER, update the record with the
+                  // metadata and the content (for UPDATE records)
+                  GTSEncoder forwardEncoder = null;
+                  if (stack.depth() > 0) {
+                    if (stack.peek() instanceof GeoTimeSerie) {
+                      GeoTimeSerie gts = (GeoTimeSerie) stack.pop();
+                      encoder = new GTSEncoder(0L);
+                      encoder.setMetadata(gts.getMetadata());
+                      encoder.encode(gts);
+                      updateIds = true;
+                    } else if (stack.peek() instanceof GTSEncoder) {
+                      encoder = (GTSEncoder) stack.pop();
+                      updateIds = true;
+                    } else if (stack.peek() instanceof List) {
+                      // The macro returned a list of two elements, either GTS or ENCODER. The first one is the
+                      // content to use for the action (UPDATE/REGISTER/UNREGISTER/DELETE), the second one is
+                      // the content to forward.
+                      List<Object> l = (List<Object>) stack.pop();
+                      if (2 == l.size()) {
+                        Object update = l.get(0);
+                        Object forward = l.get(1);
+
+                        if (update instanceof GeoTimeSerie) {
+                          GeoTimeSerie gts = (GeoTimeSerie) update;
+                          encoder = new GTSEncoder(0L);
+                          encoder.setMetadata(gts.getMetadata());
+                          encoder.encode(gts);
+                          updateIds = true;
+                        } else if (update instanceof GTSEncoder) {
+                          encoder = (GTSEncoder) update;
+                          updateIds = true;
+                        } else {
+                          skip = true;
+                        }
+
+                        // Create 'forward' wrapper
+                        if (forward instanceof GeoTimeSerie) {
+                          GeoTimeSerie gts = (GeoTimeSerie) forward;
+                          forwardEncoder = new GTSEncoder(0L);
+                          forwardEncoder.setMetadata(gts.getMetadata());
+                          forwardEncoder.encode(gts);
+                          updateIds = true;
+                        } else if (forward instanceof GTSEncoder) {
+                          forwardEncoder = (GTSEncoder) forward;
+                          updateIds = true;
+                        } else {
+                          skip = true;
+                        }
                       } else {
                         skip = true;
                       }
 
-                      // Create 'forward' wrapper
-                      if (forward instanceof GeoTimeSerie) {
-                        GeoTimeSerie gts = (GeoTimeSerie) forward;
-                        forwardEncoder = new GTSEncoder(0L);
-                        forwardEncoder.setMetadata(gts.getMetadata());
-                        forwardEncoder.encode(gts);
-                        updateIds = true;
-                      } else if (forward instanceof GTSEncoder) {
-                        forwardEncoder = (GTSEncoder) forward;
-                        updateIds = true;
-                      } else {
-                        skip = true;
+                      // Copy the forwardEncoder as a wrapper in the record. This will trigger the storing of this
+                      // encoder instead of the one in 'encoder' but will forward the latter if forwarding should happen.
+                      if (null != forwardEncoder) {
+                        GTSWrapper wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(forwardEncoder, false);
+                        record.setForward(wrapper);
                       }
                     } else {
                       skip = true;
                     }
 
-                    // Copy the forwardEncoder as a wrapper in the record. This will trigger the storing of this
-                    // encoder instead of the one in 'encoder' but will forward the latter if forwarding should happen.
-                    if (null != forwardEncoder) {
-                      GTSWrapper wrapper = GTSWrapperHelper.fromGTSEncoderToGTSWrapper(forwardEncoder, false);
-                      record.setForward(wrapper);
+                    if (!skip) {
+                      // Copy the encoder
+                      record.setMetadata(encoder.getMetadata());
+                      if (DatalogRecordType.UPDATE.equals(record.getType())) {
+                        record.setBaseTimestamp(encoder.getBaseTimestamp());
+                        record.setEncoder(encoder.getBytes());
+                      }
+
+                      // If there is a map left on the stack, update the token
+                      if (stack.depth() > 0 && stack.peek() instanceof Map) {
+                        tokenMap = (Map<String,Object>) stack.pop();
+                        // force token type
+                        tokenMap.put(TOKENGEN.KEY_TYPE, TokenType.WRITE.toString());
+                        record.setToken((WriteToken) TOKENGEN.tokenFromMap(tokenMap, "Datalog", Long.MAX_VALUE));
+                      }
+                      updateIds = true;
                     }
-                  } else {
-                    skip = true;
                   }
+                }
 
-                  if (!skip) {
-                    // Copy the encoder
-                    record.setMetadata(encoder.getMetadata());
-                    if (DatalogRecordType.UPDATE.equals(record.getType())) {
-                      record.setBaseTimestamp(encoder.getBaseTimestamp());
-                      record.setEncoder(encoder.getBytes());
-                    }
+                if (skip) {
+                  stack.show();
+                  stack.clear();
+                  Sensision.update(SensisionConstants.SENSISION_CLASS_DATALOG_SKIPPED, labels, 1);
+                  continue;
+                }
 
-                    // If there is a map left on the stack, update the token
-                    if (stack.depth() > 0 && stack.peek() instanceof Map) {
-                      tokenMap = (Map<String,Object>) stack.pop();
-                      // force token type
-                      tokenMap.put(TOKENGEN.KEY_TYPE, TokenType.WRITE.toString());
-                      record.setToken((WriteToken) TOKENGEN.tokenFromMap(tokenMap, "Datalog", Long.MAX_VALUE));
-                    }
-                    updateIds = true;
+                //
+                // Update the class and label ids if metadata were possibly changed.
+                // This is so the feeders later have a valid set of ids to use for sharding.
+                //
+
+                if (updateIds) {
+                  long cid = GTSHelper.classId(CLASS_KEYS, record.getMetadata().getName());
+                  long lid = GTSHelper.labelsId(LABELS_KEYS, record.getMetadata().getLabels());
+
+                  record.getMetadata().setClassId(cid);
+                  record.getMetadata().setLabelsId(lid);
+
+                  if (record.isSetForward()) {
+                    cid = GTSHelper.classId(CLASS_KEYS, record.getForward().getMetadata().getName());
+                    lid = GTSHelper.labelsId(LABELS_KEYS, record.getForward().getMetadata().getLabels());
+
+                    record.getForward().getMetadata().setClassId(cid);
+                    record.getForward().getMetadata().setLabelsId(lid);
                   }
                 }
               }
-
-              if (skip) {
-                stack.show();
-                stack.clear();
-                Sensision.update(SensisionConstants.SENSISION_CLASS_DATALOG_SKIPPED, labels, 1);
-                continue;
-              }
-
-              //
-              // Update the class and label ids if metadata were possibly changed.
-              // This is so the feeders later have a valid set of ids to use for sharding.
-              //
-
-              if (updateIds) {
-                long cid = GTSHelper.classId(CLASS_KEYS, record.getMetadata().getName());
-                long lid = GTSHelper.labelsId(LABELS_KEYS, record.getMetadata().getLabels());
-
-                record.getMetadata().setClassId(cid);
-                record.getMetadata().setLabelsId(lid);
-
-                if (record.isSetForward()) {
-                  cid = GTSHelper.classId(CLASS_KEYS, record.getForward().getMetadata().getName());
-                  lid = GTSHelper.labelsId(LABELS_KEYS, record.getForward().getMetadata().getLabels());
-
-                  record.getForward().getMetadata().setClassId(cid);
-                  record.getForward().getMetadata().setLabelsId(lid);
-                }
-              }
+              stack.show();
+              stack.clear();
             }
-            stack.show();
-            stack.clear();
           }
 
           //

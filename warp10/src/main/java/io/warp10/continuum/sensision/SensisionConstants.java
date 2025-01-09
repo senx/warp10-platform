@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2023  SenX S.A.S.
+//   Copyright 2018-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -29,6 +29,16 @@ public class SensisionConstants {
   //
   // Classes
   //
+
+  /**
+   * Number of FoundationDB sets committed in 'Egress'
+   */
+  public static final String SENSISION_CLASS_CONTINUUM_EGRESS_FDB_SETS_COMMITTED = "warp.egress.fdb.sets.committed";
+
+  /**
+   * Number of FoundationDB clears committed in 'Egress'
+   */
+  public static final String SENSISION_CLASS_CONTINUUM_EGRESS_FDB_CLEARS_COMMITTED = "warp.egress.fdb.clears.committed";
 
   /**
    * Number of times we have reached the maximum number of version attempts
