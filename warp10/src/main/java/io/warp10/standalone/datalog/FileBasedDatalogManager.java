@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2023  SenX S.A.S.
+//   Copyright 2020-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -86,6 +86,7 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
   public static final String CONFIG_DATALOG_FEEDER_MAXSIZE = "datalog.feeder.maxsize";
   public static final String CONFIG_DATALOG_FEEDER_INFLIGHT = "datalog.feeder.inflight";
   public static final String CONFIG_DATALOG_FEEDER_TIMEOUT = "datalog.feeder.timeout";
+  public static final String CONFIG_DATALOG_FEEDER_KEEPALIVE = "datalog.feeder.keepalive";
   public static final String CONFIG_DATALOG_FEEDER_DIR = "datalog.feeder.dir";
   public static final String CONFIG_DATALOG_FEEDER_ECC_PRIVATE = "datalog.feeder.ecc.private";
   public static final String CONFIG_DATALOG_FEEDER_ENCRYPT = "datalog.feeder.encrypt";
@@ -94,6 +95,7 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
   public static final String CONFIG_DATALOG_CONSUMER_ECC_PRIVATE = "datalog.consumer.ecc.private";
   public static final String CONFIG_DATALOG_CONSUMER_FEEDER_ECC_PUBLIC = "datalog.consumer.feeder.ecc.public";
   public static final String CONFIG_DATALOG_CONSUMER_ID = "datalog.consumer.id";
+  public static final String CONFIG_DATALOG_CONSUMER_KEEPALIVE = "datalog.consumer.keepalive";
   public static final String CONFIG_DATALOG_CONSUMER_EXCLUDED = "datalog.consumer.excluded";
   public static final String CONFIG_DATALOG_CONSUMER_FEEDER_HOST = "datalog.consumer.feeder.host";
   public static final String CONFIG_DATALOG_CONSUMER_FEEDER_PORT = "datalog.consumer.feeder.port";
