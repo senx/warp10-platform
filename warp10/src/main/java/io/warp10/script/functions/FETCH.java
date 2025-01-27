@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2024  SenX S.A.S.
+//   Copyright 2018-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -526,7 +526,17 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       } else {
         clsSels.add(params.get(PARAM_CLASS).toString());
 
-        Map<String, String> labelSelectors = new LinkedHashMap<>((Map<String, String>) params.get(PARAM_LABELS));
+        Object o = params.get(FETCH.PARAM_LABELS);
+        if (!(o instanceof Map)) {
+          throw new WarpScriptException("Label selectors must be a map.");
+        }
+        for (Entry<Object, Object> entry: ((Map<Object, Object>) o).entrySet()) {
+          if (!(entry.getKey() instanceof String) || !(entry.getValue() instanceof String)) {
+            throw new WarpScriptException(getName() + " keys and values of label selector must be STRING.");
+          }
+        }
+        
+        Map<String, String> labelSelectors = new LinkedHashMap<>((Map<String, String>) o);
         labelSelectors.remove(Constants.PRODUCER_LABEL);
         labelSelectors.remove(Constants.OWNER_LABEL);
         labelSelectors.remove(Constants.APPLICATION_LABEL);
