@@ -66,6 +66,10 @@ public class ECPRIVATE extends NamedWarpScriptFunction implements WarpScriptStac
       throw new WarpScriptException(getName() + " curve name not in " + ECGEN.getCurves() + ".");
     }
 
+    if (null == params.get(Constants.KEY_D)) {
+      throw new WarpScriptException(getName() + " missing private key under '" + Constants.KEY_D + "'.");
+    }
+
     final BigInteger d = TOBD.toBigInteger(getName(), params.get(Constants.KEY_D));
 
     ECPrivateKey privateKey = new ECPrivateKey() {

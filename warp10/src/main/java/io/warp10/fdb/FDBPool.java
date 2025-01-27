@@ -1,5 +1,5 @@
 //
-//   Copyright 2022-2023  SenX S.A.S.
+//   Copyright 2022-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,7 +16,14 @@
 
 package io.warp10.fdb;
 
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.HashMap;
+import java.util.Map;
+
 import com.apple.foundationdb.Database;
+
+import io.warp10.continuum.sensision.SensisionConstants;
+import io.warp10.sensision.Sensision;
 
 /**
  * This is a pool of FoundationDB databases.
@@ -40,6 +47,7 @@ import com.apple.foundationdb.Database;
 public class FDBPool {
   private final FDBContext context;
   private final Database[] databases;
+  private AtomicLong lastBusynessUpdate = new AtomicLong(0L);
   private int index = 0;
 
   public FDBPool(FDBContext context, int maxsize) {
@@ -58,6 +66,22 @@ public class FDBPool {
     Database db = databases[index++];
     index = index % databases.length;
     return db;
+  }
+
+  public void updateDatabasesBusyness() {
+    synchronized (lastBusynessUpdate) {
+      if (System.currentTimeMillis() - lastBusynessUpdate.get() < 1000) {
+        return;
+      }
+      lastBusynessUpdate.set(System.currentTimeMillis());
+    }
+
+    Map<String,String> labels = new HashMap<String, String>();
+
+    for (int i = 0; i < databases.length; i++) {
+        labels.put(SensisionConstants.SENSISION_LABEL_THREAD, Integer.toString(i));
+        Sensision.set(SensisionConstants.SENSISION_CLASS_FDB_CLIENT_BUSYNESS, labels, databases[i].getMainThreadBusyness());
+    }
   }
 
   public FDBContext getContext() {
