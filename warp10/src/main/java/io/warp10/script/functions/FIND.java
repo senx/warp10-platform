@@ -243,11 +243,11 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
         classSelector = (String) params.get(FETCH.PARAM_CLASS);
         Object o = params.get(FETCH.PARAM_LABELS);
         if (!(o instanceof Map)) {
-          throw new WarpScriptException("Label selectors must be a map.");
+          throw new WarpScriptException(getName() + "label selector must be a map.");
         }
         for (Entry<Object, Object> entry: ((Map<Object, Object>) o).entrySet()) {
           if (!(entry.getKey() instanceof String) || !(entry.getValue() instanceof String)) {
-            throw new WarpScriptException(getName() + " keys and values of label selector must be STRING.");
+            throw new WarpScriptException(getName() + " keys and values of label selector must be STRINGs.");
           }
         }
         
@@ -315,12 +315,12 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
       Object oLabelsSelector = stack.pop();
 
       if (!(oLabelsSelector instanceof Map)) {
-        throw new WarpScriptException("Label selectors must be a map.");
+        throw new WarpScriptException(getName() + " label selector must be a map.");
       }
 
       for (Entry<Object, Object> entry: ((Map<Object, Object>) oLabelsSelector).entrySet()) {
         if (!(entry.getKey() instanceof String) || !(entry.getValue() instanceof String)) {
-          throw new WarpScriptException(getName() + " keys and values of label selector must be STRING.");
+          throw new WarpScriptException(getName() + " keys and values of label selector must be STRINGs.");
         }
       }
       
