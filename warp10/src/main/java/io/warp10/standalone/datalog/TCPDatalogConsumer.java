@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2023  SenX S.A.S.
+//   Copyright 2020-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -161,7 +161,7 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
 
     if (null != shardSpec) {
       hasShards = true;
-      String[] tokens = feederShardsSpec.split(",");
+      String[] tokens = shardSpec.split(",");
       modulus = new long[tokens.length];
       remainder = new long[tokens.length];
       for (int i = 0; i < tokens.length; i++) {
