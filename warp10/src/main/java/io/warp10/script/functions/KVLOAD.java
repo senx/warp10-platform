@@ -103,7 +103,7 @@ public class KVLOAD extends NamedWarpScriptFunction implements WarpScriptStackFu
         } else if (key instanceof String) {
           byte[] k = ((String) key).getBytes(StandardCharsets.UTF_8);
           if (k.length != ((String) key).length()) {
-            throw new WarpScriptException(getName() + " STRING keys cannot contain non ISO-8859-1 characters.");
+            throw new WarpScriptException(getName() + " STRING keys cannot contain non ASCII characters.");
           }
           bkeys.add(k);
         } else {
@@ -132,7 +132,7 @@ public class KVLOAD extends NamedWarpScriptFunction implements WarpScriptStackFu
       } else if (params.get(KEY_START) instanceof String) {
         start = ((String) params.get(KEY_START)).getBytes(StandardCharsets.UTF_8);
         if (start.length != ((String) params.get(KEY_START)).length()) {
-          throw new WarpScriptException(getName() + " STRING keys cannot contain non ISO-8859-1 characters.");
+          throw new WarpScriptException(getName() + " STRING keys cannot contain non ASCII characters.");
         }
       } else {
         throw new WarpScriptException(getName() + " expects keys to be STRING or BYTES.");
@@ -143,7 +143,7 @@ public class KVLOAD extends NamedWarpScriptFunction implements WarpScriptStackFu
       } else if (params.get(KEY_END) instanceof String) {
         end = ((String) params.get(KEY_END)).getBytes(StandardCharsets.UTF_8);
         if (end.length != ((String) params.get(KEY_END)).length()) {
-          throw new WarpScriptException(getName() + " STRING keys cannot contain non ISO-8859-1 characters.");
+          throw new WarpScriptException(getName() + " STRING keys cannot contain non ASCII characters.");
         }
       } else {
         throw new WarpScriptException(getName() + " expects keys to be STRING or BYTES.");

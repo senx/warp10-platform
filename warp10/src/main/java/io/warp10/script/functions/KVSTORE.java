@@ -115,7 +115,7 @@ public class KVSTORE extends NamedWarpScriptFunction implements WarpScriptStackF
         key = ((String) entry.getKey()).getBytes(StandardCharsets.UTF_8);
         // Check that STRING keys do not contain Unicode characters
         if (key.length != ((String) entry.getKey()).length()) {
-          throw new WarpScriptException(getName() + " STRING keys cannot contain non ISO-8859-1 characters.");
+          throw new WarpScriptException(getName() + " STRING keys cannot contain non ASCII characters.");
         }
       } else {
         throw new WarpScriptException(getName() + " keys are expected to be BYTES or STRING.");
