@@ -26,11 +26,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.bouncycastle.util.encoders.Base64;
+import org.bouncycastle.util.encoders.Hex;
+
 import io.warp10.BytesUtils;
 import io.warp10.continuum.Tokens;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.continuum.store.StoreClient.KVIterator;
 import io.warp10.continuum.store.thrift.data.KVFetchRequest;
+import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
@@ -45,6 +49,20 @@ public class KVLOAD extends NamedWarpScriptFunction implements WarpScriptStackFu
   public static final String KEY_KEYS = "keys";
   public static final String KEY_TOKEN = "token";
   public static final String KEY_MACRO = "macro";
+  public static final String KEY_KFORMAT = "kformat";
+  public static final String KEY_VFORMAT = "vformat";
+
+  private static final FORMAT DEFAULT_KFORMAT = FORMAT.OPB64;
+  private static final FORMAT DEFAULT_VFORMAT = FORMAT.RAW;
+
+  private static enum FORMAT {
+    RAW,
+    UTF8,
+    ISO88591,
+    OPB64,
+    HEX,
+    B64,
+  };
 
   public KVLOAD(String name) {
     super(name);
@@ -72,13 +90,8 @@ public class KVLOAD extends NamedWarpScriptFunction implements WarpScriptStackFu
     ReadToken rtoken = Tokens.extractReadToken((String) params.get(KEY_TOKEN));
 
     KVFetchRequest kvfr = new KVFetchRequest();
+
     kvfr.setToken(rtoken);
-
-    Macro macro = null;
-
-    if (params.get(KEY_MACRO) instanceof Macro) {
-      macro = (Macro) params.get(KEY_MACRO);
-    }
 
     if (params.get(KEY_KEYS) instanceof List) {
       List<Object> keys = (List<Object>) params.get(KEY_KEYS);
@@ -142,7 +155,16 @@ public class KVLOAD extends NamedWarpScriptFunction implements WarpScriptStackFu
 
     StoreClient store = stack.getStoreClient();
 
-    Map<byte[],byte[]> kv = new LinkedHashMap<byte[],byte[]>();
+    Map<Object,Object> kv = new LinkedHashMap<Object,Object>();
+
+    FORMAT kformat = FORMAT.valueOf(String.valueOf(params.getOrDefault(KEY_KFORMAT, DEFAULT_KFORMAT.name())).replaceAll("[^a-zA-z0-9]", "").toUpperCase());
+    FORMAT vformat = FORMAT.valueOf(String.valueOf(params.getOrDefault(KEY_VFORMAT, DEFAULT_VFORMAT.name())).replaceAll("[^a-zA-z0-9]", "").toUpperCase());
+
+    Macro macro = null;
+
+    if (params.get(KEY_MACRO) instanceof Macro) {
+      macro = (Macro) params.get(KEY_MACRO);
+    }
 
     try (KVIterator<Entry<byte[],byte[]>> iter = store.kvfetch(kvfr)) {
       while(iter.hasNext()) {
@@ -152,12 +174,58 @@ public class KVLOAD extends NamedWarpScriptFunction implements WarpScriptStackFu
           stack.push(entry.getKey());
           stack.push(entry.getValue());
           stack.exec(macro);
-          if (Boolean.TRUE.equals(stack.pop())) {
-            kv.put(entry.getKey(), entry.getValue());
+          if (!Boolean.TRUE.equals(stack.pop())) {
+            continue;
           }
-        } else {
-          kv.put(entry.getKey(), entry.getValue());
         }
+
+        Object key = entry.getKey();
+
+        switch(kformat) {
+          case RAW:
+            break;
+          case HEX:
+            key = Hex.toHexString(entry.getKey());
+            break;
+          case ISO88591:
+            key = new String(entry.getKey(), StandardCharsets.ISO_8859_1);
+            break;
+          case UTF8:
+            key = new String(entry.getKey(), StandardCharsets.UTF_8);
+            break;
+          case B64:
+            key = Base64.toBase64String(entry.getKey());
+            break;
+          case OPB64:
+            key = OrderPreservingBase64.encodeToString(entry.getKey());
+            break;
+          default:
+            key = OrderPreservingBase64.encodeToString(entry.getKey());
+        }
+
+        Object value = entry.getValue();
+
+        switch(vformat) {
+          case RAW:
+            break;
+          case HEX:
+            value = Hex.toHexString(entry.getValue());
+            break;
+          case ISO88591:
+            value = new String(entry.getValue(), StandardCharsets.ISO_8859_1);
+            break;
+          case UTF8:
+            value = new String(entry.getValue(), StandardCharsets.UTF_8);
+            break;
+          case B64:
+            value = Base64.toBase64String(entry.getValue());
+            break;
+          case OPB64:
+            value = OrderPreservingBase64.encodeToString(entry.getValue());
+            break;
+        }
+
+        kv.put(key, value);
       }
     } catch (Exception e) {
       throw new WarpScriptException(getName() + " encountered an error while reading Key/Value pairs.", e);
