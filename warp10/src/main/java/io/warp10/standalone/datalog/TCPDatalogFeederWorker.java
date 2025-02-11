@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2023  SenX S.A.S.
+//   Copyright 2020-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -63,7 +63,6 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.binary.ADD;
 import io.warp10.script.functions.ECDH;
 import io.warp10.script.functions.ECPRIVATE;
-import io.warp10.script.functions.ECPUBLIC;
 import io.warp10.script.functions.ECSIGN;
 import io.warp10.script.functions.HASH;
 import io.warp10.script.functions.REVERSE;
@@ -75,10 +74,12 @@ public class TCPDatalogFeederWorker extends Thread {
   private static final String DEFAULT_MAXSIZE = Integer.toString(1024 * 1024);
   private static final String DEFAULT_INFLIGT = Long.toString(1000000L);
   private static final String DEFAULT_TIMEOUT = Integer.toString(300000);
+  public static final String DEFAULT_KEEPALIVE = Long.toString(30000);
 
   static final int MAX_BLOB_SIZE;
   private final long MAX_INFLIGHT_SIZE;
   private final int SOCKET_TIMEOUT;
+  private final long KEEPALIVE_DELAY;
 
   static {
     MAX_BLOB_SIZE = Integer.parseInt(WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_FEEDER_MAXSIZE, DEFAULT_MAXSIZE));
@@ -107,7 +108,7 @@ public class TCPDatalogFeederWorker extends Thread {
 
     this.MAX_INFLIGHT_SIZE = Long.parseLong(WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_FEEDER_INFLIGHT, DEFAULT_INFLIGT));
     this.SOCKET_TIMEOUT = Integer.parseInt(WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_FEEDER_TIMEOUT, DEFAULT_TIMEOUT));
-
+    this.KEEPALIVE_DELAY = Long.parseLong(WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_FEEDER_KEEPALIVE, DEFAULT_KEEPALIVE));
     this.setName("[Datalog Feeder Worker]");
     this.setDaemon(true);
     this.start();
@@ -407,9 +408,28 @@ public class TCPDatalogFeederWorker extends Thread {
       List<String> inflight = new ArrayList<String>();
       long size = 0;
       boolean limit = false;
+      long lastMessage = System.currentTimeMillis();
 
       while(true) {
         try {
+          // If no message was sent recently, send a keep alive message
+          if (System.currentTimeMillis() - lastMessage > KEEPALIVE_DELAY) {
+            msg.clear();
+            msg.setType(DatalogMessageType.KEEPALIVE);
+            bytes = DatalogHelper.serialize(msg);
+            if (encrypt) {
+              bytes = CryptoHelper.wrapBlob(aesKey, bytes);
+            }
+
+            DatalogHelper.writeLong(out, bytes.length, 4);
+            out.write(bytes);
+            out.flush();
+
+            lastMessage = System.currentTimeMillis();
+            typeLabels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogMessageType.KEEPALIVE.name());
+            Sensision.update(SensisionConstants.SENSISION_CLASS_DATALOG_FEEDER_MESSAGES_OUT, typeLabels, 1);
+          }
+
           if (null == currentFile) {
             currentFile = this.manager.getNextFile(previousFile);
             newfile = true;
@@ -547,7 +567,7 @@ public class TCPDatalogFeederWorker extends Thread {
             if (checkts) {
               byte[] k = key.getBytes();
               long timestamp2 = DatalogHelper.bytesToLong(k, 0, 8);
-              // End the loop is timestamp is before mints
+              // End the loop if timestamp is before mints
               if (timestamp2 < mints) {
                 continue;
               }
@@ -613,6 +633,8 @@ public class TCPDatalogFeederWorker extends Thread {
             out.write(bytes);
             out.flush();
 
+            lastMessage = System.currentTimeMillis();
+
             //System.out.println("SENDING " + msg.getCommitref());
             if (size >= MAX_INFLIGHT_SIZE) {
               limit = true;
@@ -626,18 +648,26 @@ public class TCPDatalogFeederWorker extends Thread {
 
           //
           // If we voluntarily exited the loop due to the inflight limit being reached, wait for a
-          // message from our peer, either SEEK/TSEEK or COMMIT
+          // message from our peer, either SEEK/TSEEK/COMMIT or KEEPALIVE
           // Also wait for such a message if there are inflight messages and there is input to read on the socket
           //
 
           if (limit || (inflight.size() > 0 && in.available() > 0)) {
             //System.out.println("PAUSED AFTER " + size + " BYTES.");
             bytes = DatalogHelper.readBlob(in, 0);
+
             if (encrypt) {
               bytes = CryptoHelper.unwrapBlob(aesKey, bytes);
             }
+
             msg.clear();
             DatalogHelper.deserialize(bytes, msg);
+
+            if (DatalogMessageType.KEEPALIVE == msg.getType()) {
+              typeLabels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogMessageType.KEEPALIVE.name());
+              Sensision.update(SensisionConstants.SENSISION_CLASS_DATALOG_FEEDER_MESSAGES_IN, typeLabels, 1);
+              continue;
+            }
 
             if (DatalogMessageType.COMMIT == msg.getType()) {
               typeLabels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogMessageType.COMMIT.name());

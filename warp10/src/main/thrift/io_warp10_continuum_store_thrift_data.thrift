@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2024  SenX S.A.S.
+//   Copyright 2018-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -518,6 +518,7 @@ enum DatalogMessageType {
   TSEEK = 4,
   COMMIT = 5,
   DATA = 6,
+  KEEPALIVE = 7,
 }
 
 struct DatalogMessage {
