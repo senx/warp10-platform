@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2022  SenX S.A.S.
+//   Copyright 2020-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@ public class TCPDatalogFeeder extends Thread {
   private static final Logger LOG = LoggerFactory.getLogger(TCPDatalogFeeder.class);
 
   public static final String DEFAULT_HOST = "127.0.0.1";
-  public static final String DEFAULT_PORT = "3564"; // speeds 'DLNG', DataLog Next Generation
+  public static final String DEFAULT_PORT = "3564"; // spells 'DLNG', DataLog Next Generation
   private static final String DEFAULT_MAXCLIENTS = "2";
   private static final String DEFAULT_BACKLOG = "2";
 

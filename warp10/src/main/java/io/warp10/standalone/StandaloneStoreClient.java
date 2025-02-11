@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2023  SenX S.A.S.
+//   Copyright 2018-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ package io.warp10.standalone;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -29,13 +30,14 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.bouncycastle.util.Arrays;
 import org.iq80.leveldb.DBIterator;
 import org.iq80.leveldb.ReadOptions;
 import org.iq80.leveldb.WriteBatch;
 import org.iq80.leveldb.WriteOptions;
 
-import io.warp10.WarpConfig;
 import io.warp10.BytesUtils;
+import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.Tokens;
 import io.warp10.continuum.gts.GTSDecoder;
@@ -47,11 +49,15 @@ import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.store.GTSDecoderIterator;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.continuum.store.thrift.data.FetchRequest;
+import io.warp10.continuum.store.thrift.data.KVFetchRequest;
+import io.warp10.continuum.store.thrift.data.KVStoreRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.KeyStore;
+import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.leveldb.WarpDB;
 import io.warp10.quasar.token.thrift.data.ReadToken;
 import io.warp10.quasar.token.thrift.data.WriteToken;
+import io.warp10.script.functions.KVSTORE;
 import io.warp10.sensision.Sensision;
 
 public class StandaloneStoreClient implements StoreClient {
@@ -81,7 +87,7 @@ public class StandaloneStoreClient implements StoreClient {
   private final boolean syncwrites;
   private final double syncrate;
   private final int blockcacheThreshold;
-  
+
   protected StandaloneStoreClient() {
     MAX_ENCODER_SIZE = 0;
     MAX_DELETE_BATCHSIZE = 0;
@@ -665,7 +671,7 @@ public class StandaloneStoreClient implements StoreClient {
       }
     }
   }
-  
+
   /**
    * Persists a GTSEncoder instance.
    * CAUTION, this method assumes that classId and labelsId HAVE BEEN computed for
@@ -820,5 +826,224 @@ public class StandaloneStoreClient implements StoreClient {
 
   public void addPlasmaHandler(StandalonePlasmaHandlerInterface plasmaHandler) {
     this.plasmaHandlers.add(plasmaHandler);
+  }
+
+  @Override
+  public void kvstore(KVStoreRequest request) throws IOException {
+
+    if (null == request) {
+      return;
+    }
+
+    WriteToken token = request.getToken();
+
+    //
+    // Extract kvprefix from token attributes
+    //
+
+    byte[] kvprefix = KVSTORE.KVPREFIX;
+
+    if (token.getAttributesSize() > 0 && null != token.getAttributes().get(KVSTORE.ATTR_KVPREFIX)) {
+      if (!token.getAttributes().get(KVSTORE.ATTR_KVPREFIX).isEmpty()) {
+        byte[] tkvprefix = OrderPreservingBase64.decode(token.getAttributes().get(KVSTORE.ATTR_KVPREFIX));
+        kvprefix = Arrays.copyOf(KVSTORE.KVPREFIX, KVSTORE.KVPREFIX.length + tkvprefix.length);
+        System.arraycopy(tkvprefix, 0, kvprefix, KVSTORE.KVPREFIX.length, tkvprefix.length);
+      }
+    } else {
+      throw new IOException("Token is missing attribute '" + KVSTORE.ATTR_KVPREFIX + "'.");
+    }
+
+    WriteBatch batch = db.createWriteBatch();
+
+    boolean written = false;
+
+    try {
+      // Iterate over the keys, missing or empty values will remove the entries
+      for (int i = 0; i < request.getKeysSize(); i++) {
+        ByteBuffer kbb = request.getKeys().get(i);
+        kbb.mark();
+        byte[] key = Arrays.copyOf(kvprefix, kvprefix.length + kbb.remaining());
+        kbb.get(key, kvprefix.length, kbb.remaining());
+        kbb.reset();
+        if (i < request.getValuesSize()) {
+          ByteBuffer vbb = request.getValues().get(i);
+          vbb.mark();
+          // If the associated value is empty, delete the entry under 'key'
+          if (0 == vbb.remaining()) {
+            batch.delete(key);
+          } else {
+            byte[] value = new byte[vbb.remaining()];
+            vbb.get(value);
+            batch.put(key, value);
+          }
+          vbb.reset();
+        } else {
+          batch.delete(key);
+        }
+      }
+
+      WriteOptions options = new WriteOptions().sync(1.0 == syncrate);
+
+      if (syncwrites && !options.sync()) {
+        options = new WriteOptions().sync(Math.random() < syncrate);
+      }
+
+      this.db.write(batch, options);
+      written = true;
+    } finally {
+      if (written) {
+        batch.close();
+      }
+    }
+  }
+
+  @Override
+  public KVIterator<Entry<byte[], byte[]>> kvfetch(KVFetchRequest request) throws IOException {
+
+    ReadToken token = request.getToken();
+
+    //
+    // Extract kvprefix from token attributes
+    //
+
+    byte[] kvprefix = KVSTORE.KVPREFIX;
+
+    if (token.getAttributesSize() > 0 && null != token.getAttributes().get(KVSTORE.ATTR_KVPREFIX)) {
+      if (!token.getAttributes().get(KVSTORE.ATTR_KVPREFIX).isEmpty()) {
+        byte[] tkvprefix = OrderPreservingBase64.decode(token.getAttributes().get(KVSTORE.ATTR_KVPREFIX));
+        kvprefix = Arrays.copyOf(KVSTORE.KVPREFIX, KVSTORE.KVPREFIX.length + tkvprefix.length);
+        System.arraycopy(tkvprefix, 0, kvprefix, KVSTORE.KVPREFIX.length, tkvprefix.length);
+      }
+    } else {
+      throw new IOException("Token is missing attribute '" + KVSTORE.ATTR_KVPREFIX + "'.");
+    }
+
+    final byte[] fkvprefix = kvprefix;
+
+    ReadOptions options = new ReadOptions().fillCache(false);
+
+    if (request.isSetStart() && request.isSetStop()) {
+      byte[] start = Arrays.copyOf(kvprefix, kvprefix.length + request.getStart().length);
+      System.arraycopy(request.getStart(), 0, start, kvprefix.length, request.getStart().length);
+      byte[] stop = Arrays.copyOf(kvprefix, kvprefix.length + request.getStop().length);
+      System.arraycopy(request.getStop(), 0, stop, kvprefix.length, request.getStop().length);
+
+      final DBIterator iterator = db.iterator(options);
+
+      iterator.seek(start);
+      final byte[] end = stop;
+
+      return new KVIterator<Entry<byte[],byte[]>>() {
+
+        Entry<byte[],byte[]> element = null;
+        boolean done = false;
+
+        @Override
+        public boolean hasNext() {
+          if (null != element) {
+            return true;
+          }
+          if (done) {
+            return false;
+          }
+          if (iterator.hasNext()) {
+            element = iterator.next();
+
+            if (BytesUtils.compareTo(element.getKey(),end) >= 0) {
+              element = null;
+              done = true;
+            } else {
+              // Strip prefixes from key
+              element = new AbstractMap.SimpleEntry(Arrays.copyOfRange(element.getKey(), fkvprefix.length, element.getKey().length), element.getValue());
+            }
+          }
+          return null != element;
+        }
+
+        @Override
+        public Entry<byte[], byte[]> next() {
+          if (done || null == element) {
+            throw new IllegalStateException();
+          }
+          Entry<byte[],byte[]> elt = element;
+          element = null;
+          return elt;
+        }
+
+        @Override
+        public void close() throws Exception {
+          done = true;
+          iterator.close();
+        }
+      };
+
+    } else if (request.isSetKeys()) {
+      // Fetch explicit keys
+      return new KVIterator<Map.Entry<byte[],byte[]>>() {
+
+        Entry<byte[],byte[]> element = null;
+        boolean done = false;
+        int idx = 0;
+
+        @Override
+        public boolean hasNext() {
+          if (done) {
+            return false;
+          }
+          if (null != element) {
+            return true;
+          }
+          if (idx >= request.getKeysSize()) {
+            done = true;
+            return false;
+          }
+
+          while (idx < request.getKeysSize()) {
+            ByteBuffer bb = request.getKeys().get(idx++);
+            byte[] k = Arrays.copyOf(fkvprefix, fkvprefix.length + bb.remaining());
+            bb.get(k, fkvprefix.length, bb.remaining());
+            byte[] value = db.get(k);
+            if (null != value) {
+              // Strip prefix
+              element = new AbstractMap.SimpleEntry<byte[],byte[]>(Arrays.copyOfRange(k, fkvprefix.length, k.length),value);
+              break;
+            }
+          }
+
+          if (null == element) {
+            done = true;
+          }
+          return null != element;
+        }
+
+        @Override
+        public void close() throws Exception {
+          done = true;
+        }
+
+        @Override
+        public Entry<byte[], byte[]> next() {
+          if (done || null == element) {
+            throw new IllegalStateException();
+          }
+          Entry<byte[],byte[]> elt = element;
+          element = null;
+          return elt;
+        }
+      };
+    } else {
+      return new KVIterator<Map.Entry<byte[],byte[]>>() {
+        @Override
+        public void close() throws Exception {}
+        @Override
+        public boolean hasNext() {
+          return false;
+        }
+        @Override
+        public Entry<byte[], byte[]> next() {
+          throw new IllegalStateException();
+        }
+      };
+    }
   }
 }

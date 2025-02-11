@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2023  SenX S.A.S.
+//   Copyright 2018-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -355,8 +355,7 @@ public class WarpDB extends Thread implements DB {
 
   @Override
   public byte[] get(byte[] key) throws DBException {
-    throw new RuntimeException("Unsupported operation get.");
-    //return this.db.get(key);
+    return this.db.get(key);
   }
 
   @Override

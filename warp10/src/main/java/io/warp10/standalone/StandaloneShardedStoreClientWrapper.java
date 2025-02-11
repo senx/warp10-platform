@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2023  SenX S.A.S.
+//   Copyright 2019-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@
 package io.warp10.standalone;
 
 import java.io.IOException;
+import java.util.Iterator;
+import java.util.Map.Entry;
 
 import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
@@ -25,6 +27,8 @@ import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.store.GTSDecoderIterator;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.continuum.store.thrift.data.FetchRequest;
+import io.warp10.continuum.store.thrift.data.KVFetchRequest;
+import io.warp10.continuum.store.thrift.data.KVStoreRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.SipHashInline;
@@ -130,5 +134,15 @@ public class StandaloneShardedStoreClientWrapper implements StoreClient {
     if (!skip) {
       this.client.store(encoder);
     }
+  }
+
+  @Override
+  public void kvstore(KVStoreRequest request) throws IOException {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public KVIterator<Entry<byte[], byte[]>> kvfetch(KVFetchRequest request) throws IOException {
+    throw new UnsupportedOperationException();
   }
 }

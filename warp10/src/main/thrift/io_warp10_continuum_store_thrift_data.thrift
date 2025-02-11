@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2024  SenX S.A.S.
+//   Copyright 2018-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -448,6 +448,7 @@ enum DatalogRecordType {
   DELETE = 2,
   REGISTER = 3,
   UNREGISTER = 4,
+  KVSTORE = 5,
 }
 
 struct DatalogRecord {
@@ -506,9 +507,14 @@ struct DatalogRecord {
   10: optional GTSWrapper forward,
   
   /**
-   * Write token associated with the request. This is needed when using FDB with tenant prefixes.
+   * Write token associated with the request. This is needed when using FDB with tenant prefixes of KVPrefixes
    */
   11: optional io_warp10_quasar_token_thrift_data.WriteToken token,
+  
+  /**
+   * KVStoreRequest instance when message is containing a KVStore mutation
+   */
+  12: optional KVStoreRequest kvstorerequest,
 }
 
 enum DatalogMessageType {
@@ -563,4 +569,38 @@ struct DatalogMessage {
    * Reference to use in the commit message
    */
   52: optional string commitref,
+}
+
+//
+// KVStore related structures
+//
+
+struct KVStoreRequest {
+  1: list<binary> keys,
+  2: list<binary> values,
+    /**
+   * Write token associated with the request. This is needed to add/strip prefixes such as the FDB tenant prefix.
+   */
+  3: io_warp10_quasar_token_thrift_data.WriteToken token,  
+}
+
+struct KVFetchRequest {
+  /**
+   * Start key (inclusive)
+   */
+  1: optional binary start,
+  /**
+   * End key (exclusive)
+   */
+  2: optional binary stop,
+  
+  /**
+   * Explicit list of keys
+   */
+  3: optional list<binary> keys,
+  
+      /**
+   * Read token associated with the request. This is needed to add/strip prefixes.
+   */
+  4: io_warp10_quasar_token_thrift_data.ReadToken token,  
 }

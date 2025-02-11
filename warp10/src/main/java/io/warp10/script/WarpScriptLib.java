@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2024  SenX S.A.S.
+//   Copyright 2019-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -360,6 +360,8 @@ import io.warp10.script.functions.JSONSTRICT;
 import io.warp10.script.functions.JSONTO;
 import io.warp10.script.functions.KEYLIST;
 import io.warp10.script.functions.KURTOSIS;
+import io.warp10.script.functions.KVLOAD;
+import io.warp10.script.functions.KVSTORE;
 import io.warp10.script.functions.LABELS;
 import io.warp10.script.functions.LASTACTIVITY;
 import io.warp10.script.functions.LASTBUCKET;
@@ -1106,8 +1108,8 @@ public class WarpScriptLib {
   public static final String BDTESTBIT = "BDTESTBIT";
   public static final String BDXOR = "BDXOR";
 
-
-
+  public static final String KVLOAD = "KVLOAD";
+  public static final String KVSTORE = "KVSTORE";
 
   public static final String RSAPUBLIC = "RSAPUBLIC";
   public static final String RSAPRIVATE = "RSAPRIVATE";
@@ -2954,6 +2956,9 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new BDRAND(SBDRAND, true));
     addNamedWarpScriptFunction(new BDPROBABLEPRIME(BDPROBABLEPRIME, false));
     addNamedWarpScriptFunction(new BDPROBABLEPRIME(SBDPROBABLEPRIME, true));
+
+    addNamedWarpScriptFunction(new KVSTORE(KVSTORE));
+    addNamedWarpScriptFunction(new KVLOAD(KVLOAD));
 
     //
     // Linear Algebra

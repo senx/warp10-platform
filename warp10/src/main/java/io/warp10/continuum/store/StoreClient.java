@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -17,14 +17,21 @@
 package io.warp10.continuum.store;
 
 import java.io.IOException;
+import java.util.Iterator;
+import java.util.Map.Entry;
 
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.store.thrift.data.FetchRequest;
+import io.warp10.continuum.store.thrift.data.KVFetchRequest;
+import io.warp10.continuum.store.thrift.data.KVStoreRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.standalone.StandalonePlasmaHandlerInterface;
 
 public interface StoreClient {
+
+  public interface KVIterator<T> extends Iterator<T>, AutoCloseable {}
+
   public void store(GTSEncoder encoder) throws IOException;
   public long delete(WriteToken token, Metadata metadata, long start, long end) throws IOException;
   /**
@@ -43,4 +50,7 @@ public interface StoreClient {
    */
   public GTSDecoderIterator fetch(FetchRequest req) throws IOException;
   public void addPlasmaHandler(StandalonePlasmaHandlerInterface handler);
+
+  public void kvstore(KVStoreRequest request) throws IOException;
+  public KVIterator<Entry<byte[],byte[]>> kvfetch(KVFetchRequest request) throws IOException;
 }

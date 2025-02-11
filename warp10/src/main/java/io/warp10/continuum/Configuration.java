@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2024  SenX S.A.S.
+//   Copyright 2018-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -229,6 +229,16 @@ public class Configuration {
   public static final String WARPSCRIPT_MAX_SYMBOLS_HARD = "warpscript.maxsymbols.hard";
   public static final String WARPSCRIPT_MAX_PIXELS_HARD = "warpscript.maxpixels.hard";
   public static final String WARPSCRIPT_MAX_JSON_HARD = "warpscript.maxjson.hard";
+
+  /**
+   * Default maximum key size for KV stored via KVSTORE
+   */
+  public static final String WARP_KVSTORE_MAXK = "warp.kvstore.maxk";
+
+  /**
+   * Default maximum value size for KV stored via KVSTORE
+   */
+  public static final String WARP_KVSTORE_MAXV = "warp.kvstore.maxv";
 
   /**
    * When set to true, allow common comment block style. When false, keep the old strict comment block style within WarpScript
@@ -1761,6 +1771,11 @@ public class Configuration {
   public static final String IN_MEMORY_EPHEMERAL = "in.memory.ephemeral";
 
   /**
+   * Default maximum value size for all stored KV
+   */
+  public static final String IN_MEMORY_MAXKVSIZE = "in.memory.maxkvsize";
+
+  /**
    * Number of chunks per GTS to handle in memory (defaults to 3)
    */
   public static final String IN_MEMORY_CHUNK_COUNT = "in.memory.chunk.count";
@@ -1813,6 +1828,11 @@ public class Configuration {
    * FoundationDB tenant prefix to use for Egress data
    */
   public static final String EGRESS_FDB_TENANT_PREFIX = "egress.fdb.tenant.prefix";
+
+  /**
+   * Maximum number of retries for FoundationDB transactions
+   */
+  public static final String EGRESS_FDB_RETRYLIMIT = "egress.fdb.retrylimit";
 
   /**
    * Size of pooled FoundationDB databases instances
