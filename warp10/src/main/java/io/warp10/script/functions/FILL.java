@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2024  SenX S.A.S.
+//   Copyright 2018-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -69,7 +69,7 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
   public FILL(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     if (stack.peek() instanceof WarpScriptFillerFunction || stack.peek() instanceof WarpScriptSingleValueFillerFunction || stack.peek() instanceof Macro) {
@@ -178,13 +178,44 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
       }
 
       if (verify) {
-        List<Long> deduplicatedTicks = new ArrayList<Long>();
-        for (Long l: (List<Long>) ticks) {
-          if (!(deduplicatedTicks.contains(l))) {
-            deduplicatedTicks.add(l);
+        long[] deduplicatedTicks = null;
+        int idx2 = 0;
+
+        Long lasttick = null;
+
+        int idx = 0;
+
+        int n = ((List) ticks).size();
+
+        while(idx < n) {
+          long tick = ((List<Long>) ticks).get(idx);
+          if (null == lasttick) {
+            lasttick = tick;
+          } else { // Not the first tick
+            if (tick != lasttick) {
+              lasttick = tick;
+              if (null != deduplicatedTicks) {
+                deduplicatedTicks[idx2++] = tick;
+              }
+            } else { // duplicate tick
+              if (null == deduplicatedTicks) { // First duplicate tick
+                deduplicatedTicks = new long[((List) ticks).size() - 1];
+                idx2 = 0;
+                // Copy the first idx -1 values
+                for (int i = 0; i < idx - 1; i++) {
+                  deduplicatedTicks[idx2++] = ((List<Long>) ticks).get(i);
+                }
+              }
+            }
+          }
+          idx++;
+        }
+        if (null != deduplicatedTicks) {
+          ticks = new ArrayList<Long>(idx2);
+          for (int i = 0; i < idx2; i++) {
+            ((List<Long>)ticks).add(deduplicatedTicks[i]);
           }
         }
-        ticks = deduplicatedTicks;
       }
     }
 
