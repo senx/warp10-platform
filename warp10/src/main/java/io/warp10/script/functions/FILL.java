@@ -188,26 +188,20 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
         int n = ((List) ticks).size();
 
         while(idx < n) {
-          long tick = ((List<Long>) ticks).get(idx);
-          if (null == lasttick) {
-            lasttick = tick;
-          } else { // Not the first tick
-            if (tick != lasttick) {
-              lasttick = tick;
-              if (null != deduplicatedTicks) {
-                deduplicatedTicks[idx2++] = tick;
-              }
-            } else { // duplicate tick
-              if (null == deduplicatedTicks) { // First duplicate tick
-                deduplicatedTicks = new long[((List) ticks).size() - 1];
-                idx2 = 0;
-                // Copy the first idx -1 values
-                for (int i = 0; i < idx - 1; i++) {
-                  deduplicatedTicks[idx2++] = ((List<Long>) ticks).get(i);
-                }
+          Long tick = ((List<Long>) ticks).get(idx);
+          if (tick.equals(lasttick)) { // Duplicate tick
+            if (null == deduplicatedTicks) { // First duplicate tick
+              deduplicatedTicks = new long[((List) ticks).size() - 1];
+              idx2 = 0;
+              // Copy the first idx -1 values
+              for (int i = 0; i < idx - 1; i++) {
+                deduplicatedTicks[idx2++] = ((List<Long>) ticks).get(i);
               }
             }
+          } else if (null != deduplicatedTicks) { // Already encountered a duplicate tick, store tick
+            deduplicatedTicks[idx2++] = tick;
           }
+          lasttick = tick;
           idx++;
         }
         if (null != deduplicatedTicks) {
