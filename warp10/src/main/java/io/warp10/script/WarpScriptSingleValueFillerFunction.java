@@ -1,5 +1,5 @@
 //
-//   Copyright 2024  SenX S.A.S.
+//   Copyright 2024-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -23,10 +23,10 @@ public interface WarpScriptSingleValueFillerFunction {
   public interface Precomputable extends WarpScriptSingleValueFillerFunction {
     public WarpScriptSingleValueFillerFunction compute(GeoTimeSerie gts) throws WarpScriptException;
 
-    default public Object evaluate(long tick) throws WarpScriptException {
+    default public void fillTick(long tick, GeoTimeSerie gts, Object invalidValue) throws WarpScriptException {
       throw new WarpScriptException("Invalid Filler Error: evaluator function has not been precomputed yet.");
     }
   }
 
-  public Object evaluate(long tick) throws WarpScriptException;
+  public void fillTick(long tick, GeoTimeSerie gts, Object invalidValue) throws WarpScriptException;
 }

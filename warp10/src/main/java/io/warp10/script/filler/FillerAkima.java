@@ -1,5 +1,5 @@
 //
-//   Copyright 2024  SenX S.A.S.
+//   Copyright 2024-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -51,11 +51,11 @@ public class FillerAkima extends NamedWarpScriptFunction implements WarpScriptSi
 
     return new WarpScriptSingleValueFillerFunction() {
       @Override
-      public Object evaluate(long tick) throws WarpScriptException {
-        if (null == function || !function.isValidPoint(tick)) {
-          return null;
-        } else {
-          return function.value(tick);
+      public void fillTick(long tick, GeoTimeSerie gts, Object invalidValue) throws WarpScriptException {
+        if (null != function && function.isValidPoint(tick)) {
+          GTSHelper.setValue(gts, tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, function.value(tick), false);
+        } else if (null != invalidValue) {
+          GTSHelper.setValue(gts, tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, invalidValue, false);
         }
       }
     };

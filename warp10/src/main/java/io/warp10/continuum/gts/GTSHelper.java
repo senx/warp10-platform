@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2024  SenX S.A.S.
+//   Copyright 2018-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -5565,11 +5565,8 @@ public class GTSHelper {
       //
       // Call the filler
       //
+      filler.fillTick(otherTick, filled, null);
 
-      Object res = filler.evaluate(otherTick);
-      if (null != res) {
-        GTSHelper.setValue(filled, otherTick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, res, false);
-      }
     }
 
     List<GeoTimeSerie> results = new ArrayList<GeoTimeSerie>();
@@ -5876,13 +5873,7 @@ public class GTSHelper {
         }
 
         // fill the gap
-        Object value = filler.evaluate(tick);
-        if (null != value) {
-          GTSHelper.setValue(filled, tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, value, false);
-
-        } else if (null != invalidValue) {
-          GTSHelper.setValue(filled, tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, invalidValue, false);
-        }
+        filler.fillTick(tick,filled,invalidValue);
       }
 
     } else {
@@ -5900,13 +5891,7 @@ public class GTSHelper {
         } else {
           while (prev != bucket) {
             // fill the gap
-            Object value = filler.evaluate(prev);
-            if (null != value) {
-              GTSHelper.setValue(filled, prev, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, value, false);
-
-            } else if (null != invalidValue) {
-              GTSHelper.setValue(filled, prev, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, invalidValue, false);
-            }
+            filler.fillTick(prev,filled,invalidValue);
 
             // next bucket to be checked
             prev += gts.bucketspan;
@@ -5921,13 +5906,7 @@ public class GTSHelper {
       while (prev <= gts.lastbucket) {
 
         // fill the gap
-        Object value = filler.evaluate(prev);
-        if (null != value) {
-          GTSHelper.setValue(filled, prev, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, value, false);
-
-        } else if (null != invalidValue) {
-          GTSHelper.setValue(filled, prev, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, invalidValue, false);
-        }
+        filler.fillTick(prev,filled,invalidValue);
 
         prev += gts.bucketspan;
       }

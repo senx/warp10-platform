@@ -1,5 +1,5 @@
 //
-//   Copyright 2024  SenX S.A.S.
+//   Copyright 2024-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -101,7 +101,7 @@ public class FillerRlowess extends NamedWarpScriptFunction implements WarpScript
     final PolynomialSplineFunction function;
     if (size > 2) {
       double bandwidthRatio = Math.min(1.0, (double) bandwidth / size + 1e-12);
-      function = (new LoessInterpolator(bandwidthRatio,robustness, accuracy)).interpolate(xval, fval);
+      function = (new LoessInterpolator(bandwidthRatio, robustness, accuracy)).interpolate(xval, fval);
     } else if (size > 1) {
       function = (new LinearInterpolator()).interpolate(xval, fval);
     } else {
@@ -110,13 +110,14 @@ public class FillerRlowess extends NamedWarpScriptFunction implements WarpScript
 
     return new WarpScriptSingleValueFillerFunction() {
       @Override
-      public Object evaluate(long tick) throws WarpScriptException {
-        if (null == function || !function.isValidPoint(tick)) {
-          return null;
-        } else {
-          return function.value(tick);
+      public void fillTick(long tick, GeoTimeSerie gts, Object invalidValue) throws WarpScriptException {
+        if (null != function && function.isValidPoint(tick)) {
+          GTSHelper.setValue(gts, tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, function.value(tick), false);
+        } else if (null != invalidValue) {
+          GTSHelper.setValue(gts, tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, invalidValue, false);
         }
       }
+
     };
   }
 

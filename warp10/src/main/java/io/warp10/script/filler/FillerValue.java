@@ -17,22 +17,29 @@
 package io.warp10.script.filler;
 
 import com.geoxp.GeoXPLib;
+import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptFillerFunction;
 import io.warp10.script.WarpScriptLib;
+import io.warp10.script.WarpScriptSingleValueFillerFunction;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.functions.SNAPSHOT;
 
 import java.util.List;
 
-public class FillerValue extends NamedWarpScriptFunction implements WarpScriptFillerFunction, SNAPSHOT.Snapshotable {
+public class FillerValue extends NamedWarpScriptFunction implements WarpScriptFillerFunction, SNAPSHOT.Snapshotable, WarpScriptSingleValueFillerFunction {
 
   private long latlon;
   private long elev;
   private Object value;
+
+  @Override
+  public void fillTick(long tick, GeoTimeSerie gts, Object invalidValue) throws WarpScriptException {
+    GTSHelper.setValue(gts, tick, latlon, elev, value, false);
+  }
 
   public static class Builder extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 

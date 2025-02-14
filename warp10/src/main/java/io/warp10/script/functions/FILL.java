@@ -55,11 +55,16 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
       public WarpScriptSingleValueFillerFunction compute(GeoTimeSerie gts) throws WarpScriptException {
         return new WarpScriptSingleValueFillerFunction() {
           @Override
-          public Object evaluate(long tick) throws WarpScriptException {
+          public void fillTick(long tick, GeoTimeSerie gtsFilled, Object invalidValue) throws WarpScriptException {
             stack.push(gts);
             stack.push(tick);
             stack.exec(macro);
-            return stack.pop();
+            Object out = stack.pop();
+            if (null != out) {
+              GTSHelper.setValue(gts, tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, out, false);
+            } else if (null != invalidValue) {
+              GTSHelper.setValue(gts, tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, invalidValue, false);
+            }
           }
         };
       }
