@@ -69,26 +69,27 @@ public class FillerPrevious extends NamedWarpScriptFunction implements WarpScrip
   @Override
   public WarpScriptSingleValueFillerFunction compute(GeoTimeSerie gts) throws WarpScriptException {
 
-    // fill always sort input before.
+    GTSHelper.sort(gts);
     final int nTicks = gts.size();
     final GeoTimeSerie original = gts;
-    final long nextTick = GTSHelper.tickAtIndex(original, 0);
     final long firstTick = GTSHelper.tickAtIndex(original, 0);
-    final int[] currentIndex = {0};
 
     return new WarpScriptSingleValueFillerFunction() {
+      private int currentIndex = 0;
+
       @Override
       public void fillTick(long tick, GeoTimeSerie gts, Object invalidValue) throws WarpScriptException {
+
         if (nTicks == 0 || tick <= firstTick) {
           if (null != invalidValue && tick != firstTick) {
             GTSHelper.setValue(gts, tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, invalidValue, false);
           }
           return;
-        }          
-        while (tick > GTSHelper.tickAtIndex(original, currentIndex[0]) && currentIndex[0] < nTicks) {
-          currentIndex[0]++;
         }
-        int previousIndex=currentIndex[0]==0 ? 0 : currentIndex[0]-1;
+        while (tick > GTSHelper.tickAtIndex(original, currentIndex) && currentIndex < nTicks) {
+          currentIndex++;
+        }
+        int previousIndex = currentIndex == 0 ? 0 : currentIndex - 1;
         GTSHelper.setValue(gts, tick, GTSHelper.locationAtIndex(original, previousIndex), GTSHelper.elevationAtIndex(original, previousIndex), GTSHelper.valueAtIndex(original, previousIndex), false);
 
       }
