@@ -34,19 +34,23 @@ public class FillerNewton extends NamedWarpScriptFunction implements WarpScriptS
 
   @Override
   public WarpScriptSingleValueFillerFunction compute(GeoTimeSerie gts) throws WarpScriptException {
-    if (GeoTimeSerie.TYPE.DOUBLE != gts.getType() && GeoTimeSerie.TYPE.LONG != gts.getType()) {
-      throw new WarpScriptException(getName() + " expects a GTS of type DOUBLE or LONG, but instead got a GTS of type " + gts.getType().name());
-    }
-
-    double[] xval = GTSHelper.getTicksAsDouble(gts);
-    double[] fval = GTSHelper.getValuesAsDouble(gts);
-
-    int size = gts.size();
     final PolynomialFunctionNewtonForm function;
-    if (size > 1) {
-      function = (new DividedDifferenceInterpolator()).interpolate(xval, fval);
-    } else {
+    if (gts.size() == 0) {
       function = null;
+    } else {
+      if (GeoTimeSerie.TYPE.DOUBLE != gts.getType() && GeoTimeSerie.TYPE.LONG != gts.getType()) {
+        throw new WarpScriptException(getName() + " expects a GTS of type DOUBLE or LONG, but instead got a GTS of type " + gts.getType().name());
+      }
+
+      double[] xval = GTSHelper.getTicksAsDouble(gts);
+      double[] fval = GTSHelper.getValuesAsDouble(gts);
+
+      int size = gts.size();
+      if (size > 1) {
+        function = (new DividedDifferenceInterpolator()).interpolate(xval, fval);
+      } else {
+        function = null;
+      }
     }
 
     return new WarpScriptSingleValueFillerFunction() {

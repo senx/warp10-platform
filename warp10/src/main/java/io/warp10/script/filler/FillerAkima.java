@@ -32,22 +32,27 @@ public class FillerAkima extends NamedWarpScriptFunction implements WarpScriptSi
 
   @Override
   public WarpScriptSingleValueFillerFunction compute(GeoTimeSerie gts) throws WarpScriptException {
-    if (GeoTimeSerie.TYPE.DOUBLE != gts.getType() && GeoTimeSerie.TYPE.LONG != gts.getType()) {
-      throw new WarpScriptException(getName() + " expects a GTS of type DOUBLE or LONG, but instead got a GTS of type " + gts.getType().name());
-    }
-
-    double[] xval = GTSHelper.getTicksAsDouble(gts);
-    double[] fval = GTSHelper.getValuesAsDouble(gts);
-
-    int size = gts.size();
     final PolynomialSplineFunction function;
-    if (size > 4) {
-      function = (new AkimaSplineInterpolator()).interpolate(xval, fval);
-    } else if (size > 1) {
-      function = (new LinearInterpolator()).interpolate(xval, fval);
-    } else {
+    if (gts.size() == 0) {
       function = null;
+    } else {
+      if (GeoTimeSerie.TYPE.DOUBLE != gts.getType() && GeoTimeSerie.TYPE.LONG != gts.getType()) {
+        throw new WarpScriptException(getName() + " expects a GTS of type DOUBLE or LONG, but instead got a GTS of type " + gts.getType().name());
+      }
+
+      double[] xval = GTSHelper.getTicksAsDouble(gts);
+      double[] fval = GTSHelper.getValuesAsDouble(gts);
+
+      int size = gts.size();
+      if (size > 4) {
+        function = (new AkimaSplineInterpolator()).interpolate(xval, fval);
+      } else if (size > 1) {
+        function = (new LinearInterpolator()).interpolate(xval, fval);
+      } else {
+        function = null;
+      }
     }
+    
 
     return new WarpScriptSingleValueFillerFunction() {
       @Override
