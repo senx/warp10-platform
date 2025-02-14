@@ -26,7 +26,17 @@ public interface WarpScriptSingleValueFillerFunction {
     default public void fillTick(long tick, GeoTimeSerie gts, Object invalidValue) throws WarpScriptException {
       throw new WarpScriptException("Invalid Filler Error: evaluator function has not been precomputed yet.");
     }
+
+    @Deprecated
+    default public Object evaluate(long tick) throws WarpScriptException {
+      throw new WarpScriptException("Invalid Filler Definition Error: evaluate function is deprecated.");
+    }
   }
 
   public void fillTick(long tick, GeoTimeSerie gts, Object invalidValue) throws WarpScriptException;
+
+  @Deprecated
+  default public Object evaluate(long tick) throws WarpScriptException {
+    throw new WarpScriptException("Invalid Filler Definition Error: evaluate function is deprecated.");
+  }
 }
