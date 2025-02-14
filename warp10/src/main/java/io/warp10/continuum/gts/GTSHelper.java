@@ -5863,19 +5863,35 @@ public class GTSHelper {
     // Loop on gaps
     //
 
-    if (null != ticks) {
+    if (null != ticks && !ticks.isEmpty()) {
       // gaps to fill are specified
-      for (Long tick: ticks) {
 
-        // verify if it is a gap or not
-        if (verify && indexAtTick(gts, tick) >= 0) {
-          continue;
+      if (verify && gts.size() > 0) { // fill must not add duplicates
+        long lastTick = lasttick(gts);
+        // locate the index of the next tick after the first one we must fill
+        int idx = Arrays.binarySearch(gts.ticks, 0, gts.values, ticks.get(0));
+        if (idx == -1) {
+          idx = 0;
+        } else if (idx < -1) {
+          idx = -idx - 1;
+        }
+        System.out.println("request fill at " + ticks.get(0) + " so start index is " + idx + " the next tick is " + GTSHelper.tickAtIndex(gts, idx));
+        for (int t = 0; t < ticks.size(); t++) {
+          long tick = ticks.get(t);
+
+          if (tick != GTSHelper.tickAtIndex(gts, idx)) {
+            filler.fillTick(tick, filled, invalidValue);
+          }
+          while (tick <= lastTick && tick >= GTSHelper.tickAtIndex(gts, idx) && idx < gts.size()) {
+            idx++;
+          }
         }
 
-        // fill the gap
-        filler.fillTick(tick,filled,invalidValue);
+      } else {
+        for (Long tick: ticks) {
+          filler.fillTick(tick, filled, invalidValue);
+        }
       }
-
     } else {
       // gts is sorted and bucketized
       // we fill empty buckets
