@@ -35,7 +35,7 @@ public class FillerLinear extends NamedWarpScriptFunction implements WarpScriptS
     if (gts.size()==0) {
       function = null;
     } else {
-      if (GeoTimeSerie.TYPE.DOUBLE != gts.getType() && GeoTimeSerie.TYPE.LONG != gts.getType() && gts.size() > 0) {
+      if (GeoTimeSerie.TYPE.DOUBLE != gts.getType() && GeoTimeSerie.TYPE.LONG != gts.getType()) {
         throw new WarpScriptException(getName() + " expects a GTS of type DOUBLE or LONG, but instead got a GTS of type " + gts.getType().name());
       }
 

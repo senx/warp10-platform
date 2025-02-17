@@ -78,7 +78,7 @@ public class FillerNext extends NamedWarpScriptFunction implements WarpScriptFil
       private int currentIndex = 0;
       @Override
       public void fillTick(long tick, GeoTimeSerie gts, Object invalidValue) throws WarpScriptException {
-        if (nTicks == 0 || tick >= lastTick) {
+        if (0 == nTicks || tick >= lastTick) {
           if (null != invalidValue && tick != lastTick) {
             GTSHelper.setValue(gts, tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, invalidValue, false);
           }

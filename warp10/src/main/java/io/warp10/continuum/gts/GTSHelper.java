@@ -5870,12 +5870,11 @@ public class GTSHelper {
         long lastTick = lasttick(gts);
         // locate the index of the next tick after the first one we must fill
         int idx = Arrays.binarySearch(gts.ticks, 0, gts.values, ticks.get(0));
-        if (idx == -1) {
+        if (-1 == idx) {
           idx = 0;
         } else if (idx < -1) {
           idx = -idx - 1;
         }
-        System.out.println("request fill at " + ticks.get(0) + " so start index is " + idx + " the next tick is " + GTSHelper.tickAtIndex(gts, idx));
         for (int t = 0; t < ticks.size(); t++) {
           long tick = ticks.get(t);
 

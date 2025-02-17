@@ -129,7 +129,7 @@ public class FillerInterpolate extends NamedWarpScriptFunction implements WarpSc
       lonFunction = null;
       elevationFunction = null;
     } else {
-      if (GeoTimeSerie.TYPE.DOUBLE != gts.getType() && GeoTimeSerie.TYPE.LONG != gts.getType() && gts.size() > 0) {
+      if (GeoTimeSerie.TYPE.DOUBLE != gts.getType() && GeoTimeSerie.TYPE.LONG != gts.getType()) {
         throw new WarpScriptException(getName() + " expects a GTS of type DOUBLE or LONG, but instead got a GTS of type " + gts.getType().name());
       }
 
@@ -179,7 +179,7 @@ public class FillerInterpolate extends NamedWarpScriptFunction implements WarpSc
       // how many ticks do have an elevation ?
       int nElev = 0;
       for (int i = 0; i < gts.size(); i++) {
-        if (GeoTimeSerie.NO_LOCATION != GTSHelper.elevationAtIndex(gts, i)) {
+        if (GeoTimeSerie.NO_ELEVATION != GTSHelper.elevationAtIndex(gts, i)) {
           nElev++;
         }
       }
@@ -189,7 +189,7 @@ public class FillerInterpolate extends NamedWarpScriptFunction implements WarpSc
         int idx = 0;
         for (int i = 0; i < gts.size(); i++) {
           long e = GTSHelper.elevationAtIndex(gts, i);
-          if (e != GeoTimeSerie.NO_LOCATION) {
+          if (e != GeoTimeSerie.NO_ELEVATION) {
             xElevTicks[idx] = GTSHelper.tickAtIndex(gts, i);
             fElevVal[idx] = e;
             idx++;
