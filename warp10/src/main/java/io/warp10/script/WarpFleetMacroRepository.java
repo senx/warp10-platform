@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2023  SenX S.A.S.
+//   Copyright 2019-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -263,6 +263,8 @@ public class WarpFleetMacroRepository {
           stack = new MemoryWarpScriptStack(null, null);
           // WARN(hbs): this will leak any authentication info in the stack name
           stack.setAttribute(WarpScriptStack.ATTRIBUTE_NAME, "[WarpFleetMacroRepository " + url.toString() + "]");
+
+          WarpFleetMacroRepository.setRepos(stack,WarpFleetMacroRepository.getRepos(callingStack));
 
           stack.maxLimits();
           stack.setAttribute(WarpScriptStack.ATTRIBUTE_MACRO_NAME, name);
