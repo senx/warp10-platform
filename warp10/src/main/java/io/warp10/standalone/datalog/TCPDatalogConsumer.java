@@ -100,7 +100,8 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
   private long[] CLASS_KEYS;
   private long[] LABELS_KEYS;
 
-  private String feeder;
+  private String feederid;
+  private String name;
 
   /**
    * Optional encryption key
@@ -184,7 +185,6 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
 
     Map<String,String> labels = new HashMap<String,String>();
     labels.put(SensisionConstants.SENSISION_LABEL_CONSUMER, this.id);
-    labels.put(SensisionConstants.SENSISION_LABEL_FEEDER, this.feeder);
     Map<String,String> typeLabels = new LinkedHashMap<String,String>(labels);
 
     while(true) {
@@ -211,6 +211,14 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
           throw new IOException("Invalid message type " + msg.getType().name() + ", aborting.");
         }
 
+        //
+        // Update feeder id
+        //
+
+        this.feederid = msg.getId();
+        labels.put(SensisionConstants.SENSISION_LABEL_FEEDER, this.feederid);
+        typeLabels.put(SensisionConstants.SENSISION_LABEL_FEEDER, this.feederid);
+
         typeLabels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogMessageType.WELCOME.name());
         Sensision.update(SensisionConstants.SENSISION_CLASS_DATALOG_CONSUMER_MESSAGES_IN, typeLabels, 1);
 
@@ -232,7 +240,7 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
           new ECPUBLIC(WarpScriptLib.ECPUBLIC).apply(stack);
           feederPublic = (ECPublicKey) stack.pop();
         } catch (WarpScriptException wse) {
-          throw new RuntimeException("Error extracting ECC public key for feeder '" + this.feeder + "'.", wse);
+          throw new RuntimeException("Error extracting ECC public key of feeder for consumer '" + this.name + "'.", wse);
         }
 
         //
@@ -254,7 +262,7 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
         ECVERIFY.apply(stack);
 
         if (!Boolean.TRUE.equals(stack.pop())) {
-          throw new RuntimeException("Invalid signature from feeder '" + this.feeder + "'.");
+          throw new RuntimeException("Invalid signature from feeder for consumer '" + this.name + "'.");
         }
 
         //
@@ -787,7 +795,7 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
 
   @Override
   public void init(KeyStore ks, String name) {
-    this.feeder = name;
+    this.name = name;
     this.suffix = "." + name;
 
     this.CLASS_KEYS = SipHashInline.getKey(ks.getKey(KeyStore.SIPHASH_CLASS));

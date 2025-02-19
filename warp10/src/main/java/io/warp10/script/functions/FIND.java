@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2024  SenX S.A.S.
+//   Copyright 2018-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -241,7 +241,17 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
         }
       } else if (params.containsKey(FETCH.PARAM_CLASS) && params.containsKey(FETCH.PARAM_LABELS)) {
         classSelector = (String) params.get(FETCH.PARAM_CLASS);
-        labelSelectors = new LinkedHashMap<String,String>((Map<String,String>) params.get(FETCH.PARAM_LABELS));
+        Object o = params.get(FETCH.PARAM_LABELS);
+        if (!(o instanceof Map)) {
+          throw new WarpScriptException(getName() + "label selector must be a map.");
+        }
+        for (Entry<Object, Object> entry: ((Map<Object, Object>) o).entrySet()) {
+          if (!(entry.getKey() instanceof String) || !(entry.getValue() instanceof String)) {
+            throw new WarpScriptException(getName() + " keys and values of label selector must be STRINGs.");
+          }
+        }
+        
+        labelSelectors = new LinkedHashMap<String,String>((Map<String,String>) o);
       } else {
         throw new WarpScriptException(getName() + " missing parameters '" + FETCH.PARAM_CLASS + "', '" + FETCH.PARAM_LABELS + "', '" + FETCH.PARAM_SELECTOR + "' or '" + FETCH.PARAM_SELECTORS + "'.");
       }
@@ -305,9 +315,15 @@ public class FIND extends NamedWarpScriptFunction implements WarpScriptStackFunc
       Object oLabelsSelector = stack.pop();
 
       if (!(oLabelsSelector instanceof Map)) {
-        throw new WarpScriptException("Label selectors must be a map.");
+        throw new WarpScriptException(getName() + " label selector must be a map.");
       }
 
+      for (Entry<Object, Object> entry: ((Map<Object, Object>) oLabelsSelector).entrySet()) {
+        if (!(entry.getKey() instanceof String) || !(entry.getValue() instanceof String)) {
+          throw new WarpScriptException(getName() + " keys and values of label selector must be STRINGs.");
+        }
+      }
+      
       labelSelectors = new LinkedHashMap<String,String>((Map<String,String>) oLabelsSelector);
 
       //
