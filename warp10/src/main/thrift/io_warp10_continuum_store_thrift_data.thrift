@@ -524,6 +524,7 @@ enum DatalogMessageType {
   TSEEK = 4,
   COMMIT = 5,
   DATA = 6,
+  KEEPALIVE = 7,
 }
 
 struct DatalogMessage {

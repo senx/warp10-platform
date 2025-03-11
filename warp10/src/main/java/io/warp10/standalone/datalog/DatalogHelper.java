@@ -19,6 +19,7 @@ package io.warp10.standalone.datalog;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.SocketTimeoutException;
 
 import org.apache.thrift.TBase;
 import org.apache.thrift.TDeserializer;
@@ -191,12 +192,22 @@ public class DatalogHelper {
 
     int len = 0;
 
+    // Tolerate a certain number of timeouts
+    int timeouts = 3;
+
     while(len < size) {
-      int nread = in.read(bytes, len, size - len);
-      if (nread < 0) {
-        throw new IOException("EOF reached.");
+      try {
+        int nread = in.read(bytes, len, size - len);
+        if (nread < 0) {
+          throw new IOException("EOF reached.");
+        }
+        len += nread;
+      } catch (SocketTimeoutException ste) {
+        // Ignore a max number of successive timeouts when reading
+        if (--timeouts <= 0) {
+          throw ste;
+        }
       }
-      len += nread;
     }
 
     return bytes;

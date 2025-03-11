@@ -82,6 +82,8 @@ import io.warp10.sensision.Sensision;
  */
 public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
 
+  private static final long KEEPALIVE_DELAY;
+
   private static final RUN RUN = new RUN(WarpScriptLib.RUN);
 
   private WarpScriptStack stack;
@@ -127,6 +129,10 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
   private long lastsync = 0;
 
   private String suffix;
+
+  static {
+    KEEPALIVE_DELAY = Long.parseLong(WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_CONSUMER_KEEPALIVE, TCPDatalogFeederWorker.DEFAULT_KEEPALIVE));
+  }
 
   @Override
   public void run() {
@@ -189,6 +195,12 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
 
     while(true) {
       Socket socket = null;
+
+      // Wait 1s to avoid too frequent reconnection attempts
+      LockSupport.parkNanos(1000000000L);
+      inflight.clear();
+      successful.clear();
+      failed.clear();
 
       try {
         InetAddress addr = InetAddress.getByName(host);
@@ -405,12 +417,33 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
         Sensision.update(SensisionConstants.SENSISION_CLASS_DATALOG_CONSUMER_MESSAGES_OUT, typeLabels, 1);
 
         //
-        // Now retrieve the DATA messages and push them to a worker
+        // Now retrieve the DATA/KEEPALIVE messages and push them to a worker
         //
 
         DatalogRecord record = null;
 
+        long lastMessage = System.currentTimeMillis();
+
         while(true) {
+          // If no messages were sent recently, send a keep alive message
+          if (System.currentTimeMillis() - lastMessage > KEEPALIVE_DELAY) {
+            msg.clear();
+            msg.setType(DatalogMessageType.KEEPALIVE);
+            bytes = DatalogHelper.serialize(msg);
+
+            if (encrypt) {
+              bytes = CryptoHelper.wrapBlob(AES_KEY, bytes);
+            }
+
+            DatalogHelper.writeLong(out, bytes.length, 4);
+            out.write(bytes);
+            out.flush();
+
+            lastMessage = System.currentTimeMillis();
+
+            typeLabels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogMessageType.KEEPALIVE.name());
+            Sensision.update(SensisionConstants.SENSISION_CLASS_DATALOG_CONSUMER_MESSAGES_OUT, typeLabels, 1);
+          }
 
           //
           // Check if we should emit a commit or seek message (in case of failure)
@@ -447,6 +480,7 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
                 DatalogHelper.writeLong(out, bytes.length, 4);
                 out.write(bytes);
                 out.flush();
+                lastMessage = System.currentTimeMillis();
                 typeLabels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogMessageType.SEEK.name());
                 Sensision.update(SensisionConstants.SENSISION_CLASS_DATALOG_CONSUMER_MESSAGES_OUT, typeLabels, 1);
 
@@ -468,6 +502,7 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
                 DatalogHelper.writeLong(out, bytes.length, 4);
                 out.write(bytes);
                 out.flush();
+                lastMessage = System.currentTimeMillis();
                 typeLabels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogMessageType.COMMIT.name());
                 Sensision.update(SensisionConstants.SENSISION_CLASS_DATALOG_CONSUMER_MESSAGES_OUT, typeLabels, 1);
                 inflight.clear();
@@ -488,6 +523,7 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
                 DatalogHelper.writeLong(out, bytes.length, 4);
                 out.write(bytes);
                 out.flush();
+
                 typeLabels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogMessageType.COMMIT.name());
                 Sensision.update(SensisionConstants.SENSISION_CLASS_DATALOG_CONSUMER_MESSAGES_OUT, typeLabels, 1);
 
@@ -502,6 +538,7 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
                 DatalogHelper.writeLong(out, bytes.length, 4);
                 out.write(bytes);
                 out.flush();
+                lastMessage = System.currentTimeMillis();
                 typeLabels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogMessageType.SEEK.name());
                 Sensision.update(SensisionConstants.SENSISION_CLASS_DATALOG_CONSUMER_MESSAGES_OUT, typeLabels, 1);
 
@@ -526,6 +563,7 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
           //
 
           bytes = DatalogHelper.readBlob(in, 0);
+
           if (encrypt) {
             bytes = CryptoHelper.unwrapBlob(AES_KEY, bytes);
           }
@@ -533,12 +571,16 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
           msg.clear();
           DatalogHelper.deserialize(bytes, msg);
 
-          if (DatalogMessageType.DATA != msg.getType()) {
-            throw new IOException("Invalid message type " + msg.getType() + ", expected " + DatalogMessageType.DATA.name());
+          if (DatalogMessageType.DATA != msg.getType() && DatalogMessageType.KEEPALIVE != msg.getType()) {
+            throw new IOException("Invalid message type " + msg.getType() + ", expected " + DatalogMessageType.DATA.name() + " or " + DatalogMessageType.KEEPALIVE.name());
           }
 
-          typeLabels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogMessageType.DATA.name());
+          typeLabels.put(SensisionConstants.SENSISION_LABEL_TYPE, msg.getType().name());
           Sensision.update(SensisionConstants.SENSISION_CLASS_DATALOG_CONSUMER_MESSAGES_IN, typeLabels, 1);
+
+          if (DatalogMessageType.KEEPALIVE == msg.getType()) {
+            continue;
+          }
 
           //
           // Extract the DatalogRecord
