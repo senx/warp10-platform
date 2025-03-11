@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -51,3 +51,8 @@ datalog.register.all = false
 ## Values above 24 will induce sharding on class name only, not on labels.
 ##
 datalog.shardkey.shift = 0
+
+##
+## Set to true to log KVSTORE events for Datalog consumers
+##
+datalog.manager.logkvstores = false
