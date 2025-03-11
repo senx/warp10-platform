@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2024  SenX S.A.S.
+//   Copyright 2018-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 package io.warp10.script.functions;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -55,11 +56,16 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
       public WarpScriptSingleValueFillerFunction compute(GeoTimeSerie gts) throws WarpScriptException {
         return new WarpScriptSingleValueFillerFunction() {
           @Override
-          public Object evaluate(long tick) throws WarpScriptException {
+          public void fillTick(long tick, GeoTimeSerie gtsFilled, Object invalidValue) throws WarpScriptException {
             stack.push(gts);
             stack.push(tick);
             stack.exec(macro);
-            return stack.pop();
+            Object out = stack.pop();
+            if (null != out) {
+              GTSHelper.setValue(gts, tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, out, false);
+            } else if (null != invalidValue) {
+              GTSHelper.setValue(gts, tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, invalidValue, false);
+            }
           }
         };
       }
@@ -69,7 +75,7 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
   public FILL(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     if (stack.peek() instanceof WarpScriptFillerFunction || stack.peek() instanceof WarpScriptSingleValueFillerFunction || stack.peek() instanceof Macro) {
@@ -178,13 +184,7 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
       }
 
       if (verify) {
-        List<Long> deduplicatedTicks = new ArrayList<Long>();
-        for (Long l: (List<Long>) ticks) {
-          if (!(deduplicatedTicks.contains(l))) {
-            deduplicatedTicks.add(l);
-          }
-        }
-        ticks = deduplicatedTicks;
+        ticks = sortDedupTicks((List<Long>) ticks);
       }
     }
 
@@ -236,6 +236,59 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
     return stack;
   }
 
+  private List<Long> sortDedupTicks(List<Long> ticks) {
+    if (ticks.size() < 2) {
+      return ticks;
+    }
+
+    // check that the list is sorted, sort if needed
+    long previousTick = ticks.get(0);
+    for (int i = 1; i < ticks.size(); i++) {
+      long t = ticks.get(i);
+      if (t < previousTick) {
+        Collections.sort(ticks);
+        break;
+      }
+      previousTick = t;
+    }
+
+    // deduplicate if needed
+    long[] deduplicatedTicks = null;
+    int idx2 = 0;
+
+    Long lasttick = null;
+
+    int idx = 0;
+
+    int n = ticks.size();
+
+    while (idx < n) {
+      Long tick = ticks.get(idx);
+      if (tick.equals(lasttick)) { // Duplicate tick
+        if (null == deduplicatedTicks) { // First duplicate tick
+          deduplicatedTicks = new long[ticks.size() - 1];
+          idx2 = 0;
+          // Copy the first idx -1 values
+          for (int i = 0; i < idx - 1; i++) {
+            deduplicatedTicks[idx2++] = ticks.get(i);
+          }
+        }
+      } else if (null != deduplicatedTicks) { // Already encountered a duplicate tick, store tick
+        deduplicatedTicks[idx2++] = tick;
+      }
+      lasttick = tick;
+      idx++;
+    }
+    if (null != deduplicatedTicks) {
+      ticks = new ArrayList<Long>(idx2);
+      for (int i = 0; i < idx2; i++) {
+        ticks.add(deduplicatedTicks[i]);
+      }
+    }
+
+    return ticks;
+  }
+    
   /**
    * Expected signatures:
    * [ a:GTS b:Filler ] FILL res:List<GTS>
@@ -278,10 +331,7 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
           throw new WarpScriptException(getName() + " expects the last parameter of the input LIST to be a LIST of LONG, but it contains a " + TYPEOF.typeof(o));
         }
 
-        // duplicates are not kept (verify is true)
-        if (!(ticks.contains(o))) {
-          ticks.add((Long) o);
-        }
+        ticks = sortDedupTicks((List<Long>) ticks);
       }
     }
 
