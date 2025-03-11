@@ -515,7 +515,7 @@ public class TCPDatalogConsumer extends Thread implements DatalogConsumer {
                 DatalogHelper.writeLong(out, bytes.length, 4);
                 out.write(bytes);
                 out.flush();
-                lastMessage = System.currentTimeMillis();
+
                 typeLabels.put(SensisionConstants.SENSISION_LABEL_TYPE, DatalogMessageType.COMMIT.name());
                 Sensision.update(SensisionConstants.SENSISION_CLASS_DATALOG_CONSUMER_MESSAGES_OUT, typeLabels, 1);
 
