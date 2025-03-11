@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2023  SenX S.A.S.
+//   Copyright 2020-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -25,11 +25,9 @@ import io.warp10.WarpConfig;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
-import io.warp10.continuum.gts.GTSWrapperHelper;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.continuum.store.thrift.data.DatalogRecord;
-import io.warp10.continuum.store.thrift.data.DatalogRecordType;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.sensision.Sensision;
@@ -95,6 +93,7 @@ public class DatalogWorker extends Thread {
     long lastDeleteRecord = 0L;
     long lastRegisterRecord = 0L;
     long lastUnregisterRecord = 0L;
+    long lastKvstoreRecord = 0L;
 
     while(true) {
 
@@ -115,12 +114,14 @@ public class DatalogWorker extends Thread {
           if (now - lastRegisterRecord > FLUSH_INTERVAL
               || now - lastUnregisterRecord > FLUSH_INTERVAL
               || now - lastUpdateRecord > FLUSH_INTERVAL
-              || now - lastDeleteRecord > FLUSH_INTERVAL) {
+              || now - lastDeleteRecord > FLUSH_INTERVAL
+              || now - lastKvstoreRecord > FLUSH_INTERVAL) {
             manager.process(null);
             lastRegisterRecord = now;
             lastUnregisterRecord = now;
             lastUpdateRecord = now;
             lastDeleteRecord = now;
+            lastKvstoreRecord = now;
           }
         } else {
           long now = System.currentTimeMillis();
@@ -131,6 +132,10 @@ public class DatalogWorker extends Thread {
           if (now - lastDeleteRecord > FLUSH_INTERVAL) {
             storeClient.delete(null, null, Long.MAX_VALUE, Long.MAX_VALUE);
             lastDeleteRecord = now;
+          }
+          if (now - lastKvstoreRecord > FLUSH_INTERVAL) {
+            storeClient.kvstore(null);
+            lastKvstoreRecord = now;
           }
           if (now - lastRegisterRecord > FLUSH_INTERVAL) {
             directoryClient.register(null);
@@ -191,6 +196,10 @@ public class DatalogWorker extends Thread {
               storeClient.delete(record.getToken(), metadata, record.getStart(), record.getStop());
               job.consumer.success(job.ref);
               break;
+            case KVSTORE:
+              storeClient.kvstore(record.getKvstorerequest());
+              job.consumer.success(job.ref);
+              break;
           }
         }
         switch(job.record.getType()) {
@@ -205,6 +214,9 @@ public class DatalogWorker extends Thread {
             break;
           case UNREGISTER:
             lastUnregisterRecord = System.currentTimeMillis();
+            break;
+          case KVSTORE:
+            lastKvstoreRecord = System.currentTimeMillis();
             break;
         }
       } catch (Throwable t) {
@@ -231,6 +243,7 @@ public class DatalogWorker extends Thread {
     } else {
       storeClient.store(null);
       storeClient.delete(null, null, Long.MAX_VALUE, Long.MAX_VALUE);
+      storeClient.kvstore(null);
       directoryClient.register(null);
       directoryClient.unregister(null);
     }

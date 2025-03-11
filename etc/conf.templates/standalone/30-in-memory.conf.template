@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2023  SenX S.A.S.
+//   Copyright 2019-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -131,3 +131,8 @@ in.memory.ephemeral = false
 // Maximum size (in bytes) of re-allocations performed during a gc cycle of the chunked in-memory store. 
 //
 #in.memory.gc.maxalloc =
+
+//
+// Maximum aggregate size (in bytes) of all store Key/Value pairs. Defaults to 10,000,000 bytes
+//
+#in.memory.maxkvsize = 10000000

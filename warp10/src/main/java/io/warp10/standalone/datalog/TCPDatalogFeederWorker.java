@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2023  SenX S.A.S.
+//   Copyright 2020-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -63,7 +63,6 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.binary.ADD;
 import io.warp10.script.functions.ECDH;
 import io.warp10.script.functions.ECPRIVATE;
-import io.warp10.script.functions.ECPUBLIC;
 import io.warp10.script.functions.ECSIGN;
 import io.warp10.script.functions.HASH;
 import io.warp10.script.functions.REVERSE;
@@ -141,7 +140,6 @@ public class TCPDatalogFeederWorker extends Thread {
       //
 
       ECPrivateKey eccPrivate = null;
-      ECPublicKey eccPublic = null;
 
       String eccpri = WarpConfig.getProperty(FileBasedDatalogManager.CONFIG_DATALOG_FEEDER_ECC_PRIVATE);
 
@@ -701,7 +699,7 @@ public class TCPDatalogFeederWorker extends Thread {
 
           if (!currentFile.equals(next)) {
             len = fs.getFileStatus(path).getLen();
-            System.out.println("FILE=" + currentFile + " POS=" + position + " LEN=" + len + " NEXT=" + next);
+            //System.out.println("FILE=" + currentFile + " POS=" + position + " LEN=" + len + " NEXT=" + next);
             if (len == position + SEQFILE_SYNC_MARKER_LEN) {
               previousFile = currentFile;
               currentFile = next;
