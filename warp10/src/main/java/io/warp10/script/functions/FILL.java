@@ -177,14 +177,17 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
       if (!(ticks instanceof List)) {
         throw new WarpScriptException(getName() + " expects parameter " + PARAM_TICKS + " to be a LIST, but instead got a " + TYPEOF.typeof(ticks));
       }
-      for (Object o: (List) ticks) {
-        if (!(o instanceof Long)) {
-          throw new WarpScriptException(getName() + " expects parameter " + PARAM_TICKS + " to be a LIST of LONG, but it contains a " + TYPEOF.typeof(o));
+      if(((List)ticks).size() > 0) {
+        for (Object o: (List) ticks) {
+          if (!(o instanceof Long)) {
+            throw new WarpScriptException(getName() + " expects parameter " + PARAM_TICKS + " to be a LIST of LONG, but it contains a " + TYPEOF.typeof(o));
+          }
         }
-      }
-
-      if (verify) {
-        ticks = sortDedupTicks((List<Long>) ticks);
+        if (verify) {
+          ticks = sortDedupTicks((List<Long>) ticks);
+        }
+      } else {
+        ticks = null;
       }
     }
 
@@ -324,14 +327,14 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
       if (!(params.get(2) instanceof List)) {
         throw new WarpScriptException(getName() + "expects the last parameter of the input LIST to be a LIST");
       }
-
-      ticks = new ArrayList<Long>();
-      for (Object o: (List) params.get(2)) {
-        if (!(o instanceof Long)) {
-          throw new WarpScriptException(getName() + " expects the last parameter of the input LIST to be a LIST of LONG, but it contains a " + TYPEOF.typeof(o));
+      if (((List) params.get(2)).size() > 0) {
+        ticks = new ArrayList<Long>();
+        for (Object o: (List) params.get(2)) {
+          if (!(o instanceof Long)) {
+            throw new WarpScriptException(getName() + " expects the last parameter of the input LIST to be a LIST of LONG, but it contains a " + TYPEOF.typeof(o));
+          }
         }
-
-        ticks = sortDedupTicks((List<Long>) ticks);
+        ticks = sortDedupTicks((List<Long>) (params.get(2)));
       }
     }
 
