@@ -16,6 +16,7 @@
 
 package io.warp10.script;
 
+import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 
 public interface WarpScriptSingleValueFillerFunction {
@@ -24,16 +25,22 @@ public interface WarpScriptSingleValueFillerFunction {
     public WarpScriptSingleValueFillerFunction compute(GeoTimeSerie gts) throws WarpScriptException;
 
     default public void fillTick(long tick, GeoTimeSerie gts, Object invalidValue) throws WarpScriptException {
-      throw new WarpScriptException("Invalid Filler Error: evaluator function has not been precomputed yet.");
+      // retro compatibility: if an old extension implements evaluate, use it.
+      Object v = evaluate(tick);
+      GTSHelper.setValue(gts, tick, null == v ? invalidValue : v);
     }
 
     @Deprecated
     default public Object evaluate(long tick) throws WarpScriptException {
-      throw new WarpScriptException("Invalid Filler Definition Error: evaluate function is deprecated.");
+      throw new WarpScriptException("Invalid Filler Error: evaluator function has not been precomputed yet.");
     }
   }
 
-  public void fillTick(long tick, GeoTimeSerie gts, Object invalidValue) throws WarpScriptException;
+  default public void fillTick(long tick, GeoTimeSerie gts, Object invalidValue) throws WarpScriptException {
+    // retro compatibility: if an old extension implements evaluate, use it.
+    Object v = evaluate(tick);
+    GTSHelper.setValue(gts, tick, null == v ? invalidValue : v);
+  }
 
   @Deprecated
   default public Object evaluate(long tick) throws WarpScriptException {
