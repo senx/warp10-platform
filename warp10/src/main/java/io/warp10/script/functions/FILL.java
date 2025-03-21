@@ -40,7 +40,8 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
   public static String PARAM_TICKS = "ticks";
   public static String PARAM_VERIFY = "verify";
   public static String PARAM_INVALID_VALUE = "invalid.value";
-
+  public static String DEPRECATED_PARAM_FORCE_OLD_FILLER_FLAG = "force.old.filler"; // undocumented flag to cover an edge case of filler.interpolate with geo See PR#1397.
+  
   /**
    * If a macro is passed as the filler parameter, FILL will use this method to wrap it as the filler function.
    * The macro expects a gts and a tick on the stack and it outputs an object (the value to be filled).
@@ -202,9 +203,15 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
 
     Object invalidValue = params.get(PARAM_INVALID_VALUE);
 
+    boolean forceOldFiller = false; // this is an undocumented flag. The new filler.interpolate add more geo than the previous one. Use it to force the previous (slow) behavior 
+    Object f = params.get(DEPRECATED_PARAM_FORCE_OLD_FILLER_FLAG);
+    if (f instanceof Boolean) {
+      forceOldFiller = (boolean) f;
+    }
+    
     List res = new ArrayList<GeoTimeSerie>();
     if (stack.peek() instanceof GeoTimeSerie) {
-      if (filler instanceof WarpScriptSingleValueFillerFunction) {
+      if (!forceOldFiller && filler instanceof WarpScriptSingleValueFillerFunction) {
         res.add(GTSHelper.fill((GeoTimeSerie) stack.pop(), (WarpScriptSingleValueFillerFunction) filler, (List<Long>) ticks, verify, invalidValue));
 
       } else if (filler instanceof WarpScriptFillerFunction) {
@@ -219,9 +226,8 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
         if (!(o instanceof GeoTimeSerie)) {
           throw new WarpScriptException(getName() + " expects a LIST of GTS, but instead the list contains a " + TYPEOF.typeof(o));
         }
-        if (filler instanceof WarpScriptSingleValueFillerFunction) {
+        if (!forceOldFiller && filler instanceof WarpScriptSingleValueFillerFunction) {
           res.add(GTSHelper.fill((GeoTimeSerie) o, (WarpScriptSingleValueFillerFunction) filler, (List<Long>) ticks, verify, invalidValue));
-
         } else if (filler instanceof WarpScriptFillerFunction) {
           res.add(GTSHelper.fill((GeoTimeSerie) o, (WarpScriptFillerFunction) filler, (List<Long>) ticks, verify, invalidValue));
 
