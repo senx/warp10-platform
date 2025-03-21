@@ -32,7 +32,7 @@ public class FillerLinear extends NamedWarpScriptFunction implements WarpScriptS
   @Override
   public WarpScriptSingleValueFillerFunction compute(GeoTimeSerie gts) throws WarpScriptException {
     final PolynomialSplineFunction function;
-    if (gts.size()==0) {
+    if (gts.size() == 0) {
       function = null;
     } else {
       if (GeoTimeSerie.TYPE.DOUBLE != gts.getType() && GeoTimeSerie.TYPE.LONG != gts.getType()) {

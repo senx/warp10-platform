@@ -174,7 +174,6 @@ public class FillerInterpolate extends NamedWarpScriptFunction implements WarpSc
         lonFunction = null;
       }
 
-
       // elevations
       // how many ticks do have an elevation ?
       int nElev = 0;
@@ -200,8 +199,6 @@ public class FillerInterpolate extends NamedWarpScriptFunction implements WarpSc
         elevationFunction = null;
       }
     }
-    
-
 
     return new WarpScriptSingleValueFillerFunction() {
       @Override
