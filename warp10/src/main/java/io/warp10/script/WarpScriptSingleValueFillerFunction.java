@@ -24,10 +24,9 @@ public interface WarpScriptSingleValueFillerFunction {
   public interface Precomputable extends WarpScriptSingleValueFillerFunction {
     public WarpScriptSingleValueFillerFunction compute(GeoTimeSerie gts) throws WarpScriptException;
 
-    default public void fillTick(long tick, GeoTimeSerie gts, Object invalidValue) throws WarpScriptException {
-      // retro compatibility: if an old extension implements evaluate, use it.
+    default public void fillTick(long tick, GeoTimeSerie filled, Object invalidValue) throws WarpScriptException {
       Object v = evaluate(tick);
-      GTSHelper.setValue(gts, tick, null == v ? invalidValue : v);
+      GTSHelper.setValue(filled, tick, null == v ? invalidValue : v);
     }
 
     @Deprecated
@@ -36,12 +35,23 @@ public interface WarpScriptSingleValueFillerFunction {
     }
   }
 
-  default public void fillTick(long tick, GeoTimeSerie gts, Object invalidValue) throws WarpScriptException {
-    // retro compatibility: if an old extension implements evaluate, use it.
+  /**
+   * This method allows a filler to fill geo, elevation, value most efficiently. It delegates the setValue to the filler. 
+   * The default implementation calls evaluate for retro compatibility with older fillers.
+   * @param tick is the tick to fill
+   * @param filled is a sorted clone of the original GTS
+   * @param invalidValue may be defined by the user when calling the FILL function
+   */
+  default public void fillTick(long tick, GeoTimeSerie filled, Object invalidValue) throws WarpScriptException {
     Object v = evaluate(tick);
-    GTSHelper.setValue(gts, tick, null == v ? invalidValue : v);
+    GTSHelper.setValue(filled, tick, null == v ? invalidValue : v);
   }
 
+  /**
+   * This method returns the filled value only. There is no way to fill geo or elevation.
+   * @param tick is the tick to fill
+   * @return the value of the GTS to add at tick
+   */
   @Deprecated
   default public Object evaluate(long tick) throws WarpScriptException {
     throw new WarpScriptException("Invalid Filler Definition Error: evaluate function is deprecated.");

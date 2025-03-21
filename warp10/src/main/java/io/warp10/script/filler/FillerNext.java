@@ -77,17 +77,17 @@ public class FillerNext extends NamedWarpScriptFunction implements WarpScriptFil
     return new WarpScriptSingleValueFillerFunction() {
       private int currentIndex = 0;
       @Override
-      public void fillTick(long tick, GeoTimeSerie gts, Object invalidValue) throws WarpScriptException {
+      public void fillTick(long tick, GeoTimeSerie filled, Object invalidValue) throws WarpScriptException {
         if (0 == nTicks || tick >= lastTick) {
           if (null != invalidValue && tick != lastTick) {
-            GTSHelper.setValue(gts, tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, invalidValue, false);
+            GTSHelper.setValue(filled, tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, invalidValue, false);
           }
           return;
         }
         while (tick > GTSHelper.tickAtIndex(original, currentIndex) && currentIndex < nTicks) {
           currentIndex++;
         }
-        GTSHelper.setValue(gts, tick, GTSHelper.locationAtIndex(original, currentIndex), GTSHelper.elevationAtIndex(original, currentIndex), GTSHelper.valueAtIndex(original, currentIndex), false);
+        GTSHelper.setValue(filled, tick, GTSHelper.locationAtIndex(original, currentIndex), GTSHelper.elevationAtIndex(original, currentIndex), GTSHelper.valueAtIndex(original, currentIndex), false);
       }
     };
   }

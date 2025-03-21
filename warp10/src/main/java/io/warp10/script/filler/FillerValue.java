@@ -37,8 +37,8 @@ public class FillerValue extends NamedWarpScriptFunction implements WarpScriptFi
   private Object value;
 
   @Override
-  public void fillTick(long tick, GeoTimeSerie gts, Object invalidValue) throws WarpScriptException {
-    GTSHelper.setValue(gts, tick, latlon, elev, value, false);
+  public void fillTick(long tick, GeoTimeSerie filled, Object invalidValue) throws WarpScriptException {
+    GTSHelper.setValue(filled, tick, latlon, elev, value, false);
   }
 
   public static class Builder extends NamedWarpScriptFunction implements WarpScriptStackFunction {

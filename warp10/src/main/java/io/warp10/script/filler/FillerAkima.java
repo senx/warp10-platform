@@ -56,11 +56,11 @@ public class FillerAkima extends NamedWarpScriptFunction implements WarpScriptSi
 
     return new WarpScriptSingleValueFillerFunction() {
       @Override
-      public void fillTick(long tick, GeoTimeSerie gts, Object invalidValue) throws WarpScriptException {
+      public void fillTick(long tick, GeoTimeSerie filled, Object invalidValue) throws WarpScriptException {
         if (null != function && function.isValidPoint(tick)) {
-          GTSHelper.setValue(gts, tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, function.value(tick), false);
+          GTSHelper.setValue(filled, tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, function.value(tick), false);
         } else if (null != invalidValue) {
-          GTSHelper.setValue(gts, tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, invalidValue, false);
+          GTSHelper.setValue(filled, tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, invalidValue, false);
         }
       }
     };

@@ -205,7 +205,7 @@ public class FillerInterpolate extends NamedWarpScriptFunction implements WarpSc
 
     return new WarpScriptSingleValueFillerFunction() {
       @Override
-      public void fillTick(long tick, GeoTimeSerie gts, Object invalidValue) throws WarpScriptException {
+      public void fillTick(long tick, GeoTimeSerie filled, Object invalidValue) throws WarpScriptException {
         long position = GeoTimeSerie.NO_LOCATION;
         long elevation = GeoTimeSerie.NO_ELEVATION;
         if (null != elevationFunction && elevationFunction.isValidPoint(tick)) {
@@ -215,9 +215,9 @@ public class FillerInterpolate extends NamedWarpScriptFunction implements WarpSc
           position = GeoXPLib.toGeoXPPoint(latFunction.value(tick), lonFunction.value(tick));
         }
         if (null != valFunction && valFunction.isValidPoint(tick)) {
-          GTSHelper.setValue(gts, tick, position, elevation, valFunction.value(tick), false);
+          GTSHelper.setValue(filled, tick, position, elevation, valFunction.value(tick), false);
         } else if (null != invalidValue) {
-          GTSHelper.setValue(gts, tick, position, elevation, invalidValue, false);
+          GTSHelper.setValue(filled, tick, position, elevation, invalidValue, false);
         }
       }
     };
