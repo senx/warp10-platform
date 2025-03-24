@@ -120,7 +120,6 @@ public class FillerRlowess extends NamedWarpScriptFunction implements WarpScript
           GTSHelper.setValue(filled, tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, invalidValue, false);
         }
       }
-
     };
   }
 

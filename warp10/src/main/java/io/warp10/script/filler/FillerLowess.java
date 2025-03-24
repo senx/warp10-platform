@@ -100,7 +100,6 @@ public class FillerLowess extends NamedWarpScriptFunction implements WarpScriptS
       }
     }
     
-
     return new WarpScriptSingleValueFillerFunction() {
       @Override
       public void fillTick(long tick, GeoTimeSerie filled, Object invalidValue) throws WarpScriptException {
@@ -110,7 +109,6 @@ public class FillerLowess extends NamedWarpScriptFunction implements WarpScriptS
           GTSHelper.setValue(filled, tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, invalidValue, false);
         }
       }
-
     };
   }
 

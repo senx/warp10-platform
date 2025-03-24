@@ -52,7 +52,6 @@ public class FillerAkima extends NamedWarpScriptFunction implements WarpScriptSi
         function = null;
       }
     }
-    
 
     return new WarpScriptSingleValueFillerFunction() {
       @Override

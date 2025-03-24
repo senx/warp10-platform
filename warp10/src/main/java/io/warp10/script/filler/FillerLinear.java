@@ -49,7 +49,6 @@ public class FillerLinear extends NamedWarpScriptFunction implements WarpScriptS
         function = null;
       }
     }
-    
 
     return new WarpScriptSingleValueFillerFunction() {
       @Override

@@ -62,7 +62,6 @@ public class FillerNewton extends NamedWarpScriptFunction implements WarpScriptS
           GTSHelper.setValue(filled, tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, invalidValue, false);
         }
       }
-
     };
   }
 }
