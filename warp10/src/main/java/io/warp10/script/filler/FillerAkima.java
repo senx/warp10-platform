@@ -1,5 +1,5 @@
 //
-//   Copyright 2024  SenX S.A.S.
+//   Copyright 2024-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -32,30 +32,34 @@ public class FillerAkima extends NamedWarpScriptFunction implements WarpScriptSi
 
   @Override
   public WarpScriptSingleValueFillerFunction compute(GeoTimeSerie gts) throws WarpScriptException {
-    if (GeoTimeSerie.TYPE.DOUBLE != gts.getType() && GeoTimeSerie.TYPE.LONG != gts.getType()) {
-      throw new WarpScriptException(getName() + " expects a GTS of type DOUBLE or LONG, but instead got a GTS of type " + gts.getType().name());
-    }
-
-    double[] xval = GTSHelper.getTicksAsDouble(gts);
-    double[] fval = GTSHelper.getValuesAsDouble(gts);
-
-    int size = gts.size();
     final PolynomialSplineFunction function;
-    if (size > 4) {
-      function = (new AkimaSplineInterpolator()).interpolate(xval, fval);
-    } else if (size > 1) {
-      function = (new LinearInterpolator()).interpolate(xval, fval);
-    } else {
+    if (gts.size() == 0) {
       function = null;
+    } else {
+      if (GeoTimeSerie.TYPE.DOUBLE != gts.getType() && GeoTimeSerie.TYPE.LONG != gts.getType()) {
+        throw new WarpScriptException(getName() + " expects a GTS of type DOUBLE or LONG, but instead got a GTS of type " + gts.getType().name());
+      }
+
+      double[] xval = GTSHelper.getTicksAsDouble(gts);
+      double[] fval = GTSHelper.getValuesAsDouble(gts);
+
+      int size = gts.size();
+      if (size > 4) {
+        function = (new AkimaSplineInterpolator()).interpolate(xval, fval);
+      } else if (size > 1) {
+        function = (new LinearInterpolator()).interpolate(xval, fval);
+      } else {
+        function = null;
+      }
     }
 
     return new WarpScriptSingleValueFillerFunction() {
       @Override
-      public Object evaluate(long tick) throws WarpScriptException {
-        if (null == function || !function.isValidPoint(tick)) {
-          return null;
-        } else {
-          return function.value(tick);
+      public void fillTick(long tick, GeoTimeSerie filled, Object invalidValue) throws WarpScriptException {
+        if (null != function && function.isValidPoint(tick)) {
+          GTSHelper.setValue(filled, tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, function.value(tick), false);
+        } else if (null != invalidValue) {
+          GTSHelper.setValue(filled, tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, invalidValue, false);
         }
       }
     };
