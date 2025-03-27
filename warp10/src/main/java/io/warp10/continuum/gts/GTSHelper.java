@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2024  SenX S.A.S.
+//   Copyright 2018-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -105,7 +105,7 @@ public class GTSHelper {
 
   private static final Logger LOG = LoggerFactory.getLogger(GTSHelper.class);
 
-  private static final String LABELSID_SLOWIMPL = "labelsid.slowimpl";
+  public static final String LABELSID_SLOWIMPL = "labelsid.slowimpl";
   private static final boolean labelsIdSlowImpl;
 
   static {
