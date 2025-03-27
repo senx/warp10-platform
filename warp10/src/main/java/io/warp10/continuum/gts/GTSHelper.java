@@ -105,7 +105,7 @@ public class GTSHelper {
 
   private static final Logger LOG = LoggerFactory.getLogger(GTSHelper.class);
 
-  private static final String LABELSID_SLOWIMPL = "labelsid.slowimpl";
+  public static final String LABELSID_SLOWIMPL = "labelsid.slowimpl";
   private static final boolean labelsIdSlowImpl;
 
   static {
