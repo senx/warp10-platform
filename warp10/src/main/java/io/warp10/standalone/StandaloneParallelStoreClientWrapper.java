@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,32 +16,36 @@
 package io.warp10.standalone;
 
 import java.io.IOException;
+import java.util.Iterator;
+import java.util.Map.Entry;
 
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.store.GTSDecoderIterator;
 import io.warp10.continuum.store.ParallelGTSDecoderIteratorWrapper;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.continuum.store.thrift.data.FetchRequest;
+import io.warp10.continuum.store.thrift.data.KVFetchRequest;
+import io.warp10.continuum.store.thrift.data.KVStoreRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 
 public class StandaloneParallelStoreClientWrapper implements StoreClient {
   private final StoreClient parent;
-  
+
   public StandaloneParallelStoreClientWrapper(StoreClient parent) {
     this.parent = parent;
   }
-  
+
   @Override
   public void addPlasmaHandler(StandalonePlasmaHandlerInterface handler) {
     parent.addPlasmaHandler(handler);
   }
-  
+
   @Override
   public long delete(WriteToken token, Metadata metadata, long start, long end) throws IOException {
     return parent.delete(token, metadata, start, end);
   }
-  
+
   @Override
   public GTSDecoderIterator fetch(FetchRequest req) throws IOException {
     if (req.isParallelScanners() && ParallelGTSDecoderIteratorWrapper.useParallelScanners()) {
@@ -50,9 +54,19 @@ public class StandaloneParallelStoreClientWrapper implements StoreClient {
       return parent.fetch(req);
     }
   }
-  
+
   @Override
   public void store(GTSEncoder encoder) throws IOException {
     parent.store(encoder);
+  }
+
+  @Override
+  public void kvstore(KVStoreRequest request) throws IOException {
+    parent.kvstore(request);
+  }
+
+  @Override
+  public KVIterator<Entry<byte[], byte[]>> kvfetch(KVFetchRequest request) throws IOException {
+    return parent.kvfetch(request);
   }
 }

@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -18,12 +18,18 @@ package io.warp10.script.filler;
 
 import com.geoxp.GeoXPLib;
 
+import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptFillerFunction;
+import io.warp10.script.WarpScriptSingleValueFillerFunction;
+import org.apache.commons.math3.analysis.interpolation.LinearInterpolator;
+import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction;
 
-public class FillerInterpolate extends NamedWarpScriptFunction implements WarpScriptFillerFunction {
+import java.util.ArrayList;
+
+public class FillerInterpolate extends NamedWarpScriptFunction implements WarpScriptFillerFunction, WarpScriptSingleValueFillerFunction.Precomputable {
   
   public FillerInterpolate(String name) {
     super(name);
@@ -108,5 +114,109 @@ public class FillerInterpolate extends NamedWarpScriptFunction implements WarpSc
   @Override
   public int getPostWindow() {
     return 1;
+  }
+  
+  public WarpScriptSingleValueFillerFunction compute(GeoTimeSerie gts) throws WarpScriptException {
+    
+    final PolynomialSplineFunction valFunction;
+    final PolynomialSplineFunction latFunction;
+    final PolynomialSplineFunction lonFunction;
+    final PolynomialSplineFunction elevationFunction;
+
+    if (gts.size() == 0) {
+      valFunction = null;
+      latFunction = null;
+      lonFunction = null;
+      elevationFunction = null;
+    } else {
+      if (GeoTimeSerie.TYPE.DOUBLE != gts.getType() && GeoTimeSerie.TYPE.LONG != gts.getType()) {
+        throw new WarpScriptException(getName() + " expects a GTS of type DOUBLE or LONG, but instead got a GTS of type " + gts.getType().name());
+      }
+
+      // values
+      double[] xval = GTSHelper.getTicksAsDouble(gts);
+      double[] fval = GTSHelper.getValuesAsDouble(gts);
+
+      int size = gts.size();
+      if (size > 1) {
+        valFunction = (new LinearInterpolator()).interpolate(xval, fval);
+      } else {
+        valFunction = null;
+      }
+
+      // positions
+      // how many ticks do have a location ?
+      int nLoc = 0;
+      for (int i = 0; i < gts.size(); i++) {
+        if (GeoTimeSerie.NO_LOCATION != GTSHelper.locationAtIndex(gts, i)) {
+          nLoc++;
+        }
+      }
+      if (nLoc > 0) {
+        double[] xLocTicks = new double[nLoc];
+        double[] fLatVal = new double[nLoc];
+        double[] fLonVal = new double[nLoc];
+        int idx = 0;
+        for (int i = 0; i < gts.size(); i++) {
+          long l = GTSHelper.locationAtIndex(gts, i);
+          if (l != GeoTimeSerie.NO_LOCATION) {
+            double[] latlon = GeoXPLib.fromGeoXPPoint(l);
+            xLocTicks[idx] = GTSHelper.tickAtIndex(gts, i);
+            fLatVal[idx] = latlon[0];
+            fLonVal[idx] = latlon[1];
+            idx++;
+          }
+        }
+        latFunction = (new LinearInterpolator()).interpolate(xLocTicks, fLatVal);
+        lonFunction = (new LinearInterpolator()).interpolate(xLocTicks, fLonVal);
+      } else {
+        latFunction = null;
+        lonFunction = null;
+      }
+
+      // elevations
+      // how many ticks do have an elevation ?
+      int nElev = 0;
+      for (int i = 0; i < gts.size(); i++) {
+        if (GeoTimeSerie.NO_ELEVATION != GTSHelper.elevationAtIndex(gts, i)) {
+          nElev++;
+        }
+      }
+      if (nElev > 0) {
+        double[] xElevTicks = new double[nElev];
+        double[] fElevVal = new double[nElev];
+        int idx = 0;
+        for (int i = 0; i < gts.size(); i++) {
+          long e = GTSHelper.elevationAtIndex(gts, i);
+          if (e != GeoTimeSerie.NO_ELEVATION) {
+            xElevTicks[idx] = GTSHelper.tickAtIndex(gts, i);
+            fElevVal[idx] = e;
+            idx++;
+          }
+        }
+        elevationFunction = (new LinearInterpolator()).interpolate(xElevTicks, fElevVal);
+      } else {
+        elevationFunction = null;
+      }
+    }
+
+    return new WarpScriptSingleValueFillerFunction() {
+      @Override
+      public void fillTick(long tick, GeoTimeSerie filled, Object invalidValue) throws WarpScriptException {
+        long position = GeoTimeSerie.NO_LOCATION;
+        long elevation = GeoTimeSerie.NO_ELEVATION;
+        if (null != elevationFunction && elevationFunction.isValidPoint(tick)) {
+          elevation = Math.round(elevationFunction.value(tick));
+        }
+        if (null != latFunction && latFunction.isValidPoint(tick)) {
+          position = GeoXPLib.toGeoXPPoint(latFunction.value(tick), lonFunction.value(tick));
+        }
+        if (null != valFunction && valFunction.isValidPoint(tick)) {
+          GTSHelper.setValue(filled, tick, position, elevation, valFunction.value(tick), false);
+        } else if (null != invalidValue) {
+          GTSHelper.setValue(filled, tick, position, elevation, invalidValue, false);
+        }
+      }
+    };
   }
 }

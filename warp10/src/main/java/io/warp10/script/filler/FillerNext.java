@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,11 +16,14 @@
 
 package io.warp10.script.filler;
 
+import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptFillerFunction;
+import io.warp10.script.WarpScriptSingleValueFillerFunction;
 
-public class FillerNext extends NamedWarpScriptFunction implements WarpScriptFillerFunction {
+public class FillerNext extends NamedWarpScriptFunction implements WarpScriptFillerFunction, WarpScriptSingleValueFillerFunction.Precomputable {
   
   public FillerNext(String name) {
     super(name);
@@ -61,5 +64,31 @@ public class FillerNext extends NamedWarpScriptFunction implements WarpScriptFil
   @Override
   public int getPreWindow() {
     return 0;
+  }
+
+  @Override
+  public WarpScriptSingleValueFillerFunction compute(GeoTimeSerie gts) throws WarpScriptException {
+
+    GTSHelper.sort(gts);
+    final int nTicks = gts.size();
+    final GeoTimeSerie original = gts;
+    final long lastTick = GTSHelper.tickAtIndex(original, nTicks - 1);
+
+    return new WarpScriptSingleValueFillerFunction() {
+      private int currentIndex = 0;
+      @Override
+      public void fillTick(long tick, GeoTimeSerie filled, Object invalidValue) throws WarpScriptException {
+        if (0 == nTicks || tick >= lastTick) {
+          if (null != invalidValue && tick != lastTick) {
+            GTSHelper.setValue(filled, tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, invalidValue, false);
+          }
+          return;
+        }
+        while (tick > GTSHelper.tickAtIndex(original, currentIndex) && currentIndex < nTicks) {
+          currentIndex++;
+        }
+        GTSHelper.setValue(filled, tick, GTSHelper.locationAtIndex(original, currentIndex), GTSHelper.elevationAtIndex(original, currentIndex), GTSHelper.valueAtIndex(original, currentIndex), false);
+      }
+    };
   }
 }

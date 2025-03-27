@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2023  SenX S.A.S.
+//   Copyright 2020-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -52,6 +52,7 @@ import io.warp10.continuum.gts.GTSDecoder;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.continuum.store.thrift.data.DatalogRecord;
+import io.warp10.continuum.store.thrift.data.KVStoreRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.standalone.StandaloneDirectoryClient;
@@ -77,6 +78,7 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
   public static final String CONFIG_DATALOG_MANAGER_FORWARD = "datalog.manager.forward";
   public static final String CONFIG_DATALOG_MANAGER_LOGUPDATES = "datalog.manager.logupdates";
   public static final String CONFIG_DATALOG_MANAGER_LOGDELETES = "datalog.manager.logdeletes";
+  public static final String CONFIG_DATALOG_MANAGER_LOGKVSTORES = "datalog.manager.logkvstores";
 
   public static final String CONFIG_DATALOG_FEEDER_ID = "datalog.feeder.id";
   public static final String CONFIG_DATALOG_FEEDER_HOST = "datalog.feeder.host";
@@ -86,6 +88,7 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
   public static final String CONFIG_DATALOG_FEEDER_MAXSIZE = "datalog.feeder.maxsize";
   public static final String CONFIG_DATALOG_FEEDER_INFLIGHT = "datalog.feeder.inflight";
   public static final String CONFIG_DATALOG_FEEDER_TIMEOUT = "datalog.feeder.timeout";
+  public static final String CONFIG_DATALOG_FEEDER_KEEPALIVE = "datalog.feeder.keepalive";
   public static final String CONFIG_DATALOG_FEEDER_DIR = "datalog.feeder.dir";
   public static final String CONFIG_DATALOG_FEEDER_ECC_PRIVATE = "datalog.feeder.ecc.private";
   public static final String CONFIG_DATALOG_FEEDER_ENCRYPT = "datalog.feeder.encrypt";
@@ -94,6 +97,7 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
   public static final String CONFIG_DATALOG_CONSUMER_ECC_PRIVATE = "datalog.consumer.ecc.private";
   public static final String CONFIG_DATALOG_CONSUMER_FEEDER_ECC_PUBLIC = "datalog.consumer.feeder.ecc.public";
   public static final String CONFIG_DATALOG_CONSUMER_ID = "datalog.consumer.id";
+  public static final String CONFIG_DATALOG_CONSUMER_KEEPALIVE = "datalog.consumer.keepalive";
   public static final String CONFIG_DATALOG_CONSUMER_EXCLUDED = "datalog.consumer.excluded";
   public static final String CONFIG_DATALOG_CONSUMER_FEEDER_HOST = "datalog.consumer.feeder.host";
   public static final String CONFIG_DATALOG_CONSUMER_FEEDER_PORT = "datalog.consumer.feeder.port";
@@ -166,6 +170,7 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
    */
   private final boolean logupdates;
   private final boolean logdeletes;
+  private final boolean logkvstores;
 
   private static final boolean REGISTER_UPDATES;
 
@@ -222,9 +227,10 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
       throw new RuntimeException("Missing Datalog id '" + CONFIG_DATALOG_MANAGER_ID + "'.");
     }
 
-    // Should we log UPDATE / DELETE records?
+    // Should we log UPDATE / DELETE / KVSTORE records?
     this.logupdates = "true".equals(WarpConfig.getProperty(CONFIG_DATALOG_MANAGER_LOGUPDATES, "true"));
     this.logdeletes = "true".equals(WarpConfig.getProperty(CONFIG_DATALOG_MANAGER_LOGDELETES, "true"));
+    this.logkvstores = "true".equals(WarpConfig.getProperty(CONFIG_DATALOG_MANAGER_LOGKVSTORES, "true"));
 
     if (null != WarpConfig.getProperty(CONFIG_DATALOG_MANAGER_FORWARD)) {
       String[] ids =  WarpConfig.getProperty(CONFIG_DATALOG_MANAGER_FORWARD).split(",");
@@ -349,8 +355,21 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
     if (null == metadata) {
       return;
     }
-    System.out.println("delete: " + token + " " + metadata + " " + start + " " + end);
+    //System.out.println("delete: " + token + " " + metadata + " " + start + " " + end);
     append(DatalogHelper.getDeleteRecord(id, token, metadata, start, end));
+  }
+
+  @Override
+  protected void kvstore(KVStoreRequest request) throws IOException {
+    if (!logkvstores) {
+      return;
+    }
+
+    if (null == request) {
+      append(null);
+    } else {
+      append(DatalogHelper.getKVStoreRecord(id, request));
+    }
   }
 
   @Override
@@ -360,6 +379,7 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
     if (null == record) {
       this.storeClient.store(null);
       this.storeClient.delete(null, null, Long.MAX_VALUE, Long.MAX_VALUE);
+      this.storeClient.kvstore(null);
       this.directoryClient.unregister(null);
       this.directoryClient.register(null);
       return;
@@ -408,6 +428,10 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
 
       case DELETE:
         this.storeClient.delete(record.getToken(), record.getMetadata(), record.getStart(), record.getStop());
+        break;
+
+      case KVSTORE:
+        this.storeClient.kvstore(record.getKvstorerequest());
         break;
     }
 
@@ -527,7 +551,7 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
         long count = 0L;
 
         while(reader.next(key, val)) {
-          System.out.println("VAL=" + DatalogHelper.getRecord(val.getBytes(), 0, val.getLength()));
+          //System.out.println("VAL=" + DatalogHelper.getRecord(val.getBytes(), 0, val.getLength()));
           count++;
         }
 
@@ -575,7 +599,7 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
         key[offset++] = (byte) ((l >>> 8) & 0xFFL);
         key[offset++] = (byte) (l & 0xFFL);
 
-        l = record.getMetadata().getClassId();
+        l = null == record.getMetadata() ? 0L : record.getMetadata().getClassId();
         key[offset++] = (byte) ((l >>> 56) & 0xFFL);
         key[offset++] = (byte) ((l >>> 48) & 0xFFL);
         key[offset++] = (byte) ((l >>> 40) & 0xFFL);
@@ -585,7 +609,7 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
         key[offset++] = (byte) ((l >>> 8) & 0xFFL);
         key[offset++] = (byte) (l & 0xFFL);
 
-        l = record.getMetadata().getLabelsId();
+        l = null == record.getMetadata() ? 0L : record.getMetadata().getLabelsId();
         key[offset++] = (byte) ((l >>> 56) & 0xFFL);
         key[offset++] = (byte) ((l >>> 48) & 0xFFL);
         key[offset++] = (byte) ((l >>> 40) & 0xFFL);
@@ -625,6 +649,7 @@ public class FileBasedDatalogManager extends DatalogManager implements Runnable 
       while(true) {
         // Should we close the current file and reopen a new one?
         if (done.get() || null == datalog || size.get() > MAXSIZE || System.currentTimeMillis() - start.get() > MAXTIME) {
+
           try {
             lock.lockInterruptibly();
 

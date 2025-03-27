@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2022  SenX S.A.S.
+//   Copyright 2020-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import java.io.IOException;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.store.StoreClient;
 import io.warp10.continuum.store.thrift.data.DatalogRecord;
+import io.warp10.continuum.store.thrift.data.KVStoreRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.standalone.StandaloneDirectoryClient;
@@ -39,6 +40,7 @@ public abstract class DatalogManager {
   protected abstract void unregister(Metadata metadata) throws IOException;
   protected abstract void store(GTSEncoder encoder) throws IOException;
   protected abstract void delete(WriteToken token, Metadata metadata, long start, long end) throws IOException;
+  protected abstract void kvstore(KVStoreRequest request) throws IOException;
 
   /**
    * Method to process a record retrieved from a feeder. This is different from locally generated

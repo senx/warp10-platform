@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2024  SenX S.A.S.
+//   Copyright 2018-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 package io.warp10.script.functions;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -39,7 +40,8 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
   public static String PARAM_TICKS = "ticks";
   public static String PARAM_VERIFY = "verify";
   public static String PARAM_INVALID_VALUE = "invalid.value";
-
+  public static String DEPRECATED_PARAM_FORCE_OLD_FILLER_FLAG = "force.old.filler"; // undocumented flag to cover an edge case of filler.interpolate with geo See PR#1397.
+  
   /**
    * If a macro is passed as the filler parameter, FILL will use this method to wrap it as the filler function.
    * The macro expects a gts and a tick on the stack and it outputs an object (the value to be filled).
@@ -55,11 +57,16 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
       public WarpScriptSingleValueFillerFunction compute(GeoTimeSerie gts) throws WarpScriptException {
         return new WarpScriptSingleValueFillerFunction() {
           @Override
-          public Object evaluate(long tick) throws WarpScriptException {
+          public void fillTick(long tick, GeoTimeSerie gtsFilled, Object invalidValue) throws WarpScriptException {
             stack.push(gts);
             stack.push(tick);
             stack.exec(macro);
-            return stack.pop();
+            Object out = stack.pop();
+            if (null != out) {
+              GTSHelper.setValue(gts, tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, out, false);
+            } else if (null != invalidValue) {
+              GTSHelper.setValue(gts, tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, invalidValue, false);
+            }
           }
         };
       }
@@ -69,7 +76,7 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
   public FILL(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
     if (stack.peek() instanceof WarpScriptFillerFunction || stack.peek() instanceof WarpScriptSingleValueFillerFunction || stack.peek() instanceof Macro) {
@@ -171,20 +178,17 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
       if (!(ticks instanceof List)) {
         throw new WarpScriptException(getName() + " expects parameter " + PARAM_TICKS + " to be a LIST, but instead got a " + TYPEOF.typeof(ticks));
       }
-      for (Object o: (List) ticks) {
-        if (!(o instanceof Long)) {
-          throw new WarpScriptException(getName() + " expects parameter " + PARAM_TICKS + " to be a LIST of LONG, but it contains a " + TYPEOF.typeof(o));
-        }
-      }
-
-      if (verify) {
-        List<Long> deduplicatedTicks = new ArrayList<Long>();
-        for (Long l: (List<Long>) ticks) {
-          if (!(deduplicatedTicks.contains(l))) {
-            deduplicatedTicks.add(l);
+      if(((List)ticks).size() > 0) {
+        for (Object o: (List) ticks) {
+          if (!(o instanceof Long)) {
+            throw new WarpScriptException(getName() + " expects parameter " + PARAM_TICKS + " to be a LIST of LONG, but it contains a " + TYPEOF.typeof(o));
           }
         }
-        ticks = deduplicatedTicks;
+        if (verify) {
+          ticks = sortDedupTicks((List<Long>) ticks);
+        }
+      } else {
+        ticks = null;
       }
     }
 
@@ -199,9 +203,15 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
 
     Object invalidValue = params.get(PARAM_INVALID_VALUE);
 
+    boolean forceOldFiller = false; // this is an undocumented flag. The new filler.interpolate add more geo than the previous one. Use it to force the previous (slow) behavior 
+    Object f = params.get(DEPRECATED_PARAM_FORCE_OLD_FILLER_FLAG);
+    if (f instanceof Boolean) {
+      forceOldFiller = (boolean) f;
+    }
+    
     List res = new ArrayList<GeoTimeSerie>();
     if (stack.peek() instanceof GeoTimeSerie) {
-      if (filler instanceof WarpScriptSingleValueFillerFunction) {
+      if (!forceOldFiller && filler instanceof WarpScriptSingleValueFillerFunction) {
         res.add(GTSHelper.fill((GeoTimeSerie) stack.pop(), (WarpScriptSingleValueFillerFunction) filler, (List<Long>) ticks, verify, invalidValue));
 
       } else if (filler instanceof WarpScriptFillerFunction) {
@@ -216,9 +226,8 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
         if (!(o instanceof GeoTimeSerie)) {
           throw new WarpScriptException(getName() + " expects a LIST of GTS, but instead the list contains a " + TYPEOF.typeof(o));
         }
-        if (filler instanceof WarpScriptSingleValueFillerFunction) {
+        if (!forceOldFiller && filler instanceof WarpScriptSingleValueFillerFunction) {
           res.add(GTSHelper.fill((GeoTimeSerie) o, (WarpScriptSingleValueFillerFunction) filler, (List<Long>) ticks, verify, invalidValue));
-
         } else if (filler instanceof WarpScriptFillerFunction) {
           res.add(GTSHelper.fill((GeoTimeSerie) o, (WarpScriptFillerFunction) filler, (List<Long>) ticks, verify, invalidValue));
 
@@ -236,6 +245,59 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
     return stack;
   }
 
+  private List<Long> sortDedupTicks(List<Long> ticks) {
+    if (ticks.size() < 2) {
+      return ticks;
+    }
+
+    // check that the list is sorted, sort if needed
+    long previousTick = ticks.get(0);
+    for (int i = 1; i < ticks.size(); i++) {
+      long t = ticks.get(i);
+      if (t < previousTick) {
+        Collections.sort(ticks);
+        break;
+      }
+      previousTick = t;
+    }
+
+    // deduplicate if needed
+    long[] deduplicatedTicks = null;
+    int idx2 = 0;
+
+    Long lasttick = null;
+
+    int idx = 0;
+
+    int n = ticks.size();
+
+    while (idx < n) {
+      Long tick = ticks.get(idx);
+      if (tick.equals(lasttick)) { // Duplicate tick
+        if (null == deduplicatedTicks) { // First duplicate tick
+          deduplicatedTicks = new long[ticks.size() - 1];
+          idx2 = 0;
+          // Copy the first idx -1 values
+          for (int i = 0; i < idx - 1; i++) {
+            deduplicatedTicks[idx2++] = ticks.get(i);
+          }
+        }
+      } else if (null != deduplicatedTicks) { // Already encountered a duplicate tick, store tick
+        deduplicatedTicks[idx2++] = tick;
+      }
+      lasttick = tick;
+      idx++;
+    }
+    if (null != deduplicatedTicks) {
+      ticks = new ArrayList<Long>(idx2);
+      for (int i = 0; i < idx2; i++) {
+        ticks.add(deduplicatedTicks[i]);
+      }
+    }
+
+    return ticks;
+  }
+    
   /**
    * Expected signatures:
    * [ a:GTS b:Filler ] FILL res:List<GTS>
@@ -271,17 +333,14 @@ public class FILL extends NamedWarpScriptFunction implements WarpScriptStackFunc
       if (!(params.get(2) instanceof List)) {
         throw new WarpScriptException(getName() + "expects the last parameter of the input LIST to be a LIST");
       }
-
-      ticks = new ArrayList<Long>();
-      for (Object o: (List) params.get(2)) {
-        if (!(o instanceof Long)) {
-          throw new WarpScriptException(getName() + " expects the last parameter of the input LIST to be a LIST of LONG, but it contains a " + TYPEOF.typeof(o));
+      if (((List) params.get(2)).size() > 0) {
+        ticks = new ArrayList<Long>();
+        for (Object o: (List) params.get(2)) {
+          if (!(o instanceof Long)) {
+            throw new WarpScriptException(getName() + " expects the last parameter of the input LIST to be a LIST of LONG, but it contains a " + TYPEOF.typeof(o));
+          }
         }
-
-        // duplicates are not kept (verify is true)
-        if (!(ticks.contains(o))) {
-          ticks.add((Long) o);
-        }
+        ticks = sortDedupTicks((List<Long>) (params.get(2)));
       }
     }
 

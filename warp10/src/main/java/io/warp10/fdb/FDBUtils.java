@@ -1,5 +1,5 @@
 //
-//   Copyright 2022-2023  SenX S.A.S.
+//   Copyright 2022-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -49,6 +49,7 @@ public class FDBUtils {
   public static final String KEY_ID = "id";
   public static final String KEY_PREFIX = "prefix";
 
+  public static final int MAX_KEY_SIZE = 10000;
   public static final int MAX_VALUE_SIZE = 100000;
   public static final long MAX_TXN_SIZE = 10000000;
 

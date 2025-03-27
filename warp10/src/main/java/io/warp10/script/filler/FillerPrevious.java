@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,11 +16,14 @@
 
 package io.warp10.script.filler;
 
+import io.warp10.continuum.gts.GTSHelper;
+import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptFillerFunction;
+import io.warp10.script.WarpScriptSingleValueFillerFunction;
 
-public class FillerPrevious extends NamedWarpScriptFunction implements WarpScriptFillerFunction {
+public class FillerPrevious extends NamedWarpScriptFunction implements WarpScriptFillerFunction, WarpScriptSingleValueFillerFunction.Precomputable {
   
   public FillerPrevious(String name) {
     super(name);
@@ -63,4 +66,34 @@ public class FillerPrevious extends NamedWarpScriptFunction implements WarpScrip
     return 1;
   }
 
+  @Override
+  public WarpScriptSingleValueFillerFunction compute(GeoTimeSerie gts) throws WarpScriptException {
+
+    GTSHelper.sort(gts);
+    final int nTicks = gts.size();
+    final GeoTimeSerie original = gts;
+    final long firstTick = GTSHelper.tickAtIndex(original, 0);
+
+    return new WarpScriptSingleValueFillerFunction() {
+      private int currentIndex = 0;
+
+      @Override
+      public void fillTick(long tick, GeoTimeSerie filled, Object invalidValue) throws WarpScriptException {
+
+        if (0 == nTicks || tick <= firstTick) {
+          if (null != invalidValue && tick != firstTick) {
+            GTSHelper.setValue(filled, tick, GeoTimeSerie.NO_LOCATION, GeoTimeSerie.NO_ELEVATION, invalidValue, false);
+          }
+          return;
+        }
+        while (tick > GTSHelper.tickAtIndex(original, currentIndex) && currentIndex < nTicks) {
+          currentIndex++;
+        }
+        int previousIndex = 0 == currentIndex ? 0 : currentIndex - 1;
+        GTSHelper.setValue(filled, tick, GTSHelper.locationAtIndex(original, previousIndex), GTSHelper.elevationAtIndex(original, previousIndex), GTSHelper.valueAtIndex(original, previousIndex), false);
+
+      }
+
+    };
+  }
 }

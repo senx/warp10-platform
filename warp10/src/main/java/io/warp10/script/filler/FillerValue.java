@@ -1,5 +1,5 @@
 //
-//   Copyright 2023  SenX S.A.S.
+//   Copyright 2023-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -17,22 +17,29 @@
 package io.warp10.script.filler;
 
 import com.geoxp.GeoXPLib;
+import io.warp10.continuum.gts.GTSHelper;
 import io.warp10.continuum.gts.GeoTimeSerie;
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
 import io.warp10.script.WarpScriptFillerFunction;
 import io.warp10.script.WarpScriptLib;
+import io.warp10.script.WarpScriptSingleValueFillerFunction;
 import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.functions.SNAPSHOT;
 
 import java.util.List;
 
-public class FillerValue extends NamedWarpScriptFunction implements WarpScriptFillerFunction, SNAPSHOT.Snapshotable {
+public class FillerValue extends NamedWarpScriptFunction implements WarpScriptFillerFunction, SNAPSHOT.Snapshotable, WarpScriptSingleValueFillerFunction {
 
   private long latlon;
   private long elev;
   private Object value;
+
+  @Override
+  public void fillTick(long tick, GeoTimeSerie filled, Object invalidValue) throws WarpScriptException {
+    GTSHelper.setValue(filled, tick, latlon, elev, value, false);
+  }
 
   public static class Builder extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 

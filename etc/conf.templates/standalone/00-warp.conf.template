@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2023  SenX S.A.S.
+//   Copyright 2019-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -278,3 +278,21 @@ warp.token.read.attributes.default = { '.cap:limits' '' }
 // Set to true to allow Directory queries with missing label selectors (using empty exact match)
 //
 warp10.absent.label.support = true
+
+//
+// KVSTORE
+//
+
+//
+// Maximum key size (in bytes) for data stored via KVSTORE. Defaults to 128 bytes
+// Note, for standalone+ and distributed versions backed by FoundationDB, the value should not exceed 8192
+// Careful when forwarding KVSTORE events via Datalog to instances backed by FoundationDB, in that case 8192 is also a hard limit even for instances NOT backed by FoundationDB
+// 
+#warp.kvstore.maxk = 128
+
+//
+// Maximum value size (in bytes) for data stored via KVSTORE. Defaults to 1024 bytes
+// Note, for standalone+ and distributed versions backed by FoundationDB, the value should not exceed 98304 bytes
+// Careful when forwarding KVSTORE events via Datalog to instances backed by FoundationDB, in that case 98304 is also a hard limit even for instances NOT backed by FoundationDB
+// 
+#warp.kvstore.maxv = 1024

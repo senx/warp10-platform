@@ -31,6 +31,16 @@ public class SensisionConstants {
   //
 
   /**
+   * Number of FoundationDB sets committed in 'Egress'
+   */
+  public static final String SENSISION_CLASS_CONTINUUM_EGRESS_FDB_SETS_COMMITTED = "warp.egress.fdb.sets.committed";
+
+  /**
+   * Number of FoundationDB clears committed in 'Egress'
+   */
+  public static final String SENSISION_CLASS_CONTINUUM_EGRESS_FDB_CLEARS_COMMITTED = "warp.egress.fdb.clears.committed";
+
+  /**
    * Number of times we have reached the maximum number of version attempts
    */
   public static final String CLASS_WARP_FDB_MAXFORCEDVERSION = "warp.fdb.maxforcedversion";

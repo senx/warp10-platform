@@ -1,5 +1,5 @@
 //
-//   Copyright 2020-2023  SenX S.A.S.
+//   Copyright 2020-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -19,18 +19,19 @@ package io.warp10.standalone.datalog;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.SocketTimeoutException;
 
 import org.apache.thrift.TBase;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
-import org.apache.thrift.protocol.TCompactProtocol;
 
 import io.warp10.ThriftUtils;
 import io.warp10.WarpConfig;
 import io.warp10.continuum.gts.GTSEncoder;
 import io.warp10.continuum.store.thrift.data.DatalogRecord;
 import io.warp10.continuum.store.thrift.data.DatalogRecordType;
+import io.warp10.continuum.store.thrift.data.KVStoreRequest;
 import io.warp10.continuum.store.thrift.data.Metadata;
 import io.warp10.quasar.token.thrift.data.WriteToken;
 
@@ -86,6 +87,16 @@ public class DatalogHelper {
     record.setId(id);
     record.setTimestamp(System.currentTimeMillis());
     record.setMetadata(metadata);
+
+    return record;
+  }
+
+  public static DatalogRecord getKVStoreRecord(String id, KVStoreRequest request) throws IOException {
+    DatalogRecord record = new DatalogRecord();
+    record.setType(DatalogRecordType.KVSTORE);
+    record.setId(id);
+    record.setTimestamp(System.currentTimeMillis());
+    record.setKvstorerequest(request);
 
     return record;
   }
@@ -181,12 +192,22 @@ public class DatalogHelper {
 
     int len = 0;
 
+    // Tolerate a certain number of timeouts
+    int timeouts = 3;
+
     while(len < size) {
-      int nread = in.read(bytes, len, size - len);
-      if (nread < 0) {
-        throw new IOException("EOF reached.");
+      try {
+        int nread = in.read(bytes, len, size - len);
+        if (nread < 0) {
+          throw new IOException("EOF reached.");
+        }
+        len += nread;
+      } catch (SocketTimeoutException ste) {
+        // Ignore a max number of successive timeouts when reading
+        if (--timeouts <= 0) {
+          throw ste;
+        }
       }
-      len += nread;
     }
 
     return bytes;
