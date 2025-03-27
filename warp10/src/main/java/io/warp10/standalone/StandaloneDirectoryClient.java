@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2024  SenX S.A.S.
+//   Copyright 2018-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -103,7 +103,7 @@ public class StandaloneDirectoryClient implements DirectoryClient {
 
   private static final String DIRECTORY_INIT_NTHREADS_DEFAULT = "4";
 
-  private static final byte[] METADATA_PREFIX = "M".getBytes(StandardCharsets.US_ASCII);
+  public static final byte[] METADATA_PREFIX = "M".getBytes(StandardCharsets.US_ASCII);
 
   private static final int MAX_BATCH_SIZE = 500000;
 
