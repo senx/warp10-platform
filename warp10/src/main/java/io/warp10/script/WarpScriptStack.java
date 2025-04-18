@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2024  SenX S.A.S.
+//   Copyright 2018-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -307,6 +307,16 @@ public interface WarpScriptStack {
    * Stack attribute used to indicate the execution is currently timeboxed
    */
   public static final String ATTRIBUTE_TIMEBOXED = "stack.timeboxed";
+
+  /**
+   * Capability for allowing calls to RUNNERS. Value is a forced regular expression
+   */
+  public static final String CAPNAME_RUNNERS = "runners";
+
+  /**
+   * Capability for allowing calls to RUNNERFORCE. Value is a regular expression
+   */
+  public static final String CAPNAME_RUNNERFORCE = "runnerforce";
 
   /**
    * Cap name for runner rescheduling minimum period in millisecond

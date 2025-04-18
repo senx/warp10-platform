@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -100,6 +100,9 @@ public class StandaloneScriptRunner extends ScriptRunner {
     try {
 
       final long scheduledat = System.currentTimeMillis();
+      final Map<String,Long> flastrun = this.lastrun;
+      final Map<String,Long> flastduration = this.lastduration;
+      final Map<String,String> flasterror = this.lasterror;
 
       this.executor.submit(new Runnable() {
         @Override
@@ -247,7 +250,10 @@ public class StandaloneScriptRunner extends ScriptRunner {
             if (stack.getAttribute(WarpScriptStack.ATTRIBUTE_RUNNER_RESCHEDULE_TIMESTAMP) instanceof Long) {
               runnerAtForNextRun = (Long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_RUNNER_RESCHEDULE_TIMESTAMP);
             }
+
+            flasterror.remove(script);
           } catch (Exception e) {
+            flasterror.put(script, e.getMessage());
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_FAILURES, labels, 1);
           } finally {
             WarpConfig.clearThreadProperties();
@@ -262,8 +268,10 @@ public class StandaloneScriptRunner extends ScriptRunner {
             long runnerAtTime = TimeSource.currentTimeMillisToNanoTime(runnerAtForNextRun);
             // Next script is scheduled at min(RUNNERAT, RUNNERIN)
             // if none of these functions are used, it is scheduled at period defined by script path.
+            flastrun.put(script, nano);
             nextrun.put(script, Math.min(runnerInTime, runnerAtTime));
             nano = System.nanoTime() - nano;
+            flastduration.put(script, nano);
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_TIME_US, labels, ttl, nano / 1000L);
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_ELAPSED, labels, ttl, nano);
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_OPS, labels, ttl, (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_OPS));

@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2023  SenX S.A.S.
+//   Copyright 2018-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -37,7 +37,9 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.PriorityQueue;
 import java.util.Properties;
 import java.util.Set;
@@ -98,6 +100,8 @@ import io.warp10.sensision.Sensision;
 public class ScriptRunner extends Thread {
 
   private static final Logger LOG = LoggerFactory.getLogger(ScriptRunner.class);
+
+  private static ScriptRunner INSTANCE = null;
 
   /*
    * CLEAR footer, used to remove all symbols and clear the stack so no output is returned
@@ -183,6 +187,23 @@ public class ScriptRunner extends Thread {
   private final boolean runAtStartup;
 
   private static final Pattern VAR = Pattern.compile("\\$\\{([^}]+)\\}");
+
+  //
+  // Map of script path to next scheduled run
+  //
+
+  protected final Map<String, Long> nextrun = new ConcurrentHashMap<String, Long>();
+  // Time (in ms since the epoch) of last run
+  protected final Map<String, Long> lastrun = new ConcurrentHashMap<String, Long>();
+  // Duration (in ms) of the last run
+  protected final Map<String, Long> lastduration = new ConcurrentHashMap<String, Long>();
+  // Status of last execution, either null or the error message.
+  protected final Map<String, String> lasterror = new ConcurrentHashMap<String, String>();
+
+  private static final String KEY_LASTRUN = "lastrun";
+  private static final String KEY_LASTERROR = "lasterror";
+  private static final String KEY_LASTDURATION = "lastduration";
+  private static final String KEY_NEXTRUN = "nextrun";
 
   public ScriptRunner(KeyStore keystore, Properties config) throws IOException {
     //
@@ -359,12 +380,6 @@ public class ScriptRunner extends Thread {
 
     final Map<String, Long> scripts = new HashMap<String, Long>();
 
-    //
-    // Map of script path to next scheduled run
-    //
-
-    final Map<String, Long> nextrun = new ConcurrentHashMap<String, Long>();
-
     final AtomicLong nanoref = new AtomicLong();
 
     PriorityQueue<String> runnables = new PriorityQueue<String>(1, new Comparator<String>() {
@@ -406,6 +421,9 @@ public class ScriptRunner extends Thread {
         for (String prevscript: currentScripts) {
           if (!scripts.containsKey(prevscript)) {
             nextrun.remove(prevscript);
+            lastrun.remove(prevscript);
+            lastduration.remove(prevscript);
+            lasterror.remove(prevscript);
             removeRunnerContext(prevscript);
           }
         }
@@ -476,6 +494,9 @@ public class ScriptRunner extends Thread {
     try {
 
       final long scheduledat = System.currentTimeMillis();
+      final Map<String,Long> flastrun = this.lastrun;
+      final Map<String,Long> flastduration = this.lastduration;
+      final Map<String,String> flasterror = this.lasterror;
 
       this.executor.submit(new Runnable() {
         @Override
@@ -649,12 +670,18 @@ public class ScriptRunner extends Thread {
 
             if (200 != conn.getResponseCode()) {
               Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_FAILURES, labels, ttl, 1);
+              flasterror.put(script, conn.getResponseMessage());
+            } else {
+              flasterror.remove(script);
             }
           } catch (Exception e) {
+            flasterror.put(script, e.getMessage());
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_FAILURES, labels, ttl, 1);
           } finally {
+            flastrun.put(script, nano);
             nextrun.put(script, nowns + periodicity * 1000000L);
             nano = System.nanoTime() - nano;
+            flastduration.put(script, nano);
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_TIME_US, labels, ttl, nano / 1000L);
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_CURRENT, Sensision.EMPTY_LABELS, -1);
             if (null != conn) {
@@ -687,6 +714,10 @@ public class ScriptRunner extends Thread {
     long now = System.currentTimeMillis();
     long nowts = System.nanoTime();
 
+    final Map<String,Long> flastrun = this.lastrun;
+    final Map<String,Long> flastduration = this.lastduration;
+    final Map<String,String> flasterror = this.lasterror;
+
     request.setScheduledAt(now);
     request.setPeriodicity(periodicity);
     request.setPath(path);
@@ -713,11 +744,15 @@ public class ScriptRunner extends Thread {
         out.write(buf, 0, len);
         out.close();
       }
+      flasterror.remove(script);
     } catch (IOException ioe) {
       // Reschedule immediately
+      flasterror.put(script, ioe.getMessage());
       nextrun.put(script, System.nanoTime());
       return;
     } finally {
+      flastrun.put(script, nowts);
+      flastduration.put(script, System.nanoTime() - nowts);
       if (null != in) {
         try {
           in.close();
@@ -888,5 +923,67 @@ public class ScriptRunner extends Thread {
     KeyStore.checkAndSetKey(keystore, KeyStore.SIPHASH_KAFKA_RUNNER, props, Configuration.RUNNER_KAFKA_MAC, 128);
 
     this.keystore.forget();
+  }
+
+  /**
+   * Return the next run for the runners matching the provided regexp.
+   * The next run time is in nanoseconds
+   * @param regexp Regexp to match runners path (relative to root)
+   * @return
+   */
+  public Map<String,Object> getScheduled(String regexp) throws IOException {
+    Map<String,Object> scheduled = new LinkedHashMap<String,Object>();
+
+    Matcher m = null != regexp ? Pattern.compile(regexp).matcher("") : null;
+
+    Path root = new File(this.root).toPath();
+
+    for (Entry<String,Long> entry: this.nextrun.entrySet()) {
+      Path p = new File(entry.getKey()).toPath();
+
+      String name = null;
+
+      if (p.startsWith(root)) {
+        String runner = p.getName(p.getNameCount() - 1).toString();
+        String periodicity = p.getName(p.getNameCount() - 2).toString();
+        String group = p.getName(p.getNameCount() - 3).toString();
+
+        name = group + "/" + periodicity + "/" + runner;
+
+        if (null != m) {
+          if (!m.reset(name).matches()) {
+            continue;
+          }
+        }
+      }
+
+      Map<String,Object> params = new LinkedHashMap<String,Object>();
+      Long lrun = lastrun.get(entry.getKey());
+      Long lduration = lastduration.get(entry.getKey());
+      String lerror = lasterror.get(entry.getKey());
+
+      long nanodelta = TimeSource.getNanoTime() - System.nanoTime();
+      // Convert to ms
+      params.put(KEY_LASTRUN, null == lrun ? Long.MIN_VALUE : (lrun.longValue() + nanodelta));
+      params.put(KEY_LASTDURATION, null == lduration ? 0L : lduration);
+      params.put(KEY_LASTERROR, lerror);
+      params.put(KEY_NEXTRUN, null == entry.getValue() ? Long.MAX_VALUE : (entry.getValue().longValue() + nanodelta));
+      scheduled.put(name, params);
+    }
+
+    return scheduled;
+  }
+
+  public void reschedule(String script, long when) {
+    long nanodelta = TimeSource.getNanoTime() - System.nanoTime();
+    this.nextrun.put(new File(this.root, script).toString(), when - nanodelta);
+  }
+
+  public static void register(ScriptRunner sr) {
+    INSTANCE = sr;
+  }
+
+  public static ScriptRunner getInstance() {
+    return INSTANCE;
   }
 }
