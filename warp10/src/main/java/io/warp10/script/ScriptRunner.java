@@ -91,6 +91,8 @@ import io.warp10.crypto.DummyKeyStore;
 import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.crypto.SipHashInline;
+import io.warp10.script.functions.RUNNERFORCE;
+import io.warp10.script.functions.RUNNERS;
 import io.warp10.sensision.Sensision;
 
 /**
@@ -205,6 +207,15 @@ public class ScriptRunner extends Thread {
   private static final String KEY_LASTDURATION = "lastduration";
   private static final String KEY_NEXTRUN = "nextrun";
 
+  static {
+    //
+    // Register functions which require the existence of ScriptRunner
+    //
+
+    WarpScriptLib.addNamedWarpScriptFunction(new RUNNERFORCE(WarpScriptLib.RUNNERFORCE));
+    WarpScriptLib.addNamedWarpScriptFunction(new RUNNERS(WarpScriptLib.RUNNERS));
+
+  }
   public ScriptRunner(KeyStore keystore, Properties config) throws IOException {
     //
     // Extract our roles

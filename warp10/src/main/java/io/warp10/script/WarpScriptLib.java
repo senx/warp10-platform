@@ -539,10 +539,8 @@ import io.warp10.script.functions.RSORT;
 import io.warp10.script.functions.RTFM;
 import io.warp10.script.functions.RUN;
 import io.warp10.script.functions.RUNNERAT;
-import io.warp10.script.functions.RUNNERFORCE;
 import io.warp10.script.functions.RUNNERIN;
 import io.warp10.script.functions.RUNNERNONCE;
-import io.warp10.script.functions.RUNNERS;
 import io.warp10.script.functions.RUNR;
 import io.warp10.script.functions.RVALUESORT;
 import io.warp10.script.functions.SAVE;
@@ -2312,8 +2310,6 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new RUNNERNONCE(RUNNERNONCE));
     addNamedWarpScriptFunction(new RUNNERAT(RUNNERAT));
     addNamedWarpScriptFunction(new RUNNERIN(RUNNERIN));
-    addNamedWarpScriptFunction(new RUNNERFORCE(RUNNERFORCE));
-    addNamedWarpScriptFunction(new RUNNERS(RUNNERS));
 
     addNamedWarpScriptFunction(new GZIP(GZIP));
     addNamedWarpScriptFunction(new UNGZIP(UNGZIP));
