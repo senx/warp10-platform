@@ -253,7 +253,15 @@ public class StandaloneScriptRunner extends ScriptRunner {
 
             flasterror.remove(script);
           } catch (Exception e) {
-            flasterror.put(script, e.getMessage());
+            StringBuilder sb = new StringBuilder();
+            if (stack.getAttribute(WarpScriptStack.ATTRIBUTE_LAST_ERRORPOS) instanceof String) {
+              sb.append(stack.getAttribute(WarpScriptStack.ATTRIBUTE_LAST_ERRORPOS));
+            } else {
+              sb.append("-");
+            }
+            sb.append(" ");
+            sb.append(e.getMessage());
+            flasterror.put(script, sb.toString());
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_FAILURES, labels, 1);
           } finally {
             WarpConfig.clearThreadProperties();

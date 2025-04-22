@@ -681,7 +681,42 @@ public class ScriptRunner extends Thread {
 
             if (200 != conn.getResponseCode()) {
               Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_FAILURES, labels, ttl, 1);
-              flasterror.put(script, conn.getResponseMessage());
+              StringBuilder sb = new StringBuilder();
+
+              String hdr = conn.getHeaderField(Constants.getHeader(Configuration.HTTP_HEADER_ERROR_LINEX));
+
+              if (null != hdr) {
+                sb.append(hdr);
+              } else {
+                sb.append("-");
+              }
+
+              sb.append(" ");
+
+              hdr = conn.getHeaderField(Constants.getHeader(Configuration.HTTP_HEADER_ERROR_POSITIONX));
+
+              if (null != hdr) {
+                sb.append(hdr);
+              } else {
+                sb.append("-");
+              }
+
+              sb.append(" ");
+
+              hdr = conn.getHeaderField(Constants.getHeader(Configuration.HTTP_HEADER_ERROR_MESSAGEX));
+
+              if (null != hdr) {
+                sb.append(hdr);
+              } else {
+                sb.append("-");
+              }
+
+              sb.append(" ");
+              sb.append(conn.getResponseCode());
+              sb.append(" ");
+              sb.append(conn.getResponseMessage());
+
+              flasterror.put(script, sb.toString());
             } else {
               flasterror.remove(script);
             }
