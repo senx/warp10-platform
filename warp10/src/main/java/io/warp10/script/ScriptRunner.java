@@ -976,7 +976,12 @@ public class ScriptRunner extends Thread {
 
   public void reschedule(String script, long when) {
     long nanodelta = TimeSource.getNanoTime() - System.nanoTime();
-    this.nextrun.put(new File(this.root, script).toString(), when - nanodelta);
+    // Add root directory
+    script = new File(this.root, script).toString();
+    // If the script is known, update the entry in nextrun
+    if (this.nextrun.containsKey(script)) {
+      this.nextrun.put(script, when - nanodelta);
+    }
   }
 
   public static void register(ScriptRunner sr) {
