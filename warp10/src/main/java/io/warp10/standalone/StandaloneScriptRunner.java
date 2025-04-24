@@ -22,6 +22,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -186,9 +187,12 @@ public class StandaloneScriptRunner extends ScriptRunner {
             //
 
             if (null != runnerPSK) {
-              byte[] now = Longs.toByteArray(TimeSource.getNanoTime());
+              byte[] noncebytes = Longs.toByteArray(TimeSource.getNanoTime());
+              byte[] pathbytes = path.getBytes(StandardCharsets.UTF_8);
+              noncebytes = Arrays.copyOf(noncebytes, 8 + pathbytes.length);
+              System.arraycopy(pathbytes,  0, noncebytes,  8, pathbytes.length);
 
-              byte[] nonce = CryptoHelper.wrapBlob(runnerPSK, now);
+              byte[] nonce = CryptoHelper.wrapBlob(runnerPSK, noncebytes);
 
               stack.store(Constants.RUNNER_NONCE, new String(OrderPreservingBase64.encode(nonce), StandardCharsets.US_ASCII));
             }

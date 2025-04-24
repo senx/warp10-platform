@@ -554,9 +554,17 @@ public class ScriptRunner extends Thread {
               // Generate a nonce by wrapping the current time jointly with random 64bits
               //
 
-              byte[] now = Longs.toByteArray(TimeSource.getNanoTime());
+              byte[] noncebytes = Longs.toByteArray(TimeSource.getNanoTime());
 
-              nonce = OrderPreservingBase64.encode(CryptoHelper.wrapBlob(runnerPSK, now));
+              //
+              // Add path
+              //
+
+              byte[] pathbytes = path.getBytes(StandardCharsets.UTF_8);
+              noncebytes = Arrays.copyOf(noncebytes, 8 + pathbytes.length);
+              System.arraycopy(pathbytes, 0, noncebytes, 8, pathbytes.length);
+
+              nonce = OrderPreservingBase64.encode(CryptoHelper.wrapBlob(runnerPSK, noncebytes));
 
               conn.setRequestProperty(Constants.HTTP_HEADER_RUNNER_NONCE, new String(nonce, StandardCharsets.US_ASCII));
             }
