@@ -1018,10 +1018,10 @@ public class ScriptRunner extends Thread {
 
       long nanodelta = TimeSource.getNanoTime() - System.nanoTime();
       // Convert to ms
-      params.put(KEY_LASTRUN, null == lrun ? Long.MIN_VALUE : (lrun.longValue() + nanodelta));
+      params.put(KEY_LASTRUN, null == lrun ? Long.MIN_VALUE : (lrun.longValue() + nanodelta) / 1_000_000L);
       params.put(KEY_LASTDURATION, null == lduration ? 0L : lduration);
       params.put(KEY_LASTERROR, lerror);
-      params.put(KEY_NEXTRUN, null == entry.getValue() ? Long.MAX_VALUE : (entry.getValue().longValue() + nanodelta));
+      params.put(KEY_NEXTRUN, null == entry.getValue() ? Long.MAX_VALUE : (entry.getValue().longValue() + nanodelta) / 1_000_000L);
       scheduled.put(name, params);
     }
 
