@@ -16,10 +16,7 @@
 
 package io.warp10.script.functions;
 
-import java.io.IOException;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Map.Entry;
+import java.math.BigInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -71,7 +68,16 @@ public class RUNNERFORCE extends NamedWarpScriptFunction implements WarpScriptSt
 
     ScriptRunner sr = ScriptRunner.getInstance();
 
-    sr.reschedule(script, timestamp * (1_000_000_000 / Constants.TIME_UNITS_PER_S));
+    // Convert the timestmap from platform time units to nanoseconds
+    // Use a BigInteger since we could overflow a LONG during the computation
+    BigInteger bi = BigInteger.valueOf(timestamp);
+    bi = bi.multiply(BigInteger.valueOf(1_000_000_000L)).divide(BigInteger.valueOf(Constants.TIME_UNITS_PER_S));
+
+    try {
+      sr.reschedule(script, bi.longValueExact());
+    } catch (ArithmeticException ae) {
+      sr.reschedule(script, Long.MAX_VALUE);
+    }
 
     return stack;
   }
