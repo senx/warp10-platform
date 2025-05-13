@@ -37,6 +37,7 @@ import com.geoxp.oss.CryptoHelper;
 
 import com.google.common.primitives.Longs;
 
+import io.warp10.ThrowableUtils;
 import io.warp10.WarpConfig;
 import io.warp10.continuum.BootstrapManager;
 import io.warp10.continuum.Configuration;
@@ -264,7 +265,7 @@ public class StandaloneScriptRunner extends ScriptRunner {
               sb.append("-");
             }
             sb.append(" ");
-            sb.append(e.getMessage());
+            sb.append(ThrowableUtils.getErrorMessage(e));
             flasterror.put(script, sb.toString());
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_FAILURES, labels, 1);
           } finally {
