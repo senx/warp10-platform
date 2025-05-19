@@ -1,5 +1,5 @@
 //
-//   Copyright 2023  SenX S.A.S.
+//   Copyright 2023-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ import io.warp10.continuum.Configuration;
 public class WarpInit {
   public static void main(String[] args) throws IOException {
     String path = args[0];
-    
+
     Options options = new Options();
     options.createIfMissing(true);
     options.verifyChecksums(true);
@@ -38,7 +38,7 @@ public class WarpInit {
 
     boolean nativedisabled = "true".equals(System.getProperty(Configuration.LEVELDB_NATIVE_DISABLE));
     boolean javadisabled = "true".equals(System.getProperty(Configuration.LEVELDB_JAVA_DISABLE));
-    
+
     try {
       if (!nativedisabled) {
         db = JniDBFactory.factory.open(new File(path), options);
@@ -46,14 +46,13 @@ public class WarpInit {
         throw new UnsatisfiedLinkError("Native LevelDB implementation disabled.");
       }
     } catch (UnsatisfiedLinkError ule) {
-      ule.printStackTrace();
       if (!javadisabled) {
         db = Iq80DBFactory.factory.open(new File(path), options);
       } else {
         throw new RuntimeException("No usable LevelDB implementation, aborting.");
       }
-    }      
-    
+    }
+
     db.close();
   }
 }
