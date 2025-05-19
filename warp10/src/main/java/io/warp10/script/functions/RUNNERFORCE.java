@@ -77,6 +77,8 @@ public class RUNNERFORCE extends NamedWarpScriptFunction implements WarpScriptSt
       sr.reschedule(script, bi.longValueExact());
     } catch (ArithmeticException ae) {
       sr.reschedule(script, Long.MAX_VALUE);
+    } catch(IllegalStateException ise) {
+      throw new WarpScriptException(getName() + " cannot force a runner currently being executed.");
     }
 
     return stack;
