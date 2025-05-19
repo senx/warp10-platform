@@ -206,6 +206,7 @@ public class ScriptRunner extends Thread {
   private static final String KEY_LASTERROR = "lasterror";
   private static final String KEY_LASTDURATION = "lastduration";
   private static final String KEY_NEXTRUN = "nextrun";
+  private static final String KEY_RUNNING = "running";
 
   static {
     //
@@ -1021,19 +1022,30 @@ public class ScriptRunner extends Thread {
       params.put(KEY_LASTRUN, null == lrun ? Long.MIN_VALUE : (lrun.longValue() + nanodelta) / (1_000_000_000L / Constants.TIME_UNITS_PER_S));
       params.put(KEY_LASTDURATION, null == lduration ? 0L : lduration);
       params.put(KEY_LASTERROR, lerror);
-      params.put(KEY_NEXTRUN, null == entry.getValue() ? Long.MAX_VALUE : (entry.getValue().longValue() + nanodelta) / (1_000_000_000L / Constants.TIME_UNITS_PER_S));
+      if (null == entry.getValue() || -1L == entry.getValue()) {
+        params.put(KEY_NEXTRUN, Long.MAX_VALUE);
+        params.put(KEY_RUNNING, null != entry.getValue());
+      } else {
+        params.put(KEY_RUNNING, false);
+        params.put(KEY_NEXTRUN, (entry.getValue().longValue() + nanodelta) / (1_000_000_000L / Constants.TIME_UNITS_PER_S));
+
+      }
       scheduled.put(name, params);
     }
 
     return scheduled;
   }
 
-  public void reschedule(String script, long when) {
+  public void reschedule(String script, long when) throws IllegalStateException {
     long nanodelta = TimeSource.getNanoTime() - System.nanoTime();
     // Add root directory
     script = new File(this.root, script).toString();
     // If the script is known, update the entry in nextrun
     if (this.nextrun.containsKey(script)) {
+      long nextrun = this.nextrun.get(script);
+      if (-1L == nextrun) { // The runner is currently executing
+        throw new IllegalStateException("Runner currently executing.");
+      }
       this.nextrun.put(script, when - nanodelta);
     }
   }
