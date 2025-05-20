@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2023  SenX S.A.S.
+//   Copyright 2018-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -37,7 +37,9 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.PriorityQueue;
 import java.util.Properties;
 import java.util.Set;
@@ -89,6 +91,8 @@ import io.warp10.crypto.DummyKeyStore;
 import io.warp10.crypto.KeyStore;
 import io.warp10.crypto.OrderPreservingBase64;
 import io.warp10.crypto.SipHashInline;
+import io.warp10.script.functions.RUNNERFORCE;
+import io.warp10.script.functions.RUNNERS;
 import io.warp10.sensision.Sensision;
 
 /**
@@ -98,6 +102,8 @@ import io.warp10.sensision.Sensision;
 public class ScriptRunner extends Thread {
 
   private static final Logger LOG = LoggerFactory.getLogger(ScriptRunner.class);
+
+  private static ScriptRunner INSTANCE = null;
 
   /*
    * CLEAR footer, used to remove all symbols and clear the stack so no output is returned
@@ -184,6 +190,33 @@ public class ScriptRunner extends Thread {
 
   private static final Pattern VAR = Pattern.compile("\\$\\{([^}]+)\\}");
 
+  //
+  // Map of script path to next scheduled run
+  //
+
+  protected final Map<String, Long> nextrun = new ConcurrentHashMap<String, Long>();
+  // Time (in ms since the epoch) of last run
+  protected final Map<String, Long> lastrun = new ConcurrentHashMap<String, Long>();
+  // Duration (in ms) of the last run
+  protected final Map<String, Long> lastduration = new ConcurrentHashMap<String, Long>();
+  // Status of last execution, either null or the error message.
+  protected final Map<String, String> lasterror = new ConcurrentHashMap<String, String>();
+
+  private static final String KEY_LASTRUN = "lastrun";
+  private static final String KEY_LASTERROR = "lasterror";
+  private static final String KEY_LASTDURATION = "lastduration";
+  private static final String KEY_NEXTRUN = "nextrun";
+  private static final String KEY_RUNNING = "running";
+
+  static {
+    //
+    // Register functions which require the existence of ScriptRunner
+    //
+
+    WarpScriptLib.addNamedWarpScriptFunction(new RUNNERFORCE(WarpScriptLib.RUNNERFORCE));
+    WarpScriptLib.addNamedWarpScriptFunction(new RUNNERS(WarpScriptLib.RUNNERS));
+
+  }
   public ScriptRunner(KeyStore keystore, Properties config) throws IOException {
     //
     // Extract our roles
@@ -359,12 +392,6 @@ public class ScriptRunner extends Thread {
 
     final Map<String, Long> scripts = new HashMap<String, Long>();
 
-    //
-    // Map of script path to next scheduled run
-    //
-
-    final Map<String, Long> nextrun = new ConcurrentHashMap<String, Long>();
-
     final AtomicLong nanoref = new AtomicLong();
 
     PriorityQueue<String> runnables = new PriorityQueue<String>(1, new Comparator<String>() {
@@ -406,6 +433,9 @@ public class ScriptRunner extends Thread {
         for (String prevscript: currentScripts) {
           if (!scripts.containsKey(prevscript)) {
             nextrun.remove(prevscript);
+            lastrun.remove(prevscript);
+            lastduration.remove(prevscript);
+            lasterror.remove(prevscript);
             removeRunnerContext(prevscript);
           }
         }
@@ -476,6 +506,9 @@ public class ScriptRunner extends Thread {
     try {
 
       final long scheduledat = System.currentTimeMillis();
+      final Map<String,Long> flastrun = this.lastrun;
+      final Map<String,Long> flastduration = this.lastduration;
+      final Map<String,String> flasterror = this.lasterror;
 
       this.executor.submit(new Runnable() {
         @Override
@@ -522,9 +555,17 @@ public class ScriptRunner extends Thread {
               // Generate a nonce by wrapping the current time jointly with random 64bits
               //
 
-              byte[] now = Longs.toByteArray(TimeSource.getNanoTime());
+              byte[] noncebytes = Longs.toByteArray(TimeSource.getNanoTime());
 
-              nonce = OrderPreservingBase64.encode(CryptoHelper.wrapBlob(runnerPSK, now));
+              //
+              // Add path
+              //
+
+              byte[] pathbytes = path.getBytes(StandardCharsets.UTF_8);
+              noncebytes = Arrays.copyOf(noncebytes, 8 + pathbytes.length);
+              System.arraycopy(pathbytes, 0, noncebytes, 8, pathbytes.length);
+
+              nonce = OrderPreservingBase64.encode(CryptoHelper.wrapBlob(runnerPSK, noncebytes));
 
               conn.setRequestProperty(Constants.HTTP_HEADER_RUNNER_NONCE, new String(nonce, StandardCharsets.US_ASCII));
             }
@@ -649,12 +690,53 @@ public class ScriptRunner extends Thread {
 
             if (200 != conn.getResponseCode()) {
               Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_FAILURES, labels, ttl, 1);
+              StringBuilder sb = new StringBuilder();
+
+              String hdr = conn.getHeaderField(Constants.getHeader(Configuration.HTTP_HEADER_ERROR_LINEX));
+
+              if (null != hdr) {
+                sb.append(hdr);
+              } else {
+                sb.append("-");
+              }
+
+              sb.append(" ");
+
+              hdr = conn.getHeaderField(Constants.getHeader(Configuration.HTTP_HEADER_ERROR_POSITIONX));
+
+              if (null != hdr) {
+                sb.append(hdr);
+              } else {
+                sb.append("-");
+              }
+
+              sb.append(" ");
+
+              hdr = conn.getHeaderField(Constants.getHeader(Configuration.HTTP_HEADER_ERROR_MESSAGEX));
+
+              if (null != hdr) {
+                sb.append(hdr);
+              } else {
+                sb.append("-");
+              }
+
+              sb.append(" ");
+              sb.append(conn.getResponseCode());
+              sb.append(" ");
+              sb.append(conn.getResponseMessage());
+
+              flasterror.put(script, sb.toString());
+            } else {
+              flasterror.remove(script);
             }
           } catch (Exception e) {
+            flasterror.put(script, e.getMessage());
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_FAILURES, labels, ttl, 1);
           } finally {
+            flastrun.put(script, nano);
             nextrun.put(script, nowns + periodicity * 1000000L);
             nano = System.nanoTime() - nano;
+            flastduration.put(script, nano);
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_TIME_US, labels, ttl, nano / 1000L);
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_CURRENT, Sensision.EMPTY_LABELS, -1);
             if (null != conn) {
@@ -687,6 +769,10 @@ public class ScriptRunner extends Thread {
     long now = System.currentTimeMillis();
     long nowts = System.nanoTime();
 
+    final Map<String,Long> flastrun = this.lastrun;
+    final Map<String,Long> flastduration = this.lastduration;
+    final Map<String,String> flasterror = this.lasterror;
+
     request.setScheduledAt(now);
     request.setPeriodicity(periodicity);
     request.setPath(path);
@@ -713,11 +799,15 @@ public class ScriptRunner extends Thread {
         out.write(buf, 0, len);
         out.close();
       }
+      flasterror.remove(script);
     } catch (IOException ioe) {
       // Reschedule immediately
+      flasterror.put(script, ioe.getMessage());
       nextrun.put(script, System.nanoTime());
       return;
     } finally {
+      flastrun.put(script, nowts);
+      flastduration.put(script, System.nanoTime() - nowts);
       if (null != in) {
         try {
           in.close();
@@ -888,5 +978,83 @@ public class ScriptRunner extends Thread {
     KeyStore.checkAndSetKey(keystore, KeyStore.SIPHASH_KAFKA_RUNNER, props, Configuration.RUNNER_KAFKA_MAC, 128);
 
     this.keystore.forget();
+  }
+
+  /**
+   * Return the next run for the runners matching the provided regexp.
+   * The next run time is in nanoseconds
+   * @param regexp Regexp to match runners path (relative to root)
+   * @return
+   */
+  public Map<String,Object> getScheduled(String regexp) throws IOException {
+    Map<String,Object> scheduled = new LinkedHashMap<String,Object>();
+
+    Matcher m = null != regexp ? Pattern.compile(regexp).matcher("") : null;
+
+    Path root = new File(this.root).toPath();
+
+    for (Entry<String,Long> entry: this.nextrun.entrySet()) {
+      Path p = new File(entry.getKey()).toPath();
+
+      String name = null;
+
+      if (p.startsWith(root)) {
+        String runner = p.getName(p.getNameCount() - 1).toString();
+        String periodicity = p.getName(p.getNameCount() - 2).toString();
+        String group = p.getName(p.getNameCount() - 3).toString();
+
+        name = group + "/" + periodicity + "/" + runner;
+
+        if (null != m) {
+          if (!m.reset(name).matches()) {
+            continue;
+          }
+        }
+      }
+
+      Map<String,Object> params = new LinkedHashMap<String,Object>();
+      Long lrun = lastrun.get(entry.getKey());
+      Long lduration = lastduration.get(entry.getKey());
+      String lerror = lasterror.get(entry.getKey());
+
+      long nanodelta = TimeSource.getNanoTime() - System.nanoTime();
+      // Convert to ms
+      params.put(KEY_LASTRUN, null == lrun ? Long.MIN_VALUE : (lrun.longValue() + nanodelta) / (1_000_000_000L / Constants.TIME_UNITS_PER_S));
+      params.put(KEY_LASTDURATION, null == lduration ? 0L : lduration);
+      params.put(KEY_LASTERROR, lerror);
+      if (null == entry.getValue() || -1L == entry.getValue()) {
+        params.put(KEY_NEXTRUN, Long.MAX_VALUE);
+        params.put(KEY_RUNNING, null != entry.getValue());
+      } else {
+        params.put(KEY_RUNNING, false);
+        params.put(KEY_NEXTRUN, (entry.getValue().longValue() + nanodelta) / (1_000_000_000L / Constants.TIME_UNITS_PER_S));
+
+      }
+      scheduled.put(name, params);
+    }
+
+    return scheduled;
+  }
+
+  public void reschedule(String script, long when) throws IllegalStateException {
+    long nanodelta = TimeSource.getNanoTime() - System.nanoTime();
+    // Add root directory
+    script = new File(this.root, script).toString();
+    // If the script is known, update the entry in nextrun
+    if (this.nextrun.containsKey(script)) {
+      long nextrun = this.nextrun.get(script);
+      if (-1L == nextrun) { // The runner is currently executing
+        throw new IllegalStateException("Runner currently executing.");
+      }
+      this.nextrun.put(script, when - nanodelta);
+    }
+  }
+
+  public static void register(ScriptRunner sr) {
+    INSTANCE = sr;
+  }
+
+  public static ScriptRunner getInstance() {
+    return INSTANCE;
   }
 }
