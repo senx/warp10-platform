@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2023  SenX S.A.S.
+//   Copyright 2018-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -36,20 +36,27 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.protocol.TCompactProtocol;
+import org.bouncycastle.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.geoxp.oss.CryptoHelper;
 import com.google.common.base.Charsets;
+import com.google.common.primitives.Longs;
 
 import io.warp10.ThriftUtils;
+import io.warp10.WarpDist;
 import io.warp10.continuum.Configuration;
 import io.warp10.continuum.KafkaOffsetCounters;
 import io.warp10.continuum.KafkaSynchronizedConsumerPool;
 import io.warp10.continuum.KafkaSynchronizedConsumerPool.ConsumerFactory;
+import io.warp10.continuum.TimeSource;
 import io.warp10.continuum.sensision.SensisionConstants;
 import io.warp10.continuum.store.Constants;
 import io.warp10.continuum.thrift.data.RunRequest;
 import io.warp10.crypto.CryptoUtils;
+import io.warp10.crypto.KeyStore;
+import io.warp10.script.functions.RUNNERNONCE;
 import io.warp10.sensision.Sensision;
 
 public class ScriptRunnerConsumerFactory implements ConsumerFactory {
@@ -64,6 +71,8 @@ public class ScriptRunnerConsumerFactory implements ConsumerFactory {
 
   @Override
   public Runnable getConsumer(final KafkaSynchronizedConsumerPool pool, final KafkaConsumer<byte[], byte[]> consumer, final Collection<String> topics) {
+
+    final byte[] runnerPSK = WarpDist.getKeyStore().getKey(KeyStore.AES_RUNNER_PSK);
 
     return new Runnable() {
       @Override
@@ -231,6 +240,31 @@ public class ScriptRunnerConsumerFactory implements ConsumerFactory {
                         out.write(' ');
                         out.write(WarpScriptLib.STORE.getBytes(StandardCharsets.UTF_8));
                         out.write('\n');
+
+                        //
+                        // Generate a nonce if the runnerPSK is set
+                        //
+
+                        if (null != runnerPSK) {
+                          byte[] noncebytes = Longs.toByteArray(TimeSource.getNanoTime());
+                          byte[] pathbytes = request.getPath().getBytes(StandardCharsets.UTF_8);
+                          Arrays.copyOf(noncebytes, noncebytes.length + pathbytes.length);
+                          System.arraycopy(pathbytes, 0,  noncebytes, 8, pathbytes.length);
+                          byte[] nonce = CryptoHelper.wrapBlob(runnerPSK, noncebytes);
+
+                          if (null != nonce) {
+                            out.write('\'');
+                            out.write(nonce);
+                            out.write('\'');
+                            out.write(' ');
+                            out.write('\'');
+                            out.write(URLEncoder.encode(Constants.RUNNER_NONCE, StandardCharsets.UTF_8.name()).replaceAll("\\+", "%20").getBytes(StandardCharsets.US_ASCII));
+                            out.write('\'');
+                            out.write(' ');
+                            out.write(WarpScriptLib.STORE.getBytes(StandardCharsets.UTF_8));
+                            out.write('\n');
+                          }
+                        }
 
                         byte[] data = request.getContent();
 

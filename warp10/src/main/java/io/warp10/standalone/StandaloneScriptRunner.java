@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -36,6 +37,7 @@ import com.geoxp.oss.CryptoHelper;
 
 import com.google.common.primitives.Longs;
 
+import io.warp10.ThrowableUtils;
 import io.warp10.WarpConfig;
 import io.warp10.continuum.BootstrapManager;
 import io.warp10.continuum.Configuration;
@@ -100,6 +102,9 @@ public class StandaloneScriptRunner extends ScriptRunner {
     try {
 
       final long scheduledat = System.currentTimeMillis();
+      final Map<String,Long> flastrun = this.lastrun;
+      final Map<String,Long> flastduration = this.lastduration;
+      final Map<String,String> flasterror = this.lasterror;
 
       this.executor.submit(new Runnable() {
         @Override
@@ -183,9 +188,12 @@ public class StandaloneScriptRunner extends ScriptRunner {
             //
 
             if (null != runnerPSK) {
-              byte[] now = Longs.toByteArray(TimeSource.getNanoTime());
+              byte[] noncebytes = Longs.toByteArray(TimeSource.getNanoTime());
+              byte[] pathbytes = path.getBytes(StandardCharsets.UTF_8);
+              noncebytes = Arrays.copyOf(noncebytes, 8 + pathbytes.length);
+              System.arraycopy(pathbytes,  0, noncebytes,  8, pathbytes.length);
 
-              byte[] nonce = CryptoHelper.wrapBlob(runnerPSK, now);
+              byte[] nonce = CryptoHelper.wrapBlob(runnerPSK, noncebytes);
 
               stack.store(Constants.RUNNER_NONCE, new String(OrderPreservingBase64.encode(nonce), StandardCharsets.US_ASCII));
             }
@@ -247,7 +255,18 @@ public class StandaloneScriptRunner extends ScriptRunner {
             if (stack.getAttribute(WarpScriptStack.ATTRIBUTE_RUNNER_RESCHEDULE_TIMESTAMP) instanceof Long) {
               runnerAtForNextRun = (Long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_RUNNER_RESCHEDULE_TIMESTAMP);
             }
+
+            flasterror.remove(script);
           } catch (Exception e) {
+            StringBuilder sb = new StringBuilder();
+            if (stack.getAttribute(WarpScriptStack.ATTRIBUTE_LAST_ERRORPOS) instanceof String) {
+              sb.append(stack.getAttribute(WarpScriptStack.ATTRIBUTE_LAST_ERRORPOS));
+            } else {
+              sb.append("-");
+            }
+            sb.append(" ");
+            sb.append(ThrowableUtils.getErrorMessage(e));
+            flasterror.put(script, sb.toString());
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_FAILURES, labels, 1);
           } finally {
             WarpConfig.clearThreadProperties();
@@ -262,8 +281,10 @@ public class StandaloneScriptRunner extends ScriptRunner {
             long runnerAtTime = TimeSource.currentTimeMillisToNanoTime(runnerAtForNextRun);
             // Next script is scheduled at min(RUNNERAT, RUNNERIN)
             // if none of these functions are used, it is scheduled at period defined by script path.
+            flastrun.put(script, nano);
             nextrun.put(script, Math.min(runnerInTime, runnerAtTime));
             nano = System.nanoTime() - nano;
+            flastduration.put(script, nano);
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_TIME_US, labels, ttl, nano / 1000L);
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_ELAPSED, labels, ttl, nano);
             Sensision.update(SensisionConstants.SENSISION_CLASS_WARPSCRIPT_RUN_OPS, labels, ttl, (long) stack.getAttribute(WarpScriptStack.ATTRIBUTE_OPS));

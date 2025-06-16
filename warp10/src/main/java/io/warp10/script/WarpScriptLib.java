@@ -541,6 +541,7 @@ import io.warp10.script.functions.RUN;
 import io.warp10.script.functions.RUNNERAT;
 import io.warp10.script.functions.RUNNERIN;
 import io.warp10.script.functions.RUNNERNONCE;
+import io.warp10.script.functions.RUNNERPATH;
 import io.warp10.script.functions.RUNR;
 import io.warp10.script.functions.RVALUESORT;
 import io.warp10.script.functions.SAVE;
@@ -1358,8 +1359,11 @@ public class WarpScriptLib {
   public static final String AESWRAP = "AESWRAP";
   public static final String AESUNWRAP = "AESUNWRAP";
   public static final String RUNNERNONCE = "RUNNERNONCE";
+  public static final String RUNNERPATH = "RUNNERPATH";
   public static final String RUNNERAT = "RUNNERAT";
   public static final String RUNNERIN = "RUNNERIN";
+  public static final String RUNNERFORCE = "RUNNERFORCE";
+  public static final String RUNNERS = "RUNNERS";
   public static final String GZIP = "GZIP";
   public static final String UNGZIP = "UNGZIP";
   public static final String DEFLATE = "DEFLATE";
@@ -2306,6 +2310,7 @@ public class WarpScriptLib {
     addNamedWarpScriptFunction(new AESUNWRAP(AESUNWRAP));
 
     addNamedWarpScriptFunction(new RUNNERNONCE(RUNNERNONCE));
+    addNamedWarpScriptFunction(new RUNNERPATH(RUNNERPATH));
     addNamedWarpScriptFunction(new RUNNERAT(RUNNERAT));
     addNamedWarpScriptFunction(new RUNNERIN(RUNNERIN));
 

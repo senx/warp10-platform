@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2025  SenX S.A.S.
+//   Copyright 2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -34,13 +34,13 @@ import java.nio.charset.StandardCharsets;
 import org.bouncycastle.util.Arrays;
 
 /**
- * Extract the content of a Runner Nonce
+ * Extract the path from a Runner Nonce
  */
-public class RUNNERNONCE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
+public class RUNNERPATH extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
   private byte[] runnerPSK;
 
-  public RUNNERNONCE(String name) {
+  public RUNNERPATH(String name) {
     super(name);
   }
 
@@ -52,13 +52,13 @@ public class RUNNERNONCE extends NamedWarpScriptFunction implements WarpScriptSt
       throw new WarpScriptException(getName() + " expects a String.");
     }
 
-    stack.push(getNonce((String) o));
+    stack.push(getPath((String) o));
 
     return stack;
   }
 
-  public Long getNonce(String nonce) throws WarpScriptException {
-    synchronized(RUNNERNONCE.class) {
+  public String getPath(String nonce) throws WarpScriptException {
+    synchronized(RUNNERPATH.class) {
       if (null == runnerPSK) {
         try {
           runnerPSK = WarpDist.getKeyStore().getKey(KeyStore.AES_RUNNER_PSK);
@@ -76,16 +76,12 @@ public class RUNNERNONCE extends NamedWarpScriptFunction implements WarpScriptSt
       if (null == raw) {
         throw new WarpScriptException(getName() + " invalid runner nonce.");
       }
-      // Extract the time encoded in the first 8 bytes
-      byte[] timebytes = raw;
 
-      if (timebytes.length > 8) {
-        timebytes = Arrays.copyOf(timebytes, 8);
+      if (raw.length > 8) {
+        return new String(raw, 8, raw.length - 8, StandardCharsets.UTF_8);
+      } else {
+        return null;
       }
-
-      // Return the nonce in platform time units (the value is in ns)
-      BigInteger time = BigInteger.valueOf(Longs.fromByteArray(timebytes));
-      return time.multiply(BigInteger.valueOf(Constants.TIME_UNITS_PER_MS)).divide(BigInteger.valueOf(1000000L)).longValue();
     } else {
       return null;
     }

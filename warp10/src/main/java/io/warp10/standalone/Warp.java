@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2023  SenX S.A.S.
+//   Copyright 2018-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -479,11 +479,13 @@ public class Warp extends WarpDist implements Runnable {
       if (!properties.containsKey(Configuration.RUNNER_ENDPOINT)) {
         properties.setProperty(Configuration.RUNNER_ENDPOINT, "");
         StandaloneScriptRunner runner = new StandaloneScriptRunner(properties, keystore.clone(), scc, sdc, properties);
+        ScriptRunner.register(runner);
       } else {
         //
         // Allocate a normal runner
         //
         ScriptRunner runner = new ScriptRunner(keystore.clone(), properties);
+        ScriptRunner.register(runner);
       }
     }
 
