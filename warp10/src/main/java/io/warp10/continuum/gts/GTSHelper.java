@@ -12463,7 +12463,9 @@ public class GTSHelper {
         }
       }
 
-      GTSHelper.setValue(sampled, GTSHelper.tickAtIndex(gts, nextref), GTSHelper.locationAtIndex(gts, nextref), GTSHelper.elevationAtIndex(gts, nextref), GTSHelper.valueAtIndex(gts, nextref), false);
+      if (-1 != nextref) {
+        GTSHelper.setValue(sampled, GTSHelper.tickAtIndex(gts, nextref), GTSHelper.locationAtIndex(gts, nextref), GTSHelper.elevationAtIndex(gts, nextref), GTSHelper.valueAtIndex(gts, nextref), false);
+      }
     }
 
     // Add last datapoint
