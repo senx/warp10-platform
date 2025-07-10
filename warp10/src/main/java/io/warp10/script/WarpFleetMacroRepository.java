@@ -1,5 +1,5 @@
 //
-//   Copyright 2019-2023  SenX S.A.S.
+//   Copyright 2019-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -76,7 +76,7 @@ public class WarpFleetMacroRepository {
     }
   };
 
-  private static final String ATTRIBUTE_WARPFLEET_REPOS = "warpfleet.repos";
+  public static final String ATTRIBUTE_WARPFLEET_REPOS = "warpfleet.repos";
 
   /**
    * Stack attribute to disable WarpFleet resolution
