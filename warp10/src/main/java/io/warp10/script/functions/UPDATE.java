@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2020  SenX S.A.S.
+//   Copyright 2018-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -40,15 +40,15 @@ import java.util.zip.GZIPOutputStream;
 
 /**
  * Updates datapoints from the GTS on the stack.
- * 
+ *
  * In the standalone mode, this connects to the Ingress endpoint on localhost.
  * In the distributed mode, this uses a proxy to connect to an HTTP endpoint which will push data into continuum.
  */
 public class UPDATE extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-  
+
   private URL url = null;
   private boolean dynURL = false;
-  
+
   public UPDATE(String name) {
     super(name);
   }
@@ -57,7 +57,7 @@ public class UPDATE extends NamedWarpScriptFunction implements WarpScriptStackFu
     super(name);
     this.url = url;
   }
-  
+
   public UPDATE(String name, boolean dynURL) {
     super(name);
     this.dynURL = dynURL;
@@ -68,32 +68,32 @@ public class UPDATE extends NamedWarpScriptFunction implements WarpScriptStackFu
     //
     // Extract token
     //
-    
+
     Object otoken = stack.pop();
-    
+
     if (!(otoken instanceof String)) {
       throw new WarpScriptException(getName() + " expects a token on top of the stack.");
     }
-    
+
     String token = (String) otoken;
-    
+
     URL url = this.url;
-    
+
     if (this.dynURL) {
       Object urlstr = stack.pop();
-      
+
       try {
         url = new URL(urlstr.toString());
       } catch (MalformedURLException mue) {
         throw new WarpScriptException(mue);
       }
     }
-    
+
     List<GeoTimeSerie> series = new ArrayList<GeoTimeSerie>();
     List<GTSEncoder> encoders = new ArrayList<GTSEncoder>();
-    
+
     Object o = stack.pop();
-    
+
     if (o instanceof GeoTimeSerie) {
       if (GTSHelper.nvalues((GeoTimeSerie) o) > 0) {
         series.add((GeoTimeSerie) o);
@@ -111,7 +111,7 @@ public class UPDATE extends NamedWarpScriptFunction implements WarpScriptStackFu
         } else if (oo instanceof GTSEncoder) {
           if (((GTSEncoder) oo).getCount() > 0) {
             encoders.add((GTSEncoder) oo);
-          }          
+          }
         } else {
           throw new WarpScriptException(getName() + " can only operate on Geo Time Series, encoders or a list thereof.");
         }
@@ -119,19 +119,19 @@ public class UPDATE extends NamedWarpScriptFunction implements WarpScriptStackFu
     } else {
       throw new WarpScriptException(getName() + " can only operate on Geo Time Series, encoders or a list thereof.");
     }
-    
+
     //
     // Return immediately if 'series' is empty
     //
-    
+
     if (0 == series.size() && 0 == encoders.size()) {
       return stack;
     }
-    
+
     //
     // Check that all GTS have a name and were renamed
     //
-    
+
     for (GeoTimeSerie gts: series) {
       if (null == gts.getName() || "".equals(gts.getName())) {
         throw new WarpScriptException(getName() + " can only update Geo Time Series which have a non empty name.");
@@ -140,17 +140,17 @@ public class UPDATE extends NamedWarpScriptFunction implements WarpScriptStackFu
         throw new WarpScriptException(getName() + " can only update Geo Time Series which have been renamed.");
       }
     }
-    
+
     for (GTSEncoder encoder: encoders) {
       if (null == encoder.getName() || "".equals(encoder.getName())) {
         throw new WarpScriptException(getName() + " can only update encoders which have a non empty name.");
       }
     }
-    
+
     //
     // Create the OutputStream
     //
-    
+
     HttpURLConnection conn = null;
 
     try {
@@ -175,14 +175,25 @@ public class UPDATE extends NamedWarpScriptFunction implements WarpScriptStackFu
         conn = (HttpURLConnection) this.url.openConnection(this.proxy);
       }
       */
+
+      boolean attributesDelta = Boolean.TRUE.equals(stack.getAttribute(WarpScriptStack.ATTRIBUTE_ATTRIBUTES_DELTA));
+      boolean attributesSkip = Boolean.TRUE.equals(stack.getAttribute(WarpScriptStack.ATTRIBUTE_ATTRIBUTES_SKIP));
+
       conn = (HttpURLConnection) url.openConnection();
-      
+
       conn.setDoOutput(true);
       conn.setDoInput(true);
       conn.setRequestMethod("POST");
+
+      if (attributesSkip) {
+        conn.setRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_ATTRIBUTES), "skip");
+      } else if (attributesDelta) {
+        conn.setRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_ATTRIBUTES), "delta");
+      }
+
       conn.setRequestProperty(Constants.getHeader(Configuration.HTTP_HEADER_UPDATE_TOKENX), token);
       conn.setRequestProperty("Content-Type", "application/gzip");
-      
+
       String accel = "";
 
       if (null != stack.getAttribute(AcceleratorConfig.ATTR_NOCACHE)) {
@@ -190,48 +201,48 @@ public class UPDATE extends NamedWarpScriptFunction implements WarpScriptStackFu
         if (nocache) {
           accel = accel + AcceleratorConfig.NOCACHE + " ";
         } else {
-          accel = accel + AcceleratorConfig.CACHE + " ";          
+          accel = accel + AcceleratorConfig.CACHE + " ";
         }
       }
 
       if (null != stack.getAttribute(AcceleratorConfig.ATTR_NOPERSIST)) {
-        boolean nopersist = Boolean.TRUE.equals(stack.getAttribute(AcceleratorConfig.ATTR_NOPERSIST));        
+        boolean nopersist = Boolean.TRUE.equals(stack.getAttribute(AcceleratorConfig.ATTR_NOPERSIST));
         if (nopersist) {
           accel = accel + AcceleratorConfig.NOPERSIST;
         } else {
-          accel = accel + AcceleratorConfig.PERSIST;          
-        }        
+          accel = accel + AcceleratorConfig.PERSIST;
+        }
       }
-      
+
       if (!"".equals(accel)) {
         conn.setRequestProperty(AcceleratorConfig.ACCELERATOR_HEADER, accel);
       }
-      
+
       conn.setChunkedStreamingMode(16384);
       conn.connect();
-      
+
       OutputStream os = conn.getOutputStream();
       GZIPOutputStream out = new GZIPOutputStream(os);
       PrintWriter pw = new PrintWriter(out);
-      
+
       for (GeoTimeSerie gts: series) {
         gts.dump(pw);
       }
-    
+
       for (GTSEncoder encoder: encoders) {
         GTSHelper.dump(encoder, pw);
         stack.handleSignal();
       }
-      
+
       pw.close();
-      
+
       if (200 != conn.getResponseCode()) {
         throw new WarpScriptException(getName() + " failed to complete successfully (" + conn.getResponseMessage() + ")");
       }
-      
+
       conn.disconnect();
       conn = null;
-    } catch (IOException ioe) { 
+    } catch (IOException ioe) {
       throw new WarpScriptException(getName() + " failed.", ioe);
     } finally {
       if (null != conn) {

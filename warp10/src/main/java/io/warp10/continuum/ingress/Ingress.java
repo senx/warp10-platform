@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2024  SenX S.A.S.
+//   Copyright 2018-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -286,7 +286,7 @@ public class Ingress extends AbstractHandler implements Runnable {
   final boolean updateActivity;
   private final boolean metaActivity;
   final long activityWindow;
-  public final boolean parseAttributes;
+  public final boolean PARSE_ATTRIBUTES;
   final Long maxpastDefault;
   final Long maxfutureDefault;
   final Long maxpastOverride;
@@ -376,7 +376,7 @@ public class Ingress extends AbstractHandler implements Runnable {
     this.sendMetadataOnDelete = Boolean.parseBoolean(props.getProperty(Configuration.INGRESS_DELETE_METADATA_INCLUDE, "false"));
     this.sendMetadataOnStore = Boolean.parseBoolean(props.getProperty(Configuration.INGRESS_STORE_METADATA_INCLUDE, "false"));
 
-    this.parseAttributes = "true".equals(props.getProperty(Configuration.INGRESS_PARSE_ATTRIBUTES));
+    this.PARSE_ATTRIBUTES = "true".equals(props.getProperty(Configuration.INGRESS_PARSE_ATTRIBUTES));
 
     if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_DEFAULT)) {
       maxpastDefault = Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_DEFAULT));
@@ -1009,7 +1009,9 @@ public class Ingress extends AbstractHandler implements Runnable {
           }
         }
 
-        boolean deltaAttributes = "delta".equals(request.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_ATTRIBUTES)));
+        boolean skipAttributes = "skip".equals(request.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_ATTRIBUTES)));
+        boolean deltaAttributes = skipAttributes ? false : "delta".equals(request.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_ATTRIBUTES)));
+        boolean parseAttributes = PARSE_ATTRIBUTES && !skipAttributes;
 
         if (deltaAttributes && !this.allowDeltaAttributes) {
           httpStatusCode = HttpServletResponse.SC_BAD_REQUEST;

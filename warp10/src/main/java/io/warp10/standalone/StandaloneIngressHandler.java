@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2023  SenX S.A.S.
+//   Copyright 2018-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -105,7 +105,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
 
   private final boolean updateActivity;
   private final boolean metaActivity;
-  private final boolean parseAttributes;
+  private final boolean PARSE_ATTRIBUTES;
   private final Long maxpastDefault;
   private final Long maxfutureDefault;
   private final Long maxpastOverride;
@@ -138,7 +138,7 @@ public class StandaloneIngressHandler extends AbstractHandler {
     updateActivity = "true".equals(WarpConfig.getProperty(Configuration.INGRESS_ACTIVITY_UPDATE));
     metaActivity = "true".equals(WarpConfig.getProperty(Configuration.INGRESS_ACTIVITY_META));
 
-    this.parseAttributes = "true".equals(WarpConfig.getProperty(Configuration.INGRESS_PARSE_ATTRIBUTES));
+    this.PARSE_ATTRIBUTES = "true".equals(WarpConfig.getProperty(Configuration.INGRESS_PARSE_ATTRIBUTES));
     if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_DEFAULT)) {
       maxpastDefault = Long.parseLong(WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_DEFAULT));
       if (maxpastDefault < 0) {
@@ -247,12 +247,15 @@ public class StandaloneIngressHandler extends AbstractHandler {
 
       long nano = System.nanoTime();
 
-      boolean deltaAttributes = "delta".equals(request.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_ATTRIBUTES)));
+      boolean skipAttributes = "skip".equals(request.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_ATTRIBUTES)));
+      boolean deltaAttributes = skipAttributes ? false : "delta".equals(request.getHeader(Constants.getHeader(Configuration.HTTP_HEADER_ATTRIBUTES)));
+      boolean parseAttributes = PARSE_ATTRIBUTES && !skipAttributes;
 
       if (deltaAttributes && !this.allowDeltaAttributes) {
         httpStatusCode = HttpServletResponse.SC_BAD_REQUEST;
         throw new IOException("Delta update of attributes is disabled.");
       }
+
       boolean nocache = AcceleratorConfig.getDefaultWriteNocache();
       // boolean to indicate we were explicitely instructed a nocache value
       boolean forcedNocache = false;
