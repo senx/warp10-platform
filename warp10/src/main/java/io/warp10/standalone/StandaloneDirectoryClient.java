@@ -1041,14 +1041,15 @@ public class StandaloneDirectoryClient implements DirectoryClient {
         if (null != metadatasForClassname) {
           Metadata oldmeta = metadatasForClassname.get(labelsId);
           if (null != oldmeta) {
+            Map<String,String> newattr = new HashMap<String, String>(oldmeta.getAttributes());
             for (Entry<String, String> attr: metadata.getAttributes().entrySet()) {
               if ("".equals(attr.getValue())) {
-                oldmeta.getAttributes().remove(attr.getKey());
+                newattr.remove(attr.getKey());
               } else {
-                oldmeta.putToAttributes(attr.getKey(), attr.getValue());
+                newattr.put(attr.getKey(), attr.getValue());
               }
             }
-            metadata.setAttributes(new HashMap<String, String>(oldmeta.getAttributes()));
+            metadata.setAttributes(newattr);
           } else {
             // Remove the attributes with an empty value
             Set<String> names = new HashSet<String>(metadata.getAttributes().keySet());
@@ -1061,7 +1062,11 @@ public class StandaloneDirectoryClient implements DirectoryClient {
         }
       }
     } else if (null == metadata.getAttributes() || !Configuration.INGRESS_METADATA_UPDATE_ENDPOINT.equals(metadata.getSource())) {
-      metadata.setAttributes(new HashMap<String,String>());
+      if (null == metadata.getAttributes()) {
+        // This could be safeguarded by a synchronized, but in the vast majority of cases
+        // there is a very low probability that the same Metadata be updated concurrently
+        metadata.setAttributes(new HashMap<String,String>());
+      }
 
       // If we are not updating the attributes, copy the attributes from the directory as we are probably
       // registering the GTS due to its recent activity.
@@ -1070,9 +1075,11 @@ public class StandaloneDirectoryClient implements DirectoryClient {
         // tracking the activity
         Map<Long, Metadata> metadataForClassname = metadatas.get(metadata.getName());
         if (null != metadataForClassname) {
+          Map<String,String> newattr = new HashMap<String,String>();
           Metadata oldmeta = metadataForClassname.get(labelsId);
           if (null != oldmeta && oldmeta.getAttributesSize() > 0) {
-            metadata.getAttributes().putAll(oldmeta.getAttributes());
+            newattr.putAll(oldmeta.getAttributes());
+            metadata.setAttributes(newattr);
           }
         }
       }
