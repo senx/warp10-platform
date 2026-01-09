@@ -79,6 +79,16 @@ public interface WarpScriptStack {
   public static final String TOP_LEVEL_SECTION = "[TOP]";
 
   /**
+   * Name of stack attribute for storing the delta attributes selection for UPDATE
+   */
+  public static final String ATTRIBUTE_ATTRIBUTES_DELTA = "attributes.delta";
+
+  /**
+   * Name of stack attribute for storing the skip attributes selection for UPDATE
+   */
+  public static final String ATTRIBUTE_ATTRIBUTES_SKIP = "attributes.skip";
+
+  /**
    * Name of attribute for storing macro import rules
    */
   public static final String ATTRIBUTE_IMPORT_RULES = "import.rules";

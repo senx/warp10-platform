@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2023  SenX S.A.S.
+//   Copyright 2018-2025  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -88,7 +88,7 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
   private final long[] labelsKeyLongs;
 
   private final boolean updateActivity;
-  private final boolean parseAttributes;
+  private final boolean PARSE_ATTRIBUTES;
   private final boolean allowDeltaAttributes;
   private final Long maxpastDefault;
   private final Long maxfutureDefault;
@@ -97,9 +97,9 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
   private final boolean ignoreOutOfRange;
 
   private IngressPlugin plugin = null;
-  
+
   private final boolean isFDBStore; // skip FDB tests when not necessary
-  
+
   private final DateTimeFormatter dtf = DateTimeFormat.forPattern("yyyyMMdd'T'HHmmss.SSS").withZoneUTC();
 
   @WebSocket(maxTextMessageSize=1024 * 1024, maxBinaryMessageSize=1024 * 1024)
@@ -112,6 +112,8 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
     private boolean errormsg = false;
 
     private boolean deltaAttributes = false;
+    private boolean skipAttributes = false;
+    private boolean parseAttributes = false;
 
     private long seqno = 0L;
 
@@ -183,6 +185,12 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
           this.deltaAttributes = true;
         } else if (null != tokens && "DELTAOFF".equals(tokens[0])) {
           this.deltaAttributes = false;
+        } else if (null != tokens && "ATTRSKIPON".equals(tokens[0])) {
+          this.skipAttributes = true;
+          this.parseAttributes = false;
+        } else if (null != tokens && "ATTRSKIPOFF".equals(tokens[0])) {
+          this.skipAttributes = false;
+          this.parseAttributes = this.handler.PARSE_ATTRIBUTES;
         } else {
           //
           // Anything else is considered a measurement
@@ -271,7 +279,7 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
             BufferedReader br = new BufferedReader(new StringReader(message));
 
             // Atomic boolean to track if attributes were parsed
-            AtomicBoolean hadAttributes = this.handler.parseAttributes ? new AtomicBoolean(false) : null;
+            AtomicBoolean hadAttributes = this.parseAttributes ? new AtomicBoolean(false) : null;
 
             boolean lastHadAttributes = false;
 
@@ -279,7 +287,7 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
 
             do {
 
-              if (this.handler.parseAttributes) {
+              if (this.parseAttributes) {
                 lastHadAttributes = lastHadAttributes || hadAttributes.get();
                 hadAttributes.set(false);
               }
@@ -363,7 +371,7 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
                   count += lastencoder.getCount();
 
 
-                  if (this.handler.parseAttributes && lastHadAttributes) {
+                  if (this.parseAttributes && lastHadAttributes) {
                     // We need to push lastencoder's metadata update as they were updated since the last
                     // metadata update message sent
                     Metadata meta = new Metadata(lastencoder.getMetadata());
@@ -417,7 +425,7 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
               this.handler.storeClient.store(lastencoder);
               count += lastencoder.getCount();
 
-              if (this.handler.parseAttributes && lastHadAttributes) {
+              if (this.parseAttributes && lastHadAttributes) {
                 // Push a metadata UPDATE message so attributes are stored
                 // Build metadata object to push
                 Metadata meta = new Metadata(lastencoder.getMetadata());
@@ -461,6 +469,7 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
 
     public void setHandler(StandaloneStreamUpdateHandler handler) {
       this.handler = handler;
+      this.parseAttributes = handler.PARSE_ATTRIBUTES && !this.skipAttributes;
     }
 
     private void setToken(String token) throws IOException {
@@ -585,7 +594,7 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
 
     this.maxValueSize = Long.parseLong(properties.getProperty(Configuration.STANDALONE_VALUE_MAXSIZE, StandaloneIngressHandler.DEFAULT_VALUE_MAXSIZE));
 
-    this.parseAttributes = "true".equals(properties.getProperty(Configuration.INGRESS_PARSE_ATTRIBUTES));
+    this.PARSE_ATTRIBUTES = "true".equals(properties.getProperty(Configuration.INGRESS_PARSE_ATTRIBUTES));
     this.allowDeltaAttributes = "true".equals(WarpConfig.getProperty(Configuration.INGRESS_ATTRIBUTES_ALLOWDELTA));
 
     if (null != WarpConfig.getProperty(Configuration.INGRESS_MAXPAST_DEFAULT)) {
@@ -625,7 +634,7 @@ public class StandaloneStreamUpdateHandler extends WebSocketHandler.Simple {
     }
 
     this.ignoreOutOfRange = "true".equals(WarpConfig.getProperty(Configuration.INGRESS_OUTOFRANGE_IGNORE));
-    
+
     this.isFDBStore = Constants.BACKEND_FDB.equals(WarpConfig.getProperty(Configuration.BACKEND));
   }
 

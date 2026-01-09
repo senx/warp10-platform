@@ -77,7 +77,9 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
 
     private IngressStreamUpdateHandler handler;
 
+    private boolean parseAttributes = false;
     private boolean deltaAttributes = false;
+    private boolean skipAttributes = false;
 
     private boolean errormsg = false;
 
@@ -148,6 +150,12 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
           this.deltaAttributes = true;
         } else if (null != tokens && "DELTAOFF".equals(tokens[0])) {
           this.deltaAttributes = false;
+        } else if (null != tokens && "ATTRSKIPON".equals(tokens[0])) {
+          this.skipAttributes = true;
+          this.parseAttributes = false;
+        } else if (null != tokens && "ATTRSKIPOFF".equals(tokens[0])) {
+          this.skipAttributes = false;
+          this.parseAttributes = this.handler.ingress.PARSE_ATTRIBUTES;
         } else {
           //
           // Anything else is considered a measurement
@@ -220,7 +228,7 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
           }
 
           // Atomic boolean to track if attributes were parsed
-          AtomicBoolean hadAttributes = this.handler.ingress.parseAttributes ? new AtomicBoolean(false) : null;
+          AtomicBoolean hadAttributes = this.parseAttributes ? new AtomicBoolean(false) : null;
 
           try {
             WarpConfig.setThreadProperty(WarpConfig.THREAD_PROPERTY_SESSION, UUID.randomUUID().toString());
@@ -240,7 +248,7 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
 
             do {
 
-              if (this.handler.ingress.parseAttributes) {
+              if (this.parseAttributes) {
                 lastHadAttributes = lastHadAttributes || hadAttributes.get();
                 hadAttributes.set(false);
               }
@@ -341,7 +349,7 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
                   this.handler.ingress.pushDataMessage(lastencoder, kafkaDataMessageAttributes);
                   count += lastencoder.getCount();
 
-                  if (this.handler.ingress.parseAttributes && lastHadAttributes) {
+                  if (this.parseAttributes && lastHadAttributes) {
                     // We need to push lastencoder's metadata update as they were updated since the last
                     // metadata update message sent
                     Metadata meta = new Metadata(lastencoder.getMetadata());
@@ -396,7 +404,7 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
               this.handler.ingress.pushDataMessage(lastencoder, kafkaDataMessageAttributes);
               count += lastencoder.getCount();
 
-              if (this.handler.ingress.parseAttributes && lastHadAttributes) {
+              if (this.parseAttributes && lastHadAttributes) {
                 // Push a metadata UPDATE message so attributes are stored
                 // Build metadata object to push
                 Metadata meta = new Metadata(lastencoder.getMetadata());
@@ -442,6 +450,7 @@ public class IngressStreamUpdateHandler extends WebSocketHandler.Simple {
 
     public void setHandler(IngressStreamUpdateHandler handler) {
       this.handler = handler;
+      this.parseAttributes = handler.ingress.PARSE_ATTRIBUTES && !this.skipAttributes;
     }
 
     private void setToken(String token) throws IOException {
