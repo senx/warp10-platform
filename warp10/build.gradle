@@ -128,7 +128,7 @@ dependencies {
       // https://mvnrepository.com/artifact/org.apache.kafka/kafka-clients
       api group: 'org.apache.kafka', name: 'kafka-clients', version: '3.4.0'
     }
-    testCompile 'junit:junit:4.6'
+    testImplementation 'junit:junit:4.6'
 }
 
 configurations.all {
