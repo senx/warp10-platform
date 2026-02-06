@@ -29,6 +29,7 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
+import java.nio.file.FileSystemException;
 import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -956,6 +957,7 @@ public class ScriptRunner extends Thread {
       }
 
     } catch (IOException ioe) {
+    } catch (FileSystemException fse){
     }
 
 
