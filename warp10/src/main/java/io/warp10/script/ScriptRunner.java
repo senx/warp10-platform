@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2025  SenX S.A.S.
+//   Copyright 2018-2026  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -29,15 +29,15 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
-import java.nio.file.FileSystemException;
-import java.nio.file.FileVisitOption;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -53,31 +53,28 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
-import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPOutputStream;
 
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.CuratorFrameworkFactory;
+import org.apache.curator.framework.recipes.leader.LeaderLatch;
+import org.apache.curator.retry.RetryNTimes;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import io.warp10.CustomThreadFactory;
-import io.warp10.ThriftUtils;
-
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
-import org.apache.thrift.protocol.TCompactProtocol;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.geoxp.oss.CryptoHelper;
 import com.google.common.base.Preconditions;
 import com.google.common.primitives.Longs;
-import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.CuratorFrameworkFactory;
-import org.apache.curator.framework.recipes.leader.LeaderLatch;
-import org.apache.curator.retry.RetryNTimes;
 
+import io.warp10.CustomThreadFactory;
+import io.warp10.ThriftUtils;
 import io.warp10.WarpConfig;
 import io.warp10.WarpDist;
 import io.warp10.continuum.Configuration;
@@ -936,28 +933,24 @@ public class ScriptRunner extends Thread {
           continue;
         }
 
-        Iterator<Path> iter = null;
-        try {
-          iter = Files.walk(f.toPath(), FileVisitOption.FOLLOW_LINKS)
-              //.filter(path -> path.toString().endsWith(".mc2"))
-              .filter(new Predicate<Path>() {
-                @Override
-                public boolean test(Path t) {
-                  return t.toString().endsWith(".mc2");
-                }
-              })
-              .iterator();
-        } catch (IOException e) {
-        }
+        Files.walkFileTree(f.toPath(), new SimpleFileVisitor<Path>() {
+          @Override
+          public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+              if (file.toString().endsWith(".mc2")) {
+                // scripts is effectively final because it is never re-assigned to
+                scripts.put(file.toString(), period);
+              }
+              return FileVisitResult.CONTINUE;
+          }
 
-        while (null != iter && iter.hasNext()) {
-          Path p = iter.next();
-          scripts.put(p.toString(), period);
-        }
+          @Override
+          public FileVisitResult visitFileFailed(Path file, IOException exc) {
+              return FileVisitResult.CONTINUE;
+          }
+        });
       }
 
     } catch (IOException ioe) {
-    } catch (FileSystemException fse){
     }
 
 
