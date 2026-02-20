@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2025  SenX S.A.S.
+//   Copyright 2018-2026  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -4192,6 +4192,14 @@ public class GTSHelper {
       try {
         name = WarpURLDecoder.decode(name, StandardCharsets.UTF_8);
         value = WarpURLDecoder.decode(value, StandardCharsets.UTF_8);
+        if (value.length() > 0) {
+          if ('=' == value.charAt(0) && exact) {
+            value = value.substring(1);
+          } else if ('~' == value.charAt(0) && exact) {
+            exact = false;
+            value = value.substring(1);
+          }
+        }
       } catch (UnsupportedEncodingException uee) {
         // Can't happen since we are using a standard JVM charset
       }
