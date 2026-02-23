@@ -364,7 +364,6 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
 
         // We clone the Metadata instance so the user cannot alter it
         m = new Metadata(m);
-        modifiedMetas.add(m);
 
         if (null == m.getLabels()) {
           m.setLabels(new LinkedHashMap<String,String>());
@@ -384,10 +383,11 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
 
         //
         // If the metadata would not get selected by the provided token
+        // because one of producer/owner/app is missing,
         // force the producer/owner/app to be that of the token
         //
 
-        if (!matches) {
+        if (!matches && (!m.getLabels().containsKey(Constants.PRODUCER_LABEL) || !m.getLabels().containsKey(Constants.OWNER_LABEL) || !m.getLabels().containsKey(Constants.APPLICATION_LABEL))) {
           //
           // We will now set producer/owner/application
           //
@@ -426,6 +426,9 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
           } else {
             throw new WarpScriptException(getName() + " provided token is incompatible with '" + PARAM_GTS + "' parameter, expecting a single producer and/or single owner.");
           }
+          modifiedMetas.add(m);
+        } else if (matches) {
+          modifiedMetas.add(m);
         }
 
         // Recompute IDs
@@ -535,7 +538,7 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
             throw new WarpScriptException(getName() + " keys and values of label selector must be STRINGs.");
           }
         }
-        
+
         Map<String, String> labelSelectors = new LinkedHashMap<>((Map<String, String>) o);
         labelSelectors.remove(Constants.PRODUCER_LABEL);
         labelSelectors.remove(Constants.OWNER_LABEL);
