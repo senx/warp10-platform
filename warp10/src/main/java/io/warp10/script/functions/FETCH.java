@@ -355,7 +355,9 @@ public class FETCH extends NamedWarpScriptFunction implements WarpScriptStackFun
       tmeta.setLabels(tokenSelectors);
 
       // Build a selector matching all classes
-      String tselector = "~.*" + GTSHelper.buildSelector(tmeta, true);
+      // Consider label values starting with '~' as regular expressions
+      String tselector = "~.*" + GTSHelper.buildSelector(tmeta, true, true);
+
       MetadataSelectorMatcher matcher = new MetadataSelectorMatcher(tselector);
 
       final List<Metadata> modifiedMetas = new ArrayList<Metadata>(metas.size());

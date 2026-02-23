@@ -4192,14 +4192,6 @@ public class GTSHelper {
       try {
         name = WarpURLDecoder.decode(name, StandardCharsets.UTF_8);
         value = WarpURLDecoder.decode(value, StandardCharsets.UTF_8);
-        if (value.length() > 0) {
-          if ('=' == value.charAt(0) && exact) {
-            value = value.substring(1);
-          } else if ('~' == value.charAt(0) && exact) {
-            exact = false;
-            value = value.substring(1);
-          }
-        }
       } catch (UnsupportedEncodingException uee) {
         // Can't happen since we are using a standard JVM charset
       }
@@ -9410,7 +9402,11 @@ public class GTSHelper {
   }
 
   public static String buildSelector(GeoTimeSerie gts, boolean forSearch) {
-    return buildSelector(gts.getMetadata(), forSearch);
+    return buildSelector(gts.getMetadata(), forSearch, false);
+  }
+
+  public static String buildSelector(Metadata meta, boolean forSearch) {
+    return buildSelector(meta, forSearch, false);
   }
 
   /**
@@ -9418,8 +9414,9 @@ public class GTSHelper {
    *
    * @param metadata Metadata to represent
    * @param forSearch Set to true if the result is for searching, in that case for empty values of labels, '~$' will be produced, otherwise '='
+   * @param searchSyntax Set to true to indicate that the label values may represent exact matches ('= ...') or regexp ('~....') and should be treated accordingly
    */
-  public static String buildSelector(Metadata metadata, boolean forSearch) {
+  public static String buildSelector(Metadata metadata, boolean forSearch, boolean hasRegexp) {
     StringBuilder sb = new StringBuilder();
 
     String name = metadata.getName();
@@ -9444,10 +9441,21 @@ public class GTSHelper {
         }
         encodeName(sb, entry.getKey());
         if (forSearch && !Constants.ABSENT_LABEL_SUPPORT && "".equals(entry.getValue())) {
+          // If missing labels are not supported, the match is on an empty content
           sb.append("~$");
         } else {
-          sb.append("=");
-          encodeName(sb, entry.getValue());
+          // If missing labels are supported, the selector is not a regular expression but
+          // an empty value which is interpreted as missing labels
+          if (hasRegexp && entry.getValue().startsWith("~")) {
+            sb.append(entry.getValue());
+          } else {
+            sb.append("=");
+            if (hasRegexp && entry.getValue().startsWith("=")) {
+              encodeName(sb, entry.getValue().substring(1));
+            } else {
+              encodeName(sb, entry.getValue());
+            }
+          }
         }
         first = false;
       }

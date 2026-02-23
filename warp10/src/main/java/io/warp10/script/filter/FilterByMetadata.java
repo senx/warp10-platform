@@ -1,5 +1,5 @@
 //
-//   Copyright 2018  SenX S.A.S.
+//   Copyright 2018-2026  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -40,70 +40,70 @@ import java.util.regex.Pattern;
  * Filter GTS by retaining those whose metadata is included in a set
  */
 public class FilterByMetadata extends NamedWarpScriptFunction implements WarpScriptFilterFunction {
-  
+
   private final Set<Metadata> metadatas;
 
   public static class Builder extends NamedWarpScriptFunction implements WarpScriptStackFunction {
-        
+
     public Builder(String name) {
       super(name);
     }
-    
+
     @Override
     public Object apply(WarpScriptStack stack) throws WarpScriptException {
       Object arg = stack.pop();
-      
+
       if (!(arg instanceof List)) {
         throw new WarpScriptException(getName() + " expects a list of GTS on top of the stack.");
       }
-      
+
       for (Object o: (List) arg) {
         if (!(o instanceof GeoTimeSerie)) {
           throw new WarpScriptException(getName() + " expects a list of GTS on top of the stack.");
         }
       }
-      
+
       stack.push(new FilterByMetadata(getName(), (List<GeoTimeSerie>) arg));
       return stack;
     }
   }
-  
+
   public FilterByMetadata(String name, List<GeoTimeSerie> selector) {
     super(name);
-    
+
     this.metadatas = new HashSet<Metadata>();
-    
+
     for (GeoTimeSerie gts: selector) {
       this.metadatas.add(gts.getMetadata());
     }
   }
-  
-  @Override  
+
+  @Override
   public List<GeoTimeSerie> filter(Map<String,String> labels, List<GeoTimeSerie>... series) throws WarpScriptException {
-    
+
     List<GeoTimeSerie> retained = new ArrayList<GeoTimeSerie>();
-    
+
     for (List<GeoTimeSerie> serie: series) {
       for (GeoTimeSerie gts: serie) {
         Metadata meta = gts.getMetadata();
-        
+
         if (this.metadatas.contains(meta)) {
           retained.add(gts);
-        }        
+        }
       }
     }
-    
+
     return retained;
   }
-  
+
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    
+
     sb.append(WarpScriptLib.LIST_START);
     sb.append(" ");
     for (Metadata metadata: this.metadatas) {
-      sb.append(StackUtils.toString(GTSHelper.buildSelector(metadata, false)));
+      sb.append(StackUtils.toString(GTSHelper.buildSelector(metadata, false, false)));
       sb.append(" ");
       sb.append(WarpScriptLib.PARSESELECTOR);
       sb.append(" ");
