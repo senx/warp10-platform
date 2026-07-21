@@ -957,7 +957,6 @@ public class ScriptRunner extends Thread {
       }
 
     } catch (IOException ioe) {
-    } catch (FileSystemException fse){
     }
 
 
