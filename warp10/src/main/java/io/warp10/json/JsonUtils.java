@@ -23,6 +23,7 @@ import com.fasterxml.jackson.core.StreamWriteFeature;
 import com.fasterxml.jackson.core.json.JsonReadFeature;
 import com.fasterxml.jackson.core.json.JsonWriteFeature;
 import com.fasterxml.jackson.databind.BeanDescription;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationConfig;
@@ -187,11 +188,13 @@ public class JsonUtils {
     //
     builder.enable(JsonWriteFeature.WRITE_NAN_AS_STRINGS);
     STRICT_MAPPER = new ObjectMapper(builder.build());
+    STRICT_MAPPER.enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
     STRICT_MAPPER.getSerializerProvider().setNullKeySerializer(NULL_KEY_SERIALIZER);
     STRICT_MAPPER.registerModule(module);
     // Pretty version
     STRICT_MAPPER_PRETTY = new ObjectMapper(builder.build());
     STRICT_MAPPER_PRETTY.enable(SerializationFeature.INDENT_OUTPUT);
+    STRICT_MAPPER_PRETTY.enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
     STRICT_MAPPER_PRETTY.getSerializerProvider().setNullKeySerializer(NULL_KEY_SERIALIZER);
     STRICT_MAPPER_PRETTY.registerModule(module);
 
