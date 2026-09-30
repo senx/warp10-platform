@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2026  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -36,6 +36,9 @@ import io.warp10.script.WarpScriptStack;
 import io.warp10.script.WarpScriptStack.Macro;
 import io.warp10.script.WarpScriptStackFunction;
 import io.warp10.script.WebAccessController;
+import io.warp10.script.functions.BYTESTO;
+import io.warp10.script.functions.EVAL;
+import io.warp10.script.functions.OPB64TO;
 import io.warp10.warp.sdk.Capabilities;
 
 /**
@@ -44,6 +47,12 @@ import io.warp10.warp.sdk.Capabilities;
 public class REXEC extends NamedWarpScriptFunction implements WarpScriptStackFunction {
 
   private final boolean compress;
+  private final boolean xeval;
+
+  private static final OPB64TO OPB64TO = new OPB64TO(WarpScriptLib.OPB64TO);
+  private static final EVAL EVAL = new EVAL(WarpScriptLib.EVAL, false);
+  private static final EVAL XEVAL = new EVAL(WarpScriptLib.XEVAL, true);
+  private static final BYTESTO BYTESTO = new BYTESTO(WarpScriptLib.BYTESTO);
 
   /**
    * Allowed and excluded host patterns.
@@ -69,6 +78,10 @@ public class REXEC extends NamedWarpScriptFunction implements WarpScriptStackFun
   }
 
   public REXEC(String name, boolean compress) {
+    this(name, compress, false);
+  }
+
+  public REXEC(String name, boolean compress, boolean xeval) {
     super(name);
 
     String patternConf = WarpConfig.getProperty(WARPSCRIPT_REXEC_ENDPOINT_PATTERNS, DEFAULT_ENDPOINT_PATTERNS);
@@ -79,6 +92,7 @@ public class REXEC extends NamedWarpScriptFunction implements WarpScriptStackFun
     this.webAccessController = new WebAccessController(patternConf);
 
     this.compress = compress;
+    this.xeval = xeval;
   }
 
   @Override
@@ -183,11 +197,14 @@ public class REXEC extends NamedWarpScriptFunction implements WarpScriptStackFun
 
       stack.push(result);
 
-      stack.exec(WarpScriptLib.OPB64TO);
+      OPB64TO.apply(stack);
       stack.push(StandardCharsets.UTF_8.name());
-      stack.exec(WarpScriptLib.BYTESTO);
-      stack.exec(WarpScriptLib.EVAL);
-
+      BYTESTO.apply(stack);
+      if (xeval) {
+        XEVAL.apply(stack);
+      } else {
+        EVAL.apply(stack);
+      }
     } catch (WarpScriptException e) {
       throw e;
     } catch(SocketTimeoutException e) {

@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2022  SenX S.A.S.
+//   Copyright 2018-2026  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -34,6 +34,8 @@ public class RexecWarpScriptExtension extends WarpScriptExtension {
 
     functions.put("REXEC", new REXEC("REXEC"));
     functions.put("REXECZ", new REXEC("REXECZ", true));
+    functions.put("REXECX", new REXEC("REXECX", false, true));
+    functions.put("REXECZX", new REXEC("REXECZX", true, true));
 
     useCapability = "true".equals(WarpConfig.getProperty(CONF_CAPABILITY));
   }
