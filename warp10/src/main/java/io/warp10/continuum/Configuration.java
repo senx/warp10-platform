@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2025  SenX S.A.S.
+//   Copyright 2018-2026  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -66,6 +66,8 @@ public class Configuration {
    * Name of macro used to filter tokens
    */
   public static final String WARP_TOKEN_FILTER_MACRO = "warp.token.filter.macro";
+
+  public static final String WARP_TOKEN_SCRIPT = "warp.token.script";
 
   public static final String WARP_TOKEN_FILE = "warp.token.file";
 

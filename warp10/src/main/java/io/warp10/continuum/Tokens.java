@@ -1,5 +1,5 @@
 //
-//   Copyright 2018-2023  SenX S.A.S.
+//   Copyright 2018-2026  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -51,14 +51,20 @@ import io.warp10.quasar.token.thrift.data.WriteToken;
 import io.warp10.script.MemoryWarpScriptStack;
 import io.warp10.script.WarpFleetMacroRepository;
 import io.warp10.script.WarpScriptException;
+import io.warp10.script.WarpScriptStack;
 import io.warp10.script.ext.token.TOKENDUMP;
 import io.warp10.script.ext.token.TOKENGEN;
+import io.warp10.warp.sdk.Capabilities;
 
 public class Tokens {
 
   private static final Logger LOG = LoggerFactory.getLogger(Tokens.class);
 
+  private static final String IN_TOKEN_SCRIPT = ".in.token.script";
+
   private static final Map<String,Object> fileTokens = new HashMap<String,Object>();
+
+  private static String tokenScript = null;
 
   public static final Map<String,String> UUIDByIngressToken = new HashMap<String,String>();
   public static final Map<String,String> UUIDByEgressToken = new HashMap<String,String>();
@@ -85,6 +91,10 @@ public class Tokens {
   };
 
   static {
+    if (null != WarpConfig.getProperty(Configuration.WARP_TOKEN_SCRIPT)) {
+      tokenScript = WarpConfig.getProperty(Configuration.WARP_TOKEN_SCRIPT);
+    }
+
     if (null != WarpConfig.getProperty(Configuration.WARP_TOKEN_BANNED_ATTRIBUTES)) {
       String[] attr = WarpConfig.getProperty(Configuration.WARP_TOKEN_BANNED_ATTRIBUTES).split(",");
 
@@ -165,6 +175,46 @@ public class Tokens {
 
   private static ReadToken getReadToken(String token) {
 
+    if (null != tokenScript) {
+      Object x = WarpConfig.getThreadProperty(IN_TOKEN_SCRIPT);
+      try {
+        // Ensure tokenScript is not called recursively
+        if (Boolean.TRUE.equals(WarpConfig.getThreadProperty(IN_TOKEN_SCRIPT))) {
+          LOG.error("Recursive token script call.");
+          return null;
+        }
+
+        WarpConfig.setThreadProperty(IN_TOKEN_SCRIPT, Boolean.TRUE);
+
+        MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null,null);
+        // The debug capability is injected to allow the token macro to output log messages
+        Capabilities capabilities = new Capabilities();
+        capabilities.putIfAbsent(WarpScriptStack.CAPABILITY_DEBUG, "");
+        Capabilities.set(stack, capabilities);
+        stack.maxLimits();
+
+        stack.push(token);
+        stack.push(TokenType.READ.name());
+        stack.execMulti(tokenScript);
+
+        if (stack.depth() > 0 && stack.peek() instanceof Map) {
+          TBase t = TOKENGEN.tokenFromMap((Map) stack.pop(), "Script based read token", Long.MAX_VALUE >> 4);
+
+          if (t instanceof ReadToken) {
+            return (ReadToken) t;
+          }
+        }
+      } catch (Throwable t) {
+        LOG.error("Error during script based read token retrieval", t);
+      } finally {
+        if (null == x) {
+          WarpConfig.removeThreadProperty(IN_TOKEN_SCRIPT);
+        } else {
+          WarpConfig.setThreadProperty(IN_TOKEN_SCRIPT, x);
+        }
+      }
+    }
+
     synchronized (fileTokens) {
       if (fileTokens.containsKey(token) && fileTokens.get(token) instanceof ReadToken) {
         return ((ReadToken) fileTokens.get(token)).deepCopy();
@@ -205,6 +255,46 @@ public class Tokens {
   }
 
   private static WriteToken getWriteToken(String token) {
+
+    if (null != tokenScript) {
+      Object x = WarpConfig.getThreadProperty(IN_TOKEN_SCRIPT);
+      try {
+        // Ensure tokenScript is not called recursively
+        if (Boolean.TRUE.equals(WarpConfig.getThreadProperty(IN_TOKEN_SCRIPT))) {
+          LOG.error("Recursive token script call.");
+          return null;
+        }
+
+        WarpConfig.setThreadProperty(IN_TOKEN_SCRIPT, Boolean.TRUE);
+
+        MemoryWarpScriptStack stack = new MemoryWarpScriptStack(null,null);
+        // The debug capability is injected to allow the token macro to output log messages
+        Capabilities capabilities = new Capabilities();
+        capabilities.putIfAbsent(WarpScriptStack.CAPABILITY_DEBUG, "");
+        Capabilities.set(stack, capabilities);
+        stack.maxLimits();
+
+        stack.push(token);
+        stack.push(TokenType.WRITE.name());
+        stack.execMulti(tokenScript);
+
+        if (stack.depth() > 0 && stack.peek() instanceof Map) {
+          TBase t = TOKENGEN.tokenFromMap((Map) stack.pop(), "Script based write token", Long.MAX_VALUE >> 4);
+
+          if (t instanceof WriteToken) {
+            return (WriteToken) t;
+          }
+        }
+      } catch (Throwable t) {
+        LOG.error("Error during script based write token retrieval", t);
+      } finally {
+        if (null == x) {
+          WarpConfig.removeThreadProperty(IN_TOKEN_SCRIPT);
+        } else {
+          WarpConfig.setThreadProperty(IN_TOKEN_SCRIPT, x);
+        }
+      }
+    }
 
     synchronized (fileTokens) {
       if (fileTokens.containsKey(token) && fileTokens.get(token) instanceof WriteToken) {
